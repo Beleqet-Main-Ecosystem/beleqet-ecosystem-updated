@@ -1,1 +1,8 @@
-{}
+{
+  "bidding": {
+    "rationale": {
+      "coldStart": "No market data available. Suggestion based on job budget midpoint with {experienceMultiplier}x experience adjustment.",
+      "marketBased": "Based on market rate of {marketRate} and {experienceMultiplier}x experience multiplier."
+    }
+  }
+}
