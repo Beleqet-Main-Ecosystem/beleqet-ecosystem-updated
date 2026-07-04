@@ -24,16 +24,29 @@ class PresignedUrlDto {
 }
 exports.PresignedUrlDto = PresignedUrlDto;
 __decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Original file name from client',
+        example: 'portfolio-banner.png',
+    }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], PresignedUrlDto.prototype, "filename", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'MIME type of the uploaded file',
+        example: 'image/png',
+    }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], PresignedUrlDto.prototype, "contentType", void 0);
 __decorate([
+    (0, swagger_1.ApiProperty)({
+        required: false,
+        description: 'Destination folder in object storage',
+        example: 'profiles',
+    }),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
@@ -42,11 +55,19 @@ let UploadsController = class UploadsController {
     constructor(uploadsService) {
         this.uploadsService = uploadsService;
     }
-    async getPresignedUrl(body) {
-        return this.uploadsService.generatePresignedUrl(body.filename, body.contentType, body.folder || 'misc');
+    async getPresignedUrl(body, acceptLanguage) {
+        return this.uploadsService.generatePresignedUrl(body.filename, body.contentType, body.folder || 'misc', this.resolveLanguage(acceptLanguage));
     }
-    async uploadFile(file) {
-        return this.uploadsService.uploadFile(file, 'resumes');
+    async uploadFile(file, acceptLanguage) {
+        return this.uploadsService.uploadFile(file, 'resumes', this.resolveLanguage(acceptLanguage));
+    }
+    resolveLanguage(acceptLanguage) {
+        if (!acceptLanguage) {
+            return 'en';
+        }
+        const [firstLanguage] = acceptLanguage.split(',');
+        const normalized = firstLanguage.trim();
+        return normalized || 'en';
     }
 };
 exports.UploadsController = UploadsController;
@@ -55,8 +76,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Get a secure S3 upload URL for a file' }),
     openapi.ApiResponse({ status: 201 }),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Headers)('accept-language')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [PresignedUrlDto]),
+    __metadata("design:paramtypes", [PresignedUrlDto, String]),
     __metadata("design:returntype", Promise)
 ], UploadsController.prototype, "getPresignedUrl", null);
 __decorate([
@@ -65,8 +87,9 @@ __decorate([
     (0, swagger_1.ApiOperation)({ summary: 'Upload file directly to cloud storage' }),
     openapi.ApiResponse({ status: 201 }),
     __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Headers)('accept-language')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], UploadsController.prototype, "uploadFile", null);
 exports.UploadsController = UploadsController = __decorate([
