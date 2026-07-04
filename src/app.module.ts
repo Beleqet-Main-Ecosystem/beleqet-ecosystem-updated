@@ -24,6 +24,9 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
 
+//  NEW IMPORT: My AI Feed Module
+import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
+
 @Module({
   imports: [
     // ── Configuration (loads .env) ─────────────────────────────────────────
@@ -88,11 +91,15 @@ import { ContactModule } from './modules/contact/contact.module';
     ApplicationsModule,
     ScreeningModule,
     NotificationsModule,
+    
+    // ✅ My MODULE REGISTERED HERE (alphabetical order: Admin → AiFeed → Analytics)
+    AdminModule,
+    AiFeedModule,   // <-- THIS IS My NEW AI PERSONAL FEED MODULE
     AnalyticsModule,
+    
     FreelanceModule,
     EscrowModule,
     WalletModule,
-    AdminModule,
     ChatModule,
     UploadsModule,
     TelegramModule,
