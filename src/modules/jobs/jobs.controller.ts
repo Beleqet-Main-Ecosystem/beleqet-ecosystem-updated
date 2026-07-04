@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { I18nLang } from 'nestjs-i18n';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -14,8 +15,8 @@ export class JobsController {
 
   @Get()
   @ApiOperation({ summary: 'Search & browse job listings (public)' })
-  findAll(@Query() query: QueryJobsDto) {
-    return this.svc.findAll(query);
+  findAll(@Query() query: QueryJobsDto, @I18nLang() locale: string) {
+    return this.svc.findAll(query, locale);
   }
 
   @Get('my')
@@ -28,13 +29,13 @@ export class JobsController {
 
   @Get('categories')
   @ApiOperation({ summary: 'Get all job categories' })
-  getCategories() {
-    return this.svc.getCategories();
+  getCategories(@I18nLang() locale: string) {
+    return this.svc.getCategories(locale);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  findOne(@Param('id') id: string, @I18nLang() locale: string) {
+    return this.svc.findOne(id, locale);
   }
 
   @Post()
