@@ -1,1 +1,6 @@
-{}
+{
+	"uploads": {
+		"presignedUrlCreated": "Presigned upload URL generated successfully.",
+		"assetUploaded": "Asset uploaded and optimized successfully."
+	}
+}
