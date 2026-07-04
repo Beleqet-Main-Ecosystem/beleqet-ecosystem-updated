@@ -1,0 +1,44 @@
+{
+  "common": {
+    "welcome": "Bienvenue sur Beleqet",
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "success": "Opération réussie",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "search": "Rechercher",
+    "submit": "Soumettre"
+  },
+  "auth": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "register": "S'inscrire",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "invalidCredentials": "E-mail ou mot de passe invalide"
+  },
+  "jobs": {
+    "title": "Emplois",
+    "postJob": "Publier un emploi",
+    "applyNow": "Postuler maintenant",
+    "budget": "Budget",
+    "deadline": "Date limite",
+    "skills": "Compétences requises",
+    "noJobs": "Aucun emploi trouvé"
+  },
+  "wallet": {
+    "balance": "Solde",
+    "deposit": "Dépôt",
+    "withdraw": "Retrait",
+    "transactions": "Transactions",
+    "insufficientFunds": "Fonds insuffisants"
+  },
+  "validation": {
+    "required": "{field} est requis",
+    "minLength": "{field} doit contenir au moins {min} caractères",
+    "invalidEmail": "Adresse e-mail invalide"
+  }
+}

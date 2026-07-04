@@ -1,0 +1,44 @@
+{
+  "common": {
+    "welcome": "مرحباً بك في بيليكيت",
+    "loading": "جارٍ التحميل...",
+    "error": "حدث خطأ",
+    "success": "تمت العملية بنجاح",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "search": "بحث",
+    "submit": "إرسال"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "register": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+  },
+  "jobs": {
+    "title": "الوظائف",
+    "postJob": "نشر وظيفة",
+    "applyNow": "تقدم الآن",
+    "budget": "الميزانية",
+    "deadline": "الموعد النهائي",
+    "skills": "المهارات المطلوبة",
+    "noJobs": "لا توجد وظائف"
+  },
+  "wallet": {
+    "balance": "الرصيد",
+    "deposit": "إيداع",
+    "withdraw": "سحب",
+    "transactions": "المعاملات",
+    "insufficientFunds": "رصيد غير كافٍ"
+  },
+  "validation": {
+    "required": "{field} مطلوب",
+    "minLength": "يجب أن يحتوي {field} على {min} أحرف على الأقل",
+    "invalidEmail": "عنوان البريد الإلكتروني غير صالح"
+  }
+}

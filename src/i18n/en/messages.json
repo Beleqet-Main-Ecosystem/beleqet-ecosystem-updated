@@ -1,1 +1,44 @@
-{}
+{
+  "common": {
+    "welcome": "Welcome to Beleqet",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Operation successful",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "submit": "Submit"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "invalidCredentials": "Invalid email or password"
+  },
+  "jobs": {
+    "title": "Jobs",
+    "postJob": "Post a Job",
+    "applyNow": "Apply Now",
+    "budget": "Budget",
+    "deadline": "Deadline",
+    "skills": "Required Skills",
+    "noJobs": "No jobs found"
+  },
+  "wallet": {
+    "balance": "Balance",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "transactions": "Transactions",
+    "insufficientFunds": "Insufficient funds"
+  },
+  "validation": {
+    "required": "{field} is required",
+    "minLength": "{field} must be at least {min} characters",
+    "invalidEmail": "Invalid email address"
+  }
+}

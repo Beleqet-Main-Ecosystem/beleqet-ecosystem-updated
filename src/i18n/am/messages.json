@@ -1,0 +1,44 @@
+{
+  "common": {
+    "welcome": "እንኳን ወደ በልቀት በደህና መጡ",
+    "loading": "በመጫን ላይ...",
+    "error": "ስህተት ተፈጥሯል",
+    "success": "ስራው ተሳክቷል",
+    "save": "አስቀምጥ",
+    "cancel": "ሰርዝ",
+    "delete": "ሰርዝ",
+    "edit": "አርትዕ",
+    "search": "ፈልግ",
+    "submit": "አስገባ"
+  },
+  "auth": {
+    "login": "ግባ",
+    "logout": "ውጣ",
+    "register": "ተመዝገብ",
+    "email": "ኢሜይል",
+    "password": "የይለፍ ቃል",
+    "forgotPassword": "የይለፍ ቃልዎን ረሱ?",
+    "invalidCredentials": "ኢሜይል ወይም የይለፍ ቃል ትክክል አይደለም"
+  },
+  "jobs": {
+    "title": "ስራዎች",
+    "postJob": "ስራ ለጥፍ",
+    "applyNow": "አሁን ተወዳደር",
+    "budget": "በጀት",
+    "deadline": "የመጨረሻ ቀን",
+    "skills": "የሚያስፈልጉ ክህሎቶች",
+    "noJobs": "ምንም ስራ አልተገኘም"
+  },
+  "wallet": {
+    "balance": "ቀሪ ሂሳብ",
+    "deposit": "አስቀምጥ",
+    "withdraw": "አውጣ",
+    "transactions": "ግብይቶች",
+    "insufficientFunds": "በቂ ሂሳብ የለም"
+  },
+  "validation": {
+    "required": "{field} ያስፈልጋል",
+    "minLength": "{field} ቢያንስ {min} ፊደሎች ሊኖሩት ይገባል",
+    "invalidEmail": "ኢሜይሉ ትክክል አይደለም"
+  }
+}
