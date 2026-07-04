@@ -1,0 +1,9 @@
+{
+  "kyc": {
+    "submitted": "KYC verification submitted successfully.",
+    "pending": "Your verification request is currently pending review.",
+    "approved": "KYC verification approved.",
+    "rejected": "KYC verification was rejected: {reason}",
+    "not_found": "No KYC record found for this account."
+  }
+}

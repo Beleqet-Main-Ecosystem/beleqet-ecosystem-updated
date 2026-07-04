@@ -2,11 +2,11 @@
 node_modules/
 
 # Build and compiled output
-dist/
 build/
 .next/
 out/
 *.tsbuildinfo
+dist/
 frontend/dist-test/
 frontend/.next/
 frontend/out/
