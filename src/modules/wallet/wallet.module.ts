@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+import { CurrencyModule } from '../currency/currency.module';
 import { WalletService } from './wallet.service';
 import { WalletController } from './wallet.controller';
 import { WalletProcessor } from './wallet.processor';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: QUEUE_NAMES.WALLET })],
+  imports: [BullModule.registerQueue({ name: QUEUE_NAMES.WALLET }), CurrencyModule],
   providers: [WalletService, WalletProcessor],
   controllers: [WalletController],
   exports: [WalletService],

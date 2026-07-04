@@ -182,7 +182,7 @@ export class EscrowService {
     try {
       // Handle currency conversion if necessary. Base currency is ETB.
       const contractCurrency = milestone.contract.currency || 'ETB';
-      const amountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
+      const amountInETB = await this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
 
       // Add to wallet pending balance (3-day hold)
       await this.prisma.freelancerWallet.upsert({

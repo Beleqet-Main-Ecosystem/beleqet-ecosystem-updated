@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
-import { IsEnum, IsInt, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
+import { IsEnum, IsIn, IsInt, IsNumber, IsPositive, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { ExchangeRateService } from '../currency/exchange-rate.service';
+import { SUPPORTED_CURRENCIES } from '../currency/currency.constants';
 
 export class WithdrawDto {
   @IsInt()
@@ -16,9 +19,21 @@ export class WithdrawDto {
   @MaxLength(50, { message: 'accountRef must be 50 characters or fewer' })
   accountRef: string;
 
-  @IsString()
+  @IsIn(SUPPORTED_CURRENCIES, { message: `currency must be one of ${SUPPORTED_CURRENCIES.join(', ')}` })
   @IsOptional()
   currency?: string = 'ETB';
+}
+
+export class ConvertDto {
+  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'amount must be a number with at most 2 decimal places' })
+  @IsPositive({ message: 'amount must be greater than 0' })
+  amount: number;
+
+  @IsIn(SUPPORTED_CURRENCIES, { message: `from must be one of ${SUPPORTED_CURRENCIES.join(', ')}` })
+  from: string;
+
+  @IsIn(SUPPORTED_CURRENCIES, { message: `to must be one of ${SUPPORTED_CURRENCIES.join(', ')}` })
+  to: string;
 }
 
 @Injectable()
@@ -28,6 +43,7 @@ export class WalletService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly exchangeRateSvc: ExchangeRateService,
   ) {}
 
   async getEmployerWallet(userId: string) {
@@ -56,20 +72,51 @@ export class WalletService {
     });
   }
 
-  // Mock exchange rates. In a real scenario, this would call an external API.
-  private readonly exchangeRates: Record<string, number> = {
-    'USD_ETB': 120.5,
-    'EUR_ETB': 130.2,
-    'ETB_USD': 1 / 120.5,
-    'ETB_EUR': 1 / 130.2,
-  };
-
-  convertCurrency(amount: number, from: string, to: string): number {
+  /** Converts `amount` between currencies using the live Exchange Rate API. */
+  async convertCurrency(amount: number, from: string, to: string): Promise<number> {
     if (from === to) return amount;
-    const pair = `${from}_${to}`;
-    const rate = this.exchangeRates[pair];
-    if (!rate) throw new BadRequestException(`Exchange rate for ${from} to ${to} not found`);
-    return Math.round(amount * rate);
+    const converted = await this.exchangeRateSvc.convert(amount, from, to);
+    return Math.round(converted);
+  }
+
+  /** Live preview of a currency conversion, without touching any wallet balance. */
+  async previewConvert(dto: ConvertDto) {
+    const rate = await this.exchangeRateSvc.getRate(dto.from, dto.to);
+    return {
+      amount: dto.amount,
+      from: dto.from,
+      to: dto.to,
+      converted: dto.amount * rate,
+      rate,
+    };
+  }
+
+  /** Returns the freelancer wallet's balances converted live into each requested currency. */
+  async getBalancesInCurrencies(userId: string, targets?: string[]) {
+    const wallet = await this.getOrCreate(userId);
+    const targetCurrencies = targets?.length ? targets : this.exchangeRateSvc.getSupportedCurrencies();
+
+    return Promise.all(
+      targetCurrencies.map(async (currency) => ({
+        currency,
+        availableBalance: await this.convertCurrency(wallet.availableBalance, wallet.currency, currency),
+        pendingBalance: await this.convertCurrency(wallet.pendingBalance, wallet.currency, currency),
+      })),
+    );
+  }
+
+  /** Returns the employer wallet's balances converted live into each requested currency. */
+  async getEmployerBalancesInCurrencies(userId: string, targets?: string[]) {
+    const wallet = await this.getEmployerWallet(userId);
+    const targetCurrencies = targets?.length ? targets : this.exchangeRateSvc.getSupportedCurrencies();
+
+    return Promise.all(
+      targetCurrencies.map(async (currency) => ({
+        currency,
+        balance: await this.convertCurrency(wallet.balance, wallet.currency, currency),
+        lockedBalance: await this.convertCurrency(wallet.lockedBalance, wallet.currency, currency),
+      })),
+    );
   }
 
   async withdraw(userId: string, dto: WithdrawDto) {
@@ -78,18 +125,25 @@ export class WalletService {
 
     // Convert requested withdrawal amount to the wallet's base currency (ETB)
     const withdrawCurrency = dto.currency || 'ETB';
-    const amountInWalletCurrency = this.convertCurrency(dto.amount, withdrawCurrency, wallet.currency);
+    const amountInWalletCurrency = await this.convertCurrency(dto.amount, withdrawCurrency, wallet.currency);
 
     if (wallet.availableBalance < amountInWalletCurrency) throw new BadRequestException('Insufficient available balance');
 
     // Step 1: Deduct balance and create a PENDING transaction atomically
-    const { tx } = await this.prisma.$transaction(async (prisma: any) => {
+    const { tx } = await this.prisma.$transaction(async (prisma: Prisma.TransactionClient) => {
       await prisma.freelancerWallet.update({
         where: { userId },
         data: { availableBalance: { decrement: amountInWalletCurrency } },
       });
       const tx = await prisma.walletTransaction.create({
-        data: { walletId: wallet.id, type: 'DEBIT_WITHDRAWAL', amount: amountInWalletCurrency, note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending` },
+        data: {
+          walletId: wallet.id,
+          type: 'DEBIT_WITHDRAWAL',
+          amount: amountInWalletCurrency,
+          currency: withdrawCurrency,
+          originalAmount: dto.amount,
+          note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending`,
+        },
       });
       return { tx };
     });

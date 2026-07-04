@@ -399,14 +399,16 @@ model FreelancerWallet {
 }
 
 model WalletTransaction {
-  id          String                @id @default(uuid())
-  walletId    String
-  type        WalletTransactionType
-  amount      Int
-  note        String?
-  milestoneId String?
-  createdAt   DateTime              @default(now())
-  wallet      FreelancerWallet      @relation(fields: [walletId], references: [id])
+  id              String                @id @default(uuid())
+  walletId        String
+  type            WalletTransactionType
+  amount          Int
+  note            String?
+  milestoneId     String?
+  currency        String?
+  originalAmount  Int?
+  createdAt       DateTime              @default(now())
+  wallet          FreelancerWallet      @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
   @@map("wallet_transactions")
@@ -426,14 +428,16 @@ model EmployerWallet {
 }
 
 model EmployerWalletTransaction {
-  id          String                @id @default(uuid())
-  walletId    String
-  type        WalletTransactionType
-  amount      Int
-  note        String?
-  escrowId    String?
-  createdAt   DateTime              @default(now())
-  wallet      EmployerWallet        @relation(fields: [walletId], references: [id])
+  id              String                @id @default(uuid())
+  walletId        String
+  type            WalletTransactionType
+  amount          Int
+  note            String?
+  escrowId        String?
+  currency        String?
+  originalAmount  Int?
+  createdAt       DateTime              @default(now())
+  wallet          EmployerWallet        @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
   @@map("employer_wallet_transactions")
