@@ -32,3 +32,14 @@
 3. Develop: የተመደቡትን ሞጁል ብቻ በንጹህ ኮድ ይስሩ።
 4. Submit: ስራዎን ሲያጠናቅቁ የ GitHub Pull Request (PR) ይክፈቱ።
 5. Quality Standard: ኮድዎ የ Global Scaling (i18n, GDPR, Multi-currency) መስፈርቶችን ማሟላት አለበት።
+
+## 🌓 Contributed Module: Dark/Light Mode (User Experience & UI)
+
+A frontend Dark/Light Mode module has been added under (./frontend).
+This repository was NestJS-only prior to this contribution, so a minimal
+Next.js host app was added solely to run and demonstrate the module — no
+backend code was modified. See (./frontend/README.md)
+for setup instructions and a rule-by-rule note on how each project
+guideline was applied to a frontend-only module.
+
+
