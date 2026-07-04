@@ -358,19 +358,21 @@ export class LoadBalancerService {
     if (!raw.trim()) return;
 
     for (const entry of raw.split(';').filter(Boolean)) {
-      const [idPart, rest] = entry.split('=');
-      if (!idPart || !rest) continue;
+      const eqIndex = entry.indexOf('=');
+      if (eqIndex === -1) continue;
 
-      const segments = rest.split(':');
-      const url = segments[0];
-      const region = segments[1] ?? 'ET';
-      const currencies = segments[2]?.split(',').filter(Boolean) ?? ['ETB'];
+      const idPart = entry.slice(0, eqIndex);
+      const rest = entry.slice(eqIndex + 1);
+      const parsed = rest.match(/^(https?:\/\/[^/]+):([^:]+):(.+)$/);
+      if (!parsed) continue;
+
+      const [, url, region, currencyList] = parsed;
 
       this.backends.set(idPart.trim(), {
         id: idPart.trim(),
         url: url.trim(),
         region: region.toUpperCase(),
-        supportedCurrencies: currencies.map((c) => c.toUpperCase()),
+        supportedCurrencies: currencyList.split(',').filter(Boolean).map((c) => c.toUpperCase()),
         activeConnections: 0,
         healthy: true,
         lastHealthCheckAt: null,

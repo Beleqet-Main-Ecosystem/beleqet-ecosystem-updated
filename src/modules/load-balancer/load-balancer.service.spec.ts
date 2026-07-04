@@ -115,4 +115,47 @@ describe('LoadBalancerService', () => {
 
     expect(() => service.routeRequest({ clientIp: '10.0.0.1' })).toThrow();
   });
+
+  it('should parse LOAD_BALANCER_BACKENDS URLs with port numbers', async () => {
+    mockConfigService.get.mockImplementation((key: string, defaultValue?: string) => {
+      const values: Record<string, string> = {
+        LOAD_BALANCER_STRATEGY: LoadBalancerStrategy.ROUND_ROBIN,
+        LOAD_BALANCER_STICKY_SESSIONS: 'true',
+        LOAD_BALANCER_HEALTH_CHECK_INTERVAL_MS: '30000',
+        LOAD_BALANCER_HEALTH_CHECK_TIMEOUT_MS: '5000',
+        LOAD_BALANCER_HEALTH_CHECK_PATH: '/api/v1/load-balancer/ping',
+        LOAD_BALANCER_BACKENDS:
+          'backend-1=http://backend-1:4000:ET:ETB,USD;backend-2=http://backend-2:4000:US:USD',
+      };
+      return values[key] ?? defaultValue;
+    });
+
+    const module = await Test.createTestingModule({
+      providers: [
+        LoadBalancerService,
+        LoadBalancerStrategyFactory,
+        RoundRobinStrategy,
+        LeastConnectionsStrategy,
+        IpHashStrategy,
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: I18nService, useValue: mockI18n },
+      ],
+    }).compile();
+
+    const bootstrapped = module.get<LoadBalancerService>(LoadBalancerService);
+    const backends = bootstrapped.listBackends(true) as Array<{
+      id: string;
+      url: string;
+      region: string;
+      supportedCurrencies: string[];
+    }>;
+
+    expect(backends).toHaveLength(2);
+    expect(backends[0]).toMatchObject({
+      id: 'backend-1',
+      url: 'http://backend-1:4000',
+      region: 'ET',
+      supportedCurrencies: ['ETB', 'USD'],
+    });
+  });
 });
