@@ -40,6 +40,9 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
       - REDIS_TLS=false
+      - CACHE_DEFAULT_TTL_MS=60000
+      - JOBS_CACHE_TTL_MS=60000
+      - JOB_CATEGORIES_CACHE_TTL_MS=300000
       - JWT_ACCESS_SECRET=docker_default_secret_please_change_in_production
       - JWT_ACCESS_EXPIRES=15m
       - JWT_REFRESH_EXPIRES=30d
