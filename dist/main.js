@@ -80,6 +80,7 @@ async function bootstrap() {
             .addTag('wallet', 'Freelancer wallet & withdrawals')
             .addTag('notifications', 'Notification management')
             .addTag('analytics', 'Platform analytics')
+            .addTag('load-balancer', 'Performance & Network — traffic distribution')
             .build();
         const document = swagger_1.SwaggerModule.createDocument(app, swaggerConfig);
         swagger_1.SwaggerModule.setup('api/docs', app, document);

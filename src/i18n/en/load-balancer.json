@@ -1,0 +1,12 @@
+{
+  "errors": {
+    "backendExists": "Backend \"{id}\" is already registered in the pool.",
+    "backendNotFound": "Backend \"{id}\" was not found.",
+    "noHealthyBackend": "No healthy backend instances are available for the requested region or currency.",
+    "routingFailed": "Unable to route the request — all candidate backends are unavailable."
+  },
+  "status": {
+    "healthy": "Load balancer is operational.",
+    "degraded": "Load balancer is degraded — one or more backends are unhealthy."
+  }
+}
