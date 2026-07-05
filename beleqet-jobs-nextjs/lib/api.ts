@@ -40,6 +40,11 @@ export type Job = {
   featured?: boolean;
   description?: string;
   tags?: string[];
+  //ADD NEW FIELDS:
+  salaryMin?: number;
+  salaryMax?: number;
+  currency?: string;
+  relevanceScore?: number;
 };
 
 export type Category = {
