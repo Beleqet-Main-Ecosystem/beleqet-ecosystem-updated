@@ -2,9 +2,16 @@
 
 import { useState } from 'react';
 import JobCard from '@/components/JobCard';
+import type { Job } from '@/lib/api';
 
-export default function FeedClient({ initialJobs, userId }) {
-  const [jobs, setJobs] = useState(initialJobs);
+// PROPER TYPES
+interface FeedClientProps {
+  initialJobs: Job[];
+  userId: string;
+}
+
+export default function FeedClient({ initialJobs, userId }: FeedClientProps) {
+  const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [loading, setLoading] = useState(false);
   const [gdprConsent, setGdprConsent] = useState(true);
 
@@ -21,7 +28,7 @@ export default function FeedClient({ initialJobs, userId }) {
       }).catch(() => {});
 
       const res = await fetch(`/api/v1/ai-feed?limit=5`);
-      const data = await res.json();
+      const data: Job[] = await res.json();
       setJobs(data);
     } catch (e) {
       console.error(e);
@@ -46,11 +53,11 @@ export default function FeedClient({ initialJobs, userId }) {
         <p className="text-gray-500">No matching jobs found.</p>
       ) : (
         <div className="grid gap-4">
-          {jobs.map((job) => (
+          {jobs.map((job: Job) => (
             <JobCard key={job.id} job={job} showMatchScore />
           ))}
         </div>
       )}
     </div>
   );
-    }
+}
