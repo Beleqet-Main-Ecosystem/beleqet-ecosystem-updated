@@ -16,16 +16,17 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
  * Unit tests for {@link PaypalDisputeService}.
  *
  * Covers:
- * - Full refund — sends no `amount` body to PayPal, sets status `REFUNDED`
- * - Partial refund — sends `amount` body, sets status `PARTIALLY_REFUNDED`
- * - Refund audit trail — writes immutable `PaypalRefund` row via `$transaction`
+ * - Full refund — sends no `amount` body to PayPal, derives status from `isPartial` flag
+ * - Partial refund — sends `amount` body, note_to_payer, derives PARTIALLY_REFUNDED
+ * - Atomic write — `$transaction` called once for PaypalRefund + PaypalTransaction update
+ * - Mock mode — no API call, refund ID prefixed MOCK-REF-, $transaction still called
  * - Ownership check — `NotFoundException` for wrong client
- * - PayPal refund API failure — `BadRequestException`
- * - Mock mode — no API call, refund row still written
+ * - PayPal API failure — `BadRequestException`, `$transaction` NOT called
  * - Dispute upsert — creates new record linked to transaction
  * - Dispute upsert idempotency — updates existing record
- * - Dispute upsert enqueues `SYNC_DISPUTE` job with 5-minute delay
- * - Unknown buyer_transaction_id — transactionId is null (graceful degradation)
+ * - SYNC_DISPUTE job enqueued with 5-minute delay
+ * - Orphan dispute — `transactionId: null` when buyer_transaction_id not found
+ * - Status mapping — exhaustive check for all 6 known statuses + unknown fallback
  */
 describe('PaypalDisputeService', () => {
   let service: PaypalDisputeService;
@@ -46,13 +47,6 @@ describe('PaypalDisputeService', () => {
     status:          'CAPTURED',
   };
 
-  /** Updated transaction returned after a full refund */
-  const refundedTx = {
-    ...existingTx,
-    status:        'REFUNDED',
-    refundedAmount: 100,
-  };
-
   const makeMockPrisma = () => ({
     paypalTransaction: {
       findFirst: jest.fn(),
@@ -64,7 +58,8 @@ describe('PaypalDisputeService', () => {
     paypalDispute: {
       upsert: jest.fn(),
     },
-    $transaction: jest.fn(),
+    // Prisma interactive transaction — returns void[] for batch operations
+    $transaction: jest.fn().mockResolvedValue([undefined, undefined]),
   });
 
   let mockPrisma: ReturnType<typeof makeMockPrisma>;
@@ -80,9 +75,9 @@ describe('PaypalDisputeService', () => {
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
         PaypalDisputeService,
-        { provide: PaypalAuthService,              useValue: mockAuthService },
-        { provide: ConfigService,                  useValue: makeMockConfigService(mode) },
-        { provide: PrismaService,                  useValue: mockPrisma },
+        { provide: PaypalAuthService,                 useValue: mockAuthService },
+        { provide: ConfigService,                     useValue: makeMockConfigService(mode) },
+        { provide: PrismaService,                     useValue: mockPrisma },
         { provide: getQueueToken(QUEUE_NAMES.PAYPAL), useValue: mockQueue },
       ],
     }).compile();
@@ -100,9 +95,7 @@ describe('PaypalDisputeService', () => {
 
   describe('refund (sandbox)', () => {
     beforeEach(() => {
-      // Default: transaction found, $transaction executes both writes atomically
       mockPrisma.paypalTransaction.findFirst.mockResolvedValue(existingTx);
-      mockPrisma.$transaction.mockResolvedValue([refundedTx, { id: 'refund-row-uuid' }]);
     });
 
     it('issues a full refund, sets status REFUNDED, and writes an audit row', async () => {
@@ -113,23 +106,20 @@ describe('PaypalDisputeService', () => {
 
       const result = await service.refund('3C679366HH908993F', 'client-uuid', {});
 
+      // Service derives newTxStatus from `isPartial` flag (no dto.amount => REFUNDED)
       expect(result.newTxStatus).toBe('REFUNDED');
+      // refundId comes from PayPal response.data.id
       expect(result.refundId).toBe('REFUND-001');
-      expect(result.refundedAmount).toBe(100); // Full amount
-
-      // Verify the atomic $transaction was used (not individual calls)
+      // refundedAmount falls back to tx.amount when no dto.amount given
+      expect(result.refundedAmount).toBe(100);
+      // Atomic write: $transaction called once
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
-
-      // Verify no 'amount' field sent to PayPal for a full refund
+      // Full refund sends no amount field to PayPal
       const paypalCallBody = (mockedAxios.post as jest.Mock).mock.calls[0][1];
       expect(paypalCallBody).not.toHaveProperty('amount');
     });
 
-    it('issues a partial refund with correct amount and sets PARTIALLY_REFUNDED', async () => {
-      mockPrisma.$transaction.mockResolvedValue([
-        { ...existingTx, status: 'PARTIALLY_REFUNDED', refundedAmount: 40 },
-        { id: 'refund-row-partial' },
-      ]);
+    it('issues a partial refund and sets PARTIALLY_REFUNDED', async () => {
       mockedAxios.post = jest.fn().mockResolvedValueOnce({
         data: { id: 'REFUND-002', status: 'COMPLETED' },
       });
@@ -138,17 +128,18 @@ describe('PaypalDisputeService', () => {
       const dto: RefundDto = { amount: 40, currency: 'USD', note: 'Partial delivery' };
       const result = await service.refund('3C679366HH908993F', 'client-uuid', dto);
 
+      // Service derives PARTIALLY_REFUNDED because dto.amount is defined
       expect(result.newTxStatus).toBe('PARTIALLY_REFUNDED');
+      // refundedAmount is dto.amount for partial refunds
       expect(result.refundedAmount).toBe(40);
-
-      // Verify 'amount' was sent to PayPal for a partial refund
+      // PayPal body includes the amount object
       const paypalCallBody = (mockedAxios.post as jest.Mock).mock.calls[0][1];
       expect(paypalCallBody).toHaveProperty('amount');
       expect(paypalCallBody.amount.value).toBe('40.00');
+      expect(paypalCallBody.amount.currency_code).toBe('USD');
     });
 
-    it('sends note_to_payer (truncated to 255 chars) when note is provided', async () => {
-      mockPrisma.$transaction.mockResolvedValue([refundedTx, {}]);
+    it('sends note_to_payer when a note is provided', async () => {
       mockedAxios.post = jest.fn().mockResolvedValueOnce({
         data: { id: 'REFUND-003', status: 'COMPLETED' },
       });
@@ -159,10 +150,13 @@ describe('PaypalDisputeService', () => {
       });
 
       const paypalCallBody = (mockedAxios.post as jest.Mock).mock.calls[0][1];
-      expect(paypalCallBody).toHaveProperty('note_to_payer', 'Client cancelled before delivery started');
+      expect(paypalCallBody).toHaveProperty(
+        'note_to_payer',
+        'Client cancelled before delivery started',
+      );
     });
 
-    it('writes PaypalRefund row with correct isPartial flag for full refund', async () => {
+    it('calls $transaction once to atomically update tx and create audit refund row', async () => {
       mockedAxios.post = jest.fn().mockResolvedValueOnce({
         data: { id: 'REFUND-004', status: 'COMPLETED' },
       });
@@ -170,11 +164,11 @@ describe('PaypalDisputeService', () => {
 
       await service.refund('3C679366HH908993F', 'client-uuid', {});
 
-      // Check the $transaction received a PaypalRefund create call with isPartial=false
-      const transactionCalls = (mockPrisma.$transaction as jest.Mock).mock.calls[0][0];
-      // transactionCalls is an array of prisma calls — we can't inspect them directly without
-      // PrismaClient, so we verify $transaction was called once (atomic write)
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      // $transaction receives an array of two Prisma operations
+      const batchArg = (mockPrisma.$transaction as jest.Mock).mock.calls[0][0];
+      expect(Array.isArray(batchArg)).toBe(true);
+      expect(batchArg).toHaveLength(2);
     });
 
     it('throws NotFoundException when capture does not belong to the client', async () => {
@@ -197,7 +191,7 @@ describe('PaypalDisputeService', () => {
         service.refund('3C679366HH908993F', 'client-uuid', {}),
       ).rejects.toThrow(BadRequestException);
 
-      // $transaction should NOT be called if PayPal call fails
+      // $transaction must NOT be called when the API call fails
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
   });
@@ -208,7 +202,6 @@ describe('PaypalDisputeService', () => {
     beforeEach(async () => {
       await buildModule('mock');
       mockPrisma.paypalTransaction.findFirst.mockResolvedValue(existingTx);
-      mockPrisma.$transaction.mockResolvedValue([refundedTx, { id: 'refund-mock-uuid' }]);
     });
 
     it('issues refund without calling PayPal API in mock mode', async () => {
@@ -217,7 +210,17 @@ describe('PaypalDisputeService', () => {
       expect(result.refundId).toMatch(/^MOCK-REF-/);
       expect(result.newTxStatus).toBe('REFUNDED');
       expect(mockedAxios.post).not.toHaveBeenCalled();
+      // $transaction still called to create the audit row
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns PARTIALLY_REFUNDED for partial refund in mock mode', async () => {
+      const dto: RefundDto = { amount: 30, currency: 'USD' };
+      const result = await service.refund('3C679366HH908993F', 'client-uuid', dto);
+
+      expect(result.newTxStatus).toBe('PARTIALLY_REFUNDED');
+      expect(result.refundedAmount).toBe(30);
+      expect(mockedAxios.post).not.toHaveBeenCalled();
     });
   });
 
@@ -286,7 +289,6 @@ describe('PaypalDisputeService', () => {
       });
 
       expect(result.status).toBe('UNDER_REVIEW');
-      // Prisma upsert is called once — the where clause handles existing vs new
       expect(mockPrisma.paypalDispute.upsert).toHaveBeenCalledTimes(1);
     });
 
@@ -307,7 +309,7 @@ describe('PaypalDisputeService', () => {
       );
     });
 
-    it('maps unknown PayPal status strings to OPEN as a safe fallback', async () => {
+    it('falls back to OPEN for unknown PayPal status strings', async () => {
       mockPrisma.paypalTransaction.findFirst.mockResolvedValue(null);
       mockPrisma.paypalDispute.upsert.mockResolvedValue({
         id:              'dispute-uuid',
@@ -321,7 +323,6 @@ describe('PaypalDisputeService', () => {
         status:     'SOME_FUTURE_PAYPAL_STATUS_XYZ',
       });
 
-      // mapDisputeStatus should have fallen back to OPEN
       expect(mockPrisma.paypalDispute.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({ status: 'OPEN' }),
@@ -329,8 +330,8 @@ describe('PaypalDisputeService', () => {
       );
     });
 
-    it('correctly maps all known PayPal dispute statuses', async () => {
-      const statusMap = [
+    it('correctly maps all 6 known PayPal dispute statuses', async () => {
+      const statusMap: [string, string][] = [
         ['OPEN',                        'OPEN'],
         ['WAITING_FOR_BUYER_RESPONSE',  'WAITING_FOR_BUYER_RESPONSE'],
         ['WAITING_FOR_SELLER_RESPONSE', 'WAITING_FOR_SELLER_RESPONSE'],
