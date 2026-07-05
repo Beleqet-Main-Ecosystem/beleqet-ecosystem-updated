@@ -1,0 +1,1 @@
+{"version":3,"file":"i18n-context.js","sourceRoot":"","sources":["../../src/utils/i18n-context.ts"],"names":[],"mappings":";;AAIA,sDAWC;AAfD,oCAAkC;AAElC,8CAA0C;AAE1C,SAAgB,qBAAqB,CACnC,IAAgC;IAEhC,IAAI,IAAI,KAAK,SAAS,EAAE,CAAC;QACvB,cAAM,CAAC,KAAK,CACV,0GAA0G,CAC3G,CAAC;QACF,MAAM,IAAI,sBAAS,CAAC,wBAAwB,CAAC,CAAC;IAChD,CAAC;IAED,OAAO,IAAI,CAAC;AACd,CAAC"}

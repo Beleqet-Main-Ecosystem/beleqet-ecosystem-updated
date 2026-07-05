@@ -1,0 +1,25 @@
+{
+  "payment": {
+    "processing": "ክፍያ እየተካሄደ ነው...",
+    "success": "ክፍያ ተሳካ! ✅",
+    "failed": "ክፍያ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+    "cancelled": "ክፍያ ተሰርዟል።",
+    "refunded": "ክፍያዎ ተመልሷል።",
+    "partial_refund": "ከፊል ክፍያ ተመልሷል።"
+  },
+  "subscription": {
+    "activated": "ሱስክሪፕሽን ተነቃቅቷል! ✅",
+    "cancelled": "ሱስክሪፕሽን ተሰርዟል።",
+    "suspended": "ሱስክሪፕሽን ታግዷል።",
+    "expired": "ሱስክሪፕሽን ጊዜው አልፏል።"
+  },
+  "dispute": {
+    "opened": "ክርክር ተከፍቷል — እባክዎ ሁኔታውን ይፈትሹ።",
+    "resolved": "ክርክሩ ተፈትቷል።"
+  },
+  "errors": {
+    "generic": "ያልተጠበቀ ስህተት ተከስቷል። እባክዎ ቆይተው ይሞክሩ።",
+    "invalid_currency": "የምንዛሪ አይነት ልክ አይደለም።",
+    "insufficient_funds": "በቂ ሂሳብ የለም።"
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "version": "2.4.0",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "dist/cjs/index.js",
+  "typings": "dist/cjs/types/index.d.ts",
+  "module": "dist/esm/index.js",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=14.17.0"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.esm.json & tsc -p tsconfig.cjs.json && node ./scripts/split-package-json.mjs",
+    "prepare": "rimraf dist && tsc -p tsconfig.esm.json & tsc -p tsconfig.cjs.json && node ./scripts/split-package-json.mjs",
+    "lint": "eslint **/*.ts --ignore-path .eslintignore",
+    "lint:fix": "eslint **/*.ts --ignore-path .eslintignore --fix"
+  },
+  "peerDependencies": {},
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "quoteProps": "preserve"
+  },
+  "name": "@paypal/paypal-server-sdk",
+  "description": "PayPal's SDK for interacting with the REST APIs",
+  "author": {
+    "name": "PayPal"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.4.0",
+    "@typescript-eslint/eslint-plugin": "^5.52.0",
+    "@typescript-eslint/parser": "^5.52.0",
+    "eslint": "^8.34.0",
+    "jest": "^29.4.3",
+    "rimraf": "^3.0.2",
+    "ts-jest": "29.2.6",
+    "tslib": "^2.5.0",
+    "typescript": "^5.2.0"
+  },
+  "dependencies": {
+    "@apimatic/authentication-adapters": "^0.5.14",
+    "@apimatic/axios-client-adapter": "^0.3.20",
+    "@apimatic/core": "^0.10.28",
+    "@apimatic/oauth-adapters": "^0.4.18",
+    "@apimatic/schema": "^0.7.21"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paypal/PayPal-TypeScript-Server-SDK.git"
+  },
+  "bugs": {
+    "url": "https://github.com/paypal/PayPal-TypeScript-Server-SDK/issues",
+    "email": "support@apimatic.io"
+  },
+  "homepage": "https://github.com/paypal/PayPal-TypeScript-Server-SDK",
+  "keywords": [],
+  "contributors": [],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./metadata": {
+      "import": {
+        "types": "./dist/esm/types/metadata/index.d.ts",
+        "default": "./dist/esm/metadata/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/types/metadata/index.d.ts",
+        "default": "./dist/cjs/metadata/index.js"
+      }
+    }
+  }
+}

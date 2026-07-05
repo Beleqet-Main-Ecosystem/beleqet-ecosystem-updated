@@ -1,0 +1,15 @@
+import { HttpStatus, Logger, MiddlewareConsumer } from '@nestjs/common';
+import { ValidationArguments, ValidationError } from 'class-validator';
+import { I18nOptionResolver, I18nValidationError, I18nValidationException, NestMiddlewareConsumer, TranslateOptions } from '../interfaces';
+import { I18nService } from '../services/i18n.service';
+import { Path } from '../types';
+type NoInfer<T> = [T][T extends any ? 0 : never];
+export declare const logger: Logger;
+export declare function shouldResolve(e: I18nOptionResolver): e is import("..").ResolverWithOptions | import("@nestjs/common").Type<import("..").I18nResolver>;
+export declare function httpStatusToMessage(status: HttpStatus): string;
+export declare function i18nValidationErrorFactory(errors: ValidationError[]): I18nValidationException;
+export declare function i18nValidationMessage<K = Record<string, unknown>>(key: Path<NoInfer<K>>, args?: any): (a: ValidationArguments) => string;
+export declare function formatI18nErrors<K = Record<string, unknown>>(errors: I18nValidationError[], i18n: I18nService<K>, options?: TranslateOptions): I18nValidationError[];
+export declare const isNestMiddleware: (consumer: MiddlewareConsumer) => consumer is NestMiddlewareConsumer;
+export declare const usingFastify: (consumer: NestMiddlewareConsumer) => boolean;
+export {};

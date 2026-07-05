@@ -94,6 +94,7 @@ async function bootstrap() {
       .addTag('freelance', 'Freelance gigs, bids & contracts')
       .addTag('escrow', 'BeleqetSafe escrow & payments')
       .addTag('wallet', 'Freelancer wallet & withdrawals')
+      .addTag('paypal', 'PayPal Global Digital Wallet (Global-Payments-002)')
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
       .build();

@@ -11,6 +11,15 @@ export const QUEUE_NAMES = {
   WALLET:        'wallet',
   SEARCH_INDEX:  'search-index',
   SCHEDULED:     'scheduled',
+  PAYPAL:        'paypal',             // Global-Payments-002
+} as const;
+
+// ── PayPal jobs ───────────────────────────────────────────────────────────────
+
+export const PAYPAL_JOBS = {
+  PROCESS_WEBHOOK:   'paypal-process-webhook',   // Async webhook event handler
+  SYNC_SUBSCRIPTION: 'paypal-sync-subscription', // Reconcile subscription state
+  SYNC_DISPUTE:      'paypal-sync-dispute',       // Sync dispute status from API
 } as const;
 
 // ── Application workflow jobs ─────────────────────────────────────────────
