@@ -19,6 +19,15 @@ export interface AlertPayload {
   timestamp: string;
 }
 
+const escapeHtml = (unsafe: string) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 /**
  * AlertingService - Dispatches anomaly alerts to configured channels.
  * Currently supports Email and Slack notifications.
@@ -62,12 +71,12 @@ export class AlertingService {
 
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
       to: adminEmail,
-      subject: `[${payload.severity}] Beleqet Anomaly Detected: ${payload.title}`,
+      subject: `[${escapeHtml(payload.severity)}] Beleqet Anomaly Detected: ${escapeHtml(payload.title)}`,
       html: `<p><strong>Anomaly Detected</strong></p>
-             <p><strong>Title:</strong> ${payload.title}</p>
-             <p><strong>Severity:</strong> ${payload.severity}</p>
-             <p><strong>Time:</strong> ${payload.timestamp}</p>
-             <p><strong>Details:</strong> ${payload.message}</p>`,
+             <p><strong>Title:</strong> ${escapeHtml(payload.title)}</p>
+             <p><strong>Severity:</strong> ${escapeHtml(payload.severity)}</p>
+             <p><strong>Time:</strong> ${escapeHtml(payload.timestamp)}</p>
+             <p><strong>Details:</strong> ${escapeHtml(payload.message)}</p>`,
     });
     this.logger.debug(`Email alert queued for ${adminEmail}`);
   }
@@ -88,7 +97,7 @@ export class AlertingService {
 
     try {
       const color = payload.severity === 'CRITICAL' ? '#FF0000' : payload.severity === 'HIGH' ? '#FFA500' : '#FFFF00';
-      await fetch(this.slackWebhookUrl, {
+      const response = await fetch(this.slackWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,7 +111,12 @@ export class AlertingService {
           ],
         }),
       });
-      this.logger.debug('Slack alert sent.');
+
+      if (!response.ok) {
+        this.logger.warn(`Failed to send Slack alert. Slack returned status ${response.status}: ${await response.text()}`);
+      } else {
+        this.logger.debug('Slack alert sent.');
+      }
     } catch (error) {
       this.logger.warn(`Failed to send Slack alert: ${(error as Error).message}`);
     }

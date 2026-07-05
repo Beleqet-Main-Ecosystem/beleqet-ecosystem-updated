@@ -72,19 +72,20 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user || !user.isActive) {
-      this.eventEmitter.emit('auth.login.failed', { email, timestamp: new Date().toISOString() });
+      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
-      this.eventEmitter.emit('auth.login.failed', { email, timestamp: new Date().toISOString() });
+      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    this.eventEmitter.emit('auth.login.success', { email, timestamp: new Date().toISOString() });
+    this.eventEmitter.emit('auth.login.success', { email: normalizedEmail, timestamp: new Date().toISOString() });
     return user;
   }
 

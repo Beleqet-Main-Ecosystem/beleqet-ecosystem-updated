@@ -118,7 +118,7 @@ export class EscrowService {
           },
           body: JSON.stringify({
             amount: amountToPay.toString(),
-            currency: 'ETB',
+            currency: job.currency,
             email: job.client.email,
             first_name: job.client.firstName,
             last_name: job.client.lastName,
@@ -149,7 +149,7 @@ export class EscrowService {
       escrowId: escrow.id,
       clientId,
       grossAmount,
-      currency: 'ETB',
+      currency: job.currency,
       timestamp: new Date().toISOString(),
     });
 

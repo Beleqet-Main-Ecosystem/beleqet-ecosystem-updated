@@ -40,6 +40,10 @@ describe('AnomalySensorService', () => {
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AlertingService } from './alerting.service';
@@ -45,7 +45,7 @@ interface EscrowInitiatedPayload {
  * 2. Dispatched as alerts via Email and Slack channels
  */
 @Injectable()
-export class AnomalySensorService {
+export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AnomalySensorService.name);
 
   /**
@@ -54,11 +54,33 @@ export class AnomalySensorService {
    * Entries older than 5 minutes are automatically pruned on each check.
    */
   private authFailures: Map<string, number[]> = new Map();
+  private cleanupInterval: NodeJS.Timeout;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly alertingService: AlertingService,
   ) {}
+
+  onModuleInit() {
+    // Run cleanup every 5 minutes to prevent memory leaks from one-off failed logins
+    this.cleanupInterval = setInterval(() => this.pruneStaleAuthFailures(), 5 * 60 * 1000);
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.cleanupInterval);
+  }
+
+  private pruneStaleAuthFailures() {
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    for (const [email, times] of this.authFailures.entries()) {
+      const recent = times.filter(t => t > fiveMinutesAgo);
+      if (recent.length === 0) {
+        this.authFailures.delete(email);
+      } else {
+        this.authFailures.set(email, recent);
+      }
+    }
+  }
 
   /**
    * Listens to failed authentication attempts to detect brute-force
@@ -125,6 +147,7 @@ export class AnomalySensorService {
       where: {
         freelanceJob: { clientId },
         id: { not: escrowId },
+        status: { in: ['FUNDED', 'RELEASED'] },
       },
       select: { grossAmount: true },
     });
