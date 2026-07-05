@@ -1,4 +1,10 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -8,9 +14,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     super({
       log: [
-        { level: 'query',   emit: 'event' },
-        { level: 'error',   emit: 'stdout' },
-        { level: 'warn',    emit: 'stdout' },
+        { level: 'query', emit: 'event' },
+        { level: 'error', emit: 'stdout' },
+        { level: 'warn', emit: 'stdout' },
       ],
     });
   }
@@ -18,6 +24,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   async onModuleInit() {
     await this.$connect();
     this.logger.log('Prisma connected to PostgreSQL');
+
+    this.$use(async (params, next) => {
+      if (
+        params.model === 'AuditLog' &&
+        ['update', 'updateMany', 'delete', 'deleteMany'].includes(params.action)
+      ) {
+        throw new ForbiddenException('AuditLog records are immutable');
+      }
+      return next(params);
+    });
 
     // Log slow queries in development
     if (process.env.NODE_ENV === 'development') {
