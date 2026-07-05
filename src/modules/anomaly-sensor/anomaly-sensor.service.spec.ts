@@ -43,4 +43,30 @@ describe('AnomalySensorService', () => {
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
+
+  describe('handleAuthFailed', () => {
+    it('should trigger an alert if 6 failures happen within 5 minutes', async () => {
+      const email = 'test@example.com';
+      for (let i = 0; i < 6; i++) {
+        await service.handleAuthFailed({ email, ip: '127.0.0.1', timestamp: new Date().toISOString() });
+      }
+
+      expect(alertingService.dispatchAlert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          severity: 'HIGH',
+          title: 'Authentication Brute Force Attempt',
+        })
+      );
+      expect(prismaService.eventLog.create).toHaveBeenCalled();
+    });
+
+    it('should not trigger an alert if less than 6 failures happen', async () => {
+      const email = 'test2@example.com';
+      for (let i = 0; i < 5; i++) {
+        await service.handleAuthFailed({ email, ip: '127.0.0.1', timestamp: new Date().toISOString() });
+      }
+
+      expect(alertingService.dispatchAlert).not.toHaveBeenCalled();
+    });
+  });
 });
