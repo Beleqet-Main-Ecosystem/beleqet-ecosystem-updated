@@ -6,9 +6,11 @@ import SaveJobButton from "@/components/SaveJobButton";
 export default function JobCard({
   job,
   variant = "dark",
+  showMatchScore = false,
 }: {
   job: Job;
   variant?: "dark" | "light";
+  showMatchScore?: boolean;
 }) {
   const isLight = variant === "light";
 
@@ -48,20 +50,36 @@ export default function JobCard({
           {job.location}
         </div>
 
+        {/* Bottom bar: job type + match score (if enabled) + posted ago */}
         <div
           className={`mt-auto flex items-center justify-between border-t pt-4 ${
             isLight ? "border-primary/10" : "border-white/10"
           }`}
         >
-          <span
-            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-              isLight
-                ? "bg-brandGreen/10 text-brandGreen"
-                : "bg-white/10 text-white"
-            }`}
-          >
-            {job.type}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                isLight
+                  ? "bg-brandGreen/10 text-brandGreen"
+                  : "bg-white/10 text-white"
+              }`}
+            >
+              {job.type}
+            </span>
+
+            {showMatchScore && job.relevanceScore !== undefined && (
+              <span
+                className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  isLight
+                    ? "bg-[#d8ff3e]/20 text-[#00653B]"
+                    : "bg-[#d8ff3e]/20 text-[#d8ff3e]"
+                }`}
+              >
+                Match {job.relevanceScore}%
+              </span>
+            )}
+          </div>
+
           <span className={`text-[11px] ${isLight ? "text-muted" : "text-white/40"}`}>
             {job.postedAgo}
           </span>
@@ -69,4 +87,4 @@ export default function JobCard({
       </Link>
     </article>
   );
-}
+          }
