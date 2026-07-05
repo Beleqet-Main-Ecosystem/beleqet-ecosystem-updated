@@ -4,13 +4,14 @@
 // =============================================================================
 
 export const QUEUE_NAMES = {
-  APPLICATION:   'application-processing',
-  NOTIFICATIONS: 'notifications',
-  ANALYTICS:     'analytics',
-  ESCROW:        'escrow',
-  WALLET:        'wallet',
-  SEARCH_INDEX:  'search-index',
-  SCHEDULED:     'scheduled',
+  APPLICATION:     'application-processing',
+  NOTIFICATIONS:   'notifications',
+  ANALYTICS:       'analytics',
+  ESCROW:          'escrow',
+  WALLET:          'wallet',
+  SEARCH_INDEX:    'search-index',
+  SCHEDULED:       'scheduled',
+  VIDEO_INTERVIEW: 'video-interview',
 } as const;
 
 // ── Application workflow jobs ─────────────────────────────────────────────
@@ -44,6 +45,15 @@ export const ESCROW_JOBS = {
   PROCESS_WEBHOOK:    'process-payment-webhook',
   AUTO_RELEASE:       'auto-release-milestone',  // 14-day auto-approval
   PROCESS_WITHDRAWAL: 'process-wallet-withdrawal',
+} as const;
+
+// ── Video interview jobs ──────────────────────────────────────────────────
+
+export const VIDEO_INTERVIEW_JOBS = {
+  TRANSCRIBE:       'transcribe-video-response',
+  EVALUATE:         'evaluate-interview',
+  CLEANUP_EXPIRED:  'cleanup-expired-interviews',
+  NOTIFY_COMPLETE:  'notify-interview-complete',
 } as const;
 
 // ── Scoring thresholds ────────────────────────────────────────────────────
