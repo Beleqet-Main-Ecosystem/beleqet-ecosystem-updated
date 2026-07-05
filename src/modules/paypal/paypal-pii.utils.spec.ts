@@ -27,7 +27,7 @@ describe('PayPal PII Utilities', () => {
         payer: { email_address: 'buyer@example.com' },
       };
 
-      const result = maskPayerPii(input);
+      const result = maskPayerPii(input) as any;
 
       // Should not contain the plaintext email
       expect(JSON.stringify(result)).not.toContain('buyer@example.com');
@@ -39,15 +39,15 @@ describe('PayPal PII Utilities', () => {
       const input1 = { payer: { email_address: 'same@email.com' } };
       const input2 = { payer: { email_address: 'same@email.com' } };
 
-      const result1 = maskPayerPii(input1);
-      const result2 = maskPayerPii(input2);
+      const result1 = maskPayerPii(input1) as any;
+      const result2 = maskPayerPii(input2) as any;
 
       expect(result1.payer.email_address).toBe(result2.payer.email_address);
     });
 
     it('produces different hashes for different emails', () => {
-      const result1 = maskPayerPii({ payer: { email_address: 'alice@example.com' } });
-      const result2 = maskPayerPii({ payer: { email_address: 'bob@example.com' } });
+      const result1 = maskPayerPii({ payer: { email_address: 'alice@example.com' } }) as any;
+      const result2 = maskPayerPii({ payer: { email_address: 'bob@example.com' } }) as any;
 
       expect(result1.payer.email_address).not.toBe(result2.payer.email_address);
     });
@@ -96,7 +96,7 @@ describe('PayPal PII Utilities', () => {
         payer:  { email_address: 'buyer@example.com' },
       };
 
-      const result = maskPayerPii(input);
+      const result = maskPayerPii(input) as any;
 
       expect(result.id).toBe('ORDER-123');
       expect(result.status).toBe('COMPLETED');

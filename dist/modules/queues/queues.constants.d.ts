@@ -6,6 +6,12 @@ export declare const QUEUE_NAMES: {
     readonly WALLET: "wallet";
     readonly SEARCH_INDEX: "search-index";
     readonly SCHEDULED: "scheduled";
+    readonly PAYPAL: "paypal";
+};
+export declare const PAYPAL_JOBS: {
+    readonly PROCESS_WEBHOOK: "paypal-process-webhook";
+    readonly SYNC_SUBSCRIPTION: "paypal-sync-subscription";
+    readonly SYNC_DISPUTE: "paypal-sync-dispute";
 };
 export declare const APPLICATION_JOBS: {
     readonly SCREEN_CANDIDATE: "screen-candidate";

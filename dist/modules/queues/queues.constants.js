@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SCORING = exports.ESCROW_JOBS = exports.ANALYTICS_JOBS = exports.NOTIFICATION_JOBS = exports.APPLICATION_JOBS = exports.QUEUE_NAMES = void 0;
+exports.SCORING = exports.ESCROW_JOBS = exports.ANALYTICS_JOBS = exports.NOTIFICATION_JOBS = exports.APPLICATION_JOBS = exports.PAYPAL_JOBS = exports.QUEUE_NAMES = void 0;
 exports.QUEUE_NAMES = {
     APPLICATION: 'application-processing',
     NOTIFICATIONS: 'notifications',
@@ -9,6 +9,12 @@ exports.QUEUE_NAMES = {
     WALLET: 'wallet',
     SEARCH_INDEX: 'search-index',
     SCHEDULED: 'scheduled',
+    PAYPAL: 'paypal',
+};
+exports.PAYPAL_JOBS = {
+    PROCESS_WEBHOOK: 'paypal-process-webhook',
+    SYNC_SUBSCRIPTION: 'paypal-sync-subscription',
+    SYNC_DISPUTE: 'paypal-sync-dispute',
 };
 exports.APPLICATION_JOBS = {
     SCREEN_CANDIDATE: 'screen-candidate',

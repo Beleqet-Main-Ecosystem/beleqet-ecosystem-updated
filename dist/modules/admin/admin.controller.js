@@ -254,7 +254,7 @@ exports.AdminController = AdminController;
 __decorate([
     (0, common_1.Get)('users'),
     (0, swagger_1.ApiOperation)({ summary: 'List all users' }),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
@@ -262,7 +262,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('users'),
     (0, swagger_1.ApiOperation)({ summary: 'Create a user' }),
-    openapi.ApiResponse({ status: 201 }),
+    openapi.ApiResponse({ status: 201, type: Object }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [CreateUserDto]),
@@ -271,7 +271,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)('users/:id'),
     (0, swagger_1.ApiOperation)({ summary: 'Update a user' }),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -290,14 +290,14 @@ __decorate([
 ], AdminController.prototype, "deleteUser", null);
 __decorate([
     (0, common_1.Get)('contacts'),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getContacts", null);
 __decorate([
     (0, common_1.Patch)('contacts/:id/status'),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -314,14 +314,14 @@ __decorate([
 ], AdminController.prototype, "broadcast", null);
 __decorate([
     (0, common_1.Get)('escrow/disputes'),
-    openapi.ApiResponse({ status: 200, type: [Object] }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getDisputes", null);
 __decorate([
     (0, common_1.Patch)('disputes/:id/resolve'),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),

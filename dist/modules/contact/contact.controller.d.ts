@@ -5,7 +5,7 @@ export declare class ContactController {
     constructor(service: ContactService);
     create(dto: CreateContactMessageDto): Promise<{
         success: boolean;
-        reference: string;
-        receivedAt: Date;
+        reference: any;
+        receivedAt: any;
     }>;
 }

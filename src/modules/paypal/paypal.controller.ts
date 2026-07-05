@@ -235,8 +235,8 @@ export class PaypalController {
   @ApiOperation({
     summary: 'PayPal webhook receiver (public — verified via signature)',
     description:
-      'Receives PayPal webhook events. The signature is verified against ' +
-      'PayPal's public certs before any processing. Do not call this endpoint directly.',
+      "Receives PayPal webhook events. The signature is verified against " +
+      "PayPal's public certs before any processing. Do not call this endpoint directly.",
   })
   @ApiResponse({ status: 200, description: 'Event accepted and queued' })
   @ApiResponse({ status: 401, description: 'Invalid or missing PayPal signature' })

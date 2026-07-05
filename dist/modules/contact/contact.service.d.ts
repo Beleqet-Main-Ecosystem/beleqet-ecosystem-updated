@@ -5,7 +5,7 @@ export declare class ContactService {
     constructor(prisma: PrismaService);
     create(dto: CreateContactMessageDto): Promise<{
         success: boolean;
-        reference: string;
-        receivedAt: Date;
+        reference: any;
+        receivedAt: any;
     }>;
 }

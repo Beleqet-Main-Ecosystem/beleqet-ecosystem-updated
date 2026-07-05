@@ -98,14 +98,14 @@ describe('PaypalAuthService', () => {
     });
 
     it('refreshes the token when within the 5-minute buffer window', async () => {
-      mockedAxios.post = jest.fn()
-        .mockResolvedValueOnce(mockTokenResponse)
-        .mockResolvedValueOnce({
-          data: { access_token: 'refreshed-token-xyz', expires_in: 32400 },
-        });
+      // Only ONE axios.post call will happen — it should return the fresh token
+      mockedAxios.post = jest.fn().mockResolvedValueOnce({
+        data: { access_token: 'refreshed-token-xyz', expires_in: 32400 },
+      });
       jest.mocked(axios.isAxiosError).mockReturnValue(false);
 
       // Manually set a token that expires in 4 minutes (inside the 5-min buffer)
+      // Condition: Date.now() < (Date.now() + 4min) - 5min → false → triggers refresh
       (service as any).cachedToken    = 'old-expiring-token';
       (service as any).tokenExpiresAt = Date.now() + 4 * 60 * 1_000;
 

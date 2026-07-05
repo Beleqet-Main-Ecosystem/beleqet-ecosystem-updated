@@ -10,21 +10,21 @@ export declare class EscrowService {
     private readonly logger;
     constructor(prisma: PrismaService, config: ConfigService, walletSvc: WalletService, escrowQueue: Queue);
     initiate(clientId: string, freelanceJobId: string): Promise<{
-        escrowId: string;
+        escrowId: any;
         checkoutUrl: null;
-        grossAmount: number;
+        grossAmount: any;
         platformFee: number;
         netAmount: number;
         walletAppliedAmount: number;
         amountToPay?: undefined;
     } | {
-        escrowId: string;
+        escrowId: any;
         checkoutUrl: string;
-        grossAmount: number;
+        grossAmount: any;
         platformFee: number;
         netAmount: number;
         walletAppliedAmount: number;
-        amountToPay: number;
+        amountToPay: any;
     }>;
     handleWebhook(payload: {
         reference: string;

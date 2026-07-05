@@ -65,7 +65,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('my'),
     (0, swagger_1.ApiOperation)({ summary: 'Get all applications for the current user' }),
-    openapi.ApiResponse({ status: 200, type: [Object] }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -74,7 +74,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('job/:jobId'),
     (0, swagger_1.ApiOperation)({ summary: 'Get all applications for a job (employer only)' }),
-    openapi.ApiResponse({ status: 200, type: [Object] }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('jobId')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -92,7 +92,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':id/status'),
     (0, swagger_1.ApiOperation)({ summary: 'Update application status (employer action)' }),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, current_user_decorator_1.CurrentUser)()),
@@ -102,7 +102,7 @@ __decorate([
 ], ApplicationsController.prototype, "updateStatus", null);
 __decorate([
     (0, common_1.Patch)(':id/withdraw'),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -112,7 +112,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)(':userId/feedback'),
     (0, swagger_1.ApiOperation)({ summary: 'Add client feedback to user (via application)' }),
-    openapi.ApiResponse({ status: 201 }),
+    openapi.ApiResponse({ status: 201, type: Object }),
     __param(0, (0, common_1.Param)('userId')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -122,7 +122,7 @@ __decorate([
 __decorate([
     (0, common_1.Patch)(':userId/verify-skill'),
     (0, swagger_1.ApiOperation)({ summary: 'Verify user skills (admin/employer)' }),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('userId')),
     __param(1, (0, common_1.Body)('status')),
     __metadata("design:type", Function),

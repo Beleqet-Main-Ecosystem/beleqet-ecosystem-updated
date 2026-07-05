@@ -7,21 +7,21 @@ export declare class EscrowController {
     private readonly config;
     constructor(svc: EscrowService, config: ConfigService);
     initiate(gigId: string, u: CurrentUserPayload): Promise<{
-        escrowId: string;
+        escrowId: any;
         checkoutUrl: null;
-        grossAmount: number;
+        grossAmount: any;
         platformFee: number;
         netAmount: number;
         walletAppliedAmount: number;
         amountToPay?: undefined;
     } | {
-        escrowId: string;
+        escrowId: any;
         checkoutUrl: string;
-        grossAmount: number;
+        grossAmount: any;
         platformFee: number;
         netAmount: number;
         walletAppliedAmount: number;
-        amountToPay: number;
+        amountToPay: any;
     }>;
     webhook(body: Record<string, unknown>, req: Request & {
         rawBody?: Buffer;

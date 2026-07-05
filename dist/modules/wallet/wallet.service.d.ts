@@ -11,42 +11,8 @@ export declare class WalletService {
     private readonly config;
     private readonly logger;
     constructor(prisma: PrismaService, config: ConfigService);
-    getEmployerWallet(userId: string): Promise<{
-        transactions: {
-            type: import(".prisma/client").$Enums.WalletTransactionType;
-            id: string;
-            note: string | null;
-            createdAt: Date;
-            amount: number;
-            escrowId: string | null;
-            walletId: string;
-        }[];
-    } & {
-        id: string;
-        updatedAt: Date;
-        userId: string;
-        currency: string;
-        balance: number;
-        lockedBalance: number;
-    }>;
-    getOrCreate(userId: string): Promise<{
-        transactions: {
-            type: import(".prisma/client").$Enums.WalletTransactionType;
-            id: string;
-            note: string | null;
-            createdAt: Date;
-            amount: number;
-            walletId: string;
-            milestoneId: string | null;
-        }[];
-    } & {
-        id: string;
-        updatedAt: Date;
-        userId: string;
-        currency: string;
-        pendingBalance: number;
-        availableBalance: number;
-    }>;
+    getEmployerWallet(userId: string): Promise<any>;
+    getOrCreate(userId: string): Promise<any>;
     private readonly exchangeRates;
     convertCurrency(amount: number, from: string, to: string): number;
     withdraw(userId: string, dto: WithdrawDto): Promise<{
