@@ -143,21 +143,21 @@ export default function PayPalMockCheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-yellow-500/20">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans antialiased selection:bg-emerald-500/20">
       {/* Top Banner Replica */}
-      <header className="bg-[#003087] border-b border-blue-900 py-4 px-6 flex justify-between items-center shadow-md">
+      <header className="bg-[#064e3b] border-b border-emerald-800 py-4 px-6 flex justify-between items-center shadow-md">
         <div className="flex items-center space-x-2">
           {/* Replica Logo */}
           <div className="italic font-extrabold text-2xl tracking-tighter text-white select-none">
-            <span className="text-[#0079C1]">Pay</span>
-            <span className="text-[#00457C]">Pal</span>
-            <span className="ml-2 text-xs font-sans not-italic font-bold tracking-normal uppercase bg-[#0079C1] px-1.5 py-0.5 rounded text-white border border-blue-400/20">
+            <span className="text-emerald-400">Pay</span>
+            <span className="text-emerald-200">Pal</span>
+            <span className="ml-2 text-xs font-sans not-italic font-bold tracking-normal uppercase bg-emerald-600 px-1.5 py-0.5 rounded text-white border border-emerald-400/20">
               Simulator
             </span>
           </div>
         </div>
-        <div className="flex items-center space-x-2 text-xs text-blue-200">
-          <Lock className="w-3.5 h-3.5 text-blue-400" />
+        <div className="flex items-center space-x-2 text-xs text-emerald-200">
+          <Lock className="w-3.5 h-3.5 text-emerald-400" />
           <span>Secure Connection</span>
         </div>
       </header>
@@ -215,7 +215,7 @@ export default function PayPalMockCheckoutPage() {
                   )}
                   <div className="flex justify-between">
                     <span>Merchant</span>
-                    <span className="text-blue-400 font-semibold">Beleqet Solutions</span>
+                    <span className="text-emerald-400 font-semibold">Beleqet Solutions</span>
                   </div>
                 </div>
               </div>
@@ -225,7 +225,7 @@ export default function PayPalMockCheckoutPage() {
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Simulated Funding Source</div>
                 <div className="p-3 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Landmark className="w-5 h-5 text-blue-400" />
+                    <Landmark className="w-5 h-5 text-emerald-400" />
                     <span className="text-sm font-semibold text-white">PayPal Balance (Sandbox Wallet)</span>
                   </div>
                   <span className="text-xs text-emerald-400 font-bold">Available</span>
@@ -245,7 +245,7 @@ export default function PayPalMockCheckoutPage() {
                   id="paypal-simulator-approve-btn"
                   onClick={handleApprove}
                   disabled={loading}
-                  className="w-full bg-[#FFC439] hover:bg-[#F2B522] text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg transition duration-150 flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
+                  className="w-full bg-white hover:bg-slate-100 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg transition duration-150 flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
                 >
                   {loading && <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2" />}
                   <span>Authorize &amp; Pay</span>

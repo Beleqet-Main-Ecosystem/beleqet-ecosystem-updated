@@ -444,7 +444,7 @@ export default function PayPalDemoPage() {
                   <button
                     onClick={handleSimulatedCheckout}
                     disabled={loading}
-                    className="w-full bg-[#FFC439] hover:bg-[#F2B522] disabled:opacity-50 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center space-x-2 text-sm uppercase tracking-wider"
+                    className="w-full bg-white hover:bg-slate-100 disabled:opacity-50 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center space-x-2 text-sm uppercase tracking-wider"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2" />
