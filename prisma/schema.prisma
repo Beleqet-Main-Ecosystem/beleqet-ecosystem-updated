@@ -639,9 +639,9 @@ model PaypalTransaction {
   freelancerId    String?
   /// Associated gig — nullable for standalone payments
   freelanceJobId  String?
-  /// Full raw PayPal API response stored for audit and reconciliation
+  /// Full raw PayPal API response — PII fields are SHA-256 pseudonymised before storage (GDPR Art. 25)
   gatewayResponse Json?
-  /// Partial or full refund amount (if applicable)
+  /// Partial or full refund amount (if applicable) — superseded by PaypalRefund table
   refundedAmount  Decimal?       @db.Decimal(12, 2)
   /// Notes about refund reason
   refundNote      String?
@@ -652,6 +652,7 @@ model PaypalTransaction {
   freelancer    User?          @relation("PaypalFreelancer", fields: [freelancerId], references: [id])
   freelanceJob  FreelanceJob?  @relation(fields: [freelanceJobId], references: [id])
   disputes      PaypalDispute[]
+  refunds       PaypalRefund[]
 
   @@index([clientId, createdAt])
   @@index([status, createdAt])
@@ -746,4 +747,40 @@ enum PaypalDisputeStatus {
   UNDER_REVIEW
   RESOLVED
   CANCELLED
+}
+
+// =============================================================================
+// PayPal Refund Audit Trail
+// Each refund event creates a new row; the parent PaypalTransaction status
+// is also updated (REFUNDED or PARTIALLY_REFUNDED) for quick filtering.
+// This table provides a full, immutable per-event audit trail for compliance.
+// =============================================================================
+
+model PaypalRefund {
+  id              String   @id @default(uuid())
+  /// PayPal Refund ID returned from the Captures refund API
+  paypalRefundId  String   @unique
+  /// Parent transaction that was refunded
+  transactionId   String
+  /// Refunded amount (may be partial)
+  amount          Decimal  @db.Decimal(12, 2)
+  /// ISO-4217 currency code of the refund
+  currency        String   @default("USD")
+  /// PayPal-reported refund status (e.g. COMPLETED, PENDING)
+  refundStatus    String   @default("COMPLETED")
+  /// Internal note explaining the refund reason (max 255 chars)
+  note            String?
+  /// The platform user (client) who initiated the refund
+  initiatedBy     String
+  /// Whether this was a full refund or partial refund
+  isPartial       Boolean  @default(false)
+  /// Raw PayPal refund API response — PII pseudonymised (GDPR Art. 25)
+  gatewayResponse Json?
+  createdAt       DateTime @default(now())
+
+  transaction PaypalTransaction @relation(fields: [transactionId], references: [id])
+
+  @@index([transactionId, createdAt])
+  @@index([initiatedBy])
+  @@map("paypal_refunds")
 }
