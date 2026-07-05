@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS } from '../queues/queues.constants';
 import { WalletService } from '../wallet/wallet.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
@@ -20,6 +21,7 @@ export class EscrowService {
     private readonly config: ConfigService,
     private readonly walletSvc: WalletService,
     @InjectQueue(QUEUE_NAMES.ESCROW) private readonly escrowQueue: Queue,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /** Initiate escrow — returns Chapa/Telebirr payment link */
@@ -142,6 +144,15 @@ export class EscrowService {
     }
 
     this.logger.log(`Escrow initiated: ${escrow.id} for job ${freelanceJobId} — amountToPay: ETB ${amountToPay}, walletApplied: ETB ${walletAppliedAmount}`);
+
+    this.eventEmitter.emit('payment.escrow.initiated', {
+      escrowId: escrow.id,
+      clientId,
+      grossAmount,
+      currency: 'ETB',
+      timestamp: new Date().toISOString(),
+    });
+
     return { escrowId: escrow.id, checkoutUrl, grossAmount, platformFee, netAmount, walletAppliedAmount, amountToPay };
   }
 
