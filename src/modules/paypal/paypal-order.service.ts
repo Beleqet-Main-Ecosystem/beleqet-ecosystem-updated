@@ -73,53 +73,64 @@ export class PaypalOrderService {
     let paypalOrderId: string;
     let approveUrl: string;
 
-    try {
-      const response = await axios.post<{
-        id: string;
-        links: { rel: string; href: string }[];
-      }>(
-        `${baseUrl}/v2/checkout/orders`,
-        {
-          intent: 'CAPTURE',
-          purchase_units: [
-            {
-              amount: {
-                currency_code: dto.currency,
-                value: dto.amount.toFixed(2),
-              },
-              description: 'Beleqet Freelance Payment',
-            },
-          ],
-          application_context: {
-            return_url: returnUrl,
-            cancel_url: cancelUrl,
-            brand_name: 'Beleqet',
-            user_action: 'PAY_NOW',
-            shipping_preference: 'NO_SHIPPING',
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'PayPal-Request-Id': idempotencyKey,
-          },
-        },
-      );
+    const mode = this.config.get<string>('PAYPAL_MODE', 'sandbox');
 
-      paypalOrderId = response.data.id;
-      const approveLink = response.data.links.find((l) => l.rel === 'approve');
-      if (!approveLink) {
-        throw new BadRequestException('PayPal did not return an approve link');
+    if (mode === 'mock') {
+      paypalOrderId = `MOCK-ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
+      approveUrl = `${frontendUrl}/paypal-mock-checkout?orderId=${paypalOrderId}&amount=${dto.amount}&currency=${dto.currency}&type=order`;
+    } else {
+      const token   = await this.auth.getAccessToken();
+      const baseUrl = this.auth.getBaseUrl();
+
+      try {
+        const response = await axios.post<{
+          id: string;
+          links: { rel: string; href: string }[];
+        }>(
+          `${baseUrl}/v2/checkout/orders`,
+          {
+            intent: 'CAPTURE',
+            purchase_units: [
+              {
+                amount: {
+                  currency_code: dto.currency,
+                  value: dto.amount.toFixed(2),
+                },
+                description: 'Beleqet Freelance Payment',
+              },
+            ],
+            application_context: {
+              return_url: returnUrl,
+              cancel_url: cancelUrl,
+              brand_name: 'Beleqet',
+              user_action: 'PAY_NOW',
+              shipping_preference: 'NO_SHIPPING',
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'PayPal-Request-Id': idempotencyKey,
+            },
+          },
+        );
+
+        paypalOrderId = response.data.id;
+        const approveLink = response.data.links.find((l) => l.rel === 'approve');
+        if (!approveLink) {
+          throw new BadRequestException('PayPal did not return an approve link');
+        }
+        approveUrl = approveLink.href;
+      } catch (err) {
+        if (err instanceof BadRequestException) throw err;
+        const msg = axios.isAxiosError(err)
+          ? JSON.stringify(err.response?.data)
+          : String(err);
+        this.logger.error(`Failed to create PayPal order: ${msg}`);
+        throw new BadRequestException(`PayPal order creation failed: ${msg}`);
       }
-      approveUrl = approveLink.href;
-    } catch (err) {
-      if (err instanceof BadRequestException) throw err;
-      const msg = axios.isAxiosError(err)
-        ? JSON.stringify(err.response?.data)
-        : String(err);
-      this.logger.error(`Failed to create PayPal order: ${msg}`);
-      throw new BadRequestException(`PayPal order creation failed: ${msg}`);
     }
 
     // Persist the transaction record
@@ -178,37 +189,45 @@ export class PaypalOrderService {
       return { status: 'CAPTURED', captureId: tx.paypalCaptureId, transactionId: tx.id };
     }
 
-    const token   = await this.auth.getAccessToken();
-    const baseUrl = this.auth.getBaseUrl();
+    const mode = this.config.get<string>('PAYPAL_MODE', 'sandbox');
 
     let captureId: string;
     let captureStatus: string;
     let rawResponse: unknown;
 
-    try {
-      const response = await axios.post<{
-        status: string;
-        purchase_units: { payments: { captures: { id: string; status: string }[] } }[];
-      }>(
-        `${baseUrl}/v2/checkout/orders/${orderId}/capture`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
+    if (mode === 'mock') {
+      captureId = `MOCK-CAP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      captureStatus = 'COMPLETED';
+      rawResponse = { status: 'COMPLETED', simulated: true };
+    } else {
+      const token   = await this.auth.getAccessToken();
+      const baseUrl = this.auth.getBaseUrl();
 
-      rawResponse   = response.data;
-      captureStatus = response.data.status;
-      captureId     = response.data.purchase_units[0]?.payments?.captures?.[0]?.id ?? '';
-    } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? JSON.stringify(err.response?.data)
-        : String(err);
-      this.logger.error(`Failed to capture PayPal order ${orderId}: ${msg}`);
-      throw new BadRequestException(`PayPal capture failed: ${msg}`);
+      try {
+        const response = await axios.post<{
+          status: string;
+          purchase_units: { payments: { captures: { id: string; status: string }[] } }[];
+        }>(
+          `${baseUrl}/v2/checkout/orders/${orderId}/capture`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
+        rawResponse   = response.data;
+        captureStatus = response.data.status;
+        captureId     = response.data.purchase_units[0]?.payments?.captures?.[0]?.id ?? '';
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? JSON.stringify(err.response?.data)
+          : String(err);
+        this.logger.error(`Failed to capture PayPal order ${orderId}: ${msg}`);
+        throw new BadRequestException(`PayPal capture failed: ${msg}`);
+      }
     }
 
     const newStatus =
