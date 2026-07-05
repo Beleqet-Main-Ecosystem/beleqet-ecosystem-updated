@@ -60,7 +60,7 @@ export default function JobCard({
           {job.location}
         </div>
 
-        {/* ✅ MULTI-CURRENCY DISPLAY (i18n & Global Scaling) */}
+        {/* MULTI-CURRENCY DISPLAY (i18n & Global Scaling) */}
         {job.salaryMin !== undefined &&
           job.salaryMax !== undefined &&
           job.salaryMin > 0 && (
