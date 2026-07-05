@@ -14,6 +14,7 @@ const REQUIRED_KEY_LENGTH_BYTES = 32;
  */
 export const TOKEN_ENCRYPTION_KEY = Symbol('TOKEN_ENCRYPTION_KEY');
 
+
 /**
  * Strongly-typed shape of the environment configuration this module reads.
  * Every value originates from `process.env` — nothing here is ever
@@ -26,6 +27,10 @@ export interface AuthEnvConfig {
   readonly linkedinClientId: string;
   readonly linkedinClientSecret: string;
   readonly linkedinCallbackUrl: string;
+  /** Secret used to sign short-lived JWT access tokens. */
+  readonly jwtAccessSecret: string;
+  /** Base URL of this API, used to build emailed confirmation links. */
+  readonly appBaseUrl: string;
   /** Raw 32-byte AES-256-GCM key, decoded from the base64 env value. */
   readonly tokenEncryptionKey: Buffer;
 }
@@ -76,6 +81,8 @@ export function loadAuthEnvConfig(): AuthEnvConfig {
     linkedinClientId: requireEnv('LINKEDIN_CLIENT_ID'),
     linkedinClientSecret: requireEnv('LINKEDIN_CLIENT_SECRET'),
     linkedinCallbackUrl: requireEnv('LINKEDIN_CALLBACK_URL'),
+    jwtAccessSecret: requireEnv('JWT_ACCESS_SECRET'),
+    appBaseUrl: requireEnv('APP_BASE_URL'),
     tokenEncryptionKey,
   };
 }
