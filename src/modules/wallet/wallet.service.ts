@@ -1,7 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger, OnModuleInit, OnModuleDestroy,
+} from '@nestjs/common';
 import { IsEnum, IsInt, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { AuditService } from '../audit-trail/audit.service';
+import { AuditAction } from '../audit-trail/audit-action.enum';
 
 export class WithdrawDto {
   @IsInt()
@@ -9,7 +17,9 @@ export class WithdrawDto {
   @Max(1_000_000, { message: 'Maximum single withdrawal is ETB 1,000,000' })
   amount: number;
 
-  @IsEnum(['CHAPA', 'TELEBIRR', 'CBE_BIRR'], { message: 'method must be CHAPA, TELEBIRR, or CBE_BIRR' })
+  @IsEnum(['CHAPA', 'TELEBIRR', 'CBE_BIRR'], {
+    message: 'method must be CHAPA, TELEBIRR, or CBE_BIRR',
+  })
   method: 'CHAPA' | 'TELEBIRR' | 'CBE_BIRR';
 
   @IsString()
@@ -38,6 +48,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly auditService: AuditService,
   ) { }
 
   async onModuleInit() {
@@ -121,9 +132,14 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
 
     // Convert requested withdrawal amount to the wallet's base currency (ETB)
     const withdrawCurrency = dto.currency || 'ETB';
-    const amountInWalletCurrency = this.convertCurrency(dto.amount, withdrawCurrency, wallet.currency);
+    const amountInWalletCurrency = this.convertCurrency(
+      dto.amount,
+      withdrawCurrency,
+      wallet.currency,
+    );
 
-    if (wallet.availableBalance < amountInWalletCurrency) throw new BadRequestException('Insufficient available balance');
+    if (wallet.availableBalance < amountInWalletCurrency)
+      throw new BadRequestException('Insufficient available balance');
 
     // Step 1: Deduct balance and create a PENDING transaction atomically
     const { tx } = await this.prisma.$transaction(async (prisma: any) => {
@@ -132,7 +148,12 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
         data: { availableBalance: { decrement: amountInWalletCurrency } },
       });
       const tx = await prisma.walletTransaction.create({
-        data: { walletId: wallet.id, type: 'DEBIT_WITHDRAWAL', amount: amountInWalletCurrency, note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending` },
+        data: {
+          walletId: wallet.id,
+          type: 'DEBIT_WITHDRAWAL',
+          amount: amountInWalletCurrency,
+          note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending`,
+        },
       });
       return { tx };
     });
@@ -144,7 +165,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
         const response = await fetch('https://api.chapa.co/v1/transfers', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${chapaSecret}`,
+            Authorization: `Bearer ${chapaSecret}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -157,10 +178,12 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
           }),
         });
 
-        const data = await response.json() as { status: string; message?: string };
+        const data = (await response.json()) as { status: string; message?: string };
         if (data.status !== 'success') {
           // Step 3 (rollback): Chapa rejected — restore balance
-          this.logger.warn(`Chapa payout rejected: ${data.message}. Rolling back balance for user ${userId}`);
+          this.logger.warn(
+            `Chapa payout rejected: ${data.message}. Rolling back balance for user ${userId}`,
+          );
           await this.prisma.$transaction([
             this.prisma.freelancerWallet.update({
               where: { userId },
@@ -171,7 +194,18 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
               data: { note: `Withdrawal via ${dto.method} — FAILED: ${data.message}` },
             }),
           ]);
-          throw new InternalServerErrorException(`Payout rejected by payment gateway: ${data.message}`);
+          this.auditService
+            .log({
+              actorId: userId,
+              action: AuditAction.PAYMENT_WITHDRAWAL_FAILED,
+              entityType: 'FreelancerWallet',
+              entityId: wallet.id,
+              metadata: { amount: dto.amount, currency: withdrawCurrency, reason: data.message },
+            })
+            .catch(() => {});
+          throw new InternalServerErrorException(
+            `Payout rejected by payment gateway: ${data.message}`,
+          );
         }
       } catch (err) {
         if (err instanceof InternalServerErrorException) throw err;
@@ -187,10 +221,36 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
             data: { note: `Withdrawal via ${dto.method} — FAILED: network error` },
           }),
         ]);
-        throw new InternalServerErrorException('Could not reach payment gateway. Your balance has been restored.');
+        this.auditService
+          .log({
+            actorId: userId,
+            action: AuditAction.PAYMENT_WITHDRAWAL_FAILED,
+            entityType: 'FreelancerWallet',
+            entityId: wallet.id,
+            metadata: { amount: dto.amount, currency: withdrawCurrency, reason: 'network error' },
+          })
+          .catch(() => {});
+        throw new InternalServerErrorException(
+          'Could not reach payment gateway. Your balance has been restored.',
+        );
       }
     }
 
-    return { success: true, amount: dto.amount, method: dto.method, note: 'Payout processing — typically 1-2 business days' };
+    this.auditService
+      .log({
+        actorId: userId,
+        action: AuditAction.PAYMENT_WITHDRAWAL_REQUESTED,
+        entityType: 'FreelancerWallet',
+        entityId: wallet.id,
+        metadata: { amount: dto.amount, currency: withdrawCurrency, method: dto.method },
+      })
+      .catch(() => {});
+
+    return {
+      success: true,
+      amount: dto.amount,
+      method: dto.method,
+      note: 'Payout processing — typically 1-2 business days',
+    };
   }
 }

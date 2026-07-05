@@ -6,15 +6,14 @@ import { EscrowService } from './escrow.service';
 import { EscrowController } from './escrow.controller';
 import { EscrowProcessor } from './escrow.processor';
 import { WalletModule } from '../wallet/wallet.module';
+import { AuditTrailModule } from '../audit-trail/audit-trail.module';
 
 @Module({
   imports: [
-    BullModule.registerQueue(
-      { name: QUEUE_NAMES.ESCROW },
-      { name: QUEUE_NAMES.NOTIFICATIONS },
-    ),
+    BullModule.registerQueue({ name: QUEUE_NAMES.ESCROW }, { name: QUEUE_NAMES.NOTIFICATIONS }),
     WalletModule,
     TwoFactorModule,
+    AuditTrailModule,
   ],
   providers: [EscrowService, EscrowProcessor],
   controllers: [EscrowController],
