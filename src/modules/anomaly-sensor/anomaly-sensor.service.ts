@@ -35,6 +35,14 @@ interface EscrowInitiatedPayload {
  * AnomalySensorService - Core anomaly detection engine.
  * Listens to platform events and applies detection rules to identify
  * suspicious activities such as brute-force attacks and unusual payments.
+ *
+ * Detection methods used:
+ * - Rule-based heuristics (auth brute-force sliding window)
+ * - Z-Score statistical analysis (payment amount outlier detection)
+ *
+ * All detected anomalies are:
+ * 1. Logged to the secure audit database (EventLog table)
+ * 2. Dispatched as alerts via Email and Slack channels
  */
 @Injectable()
 export class AnomalySensorService {
@@ -75,6 +83,12 @@ export class AnomalySensorService {
 
     if (failures.length > 5) {
       this.logger.warn(`Auth anomaly detected for email: ${email}`);
+      await this.logAnomaly('AUTH_BRUTE_FORCE', email, 'User', {
+        failures: failures.length,
+        window: '5 minutes',
+        ip: payload.ip,
+      });
+
       await this.alertingService.dispatchAlert({
         title: 'Authentication Brute Force Attempt',
         message: `Multiple failed login attempts (${failures.length}) detected for ${email} within 5 minutes.`,
@@ -134,12 +148,51 @@ export class AnomalySensorService {
         `Payment anomaly detected for client: ${clientId}, Z-Score: ${zScore.toFixed(2)}`,
       );
 
+      await this.logAnomaly('PAYMENT_UNUSUAL_AMOUNT', clientId, 'User', {
+        escrowId,
+        amount: grossAmount,
+        currency: payload.currency,
+        zScore,
+        meanAmount: mean,
+      });
+
       await this.alertingService.dispatchAlert({
         title: 'Suspicious Payment Transaction',
         message: `Unusually large transaction initiated by client ${clientId}. Amount: ${grossAmount} ${payload.currency} (Z-Score: ${zScore.toFixed(2)}).`,
         severity: 'CRITICAL',
         timestamp: new Date().toISOString(),
       });
+    }
+  }
+
+  /**
+   * Securely saves anomaly event logs into the database for future
+   * investigation and forensic analysis. Uses the existing EventLog
+   * Prisma model to maintain GDPR-compliant audit trails.
+   *
+   * @param type - The anomaly classification (e.g., AUTH_BRUTE_FORCE)
+   * @param entityId - The identifier of the affected entity
+   * @param entityType - The type of the affected entity (e.g., User)
+   * @param details - Additional context about the detected anomaly
+   */
+  private async logAnomaly(
+    type: string,
+    entityId: string,
+    entityType: string,
+    details: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      await this.prisma.eventLog.create({
+        data: {
+          eventType: 'ANOMALY_DETECTED',
+          entityId,
+          entityType,
+          payload: { type, ...details },
+          processedBy: AnomalySensorService.name,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to save audit log: ${(error as Error).message}`);
     }
   }
 }
