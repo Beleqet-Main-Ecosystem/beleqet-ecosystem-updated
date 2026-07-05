@@ -14,6 +14,16 @@ export default function JobCard({
 }) {
   const isLight = variant === "light";
 
+  // Multi-currency formatter (supports ETB, USD, EUR, etc.)
+  const formatCurrency = (amount: number, currency: string = "ETB") => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   return (
     <article
       className={`group flex min-h-[280px] flex-col rounded-[22px] border p-5 transition-all hover:-translate-y-1 hover:border-[#d8ff3e]/60 ${
@@ -50,6 +60,23 @@ export default function JobCard({
           {job.location}
         </div>
 
+        {/* ✅ MULTI-CURRENCY DISPLAY (i18n & Global Scaling) */}
+        {job.salaryMin !== undefined &&
+          job.salaryMax !== undefined &&
+          job.salaryMin > 0 && (
+            <div
+              className={`mt-2 flex items-center gap-1 text-xs ${
+                isLight ? "text-muted" : "text-white/50"
+              }`}
+            >
+              <span>💰</span>
+              <span>
+                {formatCurrency(job.salaryMin, job.currency || "ETB")} —{" "}
+                {formatCurrency(job.salaryMax, job.currency || "ETB")}
+              </span>
+            </div>
+          )}
+
         {/* Bottom bar: job type + match score (if enabled) + posted ago */}
         <div
           className={`mt-auto flex items-center justify-between border-t pt-4 ${
@@ -80,7 +107,9 @@ export default function JobCard({
             )}
           </div>
 
-          <span className={`text-[11px] ${isLight ? "text-muted" : "text-white/40"}`}>
+          <span
+            className={`text-[11px] ${isLight ? "text-muted" : "text-white/40"}`}
+          >
             {job.postedAgo}
           </span>
         </div>
