@@ -35,6 +35,18 @@ export class EmailService {
   ) {}
 
   /**
+   * Verifies the template compilation system and transport configuration.
+   * @returns An object indicating the health status of the module.
+   */
+  public async checkHealth(): Promise<{ status: string; templatesLoaded: boolean; transporterReady: boolean }> {
+    return {
+      status: 'ok',
+      templatesLoaded: Object.keys(this.dictionaries).length > 0,
+      transporterReady: this.transporter !== undefined && this.transporter !== null,
+    };
+  }
+
+  /**
    * Validates GDPR consent, processes localization/currency, interpolates tokens, and dispatches the email.
    *
    * @param user The contextual data of the recipient user.
@@ -80,10 +92,27 @@ export class EmailService {
       const subject = this.compileAndInterpolate(template.subject, finalTokens);
       const body = this.compileAndInterpolate(template.body, finalTokens);
 
-      // 5. Network Dispatch Framework Integration
-      const result = await this.transporter.sendMail(user.email, subject, body);
-      this.logger.log(`Successfully dispatched [${payload.templateType}] to [${user.email}]`);
-      return result;
+      // 5. Network Dispatch Framework Integration with Exponential Backoff
+      let attempts = 0;
+      const maxRetries = 3;
+      let lastError: Error | null = null;
+
+      while (attempts < maxRetries) {
+        try {
+          const result = await this.transporter.sendMail(user.email, subject, body);
+          this.logger.log(`Successfully dispatched [${payload.templateType}] to [${user.email}] on attempt ${attempts + 1}`);
+          return result;
+        } catch (transportError) {
+          attempts++;
+          lastError = transportError as Error;
+          if (attempts < maxRetries) {
+            const delayMs = 100 * Math.pow(2, attempts - 1); // 100ms, 200ms
+            await new Promise((res) => setTimeout(res, delayMs));
+          }
+        }
+      }
+
+      throw lastError;
 
     } catch (error) {
       if (error instanceof GDPRConsentViolationException) {
