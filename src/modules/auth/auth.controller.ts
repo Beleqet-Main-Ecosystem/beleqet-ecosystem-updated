@@ -1,10 +1,28 @@
 // auth.controller.ts
-import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshDto, VerifyEmailDto, ForgotPasswordDto, ResetPasswordDto } from './dto/register.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshDto,
+  VerifyEmailDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto/register.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Audit } from '../audit-trail/audit.decorator';
+import { AuditAction } from '../audit-trail/audit-action.enum';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -13,6 +31,7 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
+  @Audit(AuditAction.AUTH_REGISTER, 'User')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -20,6 +39,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login and receive JWT tokens' })
+  @Audit(AuditAction.AUTH_LOGIN, 'User')
   async login(@Body() dto: LoginDto, @Request() req: any) {
     const user = await this.authService.validateUser(dto.email, dto.password);
     const userAgent = req.headers['user-agent'];
@@ -37,6 +57,7 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Audit(AuditAction.AUTH_LOGOUT, 'User')
   logout(@Request() req: Express.Request & { user: { userId: string } }) {
     return this.authService.logout(req.user.userId);
   }
@@ -52,6 +73,7 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify user email via token' })
+  @Audit(AuditAction.AUTH_EMAIL_VERIFIED, 'User')
   verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto.token);
   }
@@ -66,6 +88,7 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password via token' })
+  @Audit(AuditAction.AUTH_PASSWORD_RESET_COMPLETED, 'User')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }

@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { BullModule } from '@nestjs/bull';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+import { AuditTrailModule } from '../audit-trail/audit-trail.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { QUEUE_NAMES } from '../queues/queues.constants';
       }),
     }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    AuditTrailModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

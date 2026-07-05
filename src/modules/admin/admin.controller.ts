@@ -1,6 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MinLength, IsArray } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsArray,
+} from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -12,6 +20,8 @@ import { Queue } from 'bull';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { adminAnnouncementEmail } from '../notifications/email-templates';
 import { ChatService } from '../chat/chat.service';
+import { AuditService } from '../audit-trail/audit.service';
+import { AuditAction } from '../audit-trail/audit-action.enum';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -63,6 +73,7 @@ export class AdminController {
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
+    private readonly auditService: AuditService,
   ) {}
 
   @Get('users')
@@ -88,8 +99,26 @@ export class AdminController {
 
   @Patch('users/:id')
   @ApiOperation({ summary: 'Update a user' })
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.prisma.user.update({ where: { id }, data: dto, select: safeUserSelect });
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() admin: CurrentUserPayload,
+  ) {
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: dto,
+      select: safeUserSelect,
+    });
+    this.auditService
+      .log({
+        actorId: admin.userId,
+        action: AuditAction.ADMIN_USER_UPDATED,
+        entityType: 'User',
+        entityId: id,
+        metadata: { changedFields: Object.keys(dto) },
+      })
+      .catch(() => {});
+    return updated;
   }
 
   @Delete('users/:id')
@@ -148,7 +177,7 @@ export class AdminController {
             to: u.email,
             subject: dto.title,
             ...email,
-          })
+          }),
         )
         .catch(() => {});
     }
@@ -191,14 +220,14 @@ export class AdminController {
 
     let chatHistory: any[] = [];
     const chatRoom = await this.prisma.chatRoom.findUnique({
-      where: { contractId: dispute.contractId }
+      where: { contractId: dispute.contractId },
     });
 
     if (chatRoom) {
       chatHistory = await this.prisma.message.findMany({
         where: { roomId: chatRoom.id },
         orderBy: { createdAt: 'asc' },
-        include: { sender: { select: safeUserSelect } }
+        include: { sender: { select: safeUserSelect } },
       });
     }
 
