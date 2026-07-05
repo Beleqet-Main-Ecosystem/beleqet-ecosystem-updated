@@ -47,6 +47,7 @@ model User {
   cvDraft               CvDraft?
   clientFeedback        Json?
   skillVerified         Boolean             @default(false)
+  bidSuggestions        BidSuggestion[]
 
   @@map("users")
 }
@@ -293,6 +294,7 @@ model FreelanceJob {
   bids               Bid[]
   contract           Contract?
   escrowTx           EscrowTransaction?
+  bidSuggestions     BidSuggestion[]
   category           FreelanceCategory  @relation(fields: [categoryId], references: [id])
   client             User               @relation(fields: [clientId], references: [id])
 
@@ -522,6 +524,20 @@ model Message {
 
   @@index([roomId, createdAt])
   @@map("messages")
+}
+
+model BidSuggestion {
+  id              String       @id @default(uuid())
+  freelanceJobId  String
+  freelancerId    String
+  suggestedAmount Int
+  currency        String
+  rationale       String
+  createdAt       DateTime     @default(now())
+  freelanceJob    FreelanceJob @relation(fields: [freelanceJobId], references: [id])
+  freelancer      User         @relation(fields: [freelancerId], references: [id])
+
+  @@map("bid_suggestions")
 }
 
 enum UserRole {

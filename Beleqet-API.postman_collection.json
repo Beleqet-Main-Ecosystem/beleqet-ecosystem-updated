@@ -79,6 +79,31 @@
           }
         }
       ]
+    },
+    {
+      "name": "Bidding (Smart Bidding)",
+      "item": [
+        {
+          "name": "Get Bid Price Suggestion",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bidding/suggest/:freelanceJobId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "bidding", "suggest", ":freelanceJobId"],
+              "variable": [
+                {
+                  "key": "freelanceJobId",
+                  "value": "your-job-uuid-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "variable": [

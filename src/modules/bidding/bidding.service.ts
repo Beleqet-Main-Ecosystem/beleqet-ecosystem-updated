@@ -1,140 +1,80 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { I18nContext, I18nService } from 'nestjs-i18n';
+
 import { PrismaService } from '../../prisma/prisma.service';
-import { I18nService } from 'nestjs-i18n';
+import { SuggestBidResponse } from './dto/suggest-bid.dto';
+import { BidCalculation, BiddingPricingHelper } from './helpers/bidding-pricing.helper';
 
 /**
- * Response structure for bid price suggestions.
- */
-export interface SuggestBidResponse {
-  suggestedPrice: number;
-  currency: string;
-  rationale: string;
-  budgetMin: number;
-  budgetMax: number;
-}
-
-/**
- * Service providing AI-assisted bid price suggestions for freelancers.
- * Uses an explainable heuristic combining market rates, job budget, and freelancer experience.
+ * Provides explainable bid suggestions for freelancers using market history,
+ * the job budget range, and the freelancer's completed-contract experience.
  */
 @Injectable()
 export class BiddingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
+    private readonly pricingHelper: BiddingPricingHelper,
   ) {}
 
   /**
-   * Suggests a bid price for a freelancer on a specific job.
-   * 
-   * @param freelancerId - UUID of the freelancer requesting the suggestion
-   * @param freelanceJobId - UUID of the job to bid on
-   * @returns Price suggestion with rationale and budget constraints
-   * @throws NotFoundException if the job doesn't exist
+   * Suggests a bid price for a freelancer on a specific freelance job.
+   *
+   * @param freelancerId - Freelancer UUID requesting the suggestion.
+   * @param freelanceJobId - Freelance job UUID to price.
+   * @returns A suggested amount, currency, rationale, and the job budget range.
+   * @throws NotFoundException When the freelance job does not exist.
    */
-  async suggestPrice(
-    freelancerId: string,
-    freelanceJobId: string,
-  ): Promise<SuggestBidResponse> {
-    const job = await this.prisma.freelanceJob.findUnique({
-      where: { id: freelanceJobId },
-      select: {
-        budgetMin: true,
-        budgetMax: true,
-        currency: true,
-        categoryId: true,
+  async suggestPrice(freelancerId: string, freelanceJobId: string): Promise<SuggestBidResponse> {
+    const pricing = await this.pricingHelper.calculate(freelancerId, freelanceJobId);
+    const rationale = await this.buildRationale(this.resolveLanguage(), pricing);
+
+    await this.prisma.bidSuggestion.create({
+      data: {
+        freelanceJobId,
+        freelancerId,
+        suggestedAmount: pricing.suggestedPrice,
+        currency: pricing.job.currency,
+        rationale,
       },
     });
 
-    if (!job) {
-      throw new NotFoundException('Freelance job not found');
-    }
-
-    const jobBudgetMidpoint = (job.budgetMin + job.budgetMax) / 2;
-    const experienceMultiplier = await this.computeExperienceMultiplier(freelancerId);
-    const marketRate = await this.computeMarketRate(job.categoryId);
-
-    let suggestedPrice: number;
-    let rationale: string;
-
-    if (marketRate === null) {
-      // Cold start — no historical data for this category
-      suggestedPrice = Math.round(jobBudgetMidpoint * experienceMultiplier);
-      rationale = await this.i18n.translate('bidding.rationale.coldStart', {
-        args: { experienceMultiplier: experienceMultiplier.toFixed(2) },
-      });
-    } else {
-      // Weighted average: 50% market, 30% budget midpoint, 20% experience-adjusted
-      const experienceAdjusted = jobBudgetMidpoint * experienceMultiplier;
-      const weightedAvg =
-        marketRate * 0.5 +
-        jobBudgetMidpoint * 0.3 +
-        experienceAdjusted * 0.2;
-
-      suggestedPrice = Math.round(weightedAvg);
-      rationale = await this.i18n.translate('bidding.rationale.marketBased', {
-        args: {
-          marketRate,
-          experienceMultiplier: experienceMultiplier.toFixed(2),
-        },
-      });
-    }
-
-    // Clamp to job's stated budget range
-    suggestedPrice = Math.max(job.budgetMin, Math.min(job.budgetMax, suggestedPrice));
-
     return {
-      suggestedPrice,
-      currency: job.currency,
+      suggestedPrice: pricing.suggestedPrice,
+      currency: pricing.job.currency,
       rationale,
-      budgetMin: job.budgetMin,
-      budgetMax: job.budgetMax,
+      budgetMin: pricing.job.budgetMin,
+      budgetMax: pricing.job.budgetMax,
     };
   }
 
   /**
-   * Computes experience multiplier based on freelancer's completed contract count.
-   * 
-   * @param freelancerId - UUID of the freelancer
-   * @returns Multiplier: 0.9x for 0 contracts, 1.0x for 1-4, 1.1x for 5+
+   * Builds the localized plain-language explanation for the suggestion.
+   *
+   * @param lang - Resolved locale code.
+   * @param pricing - Pricing calculation data returned by the helper.
+   * @returns A localized rationale string.
    */
-  private async computeExperienceMultiplier(freelancerId: string): Promise<number> {
-    const completedCount = await this.prisma.contract.count({
-      where: {
-        freelancerId,
-        status: 'COMPLETED',
+  private async buildRationale(lang: string, pricing: BidCalculation): Promise<string> {
+    if (pricing.marketRate === null) {
+      return this.i18n.translate('bidding.rationale.coldStart', { lang });
+    }
+
+    return this.i18n.translate('bidding.rationale.marketBased', {
+      lang,
+      args: {
+        count: pricing.marketCount,
+        experienceMultiplier: pricing.experienceMultiplier.toFixed(1),
       },
     });
-
-    if (completedCount === 0) return 0.9;
-    if (completedCount >= 5) return 1.1;
-    return 1.0;
   }
 
   /**
-   * Computes market rate by averaging agreed amounts from completed contracts in the same category.
-   * 
-   * @param categoryId - UUID of the freelance job category
-   * @returns Average agreed amount, or null if no historical data exists (cold start)
+   * Resolves the active request language from the i18n context.
+   *
+   * @returns The current locale or `en` when the request context is unavailable.
    */
-  private async computeMarketRate(categoryId: string): Promise<number | null> {
-    const contracts = await this.prisma.contract.findMany({
-      where: {
-        status: 'COMPLETED',
-        freelanceJob: {
-          categoryId,
-        },
-      },
-      select: {
-        agreedAmount: true,
-      },
-    });
-
-    if (contracts.length === 0) {
-      return null;
-    }
-
-    const sum = contracts.reduce((acc, c) => acc + c.agreedAmount, 0);
-    return Math.round(sum / contracts.length);
+  private resolveLanguage(): string {
+    return I18nContext.current()?.lang ?? 'en';
   }
 }
