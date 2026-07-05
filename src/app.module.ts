@@ -24,6 +24,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
 
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
@@ -124,6 +125,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    FaqBotModule,
   ],
   providers: [
     {

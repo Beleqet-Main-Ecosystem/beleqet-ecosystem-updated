@@ -288,7 +288,60 @@ async function main() {
   );
   console.log('✅ Demo jobs created');
 
+  // ── FAQ Bot Knowledge Base ─────────────────────────────────────────────────
+  await seedFaqKnowledge();
+  console.log('✅ FAQ Bot knowledge base seeded');
+
   console.log('\n🎉 Database seeded successfully with Production Categories!');
+}
+
+async function seedFaqKnowledge() {
+  const OpenAI = (await import('openai')).default;
+  const apiKey = process.env.OPENAI_API_KEY;
+  const openai = apiKey ? new OpenAI({ apiKey }) : null;
+  const embeddingModel = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
+
+  const { FAQ_KNOWLEDGE_SEED } = await import('./faq-seed-data');
+
+  for (const entry of FAQ_KNOWLEDGE_SEED) {
+    let embedding: number[] | undefined;
+    if (openai) {
+      try {
+        const text = `${entry.questionEn}\n${entry.answerEn}`;
+        const response = await openai.embeddings.create({ model: embeddingModel, input: text });
+        embedding = response.data[0]?.embedding;
+      } catch {
+        embedding = undefined;
+      }
+    }
+
+    await prisma.faqKnowledgeEntry.upsert({
+      where: { slug: entry.slug },
+      update: {
+        category: entry.category,
+        questionEn: entry.questionEn,
+        questionAm: entry.questionAm,
+        answerEn: entry.answerEn,
+        answerAm: entry.answerAm,
+        keywords: [...entry.keywords],
+        currency: 'currency' in entry ? entry.currency : null,
+        embedding: embedding ?? undefined,
+        isPublished: true,
+      },
+      create: {
+        slug: entry.slug,
+        category: entry.category,
+        questionEn: entry.questionEn,
+        questionAm: entry.questionAm,
+        answerEn: entry.answerEn,
+        answerAm: entry.answerAm,
+        keywords: [...entry.keywords],
+        currency: 'currency' in entry ? entry.currency : null,
+        embedding: embedding ?? undefined,
+        isPublished: true,
+      },
+    });
+  }
 }
 
 main()
