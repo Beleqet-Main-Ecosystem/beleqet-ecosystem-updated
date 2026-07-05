@@ -2,7 +2,7 @@ import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { AiFeedService } from './ai-feed.service';
 import { GetFeedDto } from './dto/get-feed.dto';
 
-@Controller('api/v1/ai-feed')
+@Controller('ai-feed')
 export class AiFeedController {
   constructor(private readonly aiFeedService: AiFeedService) {}
 
