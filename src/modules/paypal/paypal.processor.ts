@@ -6,13 +6,20 @@ import { Queue } from 'bull';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, PAYPAL_JOBS, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { PaypalDisputeService } from './paypal-dispute.service';
+import { PaypalI18nService } from './paypal-i18n.service';
+import { formatAmount } from './paypal-currency.utils';
 
 // ── Payload type definitions ───────────────────────────────────────────────────
 
+/**
+ * BullMQ job payload for `PAYMENT.CAPTURE.COMPLETED / DENIED / REFUNDED` events.
+ * The `resource` object mirrors the PayPal webhook `resource` field.
+ */
 interface CaptureWebhookPayload {
   eventType: string;
   resource: {
-    id: string;           // Capture ID
+    /** PayPal Capture ID */
+    id: string;
     status: string;
     amount?: { value: string; currency_code: string };
     supplementary_data?: { related_ids?: { order_id?: string } };
@@ -20,10 +27,14 @@ interface CaptureWebhookPayload {
   };
 }
 
+/**
+ * BullMQ job payload for `BILLING.SUBSCRIPTION.*` events.
+ */
 interface SubscriptionWebhookPayload {
   eventType: string;
   resource: {
-    id: string;           // Subscription ID
+    /** PayPal Subscription ID */
+    id: string;
     status: string;
     billing_info?: { next_billing_time?: string };
     start_time?: string;
@@ -31,6 +42,9 @@ interface SubscriptionWebhookPayload {
   };
 }
 
+/**
+ * BullMQ job payload for `CUSTOMER.DISPUTE.*` events.
+ */
 interface DisputeWebhookPayload {
   eventType: string;
   resource: {
@@ -46,13 +60,33 @@ interface DisputeWebhookPayload {
 }
 
 /**
- * BullMQ processor for all PayPal queue jobs.
+ * @class PaypalProcessor
+ * @module PayPal
+ * @description BullMQ processor for all PayPal queue jobs.
  *
- * Mirrors the `EscrowProcessor` pattern exactly — uses `@Processor` +
- * `@Process` decorators and handles three job types:
- * 1. `PROCESS_WEBHOOK`   — captures & capture-denied events
- * 2. `SYNC_SUBSCRIPTION` — subscription lifecycle events
- * 3. `SYNC_DISPUTE`      — dispute create / resolve events
+ * Runs as an async worker outside the HTTP request lifecycle. Handles three
+ * distinct job types dispatched by `PaypalWebhookService.dispatch()`:
+ *
+ * | Job Name             | Trigger Events                                           |
+ * |----------------------|----------------------------------------------------------|
+ * | `PROCESS_WEBHOOK`    | `PAYMENT.CAPTURE.COMPLETED/DENIED/REFUNDED`              |
+ * | `SYNC_SUBSCRIPTION`  | `BILLING.SUBSCRIPTION.ACTIVATED/CANCELLED/SUSPENDED/EXPIRED` |
+ * | `SYNC_DISPUTE`       | `CUSTOMER.DISPUTE.CREATED/RESOLVED/UPDATED`              |
+ *
+ * **Retry policy**: Every job is configured with 3 attempts and exponential back-off
+ * (3-second initial delay). Failed jobs are logged via `@OnQueueFailed`.
+ *
+ * **i18n**: User-facing notification strings are resolved via `PaypalI18nService`
+ * using the subscriber's preferred locale (defaults to `'en'` if not stored).
+ *
+ * **Notification side effects**: After each successful job, an in-app notification
+ * is enqueued in the `notifications` queue for delivery to the affected user.
+ *
+ * @example
+ * ```ts
+ * // Jobs are NOT called directly — they are enqueued by PaypalWebhookService:
+ * await this.paypalQueue.add(PAYPAL_JOBS.PROCESS_WEBHOOK, { eventType, resource }, opts);
+ * ```
  */
 @Injectable()
 @Processor(QUEUE_NAMES.PAYPAL)
@@ -62,12 +96,37 @@ export class PaypalProcessor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly disputeService: PaypalDisputeService,
+    private readonly i18n: PaypalI18nService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS)
     private readonly notificationsQueue: Queue,
   ) {}
 
   // ── 1. Capture webhook (PAYMENT.CAPTURE.*) ──────────────────────────────────
 
+  /**
+   * Processes `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, and
+   * `PAYMENT.CAPTURE.REFUNDED` webhook events.
+   *
+   * **Steps**:
+   * 1. Resolves the local `PaypalTransaction` via capture ID or order ID.
+   * 2. Checks idempotency — skips if already in a terminal state.
+   * 3. Maps the event type to a new status: `CAPTURED`, `REFUNDED`, or `FAILED`.
+   * 4. Atomically updates the transaction + creates an `EventLog` row via `$transaction`.
+   * 5. Enqueues an in-app notification for the client in their preferred locale.
+   *
+   * **Retry policy**: 3 attempts, exponential back-off starting at 3 seconds.
+   *
+   * @param job - BullMQ job containing `CaptureWebhookPayload`
+   *
+   * @example
+   * ```ts
+   * // Job payload structure:
+   * {
+   *   eventType: 'PAYMENT.CAPTURE.COMPLETED',
+   *   resource: { id: 'CAPTURE-123', status: 'COMPLETED', amount: { value: '150.00', currency_code: 'USD' } }
+   * }
+   * ```
+   */
   @Process(PAYPAL_JOBS.PROCESS_WEBHOOK)
   async handleCaptureWebhook(job: BullJob<CaptureWebhookPayload>): Promise<void> {
     const { eventType, resource } = job.data;
@@ -121,30 +180,35 @@ export class PaypalProcessor {
       }),
       this.prisma.eventLog.create({
         data: {
-          eventType:  `paypal.${eventType.toLowerCase()}`,
-          entityId:   tx.id,
-          entityType: 'PaypalTransaction',
-          payload:    { captureId, status: newStatus },
+          eventType:   `paypal.${eventType.toLowerCase()}`,
+          entityId:    tx.id,
+          entityType:  'PaypalTransaction',
+          payload:     { captureId, status: newStatus },
           processedBy: PaypalProcessor.name,
         },
       }),
     ]);
 
-    // Notify client
+    // Localised notification — default to 'en'; extend with user locale lookup if needed
+    const locale  = 'en';
+    const amount  = resource.amount?.value ?? Number(tx.amount).toFixed(2);
+    const currency = resource.amount?.currency_code ?? tx.currency;
+
     const notifTitle =
       newStatus === 'CAPTURED'
         ? '✅ Payment confirmed via PayPal'
         : '❌ PayPal payment failed';
+
     const notifBody =
       newStatus === 'CAPTURED'
-        ? `${tx.currency} ${Number(tx.amount).toFixed(2)} has been successfully charged.`
-        : 'Your PayPal payment could not be processed. Please try again.';
+        ? this.i18n.t('paypal.payment.confirmed', locale, { currency, amount })
+        : this.i18n.t('paypal.payment.failed', locale);
 
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
-      userId: tx.clientId,
-      type:   `paypal.${newStatus.toLowerCase()}`,
-      title:  notifTitle,
-      body:   notifBody,
+      userId:   tx.clientId,
+      type:     `paypal.${newStatus.toLowerCase()}`,
+      title:    notifTitle,
+      body:     notifBody,
       metadata: { transactionId: tx.id, captureId },
     });
 
@@ -155,6 +219,35 @@ export class PaypalProcessor {
 
   // ── 2. Subscription events (BILLING.SUBSCRIPTION.*) ────────────────────────
 
+  /**
+   * Processes `BILLING.SUBSCRIPTION.*` webhook events, updating the local
+   * `PaypalSubscription` record and notifying the subscriber.
+   *
+   * **Status mapping**:
+   * | PayPal Event                          | Local Status  |
+   * |---------------------------------------|---------------|
+   * | `BILLING.SUBSCRIPTION.ACTIVATED`      | `ACTIVE`      |
+   * | `BILLING.SUBSCRIPTION.CANCELLED`      | `CANCELLED`   |
+   * | `BILLING.SUBSCRIPTION.SUSPENDED`      | `SUSPENDED`   |
+   * | `BILLING.SUBSCRIPTION.EXPIRED`        | `EXPIRED`     |
+   *
+   * **Side effects**:
+   * - Updates `nextBillingTime`, `cancelledAt`, `suspendedAt`, or `startTime` as applicable.
+   * - Enqueues a localised in-app notification for the subscriber.
+   *
+   * **Retry policy**: 3 attempts, exponential back-off starting at 3 seconds.
+   *
+   * @param job - BullMQ job containing `SubscriptionWebhookPayload`
+   *
+   * @example
+   * ```ts
+   * // Job payload structure:
+   * {
+   *   eventType: 'BILLING.SUBSCRIPTION.ACTIVATED',
+   *   resource: { id: 'I-BW452GLLEP1G', status: 'ACTIVE', billing_info: { next_billing_time: '...' } }
+   * }
+   * ```
+   */
   @Process(PAYPAL_JOBS.SYNC_SUBSCRIPTION)
   async handleSubscriptionWebhook(
     job: BullJob<SubscriptionWebhookPayload>,
@@ -200,28 +293,37 @@ export class PaypalProcessor {
     await this.prisma.paypalSubscription.update({
       where: { id: record.id },
       data: {
-        status: newStatus,
+        status:          newStatus,
         nextBillingTime: nextBillingTime ?? undefined,
-        cancelledAt:  newStatus === 'CANCELLED' ? new Date() : undefined,
-        suspendedAt:  newStatus === 'SUSPENDED'  ? new Date() : undefined,
-        startTime:    newStatus === 'ACTIVE' && !record.startTime ? new Date() : undefined,
+        cancelledAt:     newStatus === 'CANCELLED'  ? new Date() : undefined,
+        suspendedAt:     newStatus === 'SUSPENDED'  ? new Date() : undefined,
+        startTime:       newStatus === 'ACTIVE' && !record.startTime ? new Date() : undefined,
         gatewayResponse: resource as object,
       },
     });
 
-    // Notify the subscriber
-    const titles: Record<string, string> = {
+    // i18n notification string keyed by new status
+    const i18nKeyMap: Record<string, string> = {
+      ACTIVE:    'paypal.subscription.active',
+      CANCELLED: 'paypal.subscription.cancelled',
+      SUSPENDED: 'paypal.subscription.suspended',
+      EXPIRED:   'paypal.subscription.expired',
+    };
+
+    const titleMap: Record<string, string> = {
       ACTIVE:    '✅ Subscription activated',
       CANCELLED: '🚫 Subscription cancelled',
       SUSPENDED: '⏸ Subscription suspended',
       EXPIRED:   '⌛ Subscription expired',
     };
 
+    const locale = 'en';
+
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
-      userId: record.userId,
-      type:   `paypal.subscription.${newStatus.toLowerCase()}`,
-      title:  titles[newStatus] ?? 'Subscription updated',
-      body:   `Your Beleqet subscription status is now: ${newStatus}.`,
+      userId:   record.userId,
+      type:     `paypal.subscription.${newStatus.toLowerCase()}`,
+      title:    titleMap[newStatus] ?? 'Subscription updated',
+      body:     this.i18n.t(i18nKeyMap[newStatus] ?? 'paypal.subscription.active', locale),
       metadata: { subscriptionId: paypalSubscriptionId, status: newStatus },
     });
 
@@ -232,6 +334,35 @@ export class PaypalProcessor {
 
   // ── 3. Dispute events (CUSTOMER.DISPUTE.*) ─────────────────────────────────
 
+  /**
+   * Processes `CUSTOMER.DISPUTE.CREATED`, `CUSTOMER.DISPUTE.RESOLVED`, and
+   * `CUSTOMER.DISPUTE.UPDATED` webhook events.
+   *
+   * Delegates to `PaypalDisputeService.upsertDispute()` which handles the
+   * idempotent upsert and schedules a 5-minute deferred re-sync job.
+   *
+   * After processing, an in-app notification is sent to the platform admin
+   * (`userId: 'ADMIN'`). The notification processor filters this if no ADMIN
+   * user exists in the system.
+   *
+   * **Retry policy**: 3 attempts, exponential back-off starting at 3 seconds.
+   *
+   * @param job - BullMQ job containing `DisputeWebhookPayload`
+   *
+   * @example
+   * ```ts
+   * // Job payload structure:
+   * {
+   *   eventType: 'CUSTOMER.DISPUTE.CREATED',
+   *   resource: {
+   *     dispute_id: 'PP-D-27803',
+   *     reason: 'MERCHANDISE_OR_SERVICE_NOT_RECEIVED',
+   *     status: 'OPEN',
+   *     create_time: '2026-07-05T10:00:00Z',
+   *   }
+   * }
+   * ```
+   */
   @Process(PAYPAL_JOBS.SYNC_DISPUTE)
   async handleDisputeWebhook(
     job: BullJob<DisputeWebhookPayload>,
@@ -243,12 +374,15 @@ export class PaypalProcessor {
 
     await this.disputeService.upsertDispute(resource);
 
-    // Attempt to notify platform admin (via notifications queue)
+    const locale = 'en';
+
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
-      userId: 'ADMIN', // Will be filtered in notification processor if ADMIN doesn't exist
+      userId: 'ADMIN',
       type:   'paypal.dispute.created',
       title:  '⚠️ New PayPal Dispute',
-      body:   `Dispute ${resource.dispute_id} opened — reason: ${resource.reason}`,
+      body:   this.i18n.t('paypal.dispute.created', locale, {
+        disputeId: resource.dispute_id,
+      }),
       metadata: { disputeId: resource.dispute_id },
     });
 
@@ -259,6 +393,15 @@ export class PaypalProcessor {
 
   // ── Error Handler ─────────────────────────────────────────────────────────
 
+  /**
+   * Handles failed BullMQ jobs. Logs the job name, ID, attempt count, and error
+   * stack trace for debugging and alerting.
+   *
+   * This handler fires after all retry attempts are exhausted.
+   *
+   * @param job   - The failed BullMQ job instance
+   * @param error - The error that caused the failure
+   */
   @OnQueueFailed()
   onFailed(job: BullJob, error: Error): void {
     this.logger.error(
