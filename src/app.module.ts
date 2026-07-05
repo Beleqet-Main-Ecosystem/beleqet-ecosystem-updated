@@ -31,6 +31,7 @@ import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
 import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
+import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -161,6 +162,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     RbacModule,
     AuditLogModule,
     CacheConfigModule,
+    FaqBotModule,
   ],
   providers: [
     {
