@@ -117,3 +117,10 @@ export async function fetchCategories(): Promise<Category[]> {
     return [];
   }
 }
+export async function fetchFeed(userId: string, limit: number = 5) {
+  const res = await fetch(`${API_URL}/api/v1/ai-feed?limit=${limit}`, {
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to fetch feed: ${res.status}`);
+  return res.json();
+  }
