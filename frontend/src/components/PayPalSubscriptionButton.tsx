@@ -5,17 +5,33 @@ import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { translations, Locale } from '../utils/translations';
 
+/**
+ * @interface PayPalSubscriptionButtonProps
+ * @description Configuration properties for the {@link PayPalSubscriptionButton} component.
+ */
 interface PayPalSubscriptionButtonProps {
+  /** The billing plan ID created in the PayPal merchant dashboard Catalog */
   planId: string;
+  /** Target language locale code for text translations ('en' or 'am') */
   locale: Locale;
+  /** Callback triggered after the subscription is successfully authorized in the browser */
   onSuccess: (details: { subscriptionId: string; planId: string }) => void;
-  onFailure: (err: any) => void;
+  /** Callback triggered when a subscription creation or approval error occurs */
+  onFailure: (err: Error) => void;
+  /** Callback triggered if the user cancels out of the subscription flow */
   onCancel: () => void;
 }
 
 /**
- * PayPal Smart Payment Button wrapper for Recurring Subscriptions.
- * Re-initializes SDK scripts for vault/subscription intent and calls the backend subscription endpoint.
+ * @function PayPalSubscriptionButton
+ * @description PayPal Smart Payment Button wrapper for Recurring Subscriptions.
+ * Re-initializes SDK scripts for vaulting/subscription intent and calls the backend subscription endpoint.
+ *
+ * Ensures script reducer context options (`vault: true`, `intent: 'subscription'`) are set
+ * prior to loading the buttons to comply with PayPal SDK Vault specifications.
+ *
+ * @param props - Component configuration props.
+ * @returns React component wrapping the PayPal subscribe buttons.
  */
 export default function PayPalSubscriptionButton({
   planId,
@@ -44,7 +60,11 @@ export default function PayPalSubscriptionButton({
     }
   }, [options, dispatch]);
 
-  const getAuthHeaders = () => {
+  /**
+   * Helper to retrieve JWT token and construct request authorization headers.
+   * @returns Request headers object.
+   */
+  const getAuthHeaders = (): Record<string, string> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     return {
       'Content-Type': 'application/json',
@@ -53,10 +73,13 @@ export default function PayPalSubscriptionButton({
   };
 
   /**
-   * Triggers when the PayPal subscribe button is clicked.
-   * Calls backend /paypal/create-subscription to initiate the billing agreement.
+   * Callback sent to the PayPal SDK to create a PayPal Subscription.
+   * Calls backend `/paypal/create-subscription` to initiate the billing agreement.
+   *
+   * @async
+   * @returns The generated PayPal Subscription ID string.
    */
-  const createSubscription = async () => {
+  const createSubscription = async (): Promise<string> => {
     try {
       setError(null);
       const res = await fetch(`${API_BASE}/paypal/create-subscription`, {
@@ -73,29 +96,35 @@ export default function PayPalSubscriptionButton({
       }
 
       const data = await res.json();
-      return data.subscriptionId; // Returns PayPal's subscription ID (e.g. I-BW452GLLEP1G)
-    } catch (err: any) {
+      return data.subscriptionId;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not initiate subscription agreement';
       console.error('Error creating subscription:', err);
-      setError(err.message || 'Could not initiate subscription agreement');
-      onFailure(err);
+      setError(message);
+      onFailure(err instanceof Error ? err : new Error(message));
       throw err;
     }
   };
 
   /**
-   * Triggers after the buyer successfully approves the subscription billing agreement.
+   * Callback sent to the PayPal SDK after the user approves the subscription.
+   * Finalizes the local subscription activation callback mapping.
+   *
+   * @async
+   * @param data - Subscription details payload returned by PayPal SDK.
    */
-  const onApprove = async (data: any) => {
+  const onApprove = async (data: { subscriptionID: string }): Promise<void> => {
     try {
       setError(null);
       onSuccess({
         subscriptionId: data.subscriptionID,
         planId: planId,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to finalize subscription confirmation';
       console.error('Subscription approval error:', err);
-      setError('Failed to finalize subscription confirmation');
-      onFailure(err);
+      setError(message);
+      onFailure(err instanceof Error ? err : new Error(message));
     }
   };
 
@@ -137,10 +166,11 @@ export default function PayPalSubscriptionButton({
           createSubscription={createSubscription}
           onApprove={onApprove}
           onCancel={onCancel}
-          onError={(err) => {
+          onError={(err: Record<string, any>) => {
             console.error('PayPal Subscription error:', err);
-            setError('Subscription button initialization or configuration error');
-            onFailure(err);
+            const message = err.message || 'Subscription button initialization or configuration error';
+            setError(message);
+            onFailure(new Error(message));
           }}
         />
       </div>

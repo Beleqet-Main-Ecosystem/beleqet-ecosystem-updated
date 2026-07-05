@@ -4,22 +4,42 @@ import React from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, Copy, Check } from 'lucide-react';
 import { translations, Locale } from '../utils/translations';
 
+/**
+ * @interface PaymentStatusBannerProps
+ * @description Properties accepted by the {@link PaymentStatusBanner} component.
+ */
 interface PaymentStatusBannerProps {
+  /** The transaction status: SUCCESS, CANCELLED, or FAILED */
   status: 'SUCCESS' | 'CANCELLED' | 'FAILED' | null;
+  /** Optional transaction details returned by the payment API or simulator */
   details: {
+    /** The PayPal Order ID */
     orderId?: string;
+    /** The captured payment transaction ID */
     captureId?: string;
+    /** The initialized subscription agreement ID */
     subscriptionId?: string;
+    /** The total charged or authorized amount */
     amount?: number;
+    /** The currency of the transaction (e.g. 'USD', 'ETB') */
     currency?: string;
   } | null;
+  /** Language locale code used to select standard text translations ('en' or 'am') */
   locale: Locale;
+  /** Callback triggered when the buyer clicks the Dismiss button to close the modal */
   onClose: () => void;
 }
 
 /**
- * Premium payment status feedback card.
- * Uses glassmorphism and animated icons to deliver a professional success/error state.
+ * @function PaymentStatusBanner
+ * @description Premium payment status feedback card modal.
+ * Uses glassmorphism styling, clean micro-animations, and dynamic English and
+ * Amharic translations to deliver clear success or failure receipts to the user.
+ *
+ * Provides a copy-to-clipboard shortcut for Order, Capture, and Subscription IDs.
+ *
+ * @param props - Properties configuring the banner layout and details.
+ * @returns React modal component or null if no status is active.
  */
 export default function PaymentStatusBanner({
   status,
@@ -32,12 +52,21 @@ export default function PaymentStatusBanner({
 
   if (!status) return null;
 
+  /**
+   * Helper to write ID values to user clipboard and show transition feedback icon.
+   * @param text - Plain ID string.
+   * @param field - The field category ID ('order', 'capture', or 'subscription').
+   */
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  /**
+   * Generates display styles, animations, icons, and titles according to the active status.
+   * @returns Style and icon configuration object.
+   */
   const getStatusConfig = () => {
     switch (status) {
       case 'SUCCESS':

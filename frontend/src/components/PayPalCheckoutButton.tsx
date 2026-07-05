@@ -5,21 +5,42 @@ import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { translations, Locale } from '../utils/translations';
 
+/**
+ * @interface PayPalCheckoutButtonProps
+ * @description Configuration properties for the {@link PayPalCheckoutButton} component.
+ */
 interface PayPalCheckoutButtonProps {
+  /** Charge amount (e.g. 150.00) */
   amount: number;
+  /** ISO-4217 currency code (e.g. 'USD', 'EUR'). Simulator additionally supports 'ETB'. */
   currency: string;
+  /** Optional client-side UUID v4 to prevent duplicate charges on retry */
   idempotencyKey?: string;
+  /** Optional freelancer user UUID receiving the funds */
   freelancerId?: string;
+  /** Optional freelance job UUID linked to this payment transaction */
   freelanceJobId?: string;
+  /** Target language locale code for text copy ('en' or 'am') */
   locale: Locale;
+  /** Callback triggered after payment is captured on backend successfully */
   onSuccess: (details: { orderId: string; captureId: string; amount: number; currency: string }) => void;
-  onFailure: (err: any) => void;
+  /** Callback triggered if any error is encountered during creation/capture */
+  onFailure: (err: Error) => void;
+  /** Callback triggered if the user exits the PayPal portal window */
   onCancel: () => void;
 }
 
 /**
- * PayPal Smart Payment Button wrapper for One-Time Escrow Payments.
- * Calls backend endpoints for order creation and capture.
+ * @function PayPalCheckoutButton
+ * @description PayPal Smart Payment Button wrapper for One-Time Escrow Payments.
+ * Renders the responsive PayPal button UI and coordinates order creation and capture
+ * endpoints on the NestJS backend.
+ *
+ * Handles auth headers from `localStorage` JWT, displays loaders while the SDK
+ * script is pending, and renders local error alerts for inline feedback.
+ *
+ * @param props - Component configuration props.
+ * @returns React component wrapping the PayPal payment button.
  */
 export default function PayPalCheckoutButton({
   amount,
@@ -39,10 +60,11 @@ export default function PayPalCheckoutButton({
   // Base API url (relative or fully qualified config)
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
-  // Get client-side token or use dummy authorization header matching backend guard
-  const getAuthHeaders = () => {
-    // In production, fetch the actual user JWT token from cookies/localStorage.
-    // For demo purposes, we will supply a mock header if not authenticated.
+  /**
+   * Helper to retrieve JWT token and construct request authorization headers.
+   * @returns Request headers object.
+   */
+  const getAuthHeaders = (): Record<string, string> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     return {
       'Content-Type': 'application/json',
@@ -51,10 +73,13 @@ export default function PayPalCheckoutButton({
   };
 
   /**
-   * Triggers when the PayPal button is clicked.
-   * Calls our NestJS backend to create a PayPal Order.
+   * Callback sent to the PayPal SDK to create a PayPal Order.
+   * Sends payment metadata to the backend to generate the order.
+   *
+   * @async
+   * @returns The generated PayPal Order ID string.
    */
-  const createOrder = async () => {
+  const createOrder = async (): Promise<string> => {
     try {
       setError(null);
       const res = await fetch(`${API_BASE}/paypal/create-order`, {
@@ -75,20 +100,24 @@ export default function PayPalCheckoutButton({
       }
 
       const data = await res.json();
-      return data.orderId; // Returns PayPal's order ID (e.g. 5O190127TN364715T)
-    } catch (err: any) {
+      return data.orderId;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not connect to payment server';
       console.error('Error creating order:', err);
-      setError(err.message || 'Could not connect to payment server');
-      onFailure(err);
+      setError(message);
+      onFailure(err instanceof Error ? err : new Error(message));
       throw err;
     }
   };
 
   /**
-   * Triggers after the buyer approves the payment on PayPal.
-   * Calls our NestJS backend to capture the order and finalize the charge.
+   * Callback sent to the PayPal SDK after the user approves the payment.
+   * Instructs the backend to capture the transaction and finalize the escrow.
+   *
+   * @async
+   * @param data - The metadata payload returned by the PayPal button window containing the orderID.
    */
-  const onApprove = async (data: any) => {
+  const onApprove = async (data: { orderID: string }): Promise<void> => {
     try {
       setError(null);
       const orderId = data.orderID;
@@ -111,10 +140,11 @@ export default function PayPalCheckoutButton({
         amount: Number(captureData.amount),
         currency: captureData.currency,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Capture process failed';
       console.error('Error capturing order:', err);
-      setError(err.message || 'Capture process failed');
-      onFailure(err);
+      setError(message);
+      onFailure(err instanceof Error ? err : new Error(message));
     }
   };
 
@@ -156,10 +186,11 @@ export default function PayPalCheckoutButton({
           createOrder={createOrder}
           onApprove={onApprove}
           onCancel={onCancel}
-          onError={(err) => {
+          onError={(err: Record<string, any>) => {
             console.error('PayPal Buttons error:', err);
-            setError('Payment button initialization or configuration error');
-            onFailure(err);
+            const message = err.message || 'Payment button initialization or configuration error';
+            setError(message);
+            onFailure(new Error(message));
           }}
         />
       </div>

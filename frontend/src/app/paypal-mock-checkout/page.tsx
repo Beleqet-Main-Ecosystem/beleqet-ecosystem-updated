@@ -1,34 +1,105 @@
 'use client';
 
+/**
+ * @file paypal-mock-checkout/page.tsx
+ * @description Simulated PayPal Checkout Portal — Interview/Demo Mode.
+ *
+ * This page replicates the PayPal consent and payment confirmation screen
+ * for **offline demonstration purposes only**. It is rendered when the backend
+ * is running in `PAYPAL_MODE=mock` and returns a local simulator redirect URL
+ * instead of an external PayPal approval URL.
+ *
+ * **How it works**:
+ * 1. The user is redirected here from the payment demo page after clicking "Pay with PayPal".
+ * 2. Query parameters carry the `orderId` (or `subscriptionId`), `amount`, `currency`, and `type`.
+ * 3. Clicking "Authorize & Pay" triggers the NestJS `POST /paypal/capture-order/:orderId`
+ *    endpoint using the JWT token stored in `localStorage`.
+ * 4. On success, the user is redirected back to `/paypal-demo?status=SUCCESS&...`.
+ * 5. Clicking "Cancel" redirects to `/paypal-demo?status=CANCELLED`.
+ *
+ * **Security note**: This page requires a valid JWT in `localStorage` to call the
+ * capture endpoint. In a real PayPal flow, this step happens after PayPal's
+ * OAuth redirect — the JWT requirement replaces the PayPal buyer session.
+ *
+ * @module PaypalMockCheckout
+ */
+
 import React from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Shield, Lock, Landmark, Info, AlertCircle, CheckCircle2 } from 'lucide-react';
 
+/**
+ * PayPal Mock Checkout Page component.
+ *
+ * Renders a styled PayPal consent screen replica. Supports both one-time
+ * payment orders and recurring subscription approval flows.
+ *
+ * @returns The simulated PayPal checkout portal UI.
+ *
+ * @example
+ * ```
+ * // Navigated to from the backend redirect URL:
+ * /paypal-mock-checkout?orderId=MOCK-ORD-1234&amount=150&currency=USD&type=order
+ * /paypal-mock-checkout?subscriptionId=MOCK-SUB-5678&planId=P-PLAN123&type=subscription
+ * ```
+ */
 export default function PayPalMockCheckoutPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  /** PayPal Order ID for one-time payments (populated when type=order) */
   const orderId = searchParams.get('orderId');
-  const subscriptionId = searchParams.get('subscriptionId');
-  const planId = searchParams.get('planId');
-  const amount = searchParams.get('amount');
-  const currency = searchParams.get('currency') || 'USD';
-  const type = searchParams.get('type') || 'order'; // 'order' or 'subscription'
 
+  /** PayPal Subscription ID for recurring plans (populated when type=subscription) */
+  const subscriptionId = searchParams.get('subscriptionId');
+
+  /** PayPal Plan ID for subscription display */
+  const planId = searchParams.get('planId');
+
+  /** Payment amount (string from URL param, parsed to float for display) */
+  const amount = searchParams.get('amount');
+
+  /** ISO-4217 currency code (defaults to 'USD' if not provided) */
+  const currency = searchParams.get('currency') || 'USD';
+
+  /** Payment flow type: 'order' for one-time payments, 'subscription' for recurring */
+  const type = searchParams.get('type') || 'order';
+
+  /** True while the capture API call is in flight */
   const [loading, setLoading] = React.useState<boolean>(false);
+
+  /** True after successful authorization — shows success state before redirect */
   const [complete, setComplete] = React.useState<boolean>(false);
+
+  /** Error message from the capture API call, or null if no error */
   const [error, setError] = React.useState<string | null>(null);
 
+  /**
+   * Backend NestJS API base URL.
+   * Reads from `NEXT_PUBLIC_API_URL` environment variable with localhost fallback.
+   * Set this in `frontend/.env.local` for non-default configurations.
+   */
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-  const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
 
+  /**
+   * Handles the "Authorize & Pay" button click.
+   *
+   * For order flows, calls the NestJS `POST /paypal/capture-order/:orderId` endpoint
+   * with the JWT from localStorage. On success, redirects to the payment demo page
+   * with `status=SUCCESS` and the payment details as query params.
+   *
+   * For subscription flows, simulates approval by redirecting directly (the webhook
+   * would normally fire to confirm activation).
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
   const handleApprove = async () => {
     setLoading(true);
     setError(null);
 
     try {
       if (type === 'order' && orderId) {
-        // Call the capture order endpoint on the backend
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         const res = await fetch(`${API_BASE}/paypal/capture-order/${orderId}`, {
           method: 'POST',
@@ -49,19 +120,24 @@ export default function PayPalMockCheckoutPage() {
         }, 1500);
 
       } else if (type === 'subscription' && subscriptionId) {
-        // For subscription, simulate PayPal webhook trigger by calling the callback page with success status
+        // Subscription: simulate approval redirect (webhook handles actual activation)
         setComplete(true);
         setTimeout(() => {
           router.push(`/paypal-demo?status=SUCCESS&subscriptionId=${subscriptionId}&planId=${planId}`);
         }, 1500);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Verification failed. Could not capture payment.';
       console.error('Simulated capture error:', err);
-      setError(err.message || 'Verification failed. Could not capture payment.');
+      setError(message);
       setLoading(false);
     }
   };
 
+  /**
+   * Handles the "Cancel transaction" button click.
+   * Redirects the user back to the demo dashboard with `status=CANCELLED`.
+   */
   const handleCancel = () => {
     router.push('/paypal-demo?status=CANCELLED');
   };
@@ -104,7 +180,7 @@ export default function PayPalMockCheckoutPage() {
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start space-x-2.5 text-amber-300 text-xs">
                 <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <p className="leading-relaxed">
-                  <strong>Interview Demo Mode:</strong> This page simulates PayPal's secure login & consent screen. It communicates with your backend APIs locally.
+                  <strong>Interview Demo Mode:</strong> This page simulates PayPal&apos;s secure login &amp; consent screen. It communicates with your backend APIs locally.
                 </p>
               </div>
 
@@ -144,7 +220,7 @@ export default function PayPalMockCheckoutPage() {
                 </div>
               </div>
 
-              {/* simulated payment options */}
+              {/* Simulated payment options */}
               <div className="space-y-3">
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Simulated Funding Source</div>
                 <div className="p-3 bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-between">
@@ -166,14 +242,16 @@ export default function PayPalMockCheckoutPage() {
               {/* Action Buttons */}
               <div className="space-y-2 pt-2">
                 <button
+                  id="paypal-simulator-approve-btn"
                   onClick={handleApprove}
                   disabled={loading}
                   className="w-full bg-[#FFC439] hover:bg-[#F2B522] text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg transition duration-150 flex items-center justify-center space-x-2 text-sm disabled:opacity-50"
                 >
                   {loading && <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2" />}
-                  <span>Authorize & Pay</span>
+                  <span>Authorize &amp; Pay</span>
                 </button>
                 <button
+                  id="paypal-simulator-cancel-btn"
                   onClick={handleCancel}
                   disabled={loading}
                   className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 px-4 rounded-xl border border-slate-600 transition duration-150 text-sm disabled:opacity-50"
