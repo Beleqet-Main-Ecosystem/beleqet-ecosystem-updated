@@ -1,0 +1,9 @@
+{
+  "title": "Your Personalized Job Feed",
+  "loading": "Loading recommendations...",
+  "no_jobs": "No matching jobs found.",
+  "match_score": "Match Score",
+  "apply": "Apply Now",
+  "disable_personalization": "Disable Personalization",
+  "enable_personalization": "Enable Personalization"
+}
