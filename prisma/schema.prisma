@@ -366,21 +366,21 @@ model Deliverable {
 }
 
 model EscrowTransaction {
-  id              String       @id @default(uuid())
-  freelanceJobId  String       @unique
+  id                  String       @id @default(uuid())
+  freelanceJobId      String       @unique
   grossAmount         Int
   platformFee         Int
   netAmount           Int
   walletAppliedAmount Int          @default(0)
   currency            String       @default("ETB")
-  status          EscrowStatus @default(PENDING)
-  gatewayRef      String?
-  gatewayResponse Json?
-  fundedAt        DateTime?
-  releasedAt      DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  freelanceJob    FreelanceJob @relation(fields: [freelanceJobId], references: [id])
+  status              EscrowStatus @default(PENDING)
+  gatewayRef          String?
+  gatewayResponse     Json?
+  fundedAt            DateTime?
+  releasedAt          DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  freelanceJob        FreelanceJob @relation(fields: [freelanceJobId], references: [id])
 
   @@map("escrow_transactions")
 }
@@ -413,27 +413,27 @@ model WalletTransaction {
 }
 
 model EmployerWallet {
-  id               String                      @id @default(uuid())
-  userId           String                      @unique
-  balance          Int                         @default(0)
-  lockedBalance    Int                         @default(0)
-  currency         String                      @default("ETB")
-  updatedAt        DateTime                    @updatedAt
-  user             User                        @relation(fields: [userId], references: [id])
-  transactions     EmployerWalletTransaction[]
+  id            String                      @id @default(uuid())
+  userId        String                      @unique
+  balance       Int                         @default(0)
+  lockedBalance Int                         @default(0)
+  currency      String                      @default("ETB")
+  updatedAt     DateTime                    @updatedAt
+  user          User                        @relation(fields: [userId], references: [id])
+  transactions  EmployerWalletTransaction[]
 
   @@map("employer_wallets")
 }
 
 model EmployerWalletTransaction {
-  id          String                @id @default(uuid())
-  walletId    String
-  type        WalletTransactionType
-  amount      Int
-  note        String?
-  escrowId    String?
-  createdAt   DateTime              @default(now())
-  wallet      EmployerWallet        @relation(fields: [walletId], references: [id])
+  id        String                @id @default(uuid())
+  walletId  String
+  type      WalletTransactionType
+  amount    Int
+  note      String?
+  escrowId  String?
+  createdAt DateTime              @default(now())
+  wallet    EmployerWallet        @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
   @@map("employer_wallet_transactions")
@@ -607,4 +607,27 @@ enum NotificationChannel {
   IN_APP
   TELEGRAM
   EMAIL
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  actorId       String?
+  actorEmail    String?
+  actorRole     String?
+  action        String
+  entityType    String
+  entityId      String?
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json     @default("{}")
+  integrityHash String
+  correlationId String?
+  createdAt     DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
 }
