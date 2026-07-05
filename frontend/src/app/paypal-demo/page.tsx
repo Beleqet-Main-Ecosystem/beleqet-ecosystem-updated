@@ -83,6 +83,13 @@ export default function PayPalDemoPage() {
     }
   }, []);
 
+  // Ensure currency is supported in live mode when switching toggles
+  React.useEffect(() => {
+    if (!useSimulator && currency === 'ETB') {
+      setCurrency('USD');
+    }
+  }, [useSimulator, currency]);
+
   const handleSuccess = (details: any) => {
     setPaymentDetails(details);
     setPaymentStatus('SUCCESS');
@@ -295,6 +302,7 @@ export default function PayPalDemoPage() {
                       <option value="GBP">GBP - British Pound</option>
                       <option value="AUD">AUD - Australian Dollar</option>
                       <option value="CAD">CAD - Canadian Dollar</option>
+                      {useSimulator && <option value="ETB">ETB - Ethiopian Birr (Simulator Only)</option>}
                     </select>
                   </div>
 
