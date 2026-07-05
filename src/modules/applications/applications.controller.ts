@@ -5,6 +5,8 @@ import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current
 import { ApplicationsService } from './applications.service';
 import { UsersService } from '../users/users.service';
 import { CreateApplicationDto, UpdateApplicationStatusDto } from './dto/create-application.dto';
+import { Audit } from '../audit-trail/audit.decorator';
+import { AuditAction } from '../audit-trail/audit-action.enum';
 
 @ApiTags('applications')
 @ApiBearerAuth()
@@ -13,7 +15,7 @@ import { CreateApplicationDto, UpdateApplicationStatusDto } from './dto/create-a
 export class ApplicationsController {
   constructor(
     private readonly svc: ApplicationsService,
-    private readonly usersSvc: UsersService
+    private readonly usersSvc: UsersService,
   ) {}
 
   @Post()
@@ -41,6 +43,7 @@ export class ApplicationsController {
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update application status (employer action)' })
+  @Audit(AuditAction.APPLICATION_STATUS_CHANGED, 'Application', 'params.id')
   updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateApplicationStatusDto,
@@ -56,19 +59,13 @@ export class ApplicationsController {
 
   @Post(':userId/feedback')
   @ApiOperation({ summary: 'Add client feedback to user (via application)' })
-  addFeedback(
-    @Param('userId') userId: string,
-    @Body() feedback: any,
-  ) {
+  addFeedback(@Param('userId') userId: string, @Body() feedback: any) {
     return this.usersSvc.addClientFeedback(userId, feedback);
   }
 
   @Patch(':userId/verify-skill')
   @ApiOperation({ summary: 'Verify user skills (admin/employer)' })
-  verifySkill(
-    @Param('userId') userId: string,
-    @Body('status') status: boolean,
-  ) {
+  verifySkill(@Param('userId') userId: string, @Body('status') status: boolean) {
     return this.usersSvc.verifySkill(userId, status);
   }
 }
