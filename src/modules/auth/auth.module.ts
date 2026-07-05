@@ -6,17 +6,14 @@ import { AccountLinkingService, ACCOUNT_REPOSITORY } from './services/account-li
 import { TokenEncryptionService } from './services/token-encryption.service';
 import { TokenIssuanceService } from './services/token-issuance.service';
 import { AccountRepository } from './repositories/account.repository';
-import { RefreshTokenRepository } from './dto/refresh-token.repository';
-import {
-  TOKEN_ENCRYPTION_KEY,
-  loadAuthEnvConfig,
-  AuthEnvConfig,
-  AUTH_ENV_CONFIG,
-} from './config/auth.config';
+import { RefreshTokenRepository } from './repositories/refresh-token.repository';
+import { TOKEN_ENCRYPTION_KEY, loadAuthEnvConfig, AuthEnvConfig } from './config/auth.config';
 import { TOKEN_CIPHER } from './interfaces/token-cipher.interface';
 import { REFRESH_TOKEN_REPOSITORY } from './interfaces/refresh-token-repository.interface';
 import { EMAIL_SENDER } from './interfaces/email-sender.interface';
 import { MailService } from '../../mail/mail.service';
+import { AUDIT_LOGGER } from './interfaces/audit-logger.interface';
+import { PrismaAuditLogger } from './services/prisma-audit-logger.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -28,6 +25,7 @@ import { AuthExceptionFilter } from './filters/auth-exception.filter';
  * Loaded exactly once at module initialization rather than re-read from
  * `process.env` throughout the module.
  */
+export const AUTH_ENV_CONFIG = Symbol('AUTH_ENV_CONFIG');
 
 /**
  * Composition root for the Social Logins module. The ONLY file that
@@ -41,14 +39,19 @@ import { AuthExceptionFilter } from './filters/auth-exception.filter';
  * secret stays scoped to this module rather than leaking into the rest
  * of the app's DI graph.
  */
-const authEnvConfig = loadAuthEnvConfig();
 @Module({
-  imports: [PrismaModule, JwtModule.register({ secret: authEnvConfig.jwtAccessSecret })],
+  imports: [
+    PrismaModule,
+    JwtModule.registerAsync({
+      useFactory: (config: AuthEnvConfig) => ({ secret: config.jwtAccessSecret }),
+      inject: [AUTH_ENV_CONFIG],
+    }),
+  ],
   controllers: [AuthController],
   providers: [
     {
       provide: AUTH_ENV_CONFIG,
-      useValue: authEnvConfig,
+      useFactory: (): AuthEnvConfig => loadAuthEnvConfig(),
     },
     {
       provide: TOKEN_ENCRYPTION_KEY,
@@ -75,6 +78,11 @@ const authEnvConfig = loadAuthEnvConfig();
     },
     AccountLinkingService,
     TokenIssuanceService,
+    PrismaAuditLogger,
+    {
+      provide: AUDIT_LOGGER,
+      useExisting: PrismaAuditLogger,
+    },
     // Real SMTP mailer — no module import needed since MailService has
     // no external constructor deps (see src/mail/mail.config.ts).
     {

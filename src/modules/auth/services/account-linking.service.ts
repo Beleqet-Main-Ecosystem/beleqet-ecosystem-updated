@@ -12,6 +12,7 @@ import {
   ProviderIdentityAlreadyLinkedError,
   UnverifiedEmailLinkAttemptError,
 } from '../errors/auth.errors';
+import { IAuditLogger, AUDIT_LOGGER } from '../interfaces/audit-logger.interface';
 
 /**
  * Injection token for the {@link IAccountRepository} implementation.
@@ -62,6 +63,8 @@ export class AccountLinkingService {
   constructor(
     @Inject(ACCOUNT_REPOSITORY)
     private readonly accountRepository: IAccountRepository,
+    @Inject(AUDIT_LOGGER)
+    private readonly auditLogger: IAuditLogger,
   ) {}
 
   /**
@@ -128,6 +131,10 @@ export class AccountLinkingService {
     // An account with this email already exists. From here on, linking
     // is NEVER automatic — see class-level doc for the full rationale.
     if (!profile.emailVerified) {
+      await this.auditLogger.log('AccountLinkRejected', existingUserByEmail.id, {
+        reason: 'unverified_email',
+        provider: profile.provider,
+      });
       throw new UnverifiedEmailLinkAttemptError(profile.email);
     }
 
@@ -135,6 +142,10 @@ export class AccountLinkingService {
       existingUserByEmail.id,
       VerificationTokenType.OAUTH_LINK_CONFIRMATION,
     );
+
+    await this.auditLogger.log('AccountLinkAttempt', existingUserByEmail.id, {
+      provider: profile.provider,
+    });
 
     return {
       kind: 'PENDING_CONFIRMATION',
@@ -199,6 +210,10 @@ export class AccountLinkingService {
     if (user === null) {
       throw new InvalidLinkConfirmationTokenError();
     }
+
+    await this.auditLogger.log('AccountLinkSucceeded', user.id, {
+      provider: profile.provider,
+    });
 
     return user;
   }

@@ -11,7 +11,7 @@ import { prepareOAuthIdentity } from './prepare-oauth-identity.helper';
 /**
  * Google's raw userinfo claims relevant to us, as found on
  * `profile._json` when the `profile` scope requests standard OIDC claims.
- * Declared explicitly (rather than trusting an untyped `_json: any`) to
+ *
  * keep this file free of implicit/explicit `any`.
  */
 interface GoogleRawProfileClaims {

@@ -11,6 +11,7 @@ import {
   ProviderIdentityAlreadyLinkedError,
   UnverifiedEmailLinkAttemptError,
 } from '../errors/auth.errors';
+import { AUDIT_LOGGER, IAuditLogger } from '../interfaces/audit-logger.interface';
 
 /**
  * Builds a fully-typed mock of {@link IAccountRepository}. Every method is
@@ -57,14 +58,17 @@ function buildUser(overrides: Partial<UserIdentitySnapshot> = {}): UserIdentityS
 describe('AccountLinkingService', () => {
   let service: AccountLinkingService;
   let repository: jest.Mocked<IAccountRepository>;
+  let auditLogger: jest.Mocked<IAuditLogger>;
 
   beforeEach(async () => {
     repository = createMockRepository();
+    auditLogger = { log: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AccountLinkingService,
         { provide: ACCOUNT_REPOSITORY, useValue: repository },
+        { provide: AUDIT_LOGGER, useValue: auditLogger },
       ],
     }).compile();
 
