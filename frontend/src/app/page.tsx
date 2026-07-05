@@ -3,16 +3,16 @@ import { Shield, Sparkles, ArrowRight, DollarSign, RefreshCw, Lock } from 'lucid
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-blue-500/30 overflow-x-hidden flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30 overflow-x-hidden flex flex-col justify-between">
       {/* Background Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[150px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-green-500/5 blur-[150px] pointer-events-none" />
 
       {/* Main Container */}
       <div className="max-w-6xl mx-auto px-6 py-20 flex-grow flex flex-col justify-center items-center text-center space-y-10 relative z-10">
         
         {/* Animated Badge */}
-        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider animate-pulse">
+        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider animate-pulse">
           <Sparkles className="w-3.5 h-3.5" />
           <span>PayPal Global Digital Wallet Live</span>
         </div>
@@ -24,7 +24,7 @@ export default function Home() {
             to the Global Market
           </h1>
           <p className="text-gray-400 text-base sm:text-xl max-w-2xl mx-auto leading-relaxed">
-            Task ID: <code className="text-blue-400 font-mono">Global-Payments-002</code>. A premium escrow, recurring billing, and dispute management integration powered by NestJS and PayPal REST SDK v2.
+            Task ID: <code className="text-emerald-400 font-mono">Global-Payments-002</code>. A premium escrow, recurring billing, and dispute management integration powered by NestJS and PayPal REST SDK v2.
           </p>
         </div>
 
@@ -32,7 +32,7 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
           <Link
             href="/paypal-demo"
-            className="group px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-blue-500/20 flex items-center space-x-2 transition duration-200"
+            className="group px-8 py-4 rounded-2xl bg-white hover:bg-slate-100 text-slate-950 font-bold text-base shadow-xl shadow-white/5 flex items-center space-x-2 transition duration-200"
           >
             <span>Launch Payment Workspace</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -52,7 +52,7 @@ export default function Home() {
           
           {/* Card 1 */}
           <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
               <Shield className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-lg text-white">Escrow Protection</h3>
@@ -63,7 +63,7 @@ export default function Home() {
 
           {/* Card 2 */}
           <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
               <RefreshCw className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-lg text-white">Recurring billing</h3>
@@ -74,7 +74,7 @@ export default function Home() {
 
           {/* Card 3 */}
           <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-3 sm:col-span-2 lg:col-span-1">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
               <Lock className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-lg text-white">GDPR & PII Privacy</h3>

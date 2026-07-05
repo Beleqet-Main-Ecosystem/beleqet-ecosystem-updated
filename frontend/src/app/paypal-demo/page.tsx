@@ -150,22 +150,22 @@ export default function PayPalDemoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-blue-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30 overflow-x-hidden">
       {/* Decorative Gradient Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[150px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[20%] w-[400px] h-[400px] rounded-full bg-indigo-500/5 blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-green-500/5 blur-[150px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[20%] w-[400px] h-[400px] rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none" />
 
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-slate-950/60 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
             <div>
               <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">BELEQET</span>
-              <span className="ml-1.5 text-xs px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 font-semibold uppercase tracking-wider">Gateway</span>
+              <span className="ml-1.5 text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-semibold uppercase tracking-wider">Gateway</span>
             </div>
           </div>
 
@@ -175,7 +175,7 @@ export default function PayPalDemoPage() {
               <button
                 onClick={() => setLocale('en')}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold tracking-wider transition ${
-                  locale === 'en' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+                  locale === 'en' ? 'bg-emerald-600 text-white shadow' : 'text-gray-400 hover:text-white'
                 }`}
               >
                 EN
@@ -183,7 +183,7 @@ export default function PayPalDemoPage() {
               <button
                 onClick={() => setLocale('am')}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold tracking-wider transition ${
-                  locale === 'am' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+                  locale === 'am' ? 'bg-emerald-600 text-white shadow' : 'text-gray-400 hover:text-white'
                 }`}
               >
                 አማ
@@ -218,7 +218,7 @@ export default function PayPalDemoPage() {
             {/* Payment Type Selector Card */}
             <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-4 shadow-xl">
               <h2 className="text-lg font-bold flex items-center space-x-2 text-white/90">
-                <Layers className="w-5 h-5 text-blue-400" />
+                <Layers className="w-5 h-5 text-emerald-400" />
                 <span>{t.paymentType}</span>
               </h2>
 
@@ -228,16 +228,16 @@ export default function PayPalDemoPage() {
                   onClick={() => setPaymentType('ONE_TIME')}
                   className={`p-4 rounded-xl border text-left transition duration-200 ${
                     paymentType === 'ONE_TIME'
-                      ? 'bg-blue-950/20 border-blue-500/50 shadow-md shadow-blue-500/5'
+                      ? 'bg-emerald-950/20 border-emerald-500/50 shadow-md shadow-emerald-500/5'
                       : 'bg-black/20 border-white/5 hover:border-white/10 hover:bg-black/30'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-sm text-white">One-Time Escrow</span>
                     <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                      paymentType === 'ONE_TIME' ? 'border-blue-400' : 'border-gray-600'
+                      paymentType === 'ONE_TIME' ? 'border-emerald-400' : 'border-gray-600'
                     }`}>
-                      {paymentType === 'ONE_TIME' && <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
+                      {paymentType === 'ONE_TIME' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 leading-relaxed">{t.oneTimeDesc}</p>
@@ -248,16 +248,16 @@ export default function PayPalDemoPage() {
                   onClick={() => setPaymentType('SUBSCRIPTION')}
                   className={`p-4 rounded-xl border text-left transition duration-200 ${
                     paymentType === 'SUBSCRIPTION'
-                      ? 'bg-blue-950/20 border-blue-500/50 shadow-md shadow-blue-500/5'
+                      ? 'bg-emerald-950/20 border-emerald-500/50 shadow-md shadow-emerald-500/5'
                       : 'bg-black/20 border-white/5 hover:border-white/10 hover:bg-black/30'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-sm text-white">Platform Subscription</span>
                     <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                      paymentType === 'SUBSCRIPTION' ? 'border-blue-400' : 'border-gray-600'
+                      paymentType === 'SUBSCRIPTION' ? 'border-emerald-400' : 'border-gray-600'
                     }`}>
-                      {paymentType === 'SUBSCRIPTION' && <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
+                      {paymentType === 'SUBSCRIPTION' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
                     </div>
                   </div>
                   <p className="text-xs text-gray-400 leading-relaxed">{t.subscriptionDesc}</p>
@@ -268,7 +268,7 @@ export default function PayPalDemoPage() {
             {/* Custom Payment Detail Forms */}
             <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 backdrop-blur-sm space-y-6 shadow-xl">
               <h2 className="text-lg font-bold flex items-center space-x-2 text-white/90">
-                <Settings className="w-5 h-5 text-indigo-400" />
+                <Settings className="w-5 h-5 text-emerald-400" />
                 <span>Configuration details</span>
               </h2>
 
@@ -284,7 +284,7 @@ export default function PayPalDemoPage() {
                         type="number"
                         value={amount}
                         onChange={(e) => setAmount(Math.max(0.01, parseFloat(e.target.value) || 0))}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-8 pr-4 text-white font-semibold focus:outline-none focus:border-blue-500/50 transition"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-8 pr-4 text-white font-semibold focus:outline-none focus:border-emerald-500/50 transition"
                       />
                     </div>
                   </div>
@@ -312,9 +312,9 @@ export default function PayPalDemoPage() {
                       <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{t.idempotencyKey}</label>
                       <button 
                         onClick={() => setIdempotencyKey(`idemp-${Math.random().toString(36).substr(2, 9)}`)}
-                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center space-x-1"
+                        className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center space-x-1"
                       >
-                        <RefreshCw className="w-3 h-3" />
+                        <RefreshCw className="w-3.5 h-3.5" />
                         <span>Regenerate</span>
                       </button>
                     </div>
@@ -335,7 +335,7 @@ export default function PayPalDemoPage() {
                       onClick={() => setSubPlan('P-5ML4271244454362WXNWU5NQ')}
                       className={`w-full p-4 rounded-xl border text-left flex justify-between items-center transition ${
                         subPlan === 'P-5ML4271244454362WXNWU5NQ'
-                          ? 'bg-indigo-950/20 border-indigo-500/40'
+                          ? 'bg-emerald-950/20 border-emerald-500/40'
                           : 'bg-black/20 border-white/5 hover:border-white/10'
                       }`}
                     >
@@ -343,14 +343,14 @@ export default function PayPalDemoPage() {
                         <div className="font-bold text-sm text-white">{t.monthlyPlan}</div>
                         <p className="text-xs text-gray-400 mt-1">Platform monthly developer fee with priority escrow support.</p>
                       </div>
-                      <ChevronRight className={`w-5 h-5 text-gray-400 transition ${subPlan === 'P-5ML4271244454362WXNWU5NQ' && 'rotate-90 text-indigo-400'}`} />
+                      <ChevronRight className={`w-5 h-5 text-gray-400 transition ${subPlan === 'P-5ML4271244454362WXNWU5NQ' && 'rotate-90 text-emerald-400'}`} />
                     </button>
 
                     <button
                       onClick={() => setSubPlan('P-8SU6382955513837XYNXP8OP')}
                       className={`w-full p-4 rounded-xl border text-left flex justify-between items-center transition ${
                         subPlan === 'P-8SU6382955513837XYNXP8OP'
-                          ? 'bg-indigo-950/20 border-indigo-500/40'
+                          ? 'bg-emerald-950/20 border-emerald-500/40'
                           : 'bg-black/20 border-white/5 hover:border-white/10'
                       }`}
                     >
@@ -358,7 +358,7 @@ export default function PayPalDemoPage() {
                         <div className="font-bold text-sm text-white">{t.annualPlan}</div>
                         <p className="text-xs text-gray-400 mt-1">Platform annual fee with zero fee on first 3 escrows.</p>
                       </div>
-                      <ChevronRight className={`w-5 h-5 text-gray-400 transition ${subPlan === 'P-8SU6382955513837XYNXP8OP' && 'rotate-90 text-indigo-400'}`} />
+                      <ChevronRight className={`w-5 h-5 text-gray-400 transition ${subPlan === 'P-8SU6382955513837XYNXP8OP' && 'rotate-90 text-emerald-400'}`} />
                     </button>
                   </div>
                 </div>
@@ -366,8 +366,8 @@ export default function PayPalDemoPage() {
             </div>
 
             {/* Audit log warning */}
-            <div className="p-4 rounded-xl bg-blue-950/10 border border-blue-500/10 text-xs text-blue-300 leading-relaxed flex items-start space-x-2.5">
-              <Globe className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-400" />
+            <div className="p-4 rounded-xl bg-emerald-950/10 border border-emerald-500/10 text-xs text-emerald-300 leading-relaxed flex items-start space-x-2.5">
+              <Globe className="w-4 h-4 mt-0.5 flex-shrink-0 text-emerald-400" />
               <span>{t.disputeWarning}</span>
             </div>
 
@@ -379,7 +379,7 @@ export default function PayPalDemoPage() {
             {/* Receipt Summary Card */}
             <div className="p-6 rounded-2xl bg-gradient-to-b from-white/[0.04] to-transparent border border-white/5 shadow-2xl space-y-6">
               <h2 className="text-lg font-bold text-white/95 pb-4 border-b border-white/5 flex items-center space-x-2">
-                <CreditCard className="w-5 h-5 text-yellow-400" />
+                <CreditCard className="w-5 h-5 text-white" />
                 <span>Checkout Summary</span>
               </h2>
 
@@ -390,7 +390,7 @@ export default function PayPalDemoPage() {
                   <button
                     onClick={() => setUseSimulator(true)}
                     className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-                      useSimulator ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-gray-400 hover:text-white'
+                      useSimulator ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     Simulator
@@ -398,7 +398,7 @@ export default function PayPalDemoPage() {
                   <button
                     onClick={() => setUseSimulator(false)}
                     className={`px-3 py-1.5 rounded-lg font-semibold transition ${
-                      !useSimulator ? 'bg-blue-600 text-white border border-blue-500/30' : 'text-gray-400 hover:text-white'
+                      !useSimulator ? 'bg-emerald-600 text-white border border-emerald-500/30' : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     Live SDK
@@ -419,7 +419,7 @@ export default function PayPalDemoPage() {
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Gateway Provider</span>
-                  <span className="text-blue-400 font-semibold flex items-center space-x-1">
+                  <span className="text-emerald-400 font-semibold flex items-center space-x-1">
                     <span>{useSimulator ? 'Local Simulator' : 'PayPal Global'}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </span>
@@ -428,7 +428,7 @@ export default function PayPalDemoPage() {
                 {paymentType === 'ONE_TIME' && (
                   <div className="pt-4 border-t border-white/5 flex justify-between items-baseline">
                     <span className="text-white font-semibold">Total Amount</span>
-                    <span className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                    <span className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
                       {new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'am-ET', {
                         style: 'currency',
                         currency: currency,
@@ -496,7 +496,7 @@ export default function PayPalDemoPage() {
               </div>
               <div className="p-4 rounded-xl bg-white/[0.01] border border-white/5 text-left">
                 <div className="flex items-center space-x-2 text-xs text-gray-400 mb-1">
-                  <DollarSign className="w-3.5 h-3.5 text-blue-400" />
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Settlement</span>
                 </div>
                 <div className="text-xl font-bold">Instant</div>
