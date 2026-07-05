@@ -8,11 +8,20 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import session = require('express-session');
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET as string,
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: false }, // set true once you're on HTTPS in production
+    }),
+  );
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 4000);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
@@ -107,7 +116,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   await app.listen(port);
-  logger.log(`🚀 Beleqet API running on http://localhost:${port}/api/v1`);
+  logger.log(`🚀 Beleqet API running on ${port}/api/v1`);
   logger.log(`   Environment: ${nodeEnv}`);
 }
 

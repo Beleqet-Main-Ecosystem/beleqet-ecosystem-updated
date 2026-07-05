@@ -14,9 +14,7 @@ import { Request } from 'express';
  */
 @Injectable()
 export class GoogleLinkAuthGuard extends AuthGuard('google') {
-  public getAuthenticateOptions(
-    context: ExecutionContext,
-  ): { state: string } {
+  public getAuthenticateOptions(context: ExecutionContext): { state: string } {
     const request = context.switchToHttp().getRequest<Request>();
     const token = request.query.token;
 
@@ -24,6 +22,6 @@ export class GoogleLinkAuthGuard extends AuthGuard('google') {
       throw new Error('Missing required "token" query parameter for link confirmation.');
     }
 
-    return { state: token };
+    return { state: `link:${token}` };
   }
 }

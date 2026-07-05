@@ -8,9 +8,7 @@ import { Request } from 'express';
  */
 @Injectable()
 export class LinkedInLinkAuthGuard extends AuthGuard('linkedin') {
-  public getAuthenticateOptions(
-    context: ExecutionContext,
-  ): { state: string } {
+  public getAuthenticateOptions(context: ExecutionContext): { state: string } {
     const request = context.switchToHttp().getRequest<Request>();
     const token = request.query.token;
 
@@ -18,6 +16,6 @@ export class LinkedInLinkAuthGuard extends AuthGuard('linkedin') {
       throw new Error('Missing required "token" query parameter for link confirmation.');
     }
 
-    return { state: token };
+    return { state: `link:${token}` };
   }
 }

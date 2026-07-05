@@ -4,7 +4,7 @@ import { Strategy, StrategyOptions, Profile, VerifyCallback } from 'passport-goo
 import { ITokenCipher, TOKEN_CIPHER } from '../interfaces/token-cipher.interface';
 import { OAuthProvider } from '../interfaces/oauth-profile.interface';
 import { PreparedOAuthIdentity } from '../interfaces/prepared-oauth-identity.interface';
-import { AUTH_ENV_CONFIG } from '../auth.module';
+import { AUTH_ENV_CONFIG } from '../config/auth.config';
 import { AuthEnvConfig } from '../config/auth.config';
 import { prepareOAuthIdentity } from './prepare-oauth-identity.helper';
 

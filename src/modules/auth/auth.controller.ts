@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Inject,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { LinkedInAuthGuard } from './guards/linkedin-auth.guard';
@@ -18,7 +9,7 @@ import { TokenIssuanceService, TokenPair } from './services/token-issuance.servi
 import { PreparedOAuthIdentity } from './interfaces/prepared-oauth-identity.interface';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { EMAIL_SENDER, IEmailSender } from './interfaces/email-sender.interface';
-import { AUTH_ENV_CONFIG } from './auth.module';
+import { AUTH_ENV_CONFIG } from './config/auth.config';
 import { AuthEnvConfig } from './config/auth.config';
 
 /** Discriminated response shapes returned by the OAuth callback routes. */
@@ -136,10 +127,7 @@ export class AuthController {
       const linkPath = identity.profile.provider === 'GOOGLE' ? 'google' : 'linkedin';
       const confirmationUrl = `${this.config.appBaseUrl}/auth/${linkPath}/link?token=${outcome.confirmationToken}`;
 
-      await this.emailSender.sendAccountLinkConfirmation(
-        outcome.candidateEmail,
-        confirmationUrl,
-      );
+      await this.emailSender.sendAccountLinkConfirmation(outcome.candidateEmail, confirmationUrl);
 
       // The token itself is never returned to the client — it only ever
       // reaches the user via the emailed link, closing off a vector where
@@ -158,6 +146,9 @@ export class AuthController {
 
   private extractState(req: Request): string | undefined {
     const state = req.query.state;
-    return typeof state === 'string' && state.length > 0 ? state : undefined;
+    if (typeof state !== 'string' || !state.startsWith('link:')) {
+      return undefined;
+    }
+    return state.slice('link:'.length);
   }
 }

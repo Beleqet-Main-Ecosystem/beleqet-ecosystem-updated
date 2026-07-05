@@ -4,11 +4,11 @@ import { Strategy, StrategyOptions, Profile } from 'passport-openidconnect';
 import { ITokenCipher, TOKEN_CIPHER } from '../interfaces/token-cipher.interface';
 import { OAuthProvider } from '../interfaces/oauth-profile.interface';
 import { PreparedOAuthIdentity } from '../interfaces/prepared-oauth-identity.interface';
-import { AUTH_ENV_CONFIG } from '../auth.module';
+import { AUTH_ENV_CONFIG } from '../config/auth.config';
 import { AuthEnvConfig } from '../config/auth.config';
 import { prepareOAuthIdentity } from './prepare-oauth-identity.helper';
 
-const LINKEDIN_OIDC_ISSUER = 'https://www.linkedin.com';
+const LINKEDIN_OIDC_ISSUER = 'https://www.linkedin.com/oauth';
 const LINKEDIN_AUTHORIZATION_URL = 'https://www.linkedin.com/oauth/v2/authorization';
 const LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
 const LINKEDIN_USERINFO_URL = 'https://api.linkedin.com/v2/userinfo';
@@ -23,7 +23,7 @@ const LINKEDIN_USERINFO_URL = 'https://api.linkedin.com/v2/userinfo';
  * {@link PreparedOAuthIdentity}. Linking decisions live in the controller.
  */
 @Injectable()
-export class LinkedInStrategy extends PassportStrategy(Strategy, 'linkedin') {
+export class LinkedInStrategy extends PassportStrategy(Strategy, 'linkedin', true) {
   constructor(
     @Inject(AUTH_ENV_CONFIG) config: AuthEnvConfig,
     @Inject(TOKEN_CIPHER) private readonly tokenCipher: ITokenCipher,

@@ -4,10 +4,8 @@
  * This mirrors the `OAuthProvider` enum defined in `schema.prisma` and
  * must be kept in sync with it.
  */
-export enum OAuthProvider {
-  GOOGLE = 'GOOGLE',
-  LINKEDIN = 'LINKEDIN',
-}
+import { OAuthProvider } from '@prisma/client';
+export { OAuthProvider };
 
 /**
  * A normalized representation of an OAuth/OIDC user profile, mapped from
