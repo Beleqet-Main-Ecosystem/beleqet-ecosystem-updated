@@ -1,0 +1,233 @@
+:root {
+  --faq-primary: #0f766e;
+  --faq-primary-dark: #0d5c56;
+  --faq-bg: #ffffff;
+  --faq-muted: #64748b;
+  --faq-border: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: linear-gradient(160deg, #f0fdfa 0%, #ecfeff 40%, #f8fafc 100%);
+  color: #0f172a;
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
+}
+
+.page h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.page p {
+  color: var(--faq-muted);
+  line-height: 1.6;
+}
+
+.badge {
+  display: inline-block;
+  background: #ccfbf1;
+  color: var(--faq-primary-dark);
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.faq-fab {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--faq-primary);
+  color: white;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(15, 118, 110, 0.35);
+  z-index: 1000;
+}
+
+.faq-panel {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  width: min(420px, calc(100vw - 2rem));
+  height: min(640px, calc(100vh - 2rem));
+  background: var(--faq-bg);
+  border: 1px solid var(--faq-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.faq-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0.75rem;
+  background: var(--faq-primary);
+  color: white;
+}
+
+.faq-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #ccfbf1;
+}
+
+.faq-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.faq-controls {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--faq-border);
+  background: #f8fafc;
+}
+
+.faq-controls label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: var(--faq-muted);
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.faq-controls select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--faq-border);
+}
+
+.faq-consent {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.faq-consent h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.faq-consent-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.faq-consent-actions button {
+  flex: 1;
+  padding: 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--faq-border);
+  background: white;
+  cursor: pointer;
+}
+
+.faq-consent-actions button.primary {
+  background: var(--faq-primary);
+  border-color: var(--faq-primary);
+  color: white;
+}
+
+.faq-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.faq-msg {
+  max-width: 88%;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.faq-msg-user {
+  align-self: flex-end;
+  background: var(--faq-primary);
+  color: white;
+}
+
+.faq-msg-assistant,
+.faq-msg-system {
+  align-self: flex-start;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.faq-msg-system {
+  font-size: 0.85rem;
+  color: var(--faq-muted);
+}
+
+.faq-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.faq-hint {
+  margin: 0;
+  padding: 0 1rem;
+  font-size: 0.75rem;
+  color: var(--faq-muted);
+}
+
+.faq-input-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+  border-top: 1px solid var(--faq-border);
+}
+
+.faq-input-row input {
+  flex: 1;
+  border: 1px solid var(--faq-border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+
+.faq-input-row button {
+  background: var(--faq-primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0 1rem;
+  cursor: pointer;
+}
+
+.faq-input-row button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

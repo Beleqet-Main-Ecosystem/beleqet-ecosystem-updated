@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: your_password
       POSTGRES_DB: beleqet_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -45,7 +45,8 @@ services:
       - JWT_REFRESH_EXPIRES=30d
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
-      - OPENAI_API_KEY=dummy_key_for_testing
+    env_file:
+      - .env
     depends_on:
       - db
       - redis

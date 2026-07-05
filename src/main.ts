@@ -96,6 +96,7 @@ async function bootstrap() {
       .addTag('wallet', 'Freelancer wallet & withdrawals')
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
+      .addTag('faq-bot', 'AI-powered FAQ Bot assistant')
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);

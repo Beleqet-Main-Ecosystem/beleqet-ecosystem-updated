@@ -608,3 +608,60 @@ enum NotificationChannel {
   TELEGRAM
   EMAIL
 }
+
+model FaqKnowledgeEntry {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  category    String
+  questionEn  String
+  questionAm  String?
+  answerEn    String
+  answerAm    String?
+  keywords    String[] @default([])
+  currency    String?
+  embedding   Json?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("faq_knowledge_entries")
+}
+
+model FaqBotSession {
+  id                String          @id @default(uuid())
+  userId            String?
+  anonymousId       String?
+  locale            String          @default("en")
+  preferredCurrency String          @default("ETB")
+  consentGiven      Boolean         @default(false)
+  consentAt         DateTime?
+  expiresAt         DateTime
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  messages          FaqBotMessage[]
+
+  @@index([userId])
+  @@index([anonymousId])
+  @@index([expiresAt])
+  @@map("faq_bot_sessions")
+}
+
+model FaqBotMessage {
+  id        String            @id @default(uuid())
+  sessionId String
+  role      FaqBotMessageRole
+  content   String
+  sources   Json?
+  createdAt DateTime          @default(now())
+  session   FaqBotSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("faq_bot_messages")
+}
+
+enum FaqBotMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
