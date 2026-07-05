@@ -44,32 +44,33 @@ export class EmailService {
    */
   public async sendAutomatedEmail(user: EmailUserContext, payload: EmailTemplatePayload): Promise<boolean> {
     try {
-      // 1. GDPR Privacy Wall Enforcement
-      if (payload.templateType === 'NEWSLETTER' && !user.marketingProfile.hasConsentedToMarketing) {
+      // 1. GDPR Privacy Shield Evaluation
+      if (payload.templateType === 'NEWSLETTER' && user.marketingProfile.hasConsentedToMarketing === false) {
         const breachDetails = `Unauthorized attempt to send NEWSLETTER to user [${user.id}] without marketing consent.`;
         this.securityLogger.logSecurityBreach(user.id, 'UNAUTHORIZED_MARKETING_DISPATCH', breachDetails);
         throw new GDPRConsentViolationException(breachDetails);
       }
 
-      // 2. Localization Fallback Strategy
-      const locale = this.dictionaries[user.locale] ? user.locale : 'en';
-      const dictionary = this.dictionaries[locale];
+      // 2. Localization & Silent Fallback Strategy
+      // If user.locale is null, undefined, or missing from the map, it gracefully falls back to 'en'
+      const localeKey = user.locale && this.dictionaries[user.locale] ? user.locale : 'en';
+      const dictionary = this.dictionaries[localeKey];
       const template = dictionary[payload.templateType];
 
       if (!template) {
         throw new Error(`Template type [${payload.templateType}] not found in dictionary.`);
       }
 
-      // 3. Multi-Currency Engine Processing
+      // 3. Native Multi-Currency Formatting Engine
       let processedTokens = { ...payload.tokens };
       if (processedTokens.amount !== undefined) {
-        processedTokens.formattedAmount = new Intl.NumberFormat(locale, {
+        processedTokens.formattedAmount = new Intl.NumberFormat(localeKey, {
           style: 'currency',
           currency: user.currency,
         }).format(Number(processedTokens.amount));
       }
 
-      // 4. Token Interpolation (including default tokens like {name})
+      // 4. Zero-Placeholder Token Interpolation Engine
       const finalTokens: DynamicTokens = {
         name: user.name,
         unsubscribeUrl: `https://beleqet.com/unsubscribe?uid=${user.id}`,
@@ -79,15 +80,15 @@ export class EmailService {
       const subject = this.compileAndInterpolate(template.subject, finalTokens);
       const body = this.compileAndInterpolate(template.body, finalTokens);
 
-      // 5. Network Dispatch
+      // 5. Network Dispatch Framework Integration
       const result = await this.transporter.sendMail(user.email, subject, body);
       this.logger.log(`Successfully dispatched [${payload.templateType}] to [${user.email}]`);
       return result;
 
     } catch (error) {
       if (error instanceof GDPRConsentViolationException) {
-        this.logger.error(`Security blocked email dispatch: ${error.message}`);
-        throw error; // Re-throw security errors for the higher-level bounds to intercept
+        this.logger.error(`Security Block Trace: ${error.message}`);
+        throw error; // Re-throw to fail the terminal trace
       }
       this.logger.error(`Failed to send email to [${user.email}]: ${(error as Error).message}`);
       throw error;
@@ -95,7 +96,7 @@ export class EmailService {
   }
 
   /**
-   * Safely interpolates a raw template string using matched tokens.
+   * Safely interpolates a raw template string using matched RegExp tokens.
    *
    * @param template The raw string template (e.g. 'Hello {name}').
    * @param tokens The key-value record of strings to replace.

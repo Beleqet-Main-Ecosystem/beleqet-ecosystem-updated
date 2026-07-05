@@ -18,8 +18,8 @@ export interface EmailUserContext {
   id: string;
   name: string;
   email: string;
-  locale: string; // e.g. 'en', 'am', 'fr'
-  currency: string; // e.g. 'ETB', 'USD'
+  locale?: string; // e.g. 'en', 'am', 'fr'. Optional to test fallback.
+  currency: string; // e.g. 'ETB', 'USD', 'EUR'
   marketingProfile: UserMarketingProfile;
 }
 
@@ -62,6 +62,6 @@ export class GDPRConsentViolationException extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'GDPRConsentViolationException';
-    Object.setPrototypeOf(this, new.target.prototype); // restore prototype chain
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
