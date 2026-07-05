@@ -4,7 +4,6 @@ import { useState } from 'react';
 import JobCard from '@/components/JobCard';
 import type { Job } from '@/lib/api';
 
-// PROPER TYPES
 interface FeedClientProps {
   initialJobs: Job[];
   userId: string;
@@ -60,4 +59,4 @@ export default function FeedClient({ initialJobs, userId }: FeedClientProps) {
       )}
     </div>
   );
-}
+    }
