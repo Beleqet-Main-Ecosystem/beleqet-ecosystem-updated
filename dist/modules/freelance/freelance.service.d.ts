@@ -28,35 +28,35 @@ export declare class FreelanceService {
     constructor(prisma: PrismaService);
     createJob(clientId: string, dto: CreateFreelanceJobDto): Promise<{
         category: {
-            label: string;
             id: string;
+            label: string;
             slug: string;
             icon: string | null;
         };
         client: {
+            id: string;
             firstName: string;
             lastName: string;
-            id: string;
         };
     } & {
+        id: string;
+        createdAt: Date;
         description: string;
         title: string;
-        id: string;
-        status: import(".prisma/client").$Enums.FreelanceJobStatus;
-        createdAt: Date;
-        updatedAt: Date;
-        skills: string[];
         categoryId: string;
         currency: string;
+        status: import(".prisma/client").$Enums.FreelanceJobStatus;
         featured: boolean;
+        updatedAt: Date;
         experienceLevel: string | null;
-        attachments: string[];
+        clientId: string;
         budgetMin: number;
         budgetMax: number;
         pricingType: string;
         deadlineDays: number;
+        skills: string[];
+        attachments: string[];
         locationPreference: string | null;
-        clientId: string;
     }>;
     findJobs(query: {
         q?: string;
@@ -65,34 +65,34 @@ export declare class FreelanceService {
         limit?: number;
     }): Promise<{
         items: ({
-            _count: {
-                bids: number;
-            };
             category: {
-                label: string;
                 id: string;
+                label: string;
                 slug: string;
                 icon: string | null;
             };
+            _count: {
+                bids: number;
+            };
         } & {
+            id: string;
+            createdAt: Date;
             description: string;
             title: string;
-            id: string;
-            status: import(".prisma/client").$Enums.FreelanceJobStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            skills: string[];
             categoryId: string;
             currency: string;
+            status: import(".prisma/client").$Enums.FreelanceJobStatus;
             featured: boolean;
+            updatedAt: Date;
             experienceLevel: string | null;
-            attachments: string[];
+            clientId: string;
             budgetMin: number;
             budgetMax: number;
             pricingType: string;
             deadlineDays: number;
+            skills: string[];
+            attachments: string[];
             locationPreference: string | null;
-            clientId: string;
         })[];
         total: number;
         page: number;
@@ -100,72 +100,72 @@ export declare class FreelanceService {
         totalPages: number;
     }>;
     findJobById(id: string): Promise<{
-        bids: ({
-            freelancer: {
-                firstName: string;
-                lastName: string;
-                id: string;
-            };
-        } & {
-            id: string;
-            status: import(".prisma/client").$Enums.BidStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            coverLetter: string;
-            amount: number;
-            timelineDays: number;
-            freelanceJobId: string;
-            freelancerId: string;
-            qualityScore: number | null;
-        })[];
         category: {
-            label: string;
             id: string;
+            label: string;
             slug: string;
             icon: string | null;
         };
+        bids: ({
+            freelancer: {
+                id: string;
+                firstName: string;
+                lastName: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            status: import(".prisma/client").$Enums.BidStatus;
+            updatedAt: Date;
+            coverLetter: string;
+            freelanceJobId: string;
+            freelancerId: string;
+            amount: number;
+            timelineDays: number;
+            qualityScore: number | null;
+        })[];
         client: {
+            id: string;
             firstName: string;
             lastName: string;
-            id: string;
         };
     } & {
+        id: string;
+        createdAt: Date;
         description: string;
         title: string;
-        id: string;
-        status: import(".prisma/client").$Enums.FreelanceJobStatus;
-        createdAt: Date;
-        updatedAt: Date;
-        skills: string[];
         categoryId: string;
         currency: string;
+        status: import(".prisma/client").$Enums.FreelanceJobStatus;
         featured: boolean;
+        updatedAt: Date;
         experienceLevel: string | null;
-        attachments: string[];
+        clientId: string;
         budgetMin: number;
         budgetMax: number;
         pricingType: string;
         deadlineDays: number;
+        skills: string[];
+        attachments: string[];
         locationPreference: string | null;
-        clientId: string;
     }>;
     submitBid(freelancerId: string, gigId: string, dto: CreateBidDto): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.BidStatus;
         createdAt: Date;
+        status: import(".prisma/client").$Enums.BidStatus;
         updatedAt: Date;
         coverLetter: string;
-        amount: number;
-        timelineDays: number;
         freelanceJobId: string;
         freelancerId: string;
+        amount: number;
+        timelineDays: number;
         qualityScore: number | null;
     }>;
     acceptBid(bidId: string, clientId: string): Promise<{
         id: string;
+        currency: string;
         status: import(".prisma/client").$Enums.ContractStatus;
         updatedAt: Date;
-        currency: string;
         clientId: string;
         freelanceJobId: string;
         freelancerId: string;
@@ -175,23 +175,23 @@ export declare class FreelanceService {
     }>;
     rejectBid(bidId: string, clientId: string): Promise<{
         id: string;
-        status: import(".prisma/client").$Enums.BidStatus;
         createdAt: Date;
+        status: import(".prisma/client").$Enums.BidStatus;
         updatedAt: Date;
         coverLetter: string;
-        amount: number;
-        timelineDays: number;
         freelanceJobId: string;
         freelancerId: string;
+        amount: number;
+        timelineDays: number;
         qualityScore: number | null;
     }>;
     getMyBids(freelancerId: string): Promise<({
         freelanceJob: {
             contract: {
                 id: string;
+                currency: string;
                 status: import(".prisma/client").$Enums.ContractStatus;
                 updatedAt: Date;
-                currency: string;
                 clientId: string;
                 freelanceJobId: string;
                 freelancerId: string;
@@ -200,79 +200,79 @@ export declare class FreelanceService {
                 completedAt: Date | null;
             } | null;
             category: {
-                label: string;
                 id: string;
+                label: string;
                 slug: string;
                 icon: string | null;
             };
         } & {
+            id: string;
+            createdAt: Date;
             description: string;
             title: string;
-            id: string;
-            status: import(".prisma/client").$Enums.FreelanceJobStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            skills: string[];
             categoryId: string;
             currency: string;
+            status: import(".prisma/client").$Enums.FreelanceJobStatus;
             featured: boolean;
+            updatedAt: Date;
             experienceLevel: string | null;
-            attachments: string[];
+            clientId: string;
             budgetMin: number;
             budgetMax: number;
             pricingType: string;
             deadlineDays: number;
+            skills: string[];
+            attachments: string[];
             locationPreference: string | null;
-            clientId: string;
         };
     } & {
         id: string;
-        status: import(".prisma/client").$Enums.BidStatus;
         createdAt: Date;
+        status: import(".prisma/client").$Enums.BidStatus;
         updatedAt: Date;
         coverLetter: string;
-        amount: number;
-        timelineDays: number;
         freelanceJobId: string;
         freelancerId: string;
+        amount: number;
+        timelineDays: number;
         qualityScore: number | null;
     })[]>;
     getMyContracts(userId: string): Promise<({
         freelanceJob: {
+            id: string;
+            createdAt: Date;
             description: string;
             title: string;
-            id: string;
-            status: import(".prisma/client").$Enums.FreelanceJobStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            skills: string[];
             categoryId: string;
             currency: string;
+            status: import(".prisma/client").$Enums.FreelanceJobStatus;
             featured: boolean;
+            updatedAt: Date;
             experienceLevel: string | null;
-            attachments: string[];
+            clientId: string;
             budgetMin: number;
             budgetMax: number;
             pricingType: string;
             deadlineDays: number;
+            skills: string[];
+            attachments: string[];
             locationPreference: string | null;
-            clientId: string;
-        };
-        freelancer: {
-            firstName: string;
-            lastName: string;
-            id: string;
         };
         client: {
+            id: string;
             firstName: string;
             lastName: string;
+        };
+        freelancer: {
             id: string;
+            firstName: string;
+            lastName: string;
         };
     } & {
         id: string;
+        currency: string;
         status: import(".prisma/client").$Enums.ContractStatus;
         updatedAt: Date;
-        currency: string;
         clientId: string;
         freelanceJobId: string;
         freelancerId: string;
@@ -282,34 +282,34 @@ export declare class FreelanceService {
     })[]>;
     getContract(id: string): Promise<{
         freelanceJob: {
+            id: string;
+            createdAt: Date;
             description: string;
             title: string;
-            id: string;
-            status: import(".prisma/client").$Enums.FreelanceJobStatus;
-            createdAt: Date;
-            updatedAt: Date;
-            skills: string[];
             categoryId: string;
             currency: string;
+            status: import(".prisma/client").$Enums.FreelanceJobStatus;
             featured: boolean;
+            updatedAt: Date;
             experienceLevel: string | null;
-            attachments: string[];
+            clientId: string;
             budgetMin: number;
             budgetMax: number;
             pricingType: string;
             deadlineDays: number;
+            skills: string[];
+            attachments: string[];
             locationPreference: string | null;
-            clientId: string;
-        };
-        freelancer: {
-            firstName: string;
-            lastName: string;
-            id: string;
         };
         client: {
+            id: string;
             firstName: string;
             lastName: string;
+        };
+        freelancer: {
             id: string;
+            firstName: string;
+            lastName: string;
         };
         milestones: ({
             deliverables: {
@@ -320,22 +320,22 @@ export declare class FreelanceService {
                 submittedAt: Date;
             }[];
         } & {
+            id: string;
+            createdAt: Date;
             description: string | null;
             title: string;
-            id: string;
-            status: import(".prisma/client").$Enums.MilestoneStatus;
-            createdAt: Date;
-            updatedAt: Date;
             deadline: Date;
+            status: import(".prisma/client").$Enums.MilestoneStatus;
+            updatedAt: Date;
             amount: number;
             approvedAt: Date | null;
             contractId: string;
         })[];
     } & {
         id: string;
+        currency: string;
         status: import(".prisma/client").$Enums.ContractStatus;
         updatedAt: Date;
-        currency: string;
         clientId: string;
         freelanceJobId: string;
         freelancerId: string;
@@ -344,13 +344,13 @@ export declare class FreelanceService {
         completedAt: Date | null;
     }>;
     createMilestone(freelancerId: string, contractId: string, dto: CreateMilestoneDto): Promise<{
+        id: string;
+        createdAt: Date;
         description: string | null;
         title: string;
-        id: string;
-        status: import(".prisma/client").$Enums.MilestoneStatus;
-        createdAt: Date;
-        updatedAt: Date;
         deadline: Date;
+        status: import(".prisma/client").$Enums.MilestoneStatus;
+        updatedAt: Date;
         amount: number;
         approvedAt: Date | null;
         contractId: string;

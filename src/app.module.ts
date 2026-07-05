@@ -5,7 +5,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bull';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
+import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
 
+// Add to imports array:
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -84,6 +86,7 @@ import { ContactModule } from './modules/contact/contact.module';
     QueuesModule,
     AuthModule,
     UsersModule,
+PlagiarismModule,
     JobsModule,
     ApplicationsModule,
     ScreeningModule,

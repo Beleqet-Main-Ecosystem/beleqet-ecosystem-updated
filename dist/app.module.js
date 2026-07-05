@@ -14,6 +14,7 @@ const event_emitter_1 = require("@nestjs/event-emitter");
 const bull_1 = require("@nestjs/bull");
 const nestjs_i18n_1 = require("nestjs-i18n");
 const path = require("path");
+const plagiarism_module_1 = require("./modules/plagiarism/plagiarism.module");
 const prisma_module_1 = require("./prisma/prisma.module");
 const auth_module_1 = require("./modules/auth/auth.module");
 const users_module_1 = require("./modules/users/users.module");
@@ -84,6 +85,7 @@ exports.AppModule = AppModule = __decorate([
             queues_module_1.QueuesModule,
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
+            plagiarism_module_1.PlagiarismModule,
             jobs_module_1.JobsModule,
             applications_module_1.ApplicationsModule,
             screening_module_1.ScreeningModule,

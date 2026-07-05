@@ -13,37 +13,37 @@ export declare class WalletService {
     constructor(prisma: PrismaService, config: ConfigService);
     getEmployerWallet(userId: string): Promise<{
         transactions: {
-            type: import(".prisma/client").$Enums.WalletTransactionType;
             id: string;
-            note: string | null;
             createdAt: Date;
+            type: import(".prisma/client").$Enums.WalletTransactionType;
             amount: number;
+            note: string | null;
             escrowId: string | null;
             walletId: string;
         }[];
     } & {
         id: string;
+        currency: string;
         updatedAt: Date;
         userId: string;
-        currency: string;
         balance: number;
         lockedBalance: number;
     }>;
     getOrCreate(userId: string): Promise<{
         transactions: {
-            type: import(".prisma/client").$Enums.WalletTransactionType;
             id: string;
-            note: string | null;
             createdAt: Date;
+            type: import(".prisma/client").$Enums.WalletTransactionType;
             amount: number;
+            note: string | null;
             walletId: string;
             milestoneId: string | null;
         }[];
     } & {
         id: string;
+        currency: string;
         updatedAt: Date;
         userId: string;
-        currency: string;
         pendingBalance: number;
         availableBalance: number;
     }>;

@@ -36,34 +36,34 @@ export declare class AdminController {
     private readonly notificationsQueue;
     constructor(prisma: PrismaService, chatService: ChatService, notificationsQueue: Queue);
     getUsers(): import(".prisma/client").Prisma.PrismaPromise<{
+        id: string;
+        createdAt: Date;
         email: string;
         firstName: string;
         lastName: string;
         role: import(".prisma/client").$Enums.UserRole;
-        id: string;
         isActive: boolean;
         emailVerified: boolean;
-        createdAt: Date;
     }[]>;
     createUser(dto: CreateUserDto): Promise<{
+        id: string;
+        createdAt: Date;
         email: string;
         firstName: string;
         lastName: string;
         role: import(".prisma/client").$Enums.UserRole;
-        id: string;
         isActive: boolean;
         emailVerified: boolean;
-        createdAt: Date;
     }>;
     updateUser(id: string, dto: UpdateUserDto): import(".prisma/client").Prisma.Prisma__UserClient<{
+        id: string;
+        createdAt: Date;
         email: string;
         firstName: string;
         lastName: string;
         role: import(".prisma/client").$Enums.UserRole;
-        id: string;
         isActive: boolean;
         emailVerified: boolean;
-        createdAt: Date;
     }, never, import("@prisma/client/runtime/library").DefaultArgs>;
     deleteUser(id: string, admin: CurrentUserPayload): Promise<{
         deleted: boolean;
@@ -74,24 +74,24 @@ export declare class AdminController {
     }>;
     getContacts(): import(".prisma/client").Prisma.PrismaPromise<{
         message: string;
-        name: string;
-        email: string;
         id: string;
-        status: import(".prisma/client").$Enums.ContactMessageStatus;
         createdAt: Date;
+        name: string;
+        status: import(".prisma/client").$Enums.ContactMessageStatus;
         updatedAt: Date;
+        email: string;
         subject: string;
     }[]>;
     updateContact(id: string, body: {
         status: 'NEW' | 'READ' | 'RESOLVED';
     }): import(".prisma/client").Prisma.Prisma__ContactMessageClient<{
         message: string;
-        name: string;
-        email: string;
         id: string;
-        status: import(".prisma/client").$Enums.ContactMessageStatus;
         createdAt: Date;
+        name: string;
+        status: import(".prisma/client").$Enums.ContactMessageStatus;
         updatedAt: Date;
+        email: string;
         subject: string;
     }, never, import("@prisma/client/runtime/library").DefaultArgs>;
     broadcast(dto: BroadcastDto): Promise<{
@@ -100,80 +100,80 @@ export declare class AdminController {
     getDisputes(): import(".prisma/client").Prisma.PrismaPromise<({
         contract: {
             freelanceJob: {
+                id: string;
+                createdAt: Date;
                 description: string;
                 title: string;
-                id: string;
-                status: import(".prisma/client").$Enums.FreelanceJobStatus;
-                createdAt: Date;
-                updatedAt: Date;
-                skills: string[];
                 categoryId: string;
                 currency: string;
+                status: import(".prisma/client").$Enums.FreelanceJobStatus;
                 featured: boolean;
+                updatedAt: Date;
                 experienceLevel: string | null;
-                attachments: string[];
+                clientId: string;
                 budgetMin: number;
                 budgetMax: number;
                 pricingType: string;
                 deadlineDays: number;
+                skills: string[];
+                attachments: string[];
                 locationPreference: string | null;
-                clientId: string;
             };
-            freelancer: {
+            client: {
+                id: string;
+                createdAt: Date;
+                location: string | null;
+                updatedAt: Date;
+                skills: string[];
+                portfolioUrl: string | null;
                 email: string;
+                passwordHash: string;
                 firstName: string;
                 lastName: string;
                 role: import(".prisma/client").$Enums.UserRole;
-                id: string;
-                location: string | null;
-                telegramId: string | null;
-                passwordHash: string;
                 avatarUrl: string | null;
                 phone: string | null;
+                telegramId: string | null;
                 isActive: boolean;
                 emailVerified: boolean;
-                createdAt: Date;
-                updatedAt: Date;
                 bio: string | null;
                 defaultResumeUrl: string | null;
                 githubUrl: string | null;
                 headline: string | null;
                 linkedinUrl: string | null;
-                portfolioUrl: string | null;
-                skills: string[];
                 clientFeedback: import("@prisma/client/runtime/library").JsonValue | null;
                 skillVerified: boolean;
             };
-            client: {
+            freelancer: {
+                id: string;
+                createdAt: Date;
+                location: string | null;
+                updatedAt: Date;
+                skills: string[];
+                portfolioUrl: string | null;
                 email: string;
+                passwordHash: string;
                 firstName: string;
                 lastName: string;
                 role: import(".prisma/client").$Enums.UserRole;
-                id: string;
-                location: string | null;
-                telegramId: string | null;
-                passwordHash: string;
                 avatarUrl: string | null;
                 phone: string | null;
+                telegramId: string | null;
                 isActive: boolean;
                 emailVerified: boolean;
-                createdAt: Date;
-                updatedAt: Date;
                 bio: string | null;
                 defaultResumeUrl: string | null;
                 githubUrl: string | null;
                 headline: string | null;
                 linkedinUrl: string | null;
-                portfolioUrl: string | null;
-                skills: string[];
                 clientFeedback: import("@prisma/client/runtime/library").JsonValue | null;
                 skillVerified: boolean;
             };
         } & {
             id: string;
+            currency: string;
             status: import(".prisma/client").$Enums.ContractStatus;
             updatedAt: Date;
-            currency: string;
             clientId: string;
             freelanceJobId: string;
             freelancerId: string;
@@ -207,50 +207,50 @@ export declare class AdminController {
         dispute: {
             contract: {
                 freelanceJob: {
+                    id: string;
+                    createdAt: Date;
                     description: string;
                     title: string;
-                    id: string;
-                    status: import(".prisma/client").$Enums.FreelanceJobStatus;
-                    createdAt: Date;
-                    updatedAt: Date;
-                    skills: string[];
                     categoryId: string;
                     currency: string;
+                    status: import(".prisma/client").$Enums.FreelanceJobStatus;
                     featured: boolean;
+                    updatedAt: Date;
                     experienceLevel: string | null;
-                    attachments: string[];
+                    clientId: string;
                     budgetMin: number;
                     budgetMax: number;
                     pricingType: string;
                     deadlineDays: number;
+                    skills: string[];
+                    attachments: string[];
                     locationPreference: string | null;
-                    clientId: string;
-                };
-                freelancer: {
-                    email: string;
-                    firstName: string;
-                    lastName: string;
-                    role: import(".prisma/client").$Enums.UserRole;
-                    id: string;
-                    isActive: boolean;
-                    emailVerified: boolean;
-                    createdAt: Date;
                 };
                 client: {
+                    id: string;
+                    createdAt: Date;
                     email: string;
                     firstName: string;
                     lastName: string;
                     role: import(".prisma/client").$Enums.UserRole;
-                    id: string;
                     isActive: boolean;
                     emailVerified: boolean;
+                };
+                freelancer: {
+                    id: string;
                     createdAt: Date;
+                    email: string;
+                    firstName: string;
+                    lastName: string;
+                    role: import(".prisma/client").$Enums.UserRole;
+                    isActive: boolean;
+                    emailVerified: boolean;
                 };
             } & {
                 id: string;
+                currency: string;
                 status: import(".prisma/client").$Enums.ContractStatus;
                 updatedAt: Date;
-                currency: string;
                 clientId: string;
                 freelanceJobId: string;
                 freelancerId: string;
@@ -274,57 +274,57 @@ export declare class AdminController {
     exportUserData(userId: string): Promise<{
         data: ({
             company: {
+                id: string;
+                createdAt: Date;
                 name: string;
                 description: string | null;
-                id: string;
                 location: string | null;
-                createdAt: Date;
                 updatedAt: Date;
-                linkedinUrl: string | null;
                 userId: string;
+                linkedinUrl: string | null;
                 logoUrl: string | null;
                 website: string | null;
                 industry: string | null;
                 size: string | null;
-                twitterUrl: string | null;
-                facebookUrl: string | null;
-                coverImageUrl: string | null;
-                benefits: string[];
-                foundedYear: number | null;
                 verified: boolean;
+                benefits: string[];
+                coverImageUrl: string | null;
+                facebookUrl: string | null;
+                foundedYear: number | null;
+                twitterUrl: string | null;
             } | null;
             applications: {
                 id: string;
-                status: import(".prisma/client").$Enums.ApplicationStatus;
                 createdAt: Date;
+                status: import(".prisma/client").$Enums.ApplicationStatus;
                 updatedAt: Date;
-                portfolioUrl: string | null;
-                userId: string;
                 jobId: string;
+                userId: string;
                 coverLetter: string | null;
                 resumeUrl: string | null;
-                screeningAnswers: import("@prisma/client/runtime/library").JsonValue | null;
-                expectedSalary: number | null;
                 interviewSlot: Date | null;
                 notes: string | null;
+                expectedSalary: number | null;
+                portfolioUrl: string | null;
+                screeningAnswers: import("@prisma/client/runtime/library").JsonValue | null;
             }[];
             bids: {
                 id: string;
-                status: import(".prisma/client").$Enums.BidStatus;
                 createdAt: Date;
+                status: import(".prisma/client").$Enums.BidStatus;
                 updatedAt: Date;
                 coverLetter: string;
-                amount: number;
-                timelineDays: number;
                 freelanceJobId: string;
                 freelancerId: string;
+                amount: number;
+                timelineDays: number;
                 qualityScore: number | null;
             }[];
             contractsAsClient: {
                 id: string;
+                currency: string;
                 status: import(".prisma/client").$Enums.ContractStatus;
                 updatedAt: Date;
-                currency: string;
                 clientId: string;
                 freelanceJobId: string;
                 freelancerId: string;
@@ -334,9 +334,9 @@ export declare class AdminController {
             }[];
             contractsAsFreelancer: {
                 id: string;
+                currency: string;
                 status: import(".prisma/client").$Enums.ContractStatus;
                 updatedAt: Date;
-                currency: string;
                 clientId: string;
                 freelanceJobId: string;
                 freelancerId: string;
@@ -345,47 +345,47 @@ export declare class AdminController {
                 completedAt: Date | null;
             }[];
             freelanceJobs: {
+                id: string;
+                createdAt: Date;
                 description: string;
                 title: string;
-                id: string;
-                status: import(".prisma/client").$Enums.FreelanceJobStatus;
-                createdAt: Date;
-                updatedAt: Date;
-                skills: string[];
                 categoryId: string;
                 currency: string;
+                status: import(".prisma/client").$Enums.FreelanceJobStatus;
                 featured: boolean;
+                updatedAt: Date;
                 experienceLevel: string | null;
-                attachments: string[];
+                clientId: string;
                 budgetMin: number;
                 budgetMax: number;
                 pricingType: string;
                 deadlineDays: number;
+                skills: string[];
+                attachments: string[];
                 locationPreference: string | null;
-                clientId: string;
             }[];
         } & {
+            id: string;
+            createdAt: Date;
+            location: string | null;
+            updatedAt: Date;
+            skills: string[];
+            portfolioUrl: string | null;
             email: string;
+            passwordHash: string;
             firstName: string;
             lastName: string;
             role: import(".prisma/client").$Enums.UserRole;
-            id: string;
-            location: string | null;
-            telegramId: string | null;
-            passwordHash: string;
             avatarUrl: string | null;
             phone: string | null;
+            telegramId: string | null;
             isActive: boolean;
             emailVerified: boolean;
-            createdAt: Date;
-            updatedAt: Date;
             bio: string | null;
             defaultResumeUrl: string | null;
             githubUrl: string | null;
             headline: string | null;
             linkedinUrl: string | null;
-            portfolioUrl: string | null;
-            skills: string[];
             clientFeedback: import("@prisma/client/runtime/library").JsonValue | null;
             skillVerified: boolean;
         }) | null;

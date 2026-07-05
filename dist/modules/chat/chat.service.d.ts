@@ -5,9 +5,9 @@ export declare class ChatService {
     constructor(prisma: PrismaService);
     createOrGetRoom(userId1: string, userId2: string, contractId?: string): Promise<{
         messages: {
-            content: string;
             id: string;
             createdAt: Date;
+            content: string;
             metadata: import("@prisma/client/runtime/library").JsonValue | null;
             roomId: string;
             senderId: string;
@@ -29,16 +29,16 @@ export declare class ChatService {
     }>;
     saveMessage(roomId: string, senderId: string, content: string, metadata?: any): Promise<{
         sender: {
+            id: string;
             firstName: string;
             lastName: string;
             role: import(".prisma/client").$Enums.UserRole;
-            id: string;
             avatarUrl: string | null;
         };
     } & {
-        content: string;
         id: string;
         createdAt: Date;
+        content: string;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
         roomId: string;
         senderId: string;
@@ -46,16 +46,16 @@ export declare class ChatService {
     }>;
     getRoomMessages(roomId: string, userId: string, take?: number): Promise<({
         sender: {
+            id: string;
             firstName: string;
             lastName: string;
             role: import(".prisma/client").$Enums.UserRole;
-            id: string;
             avatarUrl: string | null;
         };
     } & {
-        content: string;
         id: string;
         createdAt: Date;
+        content: string;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
         roomId: string;
         senderId: string;
