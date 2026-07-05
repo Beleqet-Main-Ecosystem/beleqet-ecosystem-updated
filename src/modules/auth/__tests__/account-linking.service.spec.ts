@@ -162,6 +162,7 @@ describe('AccountLinkingService', () => {
       expect(result).toEqual({
         kind: 'PENDING_CONFIRMATION',
         candidateUserId: existingUser.id,
+        candidateEmail: existingUser.email,
         confirmationToken: 'confirmation-token-abc',
       });
       expect(repository.issueVerificationToken).toHaveBeenCalledWith(

@@ -139,6 +139,7 @@ export class AccountLinkingService {
     return {
       kind: 'PENDING_CONFIRMATION',
       candidateUserId: existingUserByEmail.id,
+      candidateEmail: existingUserByEmail.email,
       confirmationToken,
     };
   }
