@@ -41,12 +41,46 @@ export default function PayPalDemoPage() {
   // Callback States
   const [paymentStatus, setPaymentStatus] = React.useState<'SUCCESS' | 'CANCELLED' | 'FAILED' | null>(null);
   const [paymentDetails, setPaymentDetails] = React.useState<any>(null);
+  
+  // Simulator vs Real SDK Toggle (default to simulated since user doesn't have PayPal developer account)
+  const [useSimulator, setUseSimulator] = React.useState<boolean>(true);
+  const [loading, setLoading] = React.useState<boolean>(false);
 
   const t = translations[locale];
 
-  // Auto-generate an idempotency key on load
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+
+  // Auto-generate an idempotency key on load and parse URL redirects
   React.useEffect(() => {
     setIdempotencyKey(`idemp-${Math.random().toString(36).substr(2, 9)}`);
+
+    // Check query params if redirected from simulated payment page
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const status = params.get('status');
+      
+      if (status === 'SUCCESS') {
+        const orderId = params.get('orderId');
+        const subscriptionId = params.get('subscriptionId');
+        const amountParam = params.get('amount');
+        const currencyParam = params.get('currency');
+
+        setPaymentStatus('SUCCESS');
+        setPaymentDetails({
+          orderId: orderId || undefined,
+          captureId: orderId ? `MOCK-CAP-${Date.now()}` : undefined,
+          subscriptionId: subscriptionId || undefined,
+          amount: amountParam ? parseFloat(amountParam) : undefined,
+          currency: currencyParam || 'USD',
+        });
+        
+        // Clean URL parameters cleanly without refreshing
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (status === 'CANCELLED') {
+        setPaymentStatus('CANCELLED');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
   }, []);
 
   const handleSuccess = (details: any) => {
@@ -62,6 +96,50 @@ export default function PayPalDemoPage() {
   const handleCancel = () => {
     setPaymentDetails(null);
     setPaymentStatus('CANCELLED');
+  };
+
+  // Local simulated checkout flow (initiates order/subscription and redirects to local mock portal)
+  const handleSimulatedCheckout = async () => {
+    setLoading(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      if (paymentType === 'ONE_TIME') {
+        const res = await fetch(`${API_BASE}/paypal/create-order`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            amount,
+            currency,
+            idempotencyKey,
+            freelancerId: MOCK_FREELANCER_ID,
+            freelanceJobId: MOCK_JOB_ID,
+          }),
+        });
+        if (!res.ok) throw new Error('Simulated order failed');
+        const data = await res.json();
+        // Redirect to the simulated approveUrl returned by backend
+        window.location.href = data.approveUrl;
+      } else {
+        const res = await fetch(`${API_BASE}/paypal/create-subscription`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ planId: subPlan }),
+        });
+        if (!res.ok) throw new Error('Simulated subscription failed');
+        const data = await res.json();
+        // Redirect to the simulated approveUrl returned by backend
+        window.location.href = data.approveUrl;
+      }
+    } catch (err) {
+      console.error(err);
+      setPaymentStatus('FAILED');
+      setLoading(false);
+    }
   };
 
   return (
@@ -297,6 +375,29 @@ export default function PayPalDemoPage() {
                 <span>Checkout Summary</span>
               </h2>
 
+              {/* Mode Toggle Selection */}
+              <div className="flex bg-black/40 border border-white/5 rounded-xl p-1 justify-between items-center text-xs">
+                <span className="pl-3 font-semibold text-gray-400 uppercase tracking-wider">Gateway Mode</span>
+                <div className="flex items-center space-x-1.5">
+                  <button
+                    onClick={() => setUseSimulator(true)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+                      useSimulator ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Simulator
+                  </button>
+                  <button
+                    onClick={() => setUseSimulator(false)}
+                    className={`px-3 py-1.5 rounded-lg font-semibold transition ${
+                      !useSimulator ? 'bg-blue-600 text-white border border-blue-500/30' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Live SDK
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">{t.clientName}</span>
@@ -311,7 +412,7 @@ export default function PayPalDemoPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Gateway Provider</span>
                   <span className="text-blue-400 font-semibold flex items-center space-x-1">
-                    <span>PayPal Global</span>
+                    <span>{useSimulator ? 'Local Simulator' : 'PayPal Global'}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </span>
                 </div>
@@ -329,31 +430,46 @@ export default function PayPalDemoPage() {
                 )}
               </div>
 
-              {/* PayPal Provider Wrapper with Smart Buttons */}
+              {/* PayPal Provider Wrapper or Simulated Action Button */}
               <div className="pt-2">
-                <PayPalProvider currency={paymentType === 'ONE_TIME' ? currency : 'USD'}>
-                  {paymentType === 'ONE_TIME' ? (
-                    <PayPalCheckoutButton
-                      amount={amount}
-                      currency={currency}
-                      idempotencyKey={idempotencyKey}
-                      freelancerId={MOCK_FREELANCER_ID}
-                      freelanceJobId={MOCK_JOB_ID}
-                      locale={locale}
-                      onSuccess={handleSuccess}
-                      onFailure={handleFailure}
-                      onCancel={handleCancel}
-                    />
-                  ) : (
-                    <PayPalSubscriptionButton
-                      planId={subPlan}
-                      locale={locale}
-                      onSuccess={handleSuccess}
-                      onFailure={handleFailure}
-                      onCancel={handleCancel}
-                    />
-                  )}
-                </PayPalProvider>
+                {useSimulator ? (
+                  <button
+                    onClick={handleSimulatedCheckout}
+                    disabled={loading}
+                    className="w-full bg-[#FFC439] hover:bg-[#F2B522] disabled:opacity-50 text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center space-x-2 text-sm uppercase tracking-wider"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2" />
+                    ) : (
+                      <ShieldCheck className="w-5 h-5 mr-1" />
+                    )}
+                    <span>Pay with PayPal Simulator</span>
+                  </button>
+                ) : (
+                  <PayPalProvider currency={paymentType === 'ONE_TIME' ? currency : 'USD'}>
+                    {paymentType === 'ONE_TIME' ? (
+                      <PayPalCheckoutButton
+                        amount={amount}
+                        currency={currency}
+                        idempotencyKey={idempotencyKey}
+                        freelancerId={MOCK_FREELANCER_ID}
+                        freelanceJobId={MOCK_JOB_ID}
+                        locale={locale}
+                        onSuccess={handleSuccess}
+                        onFailure={handleFailure}
+                        onCancel={handleCancel}
+                      />
+                    ) : (
+                      <PayPalSubscriptionButton
+                        planId={subPlan}
+                        locale={locale}
+                        onSuccess={handleSuccess}
+                        onFailure={handleFailure}
+                        onCancel={handleCancel}
+                      />
+                    )}
+                  </PayPalProvider>
+                )}
               </div>
 
               <div className="text-center pt-2 text-[10px] text-gray-500 font-mono">

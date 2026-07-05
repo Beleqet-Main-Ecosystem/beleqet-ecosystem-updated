@@ -55,49 +55,61 @@ export class PaypalSubscriptionService {
     let approveUrl: string;
     let rawResponse: unknown;
 
-    try {
-      const response = await axios.post<{
-        id: string;
-        links: { rel: string; href: string }[];
-      }>(
-        `${baseUrl}/v1/billing/subscriptions`,
-        {
-          plan_id: dto.planId,
-          application_context: {
-            brand_name: 'Beleqet',
-            locale: 'en-US',
-            shipping_preference: 'NO_SHIPPING',
-            user_action: 'SUBSCRIBE_NOW',
-            return_url: returnUrl,
-            cancel_url: cancelUrl,
-          },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            'Prefer': 'return=representation',
-          },
-        },
-      );
+    const mode = this.config.get<string>('PAYPAL_MODE', 'sandbox');
 
-      rawResponse = response.data;
-      paypalSubId = response.data.id;
-      const approveLink = response.data.links.find((l) => l.rel === 'approve');
-      if (!approveLink) {
-        throw new BadRequestException(
-          'PayPal did not return an approve link for the subscription',
+    if (mode === 'mock') {
+      paypalSubId = `MOCK-SUB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const frontendUrl = this.config.get<string>('FRONTEND_URL', 'http://localhost:3000');
+      approveUrl = `${frontendUrl}/paypal-mock-checkout?subscriptionId=${paypalSubId}&planId=${dto.planId}&type=subscription`;
+      rawResponse = { status: 'APPROVAL_PENDING', simulated: true };
+    } else {
+      const token   = await this.auth.getAccessToken();
+      const baseUrl = this.auth.getBaseUrl();
+
+      try {
+        const response = await axios.post<{
+          id: string;
+          links: { rel: string; href: string }[];
+        }>(
+          `${baseUrl}/v1/billing/subscriptions`,
+          {
+            plan_id: dto.planId,
+            application_context: {
+              brand_name: 'Beleqet',
+              locale: 'en-US',
+              shipping_preference: 'NO_SHIPPING',
+              user_action: 'SUBSCRIBE_NOW',
+              return_url: returnUrl,
+              cancel_url: cancelUrl,
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              'Prefer': 'return=representation',
+            },
+          },
         );
+
+        rawResponse = response.data;
+        paypalSubId = response.data.id;
+        const approveLink = response.data.links.find((l) => l.rel === 'approve');
+        if (!approveLink) {
+          throw new BadRequestException(
+            'PayPal did not return an approve link for the subscription',
+          );
+        }
+        approveUrl = approveLink.href;
+      } catch (err) {
+        if (err instanceof BadRequestException) throw err;
+        const msg = axios.isAxiosError(err)
+          ? JSON.stringify(err.response?.data)
+          : String(err);
+        this.logger.error(`Failed to create PayPal subscription: ${msg}`);
+        throw new BadRequestException(`PayPal subscription creation failed: ${msg}`);
       }
-      approveUrl = approveLink.href;
-    } catch (err) {
-      if (err instanceof BadRequestException) throw err;
-      const msg = axios.isAxiosError(err)
-        ? JSON.stringify(err.response?.data)
-        : String(err);
-      this.logger.error(`Failed to create PayPal subscription: ${msg}`);
-      throw new BadRequestException(`PayPal subscription creation failed: ${msg}`);
     }
 
     // Persist initial subscription record (status: APPROVAL_PENDING until webhook)
@@ -137,21 +149,25 @@ export class PaypalSubscriptionService {
   async suspendSubscription(userId: string, subscriptionId: string) {
     const record = await this.findOwnedSubscription(userId, subscriptionId);
 
-    const token   = await this.auth.getAccessToken();
-    const baseUrl = this.auth.getBaseUrl();
+    const mode = this.config.get<string>('PAYPAL_MODE', 'sandbox');
 
-    try {
-      await axios.post(
-        `${baseUrl}/v1/billing/subscriptions/${subscriptionId}/suspend`,
-        { reason: 'Suspended by subscriber via Beleqet platform' },
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
-      );
-    } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? JSON.stringify(err.response?.data)
-        : String(err);
-      this.logger.error(`Failed to suspend subscription ${subscriptionId}: ${msg}`);
-      throw new BadRequestException(`PayPal suspend failed: ${msg}`);
+    if (mode !== 'mock') {
+      const token   = await this.auth.getAccessToken();
+      const baseUrl = this.auth.getBaseUrl();
+
+      try {
+        await axios.post(
+          `${baseUrl}/v1/billing/subscriptions/${subscriptionId}/suspend`,
+          { reason: 'Suspended by subscriber via Beleqet platform' },
+          { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
+        );
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? JSON.stringify(err.response?.data)
+          : String(err);
+        this.logger.error(`Failed to suspend subscription ${subscriptionId}: ${msg}`);
+        throw new BadRequestException(`PayPal suspend failed: ${msg}`);
+      }
     }
 
     const updated = await this.prisma.paypalSubscription.update({
@@ -176,21 +192,25 @@ export class PaypalSubscriptionService {
   async cancelSubscription(userId: string, subscriptionId: string) {
     const record = await this.findOwnedSubscription(userId, subscriptionId);
 
-    const token   = await this.auth.getAccessToken();
-    const baseUrl = this.auth.getBaseUrl();
+    const mode = this.config.get<string>('PAYPAL_MODE', 'sandbox');
 
-    try {
-      await axios.post(
-        `${baseUrl}/v1/billing/subscriptions/${subscriptionId}/cancel`,
-        { reason: 'Cancelled by subscriber via Beleqet platform' },
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
-      );
-    } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? JSON.stringify(err.response?.data)
-        : String(err);
-      this.logger.error(`Failed to cancel subscription ${subscriptionId}: ${msg}`);
-      throw new BadRequestException(`PayPal cancel failed: ${msg}`);
+    if (mode !== 'mock') {
+      const token   = await this.auth.getAccessToken();
+      const baseUrl = this.auth.getBaseUrl();
+
+      try {
+        await axios.post(
+          `${baseUrl}/v1/billing/subscriptions/${subscriptionId}/cancel`,
+          { reason: 'Cancelled by subscriber via Beleqet platform' },
+          { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } },
+        );
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? JSON.stringify(err.response?.data)
+          : String(err);
+        this.logger.error(`Failed to cancel subscription ${subscriptionId}: ${msg}`);
+        throw new BadRequestException(`PayPal cancel failed: ${msg}`);
+      }
     }
 
     const updated = await this.prisma.paypalSubscription.update({

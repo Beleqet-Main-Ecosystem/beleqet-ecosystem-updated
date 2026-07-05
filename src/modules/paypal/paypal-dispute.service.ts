@@ -56,44 +56,52 @@ export class PaypalDisputeService {
       );
     }
 
-    const token   = await this.auth.getAccessToken();
-    const baseUrl = this.auth.getBaseUrl();
-
-    const body: Record<string, unknown> = {};
-    if (dto.amount !== undefined) {
-      body.amount = {
-        value:         dto.amount.toFixed(2),
-        currency_code: dto.currency ?? tx.currency,
-      };
-    }
-    if (dto.note) {
-      body.note_to_payer = dto.note.substring(0, 255);
-    }
+    const mode = this.config.get<string>('PAYPAL_MODE', 'sandbox');
 
     let refundId: string;
     let refundStatus: string;
     let rawResponse: unknown;
 
-    try {
-      const response = await axios.post<{ id: string; status: string }>(
-        `${baseUrl}/v2/payments/captures/${captureId}/refund`,
-        body,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+    if (mode === 'mock') {
+      refundId = `MOCK-REF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      refundStatus = 'COMPLETED';
+      rawResponse = { status: 'COMPLETED', simulated: true };
+    } else {
+      const token   = await this.auth.getAccessToken();
+      const baseUrl = this.auth.getBaseUrl();
+
+      const body: Record<string, unknown> = {};
+      if (dto.amount !== undefined) {
+        body.amount = {
+          value:         dto.amount.toFixed(2),
+          currency_code: dto.currency ?? tx.currency,
+        };
+      }
+      if (dto.note) {
+        body.note_to_payer = dto.note.substring(0, 255);
+      }
+
+      try {
+        const response = await axios.post<{ id: string; status: string }>(
+          `${baseUrl}/v2/payments/captures/${captureId}/refund`,
+          body,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           },
-        },
-      );
-      rawResponse   = response.data;
-      refundId      = response.data.id;
-      refundStatus  = response.data.status;
-    } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? JSON.stringify(err.response?.data)
-        : String(err);
-      this.logger.error(`Refund failed for captureId ${captureId}: ${msg}`);
-      throw new BadRequestException(`PayPal refund failed: ${msg}`);
+        );
+        rawResponse   = response.data;
+        refundId      = response.data.id;
+        refundStatus  = response.data.status;
+      } catch (err) {
+        const msg = axios.isAxiosError(err)
+          ? JSON.stringify(err.response?.data)
+          : String(err);
+        this.logger.error(`Refund failed for captureId ${captureId}: ${msg}`);
+        throw new BadRequestException(`PayPal refund failed: ${msg}`);
+      }
     }
 
     // Determine whether it was full or partial
