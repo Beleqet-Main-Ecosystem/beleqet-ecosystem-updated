@@ -38,6 +38,11 @@ export class PaypalAuthService {
    * @throws UnauthorizedException if PayPal rejects the client credentials
    */
   async getAccessToken(): Promise<string> {
+    const mode = this.config.get<string>('PAYPAL_MODE', 'sandbox');
+    if (mode === 'mock') {
+      return 'mock-access-token-12345';
+    }
+
     if (
       this.cachedToken &&
       Date.now() < this.tokenExpiresAt - this.REFRESH_BUFFER_MS
