@@ -1,6 +1,8 @@
 import axios from "axios";
 import { z } from "zod";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
 const rawJobSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -14,6 +16,10 @@ const rawJobSchema = z.object({
   company: z.object({ name: z.string().nullish() }).nullish(),
   category: z.object({ slug: z.string().nullish(), label: z.string().nullish() }).nullish(),
   categoryId: z.string().nullish(),
+  salaryMin: z.number().nullish(),
+  salaryMax: z.number().nullish(),
+  currency: z.string().nullish(),
+  relevanceScore: z.number().nullish(),
 });
 
 const jobsResponseSchema = z.object({
@@ -40,7 +46,6 @@ export type Job = {
   featured?: boolean;
   description?: string;
   tags?: string[];
-  //ADD NEW FIELDS:
   salaryMin?: number;
   salaryMax?: number;
   currency?: string;
@@ -55,7 +60,7 @@ export type Category = {
 };
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1",
+  baseURL: `${API_URL}/api/v1`,
   timeout: 10000,
 });
 
@@ -89,6 +94,10 @@ function toJob(raw: RawJob): Job {
     featured: raw.featured ?? false,
     description: raw.description ?? "",
     tags: raw.tags ?? [],
+    salaryMin: raw.salaryMin ?? undefined,
+    salaryMax: raw.salaryMax ?? undefined,
+    currency: raw.currency ?? undefined,
+    relevanceScore: raw.relevanceScore ?? undefined,
   };
 }
 
@@ -122,6 +131,7 @@ export async function fetchCategories(): Promise<Category[]> {
     return [];
   }
 }
+
 export async function fetchFeed(userId: string, limit: number = 5) {
   const res = await fetch(`${API_URL}/api/v1/ai-feed?limit=${limit}`, {
     cache: 'no-store',
