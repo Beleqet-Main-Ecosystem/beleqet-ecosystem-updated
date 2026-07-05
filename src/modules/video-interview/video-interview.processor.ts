@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
+import { FfmpegService } from './ffmpeg.service';
 import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../queues/queues.constants';
 
 interface TranscribeJobData {
@@ -40,6 +41,7 @@ export class VideoInterviewProcessor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly circuitBreaker: CircuitBreakerService,
+    private readonly ffmpeg: FfmpegService,
     private readonly i18n: I18nService,
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.VIDEO_INTERVIEW)
@@ -231,12 +233,17 @@ export class VideoInterviewProcessor {
     videoUrl: string,
     language = 'en',
   ): Promise<{ text: string; segments: unknown[]; language: string; duration: number }> {
-    // Fetch the video as a stream and send directly to Whisper
+    // Fetch the video
     const response = await fetch(videoUrl);
     if (!response.ok) throw new Error(`Failed to fetch video: ${response.statusText}`);
+    const videoBuffer = Buffer.from(await response.arrayBuffer());
 
-    const blob = await response.blob();
-    const file = new File([blob], 'interview.webm', { type: 'video/webm' });
+    // FFmpeg: strip metadata (GDPR) then extract 16 kHz mono WAV for Whisper
+    const cleanBuffer  = await this.ffmpeg.stripMetadata(videoBuffer);
+    const audioBuffer  = await this.ffmpeg.extractAudio(cleanBuffer);
+    this.logger.log(`FFmpeg: ${videoBuffer.length}b video → ${audioBuffer.length}b WAV audio`);
+
+    const file = new File([audioBuffer], 'interview.wav', { type: 'audio/wav' });
 
     const transcription = await this.openai.audio.transcriptions.create({
       file,
