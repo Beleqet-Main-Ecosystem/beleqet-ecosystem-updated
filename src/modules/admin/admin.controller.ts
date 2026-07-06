@@ -243,7 +243,7 @@ export class AdminController {
 
   @Get('compliance/gdpr/export/:userId')
   @ApiOperation({ summary: 'Export user data for GDPR compliance' })
-  async exportUserData(@Param('userId') userId: string) {
+  async exportUserData(@Param('userId') userId: string, @CurrentUser() admin: CurrentUserPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -265,6 +265,19 @@ export class AdminController {
     const twoFactor = await this.prisma.userTwoFactor.findUnique({
       where: { userId },
       select: { enabled: true },
+    });
+
+    await this.prisma.eventLog.create({
+      data: {
+        eventType: 'gdpr.export.user_data',
+        entityId: userId,
+        entityType: 'User',
+        payload: {
+          exportedBy: admin.userId,
+          timestamp: new Date().toISOString(),
+        } as never,
+        processedBy: AdminController.name,
+      },
     });
 
     return {
@@ -407,12 +420,14 @@ export class AdminController {
 
   @Get('fraud/alerts/gdpr/export/:userId')
   @ApiOperation({ summary: 'Export fraud alert data for GDPR compliance' })
-  async exportFraudAlertData(@Param('userId') userId: string) {
-    const alerts = await this.prisma.fraudAlert.findMany({
-      where: { OR: [{ userId }, { resolvedById: userId }] },
-      orderBy: { createdAt: 'desc' },
-    });
-    return { userId, alertCount: alerts.length, alerts };
+  async exportFraudAlertData(@Param('userId') userId: string, @CurrentUser() admin: CurrentUserPayload) {
+    return this.fraudAlertService.gdprExport(userId, admin.userId);
+  }
+
+  @Delete('fraud/alerts/gdpr/delete/:userId')
+  @ApiOperation({ summary: 'Soft-delete fraud alerts for GDPR right-to-erasure' })
+  async deleteFraudAlertData(@Param('userId') userId: string, @CurrentUser() admin: CurrentUserPayload) {
+    return this.fraudAlertService.gdprDelete(userId, admin.userId);
   }
  
 }

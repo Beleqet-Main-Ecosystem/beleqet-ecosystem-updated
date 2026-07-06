@@ -21,11 +21,12 @@ src/modules/fraud-alert/
       └─ create-fraud-rule.dto.ts    Rule CRUD DTOs
 
 prisma/schema.prisma                New enums + FraudRule + FraudAlert models
-src/i18n/en/messages.json           English fraud strings
-src/i18n/am/messages.json           Amharic fraud strings
+                                     FraudAlert.legalBasis, expiryAt, deletedAt, anonymizedAt
+src/i18n/en/messages.json           English fraud strings (24 keys under fraud.*)
+src/i18n/am/messages.json           Amharic fraud strings (24 keys under fraud.*)
 src/modules/queues/queues.constants.ts   FRAUD queue + FRAUD_JOBS
-src/modules/admin/admin.controller.ts    8 fraud alert management routes
-src/modules/admin/admin.module.ts        Imports FraudAlertModule
+src/modules/admin/admin.controller.ts    11 fraud alert management routes
+src/modules/admin/admin.module.ts        Imports FraudAlertModule + ChatModule + QueuesModule
 src/app.module.ts                   FraudAlertModule registration
 src/main.ts                         Swagger tag
 
@@ -141,7 +142,9 @@ All routes authenticated with `JWT` and guarded by `Roles('ADMIN')`. Base prefix
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/admin/fraud/alerts/gdpr/export/:userId` | Export all fraud alerts related to a user |
+| GET | `/admin/fraud/alerts/gdpr/export/:userId` | Export all fraud alerts (PII-redacted) + audit log |
+| DELETE | `/admin/fraud/alerts/gdpr/delete/:userId` | Soft-delete alerts (right to erasure) + audit log |
+| GET | `/admin/compliance/gdpr/export/:userId` | Full user export (now includes `fraudAlerts` + audit log) |
 
 ---
 
@@ -190,7 +193,7 @@ npm install
 npm run dev
 ```
 
-Dashboard on `http://localhost:3000/admin/fraud`. Sign in at `http://localhost:3000/login`.
+Dashboard on `http://localhost:4001/admin/fraud`. Sign in at `http://localhost:4001/login`.
 
 #### Dev admin credentials
 
@@ -211,27 +214,74 @@ Change these in `.env` before production — never commit real credentials.
 
 ---
 
-## Internationalization
+## Internationalization (i18n)
 
-Translation keys live under the `fraud.*` namespace:
+The fraud module injects `I18nService` from `nestjs-i18n` and resolves all user-facing strings through translation keys. Language is auto-detected via `Accept-Language` header, query param `?lang=`, or `x-custom-lang` header.
 
-| Environment | File |
+**Key structure** under `fraud.*`:
+
+| Namespace | Keys | Used in |
+|---|---|---|
+| `fraud.alert.title.*` | One per rule type | Notification title |
+| `fraud.alert.body.*` | One per rule type | Notification body |
+| `fraud.severity.*` | LOW / MEDIUM / HIGH / CRITICAL | Dashboard labels |
+| `fraud.status.*` | OPEN / UNDER_REVIEW / RESOLVED / FALSE_POSITIVE / CONFIRMED | Dashboard labels |
+| `fraud.notification.*` | user_resolved / user_false_positive / user_confirmed / prefix | User notification on resolution |
+| `fraud.controller.*` | scan_queued_user / scan_queued_message / etc. | Scan trigger responses |
+| `fraud.gdpr.*` | export_label / delete_label / retention_notice / export_audit / delete_audit | GDPR endpoints |
+| `fraud.admin.*` | resolved / false_positive / confirmed | Admin resolution messages |
+| `fraud.rule.*` | enabled / disabled / threshold_exceeded | Rule management |
+| `fraud.email.*` | subject / body | Email notification templates |
+
+**Supported languages:**
+
+| Language | File |
 |---|---|
-| English | `src/i18n/en/messages.json` |
-| Amharic | `src/i18n/am/messages.json` |
+| English (en) | `src/i18n/en/messages.json` |
+| Amharic (am) | `src/i18n/am/messages.json` |
 
-To add a new language, create `src/i18n/<lang>/messages.json` with the same key structure.
+To add a new language, create `src/i18n/<lang>/messages.json` with the same key structure. No code changes needed.
 
 ---
 
 ## Multi-Currency
 
-Each `FraudAlert` stores a `currency` field. The payment anomaly detector normalises amounts using the wallet's configured currency (default `ETB`). Alert `evidence` records the currency for traceability.
+**Per-transaction currency storage** — `FraudAlert.currency` records the ISO 4217 code for every alert.
+
+**Currency-aware anomaly detection** — `detectPaymentAnomaly()` normalises amounts using a static exchange-rate factor table (`CURRENCY_FACTORS`):
+
+| Currency | Factor (vs ETB) |
+|---|---|
+| ETB | 1 |
+| USD | 125 |
+| EUR | 135 |
+| GBP | 160 |
+| KES | 0.8 |
+| AED | 34 |
+
+Round-amount thresholds (`% 1000` in raw form) are scaled by the factor, so a `$100` transaction (10,000 USD cents × 125 = 1,250,000) is detected as a round amount on an ETB-equivalent basis. Velocity checks remain currency-agnostic (count-based rather than value-based).
+
+**Default fallback** — `ETB` when no currency is specified. Alert `evidence` records the currency for traceability.
 
 ---
 
 ## GDPR Notes
 
-- Alert `evidence` stores redacted PII only — phone numbers and emails are replaced with `***` placeholders.
-- All fraud alert data for a user is exportable via `GET /admin/fraud/alerts/gdpr/export/:userId`.
-- The existing `GET /admin/compliance/gdpr/export/:userId` endpoint now includes `fraudAlerts` in its response.
+### Data Minimisation
+- **PII redaction in evidence** — `redactPii()` strips phone numbers, emails, IBANs, and crypto addresses before alert storage. Evidence payloads carry `redacted: true`.
+- **sanitizeEvidence()** — recursively redacts all string fields in evidence before `FraudAlert.evidence` is written.
+
+### Data Retention
+- Every `FraudAlert` is created with `legalBasis = 'legitimate_interest'` and an automatic `expiryAt` (default: +90 days from creation).
+- The `FraudAlert.expiryAt` field is indexed — a scheduled cleanup job can query `WHERE expiryAt < now() AND deletedAt IS NULL` to batch-anonymise or delete.
+- `FraudAlert.deletedAt` / `FraudAlert.anonymizedAt` fields enable soft-deletion and anonymisation tracking.
+
+### Right of Access (Article 15)
+- `GET /admin/compliance/gdpr/export/:userId` — exports all user data including `fraudAlerts`; writes an audit `EventLog`.
+- `GET /admin/fraud/alerts/gdpr/export/:userId` — exports only fraud alerts with already-redacted PII; writes an audit `EventLog`.
+
+### Right to Erasure (Article 17)
+- `DELETE /admin/fraud/alerts/gdpr/delete/:userId` — soft-deletes all fraud alerts by setting `deletedAt`; writes an audit `EventLog` with the count.
+
+### Accountability
+- All GDPR-sensitive operations (`export`, `delete`, alert creation/resolution) write an `EventLog` row with `processedBy: FraudAlertService.name`, `eventType`, `entityId`, and a timestamped payload. This provides a full audit trail for compliance reviews.

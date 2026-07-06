@@ -34,7 +34,45 @@
     },
     "rule": {
       "disabled": "የማጭበርበር ማወቂያ ህግ ተሰናክሏል",
+      "enabled": "የማጭበርበር ማወቂያ ህግ ነቅቷል",
       "threshold_exceeded": "የማስጠንቀቂያ ውጤት ከተወሰነው ገደብ አልፏል"
+    },
+    "severity": {
+      "LOW": "ዝቅተኛ",
+      "MEDIUM": "መካከለኛ",
+      "HIGH": "ከፍተኛ",
+      "CRITICAL": "አስቸኳይ"
+    },
+    "status": {
+      "OPEN": "ክፍት",
+      "UNDER_REVIEW": "በምርመራ ላይ",
+      "RESOLVED": "ተፈትቷል",
+      "FALSE_POSITIVE": "የተሳሳተ",
+      "CONFIRMED": "ተረጋግጧል"
+    },
+    "controller": {
+      "scan_queued_user": "የተጠቃሚ ምርመራ ተጀምሯል",
+      "scan_queued_message": "የመልእክት ምርመራ ተጀምሯል",
+      "scan_queued_transaction": "የክፍያ ምርመራ ተጀምሯል",
+      "scan_queued_job": "የሥራ ማስታወቂያ ምርመራ ተጀምሯል",
+      "scan_queued_all": "የቡድን ምርመራ ተጀምሯል"
+    },
+    "notification": {
+      "user_resolved": "የተጠቆመው እንቅስቃሴዎ በመድረኩ አስተዳደር ተረጋግጦ ተፈትቷል።",
+      "user_false_positive": "የተጠቆመው እንቅስቃሴዎ ምንም ችግር እንደሌለው ተረጋግጧል። ምንም እርምጃ አልተወሰደም።",
+      "user_confirmed": "የተጠቆመው እንቅስቃሴዎ የመድረኩን ፖሊሲ የሚጻረር ሆኖ ተረጋግጧል። መለያዎ ሊገደብ ይችላል።",
+      "prefix": "የማጭበርበር ማስጠንቀቂያ"
+    },
+    "email": {
+      "subject": "በልቀት ደህንነት፣ የማጭበርበር ማስጠንቀቂያ",
+      "body": "በበልቀት መድረክ ላይ አዲስ የማጭበርበር ማስጠንቀቂያ ተፈጥሯል። እባክዎ በአስተዳደር ዳሽቦርድ ይመልከቱት።"
+    },
+    "gdpr": {
+      "export_label": "የማጭበርበር ማስጠንቀቂያ መረጃ ወደ ውጭ መላክ",
+      "delete_label": "የማጭበርበር ማስጠንቀቂያ መረጃ መሰረዝ",
+      "retention_notice": "ይህ መዝገብ በGDPR የመረጃ ማቆያ ፖሊሲ መሰረት ለ {days} ቀናት ይቆያል።",
+      "export_audit": "የGDPR መረጃ ማውጣት ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል",
+      "delete_audit": "የGDPR መረጃ መሰረዝ ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል"
     }
  
   }
