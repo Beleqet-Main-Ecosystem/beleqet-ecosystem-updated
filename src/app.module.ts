@@ -30,6 +30,7 @@ import { ContactModule } from './modules/contact/contact.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      validate,
     }),
 
     // ── Rate limiting ──────────────────────────────────────────────────────
@@ -99,4 +100,4 @@ import { ContactModule } from './modules/contact/contact.module';
     ContactModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
