@@ -59,7 +59,7 @@ export class AuthService {
     );
 
     // Send personalised welcome email
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4001';
     const dashboardUrl =
       user.role === 'EMPLOYER'
         ? `${frontendUrl}/employer`
