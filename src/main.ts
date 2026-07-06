@@ -25,12 +25,13 @@ async function bootstrap() {
     if (adminPassword.length < 12)
       throw new Error('ADMIN_PASSWORD must contain at least 12 characters');
     const prisma = app.get(PrismaService);
+    const passwordHash = await bcrypt.hash(adminPassword, 12);
     await prisma.user.upsert({
       where: { email: adminEmail },
-      update: { role: 'ADMIN', isActive: true },
+      update: { role: 'ADMIN', isActive: true, passwordHash },
       create: {
         email: adminEmail,
-        passwordHash: await bcrypt.hash(adminPassword, 12),
+        passwordHash,
         firstName: configService.get<string>('ADMIN_FIRST_NAME', 'Platform'),
         lastName: configService.get<string>('ADMIN_LAST_NAME', 'Admin'),
         role: 'ADMIN',
@@ -52,6 +53,7 @@ async function bootstrap() {
       if (!origin) return cb(null, true);
       if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return cb(null, true);
       if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
+      if (nodeEnv === 'development' && /^http:\/\/localhost(:\d+)?$/i.test(origin)) return cb(null, true);
       return cb(null, false);
     },
     credentials: true,

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { FraudAlert, PaginatedResponse } from '@/types/fraud';
 import { getFraudAlerts } from '@/lib/api';
+import { ApiErrorState } from '@/components/ApiErrorState';
 import Link from 'next/link';
 
 const severityColors: Record<string, string> = {
@@ -23,7 +24,7 @@ const statusColors: Record<string, string> = {
 export default function FraudAlertsPage() {
   const [data, setData] = useState<PaginatedResponse<FraudAlert> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [filter, setFilter] = useState({ status: '', severity: '', ruleType: '' });
   const [page, setPage] = useState(1);
 
@@ -31,7 +32,7 @@ export default function FraudAlertsPage() {
     setLoading(true);
     getFraudAlerts({ ...filter, page, limit: 15 })
       .then(setData)
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(e instanceof Error ? e : new Error(String(e))))
       .finally(() => setLoading(false));
   }, [filter, page]);
 
@@ -39,14 +40,7 @@ export default function FraudAlertsPage() {
     return <p style={{ padding: 24 }}>Loading fraud alerts...</p>;
   }
 
-  if (error) {
-    return (
-      <div style={{ padding: 24 }}>
-        <p style={{ color: 'red' }}>Error: {error}</p>
-        <p>Make sure the backend API is running on port 4000.</p>
-      </div>
-    );
-  }
+  if (error) return <ApiErrorState error={error} />;
 
   return (
     <div>
