@@ -1,80 +1,112 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import JobCard from '@/components/JobCard';
+import { authenticatedFetch } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
 import type { Job } from '@/lib/api';
 
-interface FeedClientProps {
-  /** The initial list of jobs fetched server-side. */
-  initialJobs: Job[];
-  /** The ID of the logged-in user, used to update GDPR preferences. */
-  userId: string;
-}
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+
+/** Feed is refreshed automatically at this interval so it keeps reflecting
+ *  new searches/saved jobs without requiring a manual reload. */
+const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Client-side component for the personalized job feed.
- * 
- * Displays a list of job cards and includes a toggle button to enable/disable
- * AI personalization (GDPR consent). When toggled, it updates the user's preference
- * and refetches the feed to reflect the change.
+ * Client-side controller for the `/feed` page.
+ *
+ * Fetches the personalized job feed from `GET /api/v1/ai-feed`, which
+ * requires an authenticated request — this component is where the caller's
+ * JWT (read from `localStorage` via `authenticatedFetch`) is attached, since
+ * the parent `page.tsx` server component has no access to it.
+ *
+ * Note on GDPR: this component does not manage the user's `gdprConsent`
+ * flag itself — that belongs to the Users module's profile settings
+ * (`PATCH /users/profile`), which is out of scope for the AI Feed module.
+ * If personalization looks generic, the user's consent setting (or lack of
+ * search/skill/saved-job history) is the reason, and a link to `/profile`
+ * is offered so they can manage it there.
  */
-export default function FeedClient({ initialJobs, userId }: FeedClientProps) {
-  const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [loading, setLoading] = useState(false);
-  const [gdprConsent, setGdprConsent] = useState(true);
+export default function FeedClient() {
+  const { user, ready } = useAuth();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Toggles GDPR personalization consent for the current user.
-   * 
-   * 1. Sends a PATCH request to /api/v1/users/me to update the `gdprConsent` field.
-   * 2. Refetches the /api/v1/ai-feed endpoint to display the updated list
-   *    (personalized or generic depending on the new state).
-   */
-  const toggleGDPR = async () => {
-    const newVal = !gdprConsent;
-    setGdprConsent(newVal);
+  /** Fetches (or re-fetches) the personalized feed for the current user. */
+  const loadFeed = useCallback(async () => {
     setLoading(true);
-
+    setError(null);
     try {
-      // Update user preference
-      await fetch('/api/v1/users/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gdprConsent: newVal }),
-      }).catch(() => {});
-
-      // Refresh the feed
-      const res = await fetch('/api/v1/ai-feed?limit=5');
+      const res = await authenticatedFetch(`${API_URL}/ai-feed?limit=10`);
+      if (!res.ok) {
+        throw new Error(`Failed to load feed (status ${res.status})`);
+      }
       const data: Job[] = await res.json();
       setJobs(data);
-    } catch (e) {
-      console.error('Failed to update feed:', e);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load feed');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, []);
 
-  if (loading) {
-    return <p className="text-gray-600">Updating recommendations...</p>;
+  useEffect(() => {
+    if (!ready || !user) return;
+    loadFeed();
+    const interval = setInterval(loadFeed, AUTO_REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [ready, user, loadFeed]);
+
+  if (!ready) {
+    return null;
+  }
+
+  if (!user) {
+    return (
+      <p className="text-gray-600">
+        Please{' '}
+        <Link href="/login" className="text-[#00653B] font-medium underline">
+          log in
+        </Link>{' '}
+        to see your personalized job feed.
+      </p>
+    );
   }
 
   return (
     <div>
-      <button
-        onClick={toggleGDPR}
-        className="mb-6 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm font-medium transition"
-      >
-        {gdprConsent ? 'Disable AI Personalization (GDPR)' : 'Enable AI Personalization'}
-      </button>
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Based on your searches, skills, and saved jobs.{' '}
+          <Link href="/profile" className="underline">
+            Manage privacy settings
+          </Link>
+        </p>
+        <button
+          onClick={loadFeed}
+          disabled={loading}
+          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm font-medium transition disabled:opacity-50"
+        >
+          {loading ? 'Refreshing…' : 'Refresh recommendations'}
+        </button>
+      </div>
 
-      {jobs.length === 0 ? (
-        <p className="text-gray-500">No matching jobs found.</p>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
+      {loading && jobs.length === 0 ? (
+        <p className="text-gray-600">Loading recommendations…</p>
+      ) : jobs.length === 0 ? (
+        <p className="text-gray-500">No matching jobs found yet.</p>
       ) : (
         <div className="grid gap-4">
-          {jobs.map((job: Job) => (
+          {jobs.map((job) => (
             <JobCard key={job.id} job={job} showMatchScore />
           ))}
         </div>
       )}
     </div>
   );
-    }
+}
