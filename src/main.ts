@@ -101,6 +101,7 @@ async function bootstrap() {
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
       .addTag('db-index-master', 'DB Index Master — query analysis & index health (admin only)')
+      .addTag('fraud-alert', 'Fraud detection & alerts')
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
