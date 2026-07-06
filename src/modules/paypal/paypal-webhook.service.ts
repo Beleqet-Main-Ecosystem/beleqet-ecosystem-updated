@@ -38,6 +38,13 @@ export class PaypalWebhookService {
     private readonly paypalQueue: Queue,
   ) {}
 
+  private shouldBypassVerification(): boolean {
+    return (
+      this.config.get<string>('NODE_ENV') === 'development' &&
+      this.config.get<string>('PAYPAL_WEBHOOK_SKIP_VERIFICATION') === 'true'
+    );
+  }
+
   /**
    * Verifies a PayPal webhook signature and enqueues the event for processing.
    *
@@ -61,20 +68,19 @@ export class PaypalWebhookService {
   /**
    * Calls PayPal's verify-webhook-signature API and throws if verification fails.
    *
-   * In non-production environments a warning is logged instead of throwing,
-   * so local development with ngrok can proceed without a matching cert.
+    * Verification is mandatory unless an explicit local-development bypass is
+    * enabled. This keeps staging and other internet-facing environments covered.
    *
    * @param req  - Express request containing PayPal transmission headers
    * @param body - Parsed webhook payload
-   * @throws UnauthorizedException in production when verification fails
+    * @throws UnauthorizedException when verification fails and bypass is disabled
    */
   async verifySignature(
     req: Request & { rawBody?: Buffer },
     body: Record<string, unknown>,
   ): Promise<void> {
     const webhookId = this.config.get<string>('PAYPAL_WEBHOOK_ID');
-    const isProduction =
-      this.config.get<string>('NODE_ENV') === 'production';
+    const shouldBypassVerification = this.shouldBypassVerification();
 
     // Extract PayPal transmission headers
     const transmissionId  = req.headers['paypal-transmission-id']  as string;
@@ -85,7 +91,7 @@ export class PaypalWebhookService {
 
     if (!transmissionId || !certUrl || !transmissionSig || !webhookId) {
       const msg = 'Missing required PayPal webhook verification headers or PAYPAL_WEBHOOK_ID';
-      if (isProduction) {
+      if (!shouldBypassVerification) {
         this.logger.error(msg);
         throw new UnauthorizedException(msg);
       } else {
@@ -125,7 +131,7 @@ export class PaypalWebhookService {
         : String(err);
       this.logger.error(`PayPal webhook verification API call failed: ${msg}`);
 
-      if (isProduction) {
+      if (!shouldBypassVerification) {
         throw new UnauthorizedException('PayPal webhook signature verification failed');
       }
       this.logger.warn('[DEV] Verification API error — proceeding without verification');
@@ -136,7 +142,7 @@ export class PaypalWebhookService {
       this.logger.error(
         `PayPal webhook signature INVALID for event ${body['id'] ?? '?'} — status: ${verificationStatus}`,
       );
-      if (isProduction) {
+      if (!shouldBypassVerification) {
         throw new UnauthorizedException('Invalid PayPal webhook signature');
       }
       this.logger.warn('[DEV] Signature mismatch — proceeding in dev mode');

@@ -74,6 +74,15 @@ describe('PaypalWebhookService', () => {
   // ── verifySignature ────────────────────────────────────────────────────────
 
   describe('verifySignature', () => {
+    it('throws UnauthorizedException in test-like environments when signature fails', async () => {
+      mockedAxios.post         = jest.fn().mockResolvedValueOnce({ data: { verification_status: 'FAILURE' } });
+      jest.mocked(axios.isAxiosError).mockReturnValue(false);
+
+      await expect(
+        service.verifySignature(buildRequest(), mockBody),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
     it('accepts a verified signature (SUCCESS from PayPal)', async () => {
       mockedAxios.post         = jest.fn().mockResolvedValueOnce({ data: { verification_status: 'SUCCESS' } });
       jest.mocked(axios.isAxiosError).mockReturnValue(false);
@@ -93,11 +102,17 @@ describe('PaypalWebhookService', () => {
       );
     });
 
-    it('does NOT throw in non-production when signature verification fails', async () => {
+    it('does NOT throw only when explicit local dev bypass is enabled', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') return 'development';
+        if (key === 'PAYPAL_WEBHOOK_ID') return 'WH-TEST-WEBHOOK-ID';
+        if (key === 'PAYPAL_WEBHOOK_SKIP_VERIFICATION') return 'true';
+        return undefined;
+      });
+
       mockedAxios.post         = jest.fn().mockResolvedValueOnce({ data: { verification_status: 'FAILURE' } });
       jest.mocked(axios.isAxiosError).mockReturnValue(false);
 
-      // NODE_ENV=test — should warn but not throw
       await expect(
         service.verifySignature(buildRequest(), mockBody),
       ).resolves.not.toThrow();
@@ -137,25 +152,46 @@ describe('PaypalWebhookService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('skips verification and warns in dev when PAYPAL_WEBHOOK_ID is missing', async () => {
+    it('throws in development when PAYPAL_WEBHOOK_ID is missing unless bypass is enabled', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'NODE_ENV') return 'development';
         return undefined; // PAYPAL_WEBHOOK_ID missing
       });
 
-      // Should not throw in dev mode
       await expect(
         service.verifySignature(buildRequest(), mockBody),
-      ).resolves.not.toThrow();
+      ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('handles PayPal verification API network errors gracefully in dev', async () => {
+    it('handles PayPal verification API network errors gracefully only with explicit local bypass', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') return 'development';
+        if (key === 'PAYPAL_WEBHOOK_ID') return 'WH-TEST-WEBHOOK-ID';
+        if (key === 'PAYPAL_WEBHOOK_SKIP_VERIFICATION') return 'true';
+        return undefined;
+      });
+
       mockedAxios.post         = jest.fn().mockRejectedValueOnce(new Error('Network Error'));
       jest.mocked(axios.isAxiosError).mockReturnValue(false);
 
       await expect(
         service.verifySignature(buildRequest(), mockBody),
       ).resolves.not.toThrow();
+    });
+
+    it('does not bypass verification in development unless the explicit flag is set', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') return 'development';
+        if (key === 'PAYPAL_WEBHOOK_ID') return 'WH-TEST-WEBHOOK-ID';
+        return undefined;
+      });
+
+      mockedAxios.post = jest.fn().mockResolvedValueOnce({ data: { verification_status: 'FAILURE' } });
+      jest.mocked(axios.isAxiosError).mockReturnValue(false);
+
+      await expect(
+        service.verifySignature(buildRequest(), mockBody),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
