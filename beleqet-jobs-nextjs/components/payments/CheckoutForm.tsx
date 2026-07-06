@@ -4,12 +4,17 @@ import React, { useState, FormEvent } from 'react';
 import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js';
 
 interface CheckoutFormProps {
+  /** The unique client secret token returned dynamically by the backend PaymentIntent handler. */
   clientSecret: string;
 }
 
 /**
- * CheckoutForm manages secure submission to Stripe using Stripe Elements.
- * Adheres strictly to PCI-DSS compliance via client-side tokenization.
+ * CheckoutForm manages secure payment collection fields using unified Stripe Elements.
+ * Adheres strictly to full PCI-DSS compliance frameworks by tokenizing data on the client side.
+ * 
+ * @component
+ * @param {CheckoutFormProps} props Destructured configuration options containing the local context clientSecret.
+ * @returns {JSX.Element} Reactive standalone credit card payment submission view layer.
  */
 export const CheckoutForm: React.FC<CheckoutFormProps> = ({ clientSecret }) => {
   const stripe = useStripe();
@@ -17,6 +22,12 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ clientSecret }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
+  /**
+   * Captures the default form interaction and delegates tokens securely to Stripe's payment confirm handler.
+   * 
+   * @param {FormEvent<HTMLFormElement>} event Native browser form submission event loop trigger.
+   * @returns {Promise<void>} Executes asynchronously until confirmation cycles finish.
+   */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
