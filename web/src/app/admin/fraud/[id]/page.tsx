@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import type { FraudAlert } from '@/types/fraud';
 import { getFraudAlert, resolveFraudAlert } from '@/lib/api';
+import { ApiErrorState } from '@/components/ApiErrorState';
 
 export default function FraudAlertDetailPage() {
   const params = useParams<{ id: string }>();
@@ -12,12 +13,13 @@ export default function FraudAlertDetailPage() {
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState(false);
   const [resolutionNote, setResolutionNote] = useState('');
+  const [loadError, setLoadError] = useState<Error | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     getFraudAlert(params.id)
       .then(({ alert: a, context: c }) => { setAlert(a); setContext(c); })
-      .catch((e) => setMessage(e.message))
+      .catch((e) => setLoadError(e instanceof Error ? e : new Error(String(e))))
       .finally(() => setLoading(false));
   }, [params.id]);
 
@@ -29,14 +31,15 @@ export default function FraudAlertDetailPage() {
       setAlert(result.alert);
       setMessage(`Alert ${status.replace(/_/g, ' ').toLowerCase()}`);
     } catch (e) {
-      setMessage(`Error: ${(e as Error).message}`);
+      setMessage(e instanceof Error ? e.message : String(e));
     } finally {
       setResolving(false);
     }
   };
 
   if (loading) return <p style={{ padding: 24 }}>Loading...</p>;
-  if (!alert) return <p style={{ padding: 24 }}>Alert not found or error: {message}</p>;
+  if (loadError) return <ApiErrorState error={loadError} />;
+  if (!alert) return <p style={{ padding: 24 }}>Alert not found.</p>;
 
   return (
     <div>
@@ -46,8 +49,8 @@ export default function FraudAlertDetailPage() {
           padding: '10px 16px',
           borderRadius: 6,
           marginBottom: 16,
-          background: message.startsWith('Error') ? '#ffebee' : '#e8f5e9',
-          color: message.startsWith('Error') ? '#c62828' : '#2e7d32',
+          background: message.startsWith('Alert ') ? '#e8f5e9' : '#ffebee',
+          color: message.startsWith('Alert ') ? '#2e7d32' : '#c62828',
         }}>
           {message}
         </div>
