@@ -34,11 +34,12 @@ import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 
 import { PaymentsModule } from './modules/payments/payments.module';
-// ── Fixed: PerformanceWorkerModule import statement deleted ──
-import { TwoFactorModule } from './modules/two-factor/two-factor.module';
-import { KycModule } from './modules/kyc/kyc.module';
-import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
-import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+  // ── Fixed: PerformanceWorkerModule import statement deleted ──
+  import { TwoFactorModule } from './modules/two-factor/two-factor.module';
+  import { KycModule } from './modules/kyc/kyc.module';
+  import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
+  import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+  import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
 
 @Module({
   imports: [
@@ -126,6 +127,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    FraudAlertModule,
   ],
   providers: [
     {

@@ -8,6 +8,7 @@
     "**/*spec.ts",
     "test",
     "prisma",
-    "scripts"
+    "scripts",
+    "web"
   ]
 }
