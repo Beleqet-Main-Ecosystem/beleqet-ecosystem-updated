@@ -35,6 +35,7 @@ import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 
 import { PaymentsModule } from './modules/payments/payments.module';
+ 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
@@ -47,6 +48,10 @@ import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+ 
+  // ── Fixed: PerformanceWorkerModule import statement deleted ──
+import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
+ 
 
 @Module({
   imports: [
@@ -135,6 +140,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+ 
     SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,
@@ -143,6 +149,9 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
+ 
+    FraudAlertModule,
+ 
   ],
   providers: [
     {
@@ -151,4 +160,6 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     },
   ],
 })
+ 
 export class AppModule {}
+ 

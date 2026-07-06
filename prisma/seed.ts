@@ -343,6 +343,79 @@ async function main() {
   console.log('✅ Subscription plans created (Free/Pro/Enterprise)');
 
   console.log('\n🎉 Database seeded successfully with Production Categories!');
+
+  // ── Fraud Detection Rules ────────────────────────────────────────────────
+  await Promise.all([
+    prisma.fraudRule.upsert({
+      where: { id: 'frule-off-platform' },
+      update: {},
+      create: {
+        id: 'frule-off-platform',
+        name: 'Off-Platform Payment Detection',
+        ruleType: 'OFF_PLATFORM_PAYMENT',
+        severity: 'HIGH',
+        enabled: true,
+        config: {
+          threshold: 30,
+          patterns: ['phone', 'email', 'iban', 'crypto', 'paypal', 'bank transfer', 'telebirr', 'cbe birr', 'amole', 'm-pesa'],
+        },
+        i18nKey: 'fraud.alert.title.OFF_PLATFORM_PAYMENT',
+      },
+    }),
+    prisma.fraudRule.upsert({
+      where: { id: 'frule-fake-profile' },
+      update: {},
+      create: {
+        id: 'frule-fake-profile',
+        name: 'Fake Profile Detection',
+        ruleType: 'FAKE_PROFILE',
+        severity: 'MEDIUM',
+        enabled: true,
+        config: {
+          maxUnverifiedSkills: 8,
+          requireEmailVerification: true,
+          requireSkillVerification: true,
+        },
+        i18nKey: 'fraud.alert.title.FAKE_PROFILE',
+      },
+    }),
+    prisma.fraudRule.upsert({
+      where: { id: 'frule-payment-anomaly' },
+      update: {},
+      create: {
+        id: 'frule-payment-anomaly',
+        name: 'Payment Anomaly Detection',
+        ruleType: 'PAYMENT_ANOMALY',
+        severity: 'HIGH',
+        enabled: true,
+        config: {
+          maxDailyTransactions: 20,
+          roundAmountThreshold: 5,
+          maxRefundLoopCount: 3,
+          maxGatewayFailures: 5,
+        },
+        i18nKey: 'fraud.alert.title.PAYMENT_ANOMALY',
+      },
+    }),
+    prisma.fraudRule.upsert({
+      where: { id: 'frule-duplicate-listing' },
+      update: {},
+      create: {
+        id: 'frule-duplicate-listing',
+        name: 'Duplicate Listing Detection',
+        ruleType: 'DUPLICATE_LISTING',
+        severity: 'LOW',
+        enabled: true,
+        config: {
+          maxDuplicateDistance: 0.8,
+          lookbackDays: 30,
+        },
+        i18nKey: 'fraud.alert.title.DUPLICATE_LISTING',
+      },
+    }),
+  ]);
+
+  console.log('✅ Fraud detection rules seeded');
 }
 
 main()

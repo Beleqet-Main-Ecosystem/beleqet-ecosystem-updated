@@ -23,6 +23,7 @@
     "presignedUrlCreated": "Upload URL created successfully.",
     "assetUploaded": "Asset uploaded successfully."
   },
+ 
   "salary": {
     "title": "AI Salary Helper",
     "description": "AI-powered salary prediction and market analysis",
@@ -130,5 +131,32 @@
     "forbidden": "You do not have permission to access this interview session.",
     "gdpr_request_accepted": "Your data deletion request has been accepted. All interview data will be permanently removed within 30 days.",
     "invalid_video_url": "The video URL must point to an approved Beleqet storage or CDN host."
+ 
+  },
+  "fraud": {
+    "alert": {
+      "title": {
+        "OFF_PLATFORM_PAYMENT": "Suspicious Off-Platform Payment Detected",
+        "FAKE_PROFILE": "Potentially Fake Profile Flagged",
+        "PAYMENT_ANOMALY": "Unusual Payment Pattern Detected",
+        "DUPLICATE_LISTING": "Duplicate Job Listing Suspected"
+      },
+      "body": {
+        "OFF_PLATFORM_PAYMENT": "A user was flagged for attempting or encouraging off-platform payment. Evidence includes payment-related keywords or contact details shared in chat.",
+        "FAKE_PROFILE": "A user profile was flagged for inconsistencies between claimed skills, verification status, and scoring data.",
+        "PAYMENT_ANOMALY": "A transaction pattern was detected that deviates from normal behaviour. This may indicate money laundering, refund abuse, or other financial fraud.",
+        "DUPLICATE_LISTING": "A job listing was flagged as a potential duplicate of an existing posting from the same company."
+      }
+    },
+    "admin": {
+      "resolved": "Fraud alert resolved",
+      "false_positive": "Fraud alert marked as false positive",
+      "confirmed": "Fraud alert confirmed — user may be suspended"
+    },
+    "rule": {
+      "disabled": "Fraud detection rule has been disabled",
+      "threshold_exceeded": "Alert score exceeded the configured threshold"
+    }
+ 
   }
 }
