@@ -10,7 +10,6 @@ import {
   HttpStatus, Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -40,11 +39,12 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login and receive JWT tokens' })
-  @Audit(AuditAction.AUTH_LOGIN, 'User')
   async login(@Body() dto: LoginDto, @Request() req: any) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip;
+    const userAgent = req.headers['user-agent'] as string | undefined;
+    const correlationId = req.headers['x-correlation-id'] as string | undefined;
     const user = await this.authService.validateUser(dto.email, dto.password);
-    const userAgent = req.headers['user-agent'];
-    return this.authService.login(user, userAgent);
+    return this.authService.login(user, userAgent, ipAddress, correlationId);
   }
 
   @Post('refresh')
@@ -58,9 +58,12 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @Audit(AuditAction.AUTH_LOGOUT, 'User')
-  logout(@Request() req: Express.Request & { user: { userId: string } }) {
-    return this.authService.logout(req.user.userId);
+  async logout(@Request() req: any) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip;
+    const userAgent = req.headers['user-agent'] as string | undefined;
+    const correlationId = req.headers['x-correlation-id'] as string | undefined;
+    const { userId, email, role } = req.user;
+    return this.authService.logout(userId, email, role, ipAddress, userAgent, correlationId);
   }
 
   @Get('me')

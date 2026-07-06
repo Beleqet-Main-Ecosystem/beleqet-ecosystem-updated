@@ -4,9 +4,16 @@ import { Queue } from 'bull';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
-import { QUEUE_NAMES, APPLICATION_JOBS, ANALYTICS_JOBS, NOTIFICATION_JOBS } from '../queues/queues.constants';
+import {
+  QUEUE_NAMES,
+  APPLICATION_JOBS,
+  ANALYTICS_JOBS,
+  NOTIFICATION_JOBS,
+} from '../queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
 import { applicationReceivedEmail, applicationStatusEmail } from '../notifications/email-templates';
+import { AuditService } from '../audit-trail/audit.service';
+import { AuditAction } from '../audit-trail/audit-action.enum';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
@@ -24,6 +31,7 @@ export class ApplicationsService {
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS)
     private readonly notificationsQueue: Queue,
     private readonly config: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   async submit(userId: string, dto: CreateApplicationDto) {
@@ -131,7 +139,9 @@ export class ApplicationsService {
           ...email,
         }),
       )
-      .catch((err) => this.logger.error('Failed to enqueue application confirmation email', err.message));
+      .catch((err) =>
+        this.logger.error('Failed to enqueue application confirmation email', err.message),
+      );
 
     this.eventEmitter.emit('application.submitted', {
       applicationId: application.id,
@@ -182,7 +192,7 @@ export class ApplicationsService {
       where: { id, job: { company: { userId: employerId } } },
       include: {
         user: { select: { email: true, firstName: true } },
-        job: { select: { title: true } },
+        job: { select: { id: true, title: true } },
       },
     });
 
@@ -197,6 +207,21 @@ export class ApplicationsService {
       where: { id },
       data: { status: status as never },
     });
+
+    this.auditService
+      .log({
+        actorId: employerId,
+        action: AuditAction.APPLICATION_STATUS_CHANGED,
+        entityType: 'Application',
+        entityId: id,
+        metadata: {
+          jobId: application.job.id,
+          applicantUserId: application.userId,
+          oldStatus: application.status,
+          newStatus: status,
+        },
+      })
+      .catch(() => {});
     await this.prisma.notification.create({
       data: {
         userId: application.userId,

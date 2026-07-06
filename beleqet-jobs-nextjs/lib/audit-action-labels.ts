@@ -1,0 +1,26 @@
+import { AuditAction } from '@/types/audit-trail';
+
+export const ACTION_LABELS: Record<AuditAction, string> = {
+  [AuditAction.AUTH_LOGIN]: 'User Login',
+  [AuditAction.AUTH_LOGOUT]: 'User Logout',
+  [AuditAction.AUTH_REGISTER]: 'User Registration',
+  [AuditAction.AUTH_EMAIL_VERIFIED]: 'Email Verified',
+  [AuditAction.AUTH_PASSWORD_RESET_REQUESTED]: 'Password Reset Requested',
+  [AuditAction.AUTH_PASSWORD_RESET_COMPLETED]: 'Password Reset Completed',
+  [AuditAction.PAYMENT_ESCROW_INITIATED]: 'Escrow Initiated',
+  [AuditAction.PAYMENT_ESCROW_FUNDED]: 'Escrow Funded',
+  [AuditAction.PAYMENT_MILESTONE_RELEASED]: 'Milestone Payment Released',
+  [AuditAction.PAYMENT_WITHDRAWAL_REQUESTED]: 'Withdrawal Requested',
+  [AuditAction.PAYMENT_WITHDRAWAL_FAILED]: 'Withdrawal Failed',
+  [AuditAction.JOB_CREATED]: 'Job Created',
+  [AuditAction.JOB_UPDATED]: 'Job Updated',
+  [AuditAction.JOB_PUBLISHED]: 'Job Published',
+  [AuditAction.JOB_DELETED]: 'Job Deleted',
+  [AuditAction.APPLICATION_STATUS_CHANGED]: 'Application Status Changed',
+  [AuditAction.CONTRACT_CREATED]: 'Contract Created',
+  [AuditAction.CONTRACT_COMPLETED]: 'Contract Completed',
+  [AuditAction.CONTRACT_CANCELLED]: 'Contract Cancelled',
+  [AuditAction.CONTRACT_DISPUTE_RAISED]: 'Contract Dispute Raised',
+  [AuditAction.BID_STATUS_CHANGED]: 'Bid Status Changed',
+  [AuditAction.ADMIN_USER_UPDATED]: 'Admin User Updated',
+};

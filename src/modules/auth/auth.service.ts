@@ -16,7 +16,13 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 
-import { passwordResetEmail, verificationEmail, loginAlertEmail, logoutAlertEmail, welcomeEmail } from '../notifications/email-templates';
+import {
+  passwordResetEmail,
+  verificationEmail,
+  loginAlertEmail,
+  logoutAlertEmail,
+  welcomeEmail,
+} from '../notifications/email-templates';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 import { AuditService } from '../audit-trail/audit.service';
@@ -33,7 +39,7 @@ export class AuthService {
     private readonly twoFactorService: TwoFactorService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
-    private readonly auditService: AuditService,
+    readonly auditService: AuditService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -87,7 +93,10 @@ export class AuthService {
     const normalizedEmail = email.toLowerCase().trim();
     const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user || !user.isActive) {
-      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      this.eventEmitter.emit('auth.login.failed', {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -99,7 +108,10 @@ export class AuthService {
 
     const valid = await bcrypt.compare(password, hashToCompare);
     if (!valid) {
-      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      this.eventEmitter.emit('auth.login.failed', {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -108,15 +120,23 @@ export class AuthService {
       const newHash = await bcrypt.hash(password, 12);
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { passwordHash: newHash }
+        data: { passwordHash: newHash },
       });
     }
 
-    this.eventEmitter.emit('auth.login.success', { email: normalizedEmail, timestamp: new Date().toISOString() });
+    this.eventEmitter.emit('auth.login.success', {
+      email: normalizedEmail,
+      timestamp: new Date().toISOString(),
+    });
     return user;
   }
 
-  async login(user: { id: string; email: string; firstName: string; lastName: string; role: string }, userAgent?: string) {
+  async login(
+    user: { id: string; email: string; firstName: string; lastName: string; role: string },
+    userAgent?: string,
+    ipAddress?: string,
+    correlationId?: string,
+  ) {
     const twoFactorRecord = await this.prisma.userTwoFactor.findUnique({
       where: { userId: user.id, enabled: true },
       select: { id: true },
@@ -130,10 +150,12 @@ export class AuthService {
             to: user.email,
             subject: 'New login detected on your Beleqet account',
             ...email,
-          })
+          }),
         )
         .catch((err) =>
-          this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`)
+          this.logger.error(
+            `Failed to enqueue login alert email for ${user.email}: ${err.message}`,
+          ),
         );
       return { requires2fa: true, tempToken, factorId };
     }
@@ -144,11 +166,25 @@ export class AuthService {
           to: user.email,
           subject: 'New login detected on your Beleqet account',
           ...email,
-        })
+        }),
       )
       .catch((err) =>
-        this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`)
+        this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`),
       );
+
+    this.auditService
+      .log({
+        actorId: user.id,
+        actorEmail: user.email,
+        actorRole: user.role,
+        action: AuditAction.AUTH_LOGIN,
+        entityType: 'User',
+        entityId: user.id,
+        ipAddress,
+        userAgent,
+        correlationId,
+      })
+      .catch(() => {});
     return this.issueTokens(user);
   }
 
@@ -167,7 +203,14 @@ export class AuthService {
     return this.issueTokens(storedToken.user);
   }
 
-  async logout(userId: string) {
+  async logout(
+    userId: string,
+    actorEmail?: string,
+    actorRole?: string,
+    ipAddress?: string,
+    userAgent?: string,
+    correlationId?: string,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { email: true, firstName: true },
@@ -188,6 +231,20 @@ export class AuthService {
           ),
         );
     }
+
+    this.auditService
+      .log({
+        actorId: userId,
+        actorEmail: actorEmail ?? user?.email,
+        actorRole,
+        action: AuditAction.AUTH_LOGOUT,
+        entityType: 'User',
+        entityId: userId,
+        ipAddress,
+        userAgent,
+        correlationId,
+      })
+      .catch(() => {});
   }
 
   async sendVerificationEmail(userId: string) {
@@ -367,7 +424,9 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
 
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.newEmail.toLowerCase().trim() } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.newEmail.toLowerCase().trim() },
+    });
     if (existing && existing.id !== userId) {
       throw new ConflictException('Email is already in use');
     }
@@ -384,14 +443,23 @@ export class AuthService {
 
     // Send verification to new email
     await this.sendVerificationEmail(userId).catch((err) =>
-      this.logger.error(`Failed to send verification email: ${err.message}`)
+      this.logger.error(`Failed to send verification email: ${err.message}`),
     );
 
     this.logger.log(`Email changed for user ${userId} to ${dto.newEmail}`);
-    return { success: true, message: 'Email changed successfully. Verification sent to new address.' };
+    return {
+      success: true,
+      message: 'Email changed successfully. Verification sent to new address.',
+    };
   }
 
-  async issueTokens(user: { id: string; email: string; firstName: string; lastName: string; role: string }) {
+  async issueTokens(user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     const accessToken = this.jwt.sign(payload, {

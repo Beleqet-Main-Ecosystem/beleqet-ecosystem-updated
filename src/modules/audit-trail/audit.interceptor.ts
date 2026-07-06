@@ -10,9 +10,11 @@ import { AUDIT_METADATA_KEY, AuditMetadata } from './audit.decorator';
  * Global interceptor that writes audit log entries for controller methods
  * annotated with `@Audit()`.
  *
- * After the handler resolves, extracts actor context, IP, User-Agent,
- * correlation ID, and entity ID from the request, then calls
- * `AuditService.log()` asynchronously (fire-and-forget).
+ * After the handler resolves (or completes without emitting, e.g. 204 No
+ * Content), extracts actor context, IP, User-Agent, correlation ID, and
+ * entity ID from the request, then calls `AuditService.log()` once
+ * (fire-and-forget). A `fired` guard prevents double-logging on routes
+ * that both emit a value and complete.
  */
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -21,6 +23,14 @@ export class AuditInterceptor implements NestInterceptor {
     private readonly auditService: AuditService,
   ) {}
 
+  /**
+   * Intercepts the request/response cycle. If the handler is annotated with
+   * `@Audit()`, schedules an audit log write after the response is sent.
+   *
+   * @param context - The current execution context.
+   * @param next    - The next call handler in the chain.
+   * @returns The unmodified response observable.
+   */
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const metadata = this.reflector.get<AuditMetadata>(AUDIT_METADATA_KEY, context.getHandler());
 
@@ -47,22 +57,25 @@ export class AuditInterceptor implements NestInterceptor {
       entityId = request.params?.id;
     }
 
-    return next.handle().pipe(
-      tap(() => {
-        this.auditService
-          .log({
-            actorId: user?.id,
-            actorEmail: user?.email,
-            actorRole: user?.role,
-            action: metadata.action,
-            entityType: metadata.entityType,
-            entityId,
-            ipAddress,
-            userAgent,
-            correlationId,
-          })
-          .catch(() => {});
-      }),
-    );
+    let fired = false;
+    const writeLog = () => {
+      if (fired) return;
+      fired = true;
+      this.auditService
+        .log({
+          actorId: user?.userId ?? user?.id,
+          actorEmail: user?.email,
+          actorRole: user?.role,
+          action: metadata.action,
+          entityType: metadata.entityType,
+          entityId,
+          ipAddress,
+          userAgent,
+          correlationId,
+        })
+        .catch(() => {});
+    };
+
+    return next.handle().pipe(tap({ next: writeLog, complete: writeLog }));
   }
 }

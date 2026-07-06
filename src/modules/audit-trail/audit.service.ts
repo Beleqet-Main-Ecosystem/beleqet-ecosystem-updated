@@ -43,7 +43,9 @@ export class AuditService {
       }
       await this.auditQueue.add('write', { ...entry, metadata });
     } catch (err) {
-      this.logger.error('Failed to enqueue audit log entry', err);
+      this.logger.error(
+        `[AuditService] Failed to enqueue audit log (action=${entry.action}). Redis may be unavailable: ${(err as Error).message}`,
+      );
     }
   }
 
@@ -72,7 +74,7 @@ export class AuditService {
    */
   async query(filters: AuditQueryDto): Promise<PaginatedResult<AuditLog>> {
     const page = filters.page ?? 1;
-    const limit = filters.limit ?? 20;
+    const limit = filters.limit ?? 15;
     const skip = (page - 1) * limit;
     const where = this.buildWhere(filters);
 

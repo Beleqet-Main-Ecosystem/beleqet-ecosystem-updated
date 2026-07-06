@@ -1,7 +1,9 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { AuthUser, clearAuth, getStoredUser } from "@/lib/auth";
+import { createContext, useContext, useEffect, useState } from 'react';
+import { AuthUser, clearAuth, getStoredUser, getToken, authenticatedFetch } from '@/lib/auth';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -22,19 +24,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   function logout() {
+    const token = getToken();
+    if (token) {
+      authenticatedFetch(`${API_URL}/auth/logout`, { method: 'POST' }).catch(() => {});
+    }
     clearAuth();
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, ready, setUser, logout }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, ready, setUser, logout }}>{children}</AuthContext.Provider>
   );
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }

@@ -54,7 +54,6 @@ export class JobsController {
   @Roles('EMPLOYER', 'ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a job listing (employer only)' })
-  @Audit(AuditAction.JOB_CREATED, 'Job')
   create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateJobDto) {
     return this.svc.create(user.userId, dto);
   }

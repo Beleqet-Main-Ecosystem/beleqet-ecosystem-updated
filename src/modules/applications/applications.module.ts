@@ -4,6 +4,7 @@ import { QUEUE_NAMES } from '../queues/queues.constants';
 import { ApplicationsService } from './applications.service';
 import { ApplicationsController } from './applications.controller';
 import { UsersModule } from '../users/users.module';
+import { AuditTrailModule } from '../audit-trail/audit-trail.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UsersModule } from '../users/users.module';
       { name: QUEUE_NAMES.NOTIFICATIONS },
     ),
     UsersModule,
+    AuditTrailModule,
   ],
   providers: [ApplicationsService],
   controllers: [ApplicationsController],

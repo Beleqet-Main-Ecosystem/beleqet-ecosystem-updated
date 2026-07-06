@@ -43,7 +43,6 @@ export class ApplicationsController {
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update application status (employer action)' })
-  @Audit(AuditAction.APPLICATION_STATUS_CHANGED, 'Application', 'params.id')
   updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateApplicationStatusDto,
