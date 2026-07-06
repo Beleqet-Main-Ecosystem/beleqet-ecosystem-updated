@@ -23,6 +23,8 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+
 
 @Module({
   imports: [
@@ -31,6 +33,7 @@ import { ContactModule } from './modules/contact/contact.module';
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
+    
 
     // ── Rate limiting ──────────────────────────────────────────────────────
     ThrottlerModule.forRoot([
@@ -97,6 +100,7 @@ import { ContactModule } from './modules/contact/contact.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
+    PaymentsModule, // <-- Added right here to register your new module cleanly!
   ],
 })
 export class AppModule {}
