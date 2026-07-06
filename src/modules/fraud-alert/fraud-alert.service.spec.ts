@@ -1,9 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getQueueToken } from '@nestjs/bull';
+import { I18nService } from 'nestjs-i18n';
 import { FraudAlertService } from './fraud-alert.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+
+const mockI18nService = {
+  t: jest.fn().mockReturnValue('Translated text'),
+};
 
 const mockTx = {
   fraudAlert: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
@@ -59,6 +64,7 @@ describe('FraudAlertService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: getQueueToken(QUEUE_NAMES.NOTIFICATIONS), useValue: mockNotificationsQueue },
+        { provide: I18nService, useValue: mockI18nService },
       ],
     }).compile();
 
@@ -148,7 +154,7 @@ describe('FraudAlertService', () => {
         company: { verified: true },
       };
       const result = service.detectFakeProfile(user);
-      expect(result.flags).toContain('EXCESSIVE_UNVERIFIED_SKILLS');
+      expect(result.flags).toContain('excessive_unverified_skills');
     });
 
     it('should flag low CandidateScore with many skill claims', () => {

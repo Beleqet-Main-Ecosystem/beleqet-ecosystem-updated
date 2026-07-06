@@ -563,6 +563,10 @@ model FraudAlert {
   resolvedAt     DateTime?
   resolutionNote String?
   metadata       Json?
+  legalBasis     String            @default("legitimate_interest")
+  expiryAt       DateTime?
+  deletedAt      DateTime?
+  anonymizedAt   DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   user           User?             @relation("AlertUser", fields: [userId], references: [id])
@@ -573,6 +577,7 @@ model FraudAlert {
   @@index([severity, status])
   @@index([userId, createdAt])
   @@index([ruleType])
+  @@index([expiryAt])
   @@map("fraud_alerts")
 }
 

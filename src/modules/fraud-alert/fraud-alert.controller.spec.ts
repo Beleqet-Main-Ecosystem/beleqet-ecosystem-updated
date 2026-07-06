@@ -1,10 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bull';
+import { I18nService } from 'nestjs-i18n';
 import { FraudAlertController } from './fraud-alert.controller';
 import { QUEUE_NAMES } from '../queues/queues.constants';
 
 const mockFraudQueue = {
   add: jest.fn().mockResolvedValue({ id: 'test-job-id' }),
+};
+
+const mockI18nService = {
+  t: jest.fn().mockReturnValue('Translated message'),
 };
 
 describe('FraudAlertController', () => {
@@ -17,6 +22,7 @@ describe('FraudAlertController', () => {
       controllers: [FraudAlertController],
       providers: [
         { provide: getQueueToken(QUEUE_NAMES.FRAUD), useValue: mockFraudQueue },
+        { provide: I18nService, useValue: mockI18nService },
       ],
     }).compile();
 

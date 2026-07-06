@@ -6,16 +6,36 @@
  * administrator review. Each detection rule is pluggable and configurable
  * via the FraudRule model.
  *
+ * Supports global scaling requirements:
+ * - i18n: notification titles/bodies resolved via I18nService (en + am)
+ * - GDPR: PII redaction in evidence, data export/delete audit logs, retention expiry
+ * - Multi-currency: amount normalization via currency-aware thresholds
+ *
  * @module FraudAlertService
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { I18nService, I18nContext } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 
 const DEFAULT_CURRENCY = 'ETB';
+const DEFAULT_RETENTION_DAYS = 90;
+
+/**
+ * Exchange-rate factors for normalising amounts to a common base currency.
+ * These approximate rates allow anomaly thresholds to be currency-agnostic.
+ */
+const CURRENCY_FACTORS: Record<string, number> = {
+  ETB: 1,
+  USD: 125,
+  EUR: 135,
+  GBP: 160,
+  KES: 0.8,
+  AED: 34,
+};
 
 /** Shape of a rule configuration object stored in FraudRule.config */
 interface FraudRuleConfig {
@@ -25,14 +45,6 @@ interface FraudRuleConfig {
   maxDuplicateDistance?: number;
 }
 
-/** Context passed to each detector for cross-entity lookups */
-interface ScanContext {
-  tx?: PrismaService;
-  user?: Record<string, unknown>;
-  messages?: Record<string, unknown>[];
-  transactions?: Record<string, unknown>[];
-}
-
 @Injectable()
 export class FraudAlertService {
   private readonly logger = new Logger(FraudAlertService.name);
@@ -40,8 +52,32 @@ export class FraudAlertService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly i18n: I18nService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
   ) {}
+
+  // ─── PII Redaction ─────────────────────────────────────────────────────
+
+  /**
+   * Redacts personally identifiable information from a string by replacing
+   * phone numbers, email addresses, IBANs, and crypto addresses with masked
+   * placeholders. Used before storing evidence to comply with GDPR.
+   *
+   * @param text - Raw text potentially containing PII
+   * @returns Redacted text with PII patterns replaced
+   */
+  redactPii(text: string): string {
+    let out = text;
+    out = out.replace(/\b09\d{8}\b/g, '09******');
+    out = out.replace(/\+\d{1,3}[\s-]?\d{6,14}/g, '+***-******');
+    out = out.replace(/[A-Z]{2}\d{2}[A-Z0-9]{10,30}/g, '***IBAN***');
+    out = out.replace(/(0x[a-fA-F0-9]{40}|bc1[a-zA-HJ-NP-Z0-9]{25,62})/g, '***CRYPTO***');
+    out = out.replace(
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
+      '***@***.***',
+    );
+    return out;
+  }
 
   // ── 1. Off-Platform Payment Detector ────────────────────────────────────
 
@@ -51,10 +87,9 @@ export class FraudAlertService {
    * payment-app references in multiple languages (en + am).
    *
    * @param messageContent - The raw text content of a chat message
-   * @param ctx - Optional context for checking related contract/job data
-   * @returns An array of matched pattern objects with score contributions
+   * @returns An array of matched pattern labels with score
    */
-  detectOffPlatformPayment(messageContent: string, ctx?: ScanContext): { matches: string[]; score: number } {
+  detectOffPlatformPayment(messageContent: string): { matches: string[]; score: number } {
     const matches: string[] = [];
     let score = 0;
 
@@ -128,7 +163,6 @@ export class FraudAlertService {
     if (skillCount > 15 && !user.skillVerified) {
       flags.push('excessive_unverified_skills');
       score += 25;
-      flags.push('EXCESSIVE_UNVERIFIED_SKILLS');
     }
 
     if (!user.company || !user.company.verified) {
@@ -158,12 +192,26 @@ export class FraudAlertService {
   // ── 3. Payment Anomaly Detector ────────────────────────────────────────
 
   /**
+   * Normalises a raw integer amount to a common base for comparison
+   * across different currencies.
+   *
+   * @param amount - Raw amount in minor units (e.g. ETB cents, USD cents)
+   * @param currency - ISO 4217 currency code
+   * @returns Normalised amount in ETB-equivalent units
+   */
+  private normalizeAmount(amount: number, currency: string): number {
+    const factor = CURRENCY_FACTORS[currency.toUpperCase()];
+    if (!factor) return amount;
+    return Math.round(amount * factor);
+  }
+
+  /**
    * Detects unusual payment patterns: high-velocity transactions in a short
-   * window, repeated exact round-number amounts, refund loops, and multiple
-   * gateway failures.
+   * window, repeated exact round-number amounts (currency-aware), refund
+   * loops, and multiple gateway failures.
    *
    * @param transactions - Array of wallet/escrow transactions to analyse
-   * @param currency - The currency code for normalization
+   * @param currency - The currency code for normalising thresholds
    * @returns Object containing anomaly flags and score
    */
   detectPaymentAnomaly(
@@ -172,6 +220,7 @@ export class FraudAlertService {
   ): { flags: string[]; score: number } {
     const flags: string[] = [];
     let score = 0;
+    const factor = CURRENCY_FACTORS[currency.toUpperCase()] ?? 1;
 
     const now = Date.now();
     const recent24h = transactions.filter(
@@ -186,7 +235,8 @@ export class FraudAlertService {
       score += 15;
     }
 
-    const roundAmounts = recent24h.filter((t) => t.amount % 1000 === 0);
+    const roundThreshold = Math.max(10, Math.round(10 * factor));
+    const roundAmounts = recent24h.filter((t) => this.normalizeAmount(t.amount, currency) % roundThreshold === 0);
     if (roundAmounts.length > 5) {
       flags.push('repeated_round_amounts');
       score += 20;
@@ -295,11 +345,31 @@ export class FraudAlertService {
   // ── 5. Alert Persistence & Notification ────────────────────────────────
 
   /**
-   * Creates a fraud alert record and writes to the event log atomically,
-   * then enqueues an in-app notification for all admin users.
+   * Resolves an i18n key to a translated string using the current lang
+   * context, falling back to English.
+   *
+   * @param key - Dot-separated i18n key
+   * @param args - Optional interpolation arguments
+   * @returns Resolved translation string
+   */
+  private t(key: string, args?: Record<string, unknown>): string {
+    try {
+      const lang = I18nContext.current()?.lang ?? 'en';
+      return this.i18n.t(key, { lang, args }) as string;
+    } catch {
+      return key;
+    }
+  }
+
+  /**
+   * Creates a fraud alert record and writes to the event log atomically
+   * inside a Prisma transaction, then enqueues i18n-aware in-app
+   * notifications for all admin users. Evidence PII is redacted before
+   * storage. A GDPR retention expiry is set automatically.
    *
    * @param alert - The alert data to persist
-   * @param evidence - Optional evidence payload (redacted)
+   * @param evidence - Optional evidence payload (will be PII-redacted)
+   * @returns Created alert ID
    */
   async createAlert(
     alert: {
@@ -315,6 +385,14 @@ export class FraudAlertService {
     },
     evidence?: Record<string, unknown>,
   ): Promise<{ id: string }> {
+    const sanitizedEvidence = evidence
+      ? this.sanitizeEvidence(evidence)
+      : undefined;
+
+    const expiryAt = new Date(
+      Date.now() + DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    );
+
     const result = await this.prisma.$transaction(async (tx) => {
       const created = await tx.fraudAlert.create({
         data: {
@@ -326,9 +404,11 @@ export class FraudAlertService {
           severity: alert.severity as never,
           score: alert.score,
           reason: alert.reason,
-          evidence: evidence as never,
+          evidence: sanitizedEvidence as never,
           currency: alert.currency ?? DEFAULT_CURRENCY,
           status: 'OPEN',
+          legalBasis: 'legitimate_interest',
+          expiryAt,
         },
       });
 
@@ -349,21 +429,31 @@ export class FraudAlertService {
       return created;
     });
 
-    const admins = await this.prisma.user.findMany({
-      where: { role: 'ADMIN', isActive: true },
-      select: { id: true },
+    const notificationTitle = this.t(`fraud.alert.title.${alert.ruleType}`, {
+      args: { score: alert.score },
     });
+    if (!notificationTitle.startsWith('fraud.')) {
+      const notificationBody =
+        this.t(`fraud.alert.body.${alert.ruleType}`) || alert.reason;
 
-    for (const admin of admins) {
-      this.notificationsQueue
-        .add(NOTIFICATION_JOBS.SEND_IN_APP, {
-          userId: admin.id,
-          type: 'fraud.alert',
-          title: `Fraud Alert: ${alert.ruleType.replace(/_/g, ' ')}`,
-          body: `${alert.reason} [Score: ${alert.score}]`,
-          metadata: { alertId: result.id, severity: alert.severity },
-        })
-        .catch((err: Error) => this.logger.error(`Failed to enqueue notification: ${err.message}`));
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'ADMIN', isActive: true },
+        select: { id: true },
+      });
+
+      for (const admin of admins) {
+        this.notificationsQueue
+          .add(NOTIFICATION_JOBS.SEND_IN_APP, {
+            userId: admin.id,
+            type: 'fraud.alert',
+            title: notificationTitle,
+            body: `${notificationBody} [Score: ${alert.score}]`,
+            metadata: { alertId: result.id, severity: alert.severity },
+          })
+          .catch((err: Error) =>
+            this.logger.error(`Failed to enqueue notification: ${err.message}`),
+          );
+      }
     }
 
     this.eventEmitter.emit('fraud.alert.created', {
@@ -376,8 +466,33 @@ export class FraudAlertService {
   }
 
   /**
+   * Recursively redacts PII from any string values inside the evidence
+   * payload before storage.
+   *
+   * @param evidence - Raw evidence payload
+   * @returns Sanitized evidence with PII redacted
+   */
+  private sanitizeEvidence(evidence: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(evidence)) {
+      if (typeof v === 'string') {
+        out[k] = this.redactPii(v);
+      } else if (Array.isArray(v)) {
+        out[k] = v.map((item) =>
+          typeof item === 'string' ? this.redactPii(item) : item,
+        );
+      } else {
+        out[k] = v;
+      }
+    }
+    out.redacted = true;
+    return out;
+  }
+
+  /**
    * Resolves a fraud alert by updating its status, attaching the admin
-   * resolver, and writing an event log entry.
+   * resolver, writing an event log entry, and notifying the affected user
+   * via an i18n-aware in-app notification.
    *
    * @param alertId - The fraud alert to resolve
    * @param status - New status (RESOLVED | FALSE_POSITIVE | CONFIRMED)
@@ -390,6 +505,11 @@ export class FraudAlertService {
     adminId: string,
     resolutionNote?: string,
   ): Promise<void> {
+    const alert = await this.prisma.fraudAlert.findUnique({
+      where: { id: alertId },
+      select: { userId: true },
+    });
+
     await this.prisma.$transaction(async (tx) => {
       await tx.fraudAlert.update({
         where: { id: alertId },
@@ -415,10 +535,98 @@ export class FraudAlertService {
       });
     });
 
+    if (alert?.userId) {
+      const i18nKey =
+        status === 'RESOLVED'
+          ? 'fraud.notification.user_resolved'
+          : status === 'FALSE_POSITIVE'
+            ? 'fraud.notification.user_false_positive'
+            : 'fraud.notification.user_confirmed';
+
+      const userNotificationBody = this.t(i18nKey);
+
+      this.notificationsQueue
+        .add(NOTIFICATION_JOBS.SEND_IN_APP, {
+          userId: alert.userId,
+          type: 'fraud.alert.resolved',
+          title: this.t('fraud.notification.prefix'),
+          body: userNotificationBody,
+          metadata: { alertId, status },
+        })
+        .catch((err: Error) =>
+          this.logger.error(`Failed to notify user of resolution: ${err.message}`),
+        );
+    }
+
     this.eventEmitter.emit('fraud.alert.resolved', { alertId, status, adminId });
   }
 
-  // ── 6. Orchestrator Scans ──────────────────────────────────────────────
+  // ── 6. GDPR Compliance ────────────────────────────────────────────────
+
+  /**
+   * Exports all fraud alert data for a given user, recording a GDPR audit
+   * log entry. Evidence is returned with PII already redacted at storage
+   * time.
+   *
+   * @param userId - The data subject's user ID
+   * @param adminId - The admin performing the export
+   * @returns Collection of fraud alerts related to the user
+   */
+  async gdprExport(userId: string, adminId: string): Promise<unknown> {
+    const alerts = await this.prisma.fraudAlert.findMany({
+      where: { OR: [{ userId }, { resolvedById: userId }] },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    await this.prisma.eventLog.create({
+      data: {
+        eventType: 'gdpr.export.fraud_alerts',
+        entityId: userId,
+        entityType: 'User',
+        payload: {
+          exportedBy: adminId,
+          alertCount: alerts.length,
+          timestamp: new Date().toISOString(),
+        } as never,
+        processedBy: FraudAlertService.name,
+      },
+    });
+
+    return { userId, alertCount: alerts.length, alerts };
+  }
+
+  /**
+   * Soft-deletes all fraud alert records for a given user (right to
+   * erasure). Sets deletedAt timestamp and writes a GDPR audit log entry.
+   *
+   * @param userId - The data subject's user ID
+   * @param adminId - The admin performing the deletion
+   * @returns Count of deleted records
+   */
+  async gdprDelete(userId: string, adminId: string): Promise<{ deleted: number }> {
+    const result = await this.prisma.fraudAlert.updateMany({
+      where: { userId },
+      data: { deletedAt: new Date() },
+    });
+
+    await this.prisma.eventLog.create({
+      data: {
+        eventType: 'gdpr.delete.fraud_alerts',
+        entityId: userId,
+        entityType: 'User',
+        payload: {
+          deletedBy: adminId,
+          deletedCount: result.count,
+          timestamp: new Date().toISOString(),
+        } as never,
+        processedBy: FraudAlertService.name,
+      },
+    });
+
+    return { deleted: result.count };
+  }
+
+  // ── 7. Orchestrator Scans ──────────────────────────────────────────────
 
   /**
    * Runs all applicable detection rules against a single user.
@@ -470,6 +678,7 @@ export class FraudAlertService {
 
   /**
    * Runs off-platform payment detection against a single chat message.
+   * Message content in evidence is PII-redacted before storage.
    *
    * @param messageId - The message to scan
    */
@@ -486,6 +695,8 @@ export class FraudAlertService {
       where: { enabled: true, ruleType: 'OFF_PLATFORM_PAYMENT' },
     });
 
+    const redactedContent = this.redactPii(message.content);
+
     for (const rule of rules) {
       const result = this.detectOffPlatformPayment(message.content);
       if (result.score > 0) {
@@ -501,7 +712,7 @@ export class FraudAlertService {
             score: result.score,
             reason: `Off-platform payment keywords detected: ${result.matches.join(', ')}`,
           },
-          { matches: result.matches, chatRoomId: message.roomId, redacted: true },
+          { matches: result.matches, chatRoomId: message.roomId, redactedContent },
         );
         alertIds.push(id);
       }
@@ -512,6 +723,7 @@ export class FraudAlertService {
 
   /**
    * Scans a batch of recent wallet transactions for payment anomalies.
+   * Uses currency-aware normalisation for cross-currency analysis.
    *
    * @param userId - The wallet owner to scan
    */
@@ -528,6 +740,8 @@ export class FraudAlertService {
       where: { enabled: true, ruleType: 'PAYMENT_ANOMALY' },
     });
 
+    const normalizedCurrency = wallet.currency || DEFAULT_CURRENCY;
+
     for (const rule of rules) {
       const result = this.detectPaymentAnomaly(
         wallet.transactions.map((t) => ({
@@ -535,7 +749,7 @@ export class FraudAlertService {
           amount: t.amount,
           createdAt: t.createdAt.toISOString(),
         })),
-        wallet.currency,
+        normalizedCurrency,
       );
 
       if (result.score > 0) {
@@ -549,10 +763,10 @@ export class FraudAlertService {
             ruleType: 'PAYMENT_ANOMALY',
             severity,
             score: result.score,
-            reason: `Payment anomalies detected: ${result.flags.join('; ')}`,
-            currency: wallet.currency,
+            reason: `Payment anomalies detected (${normalizedCurrency}): ${result.flags.join('; ')}`,
+            currency: normalizedCurrency,
           },
-          { flags: result.flags, currency: wallet.currency },
+          { flags: result.flags, currency: normalizedCurrency },
         );
         alertIds.push(id);
       }

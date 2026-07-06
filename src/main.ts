@@ -44,7 +44,7 @@ async function bootstrap() {
   // ── Security ──────────────────────────────────────────────────────────────
   app.use(helmet());
   const allowedOrigins = configService
-    .get<string>('FRONTEND_URL', 'http://localhost:3000')
+    .get<string>('FRONTEND_URL', 'http://localhost:4001')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);

@@ -63,7 +63,7 @@ export class EscrowController {
     try {
       if (req.method === 'GET') {
         await this.svc.handleWebhook(payload as never);
-        const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+        const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:4001';
         return { url: `${frontendUrl}/freelance/payment-success` };
       }
 
