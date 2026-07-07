@@ -11,6 +11,23 @@ export const QUEUE_NAMES = {
   WALLET:        'wallet',
   SEARCH_INDEX:  'search-index',
   SCHEDULED:     'scheduled',
+  REFERRALS:     'referrals',
+  JOB_ALERTS:    'job-alerts',
+} as const;
+
+// ── Referral jobs ─────────────────────────────────────────────────────────
+
+export const REFERRAL_JOBS = {
+  PROCESS_REFERRAL:  'process-referral',
+  AWARD_BONUS:       'award-referral-bonus',
+  EXPIRE_LINKS:      'expire-referral-links',
+} as const;
+
+// ── Job Alert jobs ────────────────────────────────────────────────────────
+
+export const JOB_ALERT_JOBS = {
+  DISPATCH_ALERTS:   'dispatch-job-alerts',
+  SEND_DIGEST:       'send-alert-digest',
 } as const;
 
 // ── Application workflow jobs ─────────────────────────────────────────────

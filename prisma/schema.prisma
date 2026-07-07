@@ -47,6 +47,10 @@ model User {
   cvDraft               CvDraft?
   clientFeedback        Json?
   skillVerified         Boolean             @default(false)
+  referralsGiven        Referral[]          @relation("ReferralReferrer")
+  referralsReceived     Referral[]          @relation("ReferralReferred")
+  jobAlerts             JobAlert[]
+  payments              Payment[]
 
   @@map("users")
 }
@@ -607,4 +611,125 @@ enum NotificationChannel {
   IN_APP
   TELEGRAM
   EMAIL
+}
+
+// ── Referrals ──────────────────────────────────────────────────────────────
+
+model Referral {
+  id           String         @id @default(uuid())
+  referrerId   String
+  referredId   String?
+  code         String         @unique
+  status       ReferralStatus @default(PENDING)
+  /// Bonus amount in minor units (e.g. cents / santim)
+  bonusAmount  Int            @default(0)
+  /// ISO 4217 currency code (e.g. ETB, USD, EUR) — multi-currency support
+  currency     String         @default("ETB")
+  expiresAt    DateTime
+  redeemedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  referrer     User           @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred     User?          @relation("ReferralReferred", fields: [referredId], references: [id], onDelete: SetNull)
+
+  @@index([referrerId])
+  @@index([code])
+  @@index([status, expiresAt])
+  @@map("referrals")
+}
+
+// ── Job Alerts ─────────────────────────────────────────────────────────────
+
+model JobAlert {
+  id         String   @id @default(uuid())
+  userId     String
+  keywords   String[]
+  location   String?
+  jobType    JobType?
+  /// Minimum salary in minor units — multi-currency support
+  minSalary  Int?
+  /// ISO 4217 currency code
+  currency   String   @default("ETB")
+  isActive   Boolean  @default(true)
+  lastSentAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("job_alerts")
+}
+
+enum ReferralStatus {
+  PENDING
+  REDEEMED
+  EXPIRED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Global Payment Gateway (Task Global-Payments-001 & 002)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Stores every payment transaction (Stripe or PayPal) initiated via the
+// Beleqet platform.
+//
+// GDPR notes:
+//  - No raw PII stored here (no card numbers, email, name).
+//  - userId is a UUID reference to the users table.
+//  - metadata is sanitised before insert (PII keys stripped in services).
+//
+// Multi-currency: `currency` is ISO 4217. `amount` is in smallest unit
+// (cents/fils/pence) for Stripe; stored as-is for PayPal (decimal × 100).
+model Payment {
+  id                 String          @id @default(uuid())
+  /// UUID of the Beleqet user who initiated this payment
+  userId             String
+  /// Payment provider: STRIPE or PAYPAL
+  provider           PaymentProvider
+  /// Provider-side payment / order ID (pi_… for Stripe, alphanumeric for PayPal)
+  providerPaymentId  String          @unique
+  /// Amount in smallest currency unit (e.g. cents for USD)
+  amount             Int
+  /// ISO 4217 currency code (e.g. USD, EUR, ETB)
+  currency           String          @default("USD")
+  /// Current lifecycle status
+  status             PaymentStatus   @default(PENDING)
+  /// Human-readable description (stripped of PII before storage)
+  description        String?
+  /// Sanitised key-value metadata (no PII keys)
+  metadata           Json?
+  /// Timestamp when this payment was refunded (null if not refunded)
+  refundedAt         DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Index for looking up all payments by a user (dashboard, history)
+  @@index([userId, createdAt])
+  /// Index for admin filtering by status + provider
+  @@index([status, provider])
+  /// Index for webhook event processing by providerPaymentId
+  @@index([providerPaymentId])
+  /// Index for currency-based reporting (multi-currency analytics)
+  @@index([currency, status])
+
+  @@map("payments")
+}
+
+enum PaymentProvider {
+  STRIPE
+  PAYPAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
 }
