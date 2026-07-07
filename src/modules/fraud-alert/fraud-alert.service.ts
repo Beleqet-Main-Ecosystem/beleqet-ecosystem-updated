@@ -210,6 +210,11 @@ export class FraudAlertService {
    * window, repeated exact round-number amounts (currency-aware), refund
    * loops, and multiple gateway failures.
    *
+   * The `gatewayResponse` field is only populated on EscrowTransaction rows;
+   * when WalletTransaction records are passed in (see scanTransaction) the
+   * multiple_gateway_failures rule will never fire because it has nothing to
+   * inspect. Use scanEscrowTransactions to evaluate that rule.
+   *
    * @param transactions - Array of wallet/escrow transactions to analyse
    * @param currency - The currency code for normalising thresholds
    * @returns Object containing anomaly flags and score
@@ -242,7 +247,11 @@ export class FraudAlertService {
       score += 20;
     }
 
-    const refunds = recent24h.filter((t) => t.type === 'DEBIT_FEE');
+    // Refund loops can surface as either wallet DEBIT_FEE rows or escrow
+    // rows whose status has settled to REFUNDED; honour both shapes here.
+    const refunds = recent24h.filter(
+      (t) => t.type === 'DEBIT_FEE' || t.type === 'REFUNDED',
+    );
     if (refunds.length > 3) {
       flags.push('refund_loop_suspected');
       score += 25;
@@ -764,6 +773,71 @@ export class FraudAlertService {
             severity,
             score: result.score,
             reason: `Payment anomalies detected (${normalizedCurrency}): ${result.flags.join('; ')}`,
+            currency: normalizedCurrency,
+          },
+          { flags: result.flags, currency: normalizedCurrency },
+        );
+        alertIds.push(id);
+      }
+    }
+
+    return alertIds;
+  }
+
+  /**
+   * Scans a batch of recent escrow transactions for payment anomalies,
+   * including the multiple_gateway_failures rule which depends on the
+   * gatewayResponse field that only exists on EscrowTransaction records.
+   *
+   * EscrowTransaction does not carry a WalletTransactionType, so its
+   * EscrowStatus is mapped onto the detector's `type` field. Escrow rows
+   * are scoped to the user via the related FreelanceJob's `clientId`.
+   *
+   * @param userId - The client whose escrow transactions should be scanned
+   */
+  async scanEscrowTransactions(userId: string): Promise<string[]> {
+    const alertIds: string[] = [];
+
+    const escrowTxs = await this.prisma.escrowTransaction.findMany({
+      where: { freelanceJob: { clientId: userId } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: { freelanceJob: { select: { currency: true } } },
+    });
+    if (escrowTxs.length === 0) return alertIds;
+
+    const rules = await this.prisma.fraudRule.findMany({
+      where: { enabled: true, ruleType: 'PAYMENT_ANOMALY' },
+    });
+
+    // Escrow rows may be denominated per-job; normalise against the most
+    // recent job's currency as a single representative base for the batch.
+    const normalizedCurrency =
+      escrowTxs[0]?.freelanceJob?.currency || DEFAULT_CURRENCY;
+
+    for (const rule of rules) {
+      const result = this.detectPaymentAnomaly(
+        escrowTxs.map((t) => ({
+          type: t.status,
+          amount: t.grossAmount,
+          createdAt: t.createdAt.toISOString(),
+          gatewayResponse: t.gatewayResponse,
+        })),
+        normalizedCurrency,
+      );
+
+      if (result.score > 0) {
+        const severity = result.score >= 60 ? 'HIGH' : result.score >= 35 ? 'MEDIUM' : 'LOW';
+        const { id } = await this.createAlert(
+          {
+            entityType: 'EscrowTransaction',
+            entityId: userId,
+            userId,
+            ruleId: rule.id,
+            ruleType: 'PAYMENT_ANOMALY',
+            severity,
+            score: result.score,
+            reason: `Escrow payment anomalies detected (${normalizedCurrency}): ${result.flags.join('; ')}`,
             currency: normalizedCurrency,
           },
           { flags: result.flags, currency: normalizedCurrency },
