@@ -1,1 +1,24 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# beleqend_jobs.sql 
+beleqend_jobs.sql
+users_export.json
+scripts/
+.agents/
