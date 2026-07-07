@@ -42,6 +42,9 @@ const mockPrismaService = {
   freelancerWallet: {
     findUnique: jest.fn(),
   },
+  escrowTransaction: {
+    findMany: jest.fn(),
+  },
   job: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
@@ -204,6 +207,87 @@ describe('FraudAlertService', () => {
       ];
       const result = service.detectPaymentAnomaly(transactions);
       expect(result.score).toBe(0);
+    });
+
+    it('should flag multiple gateway failures from escrow gatewayResponse', () => {
+      const now = new Date();
+      const transactions = Array(8).fill(null).map((_, i) => ({
+        type: 'PENDING',
+        amount: 10000,
+        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000).toISOString(),
+        gatewayResponse: i < 6 ? { status: 'failed', error: 'insufficient_funds' } : { status: 'success' },
+      }));
+      const result = service.detectPaymentAnomaly(transactions);
+      expect(result.flags).toContain('multiple_gateway_failures');
+      expect(result.score).toBeGreaterThan(0);
+    });
+
+    it('should treat escrow REFUNDED status as a refund loop signal', () => {
+      const now = new Date();
+      const transactions = Array(4).fill(null).map((_, i) => ({
+        type: 'REFUNDED',
+        amount: 5000,
+        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000).toISOString(),
+      }));
+      const result = service.detectPaymentAnomaly(transactions);
+      expect(result.flags).toContain('refund_loop_suspected');
+    });
+
+    it('should not flag gateway failures when gatewayResponse is absent (wallet path)', () => {
+      const now = new Date();
+      const transactions = Array(10).fill(null).map((_, i) => ({
+        type: 'CREDIT_PENDING',
+        amount: 1500,
+        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000).toISOString(),
+      }));
+      const result = service.detectPaymentAnomaly(transactions);
+      expect(result.flags).not.toContain('multiple_gateway_failures');
+    });
+  });
+
+  describe('scanEscrowTransactions', () => {
+    it('queries EscrowTransaction rows for the client and flags gateway failures', async () => {
+      const now = new Date();
+      const escrowTxs = Array(8).fill(null).map((_, i) => ({
+        id: `esc-${i}`,
+        status: 'FUNDED',
+        grossAmount: 10000,
+        currency: 'ETB',
+        gatewayResponse: i < 6 ? { status: 'failed', error: 'card_declined' } : { status: 'success' },
+        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000),
+        freelanceJob: { currency: 'ETB' },
+      }));
+      mockPrismaService.escrowTransaction.findMany.mockResolvedValue(escrowTxs);
+      mockPrismaService.fraudRule.findMany.mockResolvedValue([{ id: 'rule-esc', enabled: true }]);
+      const txMock = {
+        fraudAlert: { create: jest.fn().mockResolvedValue({ id: 'alert-esc' }) },
+        eventLog: { create: jest.fn().mockResolvedValue({ id: 'log-esc' }) },
+      };
+      const originalImpl = mockPrismaService.$transaction.getMockImplementation();
+      mockPrismaService.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock));
+      mockPrismaService.user.findMany.mockResolvedValue([]);
+
+      const alertIds = await service.scanEscrowTransactions('client-1');
+
+      mockPrismaService.$transaction.mockImplementation(originalImpl);
+
+      expect(mockPrismaService.escrowTransaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { freelanceJob: { clientId: 'client-1' } },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        }),
+      );
+      expect(alertIds).toContain('alert-esc');
+    });
+
+    it('returns no alerts when the client has no escrow transactions', async () => {
+      mockPrismaService.escrowTransaction.findMany.mockResolvedValue([]);
+
+      const alertIds = await service.scanEscrowTransactions('client-empty');
+
+      expect(alertIds).toEqual([]);
+      expect(mockPrismaService.fraudRule.findMany).not.toHaveBeenCalled();
     });
   });
 
