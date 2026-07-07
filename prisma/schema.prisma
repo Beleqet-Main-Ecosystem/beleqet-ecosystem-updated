@@ -46,6 +46,7 @@ model User {
   savedJobs             SavedJob[]
   cvDraft               CvDraft?
   clientFeedback        Json?
+  searchHistories SearchHistory[]
   skillVerified         Boolean             @default(false)
   gdprConsent           Boolean             @default(true)
 
