@@ -25,6 +25,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { CommunityForumModule } from './modules/community-forum/forum.module';
 
 @Module({
   imports: [
@@ -101,6 +102,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     ContactModule,
     DbIndexMasterModule,
     PaymentsModule,
+    CommunityForumModule,
   ],
 })
 export class AppModule {}

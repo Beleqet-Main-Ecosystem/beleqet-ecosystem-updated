@@ -98,6 +98,7 @@ async function bootstrap() {
       .addTag('freelance', 'Freelance gigs, bids & contracts')
       .addTag('escrow', 'BeleqetSafe escrow & payments')
       .addTag('wallet', 'Freelancer wallet & withdrawals')
+      .addTag('community-forum', 'Community forum — threads, replies & upvotes')
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
       .addTag('db-index-master', 'DB Index Master — query analysis & index health (admin only)')

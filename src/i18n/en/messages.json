@@ -1,1 +1,43 @@
-{}
+{
+  "forum": {
+    "validation": {
+      "title": "Thread title",
+      "titleMinLength": "Title must be at least 5 characters",
+      "titleMaxLength": "Title must not exceed 200 characters",
+      "content": "Thread content",
+      "contentMinLength": "Content must be at least 20 characters",
+      "contentMaxLength": "Content must not exceed 10,000 characters",
+      "replyMinLength": "Reply must not be empty",
+      "replyMaxLength": "Reply must not exceed 5,000 characters",
+      "parentReplyId": "Parent reply ID",
+      "isAnonymous": "Post anonymously"
+    },
+    "error": {
+      "threadNotFound": "Forum thread not found",
+      "replyNotFound": "Reply not found",
+      "parentReplyNotFound": "Parent reply not found",
+      "threadLocked": "This thread is locked and no longer accepts replies"
+    },
+    "list": {
+      "title": "Community Forum",
+      "subtitle": "Share experiences, ask questions, and help fellow freelancers",
+      "createThread": "Create Thread",
+      "searchPlaceholder": "Search discussions...",
+      "sortLatest": "Latest",
+      "sortPopular": "Popular",
+      "sortUnanswered": "Unanswered",
+      "noThreads": "No discussions found. Be the first to start one!",
+      "reply": "reply",
+      "replies": "replies",
+      "upvotes": "upvotes",
+      "by": "by",
+      "pinned": "Pinned"
+    },
+    "detail": {
+      "replyToThread": "Write your reply...",
+      "submitReply": "Post Reply",
+      "loginToReply": "Log in to reply",
+      "threadLocked": "This thread has been locked"
+    }
+  }
+}
