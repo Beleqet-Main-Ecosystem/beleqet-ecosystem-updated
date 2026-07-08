@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bull';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
@@ -24,37 +24,30 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
-import { APP_GUARD } from '@nestjs/core';
-import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
-import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
-import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
-import { KycModule } from './modules/kyc/kyc.module';
+import { CacheConfigModule } from './cache/cache.module';
+
+import configuration from './config/configuration';
+
 @Module({
   imports: [
-    //  Configuration (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
     }),
-
-    //  Rate limiting
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 10 },
       { name: 'medium', ttl: 10_000, limit: 50 },
       { name: 'long', ttl: 60_000, limit: 200 },
     ]),
-
-    //  Event bus (in-process events between modules)
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.',
       maxListeners: 20,
     }),
-
-    //  BullMQ (Redis-backed job queues)
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -65,15 +58,13 @@ import { KycModule } from './modules/kyc/kyc.module';
           tls: config.get<string>('REDIS_TLS') === 'true' ? {} : undefined,
         },
         defaultJobOptions: {
-          removeOnComplete: 100, // keep last 100 completed jobs
+          removeOnComplete: 100,
           removeOnFail: 200,
           attempts: 3,
           backoff: { type: 'exponential', delay: 2_000 },
         },
       }),
     }),
-
-    //  Internationalization (i18n)
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
@@ -86,11 +77,9 @@ import { KycModule } from './modules/kyc/kyc.module';
         new HeaderResolver(['x-custom-lang']),
       ],
     }),
-
-    //  Feature modules
+    RedisModule,
     PrismaModule,
     QueuesModule,
-    RedisModule,
     AuthModule,
     UsersModule,
     JobsModule,
@@ -106,19 +95,10 @@ import { KycModule } from './modules/kyc/kyc.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
-    AnomalySensorModule,
-    AdminStatsModule,
-    DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
     TwoFactorModule,
-    KycModule,
-  ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    CacheConfigModule,
   ],
 })
 export class AppModule {}
