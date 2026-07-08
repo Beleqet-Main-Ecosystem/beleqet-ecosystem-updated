@@ -1,24 +1,21 @@
-# Dependencies
 node_modules/
-
-# Build output
 dist/
-
-# Environment files
+build/
+.next/
+out/
 .env
 .env.local
 .env.*.local
-
-# Logs
 *.log
 npm-debug.log*
-
-# OS
+yarn-debug.log*
+yarn-error.log*
+err*.txt
+out*.txt
+coverage/
+.cache/
+.vercel
 .DS_Store
 Thumbs.db
-
-# beleqend_jobs.sql 
-beleqend_jobs.sql
-users_export.json
-scripts/
-.agents/
+*.tsbuildinfo
+issue_pr_matches.md

@@ -10,10 +10,14 @@ import { ErrorRecurrenceTrackerService } from './common/filters/error-recurrence
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 4000);

@@ -1,1 +1,13 @@
-{}
+{
+    "chat": {
+      "unauthorized": "Unauthorized connection — invalid or missing token",
+      "roomIdRequired": "Room ID is required",
+      "joinRoomFailed": "Failed to join room",
+      "messageContentRequired": "Message content is required",
+      "sendMessageFailed": "Failed to send message",
+      "fileUrlRequired": "File URL is required",
+      "shareFileFailed": "Failed to share file",
+      "callLinkRequired": "Call link is required",
+      "startVideoCallFailed": "Failed to start video call"
+    }
+  }
