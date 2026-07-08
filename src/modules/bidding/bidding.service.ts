@@ -29,8 +29,19 @@ export class BiddingService {
     const pricing = await this.pricingHelper.calculate(freelancerId, freelanceJobId);
     const rationale = await this.buildRationale(this.resolveLanguage(), pricing);
 
-    await this.prisma.bidSuggestion.create({
-      data: {
+    await this.prisma.bidSuggestion.upsert({
+      where: {
+        freelanceJobId_freelancerId: {
+          freelanceJobId,
+          freelancerId,
+        },
+      },
+      update: {
+        suggestedAmount: pricing.suggestedPrice,
+        currency: pricing.job.currency,
+        rationale,
+      },
+      create: {
         freelanceJobId,
         freelancerId,
         suggestedAmount: pricing.suggestedPrice,
