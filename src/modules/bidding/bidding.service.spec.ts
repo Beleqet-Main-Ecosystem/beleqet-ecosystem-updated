@@ -9,7 +9,7 @@ describe('BiddingService', () => {
   let service: BiddingService;
 
   const mockPrisma = {
-    bidSuggestion: { create: jest.fn() },
+    bidSuggestion: { upsert: jest.fn() },
   };
 
   const mockPricingHelper = { calculate: jest.fn() };
@@ -53,13 +53,13 @@ describe('BiddingService', () => {
       suggestedPrice: 7000,
     });
 
-    mockPrisma.bidSuggestion.create.mockResolvedValue({});
+    mockPrisma.bidSuggestion.upsert.mockResolvedValue({});
 
     const result = await service.suggestPrice('freelancer-456', 'job-456');
 
     expect(result.suggestedPrice).toBe(7000);
     expect(result.currency).toBe('ETB');
     expect(result.rationale).toContain('No pricing history');
-    expect(mockPrisma.bidSuggestion.create).toHaveBeenCalled();
+    expect(mockPrisma.bidSuggestion.upsert).toHaveBeenCalled();
   });
 });
