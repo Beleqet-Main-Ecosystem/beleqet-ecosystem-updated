@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
-import { ScheduleInterviewDto } from './dto/schedule-interview.dto';
+import { CreateInterviewDto } from './dto/create-interview.dto';
 import { I18nService } from 'nestjs-i18n';
 import { NotificationsService } from '@modules/notifications/notifications.service';
 import { AvailabilityHelper } from './helpers/availability.helper';
@@ -9,6 +9,7 @@ import { CommonAvailabilityHelper } from './helpers/common-availability.helper';
 import { ApplicationHelper } from './helpers/application.helper';
 import { DateHelper } from './helpers/date.helper';
 import { ApplicationStatus, Prisma } from '@prisma/client';
+
 @Injectable()
 export class InterviewPlannerService {
   private readonly logger = new Logger(InterviewPlannerService.name);
@@ -25,20 +26,21 @@ export class InterviewPlannerService {
   /**
    * Creates an availability slot for a user.
    *
-   * Prevents invalid ranges where endTime <= startTime.
+   * Prevents invalid time ranges and overlapping
+   * availability slots for the same user.
    *
-   * @param userId User creating availability
-   * @param dto Availability data
-   * @returns Created availability record
+   * @param userId User identifier
+   * @param dto Availability details
+   * @returns Newly created availability slot
+   * @throws BadRequestException If the time range is invalid
+   * @throws ConflictException If the availability overlaps an existing slot
    */
 
   async createAvailability(userId: string, dto: CreateAvailabilityDto) {
     const startTime = new Date(dto.startTime);
     const endTime = new Date(dto.endTime);
 
-    if (endTime <= startTime) {
-      throw new BadRequestException('End time must be after start time');
-    }
+    await this.dateHelper.validateRange(startTime, endTime);
     const overlappingSlot = await this.prisma.userAvailability.findFirst({
       where: {
         userId,
@@ -66,10 +68,10 @@ export class InterviewPlannerService {
   /**
    * Retrieves all availability slots for a user.
    *
-   * Slots are ordered chronologically by their start time.
+   * Slots are returned in chronological order.
    *
    * @param userId User identifier
-   * @returns List of availability records
+   * @returns User availability slots
    */
   async getUserAvailabilities(userId: string) {
     return this.prisma.userAvailability.findMany({
@@ -81,22 +83,27 @@ export class InterviewPlannerService {
       },
     });
   }
+
   /**
-   * Schedules an interview between an employer and a candidate.
+   * Creates an interview for an application.
    *
-   * Validations:
-   * - Application exists
-   * - Employer owns the job
-   * - Application has no interview yet
-   * - Candidate is available
-   * - Employer is available
-   * - No overlapping interviews
+   * Validates:
+   * - Interview duration
+   * - Employer ownership
+   * - Candidate availability
+   * - Employer availability
+   * - Existing interview conflicts
    *
-   * @param employerId Employer user id
-   * @param dto Interview scheduling payload
+   * Updates the application status and sends
+   * interview notifications after a successful transaction.
+   *
+   * @param employerId Employer user identifier
+   * @param dto Interview scheduling details
    * @returns Newly created interview
+   * @throws BadRequestException If the interview duration is invalid
+   * @throws ConflictException If scheduling rules are violated
    */
-  async scheduleInterview(employerId: string, dto: ScheduleInterviewDto) {
+  async createInterview(employerId: string, dto: CreateInterviewDto) {
     const startTime = new Date(dto.startTime);
     const endTime = new Date(dto.endTime);
     const requestedDurationMinutes = Math.ceil((endTime.getTime() - startTime.getTime()) / 60000);
@@ -165,33 +172,42 @@ export class InterviewPlannerService {
       employerId,
       candidateId,
       application.job.title,
+      interview.startTime,
+      interview.endTime,
+      interview.timezone,
     );
     this.logger.log(`Interview ${interview.id} scheduled by employer ${employerId}`);
     return interview;
   }
   /**
-   * Finds time slots where both employer and candidate are available.
+   * Finds overlapping availability slots shared
+   * by both the employer and candidate.
+   *
+   * @param employerId Employer user identifier
+   * @param candidateId Candidate user identifier
+   * @returns List of common availability slots
    */
   async findCommonAvailability(employerId: string, candidateId: string) {
     return this.commonAvailabilityHelper.findCommonAvailability(employerId, candidateId);
   }
   /**
-   * Automatically schedules an interview
-   * using the earliest common availability
-   * between employer and candidate.
+   * Automatically schedules an interview using
+   * the earliest available common time slot.
    *
-   * Flow:
-   * - Validate application
-   * - Find common availability
-   * - Select earliest slot
-   * - Schedule interview
-   * - Send notifications
+   * Workflow:
+   * - Validates the application
+   * - Finds common availability
+   * - Selects the earliest conflict-free slot
+   * - Creates the interview
+   * - Sends notifications
    *
-   * @param employerId Employer user id
-   * @param applicationId Application id
-   * @returns Created interview
+   * @param employerId Employer user identifier
+   * @param applicationId Application identifier
+   * @returns Newly created interview
+   * @throws ConflictException If no suitable interview slot exists
    */
   async autoScheduleInterview(employerId: string, applicationId: string) {
+    // validate the interview application and get the candidate id
     const application = await this.applicationHelper.validateInterviewApplication(
       employerId,
       applicationId,
@@ -208,22 +224,26 @@ export class InterviewPlannerService {
       );
     }
 
-    /**
-     * Earliest available slot
-     */
-    const selectedSlot = commonSlots.reduce((earliest, current) =>
-      current.startTime < earliest.startTime ? current : earliest,
+    // Find the earliest conflict-free common availability.
+    const selectedSlot = await this.availabilityHelper.findEarliestAvailableSlot(
+      commonSlots,
+      employerId,
+      candidateId,
+      interviewDurationMinutes,
     );
 
-    const startTime = selectedSlot.startTime;
+    if (!selectedSlot) {
+      throw new ConflictException(await this.i18n.translate('interview.interview.noAvailableSlot'));
+    }
 
-    const endTime = new Date(startTime.getTime() + interviewDurationMinutes * 60 * 1000);
-
-    return this.scheduleInterview(employerId, {
+    return this.createInterview(employerId, {
       applicationId,
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      timezone: 'UTC',
+
+      startTime: selectedSlot.startTime.toISOString(),
+
+      endTime: selectedSlot.endTime.toISOString(),
+
+      timezone: selectedSlot.timezone,
     });
   }
 }

@@ -1,24 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-export interface AvailabilityOverlap {
-  startTime: Date;
-  endTime: Date;
-}
-
+import { AvailabilityOverlap } from '../types/availability.types';
+/**
+ * Helper responsible for calculating shared availability
+ * between two users.
+ *
+ * Uses a two-pointer algorithm to efficiently find all
+ * overlapping availability windows between an employer
+ * and a candidate in chronological order.
+ */
 @Injectable()
 export class CommonAvailabilityHelper {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Finds all overlapping availability windows
-   * between an employer and a candidate.
+   * Finds all common availability windows between an employer
+   * and a candidate.
    *
-   * The returned list is ordered chronologically.
+   * Both users' availability slots are sorted by start time and
+   * compared using a two-pointer intersection algorithm to avoid
+   * the O(n²) complexity of nested loops.
    *
-   * @param employerId Employer user id
-   * @param candidateId Candidate user id
-   * @returns List of common availability windows
+   * Each returned overlap represents a time window during which
+   * both users are simultaneously available.
+   *
+   * @param employerId Employer user identifier
+   * @param candidateId Candidate user identifier
+   * @returns List of overlapping availability windows ordered by start time
    */
   async findCommonAvailability(
     employerId: string,
@@ -43,8 +52,8 @@ export class CommonAvailabilityHelper {
         },
       }),
     ]);
-    //  Two-pointer comparison intersection algorithm to find overlapping slots
-    // to avoid O(n^2) complexity of nested loops.
+    // Uses a two-pointer intersection algorithm to efficiently
+    // find overlapping availability windows in O(n + m) time.
     let employerIndex = 0;
     let candidateIndex = 0;
 
@@ -66,6 +75,7 @@ export class CommonAvailabilityHelper {
         overlaps.push({
           startTime: overlapStart,
           endTime: overlapEnd,
+          timezone: employerSlot.timezone,
         });
       }
 

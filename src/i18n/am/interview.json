@@ -1,24 +1,26 @@
 {
   "availability": {
-    "invalidRange": "የመጨረሻ ሰዓት ከመጀመሪያ ሰዓት በኋላ መሆን አለበት",
-    "overlap": "የተመዘገበ የጊዜ ክልል ጋር ይጋጫል",
-    "employerUnavailable": "ቀጣሪው በዚህ የጊዜ ክልል አይገኝም።",
-    "candidateUnavailable": "እጩው በዚህ የጊዜ ክልል አይገኝም።"
+    "invalidRange": "የመጨረሻ ሰዓት ከመጀመሪያ ሰዓት በኋላ መሆን አለበት።",
+    "overlap": "ይህ የተገኝነት ሰዓት ቀደም ሲል ካስመዘገቡት የተገኝነት ሰዓት ጋር ይጋጫል። እባክዎ ነባሩን ያስተካክሉ ወይም ያስወግዱት።",
+    "employerUnavailable": "በተመረጠው ጊዜ አይገኙም።",
+    "candidateUnavailable": "እጩው በተመረጠው ጊዜ አይገኝም።",
+    "shortDuration": "ያለው የተገኝነት ጊዜ ለቃለ መጠይቁ የሚያስፈልገውን ጊዜ አያሟላም።"
   },
 
   "interview": {
-    "applicationNotFound": "ማመልከቻው አልተገኘም",
-    "alreadyScheduled": "ቃለ መጠይቁ አስቀድሞ ተይዟል",
-    "candidateBusy": "እጩው በዚህ ጊዜ ሌላ ቃለ መጠይቅ አለው",
-    "employerBusy": "ቀጣሪው በዚህ ጊዜ ሌላ ቃለ መጠይቅ አለው",
-    "candidateUnavailable": "እጩው በዚህ ጊዜ አይገኝም",
-    "employerUnavailable": "ቀጣሪው በዚህ ጊዜ አይገኝም",
-    "forbidden": "ይህን ቃለ መጠይቅ ለማስያዝ ፍቃድ የለዎትም"
+    "applicationNotFound": "የተመረጠው የሥራ ማመልከቻ አልተገኘም።",
+    "alreadyScheduled": "ለዚህ ማመልከቻ ቃለ መጠይቅ አስቀድሞ ተይዟል።",
+    "candidateBusy": "እጩው በተመረጠው ጊዜ ሌላ ቃለ መጠይቅ ተይዞለታል።",
+    "employerBusy": "በተመረጠው ጊዜ ሌላ ቃለ መጠይቅ ተይዞልዎታል።",
+    "candidateUnavailable": "እጩው በተመረጠው ጊዜ አይገኝም።",
+    "employerUnavailable": "በተመረጠው ጊዜ አይገኙም።",
+    "forbidden": "ይህን ቃለ መጠይቅ ለማስያዝ ፍቃድ የለዎትም።",
+    "noAvailableSlot": "በሁለቱም ወገኖች የተገኝነት ሰዓት መሰረት ተስማሚ የቃለ መጠይቅ ጊዜ አልተገኘም።"
   },
 
   "notification": {
     "scheduledTitle": "ቃለ መጠይቅ ተይዟል",
-    "scheduledBody": "\"{{jobTitle}}\" ስራ የቃለ መጠይቅ ጊዜ ተይዟል።",
-    "employerScheduledBody": "ቃለ መጠይቁ በተሳካ ሁኔታ ተይዟል።"
+    "candidateScheduledBody": "ለ{{jobTitle}} ሥራ የቃለ መጠይቅዎ ተይዟል።\n\nቀን፦ {{startTime}}\nየሚያበቃበት ሰዓት፦ {{endTime}}\nየሰዓት ክልል፦ {{timezone}}\n\nእባክዎ በተያዘው ጊዜ ዝግጁ ይሁኑ።",
+    "employerScheduledBody": "ለ{{jobTitle}} ሥራ ከእጩው ጋር የሚደረገው ቃለ መጠይቅ በተሳካ ሁኔታ ተይዟል።\n\nቀን፦ {{startTime}}\nየሚያበቃበት ሰዓት፦ {{endTime}}\nየሰዓት ክልል፦ {{timezone}}\n\nለእጩውም ማሳወቂያ ተልኳል።"
   }
 }

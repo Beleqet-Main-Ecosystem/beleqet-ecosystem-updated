@@ -1,24 +1,26 @@
 {
   "availability": {
-    "invalidRange": "End time must be after start time",
-    "overlap": "Availability overlaps an existing slot",
-    "employerUnavailable": "Employer is not available during this time slot.",
-    "candidateUnavailable": "Candidate is not available during this time slot."
+    "invalidRange": "The end time must be later than the start time.",
+    "overlap": "This availability overlaps with one of your existing availability slots. Please edit or remove the existing slot before adding a new one.",
+    "employerUnavailable": "You are not available during the selected time.",
+    "candidateUnavailable": "The candidate is not available during the selected time.",
+    "shortDuration": "The available time is too short for the interview duration."
   },
 
   "interview": {
-    "applicationNotFound": "Application not found",
-    "alreadyScheduled": "Interview already scheduled",
-    "candidateBusy": "Candidate already has another interview during this time",
-    "employerBusy": "Employer already has another interview during this time",
-    "candidateUnavailable": "Candidate is not available during this time slot",
-    "employerUnavailable": "Employer is not available during this time slot",
-    "forbidden": "You are not allowed to schedule this interview"
+    "applicationNotFound": "The selected job application could not be found.",
+    "alreadyScheduled": "An interview has already been scheduled for this application.",
+    "candidateBusy": "The candidate already has another interview scheduled during the selected time.",
+    "employerBusy": "You already have another interview scheduled during the selected time.",
+    "candidateUnavailable": "The candidate is not available during the selected time.",
+    "employerUnavailable": "You are not available during the selected time.",
+    "forbidden": "You do not have permission to schedule this interview.",
+    "noAvailableSlot": "No suitable interview time could be found based on both participants' availability."
   },
 
   "notification": {
     "scheduledTitle": "Interview Scheduled",
-    "scheduledBody": "Your interview for \"{{jobTitle}}\" has been scheduled.",
-    "employerScheduledBody": "Interview successfully scheduled."
+    "candidateScheduledBody": "Your interview for {{jobTitle}} has been scheduled.\n\nDate: {{startTime}}\nEnds: {{endTime}}\nTimezone: {{timezone}}\n\nPlease be available at the scheduled time.",
+    "employerScheduledBody": "Your interview with the candidate for {{jobTitle}} has been successfully scheduled.\n\nDate: {{startTime}}\nEnds: {{endTime}}\nTimezone: {{timezone}}\n\nThe candidate has been notified."
   }
 }

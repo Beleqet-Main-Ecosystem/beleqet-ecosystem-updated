@@ -6,7 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { I18nService } from 'nestjs-i18n';
-
+/**
+ * Helper responsible for validating job applications
+ * before an interview can be scheduled.
+ *
+ * Ensures the application exists, belongs to the
+ * authenticated employer, and has not already been
+ * scheduled for an interview.
+ */
 @Injectable()
 export class ApplicationHelper {
   constructor(
@@ -15,17 +22,21 @@ export class ApplicationHelper {
   ) {}
 
   /**
-   * Validates that an application can be scheduled
-   * for an interview by the given employer.
+   * Validates that an interview can be scheduled for
+   * the specified job application.
    *
-   * Validation rules:
-   * - Application exists
-   * - Employer owns the job
-   * - Interview has not already been scheduled
+   * Validation includes:
+   * - The application exists.
+   * - The authenticated employer owns the job.
+   * - The application does not already have an interview.
    *
-   * @param employerId Employer user id
-   * @param applicationId Application id
-   * @returns Application with related entities
+   * @param employerId Authenticated employer user identifier
+   * @param applicationId Job application identifier
+   * @returns The validated application with its related
+   * user, interview, job, and company data
+   * @throws NotFoundException If the application does not exist
+   * @throws ForbiddenException If the employer does not own the job
+   * @throws ConflictException If an interview has already been scheduled
    */
   async validateInterviewApplication(employerId: string, applicationId: string) {
     const application = await this.prisma.application.findUnique({
@@ -58,7 +69,6 @@ export class ApplicationHelper {
         await this.i18n.translate('interview.interview.alreadyScheduled'),
       );
     }
-
     return application;
   }
 }

@@ -22,21 +22,31 @@ export class NotificationsService {
   ) {}
 
   /**
-   * Sends interview scheduled notifications.
+   * Sends interview scheduled notifications to both the employer
+   * and the candidate.
    *
-   * Creates in-app notifications immediately and
-   * queues email and Telegram notifications.
+   * This method:
+   * - Creates in-app notifications.
+   * - Queues email notifications when an email address exists.
+   * - Queues Telegram notifications when a Telegram account is linked.
    *
-   * @param interviewId Interview identifier
-   * @param employerId Employer user id
-   * @param candidateId Candidate user id
-   * @param jobTitle Job title
+   * @param interviewId Unique interview identifier.
+   * @param employerId Employer user identifier.
+   * @param candidateId Candidate user identifier.
+   * @param jobTitle Title of the job associated with the interview.
+   * @param startTime Interview start date and time.
+   * @param endTime Interview end date and time.
+   * @param timezone Time zone used when formatting the interview time.
+   * @returns A promise that resolves after all notification jobs have been queued.
    */
   async sendInterviewScheduled(
     interviewId: string,
     employerId: string,
     candidateId: string,
     jobTitle: string,
+    startTime: Date,
+    endTime: Date,
+    timezone: string,
   ): Promise<void> {
     const [candidate, employer] = await Promise.all([
       this.prisma.user.findUnique({
@@ -57,21 +67,48 @@ export class NotificationsService {
     ]);
 
     const title = await this.i18n.translate('interview.notification.scheduledTitle');
+    const notificationType = NOTIFICATION_TYPES.INTERVIEW_SCHEDULED;
+    const formattedStart = startTime.toLocaleString('en-US', {
+      timeZone: timezone,
+    });
 
-    const candidateBody = await this.i18n.translate('interview.notification.scheduledBody', {
+    const formattedEnd = endTime.toLocaleString('en-US', {
+      timeZone: timezone,
+    });
+    const candidateBody = await this.i18n.translate(
+      'interview.notification.candidateScheduledBody',
+      {
+        args: {
+          jobTitle,
+          startTime: formattedStart,
+          endTime: formattedEnd,
+          timezone,
+        },
+      },
+    );
+
+    const employerBody = await this.i18n.translate('interview.notification.employerScheduledBody', {
       args: {
         jobTitle,
+        startTime: formattedStart,
+        endTime: formattedEnd,
+        timezone,
       },
     });
-    const notificationType = NOTIFICATION_TYPES.INTERVIEW_SCHEDULED;
-    const employerBody = await this.i18n.translate('interview.notification.employerScheduledBody');
+    const metadata = {
+      interviewId,
+      jobTitle,
+      startTime: formattedStart,
+      endTime: formattedEnd,
+      timezone,
+    };
     await Promise.all([
       this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
         userId: candidateId,
         type: notificationType,
         title: title,
         body: candidateBody,
-        metadata: { interviewId },
+        metadata,
       }),
 
       this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
@@ -79,7 +116,7 @@ export class NotificationsService {
         type: notificationType,
         title: title,
         body: employerBody,
-        metadata: { interviewId },
+        metadata,
       }),
 
       candidate?.email

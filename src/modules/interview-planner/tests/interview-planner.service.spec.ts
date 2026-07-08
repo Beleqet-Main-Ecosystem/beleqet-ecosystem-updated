@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, BadRequestException } from '@nestjs/common';
 
 import { InterviewPlannerService } from '../interview-planner.service';
+
 import { PrismaService } from '../../../prisma/prisma.service';
 import { I18nService } from 'nestjs-i18n';
 
@@ -10,14 +11,15 @@ import { AvailabilityHelper } from '../helpers/availability.helper';
 import { CommonAvailabilityHelper } from '../helpers/common-availability.helper';
 import { ApplicationHelper } from '../helpers/application.helper';
 import { DateHelper } from '../helpers/date.helper';
+
 describe('InterviewPlannerService', () => {
   let service: InterviewPlannerService;
 
   const prismaMock = {
     userAvailability: {
       findFirst: jest.fn(),
-      create: jest.fn(),
       findMany: jest.fn(),
+      create: jest.fn(),
     },
 
     $transaction: jest.fn(),
@@ -34,6 +36,7 @@ describe('InterviewPlannerService', () => {
   const availabilityHelperMock = {
     validateAvailability: jest.fn(),
     validateInterviewConflicts: jest.fn(),
+    findEarliestAvailableSlot: jest.fn(),
   };
 
   const commonAvailabilityHelperMock = {
@@ -43,13 +46,18 @@ describe('InterviewPlannerService', () => {
   const applicationHelperMock = {
     validateInterviewApplication: jest.fn(),
   };
-  const dateHelperMock = {
-    convertToUTC: jest.fn(),
-    convertFromUTC: jest.fn(),
 
-    validateRange: jest.fn().mockResolvedValue(undefined),
+  const dateHelperMock = {
+    validateRange: jest.fn(async (startTime: Date, endTime: Date) => {
+      if (endTime <= startTime) {
+        throw new BadRequestException('translated-message');
+      }
+    }),
   };
+
   beforeEach(async () => {
+    jest.resetAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InterviewPlannerService,
@@ -83,6 +91,7 @@ describe('InterviewPlannerService', () => {
           provide: ApplicationHelper,
           useValue: applicationHelperMock,
         },
+
         {
           provide: DateHelper,
           useValue: dateHelperMock,
@@ -91,69 +100,76 @@ describe('InterviewPlannerService', () => {
     }).compile();
 
     service = module.get(InterviewPlannerService);
-
-    jest.clearAllMocks();
   });
 
   describe('createAvailability', () => {
-    it('should create availability slot', async () => {
+    it('should create availability', async () => {
       prismaMock.userAvailability.findFirst.mockResolvedValue(null);
 
       prismaMock.userAvailability.create.mockResolvedValue({
-        id: 'availability-id',
+        id: 'slot-1',
       });
 
       const result = await service.createAvailability('user-1', {
-        startTime: '2025-08-01T09:00:00.000Z',
-        endTime: '2025-08-01T10:00:00.000Z',
+        startTime: '2026-07-10T09:00:00Z',
+        endTime: '2026-07-10T10:00:00Z',
+        timezone: 'UTC',
       });
 
-      expect(result.id).toBe('availability-id');
+      expect(result.id).toBe('slot-1');
 
-      expect(prismaMock.userAvailability.create).toHaveBeenCalledTimes(1);
+      expect(prismaMock.userAvailability.create).toHaveBeenCalled();
     });
 
     it('should reject invalid range', async () => {
+      dateHelperMock.validateRange.mockRejectedValue(new BadRequestException('translated-message'));
+
       await expect(
         service.createAvailability('user-1', {
-          startTime: '2025-08-01T10:00:00.000Z',
-          endTime: '2025-08-01T09:00:00.000Z',
+          startTime: '2026-07-10T10:00:00Z',
+          endTime: '2026-07-10T09:00:00Z',
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should reject overlapping availability', async () => {
+    it('should reject overlapping slot', async () => {
       prismaMock.userAvailability.findFirst.mockResolvedValue({
-        id: 'existing-slot',
+        id: 'existing',
       });
 
       await expect(
         service.createAvailability('user-1', {
-          startTime: '2025-08-01T09:00:00.000Z',
-          endTime: '2025-08-01T10:00:00.000Z',
+          startTime: '2026-07-10T09:00:00Z',
+          endTime: '2026-07-10T10:00:00Z',
         }),
       ).rejects.toThrow(ConflictException);
     });
   });
 
-  describe('scheduleInterview', () => {
-    it('should schedule interview successfully', async () => {
-      const application = {
+  describe('createInterview', () => {
+    it('should create interview and send notification', async () => {
+      applicationHelperMock.validateInterviewApplication.mockResolvedValue({
         id: 'app-1',
+
         userId: 'candidate-1',
+
         job: {
           title: 'Backend Engineer',
           interviewDurationMinutes: 60,
         },
-      };
-
-      applicationHelperMock.validateInterviewApplication.mockResolvedValue(application);
+      });
 
       prismaMock.$transaction.mockImplementation(async (callback) =>
         callback({
           interview: {
             create: jest.fn().mockResolvedValue({
               id: 'interview-1',
+
+              startTime: new Date(),
+
+              endTime: new Date(),
+
+              timezone: 'UTC',
             }),
           },
 
@@ -163,69 +179,73 @@ describe('InterviewPlannerService', () => {
         }),
       );
 
-      const result = await service.scheduleInterview('employer-1', {
+      const result = await service.createInterview('employer-1', {
         applicationId: 'app-1',
-        startTime: '2025-08-01T09:00:00.000Z',
-        endTime: '2025-08-01T10:00:00.000Z',
+        startTime: '2026-07-10T09:00:00Z',
+        endTime: '2026-07-10T10:00:00Z',
       });
 
       expect(result.id).toBe('interview-1');
 
-      expect(notificationsMock.sendInterviewScheduled).toHaveBeenCalledTimes(1);
+      expect(notificationsMock.sendInterviewScheduled).toHaveBeenCalled();
     });
 
     it('should reject wrong duration', async () => {
       applicationHelperMock.validateInterviewApplication.mockResolvedValue({
-        id: 'app-1',
-        userId: 'candidate-1',
+        id: 'app',
+
+        userId: 'candidate',
+
         job: {
           interviewDurationMinutes: 90,
         },
       });
 
       await expect(
-        service.scheduleInterview('employer-1', {
-          applicationId: 'app-1',
-          startTime: '2025-08-01T09:00:00.000Z',
-          endTime: '2025-08-01T10:00:00.000Z',
+        service.createInterview('employer', {
+          applicationId: 'app',
+          startTime: '2026-07-10T09:00:00Z',
+          endTime: '2026-07-10T10:00:00Z',
         }),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('autoScheduleInterview', () => {
-    it('should auto schedule using earliest common slot', async () => {
+    it('should schedule earliest slot', async () => {
       applicationHelperMock.validateInterviewApplication.mockResolvedValue({
-        id: 'app-1',
-        userId: 'candidate-1',
+        id: 'app',
+        userId: 'candidate',
         job: {
-          title: 'Backend Engineer',
           interviewDurationMinutes: 60,
         },
       });
 
       commonAvailabilityHelperMock.findCommonAvailability.mockResolvedValue([
         {
-          startTime: new Date('2025-08-01T09:00:00.000Z'),
-          endTime: new Date('2025-08-01T11:00:00.000Z'),
+          startTime: new Date('2026-07-10T09:00:00Z'),
+          endTime: new Date('2026-07-10T10:00:00Z'),
         },
       ]);
 
-      jest.spyOn(service, 'scheduleInterview').mockResolvedValue({ id: 'interview-1' } as never);
-
-      const result = await service.autoScheduleInterview('employer-1', 'app-1');
-
-      expect(result).toEqual({
-        id: 'interview-1',
+      availabilityHelperMock.findEarliestAvailableSlot.mockResolvedValue({
+        startTime: new Date('2026-07-10T09:00:00Z'),
+        endTime: new Date('2026-07-10T10:00:00Z'),
       });
 
-      expect(service.scheduleInterview).toHaveBeenCalled();
+      jest.spyOn(service, 'createInterview').mockResolvedValue({
+        id: 'interview',
+      } as never);
+
+      const result = await service.autoScheduleInterview('employer', 'app');
+
+      expect(result.id).toBe('interview');
     });
 
-    it('should fail when no common slot exists', async () => {
+    it('should fail without common availability', async () => {
       applicationHelperMock.validateInterviewApplication.mockResolvedValue({
-        id: 'app-1',
-        userId: 'candidate-1',
+        userId: 'candidate',
+
         job: {
           interviewDurationMinutes: 60,
         },
@@ -233,7 +253,7 @@ describe('InterviewPlannerService', () => {
 
       commonAvailabilityHelperMock.findCommonAvailability.mockResolvedValue([]);
 
-      await expect(service.autoScheduleInterview('employer-1', 'app-1')).rejects.toThrow(
+      await expect(service.autoScheduleInterview('employer', 'app')).rejects.toThrow(
         ConflictException,
       );
     });

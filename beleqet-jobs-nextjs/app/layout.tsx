@@ -1,9 +1,14 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { AuthProvider } from "@/components/AuthProvider";
-import ChatWidget from "@/components/ChatWidget";
+import type { Metadata } from 'next';
+import './globals.css';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { AuthProvider } from '@/components/AuthProvider';
+import ChatWidget from '@/components/ChatWidget';
+
+import { cn } from '@/lib/utils';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 // Using Inter via next/font/google requires network access to Google Fonts at
 // build time. If your deployment environment can reach fonts.googleapis.com,
@@ -13,18 +18,14 @@ import ChatWidget from "@/components/ChatWidget";
 // and add inter.variable to the <html> className below.
 
 export const metadata: Metadata = {
-  title: "Beleqet Jobs | Find Your Next Opportunity Faster",
+  title: 'Beleqet Jobs | Find Your Next Opportunity Faster',
   description:
-    "Search verified jobs from trusted employers across Ethiopia. Discover thousands of job opportunities, get instant alerts on Telegram, and apply faster with Beleqet Vacancy Platform.",
+    'Search verified jobs from trusted employers across Ethiopia. Discover thousands of job opportunities, get instant alerts on Telegram, and apply faster with Beleqet Vacancy Platform.',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn('font-sans', 'font-sans', inter.variable)}>
       <body className="font-sans antialiased">
         <AuthProvider>
           <Header />
