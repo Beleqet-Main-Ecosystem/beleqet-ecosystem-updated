@@ -51,6 +51,7 @@ model User {
   referralsReceived     Referral[]          @relation("ReferralReferred")
   jobAlerts             JobAlert[]
   payments              Payment[]
+  twoFactor             UserTwoFactor?
 
   @@map("users")
 }
@@ -526,6 +527,35 @@ model Message {
 
   @@index([roomId, createdAt])
   @@map("messages")
+}
+
+model UserTwoFactor {
+  id                   String       @id @default(uuid())
+  userId               String       @unique
+  secret               String
+  encryptionKeyVersion String       @default("v1")
+  enabled              Boolean      @default(false)
+  enrollmentToken      String?
+  enrollmentExpiresAt  DateTime?
+  lastVerifiedAt       DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  backupCodes          BackupCode[]
+
+  @@map("user_two_factor")
+}
+
+model BackupCode {
+  id         String        @id @default(uuid())
+  twoFactorId String
+  codeHash   String
+  usedAt     DateTime?
+  createdAt  DateTime      @default(now())
+  twoFactor  UserTwoFactor @relation(fields: [twoFactorId], references: [id], onDelete: Cascade)
+
+  @@index([twoFactorId])
+  @@map("backup_codes")
 }
 
 enum UserRole {

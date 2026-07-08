@@ -9,6 +9,7 @@ import * as path from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { ApplicationsModule } from './modules/applications/applications.module';
 import { ScreeningModule } from './modules/screening/screening.module';
@@ -25,6 +26,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 
 @Module({
   imports: [
@@ -82,6 +84,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     }),
 
     // ── Feature modules ────────────────────────────────────────────────────
+    RedisModule,
     PrismaModule,
     QueuesModule,
     AuthModule,
@@ -101,6 +104,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
     ContactModule,
     DbIndexMasterModule,
     PaymentsModule,
+    TwoFactorModule,
   ],
 })
 export class AppModule {}

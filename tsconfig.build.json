@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "beleqet-jobs-nextjs", "prisma"]
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "frontend", "beleqet-jobs-nextjs", "prisma"]
 }

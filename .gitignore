@@ -13,9 +13,15 @@ yarn-error.log*
 err*.txt
 out*.txt
 coverage/
+test-results/
 .cache/
 .vercel
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+beleqend_jobs.sql
+users_export.json
+scripts/
+.agents/
+frontend/dist-test/
 issue_pr_matches.md

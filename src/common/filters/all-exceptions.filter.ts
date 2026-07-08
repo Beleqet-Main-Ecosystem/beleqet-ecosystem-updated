@@ -102,6 +102,9 @@ export interface ErrorResponse {
   path: string;
   /** Correlates this response with the server log entry */
   traceId: string;
+  /** Passed through when the original exception carries these fields */
+  requiresStepUp?: boolean;
+  stepUpToken?: string;
 }
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -165,6 +168,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: safePath,
       traceId,
+      // Pass through step-up fields so the frontend can open the modal
+      ...(exception instanceof HttpException
+        ? (() => {
+            const resp = exception.getResponse();
+            if (typeof resp === 'object' && resp !== null) {
+              const r = resp as Record<string, unknown>;
+              return {
+                ...(r.requiresStepUp === true ? { requiresStepUp: true as const } : {}),
+                ...(typeof r.stepUpToken === 'string' ? { stepUpToken: r.stepUpToken } : {}),
+              };
+            }
+            return {};
+          })()
+        : {}),
     };
 
     httpAdapter.reply(ctx.getResponse(), body, statusCode);
