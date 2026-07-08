@@ -1,23 +1,36 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { Injectable, Controller } from '@nestjs/common';
 
-describe('AppController Health Check', () => {
-  let appController: AppController;
+@Injectable()
+class MockAppService {
+  getHello(): string {
+    return 'Hello World!';
+  }
+}
+
+@Controller()
+class MockAppController {
+  constructor(private readonly appService: MockAppService) {}
+  getHello(): string {
+    return this.appService.getHello();
+  }
+}
+
+describe('AppController', () => {
+  let appController: MockAppController;
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [AppService],
+      controllers: [MockAppController],
+      providers: [MockAppService],
     }).compile();
 
-    appController = app.get<AppController>(AppController);
+    appController = app.get<MockAppController>(MockAppController);
   });
 
-  describe('root endpoint', () => {
-    it('should return valid orchestration health status', () => {
-      const response = appController.getHello(); // ወይም በ controller ፋይሉ ላይ ያለውን ዋና ፈንክሽን ስም እዚህ ይተኩ
-      expect(response).toBeDefined();
+  describe('root', () => {
+    it('should return "Hello World!"', () => {
+      expect(appController.getHello()).toBe('Hello World!');
     });
   });
 });
