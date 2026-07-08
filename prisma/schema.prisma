@@ -537,6 +537,7 @@ model BidSuggestion {
   freelanceJob    FreelanceJob @relation(fields: [freelanceJobId], references: [id])
   freelancer      User         @relation(fields: [freelancerId], references: [id])
 
+  @@unique([freelanceJobId, freelancerId])
   @@map("bid_suggestions")
 }
 
