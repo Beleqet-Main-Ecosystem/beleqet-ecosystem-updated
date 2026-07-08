@@ -192,6 +192,7 @@ export default function ApplicationsPage() {
       <ConfirmDialog
         open={Boolean(withdrawId)}
         onOpenChange={(open) => !open && setWithdrawId(null)}
+        // onOpenChange={(open: boolean) => !open && setWithdrawId(null)}
         title="Withdraw application?"
         description="The employer will no longer consider this application. This action cannot be undone."
         confirmLabel="Withdraw application"

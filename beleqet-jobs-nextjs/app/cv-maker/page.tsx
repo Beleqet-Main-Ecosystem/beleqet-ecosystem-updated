@@ -82,7 +82,7 @@ export default function CvMakerPage() {
   useEffect(() => {
     if (!ready) return;
     if (user) {
-      authenticatedFetch(`${API_URL}/users/cv-draft`).then(async (response) => {
+      authenticatedFetch(`${API_URL}/users/cv-draft`).then(async (response) => { 
         if (response.ok) {
           const draft = await response.json();
           if (draft?.data) setCv(draft.data);

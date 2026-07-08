@@ -1,0 +1,11 @@
+{
+  "/login/page": "app/login/page.js",
+  "/register/page": "app/register/page.js",
+  "/jobs/page": "app/jobs/page.js",
+  "/page": "app/page.js",
+  "/post-job/page": "app/post-job/page.js",
+  "/cv-maker/page": "app/cv-maker/page.js",
+  "/pricing/page": "app/pricing/page.js",
+  "/about/page": "app/about/page.js",
+  "/api/chat/route": "app/api/chat/route.js"
+}
