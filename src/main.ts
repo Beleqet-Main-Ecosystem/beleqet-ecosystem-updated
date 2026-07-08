@@ -9,6 +9,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ErrorRecurrenceTrackerService } from './common/filters/error-recurrence-tracker.service';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
+import { RedisIoAdapter } from './common/redis-io.adapter'; // REDIS ADAPTER IMPORT ተመልሷል
 import * as bcrypt from 'bcryptjs';
 
 async function bootstrap() {
@@ -57,6 +58,13 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   });
+
+  // ── Redis WebSocket Adapter ───────────────────────────────────────────────
+  // REDIS FIX: ብስራት የጠየቀው የሬዲስ አዳፕተር መዋቅር እዚህ ጋ ተመልሷል
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
+  logger.log('Redis WebSocket Adapter successfully connected and initialized.');
 
   // ── Global prefix ─────────────────────────────────────────────────────────
   app.setGlobalPrefix('api/v1');

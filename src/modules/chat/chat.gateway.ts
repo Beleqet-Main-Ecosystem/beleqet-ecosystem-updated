@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 import { Logger } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 
 @WebSocketGateway({
   cors: { origin: true, credentials: true },
@@ -24,12 +25,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly chatService: ChatService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly i18n: I18nService // I18nService ተመልሷል
   ) {}
 
   async handleConnection(client: Socket) {
     try {
-      // Expect token in handshake auth: { token: "Bearer eyJ..." }
       const tokenString = client.handshake.auth?.token || client.handshake.headers?.authorization;
       if (!tokenString) throw new Error('No token provided');
       
@@ -57,15 +58,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.roomId) return;
 
     try {
+      // SECURITY FIX: መጀመሪያ ፈቃዱን ማረጋገጥ (ይህ ለሴኪዩሪቲው ወሳኝ ነው)
+      const history = await this.chatService.getRoomMessages(data.roomId, userId);
+      
+      // ፍቃድ ካለው ብቻ ነው ሩሙን ጆይን የሚያደርገው
       client.join(data.roomId);
       this.logger.log(`User ${userId} joined room ${data.roomId}`);
       
-      // Fetch history and send only to the connecting user
-      const history = await this.chatService.getRoomMessages(data.roomId, userId);
       client.emit('room_history', history);
     } catch (err) {
       this.logger.error(`Error joining room: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to join room' });
+      const errorMsg = this.i18n.t('chat.errors.failed_to_join_room', { defaultValue: 'Failed to join room' });
+      client.emit('error', { message: errorMsg });
     }
   }
 
@@ -79,11 +83,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const savedMsg = await this.chatService.saveMessage(data.roomId, userId, data.content);
-      // Broadcast to everyone in the room (including sender)
       this.server.to(data.roomId).emit('new_message', savedMsg);
     } catch (err) {
       this.logger.error(`Error sending message: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to send message' });
+      const errorMsg = this.i18n.t('chat.errors.failed_to_send_message', { defaultValue: 'Failed to send message' });
+      client.emit('error', { message: errorMsg });
     }
   }
 
@@ -101,7 +105,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(data.roomId).emit('new_message', savedMsg);
     } catch (err) {
       this.logger.error(`Error sharing file: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to share file' });
+      const errorMsg = this.i18n.t('chat.errors.failed_to_share_file', { defaultValue: 'Failed to share file' });
+      client.emit('error', { message: errorMsg });
     }
   }
 
@@ -120,7 +125,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(data.roomId).emit('incoming_video_call', { roomId: data.roomId, link: data.callLink, callerId: userId });
     } catch (err) {
       this.logger.error(`Error starting video call: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to start video call' });
+      const errorMsg = this.i18n.t('chat.errors.failed_to_start_video_call', { defaultValue: 'Failed to start video call' });
+      client.emit('error', { message: errorMsg });
     }
   }
 }
