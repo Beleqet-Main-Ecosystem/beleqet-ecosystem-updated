@@ -28,6 +28,9 @@ import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.m
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 
+// 🔥 NEW: Import our Redis Cache module
+import { CacheConfigModule } from './cache/cache.module';
+
 @Module({
   imports: [
     // ── Configuration (loads .env) ─────────────────────────────────────────
@@ -100,11 +103,14 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
     AdminModule,
     ChatModule,
     UploadsModule,
-    TelegramModule,
+    //TelegramModule,
     ContactModule,
     DbIndexMasterModule,
     PaymentsModule,
     TwoFactorModule,
+
+    // 🔥 NEW: Our Redis Cache module (cache-aside, invalidation, GDPR, i18n, multi‑currency)
+    CacheConfigModule,
   ],
 })
 export class AppModule {}
