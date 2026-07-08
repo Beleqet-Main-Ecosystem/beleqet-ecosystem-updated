@@ -1,25 +1,20 @@
-# Dependencies
 node_modules/
-
-# Build output
 dist/
-
-# Environment variables
+build/
+.next/
+out/
 .env
 .env.local
 .env.*.local
-
-# IDE
-.idea/
-.vscode/
-
-# Logs
 *.log
 npm-debug.log*
-
-# Test coverage
+yarn-debug.log*
+yarn-error.log*
+err*.txt
+out*.txt
 coverage/
-
-# OS
+.cache/
+.vercel
 .DS_Store
 Thumbs.db
+*.tsbuildinfo

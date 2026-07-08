@@ -24,9 +24,9 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true
   },
-  "exclude": [
+"exclude": [
     "node_modules",
     "dist",
-    "frontend"
+    "beleqet-jobs-nextjs"
   ]
 }
