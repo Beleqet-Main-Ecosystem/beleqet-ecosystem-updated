@@ -35,24 +35,31 @@ export class BiddingPricingHelper {
    */
   async calculate(freelancerId: string, freelanceJobId: string): Promise<BidCalculation> {
     const job = await this.loadJob(freelanceJobId);
-    const marketRate = await MarketRateHelper.computeRate(this.prisma, job.categoryId);
-    const marketCount = await this.countMarketContracts(job.categoryId);
+    const marketRateResult = await MarketRateHelper.computeRate(this.prisma, job.categoryId);
     const experienceMultiplier = await ExperienceHelper.computeMultiplier(
       this.prisma,
       freelancerId,
     );
     const budgetMidpoint = (job.budgetMin + job.budgetMax) / 2;
     const suggestedPrice = this.clamp(
-      marketRate === null
+      marketRateResult.averageRate === null
         ? Math.round(budgetMidpoint)
         : Math.round(
-            marketRate * 0.5 + budgetMidpoint * 0.3 + budgetMidpoint * experienceMultiplier * 0.2,
+            marketRateResult.averageRate * 0.5 +
+              budgetMidpoint * 0.3 +
+              budgetMidpoint * experienceMultiplier * 0.2,
           ),
       job.budgetMin,
       job.budgetMax,
     );
 
-    return { job, marketRate, marketCount, experienceMultiplier, suggestedPrice };
+    return {
+      job,
+      marketRate: marketRateResult.averageRate,
+      marketCount: marketRateResult.contractCount,
+      experienceMultiplier,
+      suggestedPrice,
+    };
   }
 
   /**
@@ -69,15 +76,6 @@ export class BiddingPricingHelper {
     }
 
     return job;
-  }
-
-  /**
-   * Counts the historical contracts used to explain the market sample size.
-   */
-  private async countMarketContracts(categoryId: string): Promise<number> {
-    return this.prisma.contract.count({
-      where: { status: 'COMPLETED', freelanceJob: { categoryId } },
-    });
   }
 
   /**
