@@ -66,7 +66,10 @@ __decorate([
     __metadata("design:type", String)
 ], UpdateUserDto.prototype, "headline", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'A passionate developer with 5 years of experience in React.', required: false }),
+    (0, swagger_1.ApiProperty)({
+        example: 'A passionate developer with 5 years of experience in React.',
+        required: false,
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)

@@ -20,7 +20,7 @@ const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const queues_constants_1 = require("../queues/queues.constants");
 const wallet_service_1 = require("../wallet/wallet.service");
-const PLATFORM_FEE_PCT = 0.10;
+const PLATFORM_FEE_PCT = 0.1;
 let EscrowService = EscrowService_1 = class EscrowService {
     constructor(prisma, config, walletSvc, escrowQueue) {
         this.prisma = prisma;
@@ -32,7 +32,7 @@ let EscrowService = EscrowService_1 = class EscrowService {
     async initiate(clientId, freelanceJobId) {
         const job = await this.prisma.freelanceJob.findFirst({
             where: { id: freelanceJobId, clientId },
-            include: { client: true, contract: true }
+            include: { client: true, contract: true },
         });
         if (!job)
             throw new common_1.NotFoundException('Gig not found');
@@ -40,7 +40,9 @@ let EscrowService = EscrowService_1 = class EscrowService {
         if (!job.contract) {
             this.logger.warn(`Escrow initiated without a contract for job ${freelanceJobId} — using budgetMax. Consider initiating escrow after bid acceptance.`);
         }
-        const employerWallet = await this.prisma.employerWallet.findUnique({ where: { userId: clientId } });
+        const employerWallet = await this.prisma.employerWallet.findUnique({
+            where: { userId: clientId },
+        });
         const availableBalance = employerWallet?.balance || 0;
         let amountToPay = grossAmount;
         let walletAppliedAmount = 0;
@@ -57,8 +59,8 @@ let EscrowService = EscrowService_1 = class EscrowService {
                 where: { userId: clientId },
                 data: {
                     balance: { decrement: walletAppliedAmount },
-                    lockedBalance: { increment: walletAppliedAmount }
-                }
+                    lockedBalance: { increment: walletAppliedAmount },
+                },
             });
         }
         const platformFee = Math.round(grossAmount * PLATFORM_FEE_PCT);
@@ -66,14 +68,29 @@ let EscrowService = EscrowService_1 = class EscrowService {
         const txRef = `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
         const escrow = await this.prisma.escrowTransaction.upsert({
             where: { freelanceJobId },
-            update: { grossAmount, platformFee, netAmount, walletAppliedAmount, status: amountToPay === 0 ? 'FUNDED' : 'PENDING', gatewayRef: txRef },
-            create: { freelanceJobId, grossAmount, platformFee, netAmount, walletAppliedAmount, status: amountToPay === 0 ? 'FUNDED' : 'PENDING', gatewayRef: txRef },
+            update: {
+                grossAmount,
+                platformFee,
+                netAmount,
+                walletAppliedAmount,
+                status: amountToPay === 0 ? 'FUNDED' : 'PENDING',
+                gatewayRef: txRef,
+            },
+            create: {
+                freelanceJobId,
+                grossAmount,
+                platformFee,
+                netAmount,
+                walletAppliedAmount,
+                status: amountToPay === 0 ? 'FUNDED' : 'PENDING',
+                gatewayRef: txRef,
+            },
         });
         if (walletAppliedAmount > 0 && amountToPay > 0) {
             await this.escrowQueue.add('UNLOCK_FUNDS', {
                 escrowId: escrow.id,
                 clientId,
-                amount: walletAppliedAmount
+                amount: walletAppliedAmount,
             }, { delay: 24 * 60 * 60 * 1000 });
         }
         if (amountToPay === 0) {
@@ -84,14 +101,21 @@ let EscrowService = EscrowService_1 = class EscrowService {
                     amount: walletAppliedAmount,
                     note: `Fully funded escrow for job ${freelanceJobId}`,
                     escrowId: escrow.id,
-                }
+                },
             });
             await this.prisma.employerWallet.update({
                 where: { userId: clientId },
-                data: { lockedBalance: { decrement: walletAppliedAmount } }
+                data: { lockedBalance: { decrement: walletAppliedAmount } },
             });
             this.logger.log(`Escrow initiated (fully funded via wallet): ${escrow.id} for job ${freelanceJobId} — amount: ETB ${grossAmount}`);
-            return { escrowId: escrow.id, checkoutUrl: null, grossAmount, platformFee, netAmount, walletAppliedAmount };
+            return {
+                escrowId: escrow.id,
+                checkoutUrl: null,
+                grossAmount,
+                platformFee,
+                netAmount,
+                walletAppliedAmount,
+            };
         }
         let checkoutUrl = `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${escrow.id}`;
         const chapaSecret = this.config.get('CHAPA_SECRET_KEY');
@@ -100,7 +124,7 @@ let EscrowService = EscrowService_1 = class EscrowService {
                 const response = await fetch('https://api.chapa.co/v1/transaction/initialize', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${chapaSecret}`,
+                        Authorization: `Bearer ${chapaSecret}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
@@ -114,8 +138,10 @@ let EscrowService = EscrowService_1 = class EscrowService {
                         return_url: this.config.get('CHAPA_RETURN_URL'),
                         customization: {
                             title: 'Beleqet Escrow',
-                            description: `Payment for Gig - ${job.title}`.replace(/[^a-zA-Z0-9\-_\.\s]/g, '').substring(0, 50),
-                        }
+                            description: `Payment for Gig - ${job.title}`
+                                .replace(/[^a-zA-Z0-9\-_\.\s]/g, '')
+                                .substring(0, 50),
+                        },
                     }),
                 });
                 const data = await response.json();
@@ -131,7 +157,15 @@ let EscrowService = EscrowService_1 = class EscrowService {
             }
         }
         this.logger.log(`Escrow initiated: ${escrow.id} for job ${freelanceJobId} — amountToPay: ETB ${amountToPay}, walletApplied: ETB ${walletAppliedAmount}`);
-        return { escrowId: escrow.id, checkoutUrl, grossAmount, platformFee, netAmount, walletAppliedAmount, amountToPay };
+        return {
+            escrowId: escrow.id,
+            checkoutUrl,
+            grossAmount,
+            platformFee,
+            netAmount,
+            walletAppliedAmount,
+            amountToPay,
+        };
     }
     async handleWebhook(payload) {
         await this.escrowQueue.add(queues_constants_1.ESCROW_JOBS.PROCESS_WEBHOOK, payload);
@@ -156,7 +190,7 @@ let EscrowService = EscrowService_1 = class EscrowService {
                     payload: {
                         milestoneId,
                         freelancerId: milestone.contract.freelancerId,
-                        amount: milestone.amount
+                        amount: milestone.amount,
                     },
                     processedBy: EscrowService_1.name,
                 },

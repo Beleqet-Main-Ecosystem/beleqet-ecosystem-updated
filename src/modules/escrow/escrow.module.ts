@@ -8,10 +8,7 @@ import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
   imports: [
-    BullModule.registerQueue(
-      { name: QUEUE_NAMES.ESCROW },
-      { name: QUEUE_NAMES.NOTIFICATIONS },
-    ),
+    BullModule.registerQueue({ name: QUEUE_NAMES.ESCROW }, { name: QUEUE_NAMES.NOTIFICATIONS }),
     WalletModule,
   ],
   providers: [EscrowService, EscrowProcessor],

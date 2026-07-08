@@ -17,7 +17,7 @@ exports.TelegramModule = TelegramModule = __decorate([
     (0, common_1.Module)({
         imports: [prisma_module_1.PrismaModule],
         providers: [telegram_service_1.TelegramService],
-        exports: [telegram_service_1.TelegramService]
+        exports: [telegram_service_1.TelegramService],
     })
 ], TelegramModule);
 //# sourceMappingURL=telegram.module.js.map

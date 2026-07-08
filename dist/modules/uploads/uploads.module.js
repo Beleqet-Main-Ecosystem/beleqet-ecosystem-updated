@@ -16,7 +16,7 @@ exports.UploadsModule = UploadsModule;
 exports.UploadsModule = UploadsModule = __decorate([
     (0, common_1.Module)({
         providers: [uploads_service_1.UploadsService],
-        controllers: [uploads_controller_1.UploadsController]
+        controllers: [uploads_controller_1.UploadsController],
     })
 ], UploadsModule);
 //# sourceMappingURL=uploads.module.js.map

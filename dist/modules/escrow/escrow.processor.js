@@ -32,10 +32,7 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor {
         this.logger.log(`[escrow-webhook] ref=${reference} status=${status}`);
         const escrow = await this.prisma.escrowTransaction.findFirst({
             where: {
-                OR: [
-                    { gatewayRef: reference },
-                    { gatewayRef: tx_ref },
-                ],
+                OR: [{ gatewayRef: reference }, { gatewayRef: tx_ref }],
             },
             include: {
                 freelanceJob: { include: { client: true } },
@@ -66,12 +63,12 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor {
             ];
             if (escrow.walletAppliedAmount > 0) {
                 const wallet = await this.prisma.employerWallet.findUnique({
-                    where: { userId: escrow.freelanceJob.clientId }
+                    where: { userId: escrow.freelanceJob.clientId },
                 });
                 if (wallet) {
                     transactions.push(this.prisma.employerWallet.update({
                         where: { id: wallet.id },
-                        data: { lockedBalance: { decrement: escrow.walletAppliedAmount } }
+                        data: { lockedBalance: { decrement: escrow.walletAppliedAmount } },
                     }));
                     transactions.push(this.prisma.employerWalletTransaction.create({
                         data: {
@@ -80,7 +77,7 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor {
                             amount: escrow.walletAppliedAmount,
                             note: `Partially funded escrow for job ${escrow.freelanceJobId}`,
                             escrowId: escrow.id,
-                        }
+                        },
                     }));
                 }
             }
@@ -176,7 +173,7 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor {
                 const response = await fetch('https://api.chapa.co/v1/transfers', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${chapaSecret}`,
+                        Authorization: `Bearer ${chapaSecret}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({

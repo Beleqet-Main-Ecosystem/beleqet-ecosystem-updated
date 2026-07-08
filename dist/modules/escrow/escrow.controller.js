@@ -38,9 +38,7 @@ let EscrowController = class EscrowController {
                 throw new common_1.UnauthorizedException('Webhook signature verification failed: missing required components');
             }
             if (secret && req.rawBody && signature) {
-                const hash = crypto.createHmac('sha256', secret)
-                    .update(req.rawBody)
-                    .digest('hex');
+                const hash = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
                 if (hash !== signature) {
                     if (isProduction) {
                         throw new common_1.UnauthorizedException('Invalid Webhook Signature');
@@ -51,7 +49,11 @@ let EscrowController = class EscrowController {
                 }
             }
         }
-        const payload = { ...body, ...req.query, tx_ref: req.query.trx_ref || body.tx_ref || req.query.tx_ref };
+        const payload = {
+            ...body,
+            ...req.query,
+            tx_ref: req.query.trx_ref || body.tx_ref || req.query.tx_ref,
+        };
         try {
             if (req.method === 'GET') {
                 await this.svc.handleWebhook(payload);

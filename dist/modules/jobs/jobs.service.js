@@ -104,7 +104,13 @@ let JobsService = JobsService_1 = class JobsService {
             }),
             this.prisma.job.count({ where: where }),
         ]);
-        return { items, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
+        return {
+            items,
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum),
+        };
     }
     async findOne(id) {
         const job = await this.prisma.job.findUnique({

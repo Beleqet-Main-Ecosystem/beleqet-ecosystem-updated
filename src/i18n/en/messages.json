@@ -1,1 +1,26 @@
-{}
+{
+  "search": {
+    "title": "Advanced Search",
+    "keyword_placeholder": "Search for freelancers, projects, services...",
+    "filters": "Filters",
+    "price_range": "Price Range",
+    "rating": "Rating",
+    "skills": "Skills",
+    "location": "Location",
+    "sort_by": "Sort By",
+    "no_results": "No results found",
+    "invalid_filters": "Invalid filter parameters",
+    "invalid_price_range": "Minimum price must be less than or equal to maximum price",
+    "invalid_rating": "Invalid rating. Rating must be between 0 and 5",
+    "too_many_skills": "Too many skills selected. Maximum allowed is 20",
+    "invalid_currency": "Invalid currency. Supported currencies are ETB, USD, EUR",
+    "invalid_page": "Invalid page number. Page must be greater than 0",
+    "invalid_limit": "Invalid limit. Limit must be between 1 and 100",
+    "invalid_rating_value": "Invalid rating value. Rating must be between 0 and 5",
+    "invalid_location": "Invalid location. Allowed locations are: Addis Ababa, Bahir Dar, Hawassa, Mekelle, Adama, Dire Dawa, Gondar, Jimma, Remote",
+    "freelancer": "Freelancer",
+    "project": "Project",
+    "service": "Service",
+    "all": "All"
+  }
+}

@@ -23,9 +23,15 @@ let WalletController = class WalletController {
     constructor(svc) {
         this.svc = svc;
     }
-    getWallet(u) { return this.svc.getOrCreate(u.userId); }
-    getEmployerWallet(u) { return this.svc.getEmployerWallet(u.userId); }
-    withdraw(u, dto) { return this.svc.withdraw(u.userId, dto); }
+    getWallet(u) {
+        return this.svc.getOrCreate(u.userId);
+    }
+    getEmployerWallet(u) {
+        return this.svc.getEmployerWallet(u.userId);
+    }
+    withdraw(u, dto) {
+        return this.svc.withdraw(u.userId, dto);
+    }
 };
 exports.WalletController = WalletController;
 __decorate([

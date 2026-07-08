@@ -224,13 +224,13 @@ let AdminController = class AdminController {
             return null;
         let chatHistory = [];
         const chatRoom = await this.prisma.chatRoom.findUnique({
-            where: { contractId: dispute.contractId }
+            where: { contractId: dispute.contractId },
         });
         if (chatRoom) {
             chatHistory = await this.prisma.message.findMany({
                 where: { roomId: chatRoom.id },
                 orderBy: { createdAt: 'asc' },
-                include: { sender: { select: safeUserSelect } }
+                include: { sender: { select: safeUserSelect } },
             });
         }
         return { dispute, chatHistory };

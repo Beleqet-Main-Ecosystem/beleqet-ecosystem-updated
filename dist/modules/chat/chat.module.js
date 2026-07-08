@@ -30,7 +30,7 @@ exports.ChatModule = ChatModule = __decorate([
             }),
         ],
         providers: [chat_service_1.ChatService, chat_gateway_1.ChatGateway],
-        exports: [chat_service_1.ChatService]
+        exports: [chat_service_1.ChatService],
     })
 ], ChatModule);
 //# sourceMappingURL=chat.module.js.map

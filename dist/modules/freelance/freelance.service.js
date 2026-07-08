@@ -133,7 +133,10 @@ let FreelanceService = class FreelanceService {
     async createJob(clientId, dto) {
         return this.prisma.freelanceJob.create({
             data: { ...dto, clientId, status: 'OPEN' },
-            include: { category: true, client: { select: { id: true, firstName: true, lastName: true } } },
+            include: {
+                category: true,
+                client: { select: { id: true, firstName: true, lastName: true } },
+            },
         });
     }
     async findJobs(query) {
@@ -158,7 +161,13 @@ let FreelanceService = class FreelanceService {
             }),
             this.prisma.freelanceJob.count({ where: where }),
         ]);
-        return { items, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
+        return {
+            items,
+            total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages: Math.ceil(total / limitNum),
+        };
     }
     async findJobById(id) {
         const job = await this.prisma.freelanceJob.findUnique({
@@ -202,21 +211,26 @@ let FreelanceService = class FreelanceService {
                 data: { status: 'REJECTED' },
             });
             const c = await tx.contract.create({
-                data: { freelanceJobId: bid.freelanceJobId, clientId, freelancerId: bid.freelancerId, agreedAmount: bid.amount },
+                data: {
+                    freelanceJobId: bid.freelanceJobId,
+                    clientId,
+                    freelancerId: bid.freelancerId,
+                    agreedAmount: bid.amount,
+                },
             });
             await tx.freelanceJob.update({
                 where: { id: bid.freelanceJobId },
                 data: { status: 'IN_PROGRESS' },
             });
             const escrow = await tx.escrowTransaction.findFirst({
-                where: { freelanceJobId: bid.freelanceJobId, status: { in: ['FUNDED', 'PENDING'] } }
+                where: { freelanceJobId: bid.freelanceJobId, status: { in: ['FUNDED', 'PENDING'] } },
             });
             if (escrow && escrow.grossAmount > bid.amount) {
                 const excess = escrow.grossAmount - bid.amount;
                 const wallet = await tx.employerWallet.upsert({
                     where: { userId: clientId },
                     update: { balance: { increment: excess } },
-                    create: { userId: clientId, balance: excess, lockedBalance: 0 }
+                    create: { userId: clientId, balance: excess, lockedBalance: 0 },
                 });
                 await tx.employerWalletTransaction.create({
                     data: {
@@ -225,9 +239,9 @@ let FreelanceService = class FreelanceService {
                         amount: excess,
                         note: `Refund for excess escrow on gig ${bid.freelanceJobId}`,
                         escrowId: escrow.id,
-                    }
+                    },
                 });
-                const platformFeePct = 0.10;
+                const platformFeePct = 0.1;
                 const platformFee = Math.round(bid.amount * platformFeePct);
                 const netAmount = bid.amount - platformFee;
                 await tx.escrowTransaction.update({
@@ -235,8 +249,8 @@ let FreelanceService = class FreelanceService {
                     data: {
                         grossAmount: bid.amount,
                         platformFee,
-                        netAmount
-                    }
+                        netAmount,
+                    },
                 });
             }
             await tx.chatRoom.create({
@@ -270,10 +284,7 @@ let FreelanceService = class FreelanceService {
     async getMyContracts(userId) {
         return this.prisma.contract.findMany({
             where: {
-                OR: [
-                    { clientId: userId },
-                    { freelancerId: userId }
-                ]
+                OR: [{ clientId: userId }, { freelancerId: userId }],
             },
             include: {
                 freelanceJob: true,

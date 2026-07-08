@@ -20,12 +20,18 @@ class CreateApplicationDto {
 }
 exports.CreateApplicationDto = CreateApplicationDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ description: 'UUID of the job being applied to', example: '123e4567-e89b-12d3-a456-426614174000' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'UUID of the job being applied to',
+        example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
     (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
 ], CreateApplicationDto.prototype, "jobId", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ required: false, example: 'I am writing to express my interest in this position. I have over 5 years of experience building scalable backend APIs using NestJS and PostgreSQL...' }),
+    (0, swagger_1.ApiProperty)({
+        required: false,
+        example: 'I am writing to express my interest in this position. I have over 5 years of experience building scalable backend APIs using NestJS and PostgreSQL...',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MinLength)(50, { message: 'Cover letter must be at least 50 characters long' }),
@@ -33,14 +39,18 @@ __decorate([
     __metadata("design:type", String)
 ], CreateApplicationDto.prototype, "coverLetter", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ required: false, description: 'URL to uploaded resume/CV', example: 'https://example.com/resume.pdf' }),
+    (0, swagger_1.ApiProperty)({
+        required: false,
+        description: 'URL to uploaded resume/CV',
+        example: 'https://example.com/resume.pdf',
+    }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsUrl)(),
     (0, class_validator_1.MaxLength)(500),
     __metadata("design:type", String)
 ], CreateApplicationDto.prototype, "resumeUrl", void 0);
 __decorate([
-    (0, swagger_1.ApiProperty)({ required: false, example: { "Why do you want this job?": "I love coding." } }),
+    (0, swagger_1.ApiProperty)({ required: false, example: { 'Why do you want this job?': 'I love coding.' } }),
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsObject)(),
     __metadata("design:type", Object)
@@ -74,7 +84,11 @@ class UpdateApplicationStatusDto {
 }
 exports.UpdateApplicationStatusDto = UpdateApplicationStatusDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ enum: ApplicationStatus, enumName: 'ApplicationStatus', example: ApplicationStatus.SHORTLISTED }),
+    (0, swagger_1.ApiProperty)({
+        enum: ApplicationStatus,
+        enumName: 'ApplicationStatus',
+        example: ApplicationStatus.SHORTLISTED,
+    }),
     (0, class_validator_1.IsEnum)(ApplicationStatus),
     __metadata("design:type", String)
 ], UpdateApplicationStatusDto.prototype, "status", void 0);

@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: beleqet-postgres
     restart: always
     environment:
-      POSTGRES_USER: beleqet_user
-      POSTGRES_PASSWORD: your_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: bsk
       POSTGRES_DB: beleqet_db
     ports:
       - "5432:5432"
@@ -27,6 +25,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     container_name: beleqet-backend
     restart: unless-stopped
     ports:
@@ -35,7 +34,7 @@ services:
       - NODE_ENV=development
       - PORT=4000
       - FRONTEND_URL=http://localhost:3000
-      - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
+      - DATABASE_URL=postgresql://postgres:bsk@db:5432/beleqet_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
@@ -46,9 +45,47 @@ services:
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
       - OPENAI_API_KEY=dummy_key_for_testing
+      - SEARCH_ENABLED=true
+      - SEARCH_MAX_RESULTS=100
+      - SEARCH_CACHE_TTL=300
+      - SEARCH_DEFAULT_LIMIT=20
+      - SEARCH_MAX_LIMIT=100
     depends_on:
       - db
       - redis
+
+  # -----------------------------------------------------------------------------
+  # Test service — run unit + E2E tests inside Docker with DB access
+  # Usage:
+  #   Unit tests:  docker-compose run --rm backend-test
+  #   E2E tests:   docker-compose run --rm backend-test npm run test src/modules/advanced-search/advanced-search.e2e.spec.ts
+  # -----------------------------------------------------------------------------
+  backend-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    container_name: beleqet-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://postgres:bsk@db:5432/beleqet_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_TLS=false
+      - JWT_ACCESS_SECRET=test_secret
+      - JWT_ACCESS_EXPIRES=15m
+      - JWT_REFRESH_EXPIRES=30d
+      - SEARCH_ENABLED=true
+      - SEARCH_MAX_RESULTS=100
+      - SEARCH_CACHE_TTL=300
+      - SEARCH_DEFAULT_LIMIT=20
+      - SEARCH_MAX_LIMIT=100
+    depends_on:
+      - db
+      - redis
+    profiles:
+      - test
 
 volumes:
   postgres_data:

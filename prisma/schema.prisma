@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -48,6 +49,8 @@ model User {
   clientFeedback        Json?
   skillVerified         Boolean             @default(false)
 
+  @@index([role, isActive])
+  @@index([location])
   @@map("users")
 }
 
@@ -200,6 +203,7 @@ model Job {
   @@index([companyId, status])
   @@index([categoryId, status])
   @@index([expiryDate])
+  @@index([location, status])
   @@map("jobs")
 }
 
@@ -296,6 +300,9 @@ model FreelanceJob {
   category           FreelanceCategory  @relation(fields: [categoryId], references: [id])
   client             User               @relation(fields: [clientId], references: [id])
 
+  @@index([status, featured])
+  @@index([locationPreference, status])
+  @@index([categoryId, status])
   @@map("freelance_jobs")
 }
 

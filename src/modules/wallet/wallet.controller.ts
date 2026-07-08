@@ -13,11 +13,17 @@ export class WalletController {
   constructor(private readonly svc: WalletService) {}
 
   @Get()
-  getWallet(@CurrentUser() u: CurrentUserPayload) { return this.svc.getOrCreate(u.userId); }
+  getWallet(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getOrCreate(u.userId);
+  }
 
   @Get('employer')
-  getEmployerWallet(@CurrentUser() u: CurrentUserPayload) { return this.svc.getEmployerWallet(u.userId); }
+  getEmployerWallet(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getEmployerWallet(u.userId);
+  }
 
   @Post('withdraw')
-  withdraw(@CurrentUser() u: CurrentUserPayload, @Body() dto: WithdrawDto) { return this.svc.withdraw(u.userId, dto); }
+  withdraw(@CurrentUser() u: CurrentUserPayload, @Body() dto: WithdrawDto) {
+    return this.svc.withdraw(u.userId, dto);
+  }
 }

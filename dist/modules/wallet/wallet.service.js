@@ -28,7 +28,9 @@ __decorate([
     __metadata("design:type", Number)
 ], WithdrawDto.prototype, "amount", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(['CHAPA', 'TELEBIRR', 'CBE_BIRR'], { message: 'method must be CHAPA, TELEBIRR, or CBE_BIRR' }),
+    (0, class_validator_1.IsEnum)(['CHAPA', 'TELEBIRR', 'CBE_BIRR'], {
+        message: 'method must be CHAPA, TELEBIRR, or CBE_BIRR',
+    }),
     __metadata("design:type", String)
 ], WithdrawDto.prototype, "method", void 0);
 __decorate([
@@ -47,10 +49,10 @@ let WalletService = WalletService_1 = class WalletService {
         this.config = config;
         this.logger = new common_1.Logger(WalletService_1.name);
         this.exchangeRates = {
-            'USD_ETB': 120.5,
-            'EUR_ETB': 130.2,
-            'ETB_USD': 1 / 120.5,
-            'ETB_EUR': 1 / 130.2,
+            USD_ETB: 120.5,
+            EUR_ETB: 130.2,
+            ETB_USD: 1 / 120.5,
+            ETB_EUR: 1 / 130.2,
         };
     }
     async getEmployerWallet(userId) {
@@ -99,7 +101,12 @@ let WalletService = WalletService_1 = class WalletService {
                 data: { availableBalance: { decrement: amountInWalletCurrency } },
             });
             const tx = await prisma.walletTransaction.create({
-                data: { walletId: wallet.id, type: 'DEBIT_WITHDRAWAL', amount: amountInWalletCurrency, note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending` },
+                data: {
+                    walletId: wallet.id,
+                    type: 'DEBIT_WITHDRAWAL',
+                    amount: amountInWalletCurrency,
+                    note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending`,
+                },
             });
             return { tx };
         });
@@ -109,7 +116,7 @@ let WalletService = WalletService_1 = class WalletService {
                 const response = await fetch('https://api.chapa.co/v1/transfers', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${chapaSecret}`,
+                        Authorization: `Bearer ${chapaSecret}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
@@ -121,7 +128,7 @@ let WalletService = WalletService_1 = class WalletService {
                         bank_code: dto.method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
                     }),
                 });
-                const data = await response.json();
+                const data = (await response.json());
                 if (data.status !== 'success') {
                     this.logger.warn(`Chapa payout rejected: ${data.message}. Rolling back balance for user ${userId}`);
                     await this.prisma.$transaction([
@@ -154,7 +161,12 @@ let WalletService = WalletService_1 = class WalletService {
                 throw new common_1.InternalServerErrorException('Could not reach payment gateway. Your balance has been restored.');
             }
         }
-        return { success: true, amount: dto.amount, method: dto.method, note: 'Payout processing — typically 1-2 business days' };
+        return {
+            success: true,
+            amount: dto.amount,
+            method: dto.method,
+            note: 'Payout processing — typically 1-2 business days',
+        };
     }
 };
 exports.WalletService = WalletService;

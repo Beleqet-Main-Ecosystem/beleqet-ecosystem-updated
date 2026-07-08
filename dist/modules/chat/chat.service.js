@@ -22,7 +22,7 @@ let ChatService = ChatService_1 = class ChatService {
         if (contractId) {
             const existing = await this.prisma.chatRoom.findUnique({
                 where: { contractId },
-                include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } }
+                include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } },
             });
             if (existing)
                 return existing;
@@ -31,17 +31,17 @@ let ChatService = ChatService_1 = class ChatService {
             data: {
                 contractId,
                 participants: {
-                    create: [{ userId: userId1 }, { userId: userId2 }]
-                }
+                    create: [{ userId: userId1 }, { userId: userId2 }],
+                },
             },
-            include: { participants: true, messages: true }
+            include: { participants: true, messages: true },
         });
         this.logger.log(`Created new ChatRoom ${room.id} for users ${userId1} and ${userId2}`);
         return room;
     }
     async saveMessage(roomId, senderId, content, metadata) {
         const participant = await this.prisma.chatParticipant.findUnique({
-            where: { roomId_userId: { roomId, userId: senderId } }
+            where: { roomId_userId: { roomId, userId: senderId } },
         });
         if (!participant)
             throw new common_1.NotFoundException('User is not a participant of this chat room');
@@ -50,16 +50,18 @@ let ChatService = ChatService_1 = class ChatService {
                 roomId,
                 senderId,
                 content,
-                metadata
+                metadata,
             },
             include: {
-                sender: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true } }
-            }
+                sender: {
+                    select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+                },
+            },
         });
     }
     async getRoomMessages(roomId, userId, take = 50) {
         const participant = await this.prisma.chatParticipant.findUnique({
-            where: { roomId_userId: { roomId, userId } }
+            where: { roomId_userId: { roomId, userId } },
         });
         if (!participant)
             throw new common_1.NotFoundException('Unauthorized');
@@ -68,8 +70,10 @@ let ChatService = ChatService_1 = class ChatService {
             orderBy: { createdAt: 'asc' },
             take,
             include: {
-                sender: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true } }
-            }
+                sender: {
+                    select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+                },
+            },
         });
     }
 };

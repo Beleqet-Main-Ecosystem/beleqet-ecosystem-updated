@@ -23,6 +23,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AdvancedSearchModule } from './modules/advanced-search/advanced-search.module';
 
 @Module({
   imports: [
@@ -97,6 +98,7 @@ import { ContactModule } from './modules/contact/contact.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
+    AdvancedSearchModule,
   ],
 })
 export class AppModule {}

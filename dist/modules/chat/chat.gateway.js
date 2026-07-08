@@ -77,7 +77,11 @@ let ChatGateway = ChatGateway_1 = class ChatGateway {
             return;
         try {
             const content = `Shared a file: ${data.fileName}`;
-            const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, { type: 'file', url: data.fileUrl, name: data.fileName });
+            const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, {
+                type: 'file',
+                url: data.fileUrl,
+                name: data.fileName,
+            });
             this.server.to(data.roomId).emit('new_message', savedMsg);
         }
         catch (err) {
@@ -91,9 +95,16 @@ let ChatGateway = ChatGateway_1 = class ChatGateway {
             return;
         try {
             const content = `Started a video call. Click to join.`;
-            const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, { type: 'video_call', link: data.callLink });
+            const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, {
+                type: 'video_call',
+                link: data.callLink,
+            });
             this.server.to(data.roomId).emit('new_message', savedMsg);
-            this.server.to(data.roomId).emit('incoming_video_call', { roomId: data.roomId, link: data.callLink, callerId: userId });
+            this.server.to(data.roomId).emit('incoming_video_call', {
+                roomId: data.roomId,
+                link: data.callLink,
+                callerId: userId,
+            });
         }
         catch (err) {
             this.logger.error(`Error starting video call: ${err.message}`);
@@ -141,7 +152,7 @@ __decorate([
 exports.ChatGateway = ChatGateway = ChatGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: { origin: true, credentials: true },
-        namespace: '/chat'
+        namespace: '/chat',
     }),
     __metadata("design:paramtypes", [chat_service_1.ChatService,
         jwt_1.JwtService])

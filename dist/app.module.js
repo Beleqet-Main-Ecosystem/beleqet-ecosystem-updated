@@ -31,6 +31,7 @@ const chat_module_1 = require("./modules/chat/chat.module");
 const uploads_module_1 = require("./modules/uploads/uploads.module");
 const telegram_module_1 = require("./modules/telegram/telegram.module");
 const contact_module_1 = require("./modules/contact/contact.module");
+const advanced_search_module_1 = require("./modules/advanced-search/advanced-search.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -97,6 +98,7 @@ exports.AppModule = AppModule = __decorate([
             uploads_module_1.UploadsModule,
             telegram_module_1.TelegramModule,
             contact_module_1.ContactModule,
+            advanced_search_module_1.AdvancedSearchModule,
         ],
     })
 ], AppModule);

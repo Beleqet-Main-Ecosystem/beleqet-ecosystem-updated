@@ -63,11 +63,7 @@ let ScreeningProcessor = ScreeningProcessor_1 = class ScreeningProcessor {
         });
         const isShortlisted = scoreResult.overallScore >= queues_constants_1.SCORING.AUTO_SHORTLIST_THRESHOLD;
         const isAutoRejected = scoreResult.overallScore < queues_constants_1.SCORING.AUTO_REJECT_THRESHOLD;
-        const newStatus = isAutoRejected
-            ? 'REJECTED'
-            : isShortlisted
-                ? 'SHORTLISTED'
-                : 'SCREENING';
+        const newStatus = isAutoRejected ? 'REJECTED' : isShortlisted ? 'SHORTLISTED' : 'SCREENING';
         await this.prisma.application.update({
             where: { id: applicationId },
             data: { status: newStatus },
@@ -93,7 +89,11 @@ let ScreeningProcessor = ScreeningProcessor_1 = class ScreeningProcessor {
         });
         await this.notificationsQueue.add(queues_constants_1.NOTIFICATION_JOBS.SEND_IN_APP, {
             userId: job.data.userId,
-            type: isShortlisted ? 'application.shortlisted' : isAutoRejected ? 'application.rejected' : 'application.received',
+            type: isShortlisted
+                ? 'application.shortlisted'
+                : isAutoRejected
+                    ? 'application.rejected'
+                    : 'application.received',
             title: isShortlisted
                 ? `🎉 You've been shortlisted for ${jobTitle}`
                 : isAutoRejected
@@ -190,12 +190,17 @@ let ScreeningProcessor = ScreeningProcessor_1 = class ScreeningProcessor {
     }
     async onFailed(job, error) {
         this.logger.error(`Queue job failed: [${job.name}] id=${job.id} attempt=${job.attemptsMade}/${job.opts.attempts}`, error.stack);
-        if (job.name === queues_constants_1.APPLICATION_JOBS.SCREEN_CANDIDATE && job.attemptsMade >= (job.opts.attempts ?? 3)) {
+        if (job.name === queues_constants_1.APPLICATION_JOBS.SCREEN_CANDIDATE &&
+            job.attemptsMade >= (job.opts.attempts ?? 3)) {
             const data = job.data;
-            await this.prisma.application.update({
+            await this.prisma.application
+                .update({
                 where: { id: data.applicationId },
-                data: { notes: `AI screening failed after ${job.attemptsMade} attempts: ${error.message}` },
-            }).catch(() => null);
+                data: {
+                    notes: `AI screening failed after ${job.attemptsMade} attempts: ${error.message}`,
+                },
+            })
+                .catch(() => null);
         }
     }
     onCompleted(job) {

@@ -94,7 +94,10 @@ let AuthService = AuthService_1 = class AuthService {
         return this.issueTokens(storedToken.user);
     }
     async logout(userId) {
-        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, firstName: true } });
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, firstName: true },
+        });
         await this.prisma.refreshToken.deleteMany({ where: { userId } });
         if (user) {
             (0, email_templates_1.logoutAlertEmail)(user.firstName)
@@ -117,7 +120,7 @@ let AuthService = AuthService_1 = class AuthService {
                 token,
                 type: 'EMAIL_VERIFICATION',
                 expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-            }
+            },
         });
         const verifyUrl = `${this.config.get('FRONTEND_URL')}/auth/verify-email?token=${token}`;
         const email = await (0, email_templates_1.verificationEmail)(user.firstName, verifyUrl);
@@ -129,12 +132,14 @@ let AuthService = AuthService_1 = class AuthService {
     }
     async verifyEmail(token) {
         const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
-        if (!verificationToken || verificationToken.type !== 'EMAIL_VERIFICATION' || verificationToken.expiresAt < new Date()) {
+        if (!verificationToken ||
+            verificationToken.type !== 'EMAIL_VERIFICATION' ||
+            verificationToken.expiresAt < new Date()) {
             throw new common_1.BadRequestException('Invalid or expired verification token');
         }
         await this.prisma.user.update({
             where: { id: verificationToken.userId },
-            data: { emailVerified: true }
+            data: { emailVerified: true },
         });
         await this.prisma.verificationToken.delete({ where: { id: verificationToken.id } });
         return { success: true, message: 'Email verified successfully' };
@@ -150,7 +155,7 @@ let AuthService = AuthService_1 = class AuthService {
                 token,
                 type: 'PASSWORD_RESET',
                 expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000),
-            }
+            },
         });
         const resetUrl = `${this.config.get('FRONTEND_URL')}/auth/reset-password?token=${token}`;
         const emailContent = await (0, email_templates_1.passwordResetEmail)(user.firstName, resetUrl);
@@ -163,15 +168,19 @@ let AuthService = AuthService_1 = class AuthService {
     }
     async resetPassword(token, newPassword) {
         const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
-        if (!verificationToken || verificationToken.type !== 'PASSWORD_RESET' || verificationToken.expiresAt < new Date()) {
+        if (!verificationToken ||
+            verificationToken.type !== 'PASSWORD_RESET' ||
+            verificationToken.expiresAt < new Date()) {
             throw new common_1.BadRequestException('Invalid or expired reset token');
         }
         const passwordHash = await bcrypt.hash(newPassword, 12);
         await this.prisma.user.update({
             where: { id: verificationToken.userId },
-            data: { passwordHash }
+            data: { passwordHash },
         });
-        await this.prisma.verificationToken.deleteMany({ where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' } });
+        await this.prisma.verificationToken.deleteMany({
+            where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' },
+        });
         return { success: true, message: 'Password reset successfully' };
     }
     async issueTokens(user) {

@@ -25,19 +25,39 @@ let FreelanceController = class FreelanceController {
         this.svc = svc;
         this.escrowSvc = escrowSvc;
     }
-    findJobs(q) { return this.svc.findJobs(q); }
-    findJob(id) { return this.svc.findJobById(id); }
-    createJob(u, dto) { return this.svc.createJob(u.userId, dto); }
-    submitBid(id, u, dto) { return this.svc.submitBid(u.userId, id, dto); }
-    acceptBid(id, u) { return this.svc.acceptBid(id, u.userId); }
-    rejectBid(id, u) { return this.svc.rejectBid(id, u.userId); }
-    myBids(u) { return this.svc.getMyBids(u.userId); }
-    myContracts(u) { return this.svc.getMyContracts(u.userId); }
-    contract(id) { return this.svc.getContract(id); }
+    findJobs(q) {
+        return this.svc.findJobs(q);
+    }
+    findJob(id) {
+        return this.svc.findJobById(id);
+    }
+    createJob(u, dto) {
+        return this.svc.createJob(u.userId, dto);
+    }
+    submitBid(id, u, dto) {
+        return this.svc.submitBid(u.userId, id, dto);
+    }
+    acceptBid(id, u) {
+        return this.svc.acceptBid(id, u.userId);
+    }
+    rejectBid(id, u) {
+        return this.svc.rejectBid(id, u.userId);
+    }
+    myBids(u) {
+        return this.svc.getMyBids(u.userId);
+    }
+    myContracts(u) {
+        return this.svc.getMyContracts(u.userId);
+    }
+    contract(id) {
+        return this.svc.getContract(id);
+    }
     createMilestone(id, u, dto) {
         return this.svc.createMilestone(u.userId, id, dto);
     }
-    approveMilestone(id, u) { return this.escrowSvc.releaseMilestone(id, u.userId); }
+    approveMilestone(id, u) {
+        return this.escrowSvc.releaseMilestone(id, u.userId);
+    }
 };
 exports.FreelanceController = FreelanceController;
 __decorate([

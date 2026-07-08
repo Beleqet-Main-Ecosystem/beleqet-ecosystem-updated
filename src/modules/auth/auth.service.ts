@@ -1,5 +1,10 @@
 import {
-  Injectable, UnauthorizedException, ConflictException, Logger, NotFoundException, BadRequestException
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Logger,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -10,7 +15,13 @@ import { RegisterDto } from './dto/register.dto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
-import { passwordResetEmail, verificationEmail, loginAlertEmail, logoutAlertEmail, welcomeEmail } from '../notifications/email-templates';
+import {
+  passwordResetEmail,
+  verificationEmail,
+  loginAlertEmail,
+  logoutAlertEmail,
+  welcomeEmail,
+} from '../notifications/email-templates';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +32,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
-  ) { }
+  ) {}
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
@@ -44,26 +55,27 @@ export class AuthService {
 
     // Fire-and-forget: email queue failures must NOT crash registration
     this.sendVerificationEmail(user.id).catch((err) =>
-      this.logger.error(`Failed to enqueue verification email for ${user.email}: ${err.message}`)
+      this.logger.error(`Failed to enqueue verification email for ${user.email}: ${err.message}`),
     );
 
     // Send personalised welcome email
     const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
-    const dashboardUrl = user.role === 'EMPLOYER'
-      ? `${frontendUrl}/employer`
-      : user.role === 'FREELANCER'
-      ? `${frontendUrl}/profile`
-      : `${frontendUrl}/jobs`;
+    const dashboardUrl =
+      user.role === 'EMPLOYER'
+        ? `${frontendUrl}/employer`
+        : user.role === 'FREELANCER'
+          ? `${frontendUrl}/profile`
+          : `${frontendUrl}/jobs`;
     welcomeEmail(user.firstName, user.role, dashboardUrl)
       .then((email) =>
         this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
           to: user.email,
           subject: `Welcome to Beleqet, ${user.firstName}!`,
           ...email,
-        })
+        }),
       )
       .catch((err) =>
-        this.logger.error(`Failed to enqueue welcome email for ${user.email}: ${err.message}`)
+        this.logger.error(`Failed to enqueue welcome email for ${user.email}: ${err.message}`),
       );
 
     return this.issueTokens(user);
@@ -79,17 +91,20 @@ export class AuthService {
     return user;
   }
 
-  async login(user: { id: string; email: string; firstName: string; lastName: string; role: string }, userAgent?: string) {
+  async login(
+    user: { id: string; email: string; firstName: string; lastName: string; role: string },
+    userAgent?: string,
+  ) {
     loginAlertEmail(user.firstName, userAgent)
       .then((email) =>
         this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
           to: user.email,
           subject: 'New login detected on your Beleqet account',
           ...email,
-        })
+        }),
       )
       .catch((err) =>
-        this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`)
+        this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`),
       );
     return this.issueTokens(user);
   }
@@ -110,7 +125,10 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, firstName: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    });
     await this.prisma.refreshToken.deleteMany({ where: { userId } });
     if (user) {
       logoutAlertEmail(user.firstName)
@@ -119,10 +137,12 @@ export class AuthService {
             to: user.email,
             subject: 'You have logged out from Beleqet',
             ...email,
-          })
+          }),
         )
         .catch((err) =>
-          this.logger.error(`Failed to enqueue logout alert email for ${user.email}: ${err.message}`)
+          this.logger.error(
+            `Failed to enqueue logout alert email for ${user.email}: ${err.message}`,
+          ),
         );
     }
   }
@@ -138,7 +158,7 @@ export class AuthService {
         token,
         type: 'EMAIL_VERIFICATION',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      }
+      },
     });
 
     const verifyUrl = `${this.config.get('FRONTEND_URL')}/auth/verify-email?token=${token}`;
@@ -153,13 +173,17 @@ export class AuthService {
 
   async verifyEmail(token: string) {
     const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
-    if (!verificationToken || verificationToken.type !== 'EMAIL_VERIFICATION' || verificationToken.expiresAt < new Date()) {
+    if (
+      !verificationToken ||
+      verificationToken.type !== 'EMAIL_VERIFICATION' ||
+      verificationToken.expiresAt < new Date()
+    ) {
       throw new BadRequestException('Invalid or expired verification token');
     }
 
     await this.prisma.user.update({
       where: { id: verificationToken.userId },
-      data: { emailVerified: true }
+      data: { emailVerified: true },
     });
 
     await this.prisma.verificationToken.delete({ where: { id: verificationToken.id } });
@@ -177,7 +201,7 @@ export class AuthService {
         token,
         type: 'PASSWORD_RESET',
         expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
-      }
+      },
     });
 
     const resetUrl = `${this.config.get('FRONTEND_URL')}/auth/reset-password?token=${token}`;
@@ -194,21 +218,33 @@ export class AuthService {
 
   async resetPassword(token: string, newPassword: string) {
     const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
-    if (!verificationToken || verificationToken.type !== 'PASSWORD_RESET' || verificationToken.expiresAt < new Date()) {
+    if (
+      !verificationToken ||
+      verificationToken.type !== 'PASSWORD_RESET' ||
+      verificationToken.expiresAt < new Date()
+    ) {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await this.prisma.user.update({
       where: { id: verificationToken.userId },
-      data: { passwordHash }
+      data: { passwordHash },
     });
 
-    await this.prisma.verificationToken.deleteMany({ where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' } });
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' },
+    });
     return { success: true, message: 'Password reset successfully' };
   }
 
-  private async issueTokens(user: { id: string; email: string; firstName: string; lastName: string; role: string }) {
+  private async issueTokens(user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     const accessToken = this.jwt.sign(payload, {

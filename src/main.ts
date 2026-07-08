@@ -60,20 +60,14 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // ── Validation ────────────────────────────────────────────────────────────
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // strip unknown props
-      forbidNonWhitelisted: true,
-      transform: true, // auto-transform to DTO types
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
+  // Validation is handled in service layer for i18n support
+  // No global pipe to allow all properties through to service layer
 
   // ── Serialization ─────────────────────────────────────────────────────────
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // ── Exception filter ──────────────────────────────────────────────────────
-  app.useGlobalFilters(new HttpExceptionFilter());
+  // HttpExceptionFilter is registered as a global filter in AppModule
 
   // ── Logging interceptor ───────────────────────────────────────────────────
   app.useGlobalInterceptors(new LoggingInterceptor());
