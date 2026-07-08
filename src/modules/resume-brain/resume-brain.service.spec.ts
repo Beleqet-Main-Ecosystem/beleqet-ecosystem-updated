@@ -2,8 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
   UnsupportedMediaTypeException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { ResumeBrainService, UploadedResumeFile } from './resume-brain.service';
+import { DocumentParserService } from './document-parser.service';
 
 const makeFile = (over: Partial<UploadedResumeFile> = {}): UploadedResumeFile => ({
   originalname: 'resume.pdf',
@@ -15,10 +17,16 @@ const makeFile = (over: Partial<UploadedResumeFile> = {}): UploadedResumeFile =>
 
 describe('ResumeBrainService', () => {
   let service: ResumeBrainService;
+  let parser: { extractText: jest.Mock };
 
   beforeEach(async () => {
+    parser = { extractText: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ResumeBrainService],
+      providers: [
+        ResumeBrainService,
+        { provide: DocumentParserService, useValue: parser },
+      ],
     }).compile();
 
     service = module.get<ResumeBrainService>(ResumeBrainService);
@@ -80,6 +88,47 @@ describe('ResumeBrainService', () => {
       const file = makeFile({ originalname: 'image.png', mimetype: 'image/png' });
       expect(() => service.describeUpload(file)).toThrow(
         UnsupportedMediaTypeException,
+      );
+    });
+  });
+
+  describe('parseResume', () => {
+    it('returns upload metadata plus the extracted text', async () => {
+      parser.extractText.mockResolvedValue('John Doe\nSoftware Engineer');
+      const file = makeFile();
+
+      await expect(service.parseResume(file)).resolves.toEqual({
+        filename: 'resume.pdf',
+        mimetype: 'application/pdf',
+        size: 1024,
+        text: 'John Doe\nSoftware Engineer',
+      });
+      expect(parser.extractText).toHaveBeenCalledWith(file);
+    });
+
+    it('rejects with 415 before parsing when the type is unsupported', async () => {
+      const file = makeFile({ originalname: 'image.png', mimetype: 'image/png' });
+
+      await expect(service.parseResume(file)).rejects.toThrow(
+        UnsupportedMediaTypeException,
+      );
+      expect(parser.extractText).not.toHaveBeenCalled();
+    });
+
+    it('rejects with 400 when no file is provided', async () => {
+      await expect(service.parseResume(undefined)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(parser.extractText).not.toHaveBeenCalled();
+    });
+
+    it('propagates a 422 raised by the parser', async () => {
+      parser.extractText.mockRejectedValue(
+        new UnprocessableEntityException('No readable text found in the document.'),
+      );
+
+      await expect(service.parseResume(makeFile())).rejects.toThrow(
+        UnprocessableEntityException,
       );
     });
   });

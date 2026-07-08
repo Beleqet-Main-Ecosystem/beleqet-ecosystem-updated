@@ -9,6 +9,7 @@ import {
   ALLOWED_EXTENSIONS,
   ALLOWED_MIME_TYPES,
 } from './resume-brain.constants';
+import { DocumentParserService } from './document-parser.service';
 
 /**
  * Minimal shape of a Multer-uploaded file. Mirrors what
@@ -29,6 +30,11 @@ export interface UploadMetadata {
   size: number;
 }
 
+/** Upload metadata plus the plain text extracted from the document (Phase 3). */
+export interface ParsedResume extends UploadMetadata {
+  text: string;
+}
+
 /**
  * ResumeBrainService
  *
@@ -40,6 +46,8 @@ export interface UploadMetadata {
 @Injectable()
 export class ResumeBrainService {
   private readonly logger = new Logger(ResumeBrainService.name);
+
+  constructor(private readonly documentParser: DocumentParserService) {}
 
   health() {
     return {
@@ -72,6 +80,20 @@ export class ResumeBrainService {
       mimetype: file.mimetype,
       size: file.size,
     };
+  }
+
+  /**
+   * Validate an uploaded resume and extract its plain text (Phase 3).
+   *
+   * Reuses {@link describeUpload} for the `400`/`415` guards, then delegates the
+   * actual text extraction to {@link DocumentParserService}. Parsing failures
+   * surface as `422 Unprocessable Entity`.
+   */
+  async parseResume(file?: UploadedResumeFile): Promise<ParsedResume> {
+    const metadata = this.describeUpload(file);
+    // `describeUpload` throws when `file` is missing, so it is defined here.
+    const text = await this.documentParser.extractText(file as UploadedResumeFile);
+    return { ...metadata, text };
   }
 
   /**
