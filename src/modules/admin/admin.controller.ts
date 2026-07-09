@@ -217,6 +217,7 @@ export class AdminController {
         freelanceJobs: true,
         contractsAsClient: true,
         contractsAsFreelancer: true,
+        kycVerification: true,
       },
     });
 

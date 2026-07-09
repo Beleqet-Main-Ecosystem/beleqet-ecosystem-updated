@@ -27,6 +27,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
+import { KycModule } from './modules/kyc/kyc.module';
 
 @Module({
   imports: [
@@ -105,6 +106,7 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
     DbIndexMasterModule,
     PaymentsModule,
     TwoFactorModule,
+    KycModule,
   ],
 })
 export class AppModule {}
