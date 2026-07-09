@@ -18,5 +18,20 @@
     "approved": "KYC verification approved.",
     "rejected": "KYC verification was rejected: {reason}",
     "not_found": "No KYC record found for this account."
+  },
+  "resume-brain": {
+    "NO_FILE": "No file was uploaded.",
+    "EMPTY_FILE": "The uploaded file is empty.",
+    "UNSUPPORTED_FILE_TYPE": "Unsupported file type \"{mimeType}\". Only PDF, DOC, and DOCX files are accepted.",
+    "FILE_TOO_LARGE": "File exceeds the maximum size of {maxSizeMb}MB.",
+    "PARSE_TIMEOUT": "Resume parsing timed out. Please try again.",
+    "PARSE_FAILED": "Could not read this CV file: {reason}",
+    "EMPTY_EXTRACTION": "Could not extract any structured data from this CV. Please check the file and try again.",
+    "RESUME_NOT_FOUND": "Resume not found.",
+    "PARSED_RESUME_NOT_FOUND": "Parsed resume not found.",
+    "FORBIDDEN_RESUME_ACCESS": "You do not have access to this resume.",
+    "FORBIDDEN_PARSED_RESUME_ACCESS": "You do not have access to this parsed resume.",
+    "FORBIDDEN_PROFILE_AUTOFILL": "You can only autofill your own profile.",
+    "CONSENT_REQUIRED": "You must consent to processing of your CV data before uploading."
   }
 }
