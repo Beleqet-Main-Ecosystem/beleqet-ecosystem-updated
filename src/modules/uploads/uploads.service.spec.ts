@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { InternalServerErrorException } from '@nestjs/common';
 import { UploadsService } from './uploads.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -28,5 +29,13 @@ describe('UploadsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('deleteFile', () => {
+    it('should throw when cloud storage is not configured', async () => {
+      await expect(service.deleteFile('resumes/some-key.pdf')).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
   });
 });
