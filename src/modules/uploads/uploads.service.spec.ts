@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -274,6 +278,14 @@ describe('UploadsService', () => {
         where: { uploadedById: 'user-123', isDeleted: false },
         orderBy: { createdAt: 'desc' },
       });
+    });
+  });
+
+  describe('deleteFile', () => {
+    it('should throw when cloud storage is not configured', async () => {
+      await expect(service.deleteFile('resumes/some-key.pdf')).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });

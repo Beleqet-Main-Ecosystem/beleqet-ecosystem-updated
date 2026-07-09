@@ -509,4 +509,18 @@ export class UploadsService {
     const apiBaseUrl = this.config.get<string>('API_BASE_URL', 'http://localhost:4000/api/v1');
     return `${apiBaseUrl.replace(/\/$/, '')}/uploads/local-file/${key}`;
   }
+
+  /**
+   * Permanently deletes a previously uploaded file from cloud storage.
+   * Used by right-to-erasure (GDPR) flows where a database record and its
+   * associated file must both be removed.
+   *
+   * @param key - Object storage key returned by {@link uploadFile} or {@link generatePresignedUrl}.
+   */
+  async deleteFile(key: string): Promise<void> {
+    if (!this.s3Client)
+      throw new InternalServerErrorException('Cloud storage not configured on server');
+
+    await this.s3Client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
 }
