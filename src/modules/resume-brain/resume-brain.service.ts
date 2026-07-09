@@ -1,194 +1,342 @@
 import {
-  Injectable,
   BadRequestException,
-  UnsupportedMediaTypeException,
+  ForbiddenException,
+  Inject,
+  Injectable,
   Logger,
+  NotFoundException,
+  PayloadTooLargeException,
+  RequestTimeoutException,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Prisma, ResumeUploadStatus } from '@prisma/client';
+import { I18nService } from 'nestjs-i18n';
 import * as path from 'path';
-import { ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES } from './resume-brain.constants';
-import { DocumentParserService } from './document-parser.service';
-import { AIExtractorService } from './ai-extractor.service';
-import { AiBudgetService } from './ai-budget.service';
-import { ResumeValidatorService } from './resume-validator.service';
-import { ProfileMapperService, UserProfileUpdate } from './profile-mapper.service';
-import { ExtractedResume } from './dto/extracted-resume.dto';
+import { PrismaService } from '../../prisma/prisma.service';
+import { UploadsService } from '../uploads/uploads.service';
+import { UsersService } from '../users/users.service';
+import { ExtractedResumeDto } from './dto/extracted-resume.dto';
+import { ResumeExtractionProvider } from './extraction/resume-extraction-provider.interface';
+import { ResumeParsingService } from './parsers/resume-parsing.service';
+import { ResumeUploadFile } from './resume-upload-file.interface';
+
+/** MIME types accepted for CV uploads. */
+export const RESUME_ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+
+/** Default maximum accepted upload size (10 MB), overridable via `RESUME_MAX_FILE_SIZE_MB`. */
+const DEFAULT_MAX_FILE_SIZE_MB = 10;
+/** Default timeout for the parse+extract pipeline, overridable via `RESUME_PARSE_TIMEOUT_MS`. */
+const DEFAULT_PARSE_TIMEOUT_MS = 30_000;
+/** Default locale used when a request does not resolve one. */
+const DEFAULT_LANG = 'en';
 
 /**
- * Minimal shape of a Multer-uploaded file. Mirrors what
- * `@nestjs/platform-express` provides without pulling in the full
- * `Express.Multer.File` type surface.
- */
-export interface UploadedResumeFile {
-  originalname: string;
-  mimetype: string;
-  size: number;
-  buffer: Buffer;
-}
-
-/** Metadata returned to the client after a successful upload (Phase 2). */
-export interface UploadMetadata {
-  filename: string;
-  mimetype: string;
-  size: number;
-}
-
-/** Upload metadata plus the plain text extracted from the document (Phase 3). */
-export interface ParsedResume extends UploadMetadata {
-  text: string;
-}
-
-/** Upload metadata plus the AI-extracted structured profile (Phase 4-6). */
-export interface ExtractedResumeResult extends UploadMetadata {
-  /** Provider that produced the extraction, e.g. "groq". */
-  provider: string;
-  /** Full structured resume — drives the frontend CV-form autofill. */
-  profile: ExtractedResume;
-  /**
-   * The same data mapped to the existing UsersService update shape (Phase 6).
-   * The frontend can send this straight to `PATCH /users/profile` on Save.
-   */
-  userProfile: UserProfileUpdate;
-}
-
-/**
- * ResumeBrainService
- *
- * Orchestrator for the Resume Brain module. In later phases this service will
- * coordinate document parsing, AI extraction, validation and profile mapping.
- * For now it exposes a health check (Phase 1) and file-upload validation
- * (Phase 2). Parsing and AI are intentionally not implemented yet.
+ * Orchestrates the Resume Brain pipeline: validating and storing an uploaded
+ * CV, extracting structured data from it, persisting the result, retrieving
+ * it, applying it to a professional's profile, and erasing it on request.
+ * All client-facing error messages are translated via `nestjs-i18n`.
  */
 @Injectable()
 export class ResumeBrainService {
   private readonly logger = new Logger(ResumeBrainService.name);
+  private readonly maxFileSizeBytes: number;
+  private readonly maxFileSizeMb: number;
+  private readonly parseTimeoutMs: number;
 
   constructor(
-    private readonly documentParser: DocumentParserService,
-    private readonly aiExtractor: AIExtractorService,
-    private readonly aiBudget: AiBudgetService,
-    private readonly resumeValidator: ResumeValidatorService,
-    private readonly profileMapper: ProfileMapperService,
-  ) {}
-
-  health() {
-    return {
-      status: 'ok',
-      module: 'Resume Brain',
-    };
+    private readonly prisma: PrismaService,
+    private readonly uploadsService: UploadsService,
+    private readonly usersService: UsersService,
+    private readonly parsingService: ResumeParsingService,
+    @Inject('ResumeExtractionProvider')
+    private readonly extractionProvider: ResumeExtractionProvider,
+    private readonly config: ConfigService,
+    private readonly i18n: I18nService,
+  ) {
+    this.maxFileSizeMb = this.config.get<number>(
+      'RESUME_MAX_FILE_SIZE_MB',
+      DEFAULT_MAX_FILE_SIZE_MB,
+    );
+    this.maxFileSizeBytes = this.maxFileSizeMb * 1024 * 1024;
+    this.parseTimeoutMs = this.config.get<number>(
+      'RESUME_PARSE_TIMEOUT_MS',
+      DEFAULT_PARSE_TIMEOUT_MS,
+    );
   }
 
   /**
-   * Validate an uploaded resume and return its metadata.
+   * Validates, stores, parses, and extracts structured data from an uploaded CV.
    *
-   * The 5 MB size limit is enforced upstream by the `FileInterceptor` (Multer),
-   * which raises a `413 Payload Too Large` before this method runs. Here we
-   * guard against a missing file (`400`) and an unsupported type (`415`).
+   * @param userId - ID of the professional uploading the CV.
+   * @param file - The uploaded file.
+   * @param consentGiven - Explicit GDPR consent to process this CV's personal data.
+   * @param lang - Resolved request locale, used to translate any error raised.
+   * @returns The persisted upload record together with its parsed result.
    */
-  describeUpload(file?: UploadedResumeFile): UploadMetadata {
-    if (!file) {
-      throw new BadRequestException('No file uploaded. Expected form field "file".');
-    }
+  async uploadAndProcess(
+    userId: string,
+    file: ResumeUploadFile,
+    consentGiven: boolean,
+    lang: string = DEFAULT_LANG,
+  ) {
+    this.validateFile(file, lang);
+    const sanitizedFilename = this.sanitizeFilename(file.originalname);
 
-    this.assertSupportedType(file);
-
-    // Never log the file contents — only non-sensitive metadata.
-    this.logger.log(
-      `Accepted resume upload: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`,
+    const stored = await this.uploadsService.uploadFile(
+      { buffer: file.buffer, originalname: sanitizedFilename, mimetype: file.mimetype },
+      'resumes',
     );
 
-    return {
-      filename: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size,
-    };
+    const upload = await this.prisma.resumeUpload.create({
+      data: {
+        userId,
+        originalFilename: sanitizedFilename,
+        storageKey: stored.key,
+        storageUrl: stored.publicUrl,
+        mimeType: file.mimetype,
+        fileSizeBytes: file.buffer.length,
+        status: ResumeUploadStatus.PARSING,
+        consentGiven,
+        consentAt: new Date(),
+      },
+    });
+
+    await this.logEvent('resume.uploaded', upload.id, 'ResumeUpload', {
+      userId,
+      mimeType: file.mimetype,
+    });
+
+    try {
+      const extracted = await this.withTimeout(
+        this.processDocument(file.buffer, file.mimetype, lang),
+        this.parseTimeoutMs,
+        lang,
+      );
+
+      const parsedResume = await this.prisma.$transaction(async (tx) => {
+        const record = await tx.parsedResume.create({
+          data: {
+            resumeUploadId: upload.id,
+            userId,
+            personalInfo: extracted.personalInfo as unknown as Prisma.InputJsonValue,
+            education: extracted.education as unknown as Prisma.InputJsonValue,
+            workExperience: extracted.workExperience as unknown as Prisma.InputJsonValue,
+            skills: extracted.skills,
+            certifications: extracted.certifications,
+            languages: extracted.languages as unknown as Prisma.InputJsonValue,
+            extractionEngine: this.extractionProvider.engineId,
+          },
+        });
+        await tx.resumeUpload.update({
+          where: { id: upload.id },
+          data: { status: ResumeUploadStatus.PARSED },
+        });
+        return record;
+      });
+
+      await this.logEvent('resume.parsed', upload.id, 'ResumeUpload', {
+        userId,
+        extractionEngine: this.extractionProvider.engineId,
+      });
+
+      return { upload: { ...upload, status: ResumeUploadStatus.PARSED }, parsedResume };
+    } catch (err) {
+      const reason = (err as Error).message;
+      await this.prisma.resumeUpload.update({
+        where: { id: upload.id },
+        data: { status: ResumeUploadStatus.FAILED, failureReason: reason },
+      });
+      await this.logEvent('resume.parse_failed', upload.id, 'ResumeUpload', { userId, reason });
+      throw err;
+    }
   }
 
   /**
-   * Validate an uploaded resume and extract its plain text (Phase 3).
+   * Retrieves a previously uploaded CV and its parsed result.
    *
-   * Reuses {@link describeUpload} for the `400`/`415` guards, then delegates the
-   * actual text extraction to {@link DocumentParserService}. Parsing failures
-   * surface as `422 Unprocessable Entity`.
+   * @param userId - ID of the requesting professional (must own the resume).
+   * @param id - `ResumeUpload` ID.
+   * @param lang - Resolved request locale, used to translate any error raised.
    */
-  async parseResume(file?: UploadedResumeFile): Promise<ParsedResume> {
-    const metadata = this.describeUpload(file);
-    // `describeUpload` throws when `file` is missing, so it is defined here.
-    const text = await this.documentParser.extractText(file as UploadedResumeFile);
-    return { ...metadata, text };
+  async getResume(userId: string, id: string, lang: string = DEFAULT_LANG) {
+    const upload = await this.prisma.resumeUpload.findUnique({
+      where: { id },
+      include: { parsedResume: true },
+    });
+    if (!upload) throw new NotFoundException(this.t('RESUME_NOT_FOUND', lang));
+    if (upload.userId !== userId)
+      throw new ForbiddenException(this.t('FORBIDDEN_RESUME_ACCESS', lang));
+    return upload;
   }
 
   /**
-   * Full pipeline: validate upload → parse text → AI-extract → validate (Phase 5).
+   * Permanently erases a CV and its parsed data (GDPR right-to-erasure):
+   * removes the stored file and cascades the database delete to the parsed
+   * result.
    *
-   * Reuses {@link parseResume} for the upload/parse stages, hands the raw text
-   * to {@link AIExtractorService}, then runs the result through
-   * {@link ResumeValidatorService} which rejects untrusted/empty AI output with
-   * a `400`. The returned `profile` is a validated {@link ExtractedResume},
-   * ready for the frontend autofill and (via the Phase 6 mapper) UserService.
+   * @param userId - ID of the requesting professional (must own the resume).
+   * @param id - `ResumeUpload` ID.
+   * @param lang - Resolved request locale, used to translate any error raised.
    */
-  async extractProfile(file?: UploadedResumeFile, userId?: string): Promise<ExtractedResumeResult> {
-    const { text, ...metadata } = await this.parseResume(file);
+  async deleteResume(userId: string, id: string, lang: string = DEFAULT_LANG): Promise<void> {
+    const upload = await this.prisma.resumeUpload.findUnique({ where: { id } });
+    if (!upload) throw new NotFoundException(this.t('RESUME_NOT_FOUND', lang));
+    if (upload.userId !== userId)
+      throw new ForbiddenException(this.t('FORBIDDEN_RESUME_ACCESS', lang));
 
-    // Cost guard: reject (429) before spending on the paid provider if the user
-    // is over their daily budget, then meter the tokens the call actually used.
-    await this.aiBudget.assertWithinBudget(userId);
-    const { resume: extracted, usage } = await this.aiExtractor.extract(text);
-    await this.aiBudget.recordUsage(userId, usage);
+    await this.uploadsService.deleteFile(upload.storageKey).catch((err) => {
+      this.logger.warn(`Failed to delete stored file for resume ${id}: ${(err as Error).message}`);
+    });
 
-    const profile = this.resumeValidator.validate(extracted);
-    const userProfile = this.profileMapper.toUserProfile(profile);
-    return {
-      ...metadata,
-      provider: this.aiExtractor.providerName,
-      profile,
-      userProfile,
-    };
+    await this.prisma.resumeUpload.delete({ where: { id } });
+
+    await this.logEvent('resume.deleted', id, 'ResumeUpload', { userId });
   }
 
   /**
-   * Reject anything that is not a PDF / DOCX. Checks BOTH the MIME type AND
-   * the file extension to prevent spoofing attacks where a malicious file has
-   * a forged MIME type or a fake extension. Both must match the allowlist.
+   * Applies a parsed resume's personal details and skills to the
+   * professional's profile via {@link UsersService}. When the caller supplies
+   * `personalInfo`/`skills` overrides (e.g. after correcting the extracted
+   * data in the review form), those take precedence over the originally
+   * stored parsed values.
+   *
+   * @param userId - ID of the professional whose profile is being updated.
+   * @param resumeId - `ParsedResume` ID to source data from (also used to verify ownership).
+   * @param lang - Resolved request locale, used to translate any error raised.
+   * @param overrides - Optional corrected personal info / skills from the review form.
    */
-  private assertSupportedType(file: UploadedResumeFile): void {
-    const mimeOk = ALLOWED_MIME_TYPES.includes(file.mimetype);
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const extOk = ALLOWED_EXTENSIONS.includes(ext);
+  async autofillProfile(
+    userId: string,
+    resumeId: string,
+    lang: string = DEFAULT_LANG,
+    overrides?: { personalInfo?: ExtractedResumeDto['personalInfo']; skills?: string[] },
+  ) {
+    const parsedResume = await this.prisma.parsedResume.findUnique({ where: { id: resumeId } });
+    if (!parsedResume) throw new NotFoundException(this.t('PARSED_RESUME_NOT_FOUND', lang));
+    if (parsedResume.userId !== userId) {
+      throw new ForbiddenException(this.t('FORBIDDEN_PARSED_RESUME_ACCESS', lang));
+    }
 
-    if (!mimeOk || !extOk) {
-      throw new UnsupportedMediaTypeException(
-        `Unsupported file type "${file.mimetype || ext || 'unknown'}". ` +
-          'Only PDF and DOCX resumes are allowed.',
+    const personalInfo =
+      overrides?.personalInfo ??
+      (parsedResume.personalInfo as unknown as ExtractedResumeDto['personalInfo']);
+    const skills = overrides?.skills ?? parsedResume.skills;
+    const [firstName, ...rest] = (personalInfo.fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    const lastName = rest.join(' ');
+
+    const updatedUser = await this.usersService.update(userId, {
+      ...(firstName ? { firstName } : {}),
+      ...(lastName ? { lastName } : {}),
+      ...(personalInfo.phone ? { phone: personalInfo.phone } : {}),
+      ...(personalInfo.location ? { location: personalInfo.location } : {}),
+      ...(skills.length > 0 ? { skills } : {}),
+    });
+
+    await this.logEvent('profile.autofilled', userId, 'User', { userId, resumeId });
+
+    return updatedUser;
+  }
+
+  /**
+   * Runs the parse-then-extract pipeline and rejects empty results with a
+   * meaningful error rather than persisting a blank record.
+   */
+  private async processDocument(
+    buffer: Buffer,
+    mimeType: string,
+    lang: string,
+  ): Promise<ExtractedResumeDto> {
+    let text: string;
+    try {
+      ({ text } = await this.parsingService.parse(buffer, mimeType));
+    } catch (err) {
+      throw new BadRequestException(
+        this.t('PARSE_FAILED', lang, { reason: (err as Error).message }),
       );
     }
 
-    this.assertMagicNumber(file, ext);
+    const extracted = await this.extractionProvider.extract(text);
+
+    if (this.isEmptyExtraction(extracted)) {
+      throw new BadRequestException(this.t('EMPTY_EXTRACTION', lang));
+    }
+    return extracted;
   }
 
-  /**
-   * Defence in depth: verify the file's leading bytes match its declared type.
-   * MIME/extension can be spoofed; the magic number cannot. Rejecting a mismatch
-   * here fails fast with a clear `415` instead of a confusing `422` deep inside
-   * the parser. Every allowed extension (.pdf, .docx) has a well-defined header,
-   * so nothing passes upload validation without a content check.
-   */
-  private assertMagicNumber(file: UploadedResumeFile, ext: string): void {
-    const buffer = file.buffer;
-    // A real PDF/DOCX is never this small — skipping the check here would let a
-    // tiny junk file pass upload only to fail in the parser with a vague 422.
-    if (!buffer || buffer.length < 4) {
+  private isEmptyExtraction(data: ExtractedResumeDto): boolean {
+    const hasPersonalInfo = Boolean(
+      data.personalInfo?.fullName || data.personalInfo?.email || data.personalInfo?.phone,
+    );
+    return (
+      !hasPersonalInfo &&
+      data.education.length === 0 &&
+      data.workExperience.length === 0 &&
+      data.skills.length === 0 &&
+      data.certifications.length === 0 &&
+      data.languages.length === 0
+    );
+  }
+
+  private validateFile(file: ResumeUploadFile | undefined | null, lang: string): void {
+    if (!file) throw new BadRequestException(this.t('NO_FILE', lang));
+    if (!file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException(this.t('EMPTY_FILE', lang));
+    }
+    if (!RESUME_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       throw new UnsupportedMediaTypeException(
-        'File is too small to be a valid PDF or DOCX resume.',
+        this.t('UNSUPPORTED_FILE_TYPE', lang, { mimeType: file.mimetype }),
       );
     }
-
-    if (ext === '.pdf' && buffer.toString('ascii', 0, 4) !== '%PDF') {
-      throw new UnsupportedMediaTypeException('File content does not match the PDF format.');
+    if (file.buffer.length > this.maxFileSizeBytes) {
+      throw new PayloadTooLargeException(
+        this.t('FILE_TOO_LARGE', lang, { maxSizeMb: this.maxFileSizeMb }),
+      );
     }
+  }
 
-    // .docx is a ZIP container — every one starts with the "PK" local-file header.
-    if (ext === '.docx' && buffer.toString('ascii', 0, 2) !== 'PK') {
-      throw new UnsupportedMediaTypeException('File content does not match the DOCX format.');
+  private sanitizeFilename(originalname: string): string {
+    const base = path.basename(originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+    return base.slice(-150) || 'resume';
+  }
+
+  private async withTimeout<T>(promise: Promise<T>, ms: number, lang: string): Promise<T> {
+    let timer: NodeJS.Timeout;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new RequestTimeoutException(this.t('PARSE_TIMEOUT', lang))),
+        ms,
+      );
+    });
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      clearTimeout(timer!);
     }
+  }
+
+  private async logEvent(
+    eventType: string,
+    entityId: string,
+    entityType: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    await this.prisma.eventLog.create({
+      data: {
+        eventType,
+        entityId,
+        entityType,
+        payload: payload as unknown as Prisma.InputJsonValue,
+        processedBy: ResumeBrainService.name,
+      },
+    });
+  }
+
+  private t(key: string, lang: string, args?: Record<string, unknown>): string {
+    return this.i18n.t(`resume-brain.${key}`, { lang, args });
   }
 }
