@@ -46,6 +46,9 @@ services:
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
       - OPENAI_API_KEY=dummy_key_for_testing
+      - TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+      - TOTP_TEMP_SECRET=docker_totp_temp_secret_please_change_in_production
+      - TOTP_ISSUER=Beleqet
     depends_on:
       - db
       - redis

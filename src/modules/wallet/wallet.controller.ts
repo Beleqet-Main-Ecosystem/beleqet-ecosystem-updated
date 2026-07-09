@@ -35,5 +35,7 @@ export class WalletController {
   convert(@Body() dto: ConvertDto) { return this.svc.previewConvert(dto); }
 
   @Post('withdraw')
+  @UseGuards(StepUpGuard)
+  @SensitiveAction('wallet_withdraw')
   withdraw(@CurrentUser() u: CurrentUserPayload, @Body() dto: WithdrawDto) { return this.svc.withdraw(u.userId, dto); }
 }

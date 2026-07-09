@@ -1,0 +1,165 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: beleqet_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Create .env for CI
+        run: |
+          cat > .env << 'EOF'
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beleqet_test
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          REDIS_PASSWORD=
+          JWT_ACCESS_SECRET=ci_test_jwt_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          JWT_ACCESS_EXPIRES=15m
+          JWT_REFRESH_EXPIRES=30d
+          TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+          TOTP_TEMP_SECRET=ci_test_totp_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          TOTP_ISSUER=Beleqet
+          NODE_ENV=test
+          CHAPA_SECRET_KEY=""
+          PORT=4000
+          FRONTEND_URL=http://localhost:3000
+          BULL_BOARD_USERNAME=admin
+          BULL_BOARD_PASSWORD=ci_board_password
+          OPENAI_API_KEY=sk-test-dummy-key-for-ci
+          STRIPE_SECRET_KEY=sk_test_dummy
+          STRIPE_WEBHOOK_SECRET=whsec_dummy
+          PAYPAL_CLIENT_ID=dummy_client_id
+          PAYPAL_CLIENT_SECRET=dummy_client_secret
+          EOF
+
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run build
+      - run: npm test
+
+  playwright-e2e:
+    needs: [unit-tests]
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: beleqet_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Create .env for CI
+        run: |
+          cat > .env << 'EOF'
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beleqet_test
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          REDIS_PASSWORD=
+          JWT_ACCESS_SECRET=ci_test_jwt_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          JWT_ACCESS_EXPIRES=15m
+          JWT_REFRESH_EXPIRES=30d
+          TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+          TOTP_TEMP_SECRET=ci_test_totp_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          TOTP_ISSUER=Beleqet
+          NODE_ENV=test
+          CHAPA_SECRET_KEY=""
+          PORT=4000
+          FRONTEND_URL=http://localhost:3000
+          BULL_BOARD_USERNAME=admin
+          BULL_BOARD_PASSWORD=ci_board_password
+          OPENAI_API_KEY=sk-test-dummy-key-for-ci
+          STRIPE_SECRET_KEY=sk_test_dummy
+          STRIPE_WEBHOOK_SECRET=whsec_dummy
+          PAYPAL_CLIENT_ID=dummy_client_id
+          PAYPAL_CLIENT_SECRET=dummy_client_secret
+          EOF
+
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npm run build
+
+      - name: Start backend in background
+        run: |
+          node dist/main &
+          echo "PID=$!"
+          timeout 45 sh -c 'until nc -z localhost 4000; do sleep 1; done'
+          echo "Backend ready"
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test --config frontend/playwright.config.ts
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

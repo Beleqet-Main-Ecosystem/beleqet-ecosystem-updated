@@ -1,13 +1,38 @@
 {
-    "chat": {
-      "unauthorized": "Unauthorized connection — invalid or missing token",
-      "roomIdRequired": "Room ID is required",
-      "joinRoomFailed": "Failed to join room",
-      "messageContentRequired": "Message content is required",
-      "sendMessageFailed": "Failed to send message",
-      "fileUrlRequired": "File URL is required",
-      "shareFileFailed": "Failed to share file",
-      "callLinkRequired": "Call link is required",
-      "startVideoCallFailed": "Failed to start video call"
-    }
+  "2fa": {
+    "enrollment_title": "Set up Two-Factor Authentication",
+    "enrollment_instructions": "Scan the QR code with your authenticator app, then enter the 6-digit code below.",
+    "enrollment_secret_label": "Or enter this key manually: {secret}",
+    "code_input_label": "Authentication code",
+    "code_input_placeholder": "000000",
+    "code_invalid": "Invalid code. Try again.",
+    "code_expired": "This code has expired. Generate a new one.",
+    "verify_success": "Two-factor authentication verified.",
+    "enrollment_success": "Two-factor authentication enabled successfully.",
+    "backup_codes_title": "Save your backup codes",
+    "backup_codes_warning": "Each code can be used only once. Store them in a safe place.",
+    "backup_code_used": "Backup code consumed. {remaining} remaining.",
+    "backup_code_invalid": "Invalid or already-used backup code.",
+    "step_up_title": "Verify your identity",
+    "step_up_instructions": "Enter your 2FA code to authorize this sensitive action.",
+    "sensitive_action_required": "This action requires recent two-factor verification. Please re-verify.",
+    "rate_limit_exceeded": "Too many attempts. Please wait {minutes} minutes and try again.",
+    "already_enabled": "Two-factor authentication is already enabled.",
+    "already_disabled": "Two-factor authentication is already disabled.",
+    "disable_confirm": "Enter your current code to disable two-factor authentication.",
+    "disable_success": "Two-factor authentication disabled.",
+    "regenerate_backup_codes": "Enter your current code to regenerate backup codes.",
+    "replay_detected": "This code has already been used. Generate a new one."
+  },
+  "chat": {
+    "unauthorized": "Unauthorized connection — invalid or missing token",
+    "roomIdRequired": "Room ID is required",
+    "joinRoomFailed": "Failed to join room",
+    "messageContentRequired": "Message content is required",
+    "sendMessageFailed": "Failed to send message",
+    "fileUrlRequired": "File URL is required",
+    "shareFileFailed": "Failed to share file",
+    "callLinkRequired": "Call link is required",
+    "startVideoCallFailed": "Failed to start video call"
   }
+}
