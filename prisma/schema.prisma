@@ -54,6 +54,8 @@ model User {
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
+  resumeUploads         ResumeUpload[]
+  parsedResumes         ParsedResume[]
 
   @@map("users")
 }
@@ -794,4 +796,77 @@ enum KycStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+/// Raw CV/resume file uploaded by a professional, pending or already processed by Resume Brain.
+model ResumeUpload {
+  id               String             @id @default(uuid())
+  /// Owning professional's user ID
+  userId           String
+  /// Sanitized original filename (extension-checked, path-stripped)
+  originalFilename String
+  /// Object storage key (never a guessable/user-controlled path)
+  storageKey       String
+  /// Public/signed URL of the stored file
+  storageUrl       String
+  /// Detected MIME type (application/pdf, application/msword, .docx, ...)
+  mimeType         String
+  /// File size in bytes, enforced against the configured max on upload
+  fileSizeBytes    Int
+  /// Lifecycle status of the parsing pipeline
+  status           ResumeUploadStatus @default(PENDING)
+  /// Explicit GDPR consent to process this CV's personal data
+  consentGiven     Boolean            @default(false)
+  /// Timestamp the consent was recorded
+  consentAt        DateTime?
+  /// Populated when status is FAILED
+  failureReason    String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parsedResume ParsedResume?
+
+  /// Lookup a user's upload history, most recent first
+  @@index([userId, createdAt])
+  /// Admin/ops filtering by pipeline status
+  @@index([status])
+  @@map("resume_uploads")
+}
+
+enum ResumeUploadStatus {
+  PENDING
+  PARSING
+  PARSED
+  FAILED
+}
+
+/// Structured data extracted from a ResumeUpload by the Resume Brain extraction engine.
+model ParsedResume {
+  id               String   @id @default(uuid())
+  /// One parsed result per upload
+  resumeUploadId   String   @unique
+  /// Denormalized for direct user-scoped queries without a join
+  userId           String
+  /// { fullName, email, phone, location }
+  personalInfo     Json
+  /// Array of { institution, degree, fieldOfStudy, startDate, endDate }
+  education        Json
+  /// Array of { company, title, startDate, endDate, description, compensation? }
+  workExperience   Json
+  skills           String[] @default([])
+  certifications   String[] @default([])
+  /// Array of { language, proficiency }
+  languages        Json
+  /// Identifier of the extraction engine/model that produced this result (swappable provider)
+  extractionEngine String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  resumeUpload ResumeUpload @relation(fields: [resumeUploadId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Lookup a user's parsed resumes, most recent first
+  @@index([userId, createdAt])
+  @@map("parsed_resumes")
 }
