@@ -4,7 +4,12 @@
     "overlap": "ይህ የተገኝነት ሰዓት ቀደም ሲል ካስመዘገቡት የተገኝነት ሰዓት ጋር ይጋጫል። እባክዎ ነባሩን ያስተካክሉ ወይም ያስወግዱት።",
     "employerUnavailable": "በተመረጠው ጊዜ አይገኙም።",
     "candidateUnavailable": "እጩው በተመረጠው ጊዜ አይገኝም።",
-    "shortDuration": "ያለው የተገኝነት ጊዜ ለቃለ መጠይቁ የሚያስፈልገውን ጊዜ አያሟላም።"
+    "shortDuration": "ያለው የተገኝነት ጊዜ ለቃለ መጠይቁ የሚያስፈልገውን ጊዜ አያሟላም።",
+    "forbidden": "የተገኝነት ሰዓት ለመፍጠር ወይም ለመሻሻል ፍቃድ የለዎትም።",
+    "notFound": "የተገኝነት ሰዓት አልተገኘም።",
+    "deleted": "የተገኝነት �ሰዓት በተሳካ ሁኔታ ተሰርዟል።",
+    "created": "የተገኝነት ሰዓት በተሳካ ሁኔታ ተ�ፍጠረዋል።",
+    "updated": "የተገኝነት ሰዓት በተሳካ ሁኔታ ተሻሽሏል።"
   },
 
   "interview": {
@@ -20,7 +25,7 @@
 
   "notification": {
     "scheduledTitle": "ቃለ መጠይቅ ተይዟል",
-    "candidateScheduledBody": "ለ{{jobTitle}} ሥራ የቃለ መጠይቅዎ ተይዟል።\n\nቀን፦ {{startTime}}\nየሚያበቃበት ሰዓት፦ {{endTime}}\nየሰዓት ክልል፦ {{timezone}}\n\nእባክዎ በተያዘው ጊዜ ዝግጁ ይሁኑ።",
-    "employerScheduledBody": "ለ{{jobTitle}} ሥራ ከእጩው ጋር የሚደረገው ቃለ መጠይቅ በተሳካ ሁኔታ ተይዟል።\n\nቀን፦ {{startTime}}\nየሚያበቃበት ሰዓት፦ {{endTime}}\nየሰዓት ክልል፦ {{timezone}}\n\nለእጩውም ማሳወቂያ ተልኳል።"
+    "candidateScheduledBody": "ለ{jobTitle} ሥራ የቃለ መጠይቅዎ ተይዟል።\n\nቀን፦ {startTime}\nየሚያበቃበት ሰዓት፦ {endTime}\nየሰዓት ክልል፦ {timezone}\n\nእባክዎ በተያዘው ጊዜ ዝግጁ ይሁኑ።",
+    "employerScheduledBody": "ለ{jobTitle} ሥራ ከእጩው ጋር የሚደረገው ቃለ መጠይቅ በተሳካ ሁኔታ ተይዟል።\n\nቀን፦ {startTime}\nየሚያበቃበት ሰዓት፦ {endTime}\nየሰዓት ክልል፦ {timezone}\n\nለእጩውም ማሳወቂያ ተልኳል።"
   }
 }

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { BriefcaseBusiness, Eye, Plus, Users } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
+import { toast } from 'sonner';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 type Job = {
   id: string;
@@ -55,28 +57,36 @@ export default function EmployerPage() {
     if (response.ok && selected) openApplicants(selected);
   }
   async function autoSchedule(applicationId: string) {
-    const response = await authenticatedFetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/auto-schedule`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    try {
+      const response = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/auto-schedule`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            applicationId,
+          }),
         },
-        body: JSON.stringify({
-          applicationId,
-        }),
-      },
-    );
-    const data = await response.json();
-    if (!response.ok) {
-      alert(data.message ?? 'Unable to schedule interview.');
-      return;
-    }
+      );
 
-    alert('Interview scheduled successfully!');
+      const data = await response.json();
 
-    if (selected) {
-      openApplicants(selected);
+      if (!response.ok) {
+        toast.error(data.message ?? 'Unable to schedule interview.');
+        return;
+      }
+
+      toast.success(data.message ?? 'Interview scheduled successfully.');
+
+      if (selected) {
+        openApplicants(selected);
+      }
+    } catch (error) {
+      console.error(error);
+
+      toast.error('Failed to schedule interview. Please try again.');
     }
   }
   if (!ready || !user || !['EMPLOYER', 'ADMIN'].includes(user.role))

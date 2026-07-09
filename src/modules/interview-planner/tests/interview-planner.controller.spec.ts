@@ -10,6 +10,10 @@ describe('InterviewPlannerController', () => {
 
     getUserAvailabilities: jest.fn(),
 
+    updateAvailability: jest.fn(),
+
+    deleteAvailability: jest.fn(),
+
     autoScheduleInterview: jest.fn(),
 
     findCommonAvailability: jest.fn(),
@@ -48,7 +52,10 @@ describe('InterviewPlannerController', () => {
       };
 
       serviceMock.createAvailability.mockResolvedValue({
-        id: 'slot-1',
+        message: 'Availability created successfully.',
+        data: {
+          id: 'slot-1',
+        },
       });
 
       const result = await controller.createAvailability(request as any, dto);
@@ -56,11 +63,67 @@ describe('InterviewPlannerController', () => {
       expect(serviceMock.createAvailability).toHaveBeenCalledWith('user-1', dto);
 
       expect(result).toEqual({
-        id: 'slot-1',
+        message: 'Availability created successfully.',
+        data: {
+          id: 'slot-1',
+        },
       });
     });
   });
+  describe('updateAvailability', () => {
+    it('should update an availability slot', async () => {
+      const request = {
+        user: {
+          userId: 'user-1',
+        },
+      };
 
+      const dto = {
+        startTime: '2026-07-30T12:00:00Z',
+        endTime: '2026-07-30T13:00:00Z',
+        timezone: 'UTC',
+      };
+
+      serviceMock.updateAvailability.mockResolvedValue({
+        message: 'Availability updated successfully.',
+        data: {
+          id: 'slot-1',
+        },
+      });
+
+      const result = await controller.updateAvailability(request as any, 'slot-1', dto);
+
+      expect(serviceMock.updateAvailability).toHaveBeenCalledWith('user-1', 'slot-1', dto);
+
+      expect(result).toEqual({
+        message: 'Availability updated successfully.',
+        data: {
+          id: 'slot-1',
+        },
+      });
+    });
+  });
+  describe('deleteAvailability', () => {
+    it('should delete an availability slot', async () => {
+      const request = {
+        user: {
+          userId: 'user-1',
+        },
+      };
+
+      serviceMock.deleteAvailability.mockResolvedValue({
+        message: 'Availability deleted successfully.',
+      });
+
+      const result = await controller.deleteAvailability(request as any, 'slot-1');
+
+      expect(serviceMock.deleteAvailability).toHaveBeenCalledWith('user-1', 'slot-1');
+
+      expect(result).toEqual({
+        message: 'Availability deleted successfully.',
+      });
+    });
+  });
   describe('getAvailability', () => {
     it('should return user availability slots', async () => {
       const request = {

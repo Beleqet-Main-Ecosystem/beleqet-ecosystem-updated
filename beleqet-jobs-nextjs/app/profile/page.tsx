@@ -8,7 +8,8 @@ import { useAuth } from '@/components/AuthProvider';
 import { roleMeta } from '@/components/HeaderAuth';
 import { authenticatedFetch } from '@/lib/auth';
 import AvailabilityCard from '@/components/interview-planner/AvailabilityCard';
-
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 type Profile = {
   headline?: string | null;
   bio?: string | null;
@@ -66,7 +67,9 @@ export default function ProfilePage() {
   };
   const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
   const [slots, setSlots] = useState([]);
-
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
+  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const loadAvailability = async () => {
     const res = await authenticatedFetch(
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
@@ -74,6 +77,37 @@ export default function ProfilePage() {
     const data = await res.json();
     console.log('Availability data:', data);
     setSlots(data);
+  };
+  const handleDelete = async () => {
+    if (!deleteSlotId) return;
+
+    try {
+      setDeleting(true);
+
+      const res = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability/${deleteSlotId}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Something went wrong');
+      }
+
+      await loadAvailability();
+
+      toast.success(data.message);
+    } catch (err) {
+      console.error(err);
+
+      toast.error(err instanceof Error ? err.message : 'Failed to delete availability slot.');
+    } finally {
+      setDeleting(false);
+      setDeleteSlotId(null);
+    }
   };
 
   useEffect(() => {
@@ -178,12 +212,31 @@ export default function ProfilePage() {
       <div className="mt-8 rounded-2xl border border-border bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-semibold text-ink">Interview availability</h2>
-            <p className="text-sm text-muted">Set your available time slots for interviews.</p>
+            <h2 className="text-sm font-semibold text-ink">Your Interview Availability</h2>
+            <p className="text-sm text-muted">
+              Add and update your available interview time slots.
+            </p>
           </div>
         </div>
-        <AvailabilityCard slots={slots} onRefresh={loadAvailability} />
+        <AvailabilityCard
+          slots={slots}
+          onRefresh={loadAvailability}
+          onDelete={(id) => setDeleteSlotId(id)}
+        />
       </div>
+      <ConfirmDialog
+        open={!!deleteSlotId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteSlotId(null);
+          }
+        }}
+        title="Delete availability slot?"
+        description="This action cannot be undone. The selected interview availability time will be permanently removed."
+        confirmLabel={deleting ? 'Deleting...' : 'Delete Slot'}
+        destructive
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/components/AuthProvider';
 import ChatWidget from '@/components/ChatWidget';
-
+import { Toaster } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Inter } from 'next/font/google';
 
@@ -29,7 +29,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <AuthProvider>
           <Header />
-          <main>{children}</main>
+          <main>
+            {' '}
+            {children}
+            <Toaster position="top-right" richColors />
+          </main>
           <Footer />
           <ChatWidget />
         </AuthProvider>

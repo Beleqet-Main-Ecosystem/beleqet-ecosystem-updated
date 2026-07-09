@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, BadRequestException } from '@nestjs/common';
+import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { InterviewPlannerService } from '../interview-planner.service';
 
@@ -20,6 +20,8 @@ describe('InterviewPlannerService', () => {
       findFirst: jest.fn(),
       findMany: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
     },
 
     $transaction: jest.fn(),
@@ -57,7 +59,7 @@ describe('InterviewPlannerService', () => {
 
   beforeEach(async () => {
     jest.resetAllMocks();
-
+    i18nMock.translate.mockResolvedValue('translated-message');
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InterviewPlannerService,
@@ -116,8 +118,8 @@ describe('InterviewPlannerService', () => {
         timezone: 'UTC',
       });
 
-      expect(result.id).toBe('slot-1');
-
+      expect(result.data.id).toBe('slot-1');
+      expect(result.message).toBe('translated-message');
       expect(prismaMock.userAvailability.create).toHaveBeenCalled();
     });
 
@@ -145,7 +147,96 @@ describe('InterviewPlannerService', () => {
       ).rejects.toThrow(ConflictException);
     });
   });
+  /**
+   * Tests for updating interview availability slots.
+   */
+  describe('updateAvailability', () => {
+    it('should update an availability slot', async () => {
+      prismaMock.userAvailability.findFirst
+        .mockResolvedValueOnce({
+          id: 'slot-1',
+          userId: 'user-1',
+          timezone: 'UTC',
+        })
+        .mockResolvedValueOnce(null);
 
+      prismaMock.userAvailability.update.mockResolvedValue({
+        id: 'slot-1',
+        timezone: 'UTC',
+      });
+
+      const result = await service.updateAvailability('user-1', 'slot-1', {
+        startTime: '2026-07-10T09:00:00Z',
+        endTime: '2026-07-10T10:00:00Z',
+        timezone: 'UTC',
+      });
+
+      expect(result.data.id).toBe('slot-1');
+      expect(prismaMock.userAvailability.update).toHaveBeenCalled();
+    });
+
+    it('should throw when availability does not exist', async () => {
+      prismaMock.userAvailability.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.updateAvailability('user-1', 'missing-slot', {
+          startTime: '2026-07-10T09:00:00Z',
+          endTime: '2026-07-10T10:00:00Z',
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should reject overlapping availability', async () => {
+      prismaMock.userAvailability.findFirst
+        .mockResolvedValueOnce({
+          id: 'slot-1',
+          userId: 'user-1',
+        })
+        .mockResolvedValueOnce({
+          id: 'slot-2',
+        });
+
+      await expect(
+        service.updateAvailability('user-1', 'slot-1', {
+          startTime: '2026-07-10T09:00:00Z',
+          endTime: '2026-07-10T10:00:00Z',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+  /**
+   * Tests for deleting interview availability slots.
+   */
+  describe('deleteAvailability', () => {
+    it('should delete an availability slot', async () => {
+      prismaMock.userAvailability.findFirst.mockResolvedValue({
+        id: 'slot-1',
+        userId: 'user-1',
+      });
+
+      prismaMock.userAvailability.delete.mockResolvedValue({
+        id: 'slot-1',
+      });
+
+      const result = await service.deleteAvailability('user-1', 'slot-1');
+
+      expect(result.message).toBe('translated-message');
+
+      expect(prismaMock.userAvailability.delete).toHaveBeenCalledWith({
+        where: {
+          id: 'slot-1',
+        },
+      });
+    });
+
+    it('should throw when deleting a missing availability', async () => {
+      prismaMock.userAvailability.findFirst.mockResolvedValue(null);
+
+      await expect(service.deleteAvailability('user-1', 'missing-slot')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
   describe('createInterview', () => {
     it('should create interview and send notification', async () => {
       applicationHelperMock.validateInterviewApplication.mockResolvedValue({

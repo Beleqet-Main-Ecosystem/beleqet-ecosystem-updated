@@ -79,22 +79,23 @@ export class NotificationsService {
       'interview.notification.candidateScheduledBody',
       {
         args: {
-          jobTitle,
+          jobTitle: jobTitle,
           startTime: formattedStart,
           endTime: formattedEnd,
-          timezone,
+          timezone: timezone,
         },
       },
     );
 
     const employerBody = await this.i18n.translate('interview.notification.employerScheduledBody', {
       args: {
-        jobTitle,
+        jobTitle: jobTitle,
         startTime: formattedStart,
         endTime: formattedEnd,
-        timezone,
+        timezone: timezone,
       },
     });
+
     const metadata = {
       interviewId,
       jobTitle,

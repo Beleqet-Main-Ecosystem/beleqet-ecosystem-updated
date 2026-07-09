@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { CreateInterviewDto } from './dto/create-interview.dto';
@@ -56,7 +62,7 @@ export class InterviewPlannerService {
     if (overlappingSlot) {
       throw new ConflictException(await this.i18n.translate('interview.availability.overlap'));
     }
-    return this.prisma.userAvailability.create({
+    const availability = await this.prisma.userAvailability.create({
       data: {
         userId,
         startTime,
@@ -64,6 +70,11 @@ export class InterviewPlannerService {
         timezone: dto.timezone ?? 'UTC',
       },
     });
+
+    return {
+      message: await this.i18n.translate('interview.availability.created'),
+      data: availability,
+    };
   }
   /**
    * Retrieves all availability slots for a user.
@@ -83,7 +94,100 @@ export class InterviewPlannerService {
       },
     });
   }
+  /**
+   * Updates an existing availability slot.
+   *
+   * Validates:
+   * - Slot ownership
+   * - Valid time range
+   * - No overlap with other availability slots
+   *
+   * @param userId User identifier
+   * @param id Availability slot identifier
+   * @param dto Updated availability details
+   * @returns Updated availability slot
+   * @throws BadRequestException If the slot does not exist
+   * @throws ConflictException If the updated slot overlaps another slot
+   */
+  async updateAvailability(userId: string, id: string, dto: CreateAvailabilityDto) {
+    const availability = await this.prisma.userAvailability.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
 
+    if (!availability) {
+      throw new NotFoundException(await this.i18n.translate('interview.availability.notFound'));
+    }
+
+    const startTime = new Date(dto.startTime);
+    const endTime = new Date(dto.endTime);
+
+    await this.dateHelper.validateRange(startTime, endTime);
+
+    const overlapping = await this.prisma.userAvailability.findFirst({
+      where: {
+        userId,
+        id: {
+          not: id,
+        },
+        startTime: {
+          lt: endTime,
+        },
+        endTime: {
+          gt: startTime,
+        },
+      },
+    });
+
+    if (overlapping) {
+      throw new ConflictException(await this.i18n.translate('interview.availability.overlap'));
+    }
+
+    const updatedAvailability = await this.prisma.userAvailability.update({
+      where: { id },
+      data: {
+        startTime,
+        endTime,
+        timezone: dto.timezone ?? 'UTC',
+      },
+    });
+
+    return {
+      message: await this.i18n.translate('interview.availability.updated'),
+      data: updatedAvailability,
+    };
+  }
+  /**
+   * Deletes an availability slot belonging
+   * to the authenticated user.
+   *
+   * @param userId User identifier
+   * @param id Availability slot identifier
+   * @returns Deleted availability slot
+   * @throws BadRequestException If the slot does not exist
+   */
+  async deleteAvailability(userId: string, id: string) {
+    const availability = await this.prisma.userAvailability.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!availability) {
+      throw new NotFoundException(await this.i18n.translate('interview.availability.notFound'));
+    }
+
+    await this.prisma.userAvailability.delete({
+      where: { id },
+    });
+
+    return {
+      message: await this.i18n.translate('interview.availability.deleted'),
+    };
+  }
   /**
    * Creates an interview for an application.
    *

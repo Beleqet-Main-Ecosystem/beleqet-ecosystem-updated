@@ -1,4 +1,14 @@
-import { Body, Controller, Post, UseGuards, Request, Get } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UseGuards,
+  Request,
+  Get,
+  Patch,
+  Delete,
+  Param,
+} from '@nestjs/common';
 import { InterviewPlannerService } from './interview-planner.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
@@ -50,6 +60,55 @@ export class InterviewPlannerController {
     },
   ) {
     return this.interviewPlannerService.getUserAvailabilities(req.user.userId);
+  }
+  /**
+   * Updates one of the authenticated user's interview availability slots.
+   *
+   * Only the owner of the availability slot can modify it.
+   *
+   * @param req Authenticated request containing the current user.
+   * @param id Availability slot identifier.
+   * @param dto Updated availability details.
+   * @returns Updated availability slot.
+   */
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Update an availability slot',
+  })
+  @Patch('availability/:id')
+  updateAvailability(
+    @Request()
+    req: Express.Request & {
+      user: { userId: string };
+    },
+    @Param('id') id: string,
+    @Body() dto: CreateAvailabilityDto,
+  ) {
+    return this.interviewPlannerService.updateAvailability(req.user.userId, id, dto);
+  }
+
+  /**
+   * Deletes one of the authenticated user's interview availability slots.
+   *
+   * Only the owner of the availability slot can remove it.
+   *
+   * @param req Authenticated request containing the current user.
+   * @param id Availability slot identifier.
+   * @returns Confirmation of the deleted availability slot.
+   */
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Delete an availability slot',
+  })
+  @Delete('availability/:id')
+  deleteAvailability(
+    @Request()
+    req: Express.Request & {
+      user: { userId: string };
+    },
+    @Param('id') id: string,
+  ) {
+    return this.interviewPlannerService.deleteAvailability(req.user.userId, id);
   }
   /**
    * Automatically schedules an interview
