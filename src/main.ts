@@ -100,6 +100,7 @@ async function bootstrap() {
       .addTag('jobs', 'Job listings & search')
       .addTag('applications', 'Job applications & workflow')
       .addTag('freelance', 'Freelance gigs, bids & contracts')
+      .addTag('bidding', 'Smart bid price suggestions')
       .addTag('escrow', 'BeleqetSafe escrow & payments')
       .addTag('wallet', 'Freelancer wallet & withdrawals')
       .addTag('notifications', 'Notification management')

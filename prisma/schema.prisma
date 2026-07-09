@@ -47,6 +47,7 @@ model User {
   cvDraft               CvDraft?
   clientFeedback        Json?
   skillVerified         Boolean             @default(false)
+  bidSuggestions        BidSuggestion[]
   referralsGiven        Referral[]          @relation("ReferralReferrer")
   referralsReceived     Referral[]          @relation("ReferralReferred")
   jobAlerts             JobAlert[]
@@ -298,6 +299,7 @@ model FreelanceJob {
   bids               Bid[]
   contract           Contract?
   escrowTx           EscrowTransaction?
+  bidSuggestions     BidSuggestion[]
   category           FreelanceCategory  @relation(fields: [categoryId], references: [id])
   client             User               @relation(fields: [clientId], references: [id])
 
@@ -529,6 +531,19 @@ model Message {
   @@map("messages")
 }
 
+model BidSuggestion {
+  id              String       @id @default(uuid())
+  freelanceJobId  String
+  freelancerId    String
+  suggestedAmount Int
+  currency        String
+  rationale       String
+  createdAt       DateTime     @default(now())
+  freelanceJob    FreelanceJob @relation(fields: [freelanceJobId], references: [id])
+  freelancer      User         @relation(fields: [freelancerId], references: [id])
+
+  @@unique([freelanceJobId, freelancerId])
+  @@map("bid_suggestions")
 model UserTwoFactor {
   id                   String       @id @default(uuid())
   userId               String       @unique

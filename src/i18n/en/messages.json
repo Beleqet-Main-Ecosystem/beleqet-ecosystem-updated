@@ -1,4 +1,9 @@
 {
+  "bidding": {
+    "rationale": {
+      "coldStart": "No pricing history yet for this category — suggestion is based on the job's stated budget only.",
+      "marketBased": "Based on {{count}} similar completed contracts in this category and your experience level ({{experienceMultiplier}}x)."
+    }
   "2fa": {
     "enrollment_title": "Set up Two-Factor Authentication",
     "enrollment_instructions": "Scan the QR code with your authenticator app, then enter the 6-digit code below.",
