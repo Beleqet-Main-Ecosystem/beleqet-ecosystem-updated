@@ -3,11 +3,19 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache.service';
 
+// Define the mock type
+type MockCacheManager = {
+  get: jest.Mock;
+  set: jest.Mock;
+  del: jest.Mock;
+};
+
 describe('CacheService', () => {
   let service: CacheService;
-  let cacheManager: { get: jest.Mock; set: jest.Mock; del: jest.Mock };
+  let cacheManager: MockCacheManager;
 
   beforeEach(async () => {
+    // Create mock functions with proper types
     cacheManager = {
       get: jest.fn(),
       set: jest.fn(),
@@ -17,7 +25,10 @@ describe('CacheService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CacheService,
-        { provide: CACHE_MANAGER, useValue: cacheManager },
+        {
+          provide: CACHE_MANAGER,
+          useValue: cacheManager,
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -39,30 +50,168 @@ describe('CacheService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should return cached value on hit', async () => {
-    const mockData = { id: 1 };
-    cacheManager.get.mockResolvedValue(mockData);
-    const result = await service.getOrSet('test', async () => ({ id: 2 }));
-    expect(result).toEqual(mockData);
+  describe('getOrSet', () => {
+    it('should return cached value on hit', async () => {
+      const mockData = { id: 1, name: 'Test' };
+      cacheManager.get.mockResolvedValue(mockData);
+
+      const result = await service.getOrSet('test', async () => ({ id: 2 }));
+
+      expect(result).toEqual(mockData);
+      expect(cacheManager.get).toHaveBeenCalledWith('beleqet:test');
+      expect(cacheManager.set).not.toHaveBeenCalled();
+    });
+
+    it('should fetch and store on miss', async () => {
+      cacheManager.get.mockResolvedValue(null);
+      const fetchFn = jest.fn().mockResolvedValue({ id: 2 });
+
+      await service.getOrSet('test', fetchFn, { ttl: 60 });
+
+      expect(fetchFn).toHaveBeenCalled();
+      expect(cacheManager.set).toHaveBeenCalledWith(
+        'beleqet:test',
+        { id: 2 },
+        60000, // 60 seconds in milliseconds
+      );
+    });
+
+    it('should fall back on Redis error', async () => {
+      cacheManager.get.mockRejectedValue(new Error('Redis timeout'));
+      const fetchFn = jest.fn().mockResolvedValue({ id: 3 });
+
+      const result = await service.getOrSet('test', fetchFn);
+
+      expect(fetchFn).toHaveBeenCalled();
+      expect(result).toEqual({ id: 3 });
+    });
+
+    it('should handle stampede protection by reusing pending promises', async () => {
+      cacheManager.get.mockResolvedValue(null);
+      let callCount = 0;
+      const fetchFn = jest.fn().mockImplementation(async () => {
+        callCount++;
+        return { id: callCount };
+      });
+
+      // Trigger two concurrent requests
+      const [result1, result2] = await Promise.all([
+        service.getOrSet('test', fetchFn),
+        service.getOrSet('test', fetchFn),
+      ]);
+
+      // Both should get the same result, and fetchFn should only be called once
+      expect(result1).toEqual({ id: 1 });
+      expect(result2).toEqual({ id: 1 });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('should fetch and store on miss', async () => {
-    cacheManager.get.mockResolvedValue(null);
-    const fetchFn = jest.fn().mockResolvedValue({ id: 2 });
-    await service.getOrSet('test', fetchFn, { ttl: 60 });
-    expect(fetchFn).toHaveBeenCalled();
-    expect(cacheManager.set).toHaveBeenCalledWith('beleqet:test', { id: 2 }, 60);
+  describe('set', () => {
+    it('should store value with TTL in milliseconds', async () => {
+      await service.set('test', { data: 'value' }, { ttl: 30 });
+
+      expect(cacheManager.set).toHaveBeenCalledWith(
+        'beleqet:test',
+        { data: 'value' },
+        30000, // 30 seconds in milliseconds
+      );
+    });
+
+    it('should store value without TTL', async () => {
+      await service.set('test', { data: 'value' });
+
+      expect(cacheManager.set).toHaveBeenCalledWith(
+        'beleqet:test',
+        { data: 'value' },
+        undefined,
+      );
+    });
   });
 
-  it('should fall back on Redis error', async () => {
-    cacheManager.get.mockRejectedValue(new Error('timeout'));
-    const fetchFn = jest.fn().mockResolvedValue({ id: 3 });
-    const result = await service.getOrSet('test', fetchFn);
-    expect(result).toEqual({ id: 3 });
+  describe('get', () => {
+    it('should retrieve value from cache', async () => {
+      const mockData = { id: 1 };
+      cacheManager.get.mockResolvedValue(mockData);
+
+      const result = await service.get('test');
+
+      expect(result).toEqual(mockData);
+      expect(cacheManager.get).toHaveBeenCalledWith('beleqet:test');
+    });
+
+    it('should return undefined for missing key', async () => {
+      cacheManager.get.mockResolvedValue(null);
+
+      const result = await service.get('test');
+
+      expect(result).toBeNull();
+    });
   });
 
-  it('should delete cache', async () => {
-    await service.del('test');
-    expect(cacheManager.del).toHaveBeenCalledWith('beleqet:test');
+  describe('del', () => {
+    it('should delete cache entry', async () => {
+      await service.del('test');
+
+      expect(cacheManager.del).toHaveBeenCalledWith('beleqet:test');
+    });
+
+    it('should delete cache entry with namespace', async () => {
+      await service.del('test', 'product');
+
+      expect(cacheManager.del).toHaveBeenCalledWith('beleqet:product:test');
+    });
+  });
+
+  describe('hashPii', () => {
+    it('should consistently hash a value to 32 characters', () => {
+      const hash1 = service.hashPii('user@email.com');
+      const hash2 = service.hashPii('user@email.com');
+
+      expect(hash1).toBe(hash2);
+      expect(hash1).toHaveLength(32);
+      expect(hash1).toMatch(/^[a-f0-9]{32}$/);
+    });
+
+    it('should produce different hashes for different values', () => {
+      const hash1 = service.hashPii('user1');
+      const hash2 = service.hashPii('user2');
+
+      expect(hash1).not.toBe(hash2);
+    });
+
+    it('should be deterministic (same input = same output)', () => {
+      const hash1 = service.hashPii('test@example.com');
+      const hash2 = service.hashPii('test@example.com');
+
+      expect(hash1).toBe(hash2);
+    });
+  });
+
+  describe('buildKey', () => {
+    it('should add prefix to key', () => {
+      const key = service.buildKey('abc');
+
+      expect(key).toBe('beleqet:abc');
+    });
+
+    it('should add prefix and namespace', () => {
+      const key = service.buildKey('abc', 'product');
+
+      expect(key).toBe('beleqet:product:abc');
+    });
+
+    it('should hash PII when requested', () => {
+      const hashed = service.buildKey('sensitive-id', undefined, true);
+
+      expect(hashed).toMatch(/^beleqet:[a-f0-9]{32}$/);
+      expect(hashed).toHaveLength(7 + 32); // "beleqet:" + 32 chars
+    });
+
+    it('should hash PII with namespace when requested', () => {
+      const hashed = service.buildKey('sensitive-id', 'user', true);
+
+      expect(hashed).toMatch(/^beleqet:user:[a-f0-9]{32}$/);
+    });
   });
 });
