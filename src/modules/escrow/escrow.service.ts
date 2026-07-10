@@ -193,15 +193,17 @@ export class EscrowService {
     try {
       // Handle currency conversion if necessary. Base currency is ETB.
       const contractCurrency = milestone.contract.currency || 'ETB';
-      const amountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
+      const grossAmountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
+      const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
+      const netAmountInETB = grossAmountInETB - platformFee;
 
       // Add to wallet pending balance (3-day hold)
       await this.prisma.freelancerWallet.upsert({
         where: { userId: milestone.contract.freelancerId },
-        update: { pendingBalance: { increment: amountInETB } },
+        update: { pendingBalance: { increment: netAmountInETB } },
         create: {
           userId: milestone.contract.freelancerId,
-          pendingBalance: amountInETB,
+          pendingBalance: netAmountInETB,
           availableBalance: 0,
         },
       });
@@ -209,7 +211,7 @@ export class EscrowService {
       await this.escrowQueue.add(ESCROW_JOBS.AUTO_RELEASE, {
         milestoneId,
         freelancerId: milestone.contract.freelancerId,
-        amount: amountInETB,
+        amount: netAmountInETB,
         releaseAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
       });
     } catch (err) {
