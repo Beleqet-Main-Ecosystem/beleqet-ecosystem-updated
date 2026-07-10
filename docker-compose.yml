@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: your_password
       POSTGRES_DB: beleqet_db
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -19,7 +19,7 @@ services:
     container_name: beleqet-redis
     restart: always
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
 
@@ -30,7 +30,7 @@ services:
     container_name: beleqet-backend
     restart: unless-stopped
     ports:
-      - "4000:4000"
+      - '4000:4000'
     environment:
       - NODE_ENV=development
       - PORT=4000
@@ -46,6 +46,7 @@ services:
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
       - OPENAI_API_KEY=dummy_key_for_testing
+      - GDPR_ENCRYPTION_KEY=25659bc3a9b2a7d269373fd47e6df9ab520e38a8be7ca0743a716a287b68bfcb
     depends_on:
       - db
       - redis

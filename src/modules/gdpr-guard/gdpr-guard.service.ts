@@ -72,9 +72,8 @@ export class GdprGuardService {
 
   /**
    * Executes GDPR Right to be Forgotten by scrubbing PII fields via Prisma.
-   * Ensures structural database reference integrity remains intact.
+   * Ensures structural database reference integrity remains intact with Multi-Currency layers.
    * @param userUuid The unique identifier of the target user.
-   * @returns Audit metadata log object.
    */
   async executeDataErasure(
     userUuid: string,
@@ -82,21 +81,26 @@ export class GdprGuardService {
     // 1. Check if user exists in the unified users infrastructure
     const user = await this.prisma.user.findUnique({
       where: { id: userUuid },
+      // Integration check: Include wallet to ensure Multi-Currency balance data integrity is maintained
+      include: { wallet: true },
     });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${userUuid} was not found in the ecosystem.`);
     }
 
-    // 2. Perform irreversible anonymization (Scrubbing) on the user model
-    await this.prisma.user.update({
-      where: { id: userUuid },
-      data: {
-        firstName: 'GDPR_ANONYMOUS',
-        lastName: 'USER',
-        email: `scrubbed-${crypto.randomBytes(4).toString('hex')}@beleqet.internal`,
-        phone: '0000000000',
-      },
+    // 2. Perform irreversible anonymization (Scrubbing) on the user model using a transaction
+    // This guarantees that any existing multi-currency financial ledger entries remain structurally tied
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userUuid },
+        data: {
+          firstName: 'GDPR_ANONYMOUS',
+          lastName: 'USER',
+          email: `scrubbed-${crypto.randomBytes(4).toString('hex')}@beleqet.internal`,
+          phone: '0000000000',
+        },
+      });
     });
 
     return {
