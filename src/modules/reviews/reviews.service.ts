@@ -14,6 +14,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { I18nService } from 'nestjs-i18n';
 
 /**
  * Rating statistics summary for a freelancer.
@@ -32,7 +33,10 @@ export interface RatingStats {
 
 @Injectable()
 export class ReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
   /**
    * Creates a new review for a freelancer.
@@ -53,7 +57,7 @@ export class ReviewsService {
       where: { id: reviewerId },
     });
     if (!reviewer) {
-      throw new NotFoundException('Reviewer not found');
+      throw new NotFoundException(this.i18n.t('reviews.REVIEWER_NOT_FOUND'));
     }
 
     // Validate reviewee exists
@@ -61,12 +65,12 @@ export class ReviewsService {
       where: { id: dto.revieweeId },
     });
     if (!reviewee) {
-      throw new NotFoundException('Reviewee not found');
+      throw new NotFoundException(this.i18n.t('reviews.REVIEWEE_NOT_FOUND'));
     }
 
     // Prevent self-review
     if (reviewerId === dto.revieweeId) {
-      throw new BadRequestException('Cannot review yourself');
+      throw new BadRequestException(this.i18n.t('reviews.CANNOT_REVIEW_YOURSELF'));
     }
 
     // If contractId is provided, validate it exists and belongs to the correct parties
@@ -77,22 +81,22 @@ export class ReviewsService {
       });
 
       if (!contract) {
-        throw new NotFoundException('Contract not found');
+        throw new NotFoundException(this.i18n.t('reviews.CONTRACT_NOT_FOUND'));
       }
 
       // Validate contract ownership
       if (contract.clientId !== reviewerId || contract.freelancerId !== dto.revieweeId) {
-        throw new ForbiddenException('Contract does not belong to the specified parties');
+        throw new ForbiddenException(this.i18n.t('reviews.CONTRACT_NOT_BELONGS'));
       }
 
       // Prevent duplicate reviews for the same contract
       if (contract.review) {
-        throw new BadRequestException('Review already exists for this contract');
+        throw new BadRequestException(this.i18n.t('reviews.REVIEW_ALREADY_EXISTS'));
       }
 
       // Only allow reviews for completed contracts
       if (contract.status !== 'COMPLETED') {
-        throw new BadRequestException('Can only review completed contracts');
+        throw new BadRequestException(this.i18n.t('reviews.CONTRACT_NOT_COMPLETED'));
       }
     }
 
@@ -140,7 +144,7 @@ export class ReviewsService {
       where: { id: revieweeId },
     });
     if (!reviewee) {
-      throw new NotFoundException('Freelancer not found');
+      throw new NotFoundException(this.i18n.t('reviews.FREELANCER_NOT_FOUND'));
     }
 
     const reviews = await this.prisma.review.findMany({
@@ -189,7 +193,7 @@ export class ReviewsService {
       where: { id: revieweeId },
     });
     if (!reviewee) {
-      throw new NotFoundException('Freelancer not found');
+      throw new NotFoundException(this.i18n.t('reviews.FREELANCER_NOT_FOUND'));
     }
 
     const reviews = await this.prisma.review.findMany({
@@ -274,7 +278,7 @@ export class ReviewsService {
     });
 
     if (!review) {
-      throw new NotFoundException('Review not found');
+      throw new NotFoundException(this.i18n.t('reviews.REVIEW_NOT_FOUND'));
     }
 
     return review;

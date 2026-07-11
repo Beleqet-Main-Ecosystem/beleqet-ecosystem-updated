@@ -9,6 +9,7 @@ import { NotFoundException, ForbiddenException, BadRequestException } from '@nes
 import { ReviewsService } from './reviews.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { I18nService } from 'nestjs-i18n';
 
 describe('ReviewsService', () => {
   let service: ReviewsService;
@@ -28,6 +29,10 @@ describe('ReviewsService', () => {
     },
   };
 
+  const mockI18nService = {
+    t: jest.fn((key: string) => key),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -35,6 +40,10 @@ describe('ReviewsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: I18nService,
+          useValue: mockI18nService,
         },
       ],
     }).compile();
@@ -141,7 +150,7 @@ describe('ReviewsService', () => {
         NotFoundException,
       );
       await expect(service.createReview('invalid-id', createReviewDto)).rejects.toThrow(
-        'Reviewer not found',
+        'reviews.REVIEWER_NOT_FOUND',
       );
     });
 
@@ -151,10 +160,7 @@ describe('ReviewsService', () => {
         .mockResolvedValueOnce(null);
 
       await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        'Reviewee not found',
+        'reviews.REVIEWEE_NOT_FOUND',
       );
     });
 
@@ -169,10 +175,7 @@ describe('ReviewsService', () => {
         .mockResolvedValueOnce(mockReviewer);
 
       await expect(service.createReview('reviewer-1', selfReviewDto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.createReview('reviewer-1', selfReviewDto)).rejects.toThrow(
-        'Cannot review yourself',
+        'reviews.CANNOT_REVIEW_YOURSELF',
       );
     });
 
@@ -183,10 +186,7 @@ describe('ReviewsService', () => {
       mockPrismaService.contract.findUnique.mockResolvedValue(null);
 
       await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        'Contract not found',
+        'reviews.CONTRACT_NOT_FOUND',
       );
     });
 
@@ -202,10 +202,7 @@ describe('ReviewsService', () => {
       mockPrismaService.contract.findUnique.mockResolvedValue(wrongContract);
 
       await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        ForbiddenException,
-      );
-      await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        'Contract does not belong to the specified parties',
+        'reviews.CONTRACT_NOT_BELONGS',
       );
     });
 
@@ -221,10 +218,7 @@ describe('ReviewsService', () => {
       mockPrismaService.contract.findUnique.mockResolvedValue(contractWithReview);
 
       await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        'Review already exists for this contract',
+        'reviews.REVIEW_ALREADY_EXISTS',
       );
     });
 
@@ -240,10 +234,7 @@ describe('ReviewsService', () => {
       mockPrismaService.contract.findUnique.mockResolvedValue(activeContract);
 
       await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.createReview('reviewer-1', createReviewDto)).rejects.toThrow(
-        'Can only review completed contracts',
+        'reviews.CONTRACT_NOT_COMPLETED',
       );
     });
 
@@ -338,7 +329,7 @@ describe('ReviewsService', () => {
         NotFoundException,
       );
       await expect(service.getFreelancerReviews('invalid-id')).rejects.toThrow(
-        'Freelancer not found',
+        'reviews.FREELANCER_NOT_FOUND',
       );
     });
   });
@@ -403,7 +394,7 @@ describe('ReviewsService', () => {
         NotFoundException,
       );
       await expect(service.getFreelancerRatingStats('invalid-id')).rejects.toThrow(
-        'Freelancer not found',
+        'reviews.FREELANCER_NOT_FOUND',
       );
     });
 
@@ -488,7 +479,7 @@ describe('ReviewsService', () => {
       mockPrismaService.review.findUnique.mockResolvedValue(null);
 
       await expect(service.getReviewById('invalid-id')).rejects.toThrow(NotFoundException);
-      await expect(service.getReviewById('invalid-id')).rejects.toThrow('Review not found');
+      await expect(service.getReviewById('invalid-id')).rejects.toThrow('reviews.REVIEW_NOT_FOUND');
     });
   });
 });

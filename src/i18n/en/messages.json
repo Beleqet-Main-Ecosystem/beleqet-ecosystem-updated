@@ -18,5 +18,17 @@
     "approved": "KYC verification approved.",
     "rejected": "KYC verification was rejected: {reason}",
     "not_found": "No KYC record found for this account."
+  },
+  "reviews": {
+    "REVIEW_CREATED": "Review created successfully",
+    "REVIEWER_NOT_FOUND": "Reviewer not found",
+    "REVIEWEE_NOT_FOUND": "Reviewee not found",
+    "CANNOT_REVIEW_YOURSELF": "Cannot review yourself",
+    "CONTRACT_NOT_FOUND": "Contract not found",
+    "CONTRACT_NOT_BELONGS": "Contract does not belong to the specified parties",
+    "REVIEW_ALREADY_EXISTS": "Review already exists for this contract",
+    "CONTRACT_NOT_COMPLETED": "Can only review completed contracts",
+    "REVIEW_NOT_FOUND": "Review not found",
+    "FREELANCER_NOT_FOUND": "Freelancer not found"
   }
 }
