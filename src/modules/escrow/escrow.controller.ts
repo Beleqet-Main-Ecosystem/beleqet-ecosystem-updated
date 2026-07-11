@@ -3,8 +3,6 @@ import { Controller, Post, Get, Body, Param, UseGuards, HttpCode, HttpStatus, Re
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
-import { StepUpGuard } from '../two-factor/guards/step-up.guard';
-import { SensitiveAction } from '../two-factor/decorators/sensitive-action.decorator';
 import { EscrowService } from './escrow.service';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -79,9 +77,7 @@ export class EscrowController {
   }
 
   @Post('milestones/:id/release')
-  @UseGuards(JwtAuthGuard, StepUpGuard)
-  @SensitiveAction('milestone_release')
-  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard) @ApiBearerAuth()
   release(@Param('id') id: string, @CurrentUser() u: CurrentUserPayload) {
     return this.svc.releaseMilestone(id, u.userId);
   }

@@ -217,20 +217,8 @@ export class AdminController {
         freelanceJobs: true,
         contractsAsClient: true,
         contractsAsFreelancer: true,
-        kycVerification: true,
       },
     });
-
-    const twoFactor = await this.prisma.userTwoFactor.findUnique({
-      where: { userId },
-      select: { enabled: true },
-    });
-
-    return {
-      data: {
-        ...user,
-        twoFactor: twoFactor ? { enabled: twoFactor.enabled } : null,
-      },
-    };
+    return { data: user };
   }
 }
