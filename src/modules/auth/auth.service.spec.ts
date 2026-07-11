@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { getQueueToken } from '@nestjs/bull';
+import { getQueueToken } from '@nestjs/bullmq';
 import { UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
@@ -39,10 +39,13 @@ describe('AuthService', () => {
 
   const mockConfig = {
     get: jest.fn((key: string, fallback?: string) => {
-      if (key === 'TOTP_TEMP_SECRET') return 'test-temp-secret';
-      if (key === 'JWT_ACCESS_SECRET') return 'test-access-secret';
-      if (key === 'FRONTEND_URL') return 'http://localhost:3000';
-      return fallback;
+      const values: Record<string, string> = {
+        TOTP_TEMP_SECRET: 'test-temp-secret',
+        JWT_ACCESS_SECRET: 'test-access-secret',
+        JWT_STEP_UP_SECRET: 'test-temp-secret',
+        FRONTEND_URL: 'http://localhost:3000',
+      };
+      return values[key] ?? fallback;
     }),
   };
 
@@ -179,8 +182,8 @@ describe('AuthService', () => {
 
     it('should reject duplicate email', async () => {
       mockPrisma.user.findUnique
-        .mockResolvedValueOnce({ id: userId, passwordHash: 'hashed' })       // current user
-        .mockResolvedValueOnce({ id: 'other-user', email: 'new@example.com' }); // existing conflicting
+        .mockResolvedValueOnce({ id: userId, passwordHash: 'hashed' })
+        .mockResolvedValueOnce({ id: 'other-user', email: 'new@example.com' });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       await expect(svc.changeEmail(userId, emailDto)).rejects.toThrow(ConflictException);
