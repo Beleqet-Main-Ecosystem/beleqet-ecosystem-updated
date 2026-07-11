@@ -1,5 +1,3 @@
-const path = require("path");
-
 /** @type {import('jest').Config} */
 module.exports = {
   displayName: "beleqet-jobs-frontend",
@@ -27,7 +25,7 @@ module.exports = {
 
   // Resolve @/ path alias
   moduleNameMapper: {
-    "^@/(.*)$": path.join(__dirname, "$1"),
+    "^@/(.*)$": "<rootDir>/$1",
     "\\.(css|scss)$": "<rootDir>/jest-tests/__mocks__/styleMock.js",
     "\\.(svg|png|jpg)$": "<rootDir>/jest-tests/__mocks__/fileMock.js",
   },
