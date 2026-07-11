@@ -41,6 +41,7 @@ import { StripeService }  from './stripe.service';
 import { PaypalService }  from './paypal.service';
 import { WalletService, WithdrawDto } from '../wallet/wallet.service';
 import { PrismaService }  from '../../prisma/prisma.service';
+import { CurrencyService } from '../../common/services/currency.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDK mocks — hoisted before any import that initialises the SDKs
@@ -198,6 +199,23 @@ async function buildCtx(walletBalance = 10_000, configExtra: Record<string, stri
       WalletService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
+      {
+        provide: CurrencyService,
+        useValue: {
+          getRatesSync: jest.fn().mockReturnValue({
+            'USD_ETB': 120.5,
+            'EUR_ETB': 130.2,
+            'ETB_USD': 1 / 120.5,
+            'ETB_EUR': 1 / 130.2,
+          }),
+          getRates: jest.fn().mockResolvedValue({
+            'USD_ETB': 120.5,
+            'EUR_ETB': 130.2,
+            'ETB_USD': 1 / 120.5,
+            'ETB_EUR': 1 / 130.2,
+          }),
+        },
+      },
     ],
   }).compile();
 
