@@ -1,0 +1,6 @@
+{
+  "storageNotConfigured": "የፋይል ማከማቻ አልተዋቀረም።",
+  "fileBodyEmpty": "የተጠየቀው ፋይል ባዶ ነው።",
+  "fileDownloadFailed": "ፋይሉን ማውረድ አልተሳካም።",
+  "verificationAssetUnavailable": "የማረጋገጫ ሰነዱን ማግኘት አልተቻለም።"
+}

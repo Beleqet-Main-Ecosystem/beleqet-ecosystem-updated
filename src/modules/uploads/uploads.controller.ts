@@ -8,11 +8,11 @@ import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 export class PresignedUrlDto {
   @IsString()
   @IsNotEmpty()
-  filename: string;
+  filename!: string;
 
   @IsString()
   @IsNotEmpty()
-  contentType: string;
+  contentType!: string;
 
   @IsString()
   @IsOptional()
@@ -30,9 +30,9 @@ export class UploadsController {
   @ApiOperation({ summary: 'Get a secure S3 upload URL for a file' })
   async getPresignedUrl(@Body() body: PresignedUrlDto) {
     return this.uploadsService.generatePresignedUrl(
-      body.filename, 
-      body.contentType, 
-      body.folder || 'misc'
+      body.filename,
+      body.contentType,
+      body.folder || 'misc',
     );
   }
 

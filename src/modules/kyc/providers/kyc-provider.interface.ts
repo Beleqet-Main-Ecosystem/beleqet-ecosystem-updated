@@ -1,36 +1,97 @@
 /**
- * Result structure returned by KYC ID verification providers.
+ * Input payload used by KYC providers when performing
+ * document validation and face matching verification.
+ *
+ * Using a structured object instead of positional parameters
+ * improves readability and reduces the risk of argument ordering errors.
+ */
+export interface KycVerificationInput {
+  /**
+   * Identity document image buffer.
+   */
+  documentBuffer: Buffer | Uint8Array;
+
+  /**
+   * MIME type of the identity document image.
+   *
+   * Example: image/jpeg
+   */
+  documentMimeType: string;
+
+  /**
+   * Selfie or liveness capture image buffer.
+   */
+  faceScanBuffer: Buffer | Uint8Array;
+
+  /**
+   * MIME type of the selfie image.
+   *
+   * Example: image/png
+   */
+  faceScanMimeType: string;
+}
+
+/**
+ * Result returned by a KYC verification provider.
+ *
+ * Contains document authenticity checks, liveness verification,
+ * and facial similarity analysis results.
  */
 export interface KycVerificationResult {
-  /** Face match similarity score (0 to 100) */
+  /**
+   * Face similarity score expressed as a percentage (0-100).
+   */
   matchScore: number;
-  /** True if the liveness detection check passed */
+
+  /**
+   * Indicates whether liveness verification succeeded.
+   */
   livenessPassed: boolean;
-  /** True if the document was determined to be valid and authentic */
+
+  /**
+   * Indicates whether the submitted document appears authentic.
+   */
   isDocumentValid: boolean;
-  /** Extracted professional name from the ID document (optional) */
+
+  /**
+   * Name extracted from the identity document, if available.
+   */
   extractedName?: string;
-  /** Extracted document identification number (optional) */
+
+  /**
+   * Document identifier extracted from the identity document, if available.
+   */
   extractedIdNumber?: string;
-  /** Rejection reason explaining any validation failures */
+
+  /**
+   * Human-readable explanation describing the verification failure.
+   */
   rejectionReason?: string;
 }
 
 /**
- * Interface definition for KYC ID matching and liveness checking providers.
+ * Contract implemented by KYC verification providers.
+ *
+ * Implementations may use third-party services or internal
+ * verification engines to perform:
+ * - Document authenticity checks
+ * - Facial similarity matching
+ * - Liveness detection
+ *
+ * Examples:
+ * - OpenAI Vision
+ * - AWS Rekognition
+ * - Smile Identity
+ * - Mock providers used during testing
  */
 export interface KycProvider {
   /**
-   * Performs face matching and identity document validation.
+   * Performs identity verification using a document image
+   * and a selfie or liveness capture.
    *
-   * @param documentBuffer - Buffer containing the user-uploaded ID document image.
-   * @param faceScanBuffer - Buffer containing the live selfie/face scan image.
-   * @returns A promise resolving to the verification result details.
+   * @param input Verification assets and metadata.
+   *
+   * @returns Structured verification results.
    */
-  verify(
-    documentBuffer: Buffer,
-    faceScanBuffer: Buffer,
-    documentMimeType?: string,
-    faceScanMimeType?: string,
-  ): Promise<KycVerificationResult>;
+  verify(input: KycVerificationInput): Promise<KycVerificationResult>;
 }

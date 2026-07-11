@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { KycController, SubmitKycDto, RejectKycDto, KycUploadFile } from './kyc.controller';
+import { KycController } from './kyc.controller';
 import { KycService } from './kyc.service';
+import { SubmitKycDto } from './dto/submit-kyc.dto';
+import { RejectKycDto } from './dto/reject-kyc.dto';
 import { KycDocumentType, KycStatus } from '@prisma/client';
-import { BadRequestException } from '@nestjs/common';
 
 const mockKycService = {
+  createPresignedUploadTokens: jest.fn(),
   submitVerification: jest.fn(),
   getVerificationStatus: jest.fn(),
   getPendingVerifications: jest.fn(),
@@ -29,66 +31,41 @@ describe('KycController', () => {
     expect(controller).toBeDefined();
   });
 
+  describe('getUploadUrls', () => {
+    it('should request ephemeral presigned S3 URLs from the service layer', async () => {
+      const mockUser = { userId: 'user-1', email: 'test@beleqet.com', role: 'FREELANCER' };
+      const expectedTokens = {
+        documentUploadUrl: 'https://s3.amazonaws.com/upload-doc-link',
+        faceScanUploadUrl: 'https://s3.amazonaws.com/upload-face-link',
+        documentStorageKey: 'kyc/user-1/doc.jpg',
+        faceScanStorageKey: 'kyc/user-1/face.jpg',
+      };
+
+      mockKycService.createPresignedUploadTokens.mockResolvedValue(expectedTokens);
+
+      const result = await controller.getUploadUrls(mockUser);
+
+      expect(result).toEqual(expectedTokens);
+      expect(mockKycService.createPresignedUploadTokens).toHaveBeenCalledWith('user-1');
+    });
+  });
+
   describe('submitKyc', () => {
     const mockUser = { userId: 'user-1', email: 'test@beleqet.com', role: 'FREELANCER' };
-    const mockFile = { buffer: Buffer.from('test'), originalname: 'test.jpg', mimetype: 'image/jpeg' } as KycUploadFile;
 
-    it('should throw BadRequestException if files are missing', async () => {
-      const dto: SubmitKycDto = { documentType: KycDocumentType.PASSPORT };
-      
-      await expect(
-        controller.submitKyc(
-          { document: undefined, faceScan: undefined },
-          mockUser,
-          dto,
-        ),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException if files exceed 5MB', async () => {
-      const dto: SubmitKycDto = { documentType: KycDocumentType.PASSPORT };
-      const largeFile = { buffer: Buffer.alloc(6 * 1024 * 1024), originalname: 'large.jpg', mimetype: 'image/jpeg' } as KycUploadFile;
-      const files = {
-        document: [largeFile],
-        faceScan: [mockFile],
+    it('should submit verification details smoothly when validation checks clear tracking DTO payload', async () => {
+      const dto: SubmitKycDto = {
+        documentType: KycDocumentType.PASSPORT,
+        documentStorageKey: 'vault/kyc/passport-doc-hash.jpg',
+        faceScanStorageKey: 'vault/kyc/face-scan-hash.jpg',
       };
 
-      await expect(
-        controller.submitKyc(files, mockUser, dto),
-      ).rejects.toThrow(BadRequestException);
-    });
+      mockKycService.submitVerification.mockResolvedValue({ status: KycStatus.PENDING });
 
-    it('should throw BadRequestException if files are not image mimetypes', async () => {
-      const dto: SubmitKycDto = { documentType: KycDocumentType.PASSPORT };
-      const invalidFile = { buffer: Buffer.from('test'), originalname: 'doc.pdf', mimetype: 'application/pdf' } as KycUploadFile;
-      const files = {
-        document: [invalidFile],
-        faceScan: [mockFile],
-      };
+      const result = await controller.submitKyc(mockUser, dto);
 
-      await expect(
-        controller.submitKyc(files, mockUser, dto),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should submit verification details when valid files are uploaded', async () => {
-      const dto: SubmitKycDto = { documentType: KycDocumentType.PASSPORT };
-      mockKycService.submitVerification.mockResolvedValue({ status: KycStatus.APPROVED });
-
-      const files = {
-        document: [mockFile],
-        faceScan: [mockFile],
-      };
-
-      const result = await controller.submitKyc(files, mockUser, dto);
-
-      expect(result.status).toBe(KycStatus.APPROVED);
-      expect(mockKycService.submitVerification).toHaveBeenCalledWith(
-        'user-1',
-        KycDocumentType.PASSPORT,
-        mockFile,
-        mockFile,
-      );
+      expect(result.status).toBe(KycStatus.PENDING);
+      expect(mockKycService.submitVerification).toHaveBeenCalledWith('user-1', dto);
     });
   });
 
@@ -117,13 +94,17 @@ describe('KycController', () => {
     });
 
     it('should invoke reject verification service', async () => {
-      const dto: RejectKycDto = { reason: 'ID mismatch' };
+      const dto: RejectKycDto = { reason: 'ID matching metadata profile mismatch' };
       mockKycService.rejectVerification.mockResolvedValue({ status: KycStatus.REJECTED });
 
       const result = await controller.reject('kyc-1', mockAdmin, dto);
 
       expect(result.status).toBe(KycStatus.REJECTED);
-      expect(mockKycService.rejectVerification).toHaveBeenCalledWith('kyc-1', 'admin-1', 'ID mismatch');
+      expect(mockKycService.rejectVerification).toHaveBeenCalledWith(
+        'kyc-1',
+        'admin-1',
+        'ID matching metadata profile mismatch',
+      );
     });
   });
 });

@@ -1,139 +1,79 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Param,
-  UseGuards,
-  UseInterceptors,
-  UploadedFiles,
-  BadRequestException,
-} from '@nestjs/common';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiConsumes } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { KycService } from './kyc.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
-import { KycDocumentType } from '@prisma/client';
+import { SubmitKycDto } from './dto/submit-kyc.dto';
+import { RejectKycDto } from './dto/reject-kyc.dto';
 
 /**
- * Interface representing uploaded KYC files.
- */
-export interface KycUploadFile {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-}
-
-/**
- * Data transfer object representing a KYC submission request.
- */
-export class SubmitKycDto {
-  /** The type of uploaded ID card or passport */
-  @IsEnum(KycDocumentType, { message: 'documentType must be PASSPORT, NATIONAL_ID, or DRIVERS_LICENSE' })
-  @IsNotEmpty()
-  documentType: KycDocumentType;
-}
-
-/**
- * Data transfer object for admin rejection requests.
- */
-export class RejectKycDto {
-  /** The reason why verification is rejected */
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(5, { message: 'Rejection reason must be at least 5 characters long' })
-  reason: string;
-}
-
-/**
- * REST controller for KYC identity submission and admin reviews.
+ * Exposes REST endpoints for Know Your Customer (KYC) verification workflows.
+ *
+ * Responsibilities:
+ * - Generate ephemeral presigned S3 upload URLs for client uploads.
+ * - Accept secure, pre-uploaded identity tracking references.
+ * - Provide verification status for authenticated users.
+ * - Allow administrators to manage, review, approve, or reject submissions.
+ *
+ * Security:
+ * - Requires JWT authentication for all endpoints.
+ * - Restricts administrative operations using role-based access control.
+ *
+ * @controller KycController
  */
 @ApiTags('kyc')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard) // Clean fix: Stack both guards globally at controller level so pipeline execution sequence is consistent
 @Controller('kyc')
 export class KycController {
+  /**
+   * Creates a new KYC controller instance.
+   *
+   * @param kycService Service responsible for KYC verification workflows.
+   */
   constructor(private readonly kycService: KycService) {}
 
   /**
-   * Submits professional ID documents and selfie checks.
+   * Generates secure presigned S3 upload paths allowing the Next.js client
+   * to push assets directly to private cloud buckets.
    *
-   * @param files - Uploaded identification document and live face scan file fields.
-   * @param user - Current authenticated user details.
-   * @param dto - Metadata parameters describing the document type.
-   * @returns Submission status and results.
+   * This implements high-performance, direct-to-cloud upload architecture
+   * to shield the server from parsing heavy file byte streams.
    */
-  @Post('submit')
-  @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Submit ID card and live face scan files for identity verification' })
-  @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        { name: 'document', maxCount: 1 },
-        { name: 'faceScan', maxCount: 1 },
-      ],
-      {
-        limits: {
-          fileSize: 5 * 1024 * 1024, // 5MB limit
-        },
-        fileFilter: (req, file, callback) => {
-          if (!file.mimetype.match(/^image\/(jpeg|png|webp|gif)$/)) {
-            return callback(
-              new BadRequestException(
-                `Only image files (JPEG, PNG, WEBP, GIF) are allowed for KYC verification. Got invalid type: ${file.mimetype}`,
-              ),
-              false,
-            );
-          }
-          callback(null, true);
-        },
-      },
-    ),
-  )
-  async submitKyc(
-    @UploadedFiles()
-    files: {
-      document?: KycUploadFile[];
-      faceScan?: KycUploadFile[];
-    },
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: SubmitKycDto,
-  ) {
-    const documentFile = files?.document?.[0];
-    const faceScanFile = files?.faceScan?.[0];
-
-    if (!documentFile || !faceScanFile) {
-      throw new BadRequestException('Both identification document and live face scan files must be uploaded.');
-    }
-
-    if (documentFile.buffer.length > 5 * 1024 * 1024 || faceScanFile.buffer.length > 5 * 1024 * 1024) {
-      throw new BadRequestException('File size exceeds the maximum limit of 5MB.');
-    }
-
-    if (
-      !documentFile.mimetype.match(/^image\/(jpeg|png|webp|gif)$/) ||
-      !faceScanFile.mimetype.match(/^image\/(jpeg|png|webp|gif)$/)
-    ) {
-      throw new BadRequestException('Only image files (JPEG, PNG, WEBP, GIF) are allowed for KYC verification.');
-    }
-
-    return this.kycService.submitVerification(
-      user.userId,
-      dto.documentType,
-      documentFile,
-      faceScanFile,
-    );
+  @Get('upload-urls')
+  @ApiOperation({ summary: 'Acquire ephemeral presigned upload URLs for identity artifacts' })
+  async getUploadUrls(@CurrentUser() user: CurrentUserPayload) {
+    return this.kycService.createPresignedUploadTokens(user.userId);
   }
 
   /**
-   * Retrieves the current logged-in user's verification status.
+   * Submits pre-uploaded cloud storage tracking keys for processing.
    *
-   * @param user - Current authenticated user details.
-   * @returns The user's KYC record.
+   * Workflow:
+   * 1. Validate storage paths exist via global class-validator DTO pipelines.
+   * 2. Pass references to underlying biometrics verification handlers.
+   *
+   * @param user Authenticated user information.
+   * @param dto Verification submission payload holding S3 string references.
+   *
+   * @returns Verification result generated by the KYC service.
+   */
+  @Post('submit')
+  @ApiConsumes('application/json')
+  @ApiOperation({ summary: 'Submit pre-uploaded storage references for biometric identity checks' })
+  async submitKyc(@CurrentUser() user: CurrentUserPayload, @Body() dto: SubmitKycDto) {
+    // Clean fix: Removed manual if-condition checks. Class-validator pipes on SubmitKycDto reject early automatically.
+    return this.kycService.submitVerification(user.userId, dto);
+  }
+
+  /**
+   * Retrieves the authenticated user's KYC verification status.
+   *
+   * @param user Authenticated user information.
+   *
+   * @returns Current verification record and status.
    */
   @Get('status')
   @ApiOperation({ summary: 'Check current KYC verification status and records' })
@@ -142,12 +82,14 @@ export class KycController {
   }
 
   /**
-   * Lists all pending KYC verification requests for manual review (Admin action).
+   * Retrieves all pending verification requests.
    *
-   * @returns List of PENDING verification requests.
+   * This endpoint is restricted to administrators and is intended
+   * for manual review workflows.
+   *
+   * @returns Collection of pending verification records.
    */
   @Get('admin/pending')
-  @UseGuards(RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'List all pending KYC submissions (Admin only)' })
   async getPending() {
@@ -155,14 +97,16 @@ export class KycController {
   }
 
   /**
-   * Approves a pending verification manually (Admin action).
+   * Approves a pending KYC verification request.
    *
-   * @param id - The KYC verification record ID.
-   * @param admin - The current authenticated admin payload.
-   * @returns The approved KYC verification record status.
+   * This endpoint is restricted to administrators.
+   *
+   * @param id Verification identifier.
+   * @param admin Authenticated administrator information.
+   *
+   * @returns Updated verification record.
    */
   @Post('admin/approve/:id')
-  @UseGuards(RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Approve a pending KYC submission (Admin only)' })
   async approve(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
@@ -170,16 +114,19 @@ export class KycController {
   }
 
   /**
-   * Rejects a pending verification manually (Admin action).
+   * Rejects a pending KYC verification request.
    *
-   * @param id - The KYC verification record ID.
-   * @param admin - The current authenticated admin payload.
-   * @param dto - Rejection parameters explaining the decision.
-   * @returns The rejected KYC verification record status.
+   * This endpoint is restricted to administrators.
+   *
+   * @param id Verification identifier.
+   * @param admin Authenticated administrator information.
+   * @param dto Rejection payload containing the rejection reason.
+   *
+   * @returns Updated verification record.
    */
   @Post('admin/reject/:id')
-  @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @ApiBody({ type: RejectKycDto }) // Clean fix: Added explicit API model binding to map parameters cleanly onto your OpenAPI spec layout
   @ApiOperation({ summary: 'Reject a pending KYC submission (Admin only)' })
   async reject(
     @Param('id') id: string,

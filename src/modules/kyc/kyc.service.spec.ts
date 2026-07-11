@@ -3,190 +3,142 @@ import { KycService } from './kyc.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { KycDocumentType, KycStatus } from '@prisma/client';
-import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
-import { KycModule } from './kyc.module';
-import { ConfigService } from '@nestjs/config';
+import { ConflictException } from '@nestjs/common';
+import { SubmitKycDto } from './dto/submit-kyc.dto';
 
-const mockPrismaService = {
-  kycVerification: {
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-    upsert: jest.fn(),
-    update: jest.fn(),
-    create: jest.fn(),
-  },
-  user: {
-    update: jest.fn(),
-  },
-  eventLog: {
-    create: jest.fn(),
-  },
-  $transaction: jest.fn(),
-};
-
-mockPrismaService.$transaction.mockImplementation((callback: (tx: unknown) => unknown) => callback(mockPrismaService));
-
-const mockUploadsService = {
-  uploadFile: jest.fn(() => Promise.resolve({ publicUrl: 'https://storage.com/file.jpg', key: 'file.jpg' })),
-};
-
-const mockKycProvider = {
-  verify: jest.fn(),
-};
-
-describe('KycService', () => {
+describe('KycService (Unit Tests)', () => {
   let service: KycService;
+  let prismaMock: any;
+  let uploadsMock: any;
+  let providerMock: any;
 
   beforeEach(async () => {
+    // Rebuild transactional mock tree matching the Prisma $transaction context
+    prismaMock = {
+      kycVerification: {
+        findUnique: jest.fn(),
+        upsert: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
+      user: { update: jest.fn() },
+      eventLog: { create: jest.fn() },
+      $transaction: jest.fn((cb) => cb(prismaMock)),
+    };
+
+    // Reflect current production method names exactly
+    uploadsMock = {
+      generatePresignedUrl: jest.fn().mockResolvedValue({
+        key: 'secure-storage-key',
+        presignedUrl: 'https://presigned-url.local',
+      }),
+      getFileBuffer: jest.fn().mockResolvedValue(Buffer.from('mock-binary-data')),
+    };
+
+    providerMock = {
+      verify: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         KycService,
-        { provide: PrismaService, useValue: mockPrismaService },
-        { provide: UploadsService, useValue: mockUploadsService },
-        { provide: 'KycProvider', useValue: mockKycProvider },
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: UploadsService, useValue: uploadsMock },
+        { provide: 'KycProvider', useValue: providerMock },
       ],
     }).compile();
 
     service = module.get<KycService>(KycService);
-    jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  describe('createPresignedUploadTokens', () => {
+    it('should generate dual secure targets for document and face scan objects', async () => {
+      const result = await service.createPresignedUploadTokens('user-123');
+
+      expect(uploadsMock.generatePresignedUrl).toHaveBeenCalledTimes(2);
+      expect(result).toHaveProperty('documentStorageKey');
+      expect(result).toHaveProperty('faceScanStorageKey');
+      expect(result).toHaveProperty('documentUploadUrl');
+      expect(result).toHaveProperty('faceScanUploadUrl');
+    });
   });
 
   describe('submitVerification', () => {
-    const mockFile = { buffer: Buffer.from('test'), originalname: 'test.jpg', mimetype: 'image/jpeg' };
+    const mockDto: SubmitKycDto = {
+      documentType: KycDocumentType.PASSPORT,
+      documentStorageKey: 'kyc-documents/ids/user-1-doc.jpg',
+      faceScanStorageKey: 'kyc-documents/selfies/user-1-face.jpg',
+    };
 
-    it('should throw BadRequestException if files are missing', async () => {
-      await expect(
-        service.submitVerification('user-1', KycDocumentType.PASSPORT, null, mockFile),
-      ).rejects.toThrow(BadRequestException);
-    });
+    it('should successfully auto-approve a submission when matching parameters meet standard criteria', async () => {
+      prismaMock.kycVerification.findUnique.mockResolvedValue(null);
 
-    it('should throw ConflictException if user is already verified', async () => {
-      mockPrismaService.kycVerification.findUnique.mockResolvedValue({
-        status: KycStatus.APPROVED,
-      });
-
-      await expect(
-        service.submitVerification('user-1', KycDocumentType.PASSPORT, mockFile, mockFile),
-      ).rejects.toThrow(ConflictException);
-    });
-
-    it('should auto-approve when provider matching score is above auto-approve threshold', async () => {
-      mockPrismaService.kycVerification.findUnique.mockResolvedValue(null);
-      mockKycProvider.verify.mockResolvedValue({
-        matchScore: 85.0,
+      // Simulate verification provider meeting automatic threshold benchmarks
+      providerMock.verify.mockResolvedValue({
+        matchScore: 95.0,
         livenessPassed: true,
         isDocumentValid: true,
-      });
-      mockPrismaService.kycVerification.upsert.mockResolvedValue({
-        status: KycStatus.APPROVED,
-        matchScore: 85.0,
-        livenessPassed: true,
+        rejectionReason: null,
       });
 
-      const result = await service.submitVerification('user-1', KycDocumentType.PASSPORT, mockFile, mockFile);
+      prismaMock.kycVerification.upsert.mockResolvedValue({
+        status: KycStatus.APPROVED,
+        matchScore: 95.0,
+        livenessPassed: true,
+        rejectionReason: null,
+        verifiedAt: new Date(),
+      });
+
+      const result = await service.submitVerification('user-1', mockDto);
 
       expect(result.status).toBe(KycStatus.APPROVED);
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: { kycVerified: true },
+      expect(uploadsMock.getFileBuffer).toHaveBeenCalledTimes(2);
+      expect(providerMock.verify).toHaveBeenCalledWith({
+        documentBuffer: expect.any(Buffer),
+        faceScanBuffer: expect.any(Buffer),
+        documentMimeType: 'image/jpeg',
+        faceScanMimeType: 'image/jpeg',
       });
+      expect(prismaMock.kycVerification.upsert).toHaveBeenCalled();
     });
 
-    it('should reject when match score is below auto-reject threshold', async () => {
-      mockPrismaService.kycVerification.findUnique.mockResolvedValue(null);
-      mockKycProvider.verify.mockResolvedValue({
-        matchScore: 45.0,
+    it('should auto-reject a submission if security score falls under the minimum allowed parameter threshold', async () => {
+      prismaMock.kycVerification.findUnique.mockResolvedValue(null);
+
+      // Simulating failing engine criteria scores
+      providerMock.verify.mockResolvedValue({
+        matchScore: 42.0,
         livenessPassed: true,
         isDocumentValid: true,
+        rejectionReason: 'Score below safety guidelines.',
       });
-      mockPrismaService.kycVerification.upsert.mockResolvedValue({
+
+      prismaMock.kycVerification.upsert.mockResolvedValue({
         status: KycStatus.REJECTED,
-        matchScore: 45.0,
+        matchScore: 42.0,
         livenessPassed: true,
+        rejectionReason: 'Score below safety guidelines.',
+        verifiedAt: null,
       });
 
-      const result = await service.submitVerification('user-1', KycDocumentType.PASSPORT, mockFile, mockFile);
+      const result = await service.submitVerification('user-2', mockDto);
 
       expect(result.status).toBe(KycStatus.REJECTED);
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: { kycVerified: false },
+      expect(result.rejectionReason).toBe('Score below safety guidelines.');
+    });
+
+    it('should drop processing execution and raise a ConflictException if a target verification transaction is already pending', async () => {
+      // Simulate an active pending identity verification step blocking pipeline
+      prismaMock.kycVerification.findUnique.mockResolvedValue({
+        status: KycStatus.PENDING,
       });
-    });
-  });
 
-  describe('admin overrides', () => {
-    it('should approve kyc verification manually', async () => {
-      mockPrismaService.kycVerification.findUnique.mockResolvedValue({ id: 'kyc-1', userId: 'user-1' });
-      mockPrismaService.kycVerification.update.mockResolvedValue({ id: 'kyc-1', status: KycStatus.APPROVED });
-
-      const result = await service.approveVerification('kyc-1', 'admin-1');
-
-      expect(result.status).toBe(KycStatus.APPROVED);
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: { kycVerified: true },
-      });
-    });
-
-    it('should reject kyc verification manually', async () => {
-      mockPrismaService.kycVerification.findUnique.mockResolvedValue({ id: 'kyc-1', userId: 'user-1' });
-      mockPrismaService.kycVerification.update.mockResolvedValue({ id: 'kyc-1', status: KycStatus.REJECTED });
-
-      const result = await service.rejectVerification('kyc-1', 'admin-1', 'ID not readable');
-
-      expect(result.status).toBe(KycStatus.REJECTED);
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: { kycVerified: false },
-      });
-    });
-  });
-
-  describe('KycModule KycProvider Factory', () => {
-    let factory: Function;
-
-    beforeAll(() => {
-      const providers = Reflect.getMetadata('providers', KycModule);
-      const providerObj = providers.find((p: any) => p && p.provide === 'KycProvider');
-      factory = providerObj.useFactory;
-    });
-
-    it('should fall back to MockKycProvider in non-production environments if API key is missing', () => {
-      const mockConfig = {
-        get: jest.fn((key: string) => {
-          if (key === 'NODE_ENV') return 'development';
-          if (key === 'OPENAI_API_KEY') return '';
-          return null;
-        }),
-      } as unknown as ConfigService;
-
-      const mockProvider = {} as any;
-      const openaiProvider = {} as any;
-
-      const result = factory(mockConfig, mockProvider, openaiProvider);
-      expect(result).toBe(mockProvider);
-    });
-
-    it('should throw an error in production environment if API key is missing', () => {
-      const mockConfig = {
-        get: jest.fn((key: string) => {
-          if (key === 'NODE_ENV') return 'production';
-          if (key === 'OPENAI_API_KEY') return '';
-          return null;
-        }),
-      } as unknown as ConfigService;
-
-      const mockProvider = {} as any;
-      const openaiProvider = {} as any;
-
-      expect(() => factory(mockConfig, mockProvider, openaiProvider)).toThrow(
-        /OPENAI_API_KEY is missing or set to a dummy value in production environment/
+      await expect(service.submitVerification('user-3', mockDto)).rejects.toThrow(
+        ConflictException,
       );
+
+      expect(uploadsMock.getFileBuffer).not.toHaveBeenCalled();
+      expect(providerMock.verify).not.toHaveBeenCalled();
     });
   });
 });

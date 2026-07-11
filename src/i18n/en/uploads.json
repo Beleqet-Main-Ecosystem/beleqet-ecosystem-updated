@@ -1,0 +1,6 @@
+{
+  "storageNotConfigured": "Cloud storage is not configured.",
+  "fileBodyEmpty": "The requested file is empty.",
+  "fileDownloadFailed": "Failed to download the requested file.",
+  "verificationAssetUnavailable": "Unable to retrieve the verification document."
+}
