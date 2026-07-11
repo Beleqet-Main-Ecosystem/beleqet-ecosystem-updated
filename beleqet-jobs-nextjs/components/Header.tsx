@@ -8,6 +8,7 @@ import HeaderAuth from "@/components/HeaderAuth";
 import PostJobButton from "@/components/PostJobButton";
 import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/components/AuthProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 
 export default function Header() {
@@ -33,7 +34,7 @@ export default function Header() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary/10 bg-[#fffdf8]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-primary/10 bg-[#fffdf8]/90 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800 dark:bg-slate-950/90">
       <div className="container-page flex h-[72px] items-center justify-between">
         <Link
           href="/"
@@ -73,6 +74,7 @@ export default function Header() {
 
         {/* Desktop action area */}
         <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggle />
           <NotificationBell />
           <HeaderAuth />
           <PostJobButton />
@@ -80,6 +82,7 @@ export default function Header() {
 
         {/* Mobile: always-visible action icons + hamburger */}
         <div className="flex items-center gap-1.5 lg:hidden">
+          <ThemeToggle />
           <NotificationBell />
           <HeaderAuth />
           <button
@@ -95,7 +98,7 @@ export default function Header() {
 
       {/* Mobile drawer */}
       {open && (
-        <div className="border-t border-primary/10 bg-[#fffdf8] px-5 pb-6 pt-3 lg:hidden">
+        <div className="border-t border-primary/10 bg-[#fffdf8] px-5 pb-6 pt-3 transition-colors duration-300 dark:border-slate-800 dark:bg-slate-950 lg:hidden">
           <nav className="flex flex-col" aria-label="Mobile navigation">
             {navItems.map((item) => {
               const active = isActive(item.href);

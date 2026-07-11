@@ -11,6 +11,28 @@ body {
   color: #1e293b;
 }
 
+html.dark body {
+  background: #020617;
+  color: #f8fafc;
+}
+
+html.dark .bg-white {
+  background-color: #0f172a;
+}
+
+html.dark .border-primary\/10,
+html.dark .border-border {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+html.dark .text-ink {
+  color: #e2e8f0;
+}
+
+html.dark .text-primary {
+  color: #f8fafc;
+}
+
 ::selection {
   background: #d8ff3e;
   color: #041603;
