@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserDto, CreateCompanyDto } from './dto/update-user.dto';
@@ -173,5 +173,71 @@ export class UsersService {
       ON CONFLICT ("userId") DO UPDATE SET "data" = EXCLUDED."data", "updatedAt" = NOW()
     `;
     return { id, userId, data };
+  }
+
+  async exportData(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        company: true,
+        applications: true,
+        bids: true,
+        freelanceJobs: true,
+        contractsAsClient: true,
+        contractsAsFreelancer: true,
+        kycVerification: true,
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const twoFactor = await this.prisma.userTwoFactor.findUnique({
+      where: { userId },
+      select: { enabled: true },
+    });
+
+    return {
+      exportedAt: new Date().toISOString(),
+      data: {
+        ...user,
+        twoFactor: twoFactor ? { enabled: twoFactor.enabled } : null,
+      },
+    };
+  }
+
+  async requestDeletion(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.isActive) throw new ForbiddenException('Account is already deactivated');
+
+    const scheduledAt = new Date();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        emailVerified: false,
+      },
+    });
+
+    return {
+      message: 'Your account deletion has been scheduled. You have 30 days to cancel.',
+      scheduledAt: scheduledAt.toISOString(),
+      cancelDeadline: new Date(scheduledAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+  }
+
+  async cancelDeletion(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.isActive) throw new ForbiddenException('Account is already active');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: true,
+        emailVerified: true,
+      },
+    });
+
+    return { message: 'Your scheduled account deletion has been cancelled.' };
   }
 }

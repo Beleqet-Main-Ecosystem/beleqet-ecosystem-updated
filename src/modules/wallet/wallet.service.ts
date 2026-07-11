@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, InternalServerError
 import { IsEnum, IsInt, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { CurrencyService } from '../../common/services/currency.service';
 
 export class WithdrawDto {
   @IsInt()
@@ -28,6 +29,7 @@ export class WalletService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly currencyService: CurrencyService,
   ) {}
 
   async getEmployerWallet(userId: string) {
@@ -56,18 +58,11 @@ export class WalletService {
     });
   }
 
-  // Mock exchange rates. In a real scenario, this would call an external API.
-  private readonly exchangeRates: Record<string, number> = {
-    'USD_ETB': 120.5,
-    'EUR_ETB': 130.2,
-    'ETB_USD': 1 / 120.5,
-    'ETB_EUR': 1 / 130.2,
-  };
-
   convertCurrency(amount: number, from: string, to: string): number {
     if (from === to) return amount;
+    const rates = this.currencyService.getRatesSync();
     const pair = `${from}_${to}`;
-    const rate = this.exchangeRates[pair];
+    const rate = rates[pair];
     if (!rate) throw new BadRequestException(`Exchange rate for ${from} to ${to} not found`);
     return Math.round(amount * rate);
   }
