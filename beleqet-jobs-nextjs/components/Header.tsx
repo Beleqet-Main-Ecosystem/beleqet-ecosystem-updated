@@ -7,6 +7,7 @@ import { BriefcaseBusiness, Menu, X } from "lucide-react";
 import HeaderAuth from "@/components/HeaderAuth";
 import PostJobButton from "@/components/PostJobButton";
 import NotificationBell from "@/components/NotificationBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
 
 
@@ -73,6 +74,7 @@ export default function Header() {
 
         {/* Desktop action area */}
         <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggle />
           <NotificationBell />
           <HeaderAuth />
           <PostJobButton />
@@ -80,6 +82,7 @@ export default function Header() {
 
         {/* Mobile: always-visible action icons + hamburger */}
         <div className="flex items-center gap-1.5 lg:hidden">
+          <ThemeToggle />
           <NotificationBell />
           <HeaderAuth />
           <button

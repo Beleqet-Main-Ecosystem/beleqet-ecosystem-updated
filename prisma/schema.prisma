@@ -12,7 +12,7 @@ model User {
   email                 String              @unique
   passwordHash          String
   firstName             String
-  lastName              String
+  lastName             String
   role                  UserRole            @default(JOB_SEEKER)
   avatarUrl             String?
   phone                 String?
@@ -54,6 +54,8 @@ model User {
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
+  reviewsGiven          Review[]            @relation("Reviewer")
+  reviewsReceived       Review[]            @relation("Reviewee")
 
   @@map("users")
 }
@@ -340,6 +342,7 @@ model Contract {
   freelancer     User           @relation("ContractFreelancer", fields: [freelancerId], references: [id])
   dispute        Dispute?
   milestones     Milestone[]
+  review         Review?
 
   @@map("contracts")
 }
@@ -794,4 +797,33 @@ enum KycStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Review System
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Stores reviews/ratings that clients give to freelancers after contract completion.
+//
+// GDPR notes:
+//  - Only stores reviewer/reviewee UUID references (no PII names/emails)
+//  - Comment text is user-submitted feedback (consented via platform terms)
+//
+// Multi-currency: Not applicable (ratings are universal 1-5 scale)
+model Review {
+  id         String   @id @default(uuid())
+  contractId String?  @unique
+  reviewerId String
+  revieweeId String
+  rating     Int      // Validation: 1 to 5
+  comment    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee   User     @relation("Reviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+  contract   Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
+  @@index([reviewerId])
+  @@index([revieweeId])
+  @@map("reviews")
 }
