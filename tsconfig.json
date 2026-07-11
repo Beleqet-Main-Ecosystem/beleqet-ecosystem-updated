@@ -10,11 +10,10 @@
     "jsx": "react-jsx",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "paths": {
-      "@common/*": ["src/common/*"],
-      "@modules/*": ["src/modules/*"],
-      "@prisma-client": ["src/prisma/prisma.service"]
+      "@common/*": ["./src/common/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@prisma-client": ["./src/prisma/prisma.service"]
     },
     "incremental": true,
     "skipLibCheck": true,
@@ -23,10 +22,10 @@
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["node", "jest"],
-     "ignoreDeprecations": "6.0",
+    "types": ["node", "jest"]
+    // "ignoreDeprecations" removed
   },
-"exclude": [
+  "exclude": [
     "node_modules",
     "dist",
     "beleqet-jobs-nextjs"
