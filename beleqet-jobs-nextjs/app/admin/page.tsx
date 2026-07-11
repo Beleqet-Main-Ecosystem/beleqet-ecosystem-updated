@@ -142,10 +142,10 @@ export default function AdminPage() {
     }
   }
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
+    <div className="min-h-screen bg-pageBg">
       <section className="bg-primary py-12 text-white">
         <div className="container-page">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-lime">
             Secure administration
           </p>
           <h1 className="mt-3 text-4xl font-black">Platform control center</h1>
@@ -184,7 +184,7 @@ export default function AdminPage() {
           <div className="space-y-6">
             <form
               onSubmit={createUser}
-              className="grid gap-3 rounded-2xl bg-white p-5 md:grid-cols-6"
+              className="grid gap-3 rounded-2xl bg-surface p-5 md:grid-cols-6"
             >
               <Input name="firstName" placeholder="First name" />
               <Input name="lastName" placeholder="Last name" />
@@ -199,7 +199,7 @@ export default function AdminPage() {
                 <UserPlus className="h-4 w-4" /> Add
               </button>
             </form>
-            <div className="overflow-x-auto rounded-2xl bg-white">
+            <div className="overflow-x-auto rounded-2xl bg-surface">
               <table className="w-full min-w-[760px] text-left text-sm">
                 <thead>
                   <tr className="bg-primary/5 text-xs uppercase text-muted">
@@ -263,7 +263,7 @@ export default function AdminPage() {
         {tab === "contacts" && (
           <div className="space-y-3">
             {contacts.map((item) => (
-              <article key={item.id} className="rounded-2xl bg-white p-5">
+              <article key={item.id} className="rounded-2xl bg-surface p-5">
                 <div className="flex justify-between gap-4">
                   <div>
                     <b>{item.subject}</b>
@@ -300,7 +300,7 @@ export default function AdminPage() {
           return (
             <form
               onSubmit={broadcast}
-              className="max-w-2xl space-y-4 rounded-2xl bg-white p-6"
+              className="max-w-2xl space-y-4 rounded-2xl bg-surface p-6"
             >
               <div className="space-y-1">
                 <label className="text-xs font-bold uppercase text-muted">Recipients Type</label>
@@ -309,7 +309,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => setTargetType("all")}
                     className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
-                      targetType === "all" ? "bg-primary text-white border-primary" : "bg-white text-muted border-border hover:bg-pageBg"
+                      targetType === "all" ? "bg-primary text-white border-primary" : "bg-surface text-muted border-border hover:bg-pageBg"
                     }`}
                   >
                     All Users
@@ -318,7 +318,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => setTargetType("role")}
                     className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
-                      targetType === "role" ? "bg-primary text-white border-primary" : "bg-white text-muted border-border hover:bg-pageBg"
+                      targetType === "role" ? "bg-primary text-white border-primary" : "bg-surface text-muted border-border hover:bg-pageBg"
                     }`}
                   >
                     By Role
@@ -327,7 +327,7 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => setTargetType("specific")}
                     className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
-                      targetType === "specific" ? "bg-primary text-white border-primary" : "bg-white text-muted border-border hover:bg-pageBg"
+                      targetType === "specific" ? "bg-primary text-white border-primary" : "bg-surface text-muted border-border hover:bg-pageBg"
                     }`}
                   >
                     Specific User(s)
@@ -385,7 +385,7 @@ export default function AdminPage() {
                       className="control w-full text-sm"
                     />
                     {searchQuery.trim() !== "" && (
-                      <div className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-border bg-white shadow-xl p-1.5 space-y-1">
+                      <div className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-border bg-surface shadow-xl p-1.5 space-y-1">
                         {filteredUsers.length === 0 ? (
                           <p className="text-xs text-muted p-2 text-center">No active users match search.</p>
                         ) : (
@@ -487,7 +487,7 @@ function Tab({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold ${active ? "bg-primary text-white" : "bg-white text-primary"}`}
+      className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold ${active ? "bg-primary text-white" : "bg-surface text-ink"}`}
     >
       <Icon className="h-4 w-4" />
       {children}

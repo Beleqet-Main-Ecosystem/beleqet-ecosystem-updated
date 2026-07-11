@@ -68,7 +68,7 @@ export default async function JobDetailPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
         <div>
-          <div className="rounded-2xl border border-border bg-white p-7">
+          <div className="rounded-2xl border border-border bg-surface p-7">
             <div className="flex items-start gap-4">
               <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-pageBg text-muted shrink-0">
                 <Building2 className="h-6 w-6" />
@@ -120,7 +120,7 @@ export default async function JobDetailPage({
           <JobActions jobId={job.id} />
 
           {related.length > 0 && (
-            <div className="rounded-2xl border border-border bg-white p-6">
+            <div className="rounded-2xl border border-border bg-surface p-6">
               <h3 className="text-sm font-semibold text-ink mb-4">
                 Similar Jobs
               </h3>

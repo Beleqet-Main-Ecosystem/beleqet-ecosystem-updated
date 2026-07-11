@@ -4,11 +4,11 @@ import { ArrowRight, Send } from "lucide-react";
 export default function CTABanner() {
   return (
     <section className="container-page pb-20">
-      <div className="relative overflow-hidden rounded-[32px] bg-[#ffbc80] px-6 py-12 sm:px-12 lg:px-16 lg:py-16">
+      <div className="relative overflow-hidden rounded-[32px] bg-cta px-6 py-12 sm:px-12 lg:px-16 lg:py-16">
         <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full border-[45px] border-primary/5" />
         <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
           <div>
-            <span className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-[#ffbc80]">
+            <span className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-cta">
               <Send className="h-5 w-5" />
             </span>
             <h2 className="max-w-2xl text-[clamp(2rem,4vw,3.8rem)] font-black leading-none tracking-[-.05em] text-primary">

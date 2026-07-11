@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container-page py-10">
-      <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">
+      <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-card">
         <div className="h-28 bg-gradient-to-br from-brandGreen to-darkGreen" />
         <div className="px-6 pb-6">
           <div className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -112,7 +112,7 @@ export default function ProfilePage() {
           <Link
             key={a.label}
             href={a.href}
-            className="flex items-center gap-3 rounded-2xl border border-border bg-white p-5 hover:border-brandGreen hover:shadow-card transition-all"
+            className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-5 hover:border-brandGreen hover:shadow-card transition-all"
           >
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brandGreen/10 text-brandGreen">
               <a.icon className="h-5 w-5" />
@@ -128,7 +128,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-border bg-white p-6">
+        <div className="lg:col-span-2 rounded-2xl border border-border bg-surface p-6">
           <h2 className="text-sm font-semibold text-ink">About</h2>
           {profile?.headline && (
             <p className="mt-3 font-medium text-ink">{profile.headline}</p>
@@ -156,7 +156,7 @@ export default function ProfilePage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-border bg-white p-6">
+        <div className="rounded-2xl border border-border bg-surface p-6">
           <h2 className="text-sm font-semibold text-ink">Account</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between">

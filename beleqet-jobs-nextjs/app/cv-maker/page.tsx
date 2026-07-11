@@ -67,7 +67,7 @@ const emptyCv: CvData = {
 };
 
 const inputClass =
-  "mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10";
+  "mt-1.5 w-full rounded-xl border border-primary/10 bg-surface px-3.5 py-3 text-sm text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10";
 
 export default function CvMakerPage() {
   const { user, ready } = useAuth();
@@ -178,11 +178,11 @@ export default function CvMakerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
+    <div className="min-h-screen bg-pageBg">
       <section className="border-b border-primary/10 bg-primary text-white print:hidden">
         <div className="container-page flex flex-col justify-between gap-8 py-12 lg:flex-row lg:items-end">
           <div>
-            <p className="mb-3 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+            <p className="mb-3 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[.2em] text-lime">
               <Sparkles className="h-4 w-4" /> Free CV builder
             </p>
             <h1 className="text-[clamp(2.5rem,6vw,5rem)] font-black leading-none tracking-[-.055em]">
@@ -201,7 +201,7 @@ export default function CvMakerPage() {
               className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-bold hover:bg-white/10"
             >
               {saved ? (
-                <Check className="h-4 w-4 text-[#d8ff3e]" />
+                <Check className="h-4 w-4 text-lime" />
               ) : (
                 <Save className="h-4 w-4" />
               )}
@@ -209,7 +209,7 @@ export default function CvMakerPage() {
             </button>
             <button
               onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-full bg-[#d8ff3e] px-5 py-3 text-sm font-extrabold text-primary hover:bg-white"
+              className="inline-flex items-center gap-2 rounded-full bg-lime px-5 py-3 text-sm font-extrabold text-primary hover:bg-surface"
             >
               <Download className="h-4 w-4" /> Download PDF
             </button>
@@ -234,7 +234,7 @@ export default function CvMakerPage() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/15 bg-[#f7f5ef] px-5 py-7 text-sm font-bold text-primary transition hover:border-brandGreen hover:bg-brandGreen/5"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/15 bg-pageBg px-5 py-7 text-sm font-bold text-ink transition hover:border-brandGreen hover:bg-brandGreen/5"
             >
               <FileText className="h-6 w-6 text-brandGreen" />
               {uploadedFile || "Choose PDF, DOC, or DOCX (max 5 MB)"}
@@ -331,7 +331,7 @@ export default function CvMakerPage() {
               {cv.experience.map((item, index) => (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-primary/10 bg-[#f7f5ef] p-4"
+                  className="rounded-2xl border border-primary/10 bg-pageBg p-4"
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <p className="text-xs font-extrabold uppercase tracking-wider text-brandGreen">
@@ -419,7 +419,7 @@ export default function CvMakerPage() {
               {cv.education.map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid gap-3 rounded-2xl border border-primary/10 bg-[#f7f5ef] p-4 sm:grid-cols-[1fr_1fr_.5fr_auto]"
+                  className="grid gap-3 rounded-2xl border border-primary/10 bg-pageBg p-4 sm:grid-cols-[1fr_1fr_.5fr_auto]"
                 >
                   <Input
                     label="School"
@@ -518,13 +518,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] border border-primary/10 bg-white p-5 sm:p-6">
+    <section className="rounded-[24px] border border-primary/10 bg-surface p-5 sm:p-6">
       <div className="mb-5 flex gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d8ff3e] text-primary">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime text-primary">
           <Icon className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="font-extrabold text-primary">{title}</h2>
+          <h2 className="font-extrabold text-ink">{title}</h2>
           <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
         </div>
       </div>
@@ -576,12 +576,12 @@ function CvPreview({ cv }: { cv: CvData }) {
     .map((x) => x.trim())
     .filter(Boolean);
   return (
-    <div className="min-h-[760px] overflow-hidden bg-white shadow-[0_20px_60px_rgba(4,22,3,.12)] print:min-h-0 print:shadow-none">
+    <div className="min-h-[760px] overflow-hidden bg-surface shadow-[0_20px_60px_rgba(4,22,3,.12)] print:min-h-0 print:shadow-none">
       <div className="bg-primary px-8 py-9 text-white">
         <p className="text-3xl font-black tracking-tight">
           {cv.fullName || "Your Name"}
         </p>
-        <p className="mt-1 text-sm font-bold text-[#d8ff3e]">
+        <p className="mt-1 text-sm font-bold text-lime">
           {cv.title || "Professional title"}
         </p>
         <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-white/65">
@@ -597,7 +597,7 @@ function CvPreview({ cv }: { cv: CvData }) {
             ))}
         </div>
       </div>
-      <div className="space-y-7 p-8 text-primary">
+      <div className="space-y-7 p-8 text-ink">
         {cv.summary && (
           <PreviewSection title="Profile">
             <p className="text-xs leading-5 text-muted">{cv.summary}</p>
@@ -684,7 +684,7 @@ function PreviewSection({
 }) {
   return (
     <section>
-      <h3 className="mb-3 border-b-2 border-[#d8ff3e] pb-1 text-[11px] font-black uppercase tracking-[.18em]">
+      <h3 className="mb-3 border-b-2 border-lime pb-1 text-[11px] font-black uppercase tracking-[.18em]">
         {title}
       </h3>
       {children}

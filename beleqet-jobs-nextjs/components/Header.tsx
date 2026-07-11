@@ -7,6 +7,7 @@ import { BriefcaseBusiness, Menu, X } from "lucide-react";
 import HeaderAuth from "@/components/HeaderAuth";
 import PostJobButton from "@/components/PostJobButton";
 import NotificationBell from "@/components/NotificationBell";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
 
 
@@ -33,17 +34,17 @@ export default function Header() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary/10 bg-[#fffdf8]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border bg-headerBg/90 backdrop-blur-xl">
       <div className="container-page flex h-[72px] items-center justify-between">
         <Link
           href="/"
           className="group flex items-center gap-2.5 shrink-0"
           aria-label="Beleqet Jobs home"
         >
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] bg-primary text-[#d8ff3e] shadow-sm transition-transform group-hover:-rotate-3">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] bg-primary text-lime shadow-sm transition-transform group-hover:-rotate-3">
             <BriefcaseBusiness className="h-5 w-5" />
           </span>
-          <span className="text-[19px] font-extrabold tracking-[-0.04em] text-primary">
+          <span className="text-[19px] font-extrabold tracking-[-0.04em] text-ink">
             Beleqet<span className="text-brandGreen">.</span>
           </span>
         </Link>
@@ -62,7 +63,7 @@ export default function Header() {
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                   active
                     ? "bg-primary text-white"
-                    : "text-ink/75 hover:bg-primary/5 hover:text-primary"
+                    : "text-ink/75 hover:bg-ink/5 hover:text-ink"
                 }`}
               >
                 {item.label}
@@ -73,6 +74,7 @@ export default function Header() {
 
         {/* Desktop action area */}
         <div className="hidden items-center gap-2 lg:flex">
+          <ThemeToggle />
           <NotificationBell />
           <HeaderAuth />
           <PostJobButton />
@@ -80,11 +82,12 @@ export default function Header() {
 
         {/* Mobile: always-visible action icons + hamburger */}
         <div className="flex items-center gap-1.5 lg:hidden">
+          <ThemeToggle />
           <NotificationBell />
           <HeaderAuth />
           <button
             onClick={() => setOpen(!open)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-primary/10 text-primary"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-ink"
             aria-label="Toggle menu"
             aria-expanded={open}
           >
@@ -95,7 +98,7 @@ export default function Header() {
 
       {/* Mobile drawer */}
       {open && (
-        <div className="border-t border-primary/10 bg-[#fffdf8] px-5 pb-6 pt-3 lg:hidden">
+        <div className="border-t border-border bg-headerBg px-5 pb-6 pt-3 lg:hidden">
           <nav className="flex flex-col" aria-label="Mobile navigation">
             {navItems.map((item) => {
               const active = isActive(item.href);
@@ -104,10 +107,10 @@ export default function Header() {
                   key={item.label}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center border-b border-primary/10 py-3.5 text-sm font-semibold transition-colors ${
+                  className={`flex items-center border-b border-border py-3.5 text-sm font-semibold transition-colors ${
                     active
                       ? "text-brandGreen"
-                      : "text-primary hover:text-brandGreen"
+                      : "text-ink hover:text-brandGreen"
                   }`}
                 >
                   {active && (
@@ -126,4 +129,3 @@ export default function Header() {
     </header>
   );
 }
-

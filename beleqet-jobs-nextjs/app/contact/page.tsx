@@ -53,10 +53,10 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="bg-[#f7f5ef]">
+    <div className="bg-pageBg">
       <section className="bg-primary py-16 text-white lg:py-20">
         <div className="container-page">
-          <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-lime">
             Contact Beleqet
           </p>
           <h1 className="max-w-3xl text-[clamp(2.8rem,7vw,6rem)] font-black leading-[.9] tracking-[-.06em]">
@@ -72,7 +72,7 @@ export default function ContactPage() {
       </section>
       <div className="container-page grid gap-10 py-16 lg:grid-cols-[.75fr_1.25fr]">
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-primary">
+          <h2 className="text-2xl font-black tracking-tight text-ink">
             Talk to the right team
           </h2>
           <div className="mt-7 space-y-4">
@@ -88,7 +88,7 @@ export default function ContactPage() {
               text="Within two business days"
             />
           </div>
-          <div className="mt-10 rounded-[24px] bg-[#d8ff3e] p-6 text-primary">
+          <div className="mt-10 rounded-[24px] bg-lime p-6 text-primary">
             <MessageSquareText className="h-6 w-6" />
             <p className="mt-5 text-lg font-black">Include useful details</p>
             <p className="mt-2 text-sm leading-6 text-primary/65">
@@ -97,20 +97,20 @@ export default function ContactPage() {
             </p>
           </div>
         </div>
-        <div className="rounded-[28px] border border-primary/10 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-[28px] border border-primary/10 bg-surface p-6 shadow-sm sm:p-8">
           {reference ? (
             <div className="flex min-h-[430px] flex-col items-center justify-center text-center">
               <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-brandGreen/10 text-brandGreen">
                 <CheckCircle2 className="h-8 w-8" />
               </span>
-              <h2 className="mt-6 text-2xl font-black text-primary">
+              <h2 className="mt-6 text-2xl font-black text-ink">
                 Message received
               </h2>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted">
                 Your message was saved successfully. Keep this reference if you
                 contact us again.
               </p>
-              <code className="mt-5 rounded-lg bg-[#f7f5ef] px-3 py-2 text-xs text-primary">
+              <code className="mt-5 rounded-lg bg-pageBg px-3 py-2 text-xs text-ink">
                 {reference}
               </code>
               <button
@@ -123,7 +123,7 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={submit} className="space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-primary">
+                <h2 className="text-2xl font-black text-ink">
                   Send a message
                 </h2>
                 <p className="mt-1 text-sm text-muted">
@@ -207,7 +207,7 @@ function ContactItem({
   text: string;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-primary/10 bg-white p-4">
+    <div className="flex items-center gap-4 rounded-2xl border border-primary/10 bg-surface p-4">
       <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brandGreen/10 text-brandGreen">
         <Icon className="h-4 w-4" />
       </span>
@@ -215,7 +215,7 @@ function ContactItem({
         <p className="text-xs font-bold uppercase tracking-wider text-muted">
           {title}
         </p>
-        <p className="mt-0.5 text-sm font-bold text-primary">{text}</p>
+        <p className="mt-0.5 text-sm font-bold text-ink">{text}</p>
       </div>
     </div>
   );

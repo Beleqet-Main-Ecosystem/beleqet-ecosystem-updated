@@ -90,11 +90,11 @@ const faqs = [
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
+    <div className="min-h-screen bg-pageBg">
       {/* Hero */}
       <section className="bg-primary py-20 text-white">
         <div className="container-page text-center">
-          <span className="inline-block rounded-full bg-[#d8ff3e]/15 px-4 py-1.5 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <span className="inline-block rounded-full bg-lime/15 px-4 py-1.5 text-xs font-extrabold uppercase tracking-[.2em] text-lime">
             Pricing
           </span>
           <h1 className="mt-5 text-4xl font-black leading-tight sm:text-5xl">
@@ -118,11 +118,11 @@ export default function PricingPage() {
                 className={`relative flex flex-col overflow-hidden rounded-3xl border ${
                   plan.highlight
                     ? "border-brandGreen bg-primary text-white shadow-[0_20px_60px_-15px_rgba(0,101,59,0.4)]"
-                    : "border-border bg-white shadow-card"
+                    : "border-border bg-surface shadow-card"
                 }`}
               >
                 {plan.badge && (
-                  <div className="absolute right-5 top-5 flex items-center gap-1 rounded-full bg-[#d8ff3e] px-3 py-1 text-[11px] font-extrabold text-primary">
+                  <div className="absolute right-5 top-5 flex items-center gap-1 rounded-full bg-lime px-3 py-1 text-[11px] font-extrabold text-primary">
                     <Star className="h-3 w-3 fill-primary" />
                     {plan.badge}
                   </div>
@@ -132,7 +132,7 @@ export default function PricingPage() {
                   <span
                     className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${
                       plan.highlight
-                        ? "bg-white/10 text-[#d8ff3e]"
+                        ? "bg-white/10 text-lime"
                         : "bg-brandGreen/10 text-brandGreen"
                     }`}
                   >
@@ -141,14 +141,14 @@ export default function PricingPage() {
 
                   <p
                     className={`mt-4 text-xs font-extrabold uppercase tracking-widest ${
-                      plan.highlight ? "text-[#d8ff3e]" : "text-brandGreen"
+                      plan.highlight ? "text-lime" : "text-brandGreen"
                     }`}
                   >
                     {plan.tagline}
                   </p>
                   <h2
                     className={`mt-1 text-xl font-black ${
-                      plan.highlight ? "text-white" : "text-primary"
+                      plan.highlight ? "text-white" : "text-ink"
                     }`}
                   >
                     {plan.name}
@@ -157,7 +157,7 @@ export default function PricingPage() {
                   <div className="mt-5 flex items-end gap-1">
                     <span
                       className={`text-4xl font-black leading-none ${
-                        plan.highlight ? "text-white" : "text-primary"
+                        plan.highlight ? "text-white" : "text-ink"
                       }`}
                     >
                       {plan.priceLabel}
@@ -202,7 +202,7 @@ export default function PricingPage() {
                       <span
                         className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                           plan.highlight
-                            ? "bg-white/10 text-[#d8ff3e]"
+                            ? "bg-white/10 text-lime"
                             : "bg-brandGreen/10 text-brandGreen"
                         }`}
                       >
@@ -222,7 +222,7 @@ export default function PricingPage() {
                     href={plan.href}
                     className={`group flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-bold transition-all ${
                       plan.highlight
-                        ? "bg-[#d8ff3e] text-primary hover:bg-[#c8ef2e]"
+                        ? "bg-lime text-primary hover:brightness-95"
                         : "bg-primary text-white hover:bg-brandGreen"
                     }`}
                   >
@@ -237,12 +237,12 @@ export default function PricingPage() {
       </section>
 
       {/* Trusted by strip */}
-      <section className="border-y border-border bg-white py-10">
+      <section className="border-y border-border bg-surface py-10">
         <div className="container-page text-center">
           <p className="text-xs font-extrabold uppercase tracking-widest text-muted">
             Trusted by leading Ethiopian employers
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-8 text-sm font-extrabold text-primary/40">
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-8 text-sm font-extrabold text-ink/40">
             {[
               "ethio telecom",
               "Dashen Bank",
@@ -260,16 +260,16 @@ export default function PricingPage() {
       {/* FAQ */}
       <section className="container-page py-16">
         <div className="mx-auto max-w-2xl">
-          <h2 className="text-center text-2xl font-black text-primary">
+          <h2 className="text-center text-2xl font-black text-ink">
             Frequently asked questions
           </h2>
           <div className="mt-8 space-y-4">
             {faqs.map((faq) => (
               <div
                 key={faq.q}
-                className="rounded-2xl border border-border bg-white p-6"
+                className="rounded-2xl border border-border bg-surface p-6"
               >
-                <p className="font-extrabold text-primary">{faq.q}</p>
+                <p className="font-extrabold text-ink">{faq.q}</p>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
                   {faq.a}
                 </p>
@@ -282,7 +282,7 @@ export default function PricingPage() {
       {/* CTA Banner */}
       <section className="container-page pb-20">
         <div className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-primary px-8 py-12 text-center text-white shadow-[0_20px_60px_-15px_rgba(4,22,3,0.4)]">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-lime">
             Ready to hire?
           </p>
           <h2 className="mt-3 text-3xl font-black">
@@ -295,7 +295,7 @@ export default function PricingPage() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/post-job"
-              className="inline-flex items-center gap-2 rounded-full bg-[#d8ff3e] px-7 py-3 text-sm font-extrabold text-primary hover:bg-[#c8ef2e] transition-colors"
+              className="inline-flex items-center gap-2 rounded-full bg-lime px-7 py-3 text-sm font-extrabold text-primary hover:brightness-95 transition-colors"
             >
               Post a free job <ArrowRight className="h-4 w-4" />
             </Link>

@@ -10,7 +10,7 @@ export default function FeaturedJobs({ jobs }: { jobs: Job[] }) {
       <div className="container-page py-20">
         <div className="mb-10 flex items-end justify-between">
           <div>
-            <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+            <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-lime">
               Now hiring
             </p>
             <h2 className="text-sectionH2 tracking-tight">
@@ -22,7 +22,7 @@ export default function FeaturedJobs({ jobs }: { jobs: Job[] }) {
           </div>
           <Link
             href="/jobs"
-            className="hidden shrink-0 text-sm font-bold text-[#d8ff3e] hover:underline sm:inline-block"
+            className="hidden shrink-0 text-sm font-bold text-lime hover:underline sm:inline-block"
           >
             View all jobs →
           </Link>

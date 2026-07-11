@@ -14,14 +14,14 @@ export default function JobCard({
 
   return (
     <article
-      className={`group flex min-h-[280px] flex-col rounded-[22px] border p-5 transition-all hover:-translate-y-1 hover:border-[#d8ff3e]/60 ${
+      className={`group flex min-h-[280px] flex-col rounded-[22px] border p-5 transition-all hover:-translate-y-1 hover:border-lime/60 ${
         isLight
-          ? "border-primary/10 bg-white shadow-card hover:shadow-lg"
+          ? "border-border bg-surface shadow-card hover:shadow-lg"
           : "border-white/10 bg-white/[.07] hover:bg-white/[.1]"
       }`}
     >
       <div className="flex items-start justify-between">
-        <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#d8ff3e] text-primary">
+        <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-lime text-primary">
           <Building2 className="h-5 w-5" />
         </span>
         <SaveJobButton jobId={job.id} light={isLight} />
@@ -30,7 +30,7 @@ export default function JobCard({
       <Link href={`/jobs/${job.id}`} className="flex flex-1 flex-col">
         <h3
           className={`text-cardH3 mt-5 line-clamp-2 leading-snug ${
-            isLight ? "text-primary" : "text-white"
+            isLight ? "text-ink" : "text-white"
           }`}
         >
           {job.title}
@@ -50,7 +50,7 @@ export default function JobCard({
 
         <div
           className={`mt-auto flex items-center justify-between border-t pt-4 ${
-            isLight ? "border-primary/10" : "border-white/10"
+            isLight ? "border-border" : "border-white/10"
           }`}
         >
           <span

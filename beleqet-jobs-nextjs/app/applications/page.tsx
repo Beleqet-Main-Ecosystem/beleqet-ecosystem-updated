@@ -73,10 +73,10 @@ export default function ApplicationsPage() {
     load();
   }
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
+    <div className="min-h-screen bg-pageBg">
       <section className="bg-primary py-14 text-white">
         <div className="container-page">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-lime">
             Career dashboard
           </p>
           <h1 className="mt-3 text-4xl font-black">Your opportunities</h1>
@@ -86,13 +86,13 @@ export default function ApplicationsPage() {
         <div className="mb-7 flex gap-2">
           <button
             onClick={() => setTab("applications")}
-            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === "applications" ? "bg-primary text-white" : "bg-white"}`}
+            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === "applications" ? "bg-primary text-white" : "bg-surface text-ink"}`}
           >
             Applications ({applications.length})
           </button>
           <button
             onClick={() => setTab("saved")}
-            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === "saved" ? "bg-primary text-white" : "bg-white"}`}
+            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === "saved" ? "bg-primary text-white" : "bg-surface text-ink"}`}
           >
             Saved jobs ({saved.length})
           </button>
@@ -103,11 +103,11 @@ export default function ApplicationsPage() {
               applications.map((item) => (
                 <article
                   key={item.id}
-                  className="flex flex-col justify-between gap-5 rounded-2xl border border-primary/10 bg-white p-5 sm:flex-row sm:items-center"
+                  className="flex flex-col justify-between gap-5 rounded-2xl border border-primary/10 bg-surface p-5 sm:flex-row sm:items-center"
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-extrabold text-primary">
+                      <h2 className="font-extrabold text-ink">
                         {item.job.title}
                       </h2>
                       <Status value={item.status} />
@@ -157,9 +157,9 @@ export default function ApplicationsPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {saved.length ? (
               saved.map((item) => (
-                <article key={item.id} className="rounded-2xl bg-white p-5">
+                <article key={item.id} className="rounded-2xl bg-surface p-5">
                   <Bookmark className="h-5 w-5 fill-brandGreen text-brandGreen" />
-                  <h2 className="mt-4 font-extrabold text-primary">
+                  <h2 className="mt-4 font-extrabold text-ink">
                     {item.job.title}
                   </h2>
                   <p className="mt-1 text-sm text-muted">
@@ -212,7 +212,7 @@ function Status({ value }: { value: string }) {
 }
 function Empty({ icon: Icon, text }: { icon: typeof Briefcase; text: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border bg-white p-14 text-center">
+    <div className="rounded-2xl border border-dashed border-border bg-surface p-14 text-center">
       <Icon className="mx-auto h-7 w-7 text-muted" />
       <p className="mt-3 text-sm font-semibold text-muted">{text}</p>
       <Link
