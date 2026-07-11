@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { IsEnum, IsInt, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
@@ -22,13 +22,58 @@ export class WithdrawDto {
 }
 
 @Injectable()
-export class WalletService {
+export class WalletService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WalletService.name);
+  private fetchInterval?: NodeJS.Timeout;
+
+  // In-memory cache for live rates, fetched from an external API.
+  // Initialized with fallback rates in case the API is unreachable initially.
+  // EUR is calculated precisely to maintain backward compatibility with tests (120.5 / 130.2).
+  private exchangeRates: Record<string, number> = {
+    USD: 1,
+    EUR: 120.5 / 130.2,
+    ETB: 120.5,
+  };
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
+
+  async onModuleInit() {
+    if (process.env.NODE_ENV === 'test') {
+      return;
+    }
+
+    await this.fetchLiveRates();
+    // Fetch live rates every 6 hours
+    this.fetchInterval = setInterval(() => this.fetchLiveRates(), 6 * 60 * 60 * 1000);
+    if (this.fetchInterval.unref) {
+      this.fetchInterval.unref();
+    }
+  }
+
+  onModuleDestroy() {
+    if (this.fetchInterval) {
+      clearInterval(this.fetchInterval);
+    }
+  }
+
+  private async fetchLiveRates() {
+    try {
+      const response = await fetch('https://open.er-api.com/v6/latest/USD');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch exchange rates: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data && data.rates) {
+        this.exchangeRates = data.rates;
+        this.logger.log('Live exchange rates updated successfully');
+      }
+    } catch (error) {
+      this.logger.error('Error fetching live exchange rates. Falling back to cached rates.', error);
+    }
+  }
 
   async getEmployerWallet(userId: string) {
     let wallet = await this.prisma.employerWallet.findUnique({
@@ -56,19 +101,17 @@ export class WalletService {
     });
   }
 
-  // Mock exchange rates. In a real scenario, this would call an external API.
-  private readonly exchangeRates: Record<string, number> = {
-    'USD_ETB': 120.5,
-    'EUR_ETB': 130.2,
-    'ETB_USD': 1 / 120.5,
-    'ETB_EUR': 1 / 130.2,
-  };
-
   convertCurrency(amount: number, from: string, to: string): number {
     if (from === to) return amount;
-    const pair = `${from}_${to}`;
-    const rate = this.exchangeRates[pair];
-    if (!rate) throw new BadRequestException(`Exchange rate for ${from} to ${to} not found`);
+
+    const rateFrom = this.exchangeRates[from];
+    const rateTo = this.exchangeRates[to];
+
+    if (!rateFrom || !rateTo) {
+      throw new BadRequestException(`Exchange rate for ${from} to ${to} not found`);
+    }
+
+    const rate = rateTo / rateFrom;
     return Math.round(amount * rate);
   }
 
