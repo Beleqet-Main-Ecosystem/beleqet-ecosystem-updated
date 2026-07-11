@@ -24,6 +24,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
@@ -91,6 +92,7 @@ import { CurrencyModule } from './common/services/currency.module';
     PrismaModule,
     RedisModule,
     QueuesModule,
+    RedisModule,
     AuthModule,
     UsersModule,
     JobsModule,
@@ -106,6 +108,7 @@ import { CurrencyModule } from './common/services/currency.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
+    AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
     DbIndexMasterModule,

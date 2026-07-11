@@ -11,6 +11,7 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { passwordResetEmail, verificationEmail, loginAlertEmail, logoutAlertEmail, welcomeEmail } from '../notifications/email-templates';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 
 @Injectable()
@@ -23,6 +24,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly twoFactorService: TwoFactorService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
+    private readonly eventEmitter: EventEmitter2,
   ) { }
 
   async register(dto: RegisterDto) {
@@ -72,8 +74,12 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user || !user.isActive) {
+      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     let hashToCompare = user.passwordHash;
     // WordPress migration support: normalize '$wp$2y$' to standard bcrypt '$2y$'
@@ -82,7 +88,10 @@ export class AuthService {
     }
 
     const valid = await bcrypt.compare(password, hashToCompare);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) {
+      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     // Re-hash to standard format automatically on successful login so we migrate away from $wp$ over time
     if (hashToCompare !== user.passwordHash) {
@@ -93,6 +102,7 @@ export class AuthService {
       });
     }
 
+    this.eventEmitter.emit('auth.login.success', { email: normalizedEmail, timestamp: new Date().toISOString() });
     return user;
   }
 

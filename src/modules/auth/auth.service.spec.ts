@@ -7,6 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TwoFactorService } from '../two-factor/two-factor.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 jest.mock('bcryptjs');
 
@@ -48,6 +49,7 @@ describe('AuthService', () => {
 
   const mockTwoFactorSvc = {};
   const mockNotificationsQueue = { add: jest.fn() };
+  const mockEventEmitter = { emit: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -59,6 +61,7 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: mockConfig },
         { provide: TwoFactorService, useValue: mockTwoFactorSvc },
         { provide: getQueueToken('notifications'), useValue: mockNotificationsQueue },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 

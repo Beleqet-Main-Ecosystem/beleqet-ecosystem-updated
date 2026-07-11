@@ -60,10 +60,13 @@ export class WalletService {
 
   convertCurrency(amount: number, from: string, to: string): number {
     if (from === to) return amount;
+
     const rates = this.currencyService.getRatesSync();
     const pair = `${from}_${to}`;
     const rate = rates[pair];
+
     if (!rate) throw new BadRequestException(`Exchange rate for ${from} to ${to} not found`);
+
     return Math.round(amount * rate);
   }
 
