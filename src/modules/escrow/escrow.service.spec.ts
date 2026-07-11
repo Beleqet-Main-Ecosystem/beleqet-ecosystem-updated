@@ -6,6 +6,12 @@ import { EscrowService } from './escrow.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 
+const mockFetch = jest.fn().mockResolvedValue({
+  json: () => Promise.resolve({ status: 'success', data: { checkout_url: 'https://checkout.chapa.co/test' } }),
+});
+global.fetch = mockFetch as unknown as typeof fetch;
+
+
 const mockPrisma: Record<string, any> = {
   freelanceJob: {
     findFirst: jest.fn(),
