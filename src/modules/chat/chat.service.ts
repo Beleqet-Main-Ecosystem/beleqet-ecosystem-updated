@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+/** Structured metadata attached to non-plain-text chat messages */
+export type MessageMetadata =
+  | { type: 'file'; url: string; name: string }
+  | { type: 'video_call'; link: string };
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -33,7 +38,7 @@ export class ChatService {
   }
 
   /** Save a message to DB and return it populated */
-  async saveMessage(roomId: string, senderId: string, content: string, metadata?: any) {
+  async saveMessage(roomId: string, senderId: string, content: string, metadata?: MessageMetadata) {
     // Verify user is in room
     const participant = await this.prisma.chatParticipant.findUnique({
       where: { roomId_userId: { roomId, userId: senderId } }
