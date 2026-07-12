@@ -2,6 +2,7 @@
 
 /*  Design Tokens  */
 :root {
+  color-scheme: dark;
   --bg-primary: #0a0e1a;
   --bg-secondary: #111827;
   --bg-card: rgba(255, 255, 255, 0.04);
@@ -33,6 +34,23 @@
   --transition-slow: 400ms ease;
 }
 
+html.light {
+  color-scheme: light;
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-hover: rgba(248, 250, 252, 0.98);
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  --shadow-card: 0 8px 32px rgba(15, 23, 42, 0.08);
+  --shadow-glow-blue: 0 0 40px rgba(59, 130, 246, 0.08);
+}
+
 /* Reset & Base  */
 *,
 *::before,
@@ -45,6 +63,7 @@
 html,
 body {
   height: 100%;
+  min-height: 100%;
   font-family:
     'Inter',
     -apple-system,
@@ -54,6 +73,9 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base);
 }
 
 /*  Layout  */
@@ -642,4 +664,83 @@ textarea {
     opacity: 0.5;
     transform: scale(0.85);
   }
+}
+/* ==========================================================================
+   Light Mode Overrides 
+   Catches both .light class AND next-themes default data-theme="light" attribute
+   ========================================================================== */
+html.light, 
+[data-theme="light"],
+.light {
+  --bg-primary: #f8fafc;          /* Crisp light background */
+  --bg-secondary: #ffffff;        /* Pure white for panels and sidebars */
+  --bg-card: rgba(15, 23, 42, 0.04);
+  --bg-card-hover: rgba(15, 23, 42, 0.07);
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+
+  /* Reverse typography tokens */
+  --text-primary: #0f172a;        /* Dark slate for high contrast readability */
+  --text-secondary: #475569;      /* Muted slate for descriptions */
+  --text-muted: #64748b;
+
+  /* Soften shadows for light mode contexts */
+  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 12px -5px rgba(0, 0, 0, 0.04);
+  --shadow-glow-blue: 0 0 40px rgba(59, 130, 246, 0.06);
+}
+
+/* ==========================================================================
+   Dark Mode Overrides
+   Ensures explicit dark-mode tokens are applied when next-themes adds .dark
+   or data-theme="dark" on html
+   ========================================================================== */
+html.dark,
+[data-theme="dark"],
+.dark {
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #111827;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow-blue: 0 0 40px rgba(59, 130, 246, 0.15);
+}
+
+/* Light-mode surface refinements for header and form controls */
+html.light .page-header,
+[data-theme="light"] .page-header,
+.light .page-header {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+html.light input,
+html.light textarea,
+html.light select,
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select,
+.light input,
+.light textarea,
+.light select {
+  background: rgba(248, 250, 252, 0.95);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder,
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder,
+.light input::placeholder,
+.light textarea::placeholder {
+  color: var(--text-secondary);
 }
