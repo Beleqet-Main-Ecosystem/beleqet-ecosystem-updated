@@ -6,6 +6,7 @@ import { BullModule } from '@nestjs/bull';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 
+import { StorageModule } from './modules/storage/storage.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -113,6 +114,7 @@ import { KycModule } from './modules/kyc/kyc.module';
     PaymentsModule,
     TwoFactorModule,
     KycModule,
+    StorageModule,
   ],
 })
 export class AppModule { }
