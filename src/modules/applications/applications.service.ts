@@ -4,7 +4,12 @@ import { Queue } from 'bull';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
-import { QUEUE_NAMES, APPLICATION_JOBS, ANALYTICS_JOBS, NOTIFICATION_JOBS } from '../queues/queues.constants';
+import {
+  QUEUE_NAMES,
+  APPLICATION_JOBS,
+  ANALYTICS_JOBS,
+  NOTIFICATION_JOBS,
+} from '../queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
 import { applicationReceivedEmail, applicationStatusEmail } from '../notifications/email-templates';
 
@@ -131,7 +136,9 @@ export class ApplicationsService {
           ...email,
         }),
       )
-      .catch((err) => this.logger.error('Failed to enqueue application confirmation email', err.message));
+      .catch((err) =>
+        this.logger.error('Failed to enqueue application confirmation email', err.message),
+      );
 
     this.eventEmitter.emit('application.submitted', {
       applicationId: application.id,

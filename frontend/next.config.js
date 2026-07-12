@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // NEXT_PUBLIC_API_URL is configured via .env.local (see frontend/.env.local)
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1',
+  },
+}
 
-};
-
-module.exports = nextConfig;
+module.exports = nextConfig

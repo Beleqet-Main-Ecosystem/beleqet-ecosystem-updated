@@ -1,62 +1,64 @@
 # Dependencies
 node_modules/
+ADVANCED_SEARCH_IMPLEMENTATION_REPORT.md
+.pnp
+.pnp.js
 
-# Build and compiled output
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Production
 dist/
 build/
-.next/
-out/
 *.tsbuildinfo
-dist/
-frontend/dist-test/
-frontend/.next/
-frontend/out/
-server/dist/
-server/build/
 
-# Environment variables & secrets
+# Environment variables
 .env
 .env.local
 .env.*.local
 
+
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 lerna-debug.log*
-
-# OS metadata
+.pnpm-debug.log*
+plan.md
+# OS
 .DS_Store
 Thumbs.db
 
-# NestJS / Testing artifacts
-.nestcli.errors.log
-coverage/
-.nyc_output/
-test-results/
-.cache/
-.vercel
-err*.txt
-out*.txt
-*.txt
-out*
-err*
-
-# IDE/Editor configurations
+# IDE
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.swp
+*.swo
+*~
 
-# Project-specific ignores
-beleqend_jobs.sql
-users_export.json
-scripts/
-.agents/
-issue_pr_matches.md
-AGENTS.md
+# Docker
+
+# Cache
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist/
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port/
+
+# Misc
+.turbo/
+.vercel/
+.netlify/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3

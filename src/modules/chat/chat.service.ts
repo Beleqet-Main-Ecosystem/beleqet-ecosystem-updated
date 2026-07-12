@@ -1,11 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-/** Structured metadata attached to non-plain-text chat messages */
-export type MessageMetadata =
-  | { type: 'file'; url: string; name: string }
-  | { type: 'video_call'; link: string };
-
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -17,31 +12,31 @@ export class ChatService {
     if (contractId) {
       const existing = await this.prisma.chatRoom.findUnique({
         where: { contractId },
-        include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } }
+        include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } },
       });
       if (existing) return existing;
     }
-    
+
     // Create new room
     const room = await this.prisma.chatRoom.create({
       data: {
         contractId,
         participants: {
-          create: [{ userId: userId1 }, { userId: userId2 }]
-        }
+          create: [{ userId: userId1 }, { userId: userId2 }],
+        },
       },
-      include: { participants: true, messages: true }
+      include: { participants: true, messages: true },
     });
-    
+
     this.logger.log(`Created new ChatRoom ${room.id} for users ${userId1} and ${userId2}`);
     return room;
   }
 
   /** Save a message to DB and return it populated */
-  async saveMessage(roomId: string, senderId: string, content: string, metadata?: MessageMetadata) {
+  async saveMessage(roomId: string, senderId: string, content: string, metadata?: any) {
     // Verify user is in room
     const participant = await this.prisma.chatParticipant.findUnique({
-      where: { roomId_userId: { roomId, userId: senderId } }
+      where: { roomId_userId: { roomId, userId: senderId } },
     });
     if (!participant) throw new NotFoundException('User is not a participant of this chat room');
 
@@ -50,18 +45,20 @@ export class ChatService {
         roomId,
         senderId,
         content,
-        metadata
+        metadata,
       },
-      include: { 
-        sender: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true } } 
-      }
+      include: {
+        sender: {
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+        },
+      },
     });
   }
 
   /** Fetch message history */
   async getRoomMessages(roomId: string, userId: string, take = 50) {
     const participant = await this.prisma.chatParticipant.findUnique({
-      where: { roomId_userId: { roomId, userId } }
+      where: { roomId_userId: { roomId, userId } },
     });
     if (!participant) throw new NotFoundException('Unauthorized');
 
@@ -69,9 +66,11 @@ export class ChatService {
       where: { roomId },
       orderBy: { createdAt: 'asc' }, // usually UI wants asc, but depends on frontend
       take,
-      include: { 
-        sender: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true } } 
-      }
+      include: {
+        sender: {
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+        },
+      },
     });
   }
 }

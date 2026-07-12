@@ -30,7 +30,7 @@ export class WalletProcessor {
     await this.prisma.freelancerWallet.update({
       where: { id: walletId },
       data: {
-        pendingBalance:   { decrement: amount },
+        pendingBalance: { decrement: amount },
         availableBalance: { increment: amount },
       },
     });

@@ -1,18 +1,21 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: beleqet-postgres
     restart: always
     environment:
-      POSTGRES_USER: beleqet_user
-      POSTGRES_PASSWORD: your_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: bsk
       POSTGRES_DB: beleqet_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d beleqet_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -22,20 +25,26 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+      target: production
     container_name: beleqet-backend
     restart: unless-stopped
     ports:
       - "4000:4000"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=4000
       - FRONTEND_URL=http://localhost:3000
-      - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
+      - DATABASE_URL=postgresql://postgres:bsk@db:5432/beleqet_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
@@ -46,12 +55,16 @@ services:
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
       - OPENAI_API_KEY=dummy_key_for_testing
-      - TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
-      - TOTP_TEMP_SECRET=docker_totp_temp_secret_please_change_in_production
-      - TOTP_ISSUER=Beleqet
+      - SEARCH_ENABLED=true
+      - SEARCH_MAX_RESULTS=100
+      - SEARCH_CACHE_TTL=300
+      - SEARCH_DEFAULT_LIMIT=20
+      - SEARCH_MAX_LIMIT=100
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
@@ -64,9 +77,45 @@ services:
     ports:
       - "3000:3000"
     environment:
+      - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
     depends_on:
       - backend
+
+  # -----------------------------------------------------------------------------
+  # Test service — run unit + E2E tests inside Docker with DB access
+  # Usage:
+  #   Unit tests:  docker-compose run --rm backend-test
+  #   E2E tests:   docker-compose run --rm backend-test npm run test src/modules/advanced-search/advanced-search.e2e.spec.ts
+  # -----------------------------------------------------------------------------
+  backend-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
+    container_name: beleqet-test
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://postgres:bsk@db:5432/beleqet_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_TLS=false
+      - JWT_ACCESS_SECRET=test_secret
+      - JWT_ACCESS_EXPIRES=15m
+      - JWT_REFRESH_EXPIRES=30d
+      - SEARCH_ENABLED=true
+      - SEARCH_MAX_RESULTS=100
+      - SEARCH_CACHE_TTL=300
+      - SEARCH_DEFAULT_LIMIT=20
+      - SEARCH_MAX_LIMIT=100
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - test
 
 volumes:
   postgres_data:

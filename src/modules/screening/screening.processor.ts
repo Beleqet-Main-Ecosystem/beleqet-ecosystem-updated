@@ -17,9 +17,7 @@
 //         → [queue] log-platform-event (analytics)
 // =============================================================================
 
-import {
-  Processor, Process, OnQueueFailed, OnQueueCompleted,
-} from '@nestjs/bull';
+import { Processor, Process, OnQueueFailed, OnQueueCompleted } from '@nestjs/bull';
 import { Logger, Injectable } from '@nestjs/common';
 import { Job as BullJob } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
@@ -30,8 +28,11 @@ import OpenAI from 'openai';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import {
-  QUEUE_NAMES, APPLICATION_JOBS, NOTIFICATION_JOBS,
-  ANALYTICS_JOBS, SCORING,
+  QUEUE_NAMES,
+  APPLICATION_JOBS,
+  NOTIFICATION_JOBS,
+  ANALYTICS_JOBS,
+  SCORING,
 } from '../queues/queues.constants';
 import { recruiterApplicationEmail } from '../notifications/email-templates';
 
@@ -68,7 +69,7 @@ export class ScreeningProcessor {
     private readonly eventEmitter: EventEmitter2,
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
-    @InjectQueue(QUEUE_NAMES.ANALYTICS)    private readonly analyticsQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.ANALYTICS) private readonly analyticsQueue: Queue,
   ) {
     this.openai = new OpenAI({
       apiKey: this.config.get<string>('OPENAI_API_KEY'),
@@ -101,13 +102,13 @@ export class ScreeningProcessor {
       data: {
         applicationId,
         userId: job.data.userId,
-        overallScore:    scoreResult.overallScore,
-        skillScore:      scoreResult.skillScore,
+        overallScore: scoreResult.overallScore,
+        skillScore: scoreResult.skillScore,
         experienceScore: scoreResult.experienceScore,
         cultureFitScore: scoreResult.cultureFitScore,
-        reasoning:       scoreResult.reasoning,
-        rawAiResponse:   scoreResult as object,
-        modelUsed:       this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini'),
+        reasoning: scoreResult.reasoning,
+        rawAiResponse: scoreResult as object,
+        modelUsed: this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini'),
       },
     });
 
@@ -115,11 +116,7 @@ export class ScreeningProcessor {
     const isShortlisted = scoreResult.overallScore >= SCORING.AUTO_SHORTLIST_THRESHOLD;
     const isAutoRejected = scoreResult.overallScore < SCORING.AUTO_REJECT_THRESHOLD;
 
-    const newStatus = isAutoRejected
-      ? 'REJECTED'
-      : isShortlisted
-      ? 'SHORTLISTED'
-      : 'SCREENING'; // manual review zone
+    const newStatus = isAutoRejected ? 'REJECTED' : isShortlisted ? 'SHORTLISTED' : 'SCREENING'; // manual review zone
 
     await this.prisma.application.update({
       where: { id: applicationId },
@@ -152,17 +149,21 @@ export class ScreeningProcessor {
     // g. Queue downstream jobs
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
       userId: job.data.userId,
-      type: isShortlisted ? 'application.shortlisted' : isAutoRejected ? 'application.rejected' : 'application.received',
+      type: isShortlisted
+        ? 'application.shortlisted'
+        : isAutoRejected
+          ? 'application.rejected'
+          : 'application.received',
       title: isShortlisted
         ? `🎉 You've been shortlisted for ${jobTitle}`
         : isAutoRejected
-        ? `Application update for ${jobTitle}`
-        : `Application received for ${jobTitle}`,
+          ? `Application update for ${jobTitle}`
+          : `Application received for ${jobTitle}`,
       body: isShortlisted
         ? 'Congratulations! Your profile stands out. Expect an interview invitation soon.'
         : isAutoRejected
-        ? 'Thank you for applying. Unfortunately your profile does not match the requirements for this role.'
-        : 'Your application is being reviewed by our team.',
+          ? 'Thank you for applying. Unfortunately your profile does not match the requirements for this role.'
+          : 'Your application is being reviewed by our team.',
       metadata: { applicationId, jobId: job.data.jobId, score: scoreResult.overallScore },
     });
 
@@ -206,7 +207,14 @@ export class ScreeningProcessor {
   // ── 2. Notify Recruiter ───────────────────────────────────────────────────
 
   @Process(APPLICATION_JOBS.NOTIFY_RECRUITER)
-  async handleNotifyRecruiter(job: BullJob<{ applicationId: string; jobTitle: string; companyId: string; applicantName: string }>) {
+  async handleNotifyRecruiter(
+    job: BullJob<{
+      applicationId: string;
+      jobTitle: string;
+      companyId: string;
+      applicantName: string;
+    }>,
+  ) {
     this.logger.log(`[notify-recruiter] New application for ${job.data.jobTitle}`);
 
     // Find company owner and notify
@@ -250,7 +258,9 @@ export class ScreeningProcessor {
   // ── 3. Schedule Interview ────────────────────────────────────────────────
 
   @Process(APPLICATION_JOBS.SCHEDULE_INTERVIEW)
-  async handleScheduleInterview(job: BullJob<{ applicationId: string; userId: string; jobId: string; jobTitle: string }>) {
+  async handleScheduleInterview(
+    job: BullJob<{ applicationId: string; userId: string; jobId: string; jobTitle: string }>,
+  ) {
     this.logger.log(`[schedule-interview] Scheduling for application ${job.data.applicationId}`);
 
     // Set a proposed interview slot 3 business days from now
@@ -290,12 +300,19 @@ export class ScreeningProcessor {
     );
 
     // After final attempt, mark application as needing manual review
-    if (job.name === APPLICATION_JOBS.SCREEN_CANDIDATE && job.attemptsMade >= (job.opts.attempts ?? 3)) {
+    if (
+      job.name === APPLICATION_JOBS.SCREEN_CANDIDATE &&
+      job.attemptsMade >= (job.opts.attempts ?? 3)
+    ) {
       const data = job.data as ScreenCandidatePayload;
-      await this.prisma.application.update({
-        where: { id: data.applicationId },
-        data: { notes: `AI screening failed after ${job.attemptsMade} attempts: ${error.message}` },
-      }).catch(() => null);
+      await this.prisma.application
+        .update({
+          where: { id: data.applicationId },
+          data: {
+            notes: `AI screening failed after ${job.attemptsMade} attempts: ${error.message}`,
+          },
+        })
+        .catch(() => null);
     }
   }
 
@@ -337,7 +354,7 @@ Score this application and return JSON with exactly this shape:
         model: this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini'),
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user',   content: userPrompt },
+          { role: 'user', content: userPrompt },
         ],
         temperature: 0.2,
         max_tokens: 400,
@@ -349,11 +366,11 @@ Score this application and return JSON with exactly this shape:
 
       // Clamp all scores to 0-100
       return {
-        overallScore:    Math.min(100, Math.max(0, parsed.overallScore ?? 50)),
-        skillScore:      Math.min(100, Math.max(0, parsed.skillScore ?? 50)),
+        overallScore: Math.min(100, Math.max(0, parsed.overallScore ?? 50)),
+        skillScore: Math.min(100, Math.max(0, parsed.skillScore ?? 50)),
         experienceScore: Math.min(100, Math.max(0, parsed.experienceScore ?? 50)),
         cultureFitScore: Math.min(100, Math.max(0, parsed.cultureFitScore ?? 50)),
-        reasoning:       parsed.reasoning ?? '',
+        reasoning: parsed.reasoning ?? '',
       };
     } catch (err) {
       this.logger.warn(`OpenAI call failed, using fallback scoring: ${(err as Error).message}`);

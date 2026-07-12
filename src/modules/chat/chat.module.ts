@@ -5,11 +5,9 @@ import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
 import { PrismaModule } from '../../prisma/prisma.module';
 
-
 @Module({
   imports: [
     PrismaModule,
-    
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -20,6 +18,6 @@ import { PrismaModule } from '../../prisma/prisma.module';
     }),
   ],
   providers: [ChatService, ChatGateway],
-  exports: [ChatService]
+  exports: [ChatService],
 })
 export class ChatModule {}

@@ -4,8 +4,6 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { WalletService, WithdrawDto } from './wallet.service';
-import { StepUpGuard } from '../two-factor/guards/step-up.guard';
-import { SensitiveAction } from '../two-factor/decorators/sensitive-action.decorator';
 
 @ApiTags('wallet')
 @ApiBearerAuth()
@@ -15,13 +13,17 @@ export class WalletController {
   constructor(private readonly svc: WalletService) {}
 
   @Get()
-  getWallet(@CurrentUser() u: CurrentUserPayload) { return this.svc.getOrCreate(u.userId); }
+  getWallet(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getOrCreate(u.userId);
+  }
 
   @Get('employer')
-  getEmployerWallet(@CurrentUser() u: CurrentUserPayload) { return this.svc.getEmployerWallet(u.userId); }
+  getEmployerWallet(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getEmployerWallet(u.userId);
+  }
 
   @Post('withdraw')
-  @UseGuards(StepUpGuard)
-  @SensitiveAction('wallet_withdraw')
-  withdraw(@CurrentUser() u: CurrentUserPayload, @Body() dto: WithdrawDto) { return this.svc.withdraw(u.userId, dto); }
+  withdraw(@CurrentUser() u: CurrentUserPayload, @Body() dto: WithdrawDto) {
+    return this.svc.withdraw(u.userId, dto);
+  }
 }

@@ -32,3 +32,5 @@
 3. Develop: የተመደቡትን ሞጁል ብቻ በንጹህ ኮድ ይስሩ።
 4. Submit: ስራዎን ሲያጠናቅቁ የ GitHub Pull Request (PR) ይክፈቱ።
 5. Quality Standard: ኮድዎ የ Global Scaling (i18n, GDPR, Multi-currency) መስፈርቶችን ማሟላት አለበት።
+
+

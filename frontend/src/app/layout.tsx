@@ -1,15 +1,25 @@
-import type { Metadata } from 'next';
-import '@/styles/globals.css';
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { LanguageProvider } from '@/contexts/LanguageContext'
+
+const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Beleqet Admin — Dashboard',
-  description: 'Admin control panel for the Beleqet Global Freelance Ecosystem',
-};
+  title: 'Beleqet - Advanced Search',
+  description: 'Advanced search for freelancers, projects, and services',
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={inter.className}>
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
-  );
+  )
 }

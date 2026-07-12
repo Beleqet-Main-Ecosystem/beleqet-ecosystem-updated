@@ -1,0 +1,30 @@
+{
+  "search": {
+    "title": "የላቀ ፍለጋ",
+    "keyword_placeholder": "ፍሪላንሰር፣ ፕሮጀክት፣ አገልግሎት ይፈልጉ...",
+    "filters": "ማጣሪያዎች",
+    "price_range": "የዋጋ ክልል",
+    "rating": "ደረጃ",
+    "skills": "ችሎታዎች",
+    "location": "አካባቢ",
+    "sort_by": "በዚህ መደርደር",
+    "no_results": "ውጤት አልተገኘም",
+    "invalid_filters": "የተሳሳቱ የማጣሪያ ባህሪያት",
+    "invalid_price_range": "ዝቅተኛው ዋጋ ከከፍተኛው ዋጋ ማነስ ወይም እኩል መሆን አለበት",
+    "invalid_rating": "የተሳሳተ ደረጃ። ደረጃ ከ0 እስከ 5 መሆን አለበት",
+    "too_many_skills": "በጣም ብዙ ችሎታዎች ተመርጠዋል። ከፍተኛው የሚፈቀደው 20 ነው",
+    "invalid_currency": "የተሳሳተ ምንዛሪ። የሚደገፉ ምንዛሪዎች ETB፣ USD፣ EUR ናቸው",
+    "invalid_page": "የተሳሳተ የገጽ ቁጥር። የገጽ ቁጥር ከ0 በላይ መሆን አለበት",
+    "invalid_limit": "የተሳሳተ ገደብ። ገደብ ከ1 እስከ 100 መሆን አለበት",
+    "invalid_rating_value": "የተሳሳተ የደረጃ ዋጋ። ደረጃ ከ0 እስከ 5 መሆን አለበት",
+    "invalid_location": "የተሳሳተ አካባቢ። የተፈቀዱት አካባቢዎች አዲስ አበባ፣ ባህር ዳር፣ ሀዋሳ፣ መቐለ፣ አዳማ፣ ድሬዳዋ፣ ጎንደር፣ ጅማ፣ ሪሞት (Remote) ናቸው",
+    "invalid_number": "የተሳሳተ ቁጥር",
+    "invalid_string": "የተሳሳተ ጽሑፍ",
+    "invalid_array": "የተሳሳተ ዝርዝር",
+    "invalid_property": "የተሳሳተ ባህሪ",
+    "freelancer": "ፍሪላንሰር",
+    "project": "ፕሮጀክት",
+    "service": "አገልግሎት",
+    "all": "ሁሉም"
+  }
+}
