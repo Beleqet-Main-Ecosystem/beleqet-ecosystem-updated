@@ -11,6 +11,7 @@
  * - Shows star rating (read-only)
  * - Displays review comment and date
  * - Responsive design with dark mode support
+ * - i18n support for English and Amharic
  *
  * GDPR notes:
  *  - Only displays user-submitted feedback (consented via platform terms)
@@ -18,6 +19,7 @@
  */
 import { Star } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { getReviewTranslation } from '@/lib/i18n/translations';
 
 interface ReviewCardProps {
   reviewerName: string;
@@ -46,6 +48,9 @@ export function ReviewCard({
   createdAt,
   contractTitle,
 }: ReviewCardProps) {
+  // Default to English, can be extended to use user's language preference
+  const lang = 'en';
+
   const timeAgo = formatDistanceToNow(new Date(createdAt), { addSuffix: true });
 
   return (

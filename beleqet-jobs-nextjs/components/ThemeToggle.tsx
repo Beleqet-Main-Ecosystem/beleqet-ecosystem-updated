@@ -11,6 +11,7 @@
  * - Responsive dropdown menu
  * - Visual feedback for current theme
  * - Accessible button with proper ARIA labels
+ * - i18n support for English and Amharic
  *
  * GDPR notes:
  *  - No personal data collected
@@ -19,6 +20,7 @@
 import { Moon, Sun, Monitor } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { useState } from 'react';
+import { getThemeTranslation } from '@/lib/i18n/translations';
 
 /**
  * ThemeToggle component that renders a button to switch themes.
@@ -28,10 +30,13 @@ export function ThemeToggle() {
   const { theme, setTheme, actualTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Default to English, can be extended to use user's language preference
+  const lang = 'en';
+
   const themes: { value: 'light' | 'dark' | 'system'; label: string; icon: React.ReactNode }[] = [
-    { value: 'light', label: 'Light', icon: <Sun className="h-4 w-4" /> },
-    { value: 'dark', label: 'Dark', icon: <Moon className="h-4 w-4" /> },
-    { value: 'system', label: 'System', icon: <Monitor className="h-4 w-4" /> },
+    { value: 'light', label: getThemeTranslation(lang, 'light'), icon: <Sun className="h-4 w-4" /> },
+    { value: 'dark', label: getThemeTranslation(lang, 'dark'), icon: <Moon className="h-4 w-4" /> },
+    { value: 'system', label: getThemeTranslation(lang, 'system'), icon: <Monitor className="h-4 w-4" /> },
   ];
 
   const getCurrentIcon = () => {

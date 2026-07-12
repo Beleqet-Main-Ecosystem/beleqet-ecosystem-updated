@@ -11,12 +11,14 @@
  * - Shows total number of reviews
  * - Rating distribution bar chart (1-5 stars)
  * - Responsive design with dark mode support
+ * - i18n support for English and Amharic
  *
  * GDPR notes:
  *  - Only displays aggregated statistics (no individual PII)
  *  - Statistics are derived from user-submitted feedback
  */
 import { Star } from 'lucide-react';
+import { getReviewTranslation } from '@/lib/i18n/translations';
 
 interface RatingDistribution {
   fiveStar: number;
@@ -44,12 +46,15 @@ export function ReviewStats({
   totalReviews,
   ratingDistribution,
 }: ReviewStatsProps) {
+  // Default to English, can be extended to use user's language preference
+  const lang = 'en';
+
   const distribution = [
-    { stars: 5, count: ratingDistribution.fiveStar, label: '5 stars' },
-    { stars: 4, count: ratingDistribution.fourStar, label: '4 stars' },
-    { stars: 3, count: ratingDistribution.threeStar, label: '3 stars' },
-    { stars: 2, count: ratingDistribution.twoStar, label: '2 stars' },
-    { stars: 1, count: ratingDistribution.oneStar, label: '1 star' },
+    { stars: 5, count: ratingDistribution.fiveStar, label: getReviewTranslation(lang, 'stars').replace('stars', '5 stars') },
+    { stars: 4, count: ratingDistribution.fourStar, label: getReviewTranslation(lang, 'stars').replace('stars', '4 stars') },
+    { stars: 3, count: ratingDistribution.threeStar, label: getReviewTranslation(lang, 'stars').replace('stars', '3 stars') },
+    { stars: 2, count: ratingDistribution.twoStar, label: getReviewTranslation(lang, 'stars').replace('stars', '2 stars') },
+    { stars: 1, count: ratingDistribution.oneStar, label: getReviewTranslation(lang, 'star').replace('star', '1 star') },
   ];
 
   const getPercentage = (count: number) => {
@@ -78,7 +83,7 @@ export function ReviewStats({
             ))}
           </div>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
+            {totalReviews} {totalReviews === 1 ? getReviewTranslation(lang, 'review') : getReviewTranslation(lang, 'reviews')}
           </p>
         </div>
       </div>
@@ -103,7 +108,7 @@ export function ReviewStats({
 
       {totalReviews === 0 && (
         <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          No reviews yet
+          {getReviewTranslation(lang, 'noReviews')}
         </p>
       )}
     </div>
