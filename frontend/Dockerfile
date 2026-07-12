@@ -1,35 +1,41 @@
-# ── Build stage ────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:18-alpine AS base
 
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install dependencies first (cached layer)
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Copy source and build
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# NEXT_PUBLIC_ vars must be available at build time for Next.js static generation
-ARG NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 
-# ── Production stage ────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
-
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# Copy built assets from builder
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.js ./next.config.js
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    mkdir -p /app/.next && \
+    chown -R nextjs:nodejs /app
+
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+
+USER nextjs
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+CMD ["./node_modules/.bin/next", "start", "-H", "0.0.0.0", "-p", "3000"]

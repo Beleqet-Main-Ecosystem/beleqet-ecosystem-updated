@@ -1,23 +1,17 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, ClassSerializerInterceptor, Logger } from '@nestjs/common';
-import { HttpAdapterHost } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { ErrorRecurrenceTrackerService } from './common/filters/error-recurrence-tracker.service';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
-import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
-  const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis();
-  app.useWebSocketAdapter(redisIoAdapter);
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 4000);
@@ -66,22 +60,14 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // ── Validation ────────────────────────────────────────────────────────────
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // strip unknown props
-      forbidNonWhitelisted: true,
-      transform: true, // auto-transform to DTO types
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
+  // Validation is handled in service layer for i18n support
+  // No global pipe to allow all properties through to service layer
 
   // ── Serialization ─────────────────────────────────────────────────────────
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // ── Exception filter ──────────────────────────────────────────────────────
-  const httpAdapterHost = app.get(HttpAdapterHost);
-  const recurrenceTracker = new ErrorRecurrenceTrackerService();
-  app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost, recurrenceTracker));
+  // HttpExceptionFilter is registered as a global filter in AppModule
 
   // ── Logging interceptor ───────────────────────────────────────────────────
   app.useGlobalInterceptors(new LoggingInterceptor());
@@ -104,7 +90,6 @@ async function bootstrap() {
       .addTag('wallet', 'Freelancer wallet & withdrawals')
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
-      .addTag('db-index-master', 'DB Index Master — query analysis & index health (admin only)')
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);

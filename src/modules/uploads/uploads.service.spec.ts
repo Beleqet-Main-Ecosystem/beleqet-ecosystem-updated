@@ -17,10 +17,7 @@ describe('UploadsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        UploadsService,
-        { provide: ConfigService, useValue: mockConfigService },
-      ],
+      providers: [UploadsService, { provide: ConfigService, useValue: mockConfigService }],
     }).compile();
 
     service = module.get<UploadsService>(UploadsService);
