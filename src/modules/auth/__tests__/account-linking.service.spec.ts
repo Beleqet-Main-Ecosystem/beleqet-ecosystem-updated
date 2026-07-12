@@ -183,7 +183,9 @@ describe('AccountLinkingService', () => {
       repository.consumeVerificationToken.mockResolvedValueOnce({ userId: 'user-1' });
       repository.findOAuthAccount.mockResolvedValueOnce(null);
       const linkedUser = buildUser();
-      repository.findUserById.mockResolvedValueOnce(linkedUser);
+      // Called twice in the real flow now: once for the pre-attach
+      // existence check, once for the final post-attach fetch.
+      repository.findUserById.mockResolvedValueOnce(linkedUser).mockResolvedValueOnce(linkedUser);
 
       const result = await service.confirmPendingLink(
         'confirmation-token-abc',
@@ -226,6 +228,35 @@ describe('AccountLinkingService', () => {
       repository.consumeVerificationToken.mockResolvedValueOnce({ userId: 'user-1' });
       repository.findOAuthAccount.mockResolvedValueOnce(null);
       repository.findUserById.mockResolvedValueOnce(null);
+
+      await expect(
+        service.confirmPendingLink('confirmation-token-abc', buildProfile(), 'token'),
+      ).rejects.toBeInstanceOf(InvalidLinkConfirmationTokenError);
+    });
+
+    it('throws InvalidLinkConfirmationTokenError if the user was deleted before the attach step (pre-check)', async () => {
+      repository.consumeVerificationToken.mockResolvedValueOnce({ userId: 'user-1' });
+      repository.findOAuthAccount.mockResolvedValueOnce(null);
+      // The pre-attach existence check finds no user at all.
+      repository.findUserById.mockResolvedValueOnce(null);
+
+      await expect(
+        service.confirmPendingLink('confirmation-token-abc', buildProfile(), 'token'),
+      ).rejects.toBeInstanceOf(InvalidLinkConfirmationTokenError);
+
+      expect(repository.attachOAuthAccount).not.toHaveBeenCalled();
+    });
+
+    it('throws InvalidLinkConfirmationTokenError (not an unhandled 500) if attachOAuthAccount fails, e.g. due to a concurrent-deletion foreign key violation', async () => {
+      repository.consumeVerificationToken.mockResolvedValueOnce({ userId: 'user-1' });
+      repository.findOAuthAccount.mockResolvedValueOnce(null);
+      // Pre-attach check passes (user still exists at that instant)...
+      repository.findUserById.mockResolvedValueOnce(buildUser());
+      // ...but the attach itself fails, simulating the user having been
+      // deleted in the narrow window between the check and the insert.
+      repository.attachOAuthAccount.mockRejectedValueOnce(
+        new Error('Foreign key constraint violated: OAuthAccount_userId_fkey (P2003)'),
+      );
 
       await expect(
         service.confirmPendingLink('confirmation-token-abc', buildProfile(), 'token'),

@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Logger,
   Post,
   Request,
   Req,
@@ -41,6 +42,8 @@ type OAuthCallbackResponse =
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly accountLinkingService: AccountLinkingService,
@@ -181,10 +184,20 @@ export class AuthController {
       const linkPath = identity.profile.provider === 'GOOGLE' ? 'google' : 'linkedin';
       const confirmationUrl = `${this.config.appBaseUrl}/auth/${linkPath}/link?token=${outcome.confirmationToken}`;
 
-      await this.emailSender.sendAccountLinkConfirmation(
-        outcome.candidateEmail,
-        confirmationUrl,
-      );
+      // Fire-and-forget: matches the existing pattern in AuthService for
+      // all other transactional emails (welcome, login/logout alerts,
+      // etc.) — the SMTP handshake (often 1-3s) must not block this
+      // request/redirect. A delivery failure here is logged, not
+      // surfaced to the user, since the confirmation flow itself already
+      // succeeded; the user can request a fresh link if the email never
+      // arrives.
+      this.emailSender
+        .sendAccountLinkConfirmation(outcome.candidateEmail, confirmationUrl)
+        .catch((err: Error) =>
+          this.logger.error(
+            `Failed to send account-link confirmation email to ${outcome.candidateEmail}: ${err.message}`,
+          ),
+        );
 
       return {
         status: 'confirmation_required',

@@ -71,7 +71,7 @@ describe('AuthController', () => {
       handleOAuthSignIn: jest.fn(),
       confirmPendingLink: jest.fn(),
     };
-    emailSender = { sendAccountLinkConfirmation: jest.fn() };
+    emailSender = { sendAccountLinkConfirmation: jest.fn().mockResolvedValue(undefined) };
 
     const config: Pick<AuthEnvConfig, 'appBaseUrl'> = {
       appBaseUrl: 'http://localhost:3000',

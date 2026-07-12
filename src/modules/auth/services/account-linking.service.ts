@@ -210,14 +210,33 @@ export class AccountLinkingService {
       return existingUser;
     }
 
-    await this.accountRepository.attachOAuthAccount({
-      userId: consumed.userId,
-      provider: profile.provider,
-      providerAccountId: profile.providerAccountId,
-      encryptedAccessToken,
-      encryptedRefreshToken,
-      tokenExpiresAt: profile.tokenExpiresAt,
-    });
+    // Verify the user still exists before attempting to attach — closes
+    // most of the race window where the account could have been deleted
+    // concurrently between token consumption and this point.
+    const preAttachUser = await this.accountRepository.findUserById(consumed.userId);
+    if (preAttachUser === null) {
+      throw new InvalidLinkConfirmationTokenError();
+    }
+
+    try {
+      await this.accountRepository.attachOAuthAccount({
+        userId: consumed.userId,
+        provider: profile.provider,
+        providerAccountId: profile.providerAccountId,
+        encryptedAccessToken,
+        encryptedRefreshToken,
+        tokenExpiresAt: profile.tokenExpiresAt,
+      });
+    } catch {
+      // Defense-in-depth for the narrow remaining race: the user could
+      // still be deleted in the moment between the check above and this
+      // insert, which fails the OAuthAccount->User foreign key
+      // constraint (Prisma P2003). Rather than importing Prisma-specific
+      // error types into this DB-agnostic service, treat ANY failure
+      // here as an invalid/expired confirmation — the safest generic
+      // response — instead of letting it surface as an unhandled 500.
+      throw new InvalidLinkConfirmationTokenError();
+    }
 
     const user = await this.accountRepository.findUserById(consumed.userId);
 
