@@ -1,0 +1,64 @@
+{
+  "actions": {
+    "AUTH_LOGIN": "ተጠቃሚ ገብቷል",
+    "AUTH_LOGOUT": "ተጠቃሚ ወጥቷል",
+    "AUTH_REGISTER": "ተጠቃሚ ተመዝግቧል",
+    "AUTH_EMAIL_VERIFIED": "ኢሜይል ተረጋግጧል",
+    "AUTH_PASSWORD_RESET_REQUESTED": "የይለፍ ቃል ዳግም ማስጀመሪያ ተጠይቋል",
+    "AUTH_PASSWORD_RESET_COMPLETED": "የይለፍ ቃል ዳግም ማስጀመር ተጠናቋል",
+    "PAYMENT_ESCROW_INITIATED": "ኤስክሮ ተጀምሯል",
+    "PAYMENT_ESCROW_FUNDED": "ኤስክሮ ተሞልቷል",
+    "PAYMENT_MILESTONE_RELEASED": "የምዕራፍ ክፍያ ተፈቷል",
+    "PAYMENT_WITHDRAWAL_REQUESTED": "ስለ ወጪ ጥያቄ ቀርቧል",
+    "PAYMENT_WITHDRAWAL_FAILED": "ወጪ አልተሳካም",
+    "JOB_CREATED": "ሥራ ተፈጥሯል",
+    "JOB_UPDATED": "ሥራ ተዘምኗል",
+    "JOB_PUBLISHED": "ሥራ ታትሟል",
+    "JOB_DELETED": "ሥራ ተሰርዟል",
+    "APPLICATION_STATUS_CHANGED": "የማመልከቻ ሁኔታ ተቀይሯል",
+    "CONTRACT_CREATED": "ውል ተፈጥሯል",
+    "CONTRACT_COMPLETED": "ውል ተጠናቋል",
+    "CONTRACT_CANCELLED": "ውል ተሰርዟል",
+    "CONTRACT_DISPUTE_RAISED": "የውል ክርክር ተነስቷል",
+    "BID_STATUS_CHANGED": "የጨረታ ሁኔታ ተቀይሯል",
+    "ADMIN_USER_UPDATED": "አስተዳዳሪ ተጠቃሚ ዘምኗል"
+  },
+  "columns": {
+    "timestamp": "ጊዜ",
+    "actor": "ተዋናይ",
+    "action": "እርምጃ",
+    "entityType": "የአካል ዓይነት",
+    "entityId": "የአካል መለያ",
+    "ipAddress": "አይፒ አድራሻ",
+    "actions": "እርምጃዎች"
+  },
+  "filters": {
+    "actionType": "የእርምጃ ዓይነት",
+    "actor": "ተዋናይ",
+    "entityType": "የአካል ዓይነት",
+    "dateRange": "የቀን ክልል",
+    "from": "ከ",
+    "to": "እስከ",
+    "ipAddress": "አይፒ አድራሻ",
+    "search": "ፈልግ",
+    "allActions": "ሁሉም እርምጃዎች",
+    "allEntityTypes": "ሁሉም የአካል ዓይነቶች"
+  },
+  "stats": {
+    "totalLogs": "ጠቅላላ መዝገቦች",
+    "uniqueActors": "ልዩ ተዋናዮች",
+    "topActions": "ዋና እርምጃዎች"
+  },
+  "emptyState": {
+    "message": "ከወቅታዊ ማጣሪያዎችዎ ጋር የሚዛመድ የኦዲት መዝገብ የለም። የቀን ክልሉን ያስተካክሉ ወይም አንዳንድ ማጣሪያዎችን ያጥፉ።"
+  },
+  "export": {
+    "button": "CSV ላክ"
+  },
+  "detail": {
+    "title": "የኦዲት መዝገብ ዝርዝር",
+    "metadata": "ሜታዳታ",
+    "integrityValid": "ታማኝነት ተረጋግጧል",
+    "integrityInvalid": "የታማኝነት ልዩነት"
+  }
+}

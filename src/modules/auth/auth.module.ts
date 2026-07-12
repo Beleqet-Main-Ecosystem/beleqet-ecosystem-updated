@@ -8,6 +8,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { BullModule } from '@nestjs/bull';
 import { QUEUE_NAMES } from '../queues/queues.constants';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
+import { AuditTrailModule } from '../audit-trail/audit-trail.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
     }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
     forwardRef(() => TwoFactorModule),
+    AuditTrailModule,
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

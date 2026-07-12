@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -6,6 +16,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { JobsService } from './jobs.service';
 import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
+import { Audit } from '../audit-trail/audit.decorator';
+import { AuditAction } from '../audit-trail/audit-action.enum';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -50,7 +62,12 @@ export class JobsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'ADMIN')
   @ApiBearerAuth()
-  update(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload, @Body() dto: Partial<CreateJobDto>) {
+  @Audit(AuditAction.JOB_UPDATED, 'Job', 'params.id')
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: Partial<CreateJobDto>,
+  ) {
     return this.svc.update(id, user.userId, dto);
   }
 
@@ -58,6 +75,7 @@ export class JobsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'ADMIN')
   @ApiBearerAuth()
+  @Audit(AuditAction.JOB_DELETED, 'Job', 'params.id')
   remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.svc.remove(id, user.userId);
   }

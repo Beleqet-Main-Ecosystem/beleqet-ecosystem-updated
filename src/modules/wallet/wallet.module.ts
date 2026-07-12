@@ -5,9 +5,10 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
 import { WalletService } from './wallet.service';
 import { WalletController } from './wallet.controller';
 import { WalletProcessor } from './wallet.processor';
+import { AuditTrailModule } from '../audit-trail/audit-trail.module';
 
 @Module({
-  imports: [BullModule.registerQueue({ name: QUEUE_NAMES.WALLET }), TwoFactorModule],
+  imports: [BullModule.registerQueue({ name: QUEUE_NAMES.WALLET }), TwoFactorModule, AuditTrailModule],
   providers: [WalletService, WalletProcessor],
   controllers: [WalletController],
   exports: [WalletService],

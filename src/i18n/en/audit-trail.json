@@ -1,0 +1,64 @@
+{
+  "actions": {
+    "AUTH_LOGIN": "User Login",
+    "AUTH_LOGOUT": "User Logout",
+    "AUTH_REGISTER": "User Registration",
+    "AUTH_EMAIL_VERIFIED": "Email Verified",
+    "AUTH_PASSWORD_RESET_REQUESTED": "Password Reset Requested",
+    "AUTH_PASSWORD_RESET_COMPLETED": "Password Reset Completed",
+    "PAYMENT_ESCROW_INITIATED": "Escrow Initiated",
+    "PAYMENT_ESCROW_FUNDED": "Escrow Funded",
+    "PAYMENT_MILESTONE_RELEASED": "Milestone Payment Released",
+    "PAYMENT_WITHDRAWAL_REQUESTED": "Withdrawal Requested",
+    "PAYMENT_WITHDRAWAL_FAILED": "Withdrawal Failed",
+    "JOB_CREATED": "Job Created",
+    "JOB_UPDATED": "Job Updated",
+    "JOB_PUBLISHED": "Job Published",
+    "JOB_DELETED": "Job Deleted",
+    "APPLICATION_STATUS_CHANGED": "Application Status Changed",
+    "CONTRACT_CREATED": "Contract Created",
+    "CONTRACT_COMPLETED": "Contract Completed",
+    "CONTRACT_CANCELLED": "Contract Cancelled",
+    "CONTRACT_DISPUTE_RAISED": "Contract Dispute Raised",
+    "BID_STATUS_CHANGED": "Bid Status Changed",
+    "ADMIN_USER_UPDATED": "Admin User Updated"
+  },
+  "columns": {
+    "timestamp": "Timestamp",
+    "actor": "Actor",
+    "action": "Action",
+    "entityType": "Entity Type",
+    "entityId": "Entity ID",
+    "ipAddress": "IP Address",
+    "actions": "Actions"
+  },
+  "filters": {
+    "actionType": "Action Type",
+    "actor": "Actor",
+    "entityType": "Entity Type",
+    "dateRange": "Date Range",
+    "from": "From",
+    "to": "To",
+    "ipAddress": "IP Address",
+    "search": "Search",
+    "allActions": "All Actions",
+    "allEntityTypes": "All Entity Types"
+  },
+  "stats": {
+    "totalLogs": "Total Logs",
+    "uniqueActors": "Unique Actors",
+    "topActions": "Top Actions"
+  },
+  "emptyState": {
+    "message": "No audit logs match your current filters. Try adjusting the date range or clearing some filters."
+  },
+  "export": {
+    "button": "Export CSV"
+  },
+  "detail": {
+    "title": "Audit Log Detail",
+    "metadata": "Metadata",
+    "integrityValid": "Integrity Verified",
+    "integrityInvalid": "Integrity Mismatch"
+  }
+}

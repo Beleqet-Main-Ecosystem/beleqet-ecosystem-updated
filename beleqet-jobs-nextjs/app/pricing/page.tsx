@@ -1,69 +1,69 @@
-import { Check, Zap, Building2, Rocket, ArrowRight, Star } from "lucide-react";
-import Link from "next/link";
-import { pricingPageMetadata } from "@/lib/seo/generate-metadata";
+import { Check, Zap, Building2, Rocket, ArrowRight, Star } from 'lucide-react';
+import Link from 'next/link';
+import { pricingPageMetadata } from '@/lib/seo/generate-metadata';
 
 export const metadata = pricingPageMetadata();
 
 const plans = [
   {
     icon: Zap,
-    name: "Basic",
-    tagline: "Get started for free",
+    name: 'Basic',
+    tagline: 'Get started for free',
     price: null,
-    priceLabel: "Free",
-    period: "forever",
-    desc: "Perfect for small businesses posting their first job listing.",
+    priceLabel: 'Free',
+    period: 'forever',
+    desc: 'Perfect for small businesses posting their first job listing.',
     features: [
-      "1 active job listing",
-      "30 days visibility",
-      "Standard search placement",
-      "Applicant management dashboard",
-      "Email notifications",
+      '1 active job listing',
+      '30 days visibility',
+      'Standard search placement',
+      'Applicant management dashboard',
+      'Email notifications',
     ],
-    href: "/post-job",
-    action: "Post a free job",
+    href: '/post-job',
+    action: 'Post a free job',
     highlight: false,
     badge: null,
   },
   {
     icon: Rocket,
-    name: "Featured",
-    tagline: "Most popular choice",
+    name: 'Featured',
+    tagline: 'Most popular choice',
     price: 1500,
-    priceLabel: "ETB 1,500",
-    period: "per month",
-    desc: "More reach, more applicants. Ideal for growing teams.",
+    priceLabel: 'ETB 1,500',
+    period: 'per month',
+    desc: 'More reach, more applicants. Ideal for growing teams.',
     features: [
-      "Up to 5 active listings",
-      "60 days visibility per listing",
-      "Featured badge on all jobs",
-      "Priority search placement",
-      "Telegram channel boost",
-      "Applicant CSV export",
+      'Up to 5 active listings',
+      '60 days visibility per listing',
+      'Featured badge on all jobs',
+      'Priority search placement',
+      'Telegram channel boost',
+      'Applicant CSV export',
     ],
-    href: "/contact",
-    action: "Get Featured",
+    href: '/contact',
+    action: 'Get Featured',
     highlight: true,
-    badge: "Most Popular",
+    badge: 'Most Popular',
   },
   {
     icon: Building2,
-    name: "Enterprise",
-    tagline: "Built for scale",
+    name: 'Enterprise',
+    tagline: 'Built for scale',
     price: null,
-    priceLabel: "Custom",
-    period: "tailored to you",
-    desc: "High-volume hiring with a dedicated partner by your side.",
+    priceLabel: 'Custom',
+    period: 'tailored to you',
+    desc: 'High-volume hiring with a dedicated partner by your side.',
     features: [
-      "Unlimited job listings",
-      "Dedicated account manager",
-      "Custom employer branding page",
-      "Priority candidate screening",
-      "API access & integrations",
-      "SLA-backed support",
+      'Unlimited job listings',
+      'Dedicated account manager',
+      'Custom employer branding page',
+      'Priority candidate screening',
+      'API access & integrations',
+      'SLA-backed support',
     ],
-    href: "/contact",
-    action: "Contact sales",
+    href: '/contact',
+    action: 'Contact sales',
     highlight: false,
     badge: null,
   },
@@ -71,20 +71,20 @@ const plans = [
 
 const faqs = [
   {
-    q: "Can I upgrade or downgrade my plan?",
-    a: "Yes. You can upgrade anytime and the difference will be prorated. Downgrades take effect at the end of the billing period.",
+    q: 'Can I upgrade or downgrade my plan?',
+    a: 'Yes. You can upgrade anytime and the difference will be prorated. Downgrades take effect at the end of the billing period.',
   },
   {
-    q: "How do I pay?",
-    a: "We accept Telebirr, CBE Birr, and bank transfers. Contact our sales team after selecting a plan.",
+    q: 'How do I pay?',
+    a: 'We accept Telebirr, CBE Birr, and bank transfers. Contact our sales team after selecting a plan.',
   },
   {
-    q: "Is the free plan really free?",
-    a: "Absolutely. No credit card required. You can post one active job listing at no cost, for as long as you need.",
+    q: 'Is the free plan really free?',
+    a: 'Absolutely. No credit card required. You can post one active job listing at no cost, for as long as you need.',
   },
   {
-    q: "What happens when my listing expires?",
-    a: "Your job becomes invisible to job seekers. You can renew it or upgrade to a paid plan to extend visibility.",
+    q: 'What happens when my listing expires?',
+    a: 'Your job becomes invisible to job seekers. You can renew it or upgrade to a paid plan to extend visibility.',
   },
 ];
 
@@ -101,8 +101,8 @@ export default function PricingPage() {
             Simple, transparent pricing
           </h1>
           <p className="mx-auto mt-5 max-w-lg text-base text-white/65 leading-relaxed">
-            Pay for reach, not features. Every plan includes access to
-            Ethiopia&apos;s largest verified talent network.
+            Pay for reach, not features. Every plan includes access to Ethiopia&apos;s largest
+            verified talent network.
           </p>
         </div>
       </section>
@@ -117,8 +117,8 @@ export default function PricingPage() {
                 key={plan.name}
                 className={`relative flex flex-col overflow-hidden rounded-3xl border ${
                   plan.highlight
-                    ? "border-brandGreen bg-primary text-white shadow-[0_20px_60px_-15px_rgba(0,101,59,0.4)]"
-                    : "border-border bg-white shadow-card"
+                    ? 'border-brandGreen bg-primary text-white shadow-[0_20px_60px_-15px_rgba(0,101,59,0.4)]'
+                    : 'border-border bg-white shadow-card'
                 }`}
               >
                 {plan.badge && (
@@ -132,8 +132,8 @@ export default function PricingPage() {
                   <span
                     className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${
                       plan.highlight
-                        ? "bg-white/10 text-[#d8ff3e]"
-                        : "bg-brandGreen/10 text-brandGreen"
+                        ? 'bg-white/10 text-[#d8ff3e]'
+                        : 'bg-brandGreen/10 text-brandGreen'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -141,14 +141,14 @@ export default function PricingPage() {
 
                   <p
                     className={`mt-4 text-xs font-extrabold uppercase tracking-widest ${
-                      plan.highlight ? "text-[#d8ff3e]" : "text-brandGreen"
+                      plan.highlight ? 'text-[#d8ff3e]' : 'text-brandGreen'
                     }`}
                   >
                     {plan.tagline}
                   </p>
                   <h2
                     className={`mt-1 text-xl font-black ${
-                      plan.highlight ? "text-white" : "text-primary"
+                      plan.highlight ? 'text-white' : 'text-primary'
                     }`}
                   >
                     {plan.name}
@@ -157,7 +157,7 @@ export default function PricingPage() {
                   <div className="mt-5 flex items-end gap-1">
                     <span
                       className={`text-4xl font-black leading-none ${
-                        plan.highlight ? "text-white" : "text-primary"
+                        plan.highlight ? 'text-white' : 'text-primary'
                       }`}
                     >
                       {plan.priceLabel}
@@ -165,16 +165,16 @@ export default function PricingPage() {
                     {plan.price !== null && (
                       <span
                         className={`mb-0.5 text-sm ${
-                          plan.highlight ? "text-white/50" : "text-muted"
+                          plan.highlight ? 'text-white/50' : 'text-muted'
                         }`}
                       >
                         /{plan.period}
                       </span>
                     )}
-                    {plan.price === null && plan.name !== "Basic" && (
+                    {plan.price === null && plan.name !== 'Basic' && (
                       <span
                         className={`mb-0.5 text-sm ${
-                          plan.highlight ? "text-white/50" : "text-muted"
+                          plan.highlight ? 'text-white/50' : 'text-muted'
                         }`}
                       >
                         — {plan.period}
@@ -183,7 +183,7 @@ export default function PricingPage() {
                   </div>
                   <p
                     className={`mt-3 text-sm leading-relaxed ${
-                      plan.highlight ? "text-white/60" : "text-muted"
+                      plan.highlight ? 'text-white/60' : 'text-muted'
                     }`}
                   >
                     {plan.desc}
@@ -192,7 +192,7 @@ export default function PricingPage() {
 
                 <div
                   className={`mx-6 border-t ${
-                    plan.highlight ? "border-white/10" : "border-border"
+                    plan.highlight ? 'border-white/10' : 'border-border'
                   }`}
                 />
 
@@ -202,17 +202,13 @@ export default function PricingPage() {
                       <span
                         className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
                           plan.highlight
-                            ? "bg-white/10 text-[#d8ff3e]"
-                            : "bg-brandGreen/10 text-brandGreen"
+                            ? 'bg-white/10 text-[#d8ff3e]'
+                            : 'bg-brandGreen/10 text-brandGreen'
                         }`}
                       >
                         <Check className="h-3 w-3" />
                       </span>
-                      <span
-                        className={plan.highlight ? "text-white/80" : "text-ink/80"}
-                      >
-                        {f}
-                      </span>
+                      <span className={plan.highlight ? 'text-white/80' : 'text-ink/80'}>{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -222,8 +218,8 @@ export default function PricingPage() {
                     href={plan.href}
                     className={`group flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-bold transition-all ${
                       plan.highlight
-                        ? "bg-[#d8ff3e] text-primary hover:bg-[#c8ef2e]"
-                        : "bg-primary text-white hover:bg-brandGreen"
+                        ? 'bg-[#d8ff3e] text-primary hover:bg-[#c8ef2e]'
+                        : 'bg-primary text-white hover:bg-brandGreen'
                     }`}
                   >
                     {plan.action}
@@ -244,12 +240,12 @@ export default function PricingPage() {
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-8 text-sm font-extrabold text-primary/40">
             {[
-              "ethio telecom",
-              "Dashen Bank",
-              "Safaricom Ethiopia",
-              "TakaCash",
-              "Zemen Bank",
-              "BN Star Trading",
+              'ethio telecom',
+              'Dashen Bank',
+              'Safaricom Ethiopia',
+              'TakaCash',
+              'Zemen Bank',
+              'BN Star Trading',
             ].map((name) => (
               <span key={name}>{name}</span>
             ))}
@@ -265,14 +261,9 @@ export default function PricingPage() {
           </h2>
           <div className="mt-8 space-y-4">
             {faqs.map((faq) => (
-              <div
-                key={faq.q}
-                className="rounded-2xl border border-border bg-white p-6"
-              >
+              <div key={faq.q} className="rounded-2xl border border-border bg-white p-6">
                 <p className="font-extrabold text-primary">{faq.q}</p>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  {faq.a}
-                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{faq.a}</p>
               </div>
             ))}
           </div>
@@ -285,12 +276,10 @@ export default function PricingPage() {
           <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
             Ready to hire?
           </p>
-          <h2 className="mt-3 text-3xl font-black">
-            Start reaching candidates today
-          </h2>
+          <h2 className="mt-3 text-3xl font-black">Start reaching candidates today</h2>
           <p className="mx-auto mt-4 max-w-md text-sm text-white/60 leading-relaxed">
-            No contracts, no commitments. Post your first job free and see the
-            results before committing to a paid plan.
+            No contracts, no commitments. Post your first job free and see the results before
+            committing to a paid plan.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link

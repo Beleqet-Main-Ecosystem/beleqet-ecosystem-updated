@@ -1,20 +1,16 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import { AuthProvider } from "@/components/AuthProvider";
-import ChatWidget from "@/components/ChatWidget";
-import { WebSiteSchema } from "@/lib/seo/schemas";
-import { getSeoConfig } from "@/lib/seo/config";
-import { homePageMetadata } from "@/lib/seo/generate-metadata";
+import type { Metadata } from 'next';
+import './globals.css';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { AuthProvider } from '@/components/AuthProvider';
+import ChatWidget from '@/components/ChatWidget';
+import { WebSiteSchema } from '@/lib/seo/schemas';
+import { getSeoConfig } from '@/lib/seo/config';
+import { homePageMetadata } from '@/lib/seo/generate-metadata';
 
 export const metadata: Metadata = homePageMetadata();
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const { themeColor, defaultLocale } = getSeoConfig();
 
   return (

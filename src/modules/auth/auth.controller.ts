@@ -1,11 +1,28 @@
 // auth.controller.ts
-import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, HttpStatus, Headers } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus, Headers,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshDto, VerifyEmailDto, ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto, ChangeEmailDto } from './dto/register.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  RefreshDto,
+  VerifyEmailDto,
+  ForgotPasswordDto,
+  ResetPasswordDto, ChangePasswordDto, ChangeEmailDto,
+} from './dto/register.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { Audit } from '../audit-trail/audit.decorator';
+import { AuditAction } from '../audit-trail/audit-action.enum';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -14,6 +31,7 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
+  @Audit(AuditAction.AUTH_REGISTER, 'User')
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -22,9 +40,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login and receive JWT tokens' })
   async login(@Body() dto: LoginDto, @Request() req: any) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip;
+    const userAgent = req.headers['user-agent'] as string | undefined;
+    const correlationId = req.headers['x-correlation-id'] as string | undefined;
     const user = await this.authService.validateUser(dto.email, dto.password);
-    const userAgent = req.headers['user-agent'];
-    return this.authService.login(user, userAgent);
+    return this.authService.login(user, userAgent, ipAddress, correlationId);
   }
 
   @Post('refresh')
@@ -38,8 +58,12 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  logout(@Request() req: Express.Request & { user: { userId: string } }) {
-    return this.authService.logout(req.user.userId);
+  async logout(@Request() req: any) {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ?? req.ip;
+    const userAgent = req.headers['user-agent'] as string | undefined;
+    const correlationId = req.headers['x-correlation-id'] as string | undefined;
+    const { userId, email, role } = req.user;
+    return this.authService.logout(userId, email, role, ipAddress, userAgent, correlationId);
   }
 
   @Get('me')
@@ -53,6 +77,7 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify user email via token' })
+  @Audit(AuditAction.AUTH_EMAIL_VERIFIED, 'User')
   verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto.token);
   }
@@ -67,6 +92,7 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password via token' })
+  @Audit(AuditAction.AUTH_PASSWORD_RESET_COMPLETED, 'User')
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }
