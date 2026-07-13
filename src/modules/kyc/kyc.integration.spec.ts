@@ -1,20 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KycController } from './kyc.controller';
 import { KycService } from './kyc.service';
-import { MockKycProvider } from './providers/mock-kyc-provider.service';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
+
 import { KycDocumentType, KycStatus } from '@prisma/client';
-import { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 
-describe('KYC Module Component Integration', () => {
+import { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+
+describe('KYC Module Flow Integration', () => {
   let controller: KycController;
-  let mockKycProvider: MockKycProvider;
+
   let prismaMock: any;
   let uploadsMock: any;
+  let providerMock: any;
 
-  // Mock application layer metadata payloads matching your auth architecture
   const mockUser: CurrentUserPayload = {
     userId: 'usr-dev-123',
     email: 'freelancer@network.et',
@@ -22,90 +24,200 @@ describe('KYC Module Component Integration', () => {
   };
 
   beforeEach(async () => {
-    // Intercept database state to protect pipeline isolation during integration testing
     prismaMock = {
       kycVerification: {
         findUnique: jest.fn(),
+
         upsert: jest.fn(),
+
+        findMany: jest.fn(),
+
+        update: jest.fn(),
       },
-      user: { update: jest.fn() },
-      eventLog: { create: jest.fn() },
-      $transaction: jest.fn((cb) => cb(prismaMock)),
+
+      user: {
+        update: jest.fn(),
+      },
+
+      eventLog: {
+        create: jest.fn(),
+      },
+
+      $transaction: jest.fn(async (callback) => callback(prismaMock)),
     };
 
-    // Intercept S3 actions to simulate rapid cloud object stream responses
     uploadsMock = {
-      getFileBuffer: jest.fn().mockImplementation((key: string) => {
-        // Return a tiny buffer to trigger rejection branch if targeted key keyword is hit
-        if (key.includes('trigger-rejection-flow')) {
-          return Buffer.from('tiny');
-        }
-        return Buffer.from('Valid Buffer Content Data Simulator String');
+      generateUploadUrl: jest.fn().mockResolvedValue({
+        key: 'kyc-storage-key',
+
+        uploadUrl: 'https://secure-upload-url.com',
       }),
+
+      getFileBuffer: jest.fn().mockResolvedValue(Buffer.from('valid-image-buffer')),
     };
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    providerMock = {
+      verify: jest.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
       controllers: [KycController],
+
       providers: [
         KycService,
-        MockKycProvider,
-        { provide: 'KycProvider', useClass: MockKycProvider }, // Bind the provider implementation token cleanly
-        { provide: PrismaService, useValue: prismaMock },
-        { provide: UploadsService, useValue: uploadsMock },
+
+        {
+          provide: PrismaService,
+
+          useValue: prismaMock,
+        },
+
+        {
+          provide: UploadsService,
+
+          useValue: uploadsMock,
+        },
+
+        {
+          provide: 'KycProvider',
+
+          useValue: providerMock,
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            translate: jest.fn((key) => key),
+          },
+        },
       ],
     }).compile();
 
-    controller = moduleFixture.get<KycController>(KycController);
-    mockKycProvider = moduleFixture.get<MockKycProvider>('KycProvider');
+    controller = module.get<KycController>(KycController);
   });
 
-  describe('submitKyc Integration Flow', () => {
-    it('should successfully pass data across Controller -> Service -> MockProvider pipeline', async () => {
-      // Setup payload matching production JSON references instead of raw express files
+  describe('submitKyc flow', () => {
+    it('should complete successful KYC verification flow', async () => {
       const dto: SubmitKycDto = {
         documentType: KycDocumentType.PASSPORT,
-        documentStorageKey: 'vault/kyc/usr-dev-123/passport-doc.jpg',
-        faceScanStorageKey: 'vault/kyc/usr-dev-123/selfie-scan.jpg',
+
+        documentStorageKey: 'kyc-documents/passport.jpg',
+
+        faceScanStorageKey: 'kyc-documents/selfie.jpg',
+
+        documentMimeType: 'image/jpeg',
+
+        faceScanMimeType: 'image/jpeg',
       };
 
       prismaMock.kycVerification.findUnique.mockResolvedValue(null);
-      prismaMock.kycVerification.upsert.mockResolvedValue({
-        status: KycStatus.APPROVED,
+
+      providerMock.verify.mockResolvedValue({
         matchScore: 95.8,
+
         livenessPassed: true,
+
+        isDocumentValid: true,
+
         rejectionReason: null,
       });
 
-      const result = await controller.submitKyc(mockUser, dto);
+      prismaMock.kycVerification.upsert.mockResolvedValue({
+        status: KycStatus.APPROVED,
 
-      expect(result).toBeDefined();
+        matchScore: 95.8,
+
+        livenessPassed: true,
+
+        rejectionReason: null,
+
+        verifiedAt: new Date(),
+      });
+
+      const result = await controller.submitVerification(mockUser, dto);
+
       expect(result.status).toBe(KycStatus.APPROVED);
+
       expect(result.matchScore).toBe(95.8);
+
       expect(result.livenessPassed).toBe(true);
+
       expect(uploadsMock.getFileBuffer).toHaveBeenCalledTimes(2);
+
+      expect(providerMock.verify).toHaveBeenCalledWith({
+        documentBuffer: expect.any(Buffer),
+
+        faceScanBuffer: expect.any(Buffer),
+
+        documentMimeType: 'image/jpeg',
+
+        faceScanMimeType: 'image/jpeg',
+      });
     });
 
-    it('should correctly pass variables down to provider triggers and report simulated mock rejections', async () => {
+    it('should complete rejected KYC verification flow', async () => {
       const dto: SubmitKycDto = {
         documentType: KycDocumentType.NATIONAL_ID,
-        documentStorageKey: 'vault/kyc/usr-dev-123/trigger-rejection-flow-doc.jpg', // Intercepted key keyword
-        faceScanStorageKey: 'vault/kyc/usr-dev-123/selfie-scan.jpg',
+
+        documentStorageKey: 'kyc-documents/id-card.jpg',
+
+        faceScanStorageKey: 'kyc-documents/selfie.jpg',
+
+        documentMimeType: 'image/jpeg',
+
+        faceScanMimeType: 'image/jpeg',
       };
 
       prismaMock.kycVerification.findUnique.mockResolvedValue(null);
-      prismaMock.kycVerification.upsert.mockResolvedValue({
-        status: KycStatus.REJECTED,
-        matchScore: 42.0,
+
+      providerMock.verify.mockResolvedValue({
+        matchScore: 42,
+
         livenessPassed: true,
-        rejectionReason:
-          'The provided document data stream size fails standard physical feature resolution metrics.',
+
+        isDocumentValid: true,
+
+        rejectionReason: 'Low biometric match score',
       });
 
-      const result = await controller.submitKyc(mockUser, dto);
+      prismaMock.kycVerification.upsert.mockResolvedValue({
+        status: KycStatus.REJECTED,
+
+        matchScore: 42,
+
+        livenessPassed: true,
+
+        rejectionReason: 'Low biometric match score',
+      });
+
+      const result = await controller.submitVerification(mockUser, dto);
 
       expect(result.status).toBe(KycStatus.REJECTED);
-      expect(result.matchScore).toBeLessThan(50);
-      expect(result.rejectionReason).toContain('resolution metrics');
+
+      expect(result.matchScore).toBe(42);
+
+      expect(result.rejectionReason).toBe('Low biometric match score');
+    });
+
+    it('should block already pending verification', async () => {
+      const dto: SubmitKycDto = {
+        documentType: KycDocumentType.PASSPORT,
+
+        documentStorageKey: 'document.jpg',
+
+        faceScanStorageKey: 'selfie.jpg',
+
+        documentMimeType: 'image/jpeg',
+
+        faceScanMimeType: 'image/jpeg',
+      };
+
+      prismaMock.kycVerification.findUnique.mockResolvedValue({
+        status: KycStatus.PENDING,
+      });
+
+      await expect(controller.submitVerification(mockUser, dto)).rejects.toThrow();
+
+      expect(uploadsMock.getFileBuffer).not.toHaveBeenCalled();
     });
   });
 });

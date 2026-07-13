@@ -9,9 +9,11 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { KycProvider } from './providers/kyc-provider.interface';
-import { KycDocumentType, KycStatus } from '@prisma/client';
+import { KycStatus } from '@prisma/client';
 import { SubmitKycDto } from './dto/submit-kyc.dto';
-
+import { isSupportedKycMimeType, getExtensionFromMimeType } from './utils/kyc-file.util';
+import { I18nService } from 'nestjs-i18n';
+import { KycUploadUrlsResponse } from './interfaces/kyc-upload-response.interface';
 /**
  * Handles Know Your Customer (KYC) verification workflows.
  *
@@ -39,35 +41,65 @@ export class KycService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadsService: UploadsService,
+    private readonly i18n: I18nService,
     @Inject('KycProvider') private readonly kycProvider: KycProvider,
   ) {}
 
   /**
-   * Generates secure pre-signed upload URLs so the Next.js frontend can
-   * push identity documents and face scans directly to S3/R2 storage.
+   * Generates temporary upload URLs for KYC assets.
    *
-   * @param userId Authenticated user identifier.
+   * The returned URLs allow authenticated users to upload identity
+   * documents and facial images directly to private cloud storage
+   * without routing file contents through the backend application.
+   *
+   * Each generated URL is:
+   * - Unique
+   * - Time-limited
+   * - Intended for a single upload operation
+   *
+   * @param userId Authenticated user's unique identifier.
+   *
+   * @returns Storage keys and temporary upload URLs for the required
+   * KYC identity assets.
    */
-  async createPresignedUploadTokens(userId: string) {
+
+  async generateUploadUrls(
+    userId: string,
+    documentContentType: string,
+    faceScanContentType: string,
+  ): Promise<KycUploadUrlsResponse> {
+    const invalidFileTypeMessage = await this.i18n.translate('uploads.invalid_file_type');
+
+    if (!isSupportedKycMimeType(documentContentType)) {
+      throw new BadRequestException(invalidFileTypeMessage);
+    }
+
+    if (!isSupportedKycMimeType(faceScanContentType)) {
+      throw new BadRequestException(invalidFileTypeMessage);
+    }
     const uniqueId = crypto.randomUUID();
+    const documentExtension = getExtensionFromMimeType(documentContentType);
+    const faceScanExtension = getExtensionFromMimeType(faceScanContentType);
+    const docFilename = `${uniqueId}-document.${documentExtension}`;
+    const faceFilename = `${uniqueId}-facescan.${faceScanExtension}`;
+    this.logger.log('Generating secure KYC upload URLs.');
 
-    // Define unique filenames/keys
-    const docFilename = `${userId}-${uniqueId}-document.jpg`;
-    const faceFilename = `${userId}-${uniqueId}-facescan.jpg`;
+    // Passing parameters properly aligning to (filename, contentType, folder) signatures
+    const [documentUpload, faceScanUpload] = await Promise.all([
+      this.uploadsService.generateUploadUrl(docFilename, documentContentType, 'kyc-documents/ids'),
 
-    this.logger.log(`Generating dual pre-signed upload targets for user context: ${userId}`);
-
-    // Clean fix: Passing parameters properly aligning to (filename, contentType, folder) signatures
-    const [docUploadData, faceUploadData] = await Promise.all([
-      this.uploadsService.generatePresignedUrl(docFilename, 'image/jpeg', 'kyc-documents/ids'),
-      this.uploadsService.generatePresignedUrl(faceFilename, 'image/jpeg', 'kyc-documents/selfies'),
+      this.uploadsService.generateUploadUrl(
+        faceFilename,
+        faceScanContentType,
+        'kyc-documents/selfies',
+      ),
     ]);
 
     return {
-      documentStorageKey: docUploadData.key,
-      faceScanStorageKey: faceUploadData.key,
-      documentUploadUrl: docUploadData.presignedUrl,
-      faceScanUploadUrl: faceUploadData.presignedUrl,
+      documentStorageKey: documentUpload.key,
+      faceScanStorageKey: faceScanUpload.key,
+      documentUploadUrl: documentUpload.uploadUrl,
+      faceScanUploadUrl: faceScanUpload.uploadUrl,
     };
   }
 
@@ -80,40 +112,50 @@ export class KycService {
    * @returns Verification result summary.
    */
   async submitVerification(userId: string, dto: SubmitKycDto) {
-    const { documentType, documentStorageKey, faceScanStorageKey } = dto;
+    const {
+      documentType,
+      documentStorageKey,
+      faceScanStorageKey,
+      documentMimeType,
+      faceScanMimeType,
+    } = dto;
 
-    // Concurrently check state to shield the runtime from race conditions
+    // Check existing verification state before starting processing.
     const existing = await this.prisma.kycVerification.findUnique({
       where: { userId },
     });
 
     if (existing) {
       if (existing.status === KycStatus.PENDING) {
-        throw new ConflictException('Identity verification is already processing. Please wait.');
+        throw new ConflictException(await this.i18n.translate('uploads.already_pending'));
       }
       if (existing.status === KycStatus.APPROVED) {
-        throw new ConflictException('Account identity has already been verified.');
+        throw new ConflictException(await this.i18n.translate('uploads.already_verified'));
       }
     }
 
-    this.logger.log(
-      `Downloading private cloud verification streams into memory for user: ${userId}`,
-    );
+    this.logger.log('Downloading private KYC verification assets.');
 
-    // Clean fix: Fetch private cloud files down into memory buffers as required by the third-party provider interface
-    const [documentBuffer, faceScanBuffer] = await Promise.all([
-      this.uploadsService.getFileBuffer(documentStorageKey),
-      this.uploadsService.getFileBuffer(faceScanStorageKey),
-    ]);
+    // Fetch private cloud files down into memory buffers as required by the third-party provider interface
+    let documentBuffer: Buffer;
+    let faceScanBuffer: Buffer;
+
+    try {
+      [documentBuffer, faceScanBuffer] = await Promise.all([
+        this.uploadsService.getFileBuffer(documentStorageKey),
+        this.uploadsService.getFileBuffer(faceScanStorageKey),
+      ]);
+    } catch (error) {
+      throw new BadRequestException(await this.i18n.translate('uploads.invalid_upload_reference'));
+    }
 
     this.logger.log(`Invoking remote biometrics matching engine using pulled memory buffers.`);
 
-    // Clean fix: Passing both buffers AND their respective MIME types to satisfy KycVerificationInput
     const providerResult = await this.kycProvider.verify({
       documentBuffer,
       faceScanBuffer,
-      documentMimeType: 'image/jpeg',
-      faceScanMimeType: 'image/jpeg',
+      documentMimeType,
+      faceScanMimeType,
     });
 
     // Determine verification status branch
@@ -133,38 +175,29 @@ export class KycService {
     ) {
       status = KycStatus.REJECTED;
       if (!rejectionReason) {
-        rejectionReason = `Automated verification failure. Score: ${providerResult.matchScore}%, Liveness: ${providerResult.livenessPassed}, Authenticity: ${providerResult.isDocumentValid}.`;
+        rejectionReason = `Automated verification failed. Score: ${providerResult.matchScore}%.`;
       }
     }
 
-    this.logger.log(
-      `Biometrics evaluation complete (${status}). Syncing record keys down to persistence layer.`,
-    );
-
-    // Persist all tracking parameters and trigger user flags atomically inside a database transaction
+    this.logger.log(`Biometric evaluation completed with status: ${status}.`);
+    const verificationData = {
+      documentType,
+      documentUrl: documentStorageKey,
+      faceScanUrl: faceScanStorageKey,
+      status,
+      matchScore: providerResult.matchScore,
+      livenessPassed: providerResult.livenessPassed,
+      rejectionReason,
+      verifiedAt: status === KycStatus.APPROVED ? new Date() : null,
+    };
     const result = await this.prisma.$transaction(async (tx) => {
       const kyc = await tx.kycVerification.upsert({
         where: { userId },
-        update: {
-          documentType,
-          documentUrl: documentStorageKey,
-          faceScanUrl: faceScanStorageKey,
-          status,
-          matchScore: providerResult.matchScore,
-          livenessPassed: providerResult.livenessPassed,
-          rejectionReason,
-          verifiedAt: status === KycStatus.APPROVED ? new Date() : null,
-        },
+        update: verificationData,
+
         create: {
           userId,
-          documentType,
-          documentUrl: documentStorageKey,
-          faceScanUrl: faceScanStorageKey,
-          status,
-          matchScore: providerResult.matchScore,
-          livenessPassed: providerResult.livenessPassed,
-          rejectionReason,
-          verifiedAt: status === KycStatus.APPROVED ? new Date() : null,
+          ...verificationData,
         },
       });
 
@@ -185,68 +218,140 @@ export class KycService {
 
       return kyc;
     });
+    let message: string;
 
+    switch (result.status) {
+      case KycStatus.APPROVED:
+        message = await this.i18n.translate('uploads.verification_approved');
+        break;
+
+      case KycStatus.REJECTED:
+        message = await this.i18n.translate('uploads.verification_rejected');
+        break;
+
+      default:
+        message = await this.i18n.translate('uploads.verification_pending');
+    }
     return {
       status: result.status,
       matchScore: result.matchScore,
       livenessPassed: result.livenessPassed,
       rejectionReason: result.rejectionReason,
       verifiedAt: result.verifiedAt,
+      message,
     };
   }
 
   /**
-   * Retrieves the current KYC verification record for a user.
+   * Retrieves the current KYC verification status for an authenticated user.
+   *
+   * Returns only user-safe verification information.
+   *
+   * @param userId Authenticated user's unique identifier.
+   *
+   * @throws NotFoundException
+   * Thrown when no verification record exists.
    */
   async getVerificationStatus(userId: string) {
     const kyc = await this.prisma.kycVerification.findUnique({
       where: { userId },
     });
+
     if (!kyc) {
-      throw new NotFoundException('No active identity records identified for this user context.');
+      throw new NotFoundException(await this.i18n.translate('uploads.not_found'));
     }
-    return kyc;
+
+    return {
+      status: kyc.status,
+      matchScore: kyc.matchScore,
+      livenessPassed: kyc.livenessPassed,
+      rejectionReason: kyc.rejectionReason,
+      verifiedAt: kyc.verifiedAt,
+      createdAt: kyc.createdAt,
+    };
   }
 
   /**
-   * Retrieves all pending KYC verification requests with readable temporary pre-signed URLs for internal admins.
+   * Retrieves pending KYC verification requests for administrator review.
+   *
+   * Generates short-lived download URLs for private identity documents.
+   * Files remain private and are accessible only through temporary
+   * authenticated URLs.
+   *
+   * @returns Pending verification records with secure document previews.
    */
   async getPendingVerifications() {
     const records = await this.prisma.kycVerification.findMany({
-      where: { status: KycStatus.PENDING },
+      where: {
+        status: KycStatus.PENDING,
+      },
       include: {
         user: {
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
 
     return Promise.all(
       records.map(async (record) => {
-        // Generate short-lived GET presigned urls so admins can inspect private photos securely
-        const [docUrlData, faceUrlData] = await Promise.all([
-          this.uploadsService.generatePresignedUrl(record.documentUrl, 'image/jpeg'),
-          this.uploadsService.generatePresignedUrl(record.faceScanUrl, 'image/jpeg'),
+        const [documentDownloadUrl, faceScanDownloadUrl] = await Promise.all([
+          this.uploadsService.generateDownloadUrl(record.documentUrl),
+          this.uploadsService.generateDownloadUrl(record.faceScanUrl),
         ]);
 
         return {
           ...record,
-          documentUrl: docUrlData.presignedUrl,
-          faceScanUrl: faceUrlData.presignedUrl,
+          documentUrl: documentDownloadUrl,
+          faceScanUrl: faceScanDownloadUrl,
         };
       }),
     );
   }
 
   /**
-   * Approves a KYC verification request manually.
+   * Approves a pending KYC verification request manually.
+   *
+   * Only administrators can perform this operation.
+   *
+   * The operation updates:
+   * - KYC verification status
+   * - User verification flag
+   * - Compliance audit log
+   *
+   * All changes are executed inside a database transaction
+   * to maintain consistency.
+   *
+   * @param id KYC verification identifier.
+   * @param adminId Administrator performing the action.
+   *
+   * @returns Updated KYC verification record.
    */
   async approveVerification(id: string, adminId: string) {
-    const kyc = await this.prisma.kycVerification.findUnique({ where: { id } });
-    if (!kyc) throw new NotFoundException('Target record reference could not be identified.');
+    const kyc = await this.prisma.kycVerification.findUnique({
+      where: { id },
+    });
 
-    return this.prisma.$transaction(async (tx) => {
+    if (!kyc) {
+      throw new NotFoundException(await this.i18n.translate('uploads.not_found'));
+    }
+
+    if (kyc.status === KycStatus.APPROVED) {
+      throw new ConflictException(await this.i18n.translate('uploads.already_approved'));
+    }
+
+    if (kyc.status !== KycStatus.PENDING) {
+      throw new BadRequestException(await this.i18n.translate('uploads.invalid_status_transition'));
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedKyc = await tx.kycVerification.update({
         where: { id },
         data: {
@@ -257,8 +362,12 @@ export class KycService {
       });
 
       await tx.user.update({
-        where: { id: kyc.userId },
-        data: { kycVerified: true },
+        where: {
+          id: kyc.userId,
+        },
+        data: {
+          kycVerified: true,
+        },
       });
 
       await tx.eventLog.create({
@@ -266,39 +375,83 @@ export class KycService {
           eventType: 'kyc.approved',
           entityId: id,
           entityType: 'KycVerification',
-          payload: { adminId, userId: kyc.userId },
+          payload: {
+            adminId,
+            userId: kyc.userId,
+            previousStatus: kyc.status,
+            newStatus: KycStatus.APPROVED,
+          },
           processedBy: KycService.name,
         },
       });
 
       return updatedKyc;
     });
-  }
 
+    this.logger.log(`Admin ${adminId} approved KYC verification ${id}`);
+
+    return result;
+  }
   /**
-   * Rejects a KYC verification request manually.
+   * Rejects a pending KYC verification request manually.
+   *
+   * Only administrators can perform this operation.
+   *
+   * The operation updates:
+   * - KYC verification status
+   * - User verification flag
+   * - Compliance audit history
+   *
+   * All changes are executed atomically inside a database transaction.
+   *
+   * @param id KYC verification identifier.
+   * @param adminId Administrator performing the rejection.
+   * @param reason Reason for rejecting the verification.
+   *
+   * @returns Updated KYC verification record.
    */
   async rejectVerification(id: string, adminId: string, reason: string) {
     if (!reason || reason.trim().length === 0) {
-      throw new BadRequestException('Explicit rejection arguments must be supplied.');
+      throw new BadRequestException(await this.i18n.translate('uploads.rejection_reason_required'));
     }
 
-    const kyc = await this.prisma.kycVerification.findUnique({ where: { id } });
-    if (!kyc) throw new NotFoundException('Target record reference could not be identified.');
+    const kyc = await this.prisma.kycVerification.findUnique({
+      where: {
+        id,
+      },
+    });
 
-    return this.prisma.$transaction(async (tx) => {
+    if (!kyc) {
+      throw new NotFoundException(await this.i18n.translate('uploads.not_found'));
+    }
+
+    if (kyc.status === KycStatus.REJECTED) {
+      throw new ConflictException(await this.i18n.translate('uploads.already_rejected'));
+    }
+
+    if (kyc.status !== KycStatus.PENDING) {
+      throw new BadRequestException(await this.i18n.translate('uploads.invalid_status_transition'));
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const updatedKyc = await tx.kycVerification.update({
-        where: { id },
+        where: {
+          id,
+        },
         data: {
           status: KycStatus.REJECTED,
-          rejectionReason: reason,
+          rejectionReason: reason.trim(),
           verifiedAt: null,
         },
       });
 
       await tx.user.update({
-        where: { id: kyc.userId },
-        data: { kycVerified: false },
+        where: {
+          id: kyc.userId,
+        },
+        data: {
+          kycVerified: false,
+        },
       });
 
       await tx.eventLog.create({
@@ -306,12 +459,22 @@ export class KycService {
           eventType: 'kyc.rejected',
           entityId: id,
           entityType: 'KycVerification',
-          payload: { adminId, userId: kyc.userId, reason },
+          payload: {
+            adminId,
+            userId: kyc.userId,
+            previousStatus: kyc.status,
+            newStatus: KycStatus.REJECTED,
+            reason: reason.trim(),
+          },
           processedBy: KycService.name,
         },
       });
 
       return updatedKyc;
     });
+
+    this.logger.log(`Admin ${adminId} rejected KYC verification ${id}`);
+
+    return result;
   }
 }

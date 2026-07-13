@@ -29,17 +29,10 @@ export class UploadsController {
   @Post('presigned-url')
   @ApiOperation({ summary: 'Get a secure S3 upload URL for a file' })
   async getPresignedUrl(@Body() body: PresignedUrlDto) {
-    return this.uploadsService.generatePresignedUrl(
+    return this.uploadsService.generateUploadUrl(
       body.filename,
       body.contentType,
       body.folder || 'misc',
     );
-  }
-
-  @Post('file')
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({ summary: 'Upload file directly to cloud storage' })
-  async uploadFile(@UploadedFile() file: any) {
-    return this.uploadsService.uploadFile(file, 'resumes');
   }
 }

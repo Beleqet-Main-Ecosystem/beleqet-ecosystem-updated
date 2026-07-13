@@ -1,138 +1,250 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, UseGuards, Patch } from '@nestjs/common';
+
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+} from '@nestjs/swagger';
+
 import { KycService } from './kyc.service';
+
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+
 import { SubmitKycDto } from './dto/submit-kyc.dto';
 import { RejectKycDto } from './dto/reject-kyc.dto';
+import { VerificationIdParamDto } from './dto/verificationId-param.dto';
+import { GenerateUploadUrlsDto } from './dto/generate-upload-urls.dto';
 
 /**
- * Exposes REST endpoints for Know Your Customer (KYC) verification workflows.
+ * Exposes REST endpoints for Know Your Customer (KYC) verification.
  *
  * Responsibilities:
- * - Generate ephemeral presigned S3 upload URLs for client uploads.
- * - Accept secure, pre-uploaded identity tracking references.
- * - Provide verification status for authenticated users.
- * - Allow administrators to manage, review, approve, or reject submissions.
+ * - Generate temporary upload URLs for identity documents.
+ * - Receive uploaded document references.
+ * - Retrieve verification status.
+ * - Provide administrator review endpoints.
+ *
+ * This controller intentionally contains no business logic.
+ * All verification workflows are delegated to {@link KycService}.
  *
  * Security:
- * - Requires JWT authentication for all endpoints.
- * - Restricts administrative operations using role-based access control.
- *
- * @controller KycController
+ * - JWT authentication is required for every endpoint.
+ * - Administrative endpoints additionally require the ADMIN role.
  */
-@ApiTags('kyc')
+@ApiTags('KYC')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard) // Clean fix: Stack both guards globally at controller level so pipeline execution sequence is consistent
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('kyc')
 export class KycController {
   /**
-   * Creates a new KYC controller instance.
+   * Creates a new KYC controller.
    *
-   * @param kycService Service responsible for KYC verification workflows.
+   * @param kycService Service responsible for KYC workflows.
    */
   constructor(private readonly kycService: KycService) {}
 
   /**
-   * Generates secure presigned S3 upload paths allowing the Next.js client
-   * to push assets directly to private cloud buckets.
+   * Generates temporary upload URLs that allow authenticated users
+   * to upload identity documents directly to private cloud storage.
    *
-   * This implements high-performance, direct-to-cloud upload architecture
-   * to shield the server from parsing heavy file byte streams.
+   * Files never pass through the backend application, reducing
+   * server bandwidth usage and improving scalability.
+   *
+   * @param user Currently authenticated user.
+   *
+   * @returns Upload URLs and object keys for the required KYC assets.
    */
-  @Get('upload-urls')
-  @ApiOperation({ summary: 'Acquire ephemeral presigned upload URLs for identity artifacts' })
-  async getUploadUrls(@CurrentUser() user: CurrentUserPayload) {
-    return this.kycService.createPresignedUploadTokens(user.userId);
+  @Post('upload-urls')
+  @ApiOperation({
+    summary: 'Generate temporary upload URLs',
+  })
+  @ApiBody({
+    type: GenerateUploadUrlsDto,
+  })
+  @ApiCreatedResponse({
+    description: 'Temporary upload URLs generated successfully.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Unsupported file type supplied.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required.',
+  })
+  async generateUploadUrls(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: GenerateUploadUrlsDto,
+  ) {
+    return this.kycService.generateUploadUrls(
+      user.userId,
+      dto.documentContentType,
+      dto.faceScanContentType,
+    );
   }
 
   /**
-   * Submits pre-uploaded cloud storage tracking keys for processing.
+   * Submits uploaded identity document references for
+   * verification.
    *
-   * Workflow:
-   * 1. Validate storage paths exist via global class-validator DTO pipelines.
-   * 2. Pass references to underlying biometrics verification handlers.
+   * The frontend uploads files directly to cloud storage and
+   * submits only the generated storage keys.
    *
-   * @param user Authenticated user information.
-   * @param dto Verification submission payload holding S3 string references.
+   * Validation is performed automatically by the global
+   * ValidationPipe and SubmitKycDto decorators.
    *
-   * @returns Verification result generated by the KYC service.
+   * @param user Authenticated user.
+   * @param dto Submitted verification payload.
+   *
+   * @returns Created verification record.
    */
-  @Post('submit')
+  @Post('verifications')
   @ApiConsumes('application/json')
-  @ApiOperation({ summary: 'Submit pre-uploaded storage references for biometric identity checks' })
-  async submitKyc(@CurrentUser() user: CurrentUserPayload, @Body() dto: SubmitKycDto) {
-    // Clean fix: Removed manual if-condition checks. Class-validator pipes on SubmitKycDto reject early automatically.
+  @ApiOperation({
+    summary: 'Submit a new KYC verification request',
+  })
+  @ApiBody({
+    type: SubmitKycDto,
+  })
+  @ApiCreatedResponse({
+    description: 'KYC verification submitted successfully.',
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid verification request.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required.',
+  })
+  async submitVerification(@CurrentUser() user: CurrentUserPayload, @Body() dto: SubmitKycDto) {
     return this.kycService.submitVerification(user.userId, dto);
   }
-
   /**
-   * Retrieves the authenticated user's KYC verification status.
+   * Retrieves the authenticated user's current verification
+   * status.
    *
-   * @param user Authenticated user information.
+   * Typical states include:
    *
-   * @returns Current verification record and status.
+   * - Pending
+   * - Approved
+   * - Rejected
+   * - Requires Resubmission
+   *
+   * @param user Authenticated user.
+   *
+   * @returns Verification status.
    */
-  @Get('status')
-  @ApiOperation({ summary: 'Check current KYC verification status and records' })
-  async getStatus(@CurrentUser() user: CurrentUserPayload) {
+  @Get('verification-status')
+  @ApiOperation({
+    summary: "Retrieve the authenticated user's KYC verification status",
+  })
+  @ApiOkResponse({
+    description: 'Verification status retrieved successfully.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required.',
+  })
+  async getVerificationStatus(@CurrentUser() user: CurrentUserPayload) {
     return this.kycService.getVerificationStatus(user.userId);
   }
-
   /**
-   * Retrieves all pending verification requests.
+   * Retrieves all pending KYC verification requests.
    *
    * This endpoint is restricted to administrators and is intended
-   * for manual review workflows.
+   * for manual verification and compliance review workflows.
    *
    * @returns Collection of pending verification records.
    */
-  @Get('admin/pending')
+  @Get('admin/verifications/pending')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'List all pending KYC submissions (Admin only)' })
-  async getPending() {
+  @ApiOperation({
+    summary: 'Retrieve pending KYC submissions (Admin)',
+  })
+  @ApiOkResponse({
+    description: 'Pending verification requests retrieved successfully.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Administrator privileges required.',
+  })
+  async getPendingVerifications() {
     return this.kycService.getPendingVerifications();
   }
 
   /**
-   * Approves a pending KYC verification request.
+   * Approves a pending KYC verification.
    *
-   * This endpoint is restricted to administrators.
+   * This endpoint is available only to administrators after
+   * reviewing the submitted identity documents.
    *
    * @param id Verification identifier.
-   * @param admin Authenticated administrator information.
+   * @param admin Currently authenticated administrator.
    *
    * @returns Updated verification record.
    */
-  @Post('admin/approve/:id')
+  @Patch('admin/verifications/:id/approve')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Approve a pending KYC submission (Admin only)' })
+  @ApiOperation({
+    summary: 'Approve a KYC verification (Admin)',
+  })
+  @ApiOkResponse({
+    description: 'Verification approved successfully.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Administrator privileges required.',
+  })
   async approve(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
     return this.kycService.approveVerification(id, admin.userId);
   }
-
   /**
-   * Rejects a pending KYC verification request.
+   * Rejects a pending KYC verification.
    *
-   * This endpoint is restricted to administrators.
+   * Administrators must provide a rejection reason, allowing
+   * the applicant to understand why the verification failed
+   * and what needs to be corrected before resubmission.
    *
    * @param id Verification identifier.
-   * @param admin Authenticated administrator information.
-   * @param dto Rejection payload containing the rejection reason.
+   * @param admin Currently authenticated administrator.
+   * @param dto Rejection details.
    *
    * @returns Updated verification record.
    */
-  @Post('admin/reject/:id')
+
+  @Patch('admin/verifications/:id/reject')
   @Roles('ADMIN')
-  @ApiBody({ type: RejectKycDto }) // Clean fix: Added explicit API model binding to map parameters cleanly onto your OpenAPI spec layout
-  @ApiOperation({ summary: 'Reject a pending KYC submission (Admin only)' })
+  @ApiOperation({
+    summary: 'Reject a KYC verification (Admin)',
+  })
+  @ApiBody({
+    type: RejectKycDto,
+  })
+  @ApiOkResponse({
+    description: 'Verification rejected successfully.',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication required.',
+  })
+  @ApiForbiddenResponse({
+    description: 'Administrator privileges required.',
+  })
   async reject(
-    @Param('id') id: string,
+    @Param() params: VerificationIdParamDto,
     @CurrentUser() admin: CurrentUserPayload,
     @Body() dto: RejectKycDto,
   ) {
-    return this.kycService.rejectVerification(id, admin.userId, dto.reason);
+    return this.kycService.rejectVerification(params.id, admin.userId, dto.reason);
   }
 }

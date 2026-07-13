@@ -1,6 +1,26 @@
 {
-  "storageNotConfigured": "የፋይል ማከማቻ አልተዋቀረም።",
   "fileBodyEmpty": "የተጠየቀው ፋይል ባዶ ነው።",
   "fileDownloadFailed": "ፋይሉን ማውረድ አልተሳካም።",
-  "verificationAssetUnavailable": "የማረጋገጫ ሰነዱን ማግኘት አልተቻለም።"
+  "verificationAssetUnavailable": "የማረጋገጫ ሰነዱን ማግኘት አልተቻለም።",
+  "storage_not_configured": "የደመና ማከማቻ አልተዋቀረም።",
+  "file_not_found": "የተጠየቀው ፋይል አልተገኘም።",
+  "file_retrieval_failed": "ፋይሉን ማስመለስ አልተቻለም።",
+  "upload_failed": "ፋይሉን መላክ አልተቻለም።",
+  "empty_file": "የተላከው ፋይል ባዶ ነው።",
+  "stream_failed": "የፋይሉን ዥረት ማንበብ አልተቻለም።",
+  "invalid_file_type": "የተሰቀለው የፋይል አይነት አይደገፍም። እባክዎ JPG፣ PNG ወይም PDF ፋይል ያስገቡ።",
+  "verification_failed": "በአሁኑ ጊዜ የማንነት ማረጋገጫውን ማስኬድ አልተቻለም።",
+  "document_not_readable": "የመታወቂያ ሰነዱ በግልጽ ሁኔታ ሊነበብ አልቻለም። እባክዎ ጥራት ያለው ምስል ያስገቡ።",
+  "face_not_detected": "በተሰቀለው ምስል ውስጥ ፊት አልተገኘም።",
+  "liveness_check_failed": "የህይወትነት (Liveness) ማረጋገጫው አልተሳካም።",
+  "face_match_failed": "የተሰቀለው የራስ ፎቶ (Selfie) ከመታወቂያ ሰነዱ ጋር አይዛመድም።",
+  "already_pending": "የማንነት ማረጋገጫዎ በሂደት ላይ ነው። እባክዎ ይጠብቁ።",
+  "already_verified": "ማንነትዎ አስቀድሞ ተረጋግጧል።",
+  "invalid_upload_reference": "የተላኩት የማረጋገጫ ፋይሎች ሊገኙ አልቻሉም። እባክዎ ሰነዶቹን እንደገና ይላኩ።",
+  "not_found": "ለዚህ መለያ ምንም የማንነት ማረጋገጫ መዝገብ አልተገኘም።",
+  "already_approved": "ይህ የKYC ማረጋገጫ አስቀድሞ ጸድቋል።",
+  "invalid_status_transition": "ይህ የKYC ማረጋገጫ ካለበት ሁኔታ ወደ ጽድቅ ሊቀየር አይችልም።",
+  "verification_approved": "የማንነት ማረጋገጫው በተሳካ ሁኔታ ተጠናቋል።",
+  "verification_pending": "የማንነት ማረጋገጫዎ ተልኳል እና በምርመራ ላይ ነው።",
+  "verification_rejected": "የማንነት ማረጋገጫው ተቀባይነት አላገኘም።"
 }

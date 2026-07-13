@@ -1,16 +1,25 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { KycController } from './kyc.controller';
+
 import { KycService } from './kyc.service';
-import { SubmitKycDto } from './dto/submit-kyc.dto';
-import { RejectKycDto } from './dto/reject-kyc.dto';
+
 import { KycDocumentType, KycStatus } from '@prisma/client';
 
+import { SubmitKycDto } from './dto/submit-kyc.dto';
+import { RejectKycDto } from './dto/reject-kyc.dto';
+
 const mockKycService = {
-  createPresignedUploadTokens: jest.fn(),
+  generateUploadUrls: jest.fn(),
+
   submitVerification: jest.fn(),
+
   getVerificationStatus: jest.fn(),
+
   getPendingVerifications: jest.fn(),
+
   approveVerification: jest.fn(),
+
   rejectVerification: jest.fn(),
 };
 
@@ -20,10 +29,17 @@ describe('KycController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KycController],
-      providers: [{ provide: KycService, useValue: mockKycService }],
+
+      providers: [
+        {
+          provide: KycService,
+          useValue: mockKycService,
+        },
+      ],
     }).compile();
 
     controller = module.get<KycController>(KycController);
+
     jest.clearAllMocks();
   });
 
@@ -31,79 +47,165 @@ describe('KycController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('getUploadUrls', () => {
-    it('should request ephemeral presigned S3 URLs from the service layer', async () => {
-      const mockUser = { userId: 'user-1', email: 'test@beleqet.com', role: 'FREELANCER' };
-      const expectedTokens = {
-        documentUploadUrl: 'https://s3.amazonaws.com/upload-doc-link',
-        faceScanUploadUrl: 'https://s3.amazonaws.com/upload-face-link',
-        documentStorageKey: 'kyc/user-1/doc.jpg',
-        faceScanStorageKey: 'kyc/user-1/face.jpg',
+  describe('generateUploadUrls', () => {
+    it('should generate temporary upload URLs', async () => {
+      const mockUser = {
+        userId: 'user-1',
       };
 
-      mockKycService.createPresignedUploadTokens.mockResolvedValue(expectedTokens);
+      const expectedResponse = {
+        documentUploadUrl: 'https://upload-url.com/doc',
 
-      const result = await controller.getUploadUrls(mockUser);
+        faceScanUploadUrl: 'https://upload-url.com/face',
 
-      expect(result).toEqual(expectedTokens);
-      expect(mockKycService.createPresignedUploadTokens).toHaveBeenCalledWith('user-1');
+        documentStorageKey: 'kyc/doc.jpg',
+
+        faceScanStorageKey: 'kyc/face.jpg',
+      };
+
+      mockKycService.generateUploadUrls.mockResolvedValue(expectedResponse);
+
+      const result = await controller.generateUploadUrls(
+        mockUser as any,
+        {
+          documentContentType: 'image/jpeg',
+
+          faceScanContentType: 'image/png',
+        } as any,
+      );
+
+      expect(result).toEqual(expectedResponse);
+
+      expect(mockKycService.generateUploadUrls).toHaveBeenCalledWith(
+        'user-1',
+
+        'image/jpeg',
+
+        'image/png',
+      );
     });
   });
 
-  describe('submitKyc', () => {
-    const mockUser = { userId: 'user-1', email: 'test@beleqet.com', role: 'FREELANCER' };
-
-    it('should submit verification details smoothly when validation checks clear tracking DTO payload', async () => {
-      const dto: SubmitKycDto = {
-        documentType: KycDocumentType.PASSPORT,
-        documentStorageKey: 'vault/kyc/passport-doc-hash.jpg',
-        faceScanStorageKey: 'vault/kyc/face-scan-hash.jpg',
+  describe('submitVerification', () => {
+    it('should submit KYC verification request', async () => {
+      const mockUser = {
+        userId: 'user-1',
       };
 
-      mockKycService.submitVerification.mockResolvedValue({ status: KycStatus.PENDING });
+      const dto: SubmitKycDto = {
+        documentType: KycDocumentType.PASSPORT,
 
-      const result = await controller.submitKyc(mockUser, dto);
+        documentStorageKey: 'kyc/doc.jpg',
+
+        faceScanStorageKey: 'kyc/face.jpg',
+
+        documentMimeType: 'image/jpeg',
+
+        faceScanMimeType: 'image/jpeg',
+      };
+
+      mockKycService.submitVerification.mockResolvedValue({
+        status: KycStatus.PENDING,
+      });
+
+      const result = await controller.submitVerification(mockUser as any, dto);
 
       expect(result.status).toBe(KycStatus.PENDING);
-      expect(mockKycService.submitVerification).toHaveBeenCalledWith('user-1', dto);
+
+      expect(mockKycService.submitVerification).toHaveBeenCalledWith(
+        'user-1',
+
+        dto,
+      );
     });
   });
 
   describe('getStatus', () => {
-    it('should return user status from service', async () => {
-      const mockUser = { userId: 'user-1', email: 'test@beleqet.com', role: 'FREELANCER' };
-      mockKycService.getVerificationStatus.mockResolvedValue({ status: KycStatus.PENDING });
+    it('should return current KYC status', async () => {
+      const mockUser = {
+        userId: 'user-1',
+      };
 
-      const result = await controller.getStatus(mockUser);
+      mockKycService.getVerificationStatus.mockResolvedValue({
+        status: KycStatus.PENDING,
+      });
+
+      const result = await controller.getVerificationStatus(mockUser as any);
 
       expect(result.status).toBe(KycStatus.PENDING);
+
       expect(mockKycService.getVerificationStatus).toHaveBeenCalledWith('user-1');
     });
   });
 
-  describe('admin manual overrides', () => {
-    const mockAdmin = { userId: 'admin-1', email: 'admin@beleqet.com', role: 'ADMIN' };
+  describe('getPending', () => {
+    it('should retrieve pending KYC submissions for admin review', async () => {
+      const pendingRecords = [
+        {
+          id: 'kyc-1',
 
-    it('should invoke approve verification service', async () => {
-      mockKycService.approveVerification.mockResolvedValue({ status: KycStatus.APPROVED });
+          status: KycStatus.PENDING,
+        },
+      ];
 
-      const result = await controller.approve('kyc-1', mockAdmin);
+      mockKycService.getPendingVerifications.mockResolvedValue(pendingRecords);
+
+      const result = await controller.getPendingVerifications();
+
+      expect(result).toEqual(pendingRecords);
+
+      expect(mockKycService.getPendingVerifications).toHaveBeenCalled();
+    });
+  });
+
+  describe('admin actions', () => {
+    const admin = {
+      userId: 'admin-1',
+
+      role: 'ADMIN',
+    };
+
+    it('should approve verification', async () => {
+      mockKycService.approveVerification.mockResolvedValue({
+        status: KycStatus.APPROVED,
+      });
+
+      const result = await controller.approve('kyc-1', admin as any);
 
       expect(result.status).toBe(KycStatus.APPROVED);
-      expect(mockKycService.approveVerification).toHaveBeenCalledWith('kyc-1', 'admin-1');
+
+      expect(mockKycService.approveVerification).toHaveBeenCalledWith(
+        'kyc-1',
+
+        'admin-1',
+      );
     });
 
-    it('should invoke reject verification service', async () => {
-      const dto: RejectKycDto = { reason: 'ID matching metadata profile mismatch' };
-      mockKycService.rejectVerification.mockResolvedValue({ status: KycStatus.REJECTED });
+    it('should reject verification', async () => {
+      const dto: RejectKycDto = {
+        reason: 'Invalid identity document',
+      };
 
-      const result = await controller.reject('kyc-1', mockAdmin, dto);
+      mockKycService.rejectVerification.mockResolvedValue({
+        status: KycStatus.REJECTED,
+      });
+
+      const result = await controller.reject(
+        { id: 'kyc-1' } as any,
+
+        admin as any,
+
+        dto,
+      );
 
       expect(result.status).toBe(KycStatus.REJECTED);
+
       expect(mockKycService.rejectVerification).toHaveBeenCalledWith(
         'kyc-1',
+
         'admin-1',
-        'ID matching metadata profile mismatch',
+
+        'Invalid identity document',
       );
     });
   });

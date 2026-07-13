@@ -1,6 +1,26 @@
 {
-  "storageNotConfigured": "Cloud storage is not configured.",
   "fileBodyEmpty": "The requested file is empty.",
   "fileDownloadFailed": "Failed to download the requested file.",
-  "verificationAssetUnavailable": "Unable to retrieve the verification document."
+  "verificationAssetUnavailable": "Unable to retrieve the verification document.",
+  "storage_not_configured": "Cloud storage is not configured.",
+  "file_not_found": "The requested file could not be found.",
+  "file_retrieval_failed": "Failed to retrieve the requested file.",
+  "upload_failed": "Failed to upload the file.",
+  "empty_file": "The uploaded file is empty.",
+  "stream_failed": "Failed to read the file stream.",
+  "verification_failed": "Unable to process identity verification at this time.",
+  "document_not_readable": "The identity document could not be read. Please upload a clear image.",
+  "face_not_detected": "No face was detected in the uploaded image.",
+  "liveness_check_failed": "Liveness verification failed.",
+  "face_match_failed": "The uploaded selfie does not match the identity document.",
+  "already_pending": "Identity verification is already being processed. Please wait.",
+  "already_verified": "Your identity has already been verified.",
+  "invalid_upload_reference": "The uploaded verification files could not be found. Please upload your documents again.",
+  "invalid_file_type": "Unsupported file type. Please upload a valid identity document or image.",
+  "not_found": "No KYC verification record was found for this account.",
+  "already_approved": "This KYC verification has already been approved.",
+  "invalid_status_transition": "This KYC verification cannot be approved from its current status.",
+  "verification_approved": "Identity verification completed successfully.",
+  "verification_pending": "Your identity verification has been submitted and is under review.",
+  "verification_rejected": "Identity verification was rejected."
 }
