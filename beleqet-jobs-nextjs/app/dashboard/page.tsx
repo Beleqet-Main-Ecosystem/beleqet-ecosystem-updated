@@ -44,7 +44,7 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { useTranslation } from "@/lib/i18n";
+import { useTranslation, formatCurrency, SupportedCurrency } from "@/lib/i18n";
 import { authenticatedFetch } from "@/lib/auth";
 import { fetchJobs } from "@/lib/api";
 
@@ -92,14 +92,45 @@ const MobileNotificationItemSkeleton = lazy(
     ),
 );
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+/* ------------------------------------------------------------------ */
+/*  API URL with compile-time safety guard                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Base URL for all API calls.
+ *
+ * @remarks
+ * Falls back to `localhost` **only** in development mode.
+ * In production builds (`NODE_ENV === 'production'`), a missing
+ * `NEXT_PUBLIC_API_URL` triggers an immediate build-time error so
+ * accidental misconfiguration never reaches users.
+ */
+const API_URL: string = (() => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) return envUrl;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "[Dashboard] NEXT_PUBLIC_API_URL is not set. " +
+        "Production builds require this variable to be defined. " +
+        'Example: NEXT_PUBLIC_API_URL=https://api.beleqet.com/api/v1',
+    );
+  }
+  return "http://localhost:4000/api/v1";
+})();
 
 /* ------------------------------------------------------------------ */
 /*  Data types                                                         */
 /* ------------------------------------------------------------------ */
 
-/** Minimal job representation for the dashboard list. */
+/**
+ * Minimal, GDPR-compliant job representation for the dashboard list.
+ *
+ * @remarks
+ * Only the fields required to render a preview card are included.
+ * Sensitive or heavy payloads (full `description`, internal `tags`,
+ * salary details, etc.) are intentionally excluded to minimise
+ * data exposure and reduce memory overhead on mobile viewports.
+ */
 type DashboardJob = {
   id: string;
   title: string;
@@ -109,8 +140,6 @@ type DashboardJob = {
   category: string;
   postedAgo: string;
   featured?: boolean;
-  description?: string;
-  tags?: string[];
 };
 
 /** Notification item matching the API shape. */
@@ -139,6 +168,15 @@ type QuickActionDef = {
   icon: typeof Search;
 };
 
+/** Shape of a stat-card definition, with optional currency-formatted value. */
+type StatCardDef = {
+  label: string;
+  value: number;
+  icon: typeof Search;
+  formattedValue?: string;
+  currencyValue?: string;
+};
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -155,13 +193,21 @@ type QuickActionDef = {
 export default function DashboardPage() {
   const { user, ready, logout } = useAuth();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentJobs, setRecentJobs] = useState<DashboardJob[]>([]);
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  /** Active currency derived from user locale (ETB for Amharic, USD for English). */
+  const currency: SupportedCurrency = locale === "am" ? "ETB" : "USD";
+  /** Format a number as currency using the active locale + currency. */
+  const fmtCurrency = useCallback(
+    (amount: number) => formatCurrency(amount, currency, locale),
+    [currency, locale],
+  );
 
   /* Ref to track whether the component is still mounted. */
   const mountedRef = useRef(true);
@@ -288,27 +334,43 @@ export default function DashboardPage() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [user, loadDashboard]);
 
-  /* Fetch recent jobs (public, no auth needed). */
+  /**
+   * Fetches recent public jobs and maps only the GDPR-minimal fields
+   * required to render a preview card.  Full descriptions, internal
+   * tags, and other heavy metadata are intentionally stripped out.
+   *
+   * Errors are caught silently so they never cause an unhandled
+   * promise rejection that could crash the mobile UI.
+   */
   useEffect(() => {
     let cancelled = false;
-    fetchJobs({ limit: 5 }).then((jobs) => {
-      if (!cancelled) {
-        setRecentJobs(
-          jobs.map((j) => ({
-            id: j.id,
-            title: j.title,
-            company: j.company,
-            location: j.location,
-            type: j.type,
-            category: j.category,
-            postedAgo: j.postedAgo,
-            featured: j.featured,
-            description: j.description,
-            tags: j.tags,
-          })),
-        );
-      }
-    });
+
+    fetchJobs({ limit: 5 })
+      .then((jobs) => {
+        if (cancelled) return;
+
+        /* GDPR data minimisation: keep only preview-essential fields. */
+        const minimal: DashboardJob[] = jobs.map((j) => ({
+          id: j.id,
+          title: j.title,
+          company: j.company,
+          location: j.location,
+          type: j.type,
+          category: j.category,
+          postedAgo: j.postedAgo,
+          featured: j.featured,
+        }));
+
+        setRecentJobs(minimal);
+      })
+      .catch(() => {
+        /* Swallow errors gracefully — the rest of the dashboard
+           remains functional even if recent jobs fail to load. */
+        if (!cancelled) {
+          setRecentJobs([]);
+        }
+      });
+
     return () => {
       cancelled = true;
     };
@@ -352,19 +414,21 @@ export default function DashboardPage() {
   const pageTitle = isEmployer
     ? t("dashboard.hiringWorkspace")
     : t("dashboard.careerDashboard");
-  const pageBadge = isEmployer ? "Employer dashboard" : "Career dashboard";
+  const pageBadge = isEmployer
+    ? t("dashboard.employerBadge")
+    : t("dashboard.careerBadge");
   const pageAccent = isEmployer ? "primary" : "brandGreen";
 
   /** Stat cards to display. */
   const statCards = isEmployer
     ? [
-        { label: t("stat.totalJobs"), value: stats?.totalJobs ?? 0, icon: Briefcase },
-        { label: t("stat.published"), value: stats?.publishedJobs ?? 0, icon: Eye },
-        { label: t("stat.applications"), value: stats?.totalApplications ?? 0, icon: Users },
+        { label: t("stat.totalJobs"), value: stats?.totalJobs ?? 0, icon: Briefcase, formattedValue: stats?.totalJobs?.toLocaleString(locale) },
+        { label: t("stat.published"), value: stats?.publishedJobs ?? 0, icon: Eye, formattedValue: stats?.publishedJobs?.toLocaleString(locale) },
+        { label: t("stat.applications"), value: stats?.totalApplications ?? 0, icon: Users, formattedValue: stats?.totalApplications?.toLocaleString(locale) },
       ]
     : [
-        { label: t("stat.applications"), value: stats?.totalApplications ?? 0, icon: FileText },
-        { label: t("stat.saved"), value: stats?.savedJobs ?? 0, icon: Bookmark },
+        { label: t("stat.applications"), value: stats?.totalApplications ?? 0, icon: FileText, formattedValue: stats?.totalApplications?.toLocaleString(locale) },
+        { label: t("stat.saved"), value: stats?.savedJobs ?? 0, icon: Bookmark, formattedValue: stats?.savedJobs?.toLocaleString(locale) },
       ];
 
   /** Quick actions based on role. */
@@ -415,6 +479,8 @@ export default function DashboardPage() {
                 label={card.label}
                 value={card.value}
                 icon={card.icon}
+                formattedValue={card.formattedValue}
+                currencyValue={card.currencyValue}
               />
             </Suspense>
           ))}

@@ -127,6 +127,8 @@ const en: TranslationDictionary = {
   "dashboard.quickActions": "Quick Actions",
   "dashboard.noActivity": "No recent activity to show.",
   "dashboard.viewAll": "View all",
+  "dashboard.employerBadge": "Employer dashboard",
+  "dashboard.careerBadge": "Career dashboard",
 
   /* Stats */
   "stat.totalJobs": "Total Jobs",
@@ -190,6 +192,8 @@ const am: TranslationDictionary = {
   "dashboard.quickActions": "\u1293\u12ce\u1291 \u1235\u1343\u1265\u121d\u1270\u12ce\u1295",
   "dashboard.noActivity": "\u12a5\u1295\u121b \u1270\u1325\u1328\u130d\u12ee \u12a0\u121d\u1295\u1218\u12cd\u12a0\u12cd \u12a0\u1295\u120b\u120d\u121d\u1295\u1362",
   "dashboard.viewAll": "\u12c8\u122d\u12ab\u1295 \u134b\u1235",
+  "dashboard.employerBadge": "\u12e0\u134b\u1308\u121d\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
+  "dashboard.careerBadge": "\u12e0\u1348\u1208\u12cd\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
 
   /* Stats */
   "stat.totalJobs": "\u12a1\u1295\u122d \u12f0\u1235\u1293",
