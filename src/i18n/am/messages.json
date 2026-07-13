@@ -1,0 +1,17 @@
+{
+  "resume-brain": {
+    "NO_FILE": "ምንም ፋይል አልተላከም።",
+    "EMPTY_FILE": "የተላከው ፋይል ባዶ ነው።",
+    "UNSUPPORTED_FILE_TYPE": "ያልተደገፈ የፋይል አይነት «{mimeType}»። PDF, DOC, እና DOCX ፋይሎች ብቻ ተቀባይነት አላቸው።",
+    "FILE_TOO_LARGE": "ፋይሉ ከፍተኛውን መጠን «{maxSizeMb}ሜባ» አልፏል።",
+    "PARSE_TIMEOUT": "የሬዙሜ ንባብ ጊዜው አልፏል። እባክዎ እንደገና ይሞክሩ።",
+    "PARSE_FAILED": "ይህን የሲቪ ፋይል ማንበብ አልተቻለም፦ {reason}",
+    "EMPTY_EXTRACTION": "ከዚህ ሲቪ ምንም መረጃ ማውጣት አልተቻለም። እባክዎ ፋይሉን በማረጋገጥ እንደገና ይሞክሩ።",
+    "RESUME_NOT_FOUND": "ሬዙሜ አልተገኘም።",
+    "PARSED_RESUME_NOT_FOUND": "የተተነተነ ሬዙሜ አልተገኘም።",
+    "FORBIDDEN_RESUME_ACCESS": "ወደዚህ ሬዙሜ የመድረስ ፈቃድ የለዎትም።",
+    "FORBIDDEN_PARSED_RESUME_ACCESS": "ወደዚህ የተተነተነ ሬዙሜ የመድረስ ፈቃድ የለዎትም።",
+    "FORBIDDEN_PROFILE_AUTOFILL": "የራስዎን መገለጫ ብቻ በራስ-ሰር መሙላት ይችላሉ።",
+    "CONSENT_REQUIRED": "ከመላክዎ በፊት የሲቪዎ መረጃ እንዲሰራ ስምምነት መስጠት አለብዎት።"
+  }
+}
