@@ -63,6 +63,12 @@ export const ESCROW_JOBS = {
   PROCESS_WITHDRAWAL: 'process-wallet-withdrawal',
 } as const;
 
+// ── Two-Factor Authentication jobs ────────────────────────────────────────
+
+export const TWO_FACTOR_JOBS = {
+  CLEANUP_EXPIRED_ENROLLMENT: 'cleanup-expired-enrollment',
+} as const;
+
 // ── Scoring thresholds ────────────────────────────────────────────────────
 
 export const SCORING = {

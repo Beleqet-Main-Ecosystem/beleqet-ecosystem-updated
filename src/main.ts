@@ -11,10 +11,10 @@ import { ErrorRecurrenceTrackerService } from './common/filters/error-recurrence
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-
   // ── SSL/TLS (Secure Tunnel requirement) ──────────────────────────────────────
   // Set SSL_KEY_PATH and SSL_CERT_PATH in production to enable HTTPS.
   // In development these are optional; a reverse proxy (nginx/Caddy) handles TLS.
@@ -36,6 +36,10 @@ async function bootstrap() {
     rawBody: true,
     ...(httpsOptions ? { httpsOptions } : {}),
   });
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 4000);

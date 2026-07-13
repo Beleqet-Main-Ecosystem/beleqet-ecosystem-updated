@@ -8,9 +8,11 @@ import { KeysController } from './keys.controller';
 import { EncryptionService } from './encryption.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
+
 @Module({
   imports: [
     PrismaModule,
+    
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

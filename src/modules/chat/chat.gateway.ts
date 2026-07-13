@@ -14,6 +14,7 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { IsString, IsNotEmpty, IsOptional, validateOrReject } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
+import { I18nService } from 'nestjs-i18n';
 
 /**
  * DTO for sending an E2EE-encrypted message over WebSocket.
@@ -65,7 +66,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly chatService: ChatService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly i18n: I18nService,
   ) {}
 
   /** Authenticate every incoming WebSocket connection via JWT */
@@ -79,8 +81,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.data.user = payload;
       this.logger.log(`[ChatGateway] Connected: ${client.id} (User: ${payload.userId})`);
-    } catch {
+    } catch (err) {
       this.logger.warn(`[ChatGateway] Unauthorized: ${client.id}`);
+      client.emit('error', { message: this.i18n.t('messages.chat.unauthorized', { lang: 'en' }) });
       client.disconnect();
     }
   }
@@ -99,19 +102,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket
   ) {
     const userId = client.data.user?.userId;
-    if (!userId || !data.roomId) return;
+    if (!userId || !data.roomId) {
+      client.emit('error', { message: this.i18n.t('messages.chat.roomIdRequired', { lang: 'en' }) });
+      return;
+    }
 
     try {
       await validateOrReject(plainToInstance(JoinRoomDto, data));
+      // Verify the user is a participant BEFORE granting socket-room membership
+      // so they cannot receive live broadcasts for rooms they have no access to.
+      const history = await this.chatService.getRoomMessages(data.roomId, userId);
+
       client.join(data.roomId);
       this.logger.log(`User ${userId} joined room ${data.roomId}`);
-
-      // Fetch and return encrypted message history (client decrypts locally)
-      const history = await this.chatService.getRoomMessages(data.roomId, userId);
       client.emit('room_history', history);
     } catch (err) {
       this.logger.error(`Error joining room: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to join room' });
+      client.emit('error', { message: this.i18n.t('messages.chat.joinRoomFailed', { lang: 'en' }) });
     }
   }
 
@@ -125,7 +132,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket
   ) {
     const userId = client.data.user?.userId;
-    if (!userId) return;
+    if (!userId || !data.roomId || !data.content) {
+      client.emit('error', { message: this.i18n.t('messages.chat.messageContentRequired', { lang: 'en' }) });
+      return;
+    }
 
     try {
       await validateOrReject(plainToInstance(SendMessageDto, data));
@@ -142,7 +152,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(data.roomId).emit('new_message', savedMsg);
     } catch (err) {
       this.logger.error(`Error sending message: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to send message' });
+      client.emit('error', { message: this.i18n.t('messages.chat.sendMessageFailed', { lang: 'en' }) });
     }
   }
 
@@ -156,7 +166,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket
   ) {
     const userId = client.data.user?.userId;
-    if (!userId || !data.roomId || !data.fileUrl) return;
+    if (!userId || !data.roomId || !data.fileUrl) {
+      client.emit('error', { message: this.i18n.t('messages.chat.fileUrlRequired', { lang: 'en' }) });
+      return;
+    }
 
     try {
       await validateOrReject(plainToInstance(ShareFileDto, data));
@@ -170,7 +183,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(data.roomId).emit('new_message', savedMsg);
     } catch (err) {
       this.logger.error(`Error sharing file: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to share file' });
+      client.emit('error', { message: this.i18n.t('messages.chat.shareFileFailed', { lang: 'en' }) });
     }
   }
 
@@ -184,7 +197,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket
   ) {
     const userId = client.data.user?.userId;
-    if (!userId || !data.roomId || !data.callLink) return;
+    if (!userId || !data.roomId || !data.callLink) {
+      client.emit('error', { message: this.i18n.t('messages.chat.callLinkRequired', { lang: 'en' }) });
+      return;
+    }
 
     try {
       await validateOrReject(plainToInstance(StartVideoCallDto, data));
@@ -203,7 +219,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     } catch (err) {
       this.logger.error(`Error starting video call: ${(err as Error).message}`);
-      client.emit('error', { message: 'Failed to start video call' });
+      client.emit('error', { message: this.i18n.t('messages.chat.startVideoCallFailed', { lang: 'en' }) });
     }
   }
 }

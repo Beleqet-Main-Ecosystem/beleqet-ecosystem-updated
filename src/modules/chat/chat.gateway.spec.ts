@@ -3,14 +3,17 @@ import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 import { NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 
 const mockChatService = {
   getRoomMessages: jest.fn(),
   saveMessage: jest.fn(),
 };
-
 const mockJwtService = {
   verify: jest.fn().mockReturnValue({ userId: 'user-test-1', email: 'test@beleqet.com' }),
+};
+const mockI18nService = {
+  t: jest.fn((key: string) => key),
 };
 
 /** Build a minimal mock Socket.io client */
@@ -30,7 +33,6 @@ function buildClient(overrides: Partial<{ auth: object; headers: object }> = {})
 
 describe('ChatGateway', () => {
   let gateway: ChatGateway;
-
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -39,18 +41,16 @@ describe('ChatGateway', () => {
         ChatGateway,
         { provide: ChatService, useValue: mockChatService },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: I18nService, useValue: mockI18nService },
       ],
     }).compile();
-
     gateway = module.get<ChatGateway>(ChatGateway);
     // Simulate a server reference
     (gateway as any).server = { to: jest.fn().mockReturnValue({ emit: jest.fn() }) };
   });
-
   it('should be defined', () => {
     expect(gateway).toBeDefined();
   });
-
   describe('handleConnection', () => {
     it('should authenticate a client and set user data', async () => {
       const client = buildClient();
