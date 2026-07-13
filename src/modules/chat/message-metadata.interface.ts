@@ -20,4 +20,6 @@ export interface MessageMetadata {
   name?: string;
   /** Optional link for video calls */
   link?: string;
+  /** Index signature — required for Prisma JSON column compatibility */
+  [key: string]: unknown;
 }
