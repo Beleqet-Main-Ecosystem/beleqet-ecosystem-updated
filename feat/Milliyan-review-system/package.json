@@ -12,8 +12,10 @@
     "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/mapped-types": "^2.0.0",
-    "class-validator": "^0.14.0",
     "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "lucide-react": "^1.24.0",
+    "next-themes": "^0.4.6",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0"
   },
@@ -28,11 +30,19 @@
     "typescript": "^5.4.0"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".spec.ts$",
-    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
-    "collectCoverageFrom": ["**/*.(t|j)s"],
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
     "testEnvironment": "node"
   }
 }
