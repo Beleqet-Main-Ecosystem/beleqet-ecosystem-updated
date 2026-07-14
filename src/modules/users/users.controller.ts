@@ -72,4 +72,19 @@ export class UsersController {
   saveCvDraft(@Body() dto: SaveCvDraftDto, @CurrentUser() u: CurrentUserPayload) {
     return this.svc.saveCvDraft(u.userId, dto.data);
   }
+
+  @Get('me/data')
+  exportData(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.exportData(u.userId);
+  }
+
+  @Delete('me')
+  requestDeletion(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.requestDeletion(u.userId);
+  }
+
+  @Post('me/cancel-deletion')
+  cancelDeletion(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.cancelDeletion(u.userId);
+  }
 }

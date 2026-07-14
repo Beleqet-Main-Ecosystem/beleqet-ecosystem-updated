@@ -5,7 +5,7 @@ export { RolesGuard } from './guards/roles.guard';
 // Decorators
 export { CurrentUser } from './decorators/current-user.decorator';
 export type { CurrentUserPayload } from './decorators/current-user.decorator';
-export { Roles, ROLES_KEY } from './decorators/current-user.decorator';
+export { Roles, ROLES_KEY, UserRoleType } from './decorators/roles.decorator';
 
 // Pipes
 export { ParseUUIDPipe } from './pipes/parse-uuid.pipe';

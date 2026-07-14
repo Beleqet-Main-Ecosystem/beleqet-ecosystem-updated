@@ -6,6 +6,7 @@ import { WalletService, WithdrawDto } from '../wallet/wallet.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StepUpGuard } from './guards/step-up.guard';
 import { SENSITIVE_ACTION_KEY } from './decorators/sensitive-action.decorator';
+import { CurrencyService } from '../../common/services/currency.service';
 
 const USD_ETB_RATE = 120.5;
 
@@ -75,6 +76,23 @@ async function buildCtx(walletBalance = 10_000) {
       WalletService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
+      {
+        provide: CurrencyService,
+        useValue: {
+          getRatesSync: jest.fn().mockReturnValue({
+            'USD_ETB': 120.5,
+            'EUR_ETB': 130.2,
+            'ETB_USD': 1 / 120.5,
+            'ETB_EUR': 1 / 130.2,
+          }),
+          getRates: jest.fn().mockResolvedValue({
+            'USD_ETB': 120.5,
+            'EUR_ETB': 130.2,
+            'ETB_USD': 1 / 120.5,
+            'ETB_EUR': 1 / 130.2,
+          }),
+        },
+      },
     ],
   }).compile();
 

@@ -1,0 +1,39 @@
+{
+  "admin-stats": {
+    "DASHBOARD_TITLE": "የዳሽቦርድ ስታቲስቲክስ",
+    "TOTAL_USERS": "ጠቅላላ ንቁ ተጠቃሚዎች",
+    "TOTAL_REVENUE": "ጠቅላላ የ플랫ፎርም ገቢ",
+    "ACTIVE_CONTRACTS": "ንቁ ውሎች",
+    "COMPLETED_JOBS": "የተፈጸሙ ሥራዎች"
+  },
+  "dispute-manager": {
+    "DISPUTE_RESOLVED": "ተከታይ ተፈጥቷል",
+    "DISPUTE_CREATED": "ተከታይ ተፈጥቷል",
+    "INVALID_DISPUTE": "ተከታይ ስህተት ወይም አልተገኘም",
+    "UNAUTHORIZED_DISPUTE": "ይህን ተከታይ ለማስተዳደር ፈቃድ የሎዎትም"
+  },
+  "kyc": {
+    "submitted": "የKYC ማረጋገጫ ተልኳል።",
+    "pending": "የእርስዎ ማረጋገጫ ጥያቄ በአሁኑ ጊዜ በግምባር ላይ ነው።",
+    "approved": "የKYC ማረጋገጫ ተፈቅድቷል።",
+    "rejected": "የKYC ማረጋገጫ ተቃኝቷል: {reason}",
+    "not_found": "ለዚህ መለያ KYC መዝገብ አልተገኘም።"
+  },
+  "chat": {
+    "unauthorized": "ሲወስዱ ፈቃድ የሎዎትም። እባክዎን ይግቡ።",
+    "roomIdRequired": "የክፍል መለያ ያስፈልጋል።",
+    "joinRoomFailed": "ወደ ውይይት ክፍል መግባት አልተሳካም።",
+    "messageContentRequired": "የመልእክት ይዘት ያስፈልጋል።",
+    "sendMessageFailed": "መልእክት መላክ አልተሳካም።",
+    "fileUrlRequired": "የፋይል URL ያስፈልጋል።",
+    "shareFileFailed": "ፋይል ማጋራት አልተሳካም።",
+    "callLinkRequired": "የቪዲዮ ጥር ማገናኛ ያስፈልጋል።",
+    "startVideoCallFailed": "ቪዲዮ ጥር ማስጀመር አልተሳካም።"
+  },
+  "gdpr": {
+    "data_export_success": "የዳታ ማውጫ በተሳካ ሁኔታ ተዘርዝሯል።",
+    "account_deleted": "መለያዎ ለሁልጊዜ ተሰርፏል።",
+    "account_deletion_scheduled": "የመለያ ማጥፋት ተሰቅልቷል። ለመቀረፍ 30 ቀን አሉዎት።",
+    "deletion_cancelled": "የተሰቀለ የመለያ ማጥፋት ተሰርፏል።"
+  }
+}

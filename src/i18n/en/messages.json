@@ -18,5 +18,22 @@
     "approved": "KYC verification approved.",
     "rejected": "KYC verification was rejected: {reason}",
     "not_found": "No KYC record found for this account."
+  },
+  "chat": {
+    "unauthorized": "You are not authorized to connect. Please log in.",
+    "roomIdRequired": "Room ID is required.",
+    "joinRoomFailed": "Failed to join the chat room.",
+    "messageContentRequired": "Message content is required.",
+    "sendMessageFailed": "Failed to send message.",
+    "fileUrlRequired": "File URL is required.",
+    "shareFileFailed": "Failed to share file.",
+    "callLinkRequired": "Video call link is required.",
+    "startVideoCallFailed": "Failed to start video call."
+  },
+  "gdpr": {
+    "data_export_success": "Your data export has been generated successfully.",
+    "account_deleted": "Your account has been permanently deleted.",
+    "account_deletion_scheduled": "Your account deletion has been scheduled. You have 30 days to cancel.",
+    "deletion_cancelled": "Your scheduled account deletion has been cancelled."
   }
 }
