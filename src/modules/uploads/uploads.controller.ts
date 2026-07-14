@@ -17,26 +17,51 @@ import {
 } from './uploads.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsIn, Matches, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsIn,
+  Matches,
+  MaxLength,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { ALLOWED_MIME_TYPES, MAX_UPLOAD_FILE_SIZE_BYTES } from './uploads.constants';
+export { ALLOWED_MIME_TYPES, MAX_UPLOAD_FILE_SIZE_BYTES } from './uploads.constants';
 
-export const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-] as const;
+export const UPLOAD_FILE_INTERCEPTOR_OPTIONS = {
+  limits: {
+    fileSize: MAX_UPLOAD_FILE_SIZE_BYTES,
+  },
+  fileFilter: (
+    _request: unknown,
+    file: { mimetype: string },
+    callback: (error: Error | null, acceptFile: boolean) => void,
+  ) => {
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype as (typeof ALLOWED_MIME_TYPES)[number])) {
+      callback(
+        new BadRequestException('Invalid file type. Executables and HTML files are not allowed.'),
+        false,
+      );
+      return;
+    }
 
-const MAX_UPLOAD_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+    callback(null, true);
+  },
+};
 
 export class PresignedUrlDto {
   @ApiProperty({
     description: 'Original file name from client',
     example: 'portfolio-banner.png',
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsNotEmpty()
+  @MaxLength(255)
   filename: string;
 
   @ApiProperty({
@@ -44,6 +69,7 @@ export class PresignedUrlDto {
     enum: ALLOWED_MIME_TYPES,
     example: 'image/png',
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   @IsString()
   @IsNotEmpty()
   @IsIn(ALLOWED_MIME_TYPES, {
@@ -52,10 +78,24 @@ export class PresignedUrlDto {
   contentType: string;
 
   @ApiProperty({
+    description: 'File size in bytes. Must not exceed the upload limit.',
+    maximum: MAX_UPLOAD_FILE_SIZE_BYTES,
+    example: 524288,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(MAX_UPLOAD_FILE_SIZE_BYTES, {
+    message: `File size must not exceed ${MAX_UPLOAD_FILE_SIZE_BYTES} bytes.`,
+  })
+  fileSize: number;
+
+  @ApiProperty({
     required: false,
     description: 'Destination folder in object storage',
     example: 'profiles',
   })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @IsOptional()
   @MaxLength(128)
@@ -94,26 +134,7 @@ export class UploadsController {
    * Uploads a file through the API and applies safe image optimization before storage.
    */
   @Post('file')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: {
-        fileSize: MAX_UPLOAD_FILE_SIZE_BYTES,
-      },
-      fileFilter: (_request, file, callback) => {
-        if (!ALLOWED_MIME_TYPES.includes(file.mimetype as (typeof ALLOWED_MIME_TYPES)[number])) {
-          callback(
-            new BadRequestException(
-              'Invalid file type. Executables and HTML files are not allowed.',
-            ),
-            false,
-          );
-          return;
-        }
-
-        callback(null, true);
-      },
-    }),
-  )
+  @UseInterceptors(FileInterceptor('file', UPLOAD_FILE_INTERCEPTOR_OPTIONS))
   @ApiOperation({ summary: 'Upload file directly to cloud storage' })
   async uploadFile(
     @UploadedFile() file: UploadableFile | undefined,

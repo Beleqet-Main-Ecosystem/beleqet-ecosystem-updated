@@ -5,7 +5,7 @@ This document describes the Fast CDN implementation for static asset delivery an
 ## Goals
 
 - Deliver uploaded static assets through CDN edge locations.
-- Improve page-load latency with immutable caching and compression.
+- Improve page-load latency with immutable CDN caching.
 - Keep upload behavior compatible with i18n, GDPR, and multi-currency boundaries.
 
 ## Backend Implementation
@@ -18,10 +18,11 @@ The module provides:
 - CDN-aware URL generation through `CDN_BASE_URL`.
 - Immutable cache headers through `CDN_CACHE_CONTROL`.
 - Presigned upload URLs through `POST /uploads/presigned-url`.
-- Direct optimized uploads through `POST /uploads/file`.
+- Direct uploads through `POST /uploads/file`.
 - Automatic raster image conversion to WebP through `sharp`.
-- JavaScript/CSS/JSON/SVG/text minification.
-- Gzip compression for large text assets when compression reduces payload size.
+- Strict MIME allowlisting for uploaded assets.
+- A 5 MB upload size limit before image conversion.
+- Non-image user uploads are stored unchanged; minification belongs in CI/CD for trusted assets.
 - User theme preference routing for theme-specific assets.
 
 ## Required Environment Variables

@@ -73,9 +73,9 @@ describe('UploadsModule integration', () => {
 
   it('connects to user theme preference state for theme-specific CDN assets', async () => {
     const file = {
-      originalname: 'logo.svg',
-      mimetype: 'image/svg+xml',
-      buffer: Buffer.from('<svg>   <path d="M0 0" />   </svg>', 'utf-8'),
+      originalname: 'theme-guide.pdf',
+      mimetype: 'application/pdf',
+      buffer: Buffer.from('theme-guide-data', 'utf-8'),
       size: 36,
     };
 
@@ -85,7 +85,7 @@ describe('UploadsModule integration', () => {
     });
 
     expect(result.publicUrl).toMatch(
-      /^https:\/\/cdn\.beleqet\.com\/theme-assets\/icons\/dark\/.+\.svg$/,
+      /^https:\/\/cdn\.beleqet\.com\/theme-assets\/icons\/dark\/.+\.pdf$/,
     );
     expect(result.key).toContain('/dark/');
     expect(result).not.toHaveProperty('amount');

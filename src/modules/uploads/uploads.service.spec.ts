@@ -5,6 +5,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 import { UploadsService } from './uploads.service';
+import { MAX_UPLOAD_FILE_SIZE_BYTES } from './uploads.constants';
 
 jest.mock('@aws-sdk/s3-request-presigner', () => ({
   getSignedUrl: jest.fn(),
@@ -65,34 +66,12 @@ describe('UploadsService', () => {
   it('generates presigned URLs with CDN public URLs and cache headers', async () => {
     mockedGetSignedUrl.mockResolvedValue('https://signed.example.com/url');
 
-    const result = await service.generatePresignedUrl('profile.png', 'image/png', 'profiles', 'en');
+    const result = await service.generatePresignedUrl('profile.exe', 'image/png', 'profiles', 'en');
 
     expect(result.presignedUrl).toBe('https://signed.example.com/url');
     expect(result.publicUrl).toMatch(/^https:\/\/cdn\.beleqet\.com\/profiles\/.+\.png$/);
     expect(result.cacheControl).toBe('public, max-age=31536000, immutable');
     expect(result.message).toBe('messages.uploads.presignedUrlCreated');
-  });
-
-  it('uploads JavaScript with optimization and gzip compression', async () => {
-    const repeatedCode = 'const value = 1 + 1;\n'.repeat(1_000);
-    const file = {
-      originalname: 'bundle.js',
-      mimetype: 'application/javascript',
-      buffer: Buffer.from(repeatedCode, 'utf-8'),
-      size: Buffer.byteLength(repeatedCode),
-    };
-
-    const result = await service.uploadFile(file, 'static', 'en');
-    const s3Client = (service as unknown as { s3Client: { send: jest.Mock } }).s3Client;
-    const command = s3Client.send.mock.calls[0][0] as PutObjectCommand;
-
-    expect(result.publicUrl).toMatch(/^https:\/\/cdn\.beleqet\.com\/static\/.+\.js$/);
-    expect(result.optimized).toBe(true);
-    expect(result.contentEncoding).toBe('gzip');
-    expect(command).toBeInstanceOf(PutObjectCommand);
-    expect(command.input.ContentType).toBe('application/javascript');
-    expect(command.input.ContentEncoding).toBe('gzip');
-    expect(command.input.CacheControl).toBe('public, max-age=31536000, immutable');
   });
 
   it('converts image uploads to WebP before storing them', async () => {
@@ -115,9 +94,43 @@ describe('UploadsService', () => {
     expect(command.input.Body).toEqual(Buffer.from('optimized-webp'));
   });
 
+  it('rejects corrupted image payloads with a bad request error', async () => {
+    mockedSharp.mockReturnValueOnce({
+      webp: jest.fn().mockReturnThis(),
+      toBuffer: jest
+        .fn()
+        .mockRejectedValue(new Error('Input buffer contains unsupported image format')),
+    } as unknown as ReturnType<typeof sharp>);
+
+    const file = {
+      originalname: 'portfolio.png',
+      mimetype: 'image/png',
+      buffer: Buffer.from('not-really-an-image', 'utf-8'),
+      size: 19,
+    };
+
+    await expect(service.uploadFile(file, 'portfolio', 'en')).rejects.toThrow(
+      'Uploaded image is invalid or corrupted',
+    );
+  });
+
+  it('rejects unsafe storage folder prefixes', async () => {
+    mockedGetSignedUrl.mockResolvedValue('https://signed.example.com/url');
+
+    await expect(
+      service.generatePresignedUrl('profile.png', 'image/png', '../../etc', 'en'),
+    ).rejects.toThrow('Invalid upload folder');
+  });
+
+  it('rejects direct service uploads when no file is provided', async () => {
+    await expect(
+      service.uploadFile(undefined as unknown as Parameters<UploadsService['uploadFile']>[0]),
+    ).rejects.toThrow('Uploaded file is required');
+  });
+
   it('preserves supported non-image static files without image conversion', async () => {
     const file = {
-      originalname: 'terms.pdf',
+      originalname: '../terms.exe',
       mimetype: 'application/pdf',
       buffer: Buffer.from('pdf-bytes', 'utf-8'),
       size: 9,
@@ -132,6 +145,32 @@ describe('UploadsService', () => {
     expect(result.contentType).toBe('application/pdf');
     expect(result.optimized).toBe(false);
     expect(command.input.Body).toEqual(file.buffer);
+  });
+
+  it('rejects direct service uploads with unsupported MIME types', async () => {
+    const file = {
+      originalname: 'payload.html',
+      mimetype: 'text/html',
+      buffer: Buffer.from('<script>alert(1)</script>', 'utf-8'),
+      size: 25,
+    };
+
+    await expect(service.uploadFile(file, 'documents', 'en')).rejects.toThrow(
+      'Invalid file type. Executables and HTML files are not allowed.',
+    );
+  });
+
+  it('rejects direct service uploads above the maximum file size', async () => {
+    const file = {
+      originalname: 'large.pdf',
+      mimetype: 'application/pdf',
+      buffer: Buffer.from('pdf-bytes', 'utf-8'),
+      size: MAX_UPLOAD_FILE_SIZE_BYTES + 1,
+    };
+
+    await expect(service.uploadFile(file, 'documents', 'en')).rejects.toThrow(
+      `File size must not exceed ${MAX_UPLOAD_FILE_SIZE_BYTES} bytes.`,
+    );
   });
 
   it('throws a clean server error when storage credentials are missing', async () => {

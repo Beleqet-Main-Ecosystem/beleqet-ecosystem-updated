@@ -8,9 +8,14 @@ import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
-import * as path from 'path';
 import sharp from 'sharp';
 import { I18nService } from 'nestjs-i18n';
+import {
+  ALLOWED_MIME_TYPES,
+  AllowedMimeType,
+  MAX_UPLOAD_FILE_SIZE_BYTES,
+  MIME_TYPE_EXTENSIONS,
+} from './uploads.constants';
 
 export interface UploadableFile {
   originalname: string;
@@ -104,10 +109,9 @@ export class UploadsService {
       throw new InternalServerErrorException('Cloud storage not configured on server');
     }
 
-    this.assertUploadableFile(file);
     const context = this.normalizeUploadContext(contextOrLanguage);
     const targetFolder = this.resolveThemeAwareFolder(folder, context.userThemePreference);
-    const extension = path.extname(filename);
+    const extension = this.resolveSafeExtension(contentType);
     const key = `${targetFolder}/${uuidv4()}${extension}`;
 
     const command = new PutObjectCommand({
@@ -131,7 +135,7 @@ export class UploadsService {
   }
 
   /**
-   * Optimizes and uploads a file through API-controlled object storage.
+   * Optimizes allowed images and uploads files through API-controlled object storage.
    */
   async uploadFile(
     file: UploadableFile,
@@ -150,6 +154,7 @@ export class UploadsService {
       throw new InternalServerErrorException('Cloud storage not configured on server');
     }
 
+    this.assertUploadableFile(file);
     const context = this.normalizeUploadContext(contextOrLanguage);
     const targetFolder = this.resolveThemeAwareFolder(folder, context.userThemePreference);
     const optimizedAsset = await this.optimizeAsset(file);
@@ -232,7 +237,7 @@ export class UploadsService {
   }
 
   /**
-   * Applies content-aware optimization before objects are sent to storage.
+   * Converts raster images to WebP and stores all other allowed files unchanged.
    */
   private async optimizeAsset(file: UploadableFile): Promise<OptimizedAsset> {
     if (this.isImageMimeType(file.mimetype)) {
@@ -248,7 +253,7 @@ export class UploadsService {
     return {
       buffer: file.buffer,
       contentType: file.mimetype,
-      extension: path.extname(file.originalname),
+      extension: this.resolveSafeExtension(file.mimetype),
       optimized: false,
     };
   }
@@ -266,6 +271,19 @@ export class UploadsService {
   private assertUploadableFile(file?: UploadableFile): asserts file is UploadableFile {
     if (!file || !file.buffer || !file.mimetype || !file.originalname) {
       throw new BadRequestException('Uploaded file is required');
+    }
+
+    if (!this.isAllowedMimeType(file.mimetype)) {
+      throw new BadRequestException(
+        'Invalid file type. Executables and HTML files are not allowed.',
+      );
+    }
+
+    const fileSize = file.size ?? file.buffer.length;
+    if (fileSize > MAX_UPLOAD_FILE_SIZE_BYTES) {
+      throw new BadRequestException(
+        `File size must not exceed ${MAX_UPLOAD_FILE_SIZE_BYTES} bytes.`,
+      );
     }
   }
 
@@ -310,5 +328,19 @@ export class UploadsService {
     }
 
     return segments.join('/');
+  }
+
+  private isAllowedMimeType(mimeType: string): mimeType is AllowedMimeType {
+    return ALLOWED_MIME_TYPES.includes(mimeType as AllowedMimeType);
+  }
+
+  private resolveSafeExtension(contentType: string): string {
+    if (!this.isAllowedMimeType(contentType)) {
+      throw new BadRequestException(
+        'Invalid file type. Executables and HTML files are not allowed.',
+      );
+    }
+
+    return MIME_TYPE_EXTENSIONS[contentType];
   }
 }
