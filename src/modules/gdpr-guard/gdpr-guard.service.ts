@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as crypto from 'crypto';
 
@@ -80,6 +81,7 @@ export class GdprGuardService {
 
     const scrubbedAt = new Date().toISOString();
     const referenceId = crypto.randomBytes(8).toString('hex').toUpperCase();
+    const scrubbedEmail = `scrubbed-${crypto.randomBytes(4).toString('hex')}@beleqet.internal`;
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
@@ -87,29 +89,38 @@ export class GdprGuardService {
         data: {
           firstName: 'GDPR_ANONYMOUS',
           lastName: 'USER',
-          email: `scrubbed-${crypto.randomBytes(4).toString('hex')}@beleqet.internal`,
-          phone: '0000000000',
+          email: scrubbedEmail,
+          phone: null,
+          avatarUrl: null,
+          telegramId: null,
+          bio: null,
+          headline: null,
+          location: null,
+          skills: [],
+          defaultResumeUrl: null,
+          githubUrl: null,
+          linkedinUrl: null,
+          portfolioUrl: null,
+          clientFeedback: Prisma.DbNull,
+          passwordHash: crypto.randomBytes(32).toString('hex'),
+          isActive: false,
+          emailVerified: false,
         },
       });
 
+      await tx.refreshToken.deleteMany({ where: { userId: userUuid } });
+      await tx.verificationToken.deleteMany({ where: { userId: userUuid } });
+
       if (user.wallet) {
-        await tx.freelancerWallet.update({
-          where: { id: user.wallet.id },
-          data: { availableBalance: 0, pendingBalance: 0 },
-        });
         await tx.walletTransaction.updateMany({
-          where: { walletId: user.wallet.id },
+          where: { walletId: user.wallet.id, note: { not: null } },
           data: { note: 'GDPR_SCRUBBED' },
         });
       }
 
       if (user.employerWallet) {
-        await tx.employerWallet.update({
-          where: { id: user.employerWallet.id },
-          data: { balance: 0, lockedBalance: 0 },
-        });
         await tx.employerWalletTransaction.updateMany({
-          where: { walletId: user.employerWallet.id },
+          where: { walletId: user.employerWallet.id, note: { not: null } },
           data: { note: 'GDPR_SCRUBBED' },
         });
       }

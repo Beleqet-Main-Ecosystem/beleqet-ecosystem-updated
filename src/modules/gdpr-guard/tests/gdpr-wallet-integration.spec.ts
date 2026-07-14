@@ -41,13 +41,28 @@ describe('GDPR Guard & Wallet Integration Test', () => {
     await app.close();
   }, 30000);
 
-  it('should scrub user PII, sanitize wallet balances and transaction notes, and persist audit log', async () => {
+  it('should scrub user PII and wallet transaction notes while preserving ledger balances', async () => {
     const testUser = await prisma.user.create({
       data: {
         email: 'integration-test@beleqet.com',
         firstName: 'Bemnet',
         lastName: 'Test',
         passwordHash: 'hashed_password_here',
+        phone: '+251912345678',
+        bio: 'Software engineer in Addis Ababa',
+        headline: 'Full-stack developer',
+        location: 'Addis Ababa, Ethiopia',
+        githubUrl: 'https://github.com/bemnet-test',
+        linkedinUrl: 'https://linkedin.com/in/bemnet-test',
+        skills: ['TypeScript', 'NestJS'],
+      },
+    });
+
+    await prisma.refreshToken.create({
+      data: {
+        userId: testUser.id,
+        token: 'active-session-token',
+        expiresAt: new Date(Date.now() + 86_400_000),
       },
     });
 
@@ -83,8 +98,8 @@ describe('GDPR Guard & Wallet Integration Test', () => {
       where: { id: wallet.id },
     });
     expect(updatedWallet).not.toBeNull();
-    expect(updatedWallet!.availableBalance).toBe(0);
-    expect(updatedWallet!.pendingBalance).toBe(0);
+    expect(updatedWallet!.availableBalance).toBe(5000);
+    expect(updatedWallet!.pendingBalance).toBe(150);
 
     const remainingTransactions = await prisma.walletTransaction.findMany({
       where: { walletId: wallet.id },
@@ -99,6 +114,20 @@ describe('GDPR Guard & Wallet Integration Test', () => {
     expect(updatedUser!.email).not.toBe('integration-test@beleqet.com');
     expect(updatedUser!.firstName).toBe('GDPR_ANONYMOUS');
     expect(updatedUser!.lastName).toBe('USER');
+    expect(updatedUser!.phone).toBeNull();
+    expect(updatedUser!.bio).toBeNull();
+    expect(updatedUser!.headline).toBeNull();
+    expect(updatedUser!.location).toBeNull();
+    expect(updatedUser!.githubUrl).toBeNull();
+    expect(updatedUser!.linkedinUrl).toBeNull();
+    expect(updatedUser!.skills).toEqual([]);
+    expect(updatedUser!.isActive).toBe(false);
+    expect(updatedUser!.passwordHash).not.toBe('hashed_password_here');
+
+    const remainingTokens = await prisma.refreshToken.count({
+      where: { userId: testUser.id },
+    });
+    expect(remainingTokens).toBe(0);
 
     const auditLog = await prisma.eventLog.findFirst({
       where: {

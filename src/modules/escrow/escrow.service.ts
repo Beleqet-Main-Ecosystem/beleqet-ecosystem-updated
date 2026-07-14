@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
@@ -54,13 +54,16 @@ export class EscrowService {
         walletAppliedAmount = availableBalance;
       }
 
-      await this.prisma.employerWallet.update({
-        where: { userId: clientId },
+      const updateResult = await this.prisma.employerWallet.updateMany({
+        where: { userId: clientId, balance: { gte: walletAppliedAmount } },
         data: {
           balance: { decrement: walletAppliedAmount },
           lockedBalance: { increment: walletAppliedAmount }
         }
       });
+      if (updateResult.count === 0) {
+        throw new BadRequestException('Insufficient balance or concurrent transaction');
+      }
     }
 
     const platformFee  = Math.round(grossAmount * PLATFORM_FEE_PCT);
@@ -76,7 +79,7 @@ export class EscrowService {
 
     if (walletAppliedAmount > 0 && amountToPay > 0) {
       // Queue a job to unlock funds if Chapa payment is not completed in 24 hours
-      await this.escrowQueue.add('UNLOCK_FUNDS', {
+      await this.escrowQueue.add(ESCROW_JOBS.UNLOCK_FUNDS, {
         escrowId: escrow.id,
         clientId,
         amount: walletAppliedAmount

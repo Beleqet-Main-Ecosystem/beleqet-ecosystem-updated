@@ -5,9 +5,9 @@ import { NotFoundException } from '@nestjs/common';
 
 const mockTx = {
   user: { update: jest.fn() },
-  freelancerWallet: { update: jest.fn() },
+  refreshToken: { deleteMany: jest.fn() },
+  verificationToken: { deleteMany: jest.fn() },
   walletTransaction: { updateMany: jest.fn() },
-  employerWallet: { update: jest.fn() },
   employerWalletTransaction: { updateMany: jest.fn() },
   eventLog: { create: jest.fn() },
 };
@@ -63,12 +63,12 @@ describe('GdprGuardService', () => {
   describe('executeDataErasure', () => {
     const mockUuid = '123e4567-e89b-12d3-a456-426614174000';
 
-    it('should anonymize user PII, scrub wallet data, and persist audit log', async () => {
+    it('should scrub user PII, invalidate sessions, scrub wallet notes, and persist audit log', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: mockUuid,
         email: 'test@example.com',
         wallet: { id: 'wallet-1' },
-        employerWallet: null,
+        employerWallet: { id: 'employer-wallet-1' },
       });
 
       const result = await service.executeDataErasure(mockUuid, audit);
@@ -82,15 +82,26 @@ describe('GdprGuardService', () => {
         data: expect.objectContaining({
           firstName: 'GDPR_ANONYMOUS',
           lastName: 'USER',
-          phone: '0000000000',
+          phone: null,
+          avatarUrl: null,
+          telegramId: null,
+          bio: null,
+          skills: [],
+          isActive: false,
         }),
       });
-      expect(mockTx.freelancerWallet.update).toHaveBeenCalledWith({
-        where: { id: 'wallet-1' },
-        data: { availableBalance: 0, pendingBalance: 0 },
+      expect(mockTx.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: mockUuid },
+      });
+      expect(mockTx.verificationToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: mockUuid },
       });
       expect(mockTx.walletTransaction.updateMany).toHaveBeenCalledWith({
-        where: { walletId: 'wallet-1' },
+        where: { walletId: 'wallet-1', note: { not: null } },
+        data: { note: 'GDPR_SCRUBBED' },
+      });
+      expect(mockTx.employerWalletTransaction.updateMany).toHaveBeenCalledWith({
+        where: { walletId: 'employer-wallet-1', note: { not: null } },
         data: { note: 'GDPR_SCRUBBED' },
       });
       expect(mockTx.eventLog.create).toHaveBeenCalledWith({
