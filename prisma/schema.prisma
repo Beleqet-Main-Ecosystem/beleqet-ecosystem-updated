@@ -54,6 +54,8 @@ model User {
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
+  reviewsGiven          Review[]            @relation("ReviewsGiven")
+  reviewsReceived       Review[]            @relation("ReviewsReceived")
 
   @@map("users")
 }
@@ -340,6 +342,7 @@ model Contract {
   freelancer     User           @relation("ContractFreelancer", fields: [freelancerId], references: [id])
   dispute        Dispute?
   milestones     Milestone[]
+  reviews        Review[]
 
   @@map("contracts")
 }
@@ -794,4 +797,32 @@ enum KycStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+// ── Review System ──────────────────────────────────────────────────────────
+// One review per reviewer per contract (unique composite index).
+// Both parties (client → freelancer AND freelancer → client) may each submit
+// one review after the contract reaches COMPLETED status.
+
+model Review {
+  id         String   @id @default(uuid())
+  contractId String
+  reviewerId String
+  revieweeId String
+  /// Star rating 1–5
+  rating     Int
+  /// Optional written feedback (max 2000 chars enforced in service layer)
+  comment    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  reviewer User     @relation("ReviewsGiven",    fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewee User     @relation("ReviewsReceived", fields: [revieweeId], references: [id], onDelete: Cascade)
+
+  /// One review per reviewer per contract
+  @@unique([contractId, reviewerId])
+  @@index([revieweeId, createdAt])
+  @@index([contractId])
+  @@map("reviews")
 }

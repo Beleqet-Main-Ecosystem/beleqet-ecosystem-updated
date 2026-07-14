@@ -2,13 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens ──────────────────────────────────────────────────────── */
 :root {
   --font-inter: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* Light mode colours */
+  --color-bg:          #f7f5ef;
+  --color-bg-surface:  #fffdf8;
+  --color-text:        #1e293b;
+  --color-text-muted:  #64748b;
+  --color-border:      #e2e8f0;
+  --color-primary:     #041603;
+  --color-primary2:    #0a2c03;
+  --color-brand-green: #00653b;
+  --color-dark-green:  #015230;
+  --color-card-bg:     #ffffff;
+}
+
+/* Dark mode overrides applied when <html class="dark"> */
+.dark {
+  --color-bg:          #0d1117;
+  --color-bg-surface:  #161b22;
+  --color-text:        #e2e8f0;
+  --color-text-muted:  #94a3b8;
+  --color-border:      #30363d;
+  --color-primary:     #d8ff3e;
+  --color-primary2:    #c6f135;
+  --color-brand-green: #4ade80;
+  --color-dark-green:  #22c55e;
+  --color-card-bg:     #1c2128;
+}
+
+/* Global transition so every element eases between themes */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
 }
 
 body {
-  background: #f7f5ef;
-  color: #1e293b;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
 ::selection {
@@ -77,6 +113,9 @@ body {
 
 @layer components {
   .control {
-    @apply rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-brandGreen;
+    @apply rounded-xl border px-3.5 py-3 text-sm outline-none transition focus:border-brandGreen;
+    background-color: var(--color-card-bg);
+    border-color: var(--color-border);
+    color: var(--color-text);
   }
 }

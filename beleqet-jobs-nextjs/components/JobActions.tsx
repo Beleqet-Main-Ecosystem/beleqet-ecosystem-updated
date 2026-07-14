@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { Bookmark, CheckCircle2, FileUp, Send, X } from "lucide-react";
 import { authenticatedFetch } from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
+import StarRating from "@/components/StarRating";
+import { fetchRatingStats, type RatingStats } from "@/lib/reviews";
+import Link from "next/link";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
-export default function JobActions({ jobId }: { jobId: string }) {
+export default function JobActions({ jobId, employerId }: { jobId: string; employerId?: string }) {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -17,6 +20,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
+  const [employerStats, setEmployerStats] = useState<RatingStats | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -29,6 +33,13 @@ export default function JobActions({ jobId }: { jobId: string }) {
         );
     });
   }, [jobId, user]);
+
+  // Load employer rating if employerId is provided
+  useEffect(() => {
+    if (employerId) {
+      fetchRatingStats(employerId).then(setEmployerStats).catch(() => {});
+    }
+  }, [employerId]);
 
   async function toggleSaved() {
     if (!user) {
@@ -124,6 +135,27 @@ export default function JobActions({ jobId }: { jobId: string }) {
 
   return (
     <>
+      {/* Employer rating card — shown when employerId is provided and has reviews */}
+      {employerStats && employerStats.count > 0 && (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card-bg)] p-5">
+          <p className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[var(--color-text-muted)]">
+            Employer Rating
+          </p>
+          <div className="flex items-center gap-3">
+            <StarRating value={employerStats.average} readonly size="md" />
+            <span className="text-sm font-bold text-[var(--color-text)]">
+              {employerStats.average.toFixed(1)}
+            </span>
+            <Link
+              href={`/reviews/${employerId}`}
+              className="text-xs text-[var(--color-text-muted)] hover:text-brandGreen transition-colors"
+            >
+              ({employerStats.count} review{employerStats.count !== 1 ? "s" : ""})
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-border bg-white p-6">
         <button
           onClick={startApplication}

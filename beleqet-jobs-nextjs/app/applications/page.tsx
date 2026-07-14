@@ -7,11 +7,14 @@ import {
   Clock3,
   ExternalLink,
   MapPin,
+  Star,
   XCircle,
 } from "lucide-react";
 import { authenticatedFetch } from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import StarRating from "@/components/StarRating";
+import ReviewForm from "@/components/ReviewForm";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 type Application = {
@@ -41,6 +44,7 @@ export default function ApplicationsPage() {
   const [saved, setSaved] = useState<Saved[]>([]);
   const [tab, setTab] = useState("applications");
   const [withdrawId, setWithdrawId] = useState<string | null>(null);
+  const [reviewingJob, setReviewingJob] = useState<Application | null>(null);
   const load = useCallback(async () => {
     const [a, s] = await Promise.all([
       authenticatedFetch(`${API_URL}/applications/my`),
@@ -143,6 +147,14 @@ export default function ApplicationsPage() {
                         Withdraw
                       </button>
                     )}
+                    {item.status === "OFFERED" && (
+                      <button
+                        onClick={() => setReviewingJob(item)}
+                        className="inline-flex items-center gap-1 rounded-full bg-brandGreen/10 px-4 py-2 text-xs font-bold text-brandGreen hover:bg-brandGreen hover:text-white transition-colors"
+                      >
+                        <Star className="h-3.5 w-3.5" /> Leave a Review
+                      </button>
+                    )}
                   </div>
                 </article>
               ))
@@ -189,6 +201,26 @@ export default function ApplicationsPage() {
           </div>
         )}
       </div>
+      {/* Review modal */}
+      {reviewingJob && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setReviewingJob(null)}
+        >
+          <div
+            className="w-full max-w-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ReviewForm
+              contractId={reviewingJob.id}
+              revieweeId={reviewingJob.job.id}
+              revieweeName={reviewingJob.job.title}
+              onSuccess={() => setReviewingJob(null)}
+            />
+          </div>
+        </div>
+      )}
+
       <ConfirmDialog
         open={Boolean(withdrawId)}
         onOpenChange={(open) => !open && setWithdrawId(null)}

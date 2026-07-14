@@ -1,7 +1,10 @@
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { ArrowRight, Send } from "lucide-react";
 
 export default function CTABanner() {
+  const t = useTranslations("cta");
+
   return (
     <section className="container-page pb-20">
       <div className="relative overflow-hidden rounded-[32px] bg-[#ffbc80] px-6 py-12 sm:px-12 lg:px-16 lg:py-16">
@@ -12,13 +15,12 @@ export default function CTABanner() {
               <Send className="h-5 w-5" />
             </span>
             <h2 className="max-w-2xl text-[clamp(2rem,4vw,3.8rem)] font-black leading-none tracking-[-.05em] text-primary">
-              Good opportunities
+              {t("heading1")}
               <br />
-              should find you, too.
+              {t("heading2")}
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-primary/65">
-              Join our Telegram community for curated job alerts, career
-              resources, and updates delivered directly to you.
+              {t("subheading")}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -28,13 +30,13 @@ export default function CTABanner() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-bold text-white transition hover:bg-brandGreen"
             >
-              Join Telegram <Send className="h-4 w-4" />
+              {t("joinTelegram")} <Send className="h-4 w-4" />
             </a>
             <Link
               href="/jobs"
               className="inline-flex items-center gap-2 rounded-full border border-primary/20 px-6 py-3.5 text-sm font-bold text-primary hover:bg-white/30"
             >
-              Browse jobs <ArrowRight className="h-4 w-4" />
+              {t("browseJobs")} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>

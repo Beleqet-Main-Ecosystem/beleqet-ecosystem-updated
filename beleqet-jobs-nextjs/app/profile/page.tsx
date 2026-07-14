@@ -11,10 +11,13 @@ import {
   Search,
   ShieldCheck,
   BadgeCheck,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { roleMeta } from "@/components/HeaderAuth";
 import { authenticatedFetch } from "@/lib/auth";
+import StarRating from "@/components/StarRating";
+import { fetchRatingStats, type RatingStats } from "@/lib/reviews";
 
 type Profile = {
   headline?: string | null;
@@ -49,6 +52,7 @@ export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [ratingStats, setRatingStats] = useState<RatingStats>({ average: 0, count: 0 });
 
   useEffect(() => {
     if (ready && !user) router.replace("/login");
@@ -62,6 +66,12 @@ export default function ProfilePage() {
       .then((data) => data && setProfile(data))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchRatingStats(user.id).then(setRatingStats).catch(() => {});
+    }
+  }, [user?.id]);
 
   if (!ready || !user) {
     return (
@@ -102,6 +112,27 @@ export default function ProfilePage() {
               <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
                 <Mail className="h-3.5 w-3.5" /> {user.email}
               </p>
+              {/* Star rating */}
+              {ratingStats.count > 0 && (
+                <Link
+                  href={`/reviews/${user.id}`}
+                  className="mt-2 inline-flex items-center gap-2 group"
+                >
+                  <StarRating value={ratingStats.average} readonly size="sm" />
+                  <span className="text-xs font-semibold text-muted group-hover:text-brandGreen transition-colors">
+                    {ratingStats.average.toFixed(1)} · {ratingStats.count} review{ratingStats.count !== 1 ? "s" : ""}
+                  </span>
+                </Link>
+              )}
+              {ratingStats.count === 0 && (
+                <Link
+                  href={`/reviews/${user.id}`}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted hover:text-brandGreen transition-colors"
+                >
+                  <Star className="h-3.5 w-3.5" />
+                  No reviews yet — view your reviews page
+                </Link>
+              )}
             </div>
           </div>
         </div>
