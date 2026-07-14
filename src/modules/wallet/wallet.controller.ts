@@ -4,6 +4,8 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { WalletService, WithdrawDto } from './wallet.service';
+import { StepUpGuard } from '../two-factor/guards/step-up.guard';
+import { SensitiveAction } from '../two-factor/decorators/sensitive-action.decorator';
 
 @ApiTags('wallet')
 @ApiBearerAuth()
@@ -19,5 +21,7 @@ export class WalletController {
   getEmployerWallet(@CurrentUser() u: CurrentUserPayload) { return this.svc.getEmployerWallet(u.userId); }
 
   @Post('withdraw')
+  @UseGuards(StepUpGuard)
+  @SensitiveAction('wallet_withdraw')
   withdraw(@CurrentUser() u: CurrentUserPayload, @Body() dto: WithdrawDto) { return this.svc.withdraw(u.userId, dto); }
 }

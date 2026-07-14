@@ -30,8 +30,8 @@ CREATE TYPE "PaymentStatus" AS ENUM (
 -- ─── payments table ──────────────────────────────────────────────────────────
 
 CREATE TABLE "payments" (
-  "id"                  UUID              NOT NULL DEFAULT gen_random_uuid(),
-  "userId"              UUID              NOT NULL,
+  "id"                  TEXT              NOT NULL,
+  "userId"              TEXT              NOT NULL,
   "provider"            "PaymentProvider" NOT NULL,
   "providerPaymentId"   VARCHAR(255)      NOT NULL,
   "amount"              INTEGER           NOT NULL,

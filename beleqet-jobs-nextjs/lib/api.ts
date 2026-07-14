@@ -37,6 +37,7 @@ export type Job = {
   type: string;
   category: string;
   postedAgo: string;
+  createdAt?: string;
   featured?: boolean;
   description?: string;
   tags?: string[];
@@ -81,6 +82,7 @@ function toJob(raw: RawJob): Job {
     type: (raw.type && typeLabels[raw.type]) ?? raw.type ?? "",
     category: raw.category?.slug ?? raw.categoryId ?? "",
     postedAgo: relativeTime(raw.createdAt),
+    createdAt: raw.createdAt ?? undefined,
     featured: raw.featured ?? false,
     description: raw.description ?? "",
     tags: raw.tags ?? [],

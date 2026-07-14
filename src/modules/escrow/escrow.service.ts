@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS } from '../queues/queues.constants';
 import { WalletService } from '../wallet/wallet.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 
@@ -20,6 +21,7 @@ export class EscrowService {
     private readonly config: ConfigService,
     private readonly walletSvc: WalletService,
     @InjectQueue(QUEUE_NAMES.ESCROW) private readonly escrowQueue: Queue,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /** Initiate escrow — returns Chapa/Telebirr payment link */
@@ -52,13 +54,16 @@ export class EscrowService {
         walletAppliedAmount = availableBalance;
       }
 
-      await this.prisma.employerWallet.update({
-        where: { userId: clientId },
+      const updateResult = await this.prisma.employerWallet.updateMany({
+        where: { userId: clientId, balance: { gte: walletAppliedAmount } },
         data: {
           balance: { decrement: walletAppliedAmount },
           lockedBalance: { increment: walletAppliedAmount }
         }
       });
+      if (updateResult.count === 0) {
+        throw new BadRequestException('Insufficient balance or concurrent transaction');
+      }
     }
 
     const platformFee  = Math.round(grossAmount * PLATFORM_FEE_PCT);
@@ -74,7 +79,7 @@ export class EscrowService {
 
     if (walletAppliedAmount > 0 && amountToPay > 0) {
       // Queue a job to unlock funds if Chapa payment is not completed in 24 hours
-      await this.escrowQueue.add('UNLOCK_FUNDS', {
+      await this.escrowQueue.add(ESCROW_JOBS.UNLOCK_FUNDS, {
         escrowId: escrow.id,
         clientId,
         amount: walletAppliedAmount
@@ -116,7 +121,7 @@ export class EscrowService {
           },
           body: JSON.stringify({
             amount: amountToPay.toString(),
-            currency: 'ETB',
+            currency: job.currency,
             email: job.client.email,
             first_name: job.client.firstName,
             last_name: job.client.lastName,
@@ -142,6 +147,15 @@ export class EscrowService {
     }
 
     this.logger.log(`Escrow initiated: ${escrow.id} for job ${freelanceJobId} — amountToPay: ETB ${amountToPay}, walletApplied: ETB ${walletAppliedAmount}`);
+
+    this.eventEmitter.emit('payment.escrow.initiated', {
+      escrowId: escrow.id,
+      clientId,
+      grossAmount,
+      currency: job.currency,
+      timestamp: new Date().toISOString(),
+    });
+
     return { escrowId: escrow.id, checkoutUrl, grossAmount, platformFee, netAmount, walletAppliedAmount, amountToPay };
   }
 
@@ -182,15 +196,17 @@ export class EscrowService {
     try {
       // Handle currency conversion if necessary. Base currency is ETB.
       const contractCurrency = milestone.contract.currency || 'ETB';
-      const amountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
+      const grossAmountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
+      const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
+      const netAmountInETB = grossAmountInETB - platformFee;
 
       // Add to wallet pending balance (3-day hold)
       await this.prisma.freelancerWallet.upsert({
         where: { userId: milestone.contract.freelancerId },
-        update: { pendingBalance: { increment: amountInETB } },
+        update: { pendingBalance: { increment: netAmountInETB } },
         create: {
           userId: milestone.contract.freelancerId,
-          pendingBalance: amountInETB,
+          pendingBalance: netAmountInETB,
           availableBalance: 0,
         },
       });
@@ -198,7 +214,7 @@ export class EscrowService {
       await this.escrowQueue.add(ESCROW_JOBS.AUTO_RELEASE, {
         milestoneId,
         freelancerId: milestone.contract.freelancerId,
-        amount: amountInETB,
+        amount: netAmountInETB,
         releaseAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
       });
     } catch (err) {
