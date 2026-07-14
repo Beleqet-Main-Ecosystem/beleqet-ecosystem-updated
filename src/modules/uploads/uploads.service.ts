@@ -1,22 +1,67 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
+import sharp from 'sharp';
+import { I18nService } from 'nestjs-i18n';
+
+export interface UploadableFile {
+  originalname: string;
+  mimetype: string;
+  buffer: Buffer;
+  size?: number;
+}
+
+export type UserThemePreference = 'light' | 'dark' | 'system';
+
+export interface UploadContext {
+  language?: string;
+  userThemePreference?: UserThemePreference;
+}
+
+interface OptimizedAsset {
+  buffer: Buffer;
+  contentType: string;
+  extension: string;
+  contentEncoding?: 'gzip';
+  optimized: boolean;
+}
+
+interface UploadTranslationShape {
+  messages: {
+    uploads: {
+      presignedUrlCreated: string;
+      assetUploaded: string;
+    };
+  };
+}
 
 @Injectable()
 export class UploadsService {
-  private s3Client: S3Client;
-  private bucket: string;
+  private s3Client?: S3Client;
+  private readonly bucket: string;
   private readonly logger = new Logger(UploadsService.name);
+  private readonly immutableCacheControl: string;
 
-  constructor(private config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly i18n: I18nService<UploadTranslationShape>,
+  ) {
     this.bucket =
       this.config.get<string>('R2_BUCKET_NAME') ??
       this.config.get<string>('AWS_S3_BUCKET', 'beleqet-uploads');
+    this.immutableCacheControl = this.config.get<string>(
+      'CDN_CACHE_CONTROL',
+      'public, max-age=31536000, immutable',
+    );
 
-    // Support AWS S3, Cloudflare R2, or DigitalOcean Spaces
     const endpoint =
       this.config.get<string>('AWS_ENDPOINT') ??
       (this.config.get<string>('R2_ACCOUNT_ID')
@@ -36,69 +81,234 @@ export class UploadsService {
         credentials: { accessKeyId, secretAccessKey },
       });
     } else {
-      this.logger.warn('AWS credentials not found in .env. Uploads will fail.');
+      this.logger.warn('Object storage credentials are not configured. Uploads will fail.');
     }
   }
 
-  async generatePresignedUrl(filename: string, contentType: string, folder = 'misc') {
-    if (!this.s3Client)
+  /**
+   * Creates a short-lived direct upload URL and a CDN-facing delivery URL.
+   */
+  async generatePresignedUrl(
+    filename: string,
+    contentType: string,
+    folder = 'misc',
+    contextOrLanguage: UploadContext | string = 'en',
+  ): Promise<{
+    message: string;
+    presignedUrl: string;
+    publicUrl: string;
+    key: string;
+    cacheControl: string;
+  }> {
+    if (!this.s3Client) {
       throw new InternalServerErrorException('Cloud storage not configured on server');
+    }
 
-    // Generate random secure filename to prevent overwrites
-    const ext = path.extname(filename);
-    const key = `${folder}/${uuidv4()}${ext}`;
+    this.assertUploadableFile(file);
+    const context = this.normalizeUploadContext(contextOrLanguage);
+    const targetFolder = this.resolveThemeAwareFolder(folder, context.userThemePreference);
+    const extension = path.extname(filename);
+    const key = `${targetFolder}/${uuidv4()}${extension}`;
 
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
       ContentType: contentType,
+      CacheControl: this.immutableCacheControl,
     });
 
-    // URL is valid for 15 minutes
     const presignedUrl = await getSignedUrl(this.s3Client, command, { expiresIn: 900 });
 
-    const publicBaseUrl = this.config.get<string>('R2_PUBLIC_BASE_URL');
-    const endpoint = this.config.get<string>('AWS_ENDPOINT');
-    // If using AWS natively without a custom endpoint, format the public URL correctly
-    let publicUrl = '';
-    if (publicBaseUrl) {
-      publicUrl = `${publicBaseUrl.replace(/\/$/, '')}/${key}`;
-    } else if (endpoint) {
-      publicUrl = `${endpoint}/${this.bucket}/${key}`;
-    } else {
-      publicUrl = `https://${this.bucket}.s3.${this.config.get('AWS_REGION', 'us-east-1')}.amazonaws.com/${key}`;
-    }
-
-    return { presignedUrl, publicUrl, key };
+    return {
+      message: this.i18n.translate('messages.uploads.presignedUrlCreated', {
+        lang: context.language,
+      }),
+      presignedUrl,
+      publicUrl: this.buildPublicUrl(key),
+      key,
+      cacheControl: this.immutableCacheControl,
+    };
   }
 
-  async uploadFile(file: any, folder = 'misc') {
-    if (!this.s3Client)
+  /**
+   * Optimizes and uploads a file through API-controlled object storage.
+   */
+  async uploadFile(
+    file: UploadableFile,
+    folder = 'misc',
+    contextOrLanguage: UploadContext | string = 'en',
+  ): Promise<{
+    message: string;
+    publicUrl: string;
+    key: string;
+    cacheControl: string;
+    contentType: string;
+    contentEncoding?: 'gzip';
+    optimized: boolean;
+  }> {
+    if (!this.s3Client) {
       throw new InternalServerErrorException('Cloud storage not configured on server');
+    }
 
-    const ext = path.extname(file.originalname);
-    const key = `${folder}/${uuidv4()}${ext}`;
+    const context = this.normalizeUploadContext(contextOrLanguage);
+    const targetFolder = this.resolveThemeAwareFolder(folder, context.userThemePreference);
+    const optimizedAsset = await this.optimizeAsset(file);
+    const key = `${targetFolder}/${uuidv4()}${optimizedAsset.extension}`;
 
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
-      Body: file.buffer,
-      ContentType: file.mimetype,
+      Body: optimizedAsset.buffer,
+      ContentType: optimizedAsset.contentType,
+      CacheControl: this.immutableCacheControl,
+      ContentEncoding: optimizedAsset.contentEncoding,
     });
 
     await this.s3Client.send(command);
 
-    const publicBaseUrl = this.config.get<string>('R2_PUBLIC_BASE_URL');
-    const endpoint = this.config.get<string>('AWS_ENDPOINT');
-    let publicUrl = '';
-    if (publicBaseUrl) {
-      publicUrl = `${publicBaseUrl.replace(/\/$/, '')}/${key}`;
-    } else if (endpoint) {
-      publicUrl = `${endpoint}/${this.bucket}/${key}`;
-    } else {
-      publicUrl = `https://${this.bucket}.s3.${this.config.get('AWS_REGION', 'us-east-1')}.amazonaws.com/${key}`;
+    return {
+      message: this.i18n.translate('messages.uploads.assetUploaded', { lang: context.language }),
+      publicUrl: this.buildPublicUrl(key),
+      key,
+      cacheControl: this.immutableCacheControl,
+      contentType: optimizedAsset.contentType,
+      contentEncoding: optimizedAsset.contentEncoding,
+      optimized: optimizedAsset.optimized,
+    };
+  }
+
+  /**
+   * Normalizes legacy language-only calls and typed upload context calls.
+   */
+  private normalizeUploadContext(
+    contextOrLanguage: UploadContext | string,
+  ): Required<UploadContext> {
+    if (typeof contextOrLanguage === 'string') {
+      return { language: contextOrLanguage || 'en', userThemePreference: 'system' };
     }
 
-    return { publicUrl, key };
+    return {
+      language: contextOrLanguage.language || 'en',
+      userThemePreference: contextOrLanguage.userThemePreference || 'system',
+    };
+  }
+
+  /**
+   * Routes theme-specific assets by user preference while leaving normal files unchanged.
+   */
+  private resolveThemeAwareFolder(
+    folder: string,
+    userThemePreference: UserThemePreference,
+  ): string {
+    const safeFolder = this.validateStorageFolder(folder);
+
+    if (!safeFolder.startsWith('theme-assets') || userThemePreference === 'system') {
+      return safeFolder;
+    }
+
+    return `${safeFolder}/${userThemePreference}`;
+  }
+
+  /**
+   * Builds the public delivery URL, preferring CDN domains over raw storage URLs.
+   */
+  private buildPublicUrl(key: string): string {
+    const cdnBaseUrl = this.config.get<string>('CDN_BASE_URL');
+    if (cdnBaseUrl) {
+      return `${cdnBaseUrl.replace(/\/$/, '')}/${key}`;
+    }
+
+    const publicBaseUrl = this.config.get<string>('R2_PUBLIC_BASE_URL');
+    if (publicBaseUrl) {
+      return `${publicBaseUrl.replace(/\/$/, '')}/${key}`;
+    }
+
+    const endpoint = this.config.get<string>('AWS_ENDPOINT');
+    if (endpoint) {
+      return `${endpoint.replace(/\/$/, '')}/${this.bucket}/${key}`;
+    }
+
+    return `https://${this.bucket}.s3.${this.config.get('AWS_REGION', 'us-east-1')}.amazonaws.com/${key}`;
+  }
+
+  /**
+   * Applies content-aware optimization before objects are sent to storage.
+   */
+  private async optimizeAsset(file: UploadableFile): Promise<OptimizedAsset> {
+    if (this.isImageMimeType(file.mimetype)) {
+      const webpBuffer = await this.convertImageToWebp(file.buffer);
+      return {
+        buffer: webpBuffer,
+        contentType: 'image/webp',
+        extension: '.webp',
+        optimized: true,
+      };
+    }
+
+    return {
+      buffer: file.buffer,
+      contentType: file.mimetype,
+      extension: path.extname(file.originalname),
+      optimized: false,
+    };
+  }
+
+  /**
+   * Determines whether a file should be converted to WebP.
+   */
+  private isImageMimeType(mimeType: string): boolean {
+    return mimeType.startsWith('image/') && mimeType !== 'image/svg+xml';
+  }
+
+  /**
+   * Verifies a multipart upload contains a usable file payload.
+   */
+  private assertUploadableFile(file?: UploadableFile): asserts file is UploadableFile {
+    if (!file || !file.buffer || !file.mimetype || !file.originalname) {
+      throw new BadRequestException('Uploaded file is required');
+    }
+  }
+
+  /**
+   * Converts uploaded raster images to WebP and returns a client-safe error for malformed images.
+   */
+  private async convertImageToWebp(buffer: Buffer): Promise<Buffer> {
+    try {
+      return await sharp(buffer).webp({ quality: 80 }).toBuffer();
+    } catch {
+      throw new BadRequestException('Uploaded image is invalid or corrupted');
+    }
+  }
+
+  /**
+   * Restricts object keys to owned, predictable prefixes inside the uploads namespace.
+   */
+  private validateStorageFolder(folder: string): string {
+    const normalized = folder
+      .trim()
+      .replace(/\\/g, '/')
+      .replace(/^\/+|\/+$/g, '');
+
+    if (!normalized || normalized.length > 128) {
+      throw new BadRequestException('Invalid upload folder');
+    }
+
+    let decodedFolder = normalized;
+    try {
+      decodedFolder = decodeURIComponent(normalized);
+    } catch {
+      throw new BadRequestException('Invalid upload folder');
+    }
+
+    const segments = decodedFolder.split('/');
+    const hasUnsafeSegment = segments.some(
+      (segment) => !/^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/.test(segment),
+    );
+
+    if (hasUnsafeSegment) {
+      throw new BadRequestException('Invalid upload folder');
+    }
+
+    return segments.join('/');
   }
 }
