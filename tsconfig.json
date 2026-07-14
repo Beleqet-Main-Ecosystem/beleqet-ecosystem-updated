@@ -27,6 +27,7 @@
 "exclude": [
     "node_modules",
     "dist",
-    "beleqet-jobs-nextjs"
+    "beleqet-jobs-nextjs",
+    "frontend"
   ]
 }
