@@ -131,9 +131,10 @@ export class UploadsController {
   async softDeleteFile(
     @Param('folder') folder: string,
     @Param('filename') filename: string,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
     const key = `${folder}/${filename}`;
-    return this.uploadsService.softDeleteFile(key);
+    return this.uploadsService.softDeleteFile(key, user.userId);
   }
 
   @Get('my-files')

@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -257,13 +257,17 @@ export class UploadsService {
     }
   }
 
-  async softDeleteFile(key: string): Promise<StoredFile> {
+  async softDeleteFile(key: string, userId: string): Promise<StoredFile> {
     const record = await this.prisma.storedFile.findUnique({
       where: { key },
     });
 
     if (!record || record.isDeleted) {
       throw new NotFoundException('The file does not exist or has already been deleted.');
+    }
+
+    if (record.uploadedById !== userId) {
+      throw new ForbiddenException('You do not have permission to delete this file.');
     }
 
     try {

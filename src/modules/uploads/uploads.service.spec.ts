@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UploadsService } from './uploads.service';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { StoredFile } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -149,8 +149,21 @@ describe('UploadsService', () => {
   describe('softDeleteFile', () => {
     it('should throw NotFoundException if file record doesn\'t exist', async () => {
       mockPrismaService.storedFile.findUnique.mockResolvedValue(null);
-      await expect(service.softDeleteFile('images/missing.png')).rejects.toThrow(
+      await expect(service.softDeleteFile('images/missing.png', 'user-1')).rejects.toThrow(
         new NotFoundException('The file does not exist or has already been deleted.'),
+      );
+    });
+
+    it('should throw ForbiddenException if user is not the owner', async () => {
+      const mockRecord: Partial<StoredFile> = {
+        key: 'images/active.png',
+        filename: 'active.png',
+        isDeleted: false,
+        uploadedById: 'user-other',
+      };
+      mockPrismaService.storedFile.findUnique.mockResolvedValue(mockRecord as StoredFile);
+      await expect(service.softDeleteFile('images/active.png', 'user-1')).rejects.toThrow(
+        new ForbiddenException('You do not have permission to delete this file.'),
       );
     });
 
@@ -159,17 +172,19 @@ describe('UploadsService', () => {
         key: 'images/active.png',
         filename: 'active.png',
         isDeleted: false,
+        uploadedById: 'user-1',
       };
       const mockUpdatedRecord: Partial<StoredFile> = {
         key: 'images/active.png',
         filename: 'DELETED_GDPR_COMPLIANCE_MASKED',
         isDeleted: true,
+        uploadedById: 'user-1',
       };
 
       mockPrismaService.storedFile.findUnique.mockResolvedValue(mockRecord as StoredFile);
       mockPrismaService.storedFile.update.mockResolvedValue(mockUpdatedRecord as StoredFile);
 
-      const result = await service.softDeleteFile('images/active.png');
+      const result = await service.softDeleteFile('images/active.png', 'user-1');
       expect(result.isDeleted).toBe(true);
       expect(result.filename).toBe('DELETED_GDPR_COMPLIANCE_MASKED');
       expect(mockPrismaService.storedFile.update).toHaveBeenCalledWith({

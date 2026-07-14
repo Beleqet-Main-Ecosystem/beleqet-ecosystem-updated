@@ -93,10 +93,10 @@ describe('UploadsController', () => {
       const expectedResult = { key: 'images/avatar.jpg', isDeleted: true };
       mockUploadsService.softDeleteFile.mockResolvedValue(expectedResult);
 
-      const result = await controller.softDeleteFile('images', 'avatar.jpg');
+      const result = await controller.softDeleteFile('images', 'avatar.jpg', mockUserPayload);
 
       expect(result).toEqual(expectedResult);
-      expect(mockUploadsService.softDeleteFile).toHaveBeenCalledWith('images/avatar.jpg');
+      expect(mockUploadsService.softDeleteFile).toHaveBeenCalledWith('images/avatar.jpg', 'user-id-123');
     });
   });
 
