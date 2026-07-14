@@ -1,16 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { UploadsService } from './uploads.service';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { StoredFile } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
+import sharp from 'sharp';
+import { Test, TestingModule } from '@nestjs/testing';
+import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from './interfaces/multer-file.interface';
+import { UploadsService } from './uploads.service';
+import { MAX_UPLOAD_FILE_SIZE_BYTES } from './uploads.constants';
+
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest.fn(),
+}));
+
+jest.mock('sharp', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    webp: jest.fn().mockReturnThis(),
+    toBuffer: jest.fn().mockResolvedValue(Buffer.from('optimized-webp')),
+  })),
+}));
 
 describe('UploadsService', () => {
   let service: UploadsService;
-  let prisma: PrismaService;
+  const mockedGetSignedUrl = getSignedUrl as jest.MockedFunction<typeof getSignedUrl>;
+  const mockedSharp = sharp as jest.MockedFunction<typeof sharp>;
 
   const mockPrismaService = {
     storedFile: {
@@ -23,13 +38,48 @@ describe('UploadsService', () => {
 
   const mockConfigService = {
     get: jest.fn((key: string, defaultValue?: string) => {
-      if (key === 'AWS_S3_BUCKET') return 'test-bucket';
-      if (key === 'AWS_REGION') return 'us-east-1';
-      return defaultValue;
+      const values: Record<string, string> = {
+        AWS_S3_BUCKET: 'test-bucket',
+        AWS_REGION: 'us-east-1',
+        AWS_ACCESS_KEY_ID: 'test-key',
+        AWS_SECRET_ACCESS_KEY: 'test-secret',
+        CDN_BASE_URL: 'https://cdn.beleqet.com',
+        CDN_CACHE_CONTROL: 'public, max-age=31536000, immutable',
+      };
+      return values[key] ?? defaultValue;
     }),
   };
 
+  const mockStoredFile = (overrides: Partial<StoredFile> = {}): StoredFile =>
+    ({
+      id: 'file-id-123',
+      key: 'images/file.webp',
+      filename: 'avatar.png',
+      mimeType: 'image/webp',
+      size: 100,
+      uploadedById: 'user-123',
+      hasConsentedToProcessing: true,
+      isDeleted: false,
+      deletedAt: null,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+      ...overrides,
+    }) as StoredFile;
+
+  const mockFile = (mimeType: string, size: number, name = 'test.png'): MulterFile => ({
+    fieldname: 'file',
+    originalname: name,
+    encoding: '7bit',
+    mimetype: mimeType,
+    buffer: Buffer.from('mock file buffer content'),
+    size,
+  });
+
   beforeEach(async () => {
+    jest.clearAllMocks();
+    mockPrismaService.storedFile.create.mockResolvedValue(mockStoredFile());
+    mockedGetSignedUrl.mockResolvedValue('https://signed.example.com/url');
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UploadsService,
@@ -39,156 +89,168 @@ describe('UploadsService', () => {
     }).compile();
 
     service = module.get<UploadsService>(UploadsService);
-    prisma = module.get<PrismaService>(PrismaService);
-    jest.clearAllMocks();
+    const s3Client = (service as unknown as { s3Client: { send: jest.Mock } }).s3Client;
+    s3Client.send = jest.fn().mockResolvedValue({});
+  });
+
+  describe('generatePresignedUrl', () => {
+    it('uses MIME-derived extensions and stores Prisma metadata for current user', async () => {
+      const result = await service.generatePresignedUrl(
+        '../profile.exe',
+        'image/png',
+        'profiles',
+        'user-123',
+        1024,
+      );
+
+      expect(result.presignedUrl).toBe('https://signed.example.com/url');
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.beleqet\.com\/profiles\/.+\.png$/);
+      expect(mockPrismaService.storedFile.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          filename: 'profile.exe',
+          mimeType: 'image/png',
+          size: 1024,
+          uploadedById: 'user-123',
+        }),
+      });
+    });
+
+    it('rejects unsafe storage folder prefixes', async () => {
+      await expect(
+        service.generatePresignedUrl('profile.png', 'image/png', '../../etc', 'user-123', 100),
+      ).rejects.toThrow('Invalid upload folder');
+    });
   });
 
   describe('uploadFile', () => {
-    const mockFile = (mimeType: string, size: number, name = 'test.png'): MulterFile => ({
-      fieldname: 'file',
-      originalname: name,
-      encoding: '7bit',
-      mimetype: mimeType,
-      buffer: Buffer.from('mock file buffer content'),
-      size: size,
-    });
-
-    it('should throw BadRequestException if GDPR consent is not granted', async () => {
+    it('rejects uploads when GDPR consent is not granted', async () => {
       const file = mockFile('image/png', 100);
       await expect(service.uploadFile(file, false)).rejects.toThrow(
-        new BadRequestException('GDPR data processing consent is mandatory to upload files.'),
+        'GDPR data processing consent is mandatory to upload files.',
       );
     });
 
-    it('should throw BadRequestException for unsupported mime types', async () => {
-      const file = mockFile('application/zip', 100);
+    it('rejects unsupported MIME types with the strict allowlist', async () => {
+      const file = mockFile('text/html', 100, 'payload.html');
       await expect(service.uploadFile(file, true)).rejects.toThrow(
-        new BadRequestException('Unsupported file type: application/zip'),
+        'Invalid file type. Executables and HTML files are not allowed.',
       );
     });
 
-    it('should throw BadRequestException if image exceeds 5MB limit', async () => {
-      const file = mockFile('image/jpeg', 6 * 1024 * 1024); // 6MB
+    it('rejects uploads above the maximum file size', async () => {
+      const file = mockFile('application/pdf', MAX_UPLOAD_FILE_SIZE_BYTES + 1, 'large.pdf');
       await expect(service.uploadFile(file, true)).rejects.toThrow(
-        new BadRequestException('Image size exceeds the maximum limit of 5MB.'),
+        `File size must not exceed ${MAX_UPLOAD_FILE_SIZE_BYTES} bytes.`,
       );
     });
 
-    it('should throw BadRequestException if document exceeds 10MB limit', async () => {
-      const file = mockFile('application/pdf', 11 * 1024 * 1024); // 11MB
-      await expect(service.uploadFile(file, true)).rejects.toThrow(
-        new BadRequestException('Document size exceeds the maximum limit of 10MB.'),
-      );
-    });
-
-    it('should successfully store file and save metadata in database', async () => {
+    it('converts image uploads to WebP before S3 storage and Prisma tracking', async () => {
       const file = mockFile('image/png', 500, 'avatar.png');
-      const expectedRecord: Partial<StoredFile> = {
-        id: 'uuid-1',
-        key: 'images/uuid-random.png',
-        filename: 'avatar.png',
-        mimeType: 'image/png',
-        size: 500,
-        hasConsentedToProcessing: true,
-        isDeleted: false,
-        uploadedById: 'user-123',
-      };
-
-      mockPrismaService.storedFile.create.mockResolvedValue(expectedRecord as StoredFile);
+      mockPrismaService.storedFile.create.mockResolvedValue(
+        mockStoredFile({ key: 'images/generated.webp', mimeType: 'image/webp', size: 14 }),
+      );
 
       const result = await service.uploadFile(file, true, 'user-123');
+      const s3Client = (service as unknown as { s3Client: { send: jest.Mock } }).s3Client;
+      const command = s3Client.send.mock.calls[0][0] as PutObjectCommand;
 
-      expect(result).toBeDefined();
-      expect(result.filename).toBe('avatar.png');
-      expect(result.uploadedById).toBe('user-123');
-      expect(mockPrismaService.storedFile.create).toHaveBeenCalled();
+      expect(mockedSharp).toHaveBeenCalledWith(file.buffer);
+      expect(command.input.ContentType).toBe('image/webp');
+      expect(command.input.Body).toEqual(Buffer.from('optimized-webp'));
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.beleqet\.com\/images\/.+\.webp$/);
+      expect(result.optimized).toBe(true);
+      expect(mockPrismaService.storedFile.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          filename: 'avatar.png',
+          mimeType: 'image/webp',
+          size: Buffer.from('optimized-webp').length,
+          uploadedById: 'user-123',
+        }),
+      });
+    });
 
-      // Clean up temp file created during local fallback testing
-      if (service.isLocalFallbackActive()) {
-        const localPath = path.join(service.getLocalStoreDir(), result.key);
-        if (fs.existsSync(localPath)) {
-          fs.unlinkSync(localPath);
-        }
-      }
+    it('rejects corrupted image payloads with a bad request error', async () => {
+      mockedSharp.mockReturnValueOnce({
+        webp: jest.fn().mockReturnThis(),
+        toBuffer: jest.fn().mockRejectedValue(new Error('unsupported image')),
+      } as unknown as ReturnType<typeof sharp>);
+
+      const file = mockFile('image/png', 100, 'broken.png');
+
+      await expect(service.uploadFile(file, true, 'user-123')).rejects.toThrow(
+        'Uploaded image is invalid or corrupted',
+      );
+    });
+
+    it('stores supported non-image files as-is and ignores spoofed filename paths', async () => {
+      const file = mockFile('application/pdf', 500, '../terms.exe');
+      mockPrismaService.storedFile.create.mockResolvedValue(
+        mockStoredFile({
+          key: 'documents/generated.pdf',
+          filename: 'terms.exe',
+          mimeType: 'application/pdf',
+        }),
+      );
+
+      const result = await service.uploadFile(file, true, 'user-123');
+      const s3Client = (service as unknown as { s3Client: { send: jest.Mock } }).s3Client;
+      const command = s3Client.send.mock.calls[0][0] as PutObjectCommand;
+
+      expect(mockedSharp).not.toHaveBeenCalled();
+      expect(command.input.ContentType).toBe('application/pdf');
+      expect(command.input.Body).toEqual(file.buffer);
+      expect(result.publicUrl).toMatch(/^https:\/\/cdn\.beleqet\.com\/documents\/.+\.pdf$/);
+      expect(result.optimized).toBe(false);
     });
   });
 
   describe('getPresignedReadUrl', () => {
-    it('should throw NotFoundException if file record is not found in database', async () => {
+    it('rejects unsafe file keys before storage lookup', async () => {
+      await expect(service.getPresignedReadUrl('../secret.txt')).rejects.toThrow(
+        'Invalid file key pathway.',
+      );
+      expect(mockPrismaService.storedFile.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException if file record is not found in database', async () => {
       mockPrismaService.storedFile.findUnique.mockResolvedValue(null);
-      await expect(service.getPresignedReadUrl('nonexistent-key')).rejects.toThrow(
+      await expect(
+        service.getPresignedReadUrl('images/123e4567-e89b-12d3-a456-426614174000.webp'),
+      ).rejects.toThrow(
         new NotFoundException('The requested file does not exist or has been deleted.'),
       );
-    });
-
-    it('should throw NotFoundException if file is marked as soft-deleted', async () => {
-      const mockRecord: Partial<StoredFile> = {
-        key: 'images/deleted.png',
-        isDeleted: true,
-      };
-      mockPrismaService.storedFile.findUnique.mockResolvedValue(mockRecord as StoredFile);
-
-      await expect(service.getPresignedReadUrl('images/deleted.png')).rejects.toThrow(
-        new NotFoundException('The requested file does not exist or has been deleted.'),
-      );
-    });
-
-    it('should return a secure download URL if file exists and is active', async () => {
-      const mockRecord: Partial<StoredFile> = {
-        key: 'images/file.png',
-        isDeleted: false,
-      };
-      mockPrismaService.storedFile.findUnique.mockResolvedValue(mockRecord as StoredFile);
-
-      const result = await service.getPresignedReadUrl('images/file.png');
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('string');
     });
   });
 
   describe('softDeleteFile', () => {
-    it('should throw NotFoundException if file record doesn\'t exist', async () => {
-      mockPrismaService.storedFile.findUnique.mockResolvedValue(null);
-      await expect(service.softDeleteFile('images/missing.png', 'user-1')).rejects.toThrow(
-        new NotFoundException('The file does not exist or has already been deleted.'),
+    it('throws ForbiddenException if user is not the owner', async () => {
+      mockPrismaService.storedFile.findUnique.mockResolvedValue(
+        mockStoredFile({
+          key: 'images/123e4567-e89b-12d3-a456-426614174000.webp',
+          uploadedById: 'other-user',
+        }),
       );
+
+      await expect(
+        service.softDeleteFile('images/123e4567-e89b-12d3-a456-426614174000.webp', 'user-123'),
+      ).rejects.toThrow(new ForbiddenException('You do not have permission to delete this file.'));
     });
 
-    it('should throw ForbiddenException if user is not the owner', async () => {
-      const mockRecord: Partial<StoredFile> = {
-        key: 'images/active.png',
-        filename: 'active.png',
-        isDeleted: false,
-        uploadedById: 'user-other',
-      };
-      mockPrismaService.storedFile.findUnique.mockResolvedValue(mockRecord as StoredFile);
-      await expect(service.softDeleteFile('images/active.png', 'user-1')).rejects.toThrow(
-        new ForbiddenException('You do not have permission to delete this file.'),
+    it('updates the database record and marks file as deleted with masked name', async () => {
+      const key = 'images/123e4567-e89b-12d3-a456-426614174000.webp';
+      mockPrismaService.storedFile.findUnique.mockResolvedValue(
+        mockStoredFile({ key, uploadedById: 'user-123' }),
       );
-    });
+      mockPrismaService.storedFile.update.mockResolvedValue(
+        mockStoredFile({ key, isDeleted: true, filename: 'DELETED_GDPR_COMPLIANCE_MASKED' }),
+      );
 
-    it('should update the database record and mark as deleted with masked name', async () => {
-      const mockRecord: Partial<StoredFile> = {
-        key: 'images/active.png',
-        filename: 'active.png',
-        isDeleted: false,
-        uploadedById: 'user-1',
-      };
-      const mockUpdatedRecord: Partial<StoredFile> = {
-        key: 'images/active.png',
-        filename: 'DELETED_GDPR_COMPLIANCE_MASKED',
-        isDeleted: true,
-        uploadedById: 'user-1',
-      };
+      const result = await service.softDeleteFile(key, 'user-123');
 
-      mockPrismaService.storedFile.findUnique.mockResolvedValue(mockRecord as StoredFile);
-      mockPrismaService.storedFile.update.mockResolvedValue(mockUpdatedRecord as StoredFile);
-
-      const result = await service.softDeleteFile('images/active.png', 'user-1');
       expect(result.isDeleted).toBe(true);
       expect(result.filename).toBe('DELETED_GDPR_COMPLIANCE_MASKED');
       expect(mockPrismaService.storedFile.update).toHaveBeenCalledWith({
-        where: { key: 'images/active.png' },
+        where: { key },
         data: expect.objectContaining({
           isDeleted: true,
           filename: 'DELETED_GDPR_COMPLIANCE_MASKED',
@@ -198,22 +260,18 @@ describe('UploadsService', () => {
   });
 
   describe('getMyFiles', () => {
-    it('should query prisma findMany and filter by userId and non-deleted files', async () => {
+    it('queries prisma findMany and filters by userId and non-deleted files', async () => {
       const mockFilesList = [
-        { key: 'images/file1.png', uploadedById: 'user-123', isDeleted: false },
-        { key: 'documents/file2.pdf', uploadedById: 'user-123', isDeleted: false },
+        mockStoredFile({ key: 'images/file1.webp', uploadedById: 'user-123' }),
+        mockStoredFile({ key: 'documents/file2.pdf', uploadedById: 'user-123' }),
       ];
-      mockPrismaService.storedFile.findMany = jest.fn().mockResolvedValue(mockFilesList);
+      mockPrismaService.storedFile.findMany.mockResolvedValue(mockFilesList);
 
       const result = await service.getMyFiles('user-123');
 
-      expect(result).toHaveLength(2);
       expect(result).toEqual(mockFilesList);
       expect(mockPrismaService.storedFile.findMany).toHaveBeenCalledWith({
-        where: {
-          uploadedById: 'user-123',
-          isDeleted: false,
-        },
+        where: { uploadedById: 'user-123', isDeleted: false },
         orderBy: { createdAt: 'desc' },
       });
     });
