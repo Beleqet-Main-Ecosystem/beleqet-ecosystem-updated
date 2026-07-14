@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MessageMetadata } from './message-metadata.interface';
+
 /**
  * Service handling chat room creation and encrypted message persistence.
  *
@@ -73,7 +74,7 @@ export class ChatService {
         roomId,
         senderId,
         content,   // Encrypted ciphertext — server stores but cannot read
-        metadata   // Contains { encrypted: true, iv: "..." } for E2EE messages
+        metadata: (metadata ?? undefined) as unknown as Prisma.InputJsonValue | undefined
       },
       include: {
         sender: {
