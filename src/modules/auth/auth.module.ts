@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { BullModule } from '@nestjs/bull';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+import { TwoFactorModule } from '../two-factor/two-factor.module';
 
 @Module({
   imports: [
@@ -19,9 +20,10 @@ import { QUEUE_NAMES } from '../queues/queues.constants';
       }),
     }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    forwardRef(() => TwoFactorModule),
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, JwtModule, forwardRef(() => TwoFactorModule)],
 })
 export class AuthModule {}

@@ -71,3 +71,24 @@ export class ResetPasswordDto {
   @MinLength(8)
   newPassword: string;
 }
+
+export class ChangePasswordDto {
+  @ApiProperty({ example: 'CurrentPass123!' })
+  @IsString()
+  currentPassword: string;
+
+  @ApiProperty({ example: 'NewSecurePass123!' })
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
+
+export class ChangeEmailDto {
+  @ApiProperty({ example: 'newemail@example.com' })
+  @IsEmail()
+  newEmail: string;
+
+  @ApiProperty({ example: 'CurrentPass123!' })
+  @IsString()
+  password: string;
+}

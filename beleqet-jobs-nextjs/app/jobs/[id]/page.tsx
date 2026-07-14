@@ -1,10 +1,30 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MapPin, Clock, Building2, ArrowLeft } from "lucide-react";
-import { fetchJob, fetchJobs } from "@/lib/api";
+import { fetchJob, fetchJobs, type Job } from "@/lib/api";
 import JobActions from "@/components/JobActions";
+import { jobDetailPageMetadata } from "@/lib/seo/generate-metadata";
+import { JobPostingSchema, BreadcrumbSchema } from "@/lib/seo/schemas";
 
 export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const job = await fetchJob(params.id);
+  if (!job) {
+    return jobDetailPageMetadata({
+      id: params.id,
+      title: "Job Not Found",
+      company: "",
+      location: "",
+    });
+  }
+  return jobDetailPageMetadata(job);
+}
 
 export default async function JobDetailPage({
   params,
@@ -21,6 +41,24 @@ export default async function JobDetailPage({
 
   return (
     <div className="container-page py-10">
+      <JobPostingSchema
+        job={{
+          id: job.id,
+          title: job.title,
+          description: job.description ?? "",
+          datePosted: job.createdAt ?? new Date().toISOString(),
+          company: job.company,
+          location: job.location,
+          employmentType: job.type,
+        }}
+      />
+      <BreadcrumbSchema
+        items={[
+          { name: "Jobs", href: "/jobs" },
+          { name: job.title, href: `/jobs/${job.id}` },
+        ]}
+      />
+
       <Link
         href="/jobs"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-brandGreen mb-6"
