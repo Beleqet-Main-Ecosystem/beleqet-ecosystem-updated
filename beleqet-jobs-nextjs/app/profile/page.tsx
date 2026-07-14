@@ -11,16 +11,48 @@ import {
   Search,
   ShieldCheck,
   BadgeCheck,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { roleMeta } from "@/components/HeaderAuth";
 import { authenticatedFetch } from "@/lib/auth";
+import { ReviewStats } from "@/components/reviews/ReviewStats";
+import { ReviewCard } from "@/components/reviews/ReviewCard";
 
 type Profile = {
   headline?: string | null;
   bio?: string | null;
   location?: string | null;
   skills?: string[] | null;
+};
+
+type Review = {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  reviewer: {
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string | null;
+  };
+  contract?: {
+    freelanceJob: {
+      title: string;
+    };
+  };
+};
+
+type RatingStats = {
+  averageRating: number;
+  totalReviews: number;
+  ratingDistribution: {
+    fiveStar: number;
+    fourStar: number;
+    threeStar: number;
+    twoStar: number;
+    oneStar: number;
+  };
 };
 
 const quickActionsByRole: Record<
@@ -49,6 +81,9 @@ export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [ratingStats, setRatingStats] = useState<RatingStats | null>(null);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
     if (ready && !user) router.replace("/login");
@@ -62,6 +97,37 @@ export default function ProfilePage() {
       .then((data) => data && setProfile(data))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const base =
+      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+    setLoadingReviews(true);
+
+    // Fetch reviews and rating stats
+    Promise.all([
+      authenticatedFetch(`${base}/reviews/freelancer/${user.id}`),
+      authenticatedFetch(`${base}/reviews/stats/${user.id}`),
+    ])
+      .then(([reviewsRes, statsRes]) =>
+        Promise.all([
+          reviewsRes.ok ? reviewsRes.json() : [],
+          statsRes.ok ? statsRes.json() : null,
+        ])
+      )
+      .then(([reviewsData, statsData]) => {
+        setReviews(reviewsData);
+        setRatingStats(statsData);
+      })
+      .catch(() => {
+        setReviews([]);
+        setRatingStats(null);
+      })
+      .finally(() => {
+        setLoadingReviews(false);
+      });
+  }, [user]);
 
   if (!ready || !user) {
     return (
@@ -178,6 +244,84 @@ export default function ProfilePage() {
           </dl>
         </div>
       </div>
+
+      {/* Reviews Section */}
+      {user.role === 'FREELANCER' && (
+        <div className="mt-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Star className="h-5 w-5 text-brandGreen" />
+            <h2 className="text-xl font-extrabold text-ink">Reviews & Ratings</h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Rating Stats */}
+            <div className="lg:col-span-1">
+              {loadingReviews ? (
+                <div className="rounded-2xl border border-border bg-white p-6">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-20 bg-gray-200 rounded-full dark:bg-gray-700" />
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="h-2 bg-gray-200 rounded dark:bg-gray-700" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : ratingStats ? (
+                <ReviewStats
+                  averageRating={ratingStats.averageRating}
+                  totalReviews={ratingStats.totalReviews}
+                  ratingDistribution={ratingStats.ratingDistribution}
+                />
+              ) : null}
+            </div>
+
+            {/* Reviews List */}
+            <div className="lg:col-span-2">
+              {loadingReviews ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="rounded-2xl border border-border bg-white p-6">
+                      <div className="animate-pulse space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 bg-gray-200 rounded-full dark:bg-gray-700" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700" />
+                            <div className="h-3 bg-gray-200 rounded w-3/4 dark:bg-gray-700" />
+                          </div>
+                        </div>
+                        <div className="h-16 bg-gray-200 rounded dark:bg-gray-700" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : reviews.length > 0 ? (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <ReviewCard
+                      key={review.id}
+                      reviewerName={`${review.reviewer.firstName} ${review.reviewer.lastName}`}
+                      reviewerAvatar={review.reviewer.avatarUrl}
+                      rating={review.rating}
+                      comment={review.comment}
+                      createdAt={new Date(review.createdAt)}
+                      contractTitle={review.contract?.freelanceJob.title}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-border bg-white p-12 text-center">
+                  <Star className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+                  <h3 className="mt-4 text-lg font-semibold text-ink">No reviews yet</h3>
+                  <p className="mt-2 text-sm text-muted">
+                    Complete projects to start receiving reviews from clients.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

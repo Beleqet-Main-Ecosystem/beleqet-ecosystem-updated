@@ -9,6 +9,12 @@
 body {
   background: #f7f5ef;
   color: #1e293b;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background: #0A0A0A;
+  color: #E5E5E5;
 }
 
 ::selection {

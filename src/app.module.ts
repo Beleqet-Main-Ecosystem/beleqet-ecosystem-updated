@@ -31,6 +31,7 @@ import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.m
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -113,6 +114,7 @@ import { KycModule } from './modules/kyc/kyc.module';
     PaymentsModule,
     TwoFactorModule,
     KycModule,
+    ReviewsModule,
   ],
 })
 export class AppModule { }
