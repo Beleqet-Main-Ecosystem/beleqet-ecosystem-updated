@@ -6,6 +6,7 @@ const mockFraudAlertService = {
   scanUser: jest.fn().mockResolvedValue([]),
   scanMessage: jest.fn().mockResolvedValue([]),
   scanTransaction: jest.fn().mockResolvedValue([]),
+  scanEscrowTransactions: jest.fn().mockResolvedValue([]),
   scanJob: jest.fn().mockResolvedValue([]),
   scanAll: jest.fn().mockResolvedValue(0),
 };
@@ -46,6 +47,12 @@ describe('FraudAlertProcessor', () => {
     const job = { data: { userId: 'user-2' } } as never;
     await processor.handleScanTransaction(job);
     expect(mockFraudAlertService.scanTransaction).toHaveBeenCalledWith('user-2');
+  });
+
+  it('should delegate escrow transaction scan to service', async () => {
+    const job = { data: { userId: 'user-3' } } as never;
+    await processor.handleScanEscrowTransaction(job);
+    expect(mockFraudAlertService.scanEscrowTransactions).toHaveBeenCalledWith('user-3');
   });
 
   it('should delegate scan job to service', async () => {

@@ -54,6 +54,7 @@
       "scan_queued_user": "የተጠቃሚ ምርመራ ተጀምሯል",
       "scan_queued_message": "የመልእክት ምርመራ ተጀምሯል",
       "scan_queued_transaction": "የክፍያ ምርመራ ተጀምሯል",
+      "scan_queued_escrow_transaction": "የኤስክሮ ክፍያ ምርመራ ተጀምሯል",
       "scan_queued_job": "የሥራ ማስታወቂያ ምርመራ ተጀምሯል",
       "scan_queued_all": "የቡድን ምርመራ ተጀምሯል"
     },

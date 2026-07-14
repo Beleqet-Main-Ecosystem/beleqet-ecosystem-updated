@@ -51,6 +51,12 @@ describe('FraudAlertController', () => {
     expect(mockFraudQueue.add).toHaveBeenCalledWith('scan-transaction', { userId: 'user-789' });
   });
 
+  it('should enqueue escrow transaction scan job', async () => {
+    const result = await controller.scanEscrowTransaction('user-789');
+    expect(result.jobId).toBe('test-job-id');
+    expect(mockFraudQueue.add).toHaveBeenCalledWith('scan-escrow-transaction', { userId: 'user-789' });
+  });
+
   it('should enqueue job scan job', async () => {
     const result = await controller.scanJob('job-001');
     expect(result.jobId).toBe('test-job-id');

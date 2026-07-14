@@ -175,6 +175,7 @@
       "scan_queued_user": "User scan queued",
       "scan_queued_message": "Message scan queued",
       "scan_queued_transaction": "Transaction scan queued",
+      "scan_queued_escrow_transaction": "Escrow transaction scan queued",
       "scan_queued_job": "Job scan queued",
       "scan_queued_all": "Batch scan queued"
     },
