@@ -145,7 +145,7 @@ describe('AiFeedService', () => {
       expect(result).toHaveLength(2);
       expect(prisma.job.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          take: 200,
+          take: 150,
           where: expect.objectContaining({
             status: 'PUBLISHED',
             OR: expect.any(Array),
@@ -166,6 +166,44 @@ describe('AiFeedService', () => {
     it('respects the limit parameter', async () => {
       const result = await service.getPersonalizedFeed('user-1', 1);
       expect(result).toHaveLength(1);
+    });
+
+    it('does not award a false-positive match for a substring keyword (e.g. "net" in "network")', async () => {
+      mockPrismaService.searchHistory.findMany.mockResolvedValue([{ searchTerm: 'net' }]);
+      mockPrismaService.job.findMany.mockResolvedValue([
+        {
+          ...mockJobs[0],
+          id: '3',
+          title: 'Network Engineer',
+          description: 'Manage the planetary network',
+          tags: [],
+        },
+      ]);
+
+      const result = await service.getPersonalizedFeed('user-1', 5);
+
+      expect(result[0].relevanceScore).toBe(0);
+    });
+
+    it('fetches keyword and category candidates as separate bounded pools', async () => {
+      mockPrismaService.savedJob.findMany.mockResolvedValue([
+        { job: { categoryId: 'cat-backend' } },
+      ]);
+
+      await service.getPersonalizedFeed('user-1', 5);
+
+      // One call for keyword matches, one for category affinity — not a
+      // single combined OR clause with one shared `take`.
+      expect(prisma.job.findMany).toHaveBeenCalledTimes(2);
+      expect(prisma.job.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 150, where: expect.objectContaining({ OR: expect.any(Array) }) }),
+      );
+      expect(prisma.job.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 50,
+          where: expect.objectContaining({ categoryId: { in: ['cat-backend'] } }),
+        }),
+      );
     });
   });
 });
