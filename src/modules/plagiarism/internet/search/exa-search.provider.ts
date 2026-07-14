@@ -54,7 +54,7 @@ export class ExaSearchProvider implements ISearchProvider {
         text?: string;
       }[];
     };
-    console.log('Exa search results:', data.results);
+    this.logger.debug(`Exa search returned ${data.results?.length ?? 0} results`);
     return (data.results ?? [])
       .slice(0, maxResults)
       .map((result) => ({

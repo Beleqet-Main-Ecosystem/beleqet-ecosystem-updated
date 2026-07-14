@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PlagiarismCheckResult } from '../types/plagiarism.types';
 
@@ -22,7 +21,7 @@ export class HistoryService {
         eventType: PLAGIARISM_EVENT_TYPE,
         entityId: result.checkId,
         entityType: 'PlagiarismCheck',
-        payload: result as unknown as Prisma.InputJsonValue,
+        payload: result as unknown as any,
       },
     });
   }
@@ -37,7 +36,9 @@ export class HistoryService {
       take: limit,
     });
 
-    return records.map((record) => record.payload as unknown as PlagiarismCheckResult);
+    return records.map((record: { payload: unknown }) =>
+      record.payload as unknown as PlagiarismCheckResult,
+    );
   }
 
   /**

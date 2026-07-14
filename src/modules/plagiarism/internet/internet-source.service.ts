@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { lookup } from 'dns/promises';
+import { isIP } from 'net';
 import { ComparisonDocument } from '../types/plagiarism.types';
 import { PlagiarismConfig } from '../utils/plagiarism.config';
 import { KeywordExtractorService } from './keyword-extractor.service';
@@ -26,14 +28,14 @@ export class InternetSourceService {
       this.logger.debug('Web search disabled — skipping internet sources');
       return [];
     }
-
+ 
     const query = this.keywordExtractor.extractQuery(inputText);
     this.logger.debug(`Web search query: "${query}"`);
-
+ 
     const searchResults = await this.webSearch.search(query);
-    console.log('Web search results:', searchResults);
+    this.logger.debug(`Web search returned ${searchResults.length} results`);
     const urls = searchResults.map((r) => r.url);
-
+ 
     return this.loadFromUrls(urls, searchResults);
   }
 
@@ -78,9 +80,10 @@ export class InternetSourceService {
    * Downloads a page and strips HTML tags to plain text.
    */
   private async fetchPageText(url: string): Promise<string> {
+    await this.validateFetchUrl(url);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.fetchTimeoutMs);
-
+ 
     try {
       const response = await fetch(url, {
         signal: controller.signal,
@@ -115,7 +118,54 @@ export class InternetSourceService {
       .replace(/\s+/g, ' ')
       .trim();
   }
-
+ 
+  private async validateFetchUrl(url: string): Promise<void> {
+    const parsedUrl = new URL(url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error('Only http:// and https:// URLs are allowed for internet sources');
+    }
+ 
+    const hostname = parsedUrl.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') {
+      throw new Error('URL points to a local or private host');
+    }
+ 
+    const addresses = await lookup(hostname, { all: true });
+    if (addresses.length === 0) {
+      throw new Error('Unable to resolve URL hostname');
+    }
+ 
+    for (const address of addresses) {
+      if (this.isPrivateIp(address.address)) {
+        throw new Error('URL resolves to a private or local IP address');
+      }
+    }
+  }
+ 
+  private isPrivateIp(ip: string): boolean {
+    if (ip === '::1' || ip === '0.0.0.0') return true;
+    if (ip.startsWith('::ffff:')) {
+      ip = ip.substring(7);
+    }
+ 
+    const version = isIP(ip);
+    if (version === 4) {
+      const [octet1, octet2] = ip.split('.').map(Number);
+      return (
+        octet1 === 10 ||
+        (octet1 === 172 && octet2 >= 16 && octet2 <= 31) ||
+        (octet1 === 192 && octet2 === 168) ||
+        octet1 === 127
+      );
+    }
+ 
+    if (version === 6) {
+      return ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80') || ip === '::1';
+    }
+ 
+    return false;
+  }
+ 
   /**
    * Builds a readable label from a URL path.
    */

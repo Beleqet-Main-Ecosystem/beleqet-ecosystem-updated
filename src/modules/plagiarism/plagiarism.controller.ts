@@ -24,9 +24,11 @@ export class PlagiarismController {
    */
   @Get('history')
   @ApiOperation({ summary: 'List recent plagiarism check results' })
-  getHistory(@Query('limit') limit?: string) {
-    const parsedLimit = limit ? Math.min(parseInt(limit, 10), 100) : 20;
-    return this.plagiarismService.getHistory(parsedLimit);
+  getHistory(
+    @Query('limit', new DefaultValuePipe(20), new ParseIntPipe({ min: 1, max: 100 }))
+    limit: number,
+  ) {
+    return this.plagiarismService.getHistory(limit);
   }
 
   /**
