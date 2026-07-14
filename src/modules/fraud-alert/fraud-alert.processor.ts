@@ -24,6 +24,10 @@ interface ScanTransactionPayload {
   userId: string;
 }
 
+interface ScanEscrowTransactionPayload {
+  userId: string;
+}
+
 interface ScanJobPayload {
   jobId: string;
 }
@@ -56,6 +60,12 @@ export class FraudAlertProcessor {
   async handleScanTransaction(job: Job<ScanTransactionPayload>): Promise<string[]> {
     this.logger.debug(`Scanning transactions for user: ${job.data.userId}`);
     return this.fraudAlertService.scanTransaction(job.data.userId);
+  }
+
+  @Process(FRAUD_JOBS.SCAN_ESCROW_TRANSACTION)
+  async handleScanEscrowTransaction(job: Job<ScanEscrowTransactionPayload>): Promise<string[]> {
+    this.logger.debug(`Scanning escrow transactions for user: ${job.data.userId}`);
+    return this.fraudAlertService.scanEscrowTransactions(job.data.userId);
   }
 
   @Process(FRAUD_JOBS.SCAN_JOB)

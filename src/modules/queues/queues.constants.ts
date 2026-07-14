@@ -75,11 +75,12 @@ export const TWO_FACTOR_JOBS = {
 // ── Fraud detection jobs ──────────────────────────────────────────────────
 
 export const FRAUD_JOBS = {
-  SCAN_USER:        'scan-user',
-  SCAN_MESSAGE:     'scan-message',
-  SCAN_TRANSACTION: 'scan-transaction',
-  SCAN_JOB:         'scan-job',
-  SCAN_ALL:         'scan-all',
+  SCAN_USER:             'scan-user',
+  SCAN_MESSAGE:          'scan-message',
+  SCAN_TRANSACTION:      'scan-transaction',
+  SCAN_ESCROW_TRANSACTION: 'scan-escrow-transaction',
+  SCAN_JOB:              'scan-job',
+  SCAN_ALL:              'scan-all',
 } as const;
 
 export const SCORING = {
