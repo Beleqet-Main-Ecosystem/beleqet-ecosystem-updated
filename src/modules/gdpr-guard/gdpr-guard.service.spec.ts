@@ -1,36 +1,42 @@
-// src/modules/gdpr-guard/gdpr-guard.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { GdprGuardService } from './gdpr-guard.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 
-// 1. To mock the PrismaService user model for testing
+const mockTx = {
+  user: { update: jest.fn() },
+  freelancerWallet: { update: jest.fn() },
+  walletTransaction: { updateMany: jest.fn() },
+  employerWallet: { update: jest.fn() },
+  employerWalletTransaction: { updateMany: jest.fn() },
+  eventLog: { create: jest.fn() },
+};
+
 const mockPrismaService = {
-  user: {
-    findUnique: jest.fn(),
-    update: jest.fn(),
-  },
+  user: { findUnique: jest.fn() },
+  $transaction: jest.fn((cb: (tx: typeof mockTx) => Promise<void>) => cb(mockTx)),
 };
 
 describe('GdprGuardService', () => {
   let service: GdprGuardService;
 
+  const audit = {
+    reason: 'User requested account deletion under GDPR Article 17',
+    actorUserId: 'admin-uuid-0000-0000-0000-000000000001',
+  };
+
   beforeEach(async () => {
-    // 2. To set the AES-256-GCM encryption key in the environment
     process.env.GDPR_ENCRYPTION_KEY =
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GdprGuardService,
-        // To inject the mock PrismaService
         { provide: PrismaService, useValue: mockPrismaService },
       ],
     }).compile();
 
     service = module.get<GdprGuardService>(GdprGuardService);
-
-    // To clear all mocks after each test
     jest.clearAllMocks();
   });
 
@@ -38,20 +44,14 @@ describe('GdprGuardService', () => {
     expect(service).toBeDefined();
   });
 
-  // 3. To test the Cryptography (Encryption/Decryption) logic
   describe('PII Cryptography', () => {
     it('should successfully encrypt and decrypt raw text using AES-256-GCM', () => {
       const rawText = 'Bemnet Derseh Ayalew';
       const encrypted = service.encryptPii(rawText);
 
-      // To check if the encrypted text is different from the raw text
       expect(encrypted).not.toEqual(rawText);
-      // To check if the encrypted text has the correct format 'iv:tag:cipherText'
       expect(encrypted.split(':').length).toEqual(3);
-
-      const decrypted = service.decryptPii(encrypted);
-      // To check if the decrypted text is the same as the raw text
-      expect(decrypted).toEqual(rawText);
+      expect(service.decryptPii(encrypted)).toEqual(rawText);
     });
 
     it('should return empty/falsy values directly without error', () => {
@@ -60,27 +60,24 @@ describe('GdprGuardService', () => {
     });
   });
 
-  // 4. To test the GDPR Data Erasure / Anonymization logic
   describe('executeDataErasure', () => {
     const mockUuid = '123e4567-e89b-12d3-a456-426614174000';
 
-    it('should successfully anonymize user PII data when user exists', async () => {
-      // To mock the user data when it exists in the database
+    it('should anonymize user PII, scrub wallet data, and persist audit log', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: mockUuid,
         email: 'test@example.com',
+        wallet: { id: 'wallet-1' },
+        employerWallet: null,
       });
-      mockPrismaService.user.update.mockResolvedValue({ id: mockUuid });
 
-      const result = await service.executeDataErasure(mockUuid);
+      const result = await service.executeDataErasure(mockUuid, audit);
 
-      // To check if the result is successful
       expect(result.success).toBe(true);
       expect(result.referenceId).toBeDefined();
       expect(result.scrubbedAt).toBeDefined();
 
-      // To check if the user update function was called
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+      expect(mockTx.user.update).toHaveBeenCalledWith({
         where: { id: mockUuid },
         data: expect.objectContaining({
           firstName: 'GDPR_ANONYMOUS',
@@ -88,15 +85,36 @@ describe('GdprGuardService', () => {
           phone: '0000000000',
         }),
       });
+      expect(mockTx.freelancerWallet.update).toHaveBeenCalledWith({
+        where: { id: 'wallet-1' },
+        data: { availableBalance: 0, pendingBalance: 0 },
+      });
+      expect(mockTx.walletTransaction.updateMany).toHaveBeenCalledWith({
+        where: { walletId: 'wallet-1' },
+        data: { note: 'GDPR_SCRUBBED' },
+      });
+      expect(mockTx.eventLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          eventType: 'GDPR_DATA_ERASURE',
+          entityId: mockUuid,
+          entityType: 'User',
+          processedBy: audit.actorUserId,
+          payload: expect.objectContaining({
+            reason: audit.reason,
+            actorUserId: audit.actorUserId,
+            targetUserId: mockUuid,
+            referenceId: result.referenceId,
+            scrubbedAt: result.scrubbedAt,
+          }),
+        }),
+      });
     });
 
     it('should throw NotFoundException if the user does not exist', async () => {
-      // To mock the user data when it does not exist in the database
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.executeDataErasure(mockUuid)).rejects.toThrow(NotFoundException);
-      // To check if the user update function was not called
-      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      await expect(service.executeDataErasure(mockUuid, audit)).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
     });
   });
 });

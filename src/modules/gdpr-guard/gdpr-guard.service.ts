@@ -2,6 +2,11 @@ import { Injectable, NotFoundException, InternalServerErrorException } from '@ne
 import { PrismaService } from '../../prisma/prisma.service';
 import * as crypto from 'crypto';
 
+export interface DataErasureAuditContext {
+  reason: string;
+  actorUserId: string;
+}
+
 @Injectable()
 export class GdprGuardService {
   private readonly algorithm = 'aes-256-gcm';
@@ -18,11 +23,6 @@ export class GdprGuardService {
     this.secretKey = Buffer.from(keyEnv, 'hex');
   }
 
-  /**
-   * Encrypts sensitive PII fields using AES-256-GCM before database insertion.
-   * @param text Plain text PII string.
-   * @returns Formatted ciphertext string (iv:authTag:encryptedData).
-   */
   encryptPii(text: string): string {
     if (!text) return text;
     try {
@@ -34,18 +34,13 @@ export class GdprGuardService {
 
       const authTag = cipher.getAuthTag().toString('hex');
       return `${iv.toString('hex')}:${authTag}:${encrypted}`;
-    } catch (error: unknown) {
+    } catch {
       throw new InternalServerErrorException(
         'Failed to securely encrypt personal identifiable information.',
       );
     }
   }
 
-  /**
-   * Decrypts database encrypted fields back to plain text.
-   * @param encryptedText Formatted ciphertext (iv:authTag:encryptedData).
-   * @returns Decrypted plain text string.
-   */
   decryptPii(encryptedText: string): string {
     if (!encryptedText || !encryptedText.includes(':')) return encryptedText;
     try {
@@ -63,34 +58,29 @@ export class GdprGuardService {
       let decrypted = decipher.update(encryptedDataHex, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;
-    } catch (error: unknown) {
+    } catch {
       throw new InternalServerErrorException(
         'Failed to decrypt personal identifiable information.',
       );
     }
   }
 
-  /**
-   * Executes GDPR Right to be Forgotten by scrubbing PII fields via Prisma.
-   * Ensures structural database reference integrity remains intact with Multi-Currency layers.
-   * @param userUuid The unique identifier of the target user.
-   */
   async executeDataErasure(
     userUuid: string,
+    audit: DataErasureAuditContext,
   ): Promise<{ success: boolean; scrubbedAt: string; referenceId: string }> {
-    // 1. Check if user exists in the unified users infrastructure
     const user = await this.prisma.user.findUnique({
       where: { id: userUuid },
-      // Integration check: Include wallet to ensure Multi-Currency balance data integrity is maintained
-      include: { wallet: true },
+      include: { wallet: true, employerWallet: true },
     });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${userUuid} was not found in the ecosystem.`);
     }
 
-    // 2. Perform irreversible anonymization (Scrubbing) on the user model using a transaction
-    // This guarantees that any existing multi-currency financial ledger entries remain structurally tied
+    const scrubbedAt = new Date().toISOString();
+    const referenceId = crypto.randomBytes(8).toString('hex').toUpperCase();
+
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userUuid },
@@ -101,12 +91,46 @@ export class GdprGuardService {
           phone: '0000000000',
         },
       });
+
+      if (user.wallet) {
+        await tx.freelancerWallet.update({
+          where: { id: user.wallet.id },
+          data: { availableBalance: 0, pendingBalance: 0 },
+        });
+        await tx.walletTransaction.updateMany({
+          where: { walletId: user.wallet.id },
+          data: { note: 'GDPR_SCRUBBED' },
+        });
+      }
+
+      if (user.employerWallet) {
+        await tx.employerWallet.update({
+          where: { id: user.employerWallet.id },
+          data: { balance: 0, lockedBalance: 0 },
+        });
+        await tx.employerWalletTransaction.updateMany({
+          where: { walletId: user.employerWallet.id },
+          data: { note: 'GDPR_SCRUBBED' },
+        });
+      }
+
+      await tx.eventLog.create({
+        data: {
+          eventType: 'GDPR_DATA_ERASURE',
+          entityId: userUuid,
+          entityType: 'User',
+          payload: {
+            reason: audit.reason,
+            actorUserId: audit.actorUserId,
+            targetUserId: userUuid,
+            referenceId,
+            scrubbedAt,
+          },
+          processedBy: audit.actorUserId,
+        },
+      });
     });
 
-    return {
-      success: true,
-      scrubbedAt: new Date().toISOString(),
-      referenceId: crypto.randomBytes(8).toString('hex').toUpperCase(),
-    };
+    return { success: true, scrubbedAt, referenceId };
   }
 }

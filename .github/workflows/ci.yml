@@ -69,6 +69,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET=whsec_dummy
           PAYPAL_CLIENT_ID=dummy_client_id
           PAYPAL_CLIENT_SECRET=dummy_client_secret
+          GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           EOF
 
       - run: npx prisma generate
@@ -137,6 +138,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET=whsec_dummy
           PAYPAL_CLIENT_ID=dummy_client_id
           PAYPAL_CLIENT_SECRET=dummy_client_secret
+          GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           EOF
 
       - run: npx prisma generate
