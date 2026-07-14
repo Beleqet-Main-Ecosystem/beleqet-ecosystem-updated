@@ -1,0 +1,31 @@
+{
+  "payment": {
+    "errors": {
+      "unsupportedCurrency": "ምንዛሪ {currency} አይደገፍም። የሚደገፉ ምንዛሪዎች፡ ETB፣ USD፣ EUR፣ GBP።",
+      "gatewayNotSupported": "የክፍያ አቅራቢ {provider} ምንዛሪ {currency} አይደግፍም።",
+      "consentRequired": "በGDPR መሰረት የክፍያ ስምምነት ያስፈልጋል። እባክዎ ከመቀጠልዎ በፊት ደንቦቹን ይስማሙ።",
+      "transactionNotFound": "ግብይት አልተገኘም።",
+      "alreadyProcessed": "ይህ ግብይት ቀድሞውኑ ተሰርቷል እና ሊቀየር አይችልም።",
+      "stripeNotConfigured": "የStripe ክፍያ ሂደት አልተዋቀረም። እባክዎ ድጋፍን ያግኙ።",
+      "providerNotImplemented": "የክፍያ አቅራቢ {provider} ገና አልተተገበረም።",
+      "notRefundable": "የተጠናቀቁ ግብይቶች ብቻ መመለስ ይቻላል።",
+      "refundExceedsAmount": "የመመለስ መጠን ከዋናው የግብይት መጠን ይበልጣል።"
+    },
+    "success": {
+      "created": "የክፍያ ግብይት በተሳካ ሁኔታ ተፈጥሯል።",
+      "processed": "ክፍያ በተሳካ ሁኔታ ተሰርቷል።",
+      "refunded": "መመለስ በተሳካ ሁኔታ ተሰርቷል።",
+      "exported": "የክፍያ ውሂብ በተሳካ ሁኔታ ተላልፏል።",
+      "deleted": "የክፍያ ውሂብ በGDPR መሰረት በተሳካ ሁኔታ ተደብቋል።"
+    },
+    "status": {
+      "PENDING": "በመጠባበቅ ላይ",
+      "PROCESSING": "በሂደት ላይ",
+      "COMPLETED": "የተጠናቀቀ",
+      "FAILED": "የተሳነ",
+      "REFUNDED": "የተመለሰ",
+      "CANCELLED": "የተሰረዘ",
+      "DISPUTED": "በክርክር ላይ"
+    }
+  }
+}

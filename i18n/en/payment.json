@@ -1,0 +1,31 @@
+{
+  "payment": {
+    "errors": {
+      "unsupportedCurrency": "Currency {currency} is not supported. Supported currencies: ETB, USD, EUR, GBP.",
+      "gatewayNotSupported": "Payment provider {provider} does not support currency {currency}.",
+      "consentRequired": "Payment consent is required under GDPR. Please agree to the terms before proceeding.",
+      "transactionNotFound": "Transaction not found.",
+      "alreadyProcessed": "This transaction has already been processed and cannot be modified.",
+      "stripeNotConfigured": "Stripe payment processing is not configured. Please contact support.",
+      "providerNotImplemented": "Payment provider {provider} is not yet implemented.",
+      "notRefundable": "Only completed transactions can be refunded.",
+      "refundExceedsAmount": "Refund amount exceeds the original transaction amount."
+    },
+    "success": {
+      "created": "Payment transaction created successfully.",
+      "processed": "Payment processed successfully.",
+      "refunded": "Refund processed successfully.",
+      "exported": "Payment data exported successfully.",
+      "deleted": "Payment data anonymized successfully per GDPR request."
+    },
+    "status": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "COMPLETED": "Completed",
+      "FAILED": "Failed",
+      "REFUNDED": "Refunded",
+      "CANCELLED": "Cancelled",
+      "DISPUTED": "Disputed"
+    }
+  }
+}

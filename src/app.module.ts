@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
+import { PaymentGatewayModule } from './modules/payment-gateway/payment-gateway.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bull';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
-
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -39,6 +39,7 @@ import { KycModule } from './modules/kyc/kyc.module';
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
+    PaymentGatewayModule,
 
     //  Rate limiting 
     ThrottlerModule.forRoot([
