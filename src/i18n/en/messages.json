@@ -18,5 +18,9 @@
     "approved": "KYC verification approved.",
     "rejected": "KYC verification was rejected: {reason}",
     "not_found": "No KYC record found for this account."
+  },
+  "uploads": {
+    "presignedUrlCreated": "Upload URL created successfully.",
+    "assetUploaded": "Asset uploaded successfully."
   }
 }

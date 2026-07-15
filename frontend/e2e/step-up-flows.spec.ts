@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const API = 'http://localhost:4000/api/v1';
+const API = 'http://127.0.0.1:4000/api/v1';
 
 interface User {
   id: string;
