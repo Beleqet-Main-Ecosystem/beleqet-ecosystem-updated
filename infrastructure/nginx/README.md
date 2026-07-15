@@ -8,10 +8,11 @@ Traffic is distributed by **Nginx**, not by an in-app NestJS router. This avoids
 
 | Requirement | Implementation |
 |-------------|----------------|
-| Traffic distribution | Nginx `upstream` (round robin / `least_conn` / `ip_hash`) |
+| Traffic distribution | Nginx `upstream` (`ip_hash` default; `least_conn` / round robin optional) |
 | Health checks | Passive: `max_fails` + `fail_timeout`; Docker `healthcheck` on backends |
 | Failover | `proxy_next_upstream` skips dead backends |
-| Sticky sessions | Uncomment `ip_hash;` in `load-balancer.conf` |
+| Sticky sessions | **`ip_hash` enabled by default** (required for Socket.IO chat handshake) |
+| WebSockets | `Upgrade` / `Connection` headers + `/socket.io/` location |
 | Multi-currency | Forwards `X-Currency` / `X-Region` to backends |
 | Horizontal scaling | Add more `server backend-N:4000` lines + compose services |
 
@@ -25,16 +26,21 @@ docker compose -f docker-compose.yml -f docker-compose.load-balancer.yml up -d -
 - LB liveness: **http://localhost:8080/lb-health** → `ok`
 - API (via LB): **http://localhost:8080/api/docs**
 
+## WebSocket / Chat (Socket.IO)
+
+Chat uses NestJS Socket.IO under `/socket.io/` (namespace `/chat`). The LB:
+
+1. Enables **`ip_hash`** so long-polling handshake requests stick to one backend
+2. Forwards **`Upgrade`** / **`Connection`** so HTTP can upgrade to WebSocket
+3. Uses a long `proxy_read_timeout` on `/socket.io/` for persistent connections
+
+Without these, chat fails with `400 Session ID unknown` or never upgrades.
+
 ## Switching strategies
 
-Edit `infrastructure/nginx/load-balancer.conf` inside `upstream beleqet_backend`:
+Default is **`ip_hash`** (do not disable it if chat is behind this LB).
 
-```nginx
-# least_conn;   # least connections
-# ip_hash;      # sticky by client IP
-```
-
-Then recreate Nginx:
+To try least connections instead, edit `upstream beleqet_backend`: comment out `ip_hash;` and uncomment `least_conn;`, then:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.load-balancer.yml up -d --force-recreate nginx-lb
