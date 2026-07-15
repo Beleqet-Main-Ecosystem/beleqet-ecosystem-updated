@@ -127,10 +127,17 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
 
     // Step 1: Deduct balance and create a PENDING transaction atomically
     const { tx } = await this.prisma.$transaction(async (prisma: any) => {
-      await prisma.freelancerWallet.update({
-        where: { userId },
+      const updateResult = await prisma.freelancerWallet.updateMany({
+        where: {
+          userId,
+          availableBalance: { gte: amountInWalletCurrency },
+        },
         data: { availableBalance: { decrement: amountInWalletCurrency } },
       });
+      if (updateResult.count === 0) {
+        throw new BadRequestException('Insufficient available balance');
+      }
+      
       const tx = await prisma.walletTransaction.create({
         data: { walletId: wallet.id, type: 'DEBIT_WITHDRAWAL', amount: amountInWalletCurrency, note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending` },
       });

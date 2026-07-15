@@ -60,7 +60,7 @@ export const ANALYTICS_JOBS = {
 export const ESCROW_JOBS = {
   PROCESS_WEBHOOK:    'process-payment-webhook',
   AUTO_RELEASE:       'auto-release-milestone',  // 14-day auto-approval
-  PROCESS_WITHDRAWAL: 'process-wallet-withdrawal',
+  UNLOCK_FUNDS:       'unlock-escrow-funds',
 } as const;
 
 // ── Two-Factor Authentication jobs ────────────────────────────────────────

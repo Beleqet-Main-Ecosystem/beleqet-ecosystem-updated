@@ -74,6 +74,10 @@ export class DisputeManagerService {
       throw new BadRequestException('Dispute is already resolved');
     }
 
+    if (resolveDto.refundAmount && resolveDto.refundAmount > dispute.contract.agreedAmount) {
+      throw new BadRequestException('Refund amount cannot exceed the contract agreed amount');
+    }
+
     const updatedDispute = await this.prisma.dispute.update({
       where: { id: disputeId },
       data: {
