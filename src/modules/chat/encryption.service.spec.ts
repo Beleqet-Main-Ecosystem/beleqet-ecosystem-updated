@@ -24,6 +24,13 @@ describe('EncryptionService', () => {
     expect(service).toBeDefined();
   });
 
+  it('should throw an error if BACKEND_ENCRYPTION_KEY is not set', () => {
+    const badConfig = {
+      get: jest.fn().mockReturnValue(undefined),
+    };
+    expect(() => new EncryptionService(badConfig as any)).toThrow('Missing required environment variable BACKEND_ENCRYPTION_KEY');
+  });
+
   it('should encrypt and decrypt a plaintext string correctly', () => {
     const plaintext = 'Hello Beleqet Secure E2EE World!';
     const encrypted = service.encrypt(plaintext);

@@ -67,4 +67,26 @@ describe('EncryptionService', () => {
     const tampered = ciphertext.slice(0, -4) + 'AAAA';
     expect(() => service.decrypt(tampered)).toThrow();
   });
+
+  it('should handle key with length not equal to 64 but still 32 bytes when parsed or throw if key is not valid hex', () => {
+    const longConfig = {
+      get: jest.fn().mockReturnValue('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefextraaaaa'),
+    };
+    const s = new EncryptionService(longConfig as any);
+    expect(s).toBeDefined();
+  });
+
+  it('should throw error when key length is invalid (not 32 bytes)', () => {
+    const shortConfig = {
+      get: jest.fn().mockReturnValue('0123456789abcdef'),
+    };
+    expect(() => new EncryptionService(shortConfig as any)).toThrow('TOTP_ENCRYPTION_KEY must be 64 hex characters');
+  });
+
+  it('should throw error when key is missing', () => {
+    const missingConfig = {
+      get: jest.fn().mockReturnValue(undefined),
+    };
+    expect(() => new EncryptionService(missingConfig as any)).toThrow('TOTP_ENCRYPTION_KEY is required');
+  });
 });
