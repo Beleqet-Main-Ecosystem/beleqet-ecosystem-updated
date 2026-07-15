@@ -61,7 +61,8 @@ describe('CacheService', () => {
     });
 
     it('should fetch and store on miss', async () => {
-      cacheManager.get.mockResolvedValue(null);
+      // 🔥 Fix: use undefined to indicate cache miss (null is now a valid cached value)
+      cacheManager.get.mockResolvedValue(undefined);
       const fetchFn = jest.fn().mockResolvedValue({ id: 2 });
 
       await service.getOrSet('test', fetchFn, { ttl: 60 });
@@ -83,8 +84,6 @@ describe('CacheService', () => {
       expect(fetchFn).toHaveBeenCalled();
       expect(result).toEqual({ id: 3 });
     });
-
-    // ⚠️ Stampede protection test removed (optional feature)
   });
 
   describe('set', () => {
@@ -121,11 +120,12 @@ describe('CacheService', () => {
     });
 
     it('should return undefined for missing key', async () => {
-      cacheManager.get.mockResolvedValue(null);
+      // 🔥 Fix: use undefined for missing key
+      cacheManager.get.mockResolvedValue(undefined);
 
       const result = await service.get('test');
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
@@ -185,7 +185,6 @@ describe('CacheService', () => {
       const hashed = service.buildKey('sensitive-id', undefined, true);
 
       expect(hashed).toMatch(/^beleqet:[a-f0-9]{32}$/);
-      // "beleqet:" is 8 characters, plus 32 = 40
       expect(hashed).toHaveLength(8 + 32);
     });
 
