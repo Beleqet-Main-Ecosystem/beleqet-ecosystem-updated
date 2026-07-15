@@ -1,8 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { AUTH_ENV_CONFIG } from '../auth.module';
-import { AuthEnvConfig } from '../config/auth.config';
+import { AUTH_ENV_CONFIG, AuthEnvConfig } from '../config/auth.config';
 
 /**
  * JWT payload shape signed into every access token by

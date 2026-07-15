@@ -4,7 +4,7 @@ import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
 import { AccountLinkingService } from '../services/account-linking.service';
 import { EMAIL_SENDER, IEmailSender } from '../interfaces/email-sender.interface';
-import { AUTH_ENV_CONFIG } from '../auth.module';
+import { AUTH_ENV_CONFIG } from '../config/auth.config';
 import { AuthEnvConfig } from '../config/auth.config';
 import { OAuthProfile, OAuthProvider } from '../interfaces/oauth-profile.interface';
 import { PreparedOAuthIdentity } from '../interfaces/prepared-oauth-identity.interface';
@@ -166,7 +166,9 @@ describe('AuthController', () => {
       accountLinkingService.handleOAuthSignIn.mockResolvedValueOnce({ kind: 'LOGIN', user });
       authService.issueTokensForUserId.mockResolvedValueOnce(FAKE_TOKENS as never);
 
-      await controller.googleCallback(buildRequest(identity, { state: 'some-provider-csrf-nonce' }));
+      await controller.googleCallback(
+        buildRequest(identity, { state: 'some-provider-csrf-nonce' }),
+      );
 
       expect(accountLinkingService.handleOAuthSignIn).toHaveBeenCalled();
       expect(accountLinkingService.confirmPendingLink).not.toHaveBeenCalled();

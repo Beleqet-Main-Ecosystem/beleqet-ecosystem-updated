@@ -35,8 +35,7 @@ import { LinkedInLinkAuthGuard } from './guards/linkedin-link-auth.guard';
 import { AccountLinkingService } from './services/account-linking.service';
 import { PreparedOAuthIdentity } from './interfaces/prepared-oauth-identity.interface';
 import { EMAIL_SENDER, IEmailSender } from './interfaces/email-sender.interface';
-import { AUTH_ENV_CONFIG } from './auth.module';
-import { AuthEnvConfig } from './config/auth.config';
+import { AUTH_ENV_CONFIG, AuthEnvConfig } from './config/auth.config';
 
 /** Discriminated response shapes returned by the OAuth callback routes. */
 type OAuthCallbackResponse =

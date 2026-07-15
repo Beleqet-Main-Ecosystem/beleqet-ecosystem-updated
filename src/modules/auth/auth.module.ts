@@ -10,7 +10,12 @@ import { AuthService } from './auth.service';
 import { AccountLinkingService, ACCOUNT_REPOSITORY } from './services/account-linking.service';
 import { TokenEncryptionService } from './services/token-encryption.service';
 import { AccountRepository } from './repositories/account.repository';
-import { TOKEN_ENCRYPTION_KEY, loadAuthEnvConfig, AuthEnvConfig } from './config/auth.config';
+import {
+  TOKEN_ENCRYPTION_KEY,
+  loadAuthEnvConfig,
+  AuthEnvConfig,
+  AUTH_ENV_CONFIG,
+} from './config/auth.config';
 import { TOKEN_CIPHER } from './interfaces/token-cipher.interface';
 import { EMAIL_SENDER } from './interfaces/email-sender.interface';
 import { MailService } from '../../mail/mail.service';
@@ -28,7 +33,6 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
  * Loaded exactly once at module initialization rather than re-read from
  * `process.env` throughout the module.
  */
-export const AUTH_ENV_CONFIG = Symbol('AUTH_ENV_CONFIG');
 
 /**
  * Loaded once, synchronously, when this file is first imported — see

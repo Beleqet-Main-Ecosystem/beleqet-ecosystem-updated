@@ -4,8 +4,7 @@ import { Strategy, StrategyOptions, Profile } from 'passport-openidconnect';
 import { ITokenCipher, TOKEN_CIPHER } from '../interfaces/token-cipher.interface';
 import { OAuthProvider } from '../interfaces/oauth-profile.interface';
 import { PreparedOAuthIdentity } from '../interfaces/prepared-oauth-identity.interface';
-import { AUTH_ENV_CONFIG } from '../auth.module';
-import { AuthEnvConfig } from '../config/auth.config';
+import { AUTH_ENV_CONFIG, AuthEnvConfig } from '../config/auth.config';
 import { prepareOAuthIdentity } from './prepare-oauth-identity.helper';
 
 const LINKEDIN_OIDC_ISSUER = 'https://www.linkedin.com/oauth';

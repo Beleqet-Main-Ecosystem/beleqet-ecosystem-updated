@@ -13,7 +13,7 @@ const REQUIRED_KEY_LENGTH_BYTES = 32;
  * responsibilities (Single Responsibility Principle).
  */
 export const TOKEN_ENCRYPTION_KEY = Symbol('TOKEN_ENCRYPTION_KEY');
-
+export const AUTH_ENV_CONFIG = Symbol('AUTH_ENV_CONFIG');
 
 /**
  * Strongly-typed shape of the environment configuration this module reads.
