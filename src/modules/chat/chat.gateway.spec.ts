@@ -4,6 +4,7 @@ import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 const mockChatService = {
   getRoomMessages: jest.fn(),
@@ -43,7 +44,10 @@ describe('ChatGateway', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: I18nService, useValue: mockI18nService },
       ],
-    }).compile();
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
     gateway = module.get<ChatGateway>(ChatGateway);
     // Simulate a server reference
     (gateway as any).server = { to: jest.fn().mockReturnValue({ emit: jest.fn() }) };
