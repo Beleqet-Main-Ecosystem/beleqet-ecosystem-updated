@@ -14,13 +14,8 @@ import { RegisterDto, ChangePasswordDto, ChangeEmailDto } from './dto/register.d
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
-import {
-  passwordResetEmail,
-  verificationEmail,
-  loginAlertEmail,
-  logoutAlertEmail,
-  welcomeEmail,
-} from '../notifications/email-templates';
+import { passwordResetEmail, verificationEmail, loginAlertEmail, logoutAlertEmail, welcomeEmail } from '../notifications/email-templates';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 
 @Injectable()
@@ -33,17 +28,19 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly twoFactorService: TwoFactorService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
-  ) {}
+    private readonly eventEmitter: EventEmitter2,
+  ) { }
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const normalizedEmail = dto.email.toLowerCase().trim();
+    const existing = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) throw new ConflictException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email.toLowerCase().trim(),
+        email: normalizedEmail,
         passwordHash,
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -83,8 +80,12 @@ export class AuthService {
   }
 
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user || !user.isActive) {
+      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     // Must run BEFORE any hash-migration logic below: passwordHash is nullable
     // for OAuth-only users, and the WordPress-hash normalization calls
@@ -102,7 +103,10 @@ export class AuthService {
     }
 
     const valid = await bcrypt.compare(password, hashToCompare);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) {
+      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     // Re-hash to standard format automatically on successful login so we migrate away from $wp$ over time
     if (hashToCompare !== user.passwordHash) {
@@ -113,6 +117,7 @@ export class AuthService {
       });
     }
 
+    this.eventEmitter.emit('auth.login.success', { email: normalizedEmail, timestamp: new Date().toISOString() });
     return user;
   }
 
@@ -280,9 +285,8 @@ export class AuthService {
       data: { passwordHash },
     });
 
-    await this.prisma.verificationToken.deleteMany({
-      where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' },
-    });
+    await this.prisma.refreshToken.deleteMany({ where: { userId: verificationToken.userId } });
+    await this.prisma.verificationToken.deleteMany({ where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' } });
     return { success: true, message: 'Password reset successfully' };
   }
 

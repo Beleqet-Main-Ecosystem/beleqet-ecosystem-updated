@@ -48,8 +48,8 @@ jobs:
       - name: Create .env for CI
         run: |
           cat > .env << 'EOF'
-          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beleqet_test
-          REDIS_HOST=localhost
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/beleqet_test
+          REDIS_HOST=127.0.0.1
           REDIS_PORT=6379
           REDIS_PASSWORD=
           JWT_ACCESS_SECRET=ci_test_jwt_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -116,8 +116,8 @@ jobs:
       - name: Create .env for CI
         run: |
           cat > .env << 'EOF'
-          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beleqet_test
-          REDIS_HOST=localhost
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/beleqet_test
+          REDIS_HOST=127.0.0.1
           REDIS_PORT=6379
           REDIS_PASSWORD=
           JWT_ACCESS_SECRET=ci_test_jwt_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -147,7 +147,7 @@ jobs:
         run: |
           node dist/main &
           echo "PID=$!"
-          timeout 45 sh -c 'until nc -z localhost 4000; do sleep 1; done'
+          timeout 45 sh -c 'until nc -z 127.0.0.1 4000; do sleep 1; done'
           echo "Backend ready"
 
       - name: Install Playwright browsers

@@ -7,6 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TwoFactorService } from '../two-factor/two-factor.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 jest.mock('bcryptjs');
 
@@ -20,15 +21,21 @@ describe('AuthService', () => {
     user: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      create: jest.fn(),
     },
     userTwoFactor: {
       findUnique: jest.fn(),
     },
     refreshToken: {
       deleteMany: jest.fn(),
+      create: jest.fn(),
+      findMany: jest.fn(),
     },
     verificationToken: {
       create: jest.fn(),
+      findFirst: jest.fn(),
+      deleteMany: jest.fn(),
+      findUnique: jest.fn(),
     },
   };
 
@@ -48,9 +55,11 @@ describe('AuthService', () => {
 
   const mockTwoFactorSvc = {};
   const mockNotificationsQueue = { add: jest.fn() };
+  const mockEventEmitter = { emit: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.refreshToken.findMany.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -59,6 +68,7 @@ describe('AuthService', () => {
         { provide: ConfigService, useValue: mockConfig },
         { provide: TwoFactorService, useValue: mockTwoFactorSvc },
         { provide: getQueueToken('notifications'), useValue: mockNotificationsQueue },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
@@ -191,6 +201,54 @@ describe('AuthService', () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(svc.changeEmail(userId, emailDto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('register', () => {
+    it('should normalize email to lowercase and trim it before checking for duplicates', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-pass');
+      mockPrisma.user.create = jest.fn().mockResolvedValue({ id: 'user-2', email: 'test@example.com' });
+
+      const dto = {
+        email: '   TeSt@ExAmPle.COM   ',
+        password: 'password123',
+        firstName: 'John',
+        lastName: 'Doe',
+        role: 'CLIENT',
+      };
+
+      await svc.register(dto as any);
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
+      });
+      expect(mockPrisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ email: 'test@example.com' }),
+        })
+      );
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should invalidate all active sessions by deleting refresh tokens on password reset', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'old' });
+      mockPrisma.verificationToken.findUnique.mockResolvedValue({ 
+        token: 'valid-token', 
+        userId, 
+        type: 'PASSWORD_RESET', 
+        expiresAt: new Date(Date.now() + 1000000) 
+      });
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
+      mockPrisma.user.update.mockResolvedValue({ id: userId });
+      mockPrisma.verificationToken.deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+
+      await svc.resetPassword('valid-token', 'new-password123!');
+
+      expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId },
+      });
     });
   });
 });

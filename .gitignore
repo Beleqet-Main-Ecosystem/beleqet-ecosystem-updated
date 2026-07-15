@@ -61,3 +61,8 @@ scripts/
 .agents/
 issue_pr_matches.md
 AGENTS.md
+
+# Local storage fallbacks
+temp-storage/
+**/temp-storage/
+
