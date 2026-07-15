@@ -24,6 +24,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
@@ -89,6 +90,7 @@ import { KycModule } from './modules/kyc/kyc.module';
     //  Feature modules 
     PrismaModule,
     QueuesModule,
+    RedisModule,
     AuthModule,
     UsersModule,
     JobsModule,
@@ -104,6 +106,7 @@ import { KycModule } from './modules/kyc/kyc.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
+    AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
     DbIndexMasterModule,
