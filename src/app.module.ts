@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bull';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
@@ -9,6 +9,7 @@ import * as path from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { RedisModule } from './modules/redis/redis.module';
 import { JobsModule } from './modules/jobs/jobs.module';
 import { ApplicationsModule } from './modules/applications/applications.module';
 import { ScreeningModule } from './modules/screening/screening.module';
@@ -26,30 +27,37 @@ import { ContactModule } from './modules/contact/contact.module';
 
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
+import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
+import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
+import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { TwoFactorModule } from './modules/two-factor/two-factor.module';
+import { KycModule } from './modules/kyc/kyc.module';
 @Module({
   imports: [
-    // ── Configuration (loads .env) ─────────────────────────────────────────
+    //  Configuration (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
 
-    // ── Rate limiting ──────────────────────────────────────────────────────
+    //  Rate limiting
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 10 },
       { name: 'medium', ttl: 10_000, limit: 50 },
       { name: 'long', ttl: 60_000, limit: 200 },
     ]),
 
-    // ── Event bus (in-process events between modules) ──────────────────────
+    //  Event bus (in-process events between modules)
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.',
       maxListeners: 20,
     }),
 
-    // ── BullMQ (Redis-backed job queues) ───────────────────────────────────
+    //  BullMQ (Redis-backed job queues)
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -68,7 +76,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
       }),
     }),
 
-    // ── Internationalization (i18n) ────────────────────────────────────────
+    //  Internationalization (i18n)
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
@@ -82,9 +90,10 @@ import { PaymentsModule } from './modules/payments/payments.module';
       ],
     }),
 
-    // ── Feature modules ────────────────────────────────────────────────────
+    //  Feature modules
     PrismaModule,
     QueuesModule,
+    RedisModule,
     AuthModule,
     UsersModule,
     JobsModule,
@@ -101,8 +110,19 @@ import { PaymentsModule } from './modules/payments/payments.module';
     TelegramModule,
     ContactModule,
     InterviewPlannerModule,
+    AnomalySensorModule,
+    AdminStatsModule,
+    DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
+    TwoFactorModule,
+    KycModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

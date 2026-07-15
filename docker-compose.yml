@@ -46,13 +46,46 @@ services:
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
       - OPENAI_API_KEY=dummy_key_for_testing
-      - STRIPE_SECRET_KEY=sk_test_dummy
-      - STRIPE_WEBHOOK_SECRET=whsec_dummy
-      - PAYPAL_CLIENT_ID=dummy_client_id
-      - PAYPAL_CLIENT_SECRET=dummy_client_secret
+      - TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+      - TOTP_TEMP_SECRET=docker_totp_temp_secret_please_change_in_production
+      - TOTP_ISSUER=Beleqet
+      - PAYPAL_CLIENT_ID=dummy
+      - PAYPAL_CLIENT_SECRET=dummy
+      - STRIPE_SECRET_KEY=dummy
+      - STRIPE_WEBHOOK_SECRET=dummy
     depends_on:
       - db
       - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+    container_name: beleqet-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+    depends_on:
+      - backend
+
+  jobs-frontend:
+    build:
+      context: ./beleqet-jobs-nextjs
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+    container_name: beleqet-jobs-frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

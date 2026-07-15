@@ -14,7 +14,7 @@ async function main() {
       passwordHash: hash,
       firstName: 'Super',
       lastName: 'Admin',
-      role: 'ADMIN'
+      role: 'ADMIN',
     },
   });
 
@@ -22,5 +22,5 @@ async function main() {
 }
 
 main()
-  .catch(e => console.error(e))
+  .catch((e) => console.error(e))
   .finally(() => prisma.$disconnect());

@@ -1,14 +1,25 @@
 # Dependencies
 node_modules/
 
-# Build output
+# Build and compiled output
 dist/
-coverage/
+build/
+.next/
+out/
+*.tsbuildinfo
+dist/
+frontend/dist-test/
+frontend/.next/
+frontend/out/
+server/dist/
+server/build/
 
-# Environment files
+# Environment variables & secrets
 .env
 .env.local
 .env.production
+!.env.example
+.env.*.local
 
 # Logs
 *.log
@@ -29,3 +40,44 @@ yarn-error.log*
 Thumbs.db
 # Next.js
 .next/
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# NestJS / Testing artifacts
+.nestcli.errors.log
+coverage/
+.nyc_output/
+test-results/
+.cache/
+.vercel
+err*.txt
+out*.txt
+*.txt
+out*
+err*
+
+# IDE/Editor configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Project-specific ignores
+beleqend_jobs.sql
+users_export.json
+scripts/
+.agents/
+issue_pr_matches.md
+AGENTS.md
+
+# Local storage fallbacks
+temp-storage/
+**/temp-storage/
+
