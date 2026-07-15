@@ -61,7 +61,6 @@ describe('CacheService', () => {
     });
 
     it('should fetch and store on miss', async () => {
-      // 🔥 Fix: use undefined to indicate cache miss (null is now a valid cached value)
       cacheManager.get.mockResolvedValue(undefined);
       const fetchFn = jest.fn().mockResolvedValue({ id: 2 });
 
@@ -120,7 +119,6 @@ describe('CacheService', () => {
     });
 
     it('should return undefined for missing key', async () => {
-      // 🔥 Fix: use undefined for missing key
       cacheManager.get.mockResolvedValue(undefined);
 
       const result = await service.get('test');

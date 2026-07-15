@@ -12,11 +12,7 @@ export class CacheService {
   private readonly piiSalt: string;
   private readonly debug: boolean;
 
-  /**
-   * 🔥 FIX 5: Cache Stampede Protection
-   * Deduplicates concurrent requests for the same key to prevent
-   * multiple database queries when cache expires simultaneously.
-   */
+  // Stampede protection: deduplicate concurrent requests
   private readonly pendingFetches = new Map<string, Promise<any>>();
 
   constructor(
@@ -31,57 +27,80 @@ export class CacheService {
 
   /**
    * Retrieves data from cache or fetches it from the source.
-   * Implements cache‑aside pattern with automatic population.
-   * 🔥 Includes stampede protection to prevent concurrent DB overload.
+   * Implements cache‑aside pattern with stampede protection and negative caching.
    *
    * @param key - Unique cache key (will be namespaced with prefix)
    * @param fetchFn - Async function to fetch data on cache miss
-   * @param options - Optional TTL (in seconds) or other cache options
-   * @returns The cached or freshly fetched data
+   * @param options - Optional TTL (seconds), skipCache, namespace, etc.
+   * @returns The cached or freshly fetched data (can be null for negative caching)
    */
   async getOrSet<T>(
     key: string,
     fetchFn: () => Promise<T>,
     options?: CacheOptions,
   ): Promise<T> {
+    // Support skipCache
+    if (options?.skipCache) {
+      if (this.debug) this.logger.debug(`[skipCache] Bypassing cache for ${key}`);
+      return fetchFn();
+    }
+
     const fullKey = this.buildKey(key, options?.namespace);
-    // Convert seconds → milliseconds for cache-manager
     const ttlMs = options?.ttl ? options.ttl * 1000 : undefined;
 
-    // 🔥 FIX 5: Check if there's already a pending fetch for this key
+    // Stampede protection – check if a fetch is already pending
     if (this.pendingFetches.has(fullKey)) {
-      if (this.debug) {
-        this.logger.debug(`[Stampede] Reusing pending fetch for: ${fullKey}`);
-      }
+      if (this.debug) this.logger.debug(`[Stampede] Reusing pending fetch for: ${fullKey}`);
       return this.pendingFetches.get(fullKey) as Promise<T>;
     }
 
-    try {
-      const cached = await this.cacheManager.get<T>(fullKey);
-      if (cached !== undefined && cached !== null) {
-        if (this.debug) this.logger.debug(`Cache HIT: ${fullKey}`);
-        return cached;
-      }
+    // Create the fetch promise immediately (synchronously) to avoid race conditions
+    const fetchPromise = (async () => {
+      try {
+        // Check cache
+        const cached = await this.cacheManager.get<T>(fullKey);
+        // Negative caching: allow null values (only undefined means miss)
+        if (cached !== undefined) {
+          if (this.debug) this.logger.debug(`Cache HIT: ${fullKey}${cached === null ? ' (null)' : ''}`);
+          return cached;
+        }
 
-      if (this.debug) this.logger.debug(`Cache MISS: ${fullKey}`);
+        if (this.debug) this.logger.debug(`Cache MISS: ${fullKey}`);
 
-      // 🔥 FIX 5: Store the fetch promise to deduplicate concurrent requests
-      const fetchPromise = fetchFn().then(async (data) => {
+        // Separate error handling for fetchFn (to avoid mislabeling DB errors)
+        let data: T;
+        try {
+          data = await fetchFn();
+        } catch (fetchError: unknown) {
+          // DB/application error – log and rethrow (do NOT retry)
+          const errMsg = fetchError instanceof Error ? fetchError.message : 'Unknown error';
+          this.logger.error(`Fetch function failed for ${fullKey}: ${errMsg}`);
+          throw fetchError;
+        }
+
+        // Store in cache (allow null values)
         await this.cacheManager.set(fullKey, data, ttlMs);
-        if (this.debug) this.logger.debug(`Cache SET: ${fullKey}, TTL: ${ttlMs}ms`);
+        if (this.debug) this.logger.debug(`Cache SET: ${fullKey}, TTL: ${ttlMs}ms${data === null ? ' (null)' : ''}`);
         return data;
-      });
+      } catch (error: unknown) {
+        // Re-throw so the outer catch can handle fallback
+        throw error;
+      } finally {
+        // Clean up the pending promise when done
+        this.pendingFetches.delete(fullKey);
+      }
+    })();
 
-      this.pendingFetches.set(fullKey, fetchPromise);
+    // Store the promise immediately to prevent any race condition
+    this.pendingFetches.set(fullKey, fetchPromise);
 
-      const result = await fetchPromise;
-      this.pendingFetches.delete(fullKey);
-      return result;
+    try {
+      return await fetchPromise;
     } catch (error: unknown) {
-      // Clean up on error
+      // If Redis or fetch fails, we fallback to fetchFn directly
       this.pendingFetches.delete(fullKey);
-      const errMsg = error instanceof Error ? error.message : 'Unknown Redis error';
-      this.logger.warn(`Redis error, falling back to fetchFn: ${errMsg}`);
+      const errMsg = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.warn(`Cache/fallback error for ${fullKey}: ${errMsg} – falling back to direct fetch`);
       return fetchFn();
     }
   }
@@ -89,8 +108,8 @@ export class CacheService {
   /**
    * Stores a value in cache with optional TTL.
    * @param key - Cache key
-   * @param value - Value to store
-   * @param options - TTL in seconds (converted to ms internally)
+   * @param value - Value to store (can be null)
+   * @param options - TTL in seconds (converted to ms internally) and namespace
    */
   async set<T>(key: string, value: T, options?: CacheOptions): Promise<void> {
     const fullKey = this.buildKey(key, options?.namespace);
@@ -112,6 +131,9 @@ export class CacheService {
 
   /**
    * Retrieves a value from cache.
+   * @param key - Cache key
+   * @param namespace - Optional namespace
+   * @returns Cached value or undefined if not found
    */
   async get<T>(key: string, namespace?: string): Promise<T | undefined> {
     const fullKey = this.buildKey(key, namespace);
@@ -165,9 +187,7 @@ export class CacheService {
   }
 
   /**
-   * 🔥 FIX 6: Hashes a value to protect PII (GDPR compliance).
-   * Extended to 32 characters to significantly reduce collision risk.
-   *
+   * Hashes a value to protect PII (GDPR compliance) – 32 characters of SHA-256.
    * @param value - Sensitive value (e.g., userId, email)
    * @returns SHA‑256 hash (first 32 chars)
    */
@@ -175,6 +195,6 @@ export class CacheService {
     return createHash('sha256')
       .update(value + this.piiSalt)
       .digest('hex')
-      .substring(0, 32); // 🔥 Changed from 16 to 32 chars
+      .substring(0, 32);
   }
 }

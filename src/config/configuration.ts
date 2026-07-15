@@ -4,19 +4,18 @@ export default () => {
   const password = process.env.REDIS_PASSWORD || '';
   const tls = process.env.REDIS_TLS === 'true';
 
-  // Build the Redis connection string
-  let redisUrl = `redis://`;
+  // URL constructor handles passwords with special characters correctly
+  const redisUrl = new URL(`redis://${host}:${port}`);
   if (password) {
-    redisUrl += `:${password}@`;
+    redisUrl.password = password;
   }
-  redisUrl += `${host}:${port}`;
   if (tls) {
-    redisUrl += `?tls=true`;
+    redisUrl.searchParams.set('tls', 'true');
   }
 
   return {
     redis: {
-      url: redisUrl,
+      url: redisUrl.toString(),
       ttlSeconds: parseInt(process.env.CACHE_TTL_SECONDS ?? '60', 10),
       prefix: process.env.CACHE_PREFIX || 'beleqet:',
       debug: process.env.CACHE_DEBUG === 'true',

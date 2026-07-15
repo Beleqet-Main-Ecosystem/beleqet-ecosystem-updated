@@ -12,7 +12,8 @@ import { CacheService } from './cache.service';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         store: await redisStore({
-          url: configService.get<string>('redis.url'),
+          // Use DB 1 to avoid interfering with BullMQ (which uses DB 0)
+          url: configService.get<string>('redis.url') + '/1',
           ttl: (configService.get<number>('redis.ttlSeconds') ?? 60) * 1000,
           socket: { connectTimeout: 5000 },
         }),
