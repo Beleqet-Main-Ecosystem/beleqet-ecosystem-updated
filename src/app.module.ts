@@ -38,6 +38,7 @@ import { KycModule } from './modules/kyc/kyc.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      validate,
     }),
 
     //  Rate limiting 
