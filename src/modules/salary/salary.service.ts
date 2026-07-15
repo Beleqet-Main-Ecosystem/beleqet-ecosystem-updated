@@ -59,14 +59,14 @@ export class SalaryService {
     private readonly currencyService: CurrencyService,
   ) {}
 
-/**
-    * Predict salary for a given job position
-    * Uses machine learning-based calculations on historical job data
-    *
-    * @param dto - Salary prediction request with job details
-    * @returns Predicted salary range with confidence metrics
-    * @throws BadRequestException if input validation fails
-    */
+  /**
+   * Predict salary for a given job position
+   * Uses machine learning-based calculations on historical job data
+   *
+   * @param dto - Salary prediction request with job details
+   * @returns Predicted salary range with confidence metrics
+   * @throws BadRequestException if input validation fails
+   */
   async predictSalary(dto: CreateSalaryPredictionDto): Promise<SalaryPredictionResponseDto> {
     this.logger.debug(`Predicting salary for: ${dto.jobTitle} in ${dto.location}`);
 
@@ -116,6 +116,10 @@ export class SalaryService {
     // Calculate new prediction based on job market data (stored in ETB)
     const calculatedPrediction = await this.calculatePredictionFromJobData(dto);
 
+    // Archive previous predictions for history BEFORE saving the new one
+    // so we don't immediately archive the freshly created prediction.
+    await this.archivePreviousPredictions(dto);
+
     // Store prediction for future reference (always store in original currency)
     const savedPrediction = await this.prismaService.salaryPrediction.create({
       data: {
@@ -137,9 +141,6 @@ export class SalaryService {
       },
     });
 
-    // Archive previous predictions for history
-    await this.archivePreviousPredictions(dto);
-
     this.logger.log(`Salary prediction created: ${savedPrediction.id}`);
     const response = this.mapPredictionToResponse(savedPrediction);
 
@@ -155,15 +156,15 @@ export class SalaryService {
     return response;
   }
 
-/**
-    * Get salary statistics and trends for analytics dashboard
-    *
-    * @param location - Geographic location filter
-    * @param industry - Industry sector filter
-    * @param daysBack - Number of days to look back (default: 30)
-    * @param targetCurrency - Currency to return values in (default: ETB)
-    * @returns Aggregated salary statistics
-    */
+  /**
+   * Get salary statistics and trends for analytics dashboard
+   *
+   * @param location - Geographic location filter
+   * @param industry - Industry sector filter
+   * @param daysBack - Number of days to look back (default: 30)
+   * @param targetCurrency - Currency to return values in (default: ETB)
+   * @returns Aggregated salary statistics
+   */
   async getSalaryStatistics(
     location: string,
     industry?: string,
@@ -214,16 +215,8 @@ export class SalaryService {
 
     // Convert to target currency if needed
     if (targetCurrency !== 'ETB') {
-      averageSalary = this.currencyService.convert(
-        averageSalary,
-        'ETB',
-        targetCurrency,
-      );
-      medianSalary = this.currencyService.convert(
-        medianSalary,
-        'ETB',
-        targetCurrency,
-      );
+      averageSalary = this.currencyService.convert(averageSalary, 'ETB', targetCurrency);
+      medianSalary = this.currencyService.convert(medianSalary, 'ETB', targetCurrency);
     }
 
     return {
@@ -526,7 +519,16 @@ export class SalaryService {
     const olderAvg =
       olderHistory.reduce((sum, h) => sum + h.averageSalary, 0) / olderHistory.length;
 
+    // Safeguard against division-by-zero / non-finite numbers
+    if (!Number.isFinite(olderAvg) || olderAvg === 0) {
+      return 0;
+    }
+
     const growthRate = ((recentAvg - olderAvg) / olderAvg) * 100;
+    if (!Number.isFinite(growthRate)) {
+      return 0;
+    }
+
     return Math.round(growthRate * 100) / 100; // Round to 2 decimal places
   }
 

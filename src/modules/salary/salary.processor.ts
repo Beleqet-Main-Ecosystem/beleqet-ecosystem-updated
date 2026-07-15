@@ -47,7 +47,7 @@ export class SalaryProcessor {
         `[Job: update-predictions] Found ${stalePredictions.length} stale predictions`,
       );
 
-      // Archive to history before updating
+      // Archive to history BEFORE updating/recomputing
       for (const prediction of stalePredictions) {
         await this.prismaService.salaryHistory.create({
           data: {
@@ -68,20 +68,94 @@ export class SalaryProcessor {
         });
       }
 
-      // Update version for refreshed predictions
-      await this.prismaService.salaryPrediction.updateMany({
-        where: {
-          id: {
-            in: stalePredictions.map((p) => p.id),
+      // Recompute market values so predictions do NOT stagnate.
+      // This mirrors SalaryService.calculatePredictionFromJobData() logic.
+      const now = new Date();
+      for (const prediction of stalePredictions) {
+        const jobTitleLower = prediction.jobTitle.toLowerCase();
+
+        const baseSalaryMap: Record<string, number> = {
+          developer: 100000,
+          designer: 80000,
+          manager: 120000,
+          analyst: 90000,
+          engineer: 110000,
+          consultant: 130000,
+          intern: 40000,
+          junior: 60000,
+        };
+
+        let baseSalary = 80000;
+        for (const [key, salary] of Object.entries(baseSalaryMap)) {
+          if (jobTitleLower.includes(key)) {
+            baseSalary = salary;
+            break;
+          }
+        }
+
+        const locationMultipliers: Record<string, number> = {
+          'Addis Ababa': 1.3,
+          'Dire Dawa': 1.0,
+          Hawassa: 0.9,
+          Mekelle: 0.85,
+          Adama: 0.95,
+          'Bahir Dar': 0.9,
+        };
+
+        const industryMultipliers: Record<string, number> = {
+          Technology: 1.5,
+          Finance: 1.4,
+          Healthcare: 1.2,
+          Education: 0.9,
+          Retail: 0.7,
+          Manufacturing: 0.95,
+          Telecommunications: 1.3,
+          Consulting: 1.35,
+        };
+
+        const experienceLevelMultipliers: Record<string, number> = {
+          JUNIOR: 0.7,
+          MID: 1.0,
+          SENIOR: 1.4,
+          LEAD: 1.8,
+          PRINCIPAL: 2.2,
+        };
+
+        const locationMultiplier = locationMultipliers[prediction.location] || 1.0;
+        const industryMultiplier = industryMultipliers[prediction.industry || 'Technology'] || 1.0;
+        const experienceMultiplier =
+          experienceLevelMultipliers[prediction.experienceLevel || 'MID'] || 1.0;
+
+        const adjustedSalary =
+          baseSalary * locationMultiplier * industryMultiplier * experienceMultiplier;
+
+        const variance = adjustedSalary * 0.25;
+        const minSalary = Math.round(adjustedSalary - variance);
+        const maxSalary = Math.round(adjustedSalary + variance);
+        const averageSalary = Math.round(adjustedSalary);
+        const medianSalary = Math.round(adjustedSalary);
+
+        const dataPointsCount = Math.min(100, Math.floor(Math.random() * 80) + 20);
+        const confidenceScore = Math.min(0.95, 0.5 + dataPointsCount / 300);
+        const standardDeviation = Math.round(variance * 0.5);
+
+        await this.prismaService.salaryPrediction.update({
+          where: { id: prediction.id },
+          data: {
+            minSalary,
+            maxSalary,
+            averageSalary,
+            medianSalary,
+            dataPointsCount,
+            standardDeviation,
+            confidenceScore,
+            version: {
+              increment: 1,
+            },
+            lastUpdatedAt: now,
           },
-        },
-        data: {
-          version: {
-            increment: 1,
-          },
-          lastUpdatedAt: new Date(),
-        },
-      });
+        });
+      }
 
       this.logger.log(
         `[Job: update-predictions] Successfully updated ${stalePredictions.length} predictions`,
@@ -332,7 +406,7 @@ export class SalaryProcessor {
     );
 
     return Object.entries(titleCounts)
-      .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+      .sort((a, b) => (b[1] as number) - (a[1] as number))
       .slice(0, n)
       .map(([title]) => title);
   }
@@ -371,7 +445,16 @@ export class SalaryProcessor {
     const recentAvg = recent.reduce((sum, h) => sum + h.averageSalary, 0) / recent.length;
     const olderAvg = older.reduce((sum, h) => sum + h.averageSalary, 0) / older.length;
 
+    // Safeguard against division-by-zero / non-finite numbers
+    if (!Number.isFinite(olderAvg) || olderAvg === 0) {
+      return 0;
+    }
+
     const growthRate = ((recentAvg - olderAvg) / olderAvg) * 100;
+    if (!Number.isFinite(growthRate)) {
+      return 0;
+    }
+
     return Math.round(growthRate * 100) / 100;
   }
 }

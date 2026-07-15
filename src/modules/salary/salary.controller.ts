@@ -8,7 +8,9 @@ import {
   HttpCode,
   Param,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
+
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SalaryService } from './salary.service';
@@ -288,7 +290,13 @@ export class SalaryController {
     @Query('limit') limit?: string,
   ): Promise<SalaryStatisticsDto[]> {
     this.logger.log(`[GET /history] Fetching history for: ${jobTitle} in ${location}`);
-    const limitNum = Math.min(60, limit ? parseInt(limit, 10) : 12);
+    const limitNumRaw = limit ? parseInt(limit, 10) : 12;
+
+    if (!Number.isFinite(limitNumRaw)) {
+      throw new BadRequestException('Query param "limit" must be a valid number');
+    }
+
+    const limitNum = Math.min(60, limitNumRaw);
     return this.salaryService.getSalaryHistory(jobTitle, location, limitNum);
   }
 
