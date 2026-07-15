@@ -69,7 +69,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET=whsec_dummy
           PAYPAL_CLIENT_ID=dummy_client_id
           PAYPAL_CLIENT_SECRET=dummy_client_secret
-          OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWg==
+          OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=
           APP_BASE_URL=http://localhost:4000
           SESSION_SECRET=ci_session_secret_dummy_value
           GOOGLE_CLIENT_ID=dummy_google_client_id
@@ -146,7 +146,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET=whsec_dummy
           PAYPAL_CLIENT_ID=dummy_client_id
           PAYPAL_CLIENT_SECRET=dummy_client_secret
-          OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWg==
+          OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=
           APP_BASE_URL=http://localhost:4000
           SESSION_SECRET=ci_session_secret_dummy_value
           GOOGLE_CLIENT_ID=dummy_google_client_id
