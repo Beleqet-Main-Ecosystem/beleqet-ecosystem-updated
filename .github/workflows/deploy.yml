@@ -1,0 +1,27 @@
+name: Auto Deploy to Staging
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: staging.beleqet.com
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /var/www/beleqet-staging
+            git pull origin main
