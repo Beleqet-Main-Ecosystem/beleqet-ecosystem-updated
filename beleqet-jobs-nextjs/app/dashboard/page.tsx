@@ -40,11 +40,10 @@ import {
   Bookmark,
   Building2,
   Plus,
-  TrendingUp,
   User as UserIcon,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { useTranslation, formatCurrency, SupportedCurrency } from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 import { authenticatedFetch } from "@/lib/auth";
 import { fetchJobs } from "@/lib/api";
 
@@ -200,14 +199,6 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  /** Active currency derived from user locale (ETB for Amharic, USD for English). */
-  const currency: SupportedCurrency = locale === "am" ? "ETB" : "USD";
-  /** Format a number as currency using the active locale + currency. */
-  const fmtCurrency = useCallback(
-    (amount: number) => formatCurrency(amount, currency, locale),
-    [currency, locale],
-  );
 
   /* Ref to track whether the component is still mounted. */
   const mountedRef = useRef(true);
@@ -480,7 +471,6 @@ export default function DashboardPage() {
                 value={card.value}
                 icon={card.icon}
                 formattedValue={card.formattedValue}
-                currencyValue={card.currencyValue}
               />
             </Suspense>
           ))}

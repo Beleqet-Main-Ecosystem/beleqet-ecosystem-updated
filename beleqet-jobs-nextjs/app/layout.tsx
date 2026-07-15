@@ -18,12 +18,6 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
-import ChatWidget from "@/components/ChatWidget";
-import { WebSiteSchema } from "@/lib/seo/schemas";
-import { getSeoConfig } from "@/lib/seo/config";
-import { homePageMetadata } from "@/lib/seo/generate-metadata";
-
-export const metadata: Metadata = homePageMetadata();
 import { I18nProvider } from "@/lib/i18n";
 
 /* Lazy-loaded modules that are not critical for first paint. */
@@ -71,14 +65,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { themeColor, defaultLocale } = getSeoConfig();
-
   return (
-    <html lang={defaultLocale}>
-      <head>
-        <meta name="theme-color" content={themeColor} />
-        <meta name="color-scheme" content="light" />
-      </head>
+    <html lang="en">
       <body className="font-sans antialiased">
         <I18nProvider>
           <AuthProvider>

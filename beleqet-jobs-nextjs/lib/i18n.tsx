@@ -81,7 +81,7 @@ export function formatCurrency(
     return new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
-      minimumFractionDigits: currency === "ETB" ? 2 : 2,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
@@ -167,67 +167,70 @@ const en: TranslationDictionary = {
 
 /**
  * Translation dictionary for **Amharic** (Ethiopia's official language).
+ * Corrected & decoded for readability — values are stored as native
+ * Ethiopic characters rather than `\uXXXX` escape sequences so that
+ * translators can review and edit them directly.
  */
 const am: TranslationDictionary = {
   /* Navigation */
-  "nav.findJobs": "\u12e0\u1333\u1348\u12eb\u1275 \u12f0\u1235\u1293",
-  "nav.employers": "\u1230\u1295\u120d\u12ad\u130b\u12ce \u12c8\u1208\u122d",
-  "nav.cvMaker": "\u12e8 CV \u1325\u130d\u1333",
-  "nav.pricing": "\u12e0\u12f5\u120d",
-  "nav.about": "\u12a0\u1295\u1270\u12ce\u1295",
-  "nav.dashboard": "\u12e0\u12ac\u130b\u12f5 \u12b8\u1303",
-  "nav.profile": "\u1348\u1208\u1320\u1235",
-  "nav.applications": "\u12e0\u1333\u1350\u121d\u1235\u1270\u12ce\u1295",
-  "nav.employer": "\u1230\u1295\u120d\u12ad\u130b\u12ce",
-  "nav.admin": "\u12a0\u12f2\u1275\u130b\u12ce\u1295",
-  "nav.notifications": "\u12a0\u1290\u12ce\u1275\u12ed",
-  "nav.savedJobs": "\u12eb\u12ed\u1232\u12c8\u1275 \u12f0\u1235\u1293",
+  "nav.findJobs": "ስራዎችን ፈልግ",
+  "nav.employers": "ለአሰሪዎች",
+  "nav.cvMaker": "ሲቪ አዘጋጅ",
+  "nav.pricing": "ዋጋዎች",
+  "nav.about": "ስለ እኛ",
+  "nav.dashboard": "ዳሽቦርድ",
+  "nav.profile": "የግል መገለጫ",
+  "nav.applications": "ማመልከቻዎች",
+  "nav.employer": "አሰሪ",
+  "nav.admin": "አስተዳዳሪ",
+  "nav.notifications": "ማሳወቂያዎች",
+  "nav.savedJobs": "የተቀመጡ ስራዎች",
 
   /* Dashboard */
-  "dashboard.greeting": "\u12e5\u1293 \u1293\u12a0\u12f0\u121b\u127d",
-  "dashboard.careerDashboard": "\u12e0\u1348\u1208\u12cd\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
-  "dashboard.hiringWorkspace": "\u12e0\u134b\u1308\u121d\u127d \u1235\u122b\u1228",
-  "dashboard.adminPanel": "\u12a0\u12f2\u1275\u130b\u12ce\u1295 \u1218\u122d\u120d",
-  "dashboard.recentActivity": "\u12a5\u1295\u121b \u1270\u1325\u1328\u130d\u12ee",
-  "dashboard.quickActions": "\u1293\u12ce\u1291 \u1235\u1343\u1265\u121d\u1270\u12ce\u1295",
-  "dashboard.noActivity": "\u12a5\u1295\u121b \u1270\u1325\u1328\u130d\u12ee \u12a0\u121d\u1295\u1218\u12cd\u12a0\u12cd \u12a0\u1295\u120b\u120d\u121d\u1295\u1362",
-  "dashboard.viewAll": "\u12c8\u122d\u12ab\u1295 \u134b\u1235",
-  "dashboard.employerBadge": "\u12e0\u134b\u1308\u121d\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
-  "dashboard.careerBadge": "\u12e0\u1348\u1208\u12cd\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
+  "dashboard.greeting": "እንኳን ደህና መጡ",
+  "dashboard.careerDashboard": "የስራ ዳሽቦርድ",
+  "dashboard.hiringWorkspace": "የመቀጠሪያ የስራ ቦታ",
+  "dashboard.adminPanel": "የአስተዳዳሪ ፓነል",
+  "dashboard.recentActivity": "የቅርብ ጊዜ እንቅስቃሴዎች",
+  "dashboard.quickActions": "ፈጣን ድርጊቶች",
+  "dashboard.noActivity": "ምንም የቅርብ ጊዜ እንቅስቃሴ የለም።",
+  "dashboard.viewAll": "ሁሉንም እይ",
+  "dashboard.employerBadge": "የአሰሪ ዳሽቦርድ",
+  "dashboard.careerBadge": "የስራ ፈላጊ ዳሽቦርድ",
 
   /* Stats */
-  "stat.totalJobs": "\u12a1\u1295\u122d \u12f0\u1235\u1293",
-  "stat.published": "\u12cb\u12a3\u12eb\u121d\u1295",
-  "stat.applications": "\u1333\u1350\u121d\u1235\u1270\u12ce\u1295",
-  "stat.saved": "\u12eb\u12ed\u1232\u12c8\u1275",
-  "stat.interviews": "\u12a0\u1290\u134c\u1235\u12eb",
-  "stat.offers": "\u12a0\u1348\u122b\u1235\u1270\u12ce\u1295",
+  "stat.totalJobs": "አጠቃላይ ስራዎች",
+  "stat.published": "የተለጠፉ",
+  "stat.applications": "የገቡ ማመልከቻዎች",
+  "stat.saved": "የተቀመጡ",
+  "stat.interviews": "ቃለ-መጠይቆች",
+  "stat.offers": "የቀረቡ የስራ እድሎች",
 
   /* Quick Actions */
-  "action.findJobs": "\u12f0\u1235\u1293 \u134b\u1235",
-  "action.myApplications": "\u12e0\u1290\u1295 \u1333\u1350\u121d\u1235\u1270\u12ce\u1295",
-  "action.postJob": "\u12f0\u1235 \u122b\u12cc\u12c8",
-  "action.hiringDashboard": "\u12e0\u134b\u1308\u121d\u127d \u12e1\u12ac\u130b\u12f5",
-  "action.findGigs": "\u12f0\u1235 \u134b\u1235",
-  "action.myBids": "\u12e0\u1290\u1295 \u12a8\u12a1\u12ce\u1295",
-  "action.browseJobs": "\u12f0\u1235\u1293 \u12a0\u12ad\u1263\u12c8",
-  "action.editProfile": "\u1348\u1208\u1320\u1235 \u12a0\u1260\u1295\u12cb\u122d",
+  "action.findJobs": "ስራዎችን ፈልግ",
+  "action.myApplications": "የእኔ ማመልከቻዎች",
+  "action.postJob": "ስራ ለጥፍ",
+  "action.hiringDashboard": "የቅጥር ዳሽቦርድ",
+  "action.findGigs": "ጊጎችን ፈልግ",
+  "action.myBids": "የእኔ ጨረታዎች",
+  "action.browseJobs": "ስራዎችን አስስ",
+  "action.editProfile": "መገለጫ አሻሽል",
 
   /* GDPR */
-  "gdpr.title": "\u12e0\u1218\u130d\u120b\u12a0\u1235\u1295 \u1218\u1208\u1235\u1270\u12ce\u1295",
+  "gdpr.title": "የግል ደህንነት ምርጫዎች",
   "gdpr.description":
-    "\u12e0\u1343\u130d\u1275\u1295 \u1218\u122d\u120d\u1295\u1295 \u12a5\u1295\u122d \u12b8\u122d\u1308\u1295\u12cc\u12cd \u12a0\u12cb\u1308\u122d\u1295\u1295 \u12a8\u134c\u1295\u12aa\u129b\u1275\u12ed\u1295 \u12a8\u12e8\u1355\u12a0\u12ad \u12cb\u1308\u122b\u12a0\u123b\u127d \u12eb\u12f0\u1235\u122b\u12a0\u123b\u127d\u1295\u1295 \u1218\u122b\u12c8\u12a5\u121b\u1270\u12ce\u1295 \u1218\u1208\u1293\u121d\u1295 \u12a0\u12f0\u1265\u121b\u122d \u12a0\u1293\u12a5\u120b\u120d\u1295 \u12a5\u1293\u12a0\u12f0\u1260\u12bd\u1295 \u12a5\u1295\u1270\u12ee\u122a\u120b\u12a0\u123b\u127d \u12a0\u12ab\u1293\u1275\u1366",
-  "gdpr.acceptAll": "\u12c8\u122d\u12ab\u1295\u1295 \u1235\u1235\u1293\u122d",
-  "gdpr.rejectOptional": "\u12a0\u1348\u1218\u120b\u12a0\u1235\u1295\u1295 \u1235\u12ce\u12eb",
-  "gdpr.customize": "\u12a0\u1260\u1295\u12cb\u122d",
-  "gdpr.saved": "\u12e0\u1218\u1208\u1235\u1270\u12ce\u1295\u1295 \u1343\u121d\u12ca\u122b\u12c8\u1366",
+    "ይህንን ፕላትፎርም ለማስኬድ አስፈላጊ የሆኑ ኩኪዎችን እና የተጠቃሚ ተሞክሮዎን ለማሻሻል አማራጭ የትንታኔ ኩኪዎችን እንጠቀማለን። ምርጫዎችዎን በማንኛውም ጊዜ መለወጥ ይችላሉ።",
+  "gdpr.acceptAll": "ሁሉንም ፍቀድ",
+  "gdpr.rejectOptional": "አማራጮቹን እምቢ",
+  "gdpr.customize": "አብጅ",
+  "gdpr.saved": "ምርጫዎችዎ በተሳካ ሁኔታ ተቀምጠዋል።",
 
   /* Common */
-  "common.loading": "\u12eb\u1328\u1291\u2026",
-  "common.error": "\u12a5\u1235\u121b\u12ce \u1330\u12a5\u12c8\u1263\u1275\u1295\u1295 \u12a0\u1308\u1228\u12cc\u12cd",
-  "common.retry": "\u12a0\u1290\u12ab\u1235 \u1235\u12f3\u12ad",
-  "common.noData": "\u12a0\u1328\u12cb\u12cd \u12a0\u1295\u120b\u120d\u121d\u1295 \u12a0\u1218\u1295\u1208\u1263\u12a0\u123b\u127d \u12a0\u1295\u120b\u120d\u121d\u1295 \u12a0\u121d\u1295\u1218\u12cd\u12a0\u12cd\u1366",
-  "common.signIn": "\u12e0\u12ac\u130b\u12f5\u12e9 \u12b8\u1303\u1295 \u12a5\u1295\u1260\u121b\u122d \u12f0\u1235\u122b\u120d\u1295\u1295 \u12cb\u1235\u1293\u122d\u1295\u1366",
+  "common.loading": "በመጫን ላይ…",
+  "common.error": "የሆነ ችግር ተከስቷል።",
+  "common.retry": "እንደገና ሞክር",
+  "common.noData": "ምንም መረጃ የለም።",
+  "common.signIn": "ዳሽቦርድዎን ለማየት እባክዎ ይግቡ።",
 };
 
 /**
