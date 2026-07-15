@@ -30,8 +30,9 @@ describe('AnomalySensor Integration (e2e)', () => {
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         EventEmitterModule.forRoot(),
+        // Fixed: Migrated 'redis' option to 'connection' for @nestjs/bullmq compatibility
         BullModule.forRoot({
-          redis: { host: 'localhost', port: 6379 }
+          connection: { host: 'localhost', port: 6379 }
         }),
         BullModule.registerQueue({ name: 'notifications' }),
         AnomalySensorModule,

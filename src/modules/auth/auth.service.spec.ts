@@ -9,7 +9,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
+// Mock bcryptjs
 jest.mock('bcryptjs');
+
+// Fixed: Mock 'otplib' to prevent Jest from loading its underlying ES Module dependency (@scure/base)
+jest.mock('otplib', () => ({
+  generateSecret: jest.fn().mockReturnValue('mocked-secret-key'),
+  generateURI: jest.fn().mockReturnValue('otpauth://totp/mocked-uri'),
+  verify: jest.fn().mockReturnValue(true),
+}));
 
 describe('AuthService', () => {
   let svc: AuthService;
