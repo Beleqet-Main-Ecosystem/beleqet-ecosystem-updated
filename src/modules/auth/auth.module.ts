@@ -1,8 +1,11 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
+import { PassportModule } from '@nestjs/passport';
+import { BullModule } from '@nestjs/bull';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { QueuesModule } from '../queues/queues.module';
+import { QUEUE_NAMES } from '../queues/queues.constants';
 import { AuthService } from './auth.service';
 import { AccountLinkingService, ACCOUNT_REPOSITORY } from './services/account-linking.service';
 import { TokenEncryptionService } from './services/token-encryption.service';
@@ -18,6 +21,7 @@ import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './auth.controller';
 import { AuthExceptionFilter } from './filters/auth-exception.filter';
+import { TwoFactorModule } from '../two-factor/two-factor.module';
 
 /**
  * Injection token for the fully-loaded, validated {@link AuthEnvConfig}.
@@ -44,12 +48,22 @@ const authEnvConfig = loadAuthEnvConfig();
  * same `RefreshToken` table via the same code path, avoiding the
  * raw-vs-hashed-token format conflict a separate OAuth-only token
  * service would have introduced.
+ *
+ * NOTE: JwtModule is registered synchronously (JwtModule.register), not
+ * via JwtModule.registerAsync with an injected ConfigService — that
+ * previously caused a circular DI issue (see authEnvConfig comment
+ * above). Every JwtService.sign()/verify() call site in AuthService
+ * passes its own explicit secret and expiresIn, so nothing depends on
+ * this module-level config beyond needing a valid default at startup.
  */
 @Module({
   imports: [
     PrismaModule,
     QueuesModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({ secret: authEnvConfig.jwtAccessSecret }),
+    BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    forwardRef(() => TwoFactorModule),
   ],
   controllers: [AuthController],
   providers: [
@@ -91,6 +105,12 @@ const authEnvConfig = loadAuthEnvConfig();
       useClass: AuthExceptionFilter,
     },
   ],
-  exports: [AuthService, AccountLinkingService, TokenEncryptionService],
+  exports: [
+    AuthService,
+    AccountLinkingService,
+    TokenEncryptionService,
+    JwtModule,
+    forwardRef(() => TwoFactorModule),
+  ],
 })
 export class AuthModule {}

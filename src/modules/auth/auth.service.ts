@@ -3,7 +3,6 @@ import {
   UnauthorizedException,
   ConflictException,
   Logger,
-  NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -11,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RegisterDto } from './dto/register.dto';
+import { RegisterDto, ChangePasswordDto, ChangeEmailDto } from './dto/register.dto';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
@@ -22,6 +21,7 @@ import {
   logoutAlertEmail,
   welcomeEmail,
 } from '../notifications/email-templates';
+import { TwoFactorService } from '../two-factor/two-factor.service';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +31,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly twoFactorService: TwoFactorService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
   ) {}
 
@@ -85,14 +86,32 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
 
+    // Must run BEFORE any hash-migration logic below: passwordHash is nullable
+    // for OAuth-only users, and the WordPress-hash normalization calls
+    // .startsWith() directly on it, which would throw on null otherwise.
     if (user.passwordHash === null) {
       throw new UnauthorizedException(
         'This account uses social login. Try signing in with Google or LinkedIn instead.',
       );
     }
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
+    let hashToCompare = user.passwordHash;
+    // WordPress migration support: normalize '$wp$2y$' to standard bcrypt '$2y$'
+    if (hashToCompare.startsWith('$wp$')) {
+      hashToCompare = hashToCompare.replace('$wp$', '$');
+    }
+
+    const valid = await bcrypt.compare(password, hashToCompare);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+    // Re-hash to standard format automatically on successful login so we migrate away from $wp$ over time
+    if (hashToCompare !== user.passwordHash) {
+      const newHash = await bcrypt.hash(password, 12);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash },
+      });
+    }
 
     return user;
   }
@@ -101,6 +120,29 @@ export class AuthService {
     user: { id: string; email: string; firstName: string; lastName: string; role: string },
     userAgent?: string,
   ) {
+    const twoFactorRecord = await this.prisma.userTwoFactor.findUnique({
+      where: { userId: user.id, enabled: true },
+      select: { id: true },
+    });
+
+    if (twoFactorRecord) {
+      const { tempToken, factorId } = await this.twoFactorService.generateTempToken(user.id);
+      loginAlertEmail(user.firstName, userAgent)
+        .then((email) =>
+          this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+            to: user.email,
+            subject: 'New login detected on your Beleqet account',
+            ...email,
+          }),
+        )
+        .catch((err) =>
+          this.logger.error(
+            `Failed to enqueue login alert email for ${user.email}: ${err.message}`,
+          ),
+        );
+      return { requires2fa: true, tempToken, factorId };
+    }
+
     loginAlertEmail(user.firstName, userAgent)
       .then((email) =>
         this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
@@ -242,6 +284,126 @@ export class AuthService {
       where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' },
     });
     return { success: true, message: 'Password reset successfully' };
+  }
+
+  private async requireStepUpOrThrow(userId: string, stepUpToken?: string): Promise<void> {
+    const twoFactorRecord = await this.prisma.userTwoFactor.findUnique({
+      where: { userId, enabled: true },
+    });
+    if (!twoFactorRecord) return;
+
+    if (!stepUpToken) {
+      const tempSecret = this.config.get<string>('TOTP_TEMP_SECRET')!;
+      const challengeToken = this.jwt.sign(
+        { sub: userId, purpose: '2fa_step_up_challenge', iat: Math.floor(Date.now() / 1000) },
+        { secret: tempSecret, expiresIn: '5m' },
+      );
+      throw new UnauthorizedException({
+        requiresStepUp: true,
+        message: 'Step-up verification required. Please re-verify your identity.',
+        stepUpToken: challengeToken,
+      });
+    }
+
+    const tempSecret = this.config.get<string>('TOTP_TEMP_SECRET')!;
+    let payload: Record<string, any>;
+    try {
+      payload = this.jwt.verify(stepUpToken, { secret: tempSecret }) as any;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired step-up token');
+    }
+
+    if (payload.purpose !== '2fa_step_up' || !payload['2fa_verified_at']) {
+      throw new UnauthorizedException('Invalid step-up token purpose');
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (now - payload['2fa_verified_at'] > 15 * 60) {
+      const challengeToken = this.jwt.sign(
+        { sub: userId, purpose: '2fa_step_up_challenge', iat: now },
+        { secret: tempSecret, expiresIn: '5m' },
+      );
+      throw new UnauthorizedException({
+        requiresStepUp: true,
+        message: 'Step-up verification has expired. Please re-verify.',
+        stepUpToken: challengeToken,
+      });
+    }
+
+    if (payload.sub !== userId) {
+      throw new UnauthorizedException('Step-up token does not match current user');
+    }
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto, stepUpToken?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    // OAuth-only users have no password to compare against — fail gracefully
+    // instead of passing null into bcrypt.compare.
+    if (user.passwordHash === null) {
+      throw new BadRequestException(
+        'This account uses social login and has no password to change.',
+      );
+    }
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) throw new BadRequestException('Current password is incorrect');
+
+    await this.requireStepUpOrThrow(userId, stepUpToken);
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    // Invalidate all sessions except the current one
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+
+    this.logger.log(`Password changed for user ${userId}`);
+    return { success: true, message: 'Password changed successfully' };
+  }
+
+  async changeEmail(userId: string, dto: ChangeEmailDto, stepUpToken?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.newEmail.toLowerCase().trim() },
+    });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Email is already in use');
+    }
+
+    // OAuth-only users have no password to verify this change with — fail
+    // gracefully instead of passing null into bcrypt.compare.
+    if (user.passwordHash === null) {
+      throw new BadRequestException(
+        'This account uses social login and has no password to verify this change.',
+      );
+    }
+
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!valid) throw new BadRequestException('Password is incorrect');
+
+    await this.requireStepUpOrThrow(userId, stepUpToken);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { email: dto.newEmail.toLowerCase().trim(), emailVerified: false },
+    });
+
+    // Send verification to new email
+    await this.sendVerificationEmail(userId).catch((err) =>
+      this.logger.error(`Failed to send verification email: ${err.message}`),
+    );
+
+    this.logger.log(`Email changed for user ${userId} to ${dto.newEmail}`);
+    return {
+      success: true,
+      message: 'Email changed successfully. Verification sent to new address.',
+    };
   }
 
   /**

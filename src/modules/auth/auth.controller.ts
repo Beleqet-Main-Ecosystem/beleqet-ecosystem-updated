@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Inject,
@@ -22,8 +23,11 @@ import {
   VerifyEmailDto,
   ForgotPasswordDto,
   ResetPasswordDto,
+  ChangePasswordDto,
+  ChangeEmailDto,
 } from './dto/register.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { LinkedInAuthGuard } from './guards/linkedin-auth.guard';
 import { GoogleLinkAuthGuard } from './guards/google-link-auth.guard';
@@ -117,6 +121,32 @@ export class AuthController {
   @ApiOperation({ summary: 'Reset password via token' })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change password (requires step-up if 2FA is enabled)' })
+  changePassword(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ChangePasswordDto,
+    @Headers('x-step-up-token') stepUpToken?: string,
+  ) {
+    return this.authService.changePassword(user.userId, dto, stepUpToken);
+  }
+
+  @Post('change-email')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change email (requires step-up if 2FA is enabled)' })
+  changeEmail(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ChangeEmailDto,
+    @Headers('x-step-up-token') stepUpToken?: string,
+  ) {
+    return this.authService.changeEmail(user.userId, dto, stepUpToken);
   }
 
   // ─── Social Logins (Google + LinkedIn OAuth/OIDC) ─────────────────────────

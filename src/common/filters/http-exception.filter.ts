@@ -31,11 +31,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
-    res.status(status).json({
+    const responseBody: Record<string, any> = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: req.url,
-      message: typeof message === 'string' ? message : (message as { message: string }).message,
-    });
+    };
+
+    if (typeof message === 'string') {
+      responseBody.message = message;
+    } else if (typeof message === 'object') {
+      responseBody.message = (message as any).message ?? 'Internal server error';
+      for (const key of Object.keys(message as object)) {
+        if (key !== 'message' && key !== 'statusCode') {
+          responseBody[key] = (message as any)[key];
+        }
+      }
+    }
+
+    res.status(status).json(responseBody);
   }
 }

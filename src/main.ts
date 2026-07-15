@@ -1,34 +1,54 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, ClassSerializerInterceptor, Logger } from '@nestjs/common';
+import { HttpAdapterHost } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { ErrorRecurrenceTrackerService } from './common/filters/error-recurrence-tracker.service';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import session = require('express-session');
+import { RedisStore } from 'connect-redis';
+import type Redis from 'ioredis';
+import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
+import { REDIS_CLIENT } from './modules/redis/redis.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
+
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('PORT', 4000);
+  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   const sessionSecret = process.env.SESSION_SECRET;
   if (!sessionSecret) {
     throw new Error('Missing required environment variable "SESSION_SECRET".');
   }
+
+  // Reuse the app-wide shared client from RedisModule (@Global, exported as REDIS_CLIENT)
+  // rather than opening a second, separate Redis connection just for sessions.
+  const sessionRedisClient = app.get<Redis>(REDIS_CLIENT);
+
   app.use(
     session({
+      store: new RedisStore({ client: sessionRedisClient, prefix: 'beleqet:sess:' }),
       secret: sessionSecret,
       resave: false,
       saveUninitialized: false,
-      cookie: { secure: false }, // set true once you're on HTTPS in production
+      cookie: {
+        secure: nodeEnv === 'production', // HTTPS-only in production, allows local HTTP in dev
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      },
     }),
   );
-  const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 4000);
-  const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
   const adminEmail = configService.get<string>('ADMIN_EMAIL')?.toLowerCase().trim();
   const adminPassword = configService.get<string>('ADMIN_PASSWORD');
@@ -86,7 +106,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
   // ── Exception filter ──────────────────────────────────────────────────────
-  app.useGlobalFilters(new HttpExceptionFilter());
+  const httpAdapterHost = app.get(HttpAdapterHost);
+  const recurrenceTracker = new ErrorRecurrenceTrackerService();
+  app.useGlobalFilters(new AllExceptionsFilter(httpAdapterHost, recurrenceTracker));
 
   // ── Logging interceptor ───────────────────────────────────────────────────
   app.useGlobalInterceptors(new LoggingInterceptor());
@@ -109,6 +131,7 @@ async function bootstrap() {
       .addTag('wallet', 'Freelancer wallet & withdrawals')
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
+      .addTag('db-index-master', 'DB Index Master — query analysis & index health (admin only)')
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);
