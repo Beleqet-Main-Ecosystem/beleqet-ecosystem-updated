@@ -1,5 +1,9 @@
 import {
-  Injectable, UnauthorizedException, ConflictException, Logger, BadRequestException
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -49,26 +53,27 @@ export class AuthService {
 
     // Fire-and-forget: email queue failures must NOT crash registration
     this.sendVerificationEmail(user.id).catch((err) =>
-      this.logger.error(`Failed to enqueue verification email for ${user.email}: ${err.message}`)
+      this.logger.error(`Failed to enqueue verification email for ${user.email}: ${err.message}`),
     );
 
     // Send personalised welcome email
     const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
-    const dashboardUrl = user.role === 'EMPLOYER'
-      ? `${frontendUrl}/employer`
-      : user.role === 'FREELANCER'
-      ? `${frontendUrl}/profile`
-      : `${frontendUrl}/jobs`;
+    const dashboardUrl =
+      user.role === 'EMPLOYER'
+        ? `${frontendUrl}/employer`
+        : user.role === 'FREELANCER'
+          ? `${frontendUrl}/profile`
+          : `${frontendUrl}/jobs`;
     welcomeEmail(user.firstName, user.role, dashboardUrl)
       .then((email) =>
         this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
           to: user.email,
           subject: `Welcome to Beleqet, ${user.firstName}!`,
           ...email,
-        })
+        }),
       )
       .catch((err) =>
-        this.logger.error(`Failed to enqueue welcome email for ${user.email}: ${err.message}`)
+        this.logger.error(`Failed to enqueue welcome email for ${user.email}: ${err.message}`),
       );
 
     return this.issueTokens(user);
@@ -80,6 +85,15 @@ export class AuthService {
     if (!user || !user.isActive) {
       this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Must run BEFORE any hash-migration logic below: passwordHash is nullable
+    // for OAuth-only users, and the WordPress-hash normalization calls
+    // .startsWith() directly on it, which would throw on null otherwise.
+    if (user.passwordHash === null) {
+      throw new UnauthorizedException(
+        'This account uses social login. Try signing in with Google or LinkedIn instead.',
+      );
     }
 
     let hashToCompare = user.passwordHash;
@@ -99,7 +113,7 @@ export class AuthService {
       const newHash = await bcrypt.hash(password, 12);
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { passwordHash: newHash }
+        data: { passwordHash: newHash },
       });
     }
 
@@ -107,7 +121,10 @@ export class AuthService {
     return user;
   }
 
-  async login(user: { id: string; email: string; firstName: string; lastName: string; role: string }, userAgent?: string) {
+  async login(
+    user: { id: string; email: string; firstName: string; lastName: string; role: string },
+    userAgent?: string,
+  ) {
     const twoFactorRecord = await this.prisma.userTwoFactor.findUnique({
       where: { userId: user.id, enabled: true },
       select: { id: true },
@@ -121,10 +138,12 @@ export class AuthService {
             to: user.email,
             subject: 'New login detected on your Beleqet account',
             ...email,
-          })
+          }),
         )
         .catch((err) =>
-          this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`)
+          this.logger.error(
+            `Failed to enqueue login alert email for ${user.email}: ${err.message}`,
+          ),
         );
       return { requires2fa: true, tempToken, factorId };
     }
@@ -135,10 +154,10 @@ export class AuthService {
           to: user.email,
           subject: 'New login detected on your Beleqet account',
           ...email,
-        })
+        }),
       )
       .catch((err) =>
-        this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`)
+        this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`),
       );
     return this.issueTokens(user);
   }
@@ -159,7 +178,10 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true, firstName: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    });
     await this.prisma.refreshToken.deleteMany({ where: { userId } });
     if (user) {
       logoutAlertEmail(user.firstName)
@@ -168,10 +190,12 @@ export class AuthService {
             to: user.email,
             subject: 'You have logged out from Beleqet',
             ...email,
-          })
+          }),
         )
         .catch((err) =>
-          this.logger.error(`Failed to enqueue logout alert email for ${user.email}: ${err.message}`)
+          this.logger.error(
+            `Failed to enqueue logout alert email for ${user.email}: ${err.message}`,
+          ),
         );
     }
   }
@@ -187,7 +211,7 @@ export class AuthService {
         token,
         type: 'EMAIL_VERIFICATION',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      }
+      },
     });
 
     const verifyUrl = `${this.config.get('FRONTEND_URL')}/auth/verify-email?token=${token}`;
@@ -202,13 +226,17 @@ export class AuthService {
 
   async verifyEmail(token: string) {
     const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
-    if (!verificationToken || verificationToken.type !== 'EMAIL_VERIFICATION' || verificationToken.expiresAt < new Date()) {
+    if (
+      !verificationToken ||
+      verificationToken.type !== 'EMAIL_VERIFICATION' ||
+      verificationToken.expiresAt < new Date()
+    ) {
       throw new BadRequestException('Invalid or expired verification token');
     }
 
     await this.prisma.user.update({
       where: { id: verificationToken.userId },
-      data: { emailVerified: true }
+      data: { emailVerified: true },
     });
 
     await this.prisma.verificationToken.delete({ where: { id: verificationToken.id } });
@@ -226,7 +254,7 @@ export class AuthService {
         token,
         type: 'PASSWORD_RESET',
         expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
-      }
+      },
     });
 
     const resetUrl = `${this.config.get('FRONTEND_URL')}/auth/reset-password?token=${token}`;
@@ -243,14 +271,18 @@ export class AuthService {
 
   async resetPassword(token: string, newPassword: string) {
     const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
-    if (!verificationToken || verificationToken.type !== 'PASSWORD_RESET' || verificationToken.expiresAt < new Date()) {
+    if (
+      !verificationToken ||
+      verificationToken.type !== 'PASSWORD_RESET' ||
+      verificationToken.expiresAt < new Date()
+    ) {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await this.prisma.user.update({
       where: { id: verificationToken.userId },
-      data: { passwordHash }
+      data: { passwordHash },
     });
 
     await this.prisma.refreshToken.deleteMany({ where: { userId: verificationToken.userId } });
@@ -311,6 +343,14 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
 
+    // OAuth-only users have no password to compare against — fail gracefully
+    // instead of passing null into bcrypt.compare.
+    if (user.passwordHash === null) {
+      throw new BadRequestException(
+        'This account uses social login and has no password to change.',
+      );
+    }
+
     const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
     if (!valid) throw new BadRequestException('Current password is incorrect');
 
@@ -333,9 +373,19 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
 
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.newEmail.toLowerCase().trim() } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.newEmail.toLowerCase().trim() },
+    });
     if (existing && existing.id !== userId) {
       throw new ConflictException('Email is already in use');
+    }
+
+    // OAuth-only users have no password to verify this change with — fail
+    // gracefully instead of passing null into bcrypt.compare.
+    if (user.passwordHash === null) {
+      throw new BadRequestException(
+        'This account uses social login and has no password to verify this change.',
+      );
     }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -350,14 +400,34 @@ export class AuthService {
 
     // Send verification to new email
     await this.sendVerificationEmail(userId).catch((err) =>
-      this.logger.error(`Failed to send verification email: ${err.message}`)
+      this.logger.error(`Failed to send verification email: ${err.message}`),
     );
 
     this.logger.log(`Email changed for user ${userId} to ${dto.newEmail}`);
-    return { success: true, message: 'Email changed successfully. Verification sent to new address.' };
+    return {
+      success: true,
+      message: 'Email changed successfully. Verification sent to new address.',
+    };
   }
 
-  async issueTokens(user: { id: string; email: string; firstName: string; lastName: string; role: string }) {
+  /**
+   * Signs a fresh access token and issues a new rotating refresh token
+   * for the given user, enforcing a cap of 5 concurrent sessions.
+   *
+   * Made public (was previously private) so both `TwoFactorController`
+   * (post-2FA-verification token issuance) and the Social Logins OAuth
+   * callback flow (via {@link issueTokensForUserId}) can reuse this
+   * exact same token-issuance code path — ensuring every login method
+   * in the app (password, 2FA, Google, LinkedIn) produces tokens in the
+   * same format, sharing the same `RefreshToken` table consistently.
+   */
+  public async issueTokens(user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     const accessToken = this.jwt.sign(payload, {
@@ -396,5 +466,23 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  /**
+   * Convenience wrapper around {@link issueTokens} for callers that only
+   * have a `userId` on hand — specifically, the Social Logins OAuth
+   * callback flow, which deals with a narrow {@link UserIdentitySnapshot}
+   * (no `role` field) rather than the full `User` record this method
+   * needs. Looks up the full user record and delegates to
+   * {@link issueTokens}, so OAuth-issued tokens are byte-for-byte
+   * identical in format/claims to password-login-issued ones.
+   *
+   * @throws if no user exists with the given id (should never happen in
+   *   practice, since the caller just created/found this user moments
+   *   earlier in the same request).
+   */
+  public async issueTokensForUserId(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    return this.issueTokens(user);
   }
 }

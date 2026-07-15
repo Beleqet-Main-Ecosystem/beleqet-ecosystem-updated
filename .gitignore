@@ -17,6 +17,7 @@ server/build/
 # Environment variables & secrets
 .env
 .env.local
+!.env.example
 .env.*.local
 
 # Logs

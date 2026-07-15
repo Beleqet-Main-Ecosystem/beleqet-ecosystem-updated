@@ -102,22 +102,29 @@ describe('AuthService', () => {
 
     it('should reject with requiresStepUp when 2FA is enabled and no step-up token', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'hashed-old' });
-      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({ id: '2fa-1', enabled: true, secret: 'encrypted' });
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
+        id: '2fa-1',
+        enabled: true,
+        secret: 'encrypted',
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       mockJwt.sign.mockReturnValue('challenge-token');
 
-      await expect(svc.changePassword(userId, dto)).rejects.toThrow(UnauthorizedException);
-      try {
-        await svc.changePassword(userId, dto);
-      } catch (e: any) {
-        expect(e.response.requiresStepUp).toBe(true);
-        expect(e.response.stepUpToken).toBe('challenge-token');
-      }
+      await expect(svc.changePassword(userId, dto)).rejects.toMatchObject({
+        response: expect.objectContaining({
+          requiresStepUp: true,
+          stepUpToken: 'challenge-token',
+        }),
+      });
     });
 
     it('should succeed with valid step-up token when 2FA is enabled', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'hashed-old' });
-      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({ id: '2fa-1', enabled: true, secret: 'encrypted' });
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
+        id: '2fa-1',
+        enabled: true,
+        secret: 'encrypted',
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-new');
       mockJwt.verify.mockReturnValue({
@@ -131,21 +138,37 @@ describe('AuthService', () => {
       const result = await svc.changePassword(userId, dto, 'valid-step-up-token');
 
       expect(result.success).toBe(true);
-      expect(mockJwt.verify).toHaveBeenCalledWith('valid-step-up-token', { secret: 'test-temp-secret' });
+      expect(mockJwt.verify).toHaveBeenCalledWith('valid-step-up-token', {
+        secret: 'test-temp-secret',
+      });
     });
 
     it('should reject with wrong purpose in step-up token', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'hashed-old' });
-      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({ id: '2fa-1', enabled: true, secret: 'encrypted' });
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
+        id: '2fa-1',
+        enabled: true,
+        secret: 'encrypted',
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      mockJwt.verify.mockReturnValue({ sub: userId, purpose: '2fa_login', '2fa_verified_at': 9999999999 });
+      mockJwt.verify.mockReturnValue({
+        sub: userId,
+        purpose: '2fa_login',
+        '2fa_verified_at': 9999999999,
+      });
 
-      await expect(svc.changePassword(userId, dto, 'wrong-purpose-token')).rejects.toThrow('Invalid step-up token purpose');
+      await expect(svc.changePassword(userId, dto, 'wrong-purpose-token')).rejects.toThrow(
+        'Invalid step-up token purpose',
+      );
     });
 
     it('should reject expired step-up token', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'hashed-old' });
-      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({ id: '2fa-1', enabled: true, secret: 'encrypted' });
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
+        id: '2fa-1',
+        enabled: true,
+        secret: 'encrypted',
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       mockJwt.verify.mockReturnValue({
         sub: userId,
@@ -153,7 +176,9 @@ describe('AuthService', () => {
         '2fa_verified_at': Math.floor(Date.now() / 1000) - 20 * 60,
       });
 
-      await expect(svc.changePassword(userId, dto, 'expired-token')).rejects.toThrow(UnauthorizedException);
+      await expect(svc.changePassword(userId, dto, 'expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should reject when current password is wrong', async () => {
@@ -174,7 +199,11 @@ describe('AuthService', () => {
     const emailDto = { newEmail: 'new@example.com', password: 'current-pass' };
 
     it('should change email without step-up when 2FA is not enabled', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: userId, email: 'old@example.com', passwordHash: 'hashed' });
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: userId,
+        email: 'old@example.com',
+        passwordHash: 'hashed',
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue(null);
       mockPrisma.user.update.mockResolvedValue({ id: userId });
@@ -189,7 +218,7 @@ describe('AuthService', () => {
 
     it('should reject duplicate email', async () => {
       mockPrisma.user.findUnique
-        .mockResolvedValueOnce({ id: userId, passwordHash: 'hashed' })       // current user
+        .mockResolvedValueOnce({ id: userId, passwordHash: 'hashed' }) // current user
         .mockResolvedValueOnce({ id: 'other-user', email: 'new@example.com' }); // existing conflicting
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
@@ -208,7 +237,9 @@ describe('AuthService', () => {
     it('should normalize email to lowercase and trim it before checking for duplicates', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-pass');
-      mockPrisma.user.create = jest.fn().mockResolvedValue({ id: 'user-2', email: 'test@example.com' });
+      mockPrisma.user.create = jest
+        .fn()
+        .mockResolvedValue({ id: 'user-2', email: 'test@example.com' });
 
       const dto = {
         email: '   TeSt@ExAmPle.COM   ',
@@ -226,7 +257,7 @@ describe('AuthService', () => {
       expect(mockPrisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ email: 'test@example.com' }),
-        })
+        }),
       );
     });
   });
@@ -234,11 +265,11 @@ describe('AuthService', () => {
   describe('resetPassword', () => {
     it('should invalidate all active sessions by deleting refresh tokens on password reset', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'old' });
-      mockPrisma.verificationToken.findUnique.mockResolvedValue({ 
-        token: 'valid-token', 
-        userId, 
-        type: 'PASSWORD_RESET', 
-        expiresAt: new Date(Date.now() + 1000000) 
+      mockPrisma.verificationToken.findUnique.mockResolvedValue({
+        token: 'valid-token',
+        userId,
+        type: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 1000000),
       });
       (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
       mockPrisma.user.update.mockResolvedValue({ id: userId });

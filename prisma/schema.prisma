@@ -10,7 +10,7 @@ datasource db {
 model User {
   id                    String              @id @default(uuid())
   email                 String              @unique
-  passwordHash          String
+  passwordHash          String?
   firstName             String
   lastName              String
   role                  UserRole            @default(JOB_SEEKER)
@@ -29,6 +29,7 @@ model User {
   location              String?
   portfolioUrl          String?
   skills                String[]            @default([])
+  oauthAccounts         OAuthAccount[]
   applications          Application[]
   bids                  Bid[]
   candidateScores       CandidateScore[]
@@ -69,6 +70,21 @@ model User {
 
   @@map("users")
 }
+model OAuthAccount {
+  id                    String   @id @default(uuid())
+  userId                String
+  provider              OAuthProvider
+  providerAccountId     String            // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
+  encryptedAccessToken  String?           // AES-256-GCM ciphertext, never raw
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  linkedAt              DateTime @default(now())
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])   // prevents one social identity from attaching to 2 users
+  @@index([userId])
+  @@map("oauth_accounts")
+}
 
 /// Records each search term a user enters on the job board, timestamped.
 /// Used exclusively by the AI Personal Feed module as one of the signals
@@ -95,6 +111,10 @@ model SearchHistory {
   @@map("search_histories")
 }
 
+enum OAuthProvider {
+  GOOGLE
+  LINKEDIN
+}
 model SavedJob {
   id        String   @id @default(uuid())
   userId    String
@@ -198,6 +218,7 @@ model JobCategory {
 
   @@map("job_categories")
 }
+
 
 model Job {
   id                String        @id @default(uuid())
