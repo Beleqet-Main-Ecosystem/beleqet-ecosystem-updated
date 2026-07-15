@@ -110,14 +110,13 @@ describe('AuthService', () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       mockJwt.sign.mockReturnValue('challenge-token');
 
-await expect(
-  svc.changePassword(userId, dto),
-).rejects.toMatchObject({
-  response: expect.objectContaining({
-    requiresStepUp: true,
-    stepUpToken: 'challenge-token',
-  }),
-});
+      await expect(svc.changePassword(userId, dto)).rejects.toMatchObject({
+        response: expect.objectContaining({
+          requiresStepUp: true,
+          stepUpToken: 'challenge-token',
+        }),
+      });
+    });
 
     it('should succeed with valid step-up token when 2FA is enabled', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'hashed-old' });
@@ -238,7 +237,9 @@ await expect(
     it('should normalize email to lowercase and trim it before checking for duplicates', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-pass');
-      mockPrisma.user.create = jest.fn().mockResolvedValue({ id: 'user-2', email: 'test@example.com' });
+      mockPrisma.user.create = jest
+        .fn()
+        .mockResolvedValue({ id: 'user-2', email: 'test@example.com' });
 
       const dto = {
         email: '   TeSt@ExAmPle.COM   ',
@@ -256,7 +257,7 @@ await expect(
       expect(mockPrisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ email: 'test@example.com' }),
-        })
+        }),
       );
     });
   });
@@ -264,11 +265,11 @@ await expect(
   describe('resetPassword', () => {
     it('should invalidate all active sessions by deleting refresh tokens on password reset', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: userId, passwordHash: 'old' });
-      mockPrisma.verificationToken.findUnique.mockResolvedValue({ 
-        token: 'valid-token', 
-        userId, 
-        type: 'PASSWORD_RESET', 
-        expiresAt: new Date(Date.now() + 1000000) 
+      mockPrisma.verificationToken.findUnique.mockResolvedValue({
+        token: 'valid-token',
+        userId,
+        type: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 1000000),
       });
       (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
       mockPrisma.user.update.mockResolvedValue({ id: userId });
