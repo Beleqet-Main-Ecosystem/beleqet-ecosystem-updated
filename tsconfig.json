@@ -23,7 +23,6 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "types": ["node", "jest"]
-    // "ignoreDeprecations" removed
   },
   "exclude": [
     "node_modules",

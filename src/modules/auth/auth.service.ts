@@ -11,12 +11,14 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto, ChangePasswordDto, ChangeEmailDto } from './dto/register.dto';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { passwordResetEmail, verificationEmail, loginAlertEmail, logoutAlertEmail, welcomeEmail } from '../notifications/email-templates';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
+
+const PLATFORM_FEE_PCT = 0.10;
 
 @Injectable()
 export class AuthService {
@@ -411,15 +413,21 @@ export class AuthService {
   }
 
   /**
+   * Issues tokens for a user by their ID (used by OAuth paths and Controllers).
+   */
+  async issueTokensForUserId(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+    });
+    
+    if (!user) throw new UnauthorizedException('User not found');
+    return this.issueTokens(user);
+  }
+
+  /**
    * Signs a fresh access token and issues a new rotating refresh token
    * for the given user, enforcing a cap of 5 concurrent sessions.
-   *
-   * Made public (was previously private) so both `TwoFactorController`
-   * (post-2FA-verification token issuance) and the Social Logins OAuth
-   * callback flow (via {@link issueTokensForUserId}) can reuse this
-   * exact same token-issuance code path — ensuring every login method
-   * in the app (password, 2FA, Google, LinkedIn) produces tokens in the
-   * same format, sharing the same `RefreshToken` table consistently.
    */
   public async issueTokens(user: {
     id: string;
@@ -439,50 +447,31 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
-    await this.prisma.refreshToken.create({
-      data: { token: refreshTokenStr, userId: user.id, expiresAt },
+    // Enforce concurrent session limit (cap at 5 active sessions)
+    const activeTokens = await this.prisma.refreshToken.findMany({
+      where: { userId: user.id },
+      orderBy: { expiresAt: 'asc' },
     });
 
-    // Enforce a cap of 5 active refresh tokens per user (prevent session proliferation)
-    const MAX_SESSIONS = 5;
-    const tokens = await this.prisma.refreshToken.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-    if (tokens.length > MAX_SESSIONS) {
-      const toDelete = tokens.slice(0, tokens.length - MAX_SESSIONS).map((t: any) => t.id);
-      await this.prisma.refreshToken.deleteMany({ where: { id: { in: toDelete } } });
+    if (activeTokens.length >= 5) {
+      const excessCount = activeTokens.length - 4; // Keep under limit
+      const tokensToRemove = activeTokens.slice(0, excessCount).map(t => t.id);
+      await this.prisma.refreshToken.deleteMany({
+        where: { id: { in: tokensToRemove } },
+      });
     }
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        token: refreshTokenStr,
+        expiresAt,
+      },
+    });
 
     return {
       accessToken,
       refreshToken: refreshTokenStr,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-      },
     };
-  }
-
-  /**
-   * Convenience wrapper around {@link issueTokens} for callers that only
-   * have a `userId` on hand — specifically, the Social Logins OAuth
-   * callback flow, which deals with a narrow {@link UserIdentitySnapshot}
-   * (no `role` field) rather than the full `User` record this method
-   * needs. Looks up the full user record and delegates to
-   * {@link issueTokens}, so OAuth-issued tokens are byte-for-byte
-   * identical in format/claims to password-login-issued ones.
-   *
-   * @throws if no user exists with the given id (should never happen in
-   *   practice, since the caller just created/found this user moments
-   *   earlier in the same request).
-   */
-  public async issueTokensForUserId(userId: string) {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    return this.issueTokens(user);
   }
 }

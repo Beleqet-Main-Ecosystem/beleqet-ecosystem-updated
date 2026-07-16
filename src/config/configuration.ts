@@ -4,7 +4,6 @@ export default () => {
   const password = process.env.REDIS_PASSWORD || '';
   const tls = process.env.REDIS_TLS === 'true';
 
-  // URL constructor handles passwords with special characters correctly
   const redisUrl = new URL(`redis://${host}:${port}`);
   if (password) {
     redisUrl.password = password;

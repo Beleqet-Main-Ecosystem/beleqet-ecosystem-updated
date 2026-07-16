@@ -1,5 +1,5 @@
 export interface CacheOptions {
-  ttl?: number;          // in seconds
+  ttl?: number;
   namespace?: string;
-  skipCache?: boolean;   // if true, bypass cache and directly call fetchFn
+  skipCache?: boolean;
 }

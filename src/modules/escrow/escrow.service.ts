@@ -1,14 +1,12 @@
 import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS } from '../queues/queues.constants';
 import { WalletService } from '../wallet/wallet.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 const PLATFORM_FEE_PCT = 0.10;
 
@@ -24,7 +22,6 @@ export class EscrowService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  /** Initiate escrow — returns Chapa/Telebirr payment link */
   async initiate(clientId: string, freelanceJobId: string) {
     const job = await this.prisma.freelanceJob.findFirst({ 
       where: { id: freelanceJobId, clientId },
@@ -32,8 +29,6 @@ export class EscrowService {
     });
     if (!job) throw new NotFoundException('Gig not found');
 
-    // Use the agreed contract amount if a contract exists, otherwise fall back to budgetMax
-    // Best practice: escrow should only be initiated after a bid is accepted and a contract exists
     const grossAmount = job.contract ? job.contract.agreedAmount : job.budgetMax;
     if (!job.contract) {
       this.logger.warn(`Escrow initiated without a contract for job ${freelanceJobId} — using budgetMax. Consider initiating escrow after bid acceptance.`);
@@ -87,7 +82,6 @@ export class EscrowService {
     }
 
     if (amountToPay === 0) {
-      // Fully funded by wallet
       await this.prisma.employerWalletTransaction.create({
         data: {
           walletId: employerWallet!.id,
@@ -98,7 +92,6 @@ export class EscrowService {
         }
       });
 
-      // Move locked balance to zero since it's fully spent
       await this.prisma.employerWallet.update({
         where: { userId: clientId },
         data: { lockedBalance: { decrement: walletAppliedAmount } }
@@ -159,12 +152,10 @@ export class EscrowService {
     return { escrowId: escrow.id, checkoutUrl, grossAmount, platformFee, netAmount, walletAppliedAmount, amountToPay };
   }
 
-  /** Called by Chapa webhook — verifies signature, marks escrow funded */
   async handleWebhook(payload: { reference: string; status: string; [k: string]: unknown }) {
     await this.escrowQueue.add(ESCROW_JOBS.PROCESS_WEBHOOK, payload);
   }
 
-  /** Called when employer approves milestone */
   async releaseMilestone(milestoneId: string, clientId: string) {
     const milestone = await this.prisma.milestone.findFirst({
       where: { id: milestoneId, contract: { clientId } },
@@ -194,13 +185,11 @@ export class EscrowService {
     });
 
     try {
-      // Handle currency conversion if necessary. Base currency is ETB.
       const contractCurrency = milestone.contract.currency || 'ETB';
       const grossAmountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
       const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
       const netAmountInETB = grossAmountInETB - platformFee;
 
-      // Add to wallet pending balance (3-day hold)
       await this.prisma.freelancerWallet.upsert({
         where: { userId: milestone.contract.freelancerId },
         update: { pendingBalance: { increment: netAmountInETB } },
@@ -211,6 +200,7 @@ export class EscrowService {
         },
       });
 
+      // ── Explicitly routing to the escrow queue ──
       await this.escrowQueue.add(ESCROW_JOBS.AUTO_RELEASE, {
         milestoneId,
         freelancerId: milestone.contract.freelancerId,
