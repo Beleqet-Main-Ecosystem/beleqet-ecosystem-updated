@@ -56,32 +56,47 @@ Job, category, and detail data are fetched **live** from the NestJS API and vali
 
 Set `NEXT_PUBLIC_API_URL` (see `.env.example`) to point at the API.
 
+## Docker
+
+Build and run the frontend in a container:
+
+```bash
+npm run docker:build
+npm run docker:dev
+```
+
+By default the app expects the API backend at `http://host.docker.internal:4000/api/v1` when running from Docker. You can override this with `.env` or compose environment variables.
+
 ## Fonts
 
 The layout currently uses a system font stack (`Segoe UI` / system-ui) because this sandbox
 couldn't reach Google Fonts at build time. To use **Inter** as designed, in `app/layout.tsx`:
 
 ```tsx
-import { Inter } from "next/font/google";
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", weight: ["400","500","600","700","800"] });
+import { Inter } from 'next/font/google';
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  weight: ['400', '500', '600', '700', '800'],
+});
 // add inter.variable to the <html> className
 ```
 
 ## Design tokens (from the design process PDF)
 
-| Token | Hex |
-|---|---|
-| Brand Green | `#00653B` |
-| Dark Green | `#015230` |
-| Primary | `#041603` |
-| Success | `#22C55E` |
-| Cyan Accent | `#38BDF8` |
+| Token         | Hex       |
+| ------------- | --------- |
+| Brand Green   | `#00653B` |
+| Dark Green    | `#015230` |
+| Primary       | `#041603` |
+| Success       | `#22C55E` |
+| Cyan Accent   | `#38BDF8` |
 | Orange Accent | `#F97316` |
-| Red Accent | `#EF4444` |
+| Red Accent    | `#EF4444` |
 | Purple Accent | `#7C3AED` |
-| Page BG | `#F5F7FA` |
-| Border | `#E2E8F0` |
-| Text (ink) | `#1E293B` |
+| Page BG       | `#F5F7FA` |
+| Border        | `#E2E8F0` |
+| Text (ink)    | `#1E293B` |
 
 ## Build
 

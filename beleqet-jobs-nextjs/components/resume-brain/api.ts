@@ -26,7 +26,7 @@ export async function uploadResume(
   formData.append('consent', String(consent));
 
   const { data } = await axios.post<UploadResumeResponse>(`${API_URL}/resumes/upload`, formData, {
-    headers: { ...authHeaders(), 'Content-Type': 'multipart/form-data' },
+    headers: { ...authHeaders() },
     onUploadProgress: (event) => {
       if (onProgress && event.total) {
         onProgress(Math.round((event.loaded / event.total) * 100));
@@ -71,8 +71,18 @@ export async function autofillProfile(
 }
 
 /** Extracts a human-readable message from a failed API call. */
+function isAxiosErrorLike(
+  error: unknown,
+): error is { isAxiosError?: boolean; response?: { data?: { message?: string | string[] } } } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    ('isAxiosError' in error || axios.isAxiosError(error))
+  );
+}
+
 export function messageFromResumeBrainError(error: unknown, fallback: string): string {
-  if (axios.isAxiosError(error)) {
+  if (isAxiosErrorLike(error) && error.isAxiosError) {
     const data = error.response?.data as { message?: string | string[] } | undefined;
     const msg = data?.message;
     if (Array.isArray(msg)) return msg.join(', ');

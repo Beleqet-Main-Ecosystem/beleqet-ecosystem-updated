@@ -1,5 +1,5 @@
-const BASE = 'http://localhost:4000/api/v1';
-const { generate } = require('otplib');
+const BASE = 'http://localhost:4000/api/v1'
+const { generate } = require('otplib')
 
 async function request(method, path, body, token, extraHeaders) {
   const headers = { 'Content-Type': 'application/json' };

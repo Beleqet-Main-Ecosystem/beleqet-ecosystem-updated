@@ -6,9 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "docker:build": "docker build -t beleqet-jobs-frontend .",
+    "docker:dev": "docker compose up --build"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.18",
