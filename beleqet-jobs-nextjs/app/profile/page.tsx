@@ -1,21 +1,15 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  Mail,
-  MapPin,
-  Briefcase,
-  FileText,
-  Search,
-  ShieldCheck,
-  BadgeCheck,
-} from "lucide-react";
-import { useAuth } from "@/components/AuthProvider";
-import { roleMeta } from "@/components/HeaderAuth";
-import { authenticatedFetch } from "@/lib/auth";
-
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Mail, MapPin, Briefcase, FileText, Search, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { roleMeta } from '@/components/HeaderAuth';
+import { authenticatedFetch } from '@/lib/auth';
+import AvailabilityCard from '@/components/interview-planner/AvailabilityCard';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { toast } from 'sonner';
 type Profile = {
   headline?: string | null;
   bio?: string | null;
@@ -28,20 +22,20 @@ const quickActionsByRole: Record<
   { label: string; href: string; icon: typeof Briefcase }[]
 > = {
   JOB_SEEKER: [
-    { label: "Find Jobs", href: "/jobs", icon: Search },
-    { label: "My Applications", href: "/applications", icon: FileText },
+    { label: 'Find Jobs', href: '/jobs', icon: Search },
+    { label: 'My Applications', href: '/applications', icon: FileText },
   ],
   EMPLOYER: [
-    { label: "Post a Job", href: "/post-job", icon: Briefcase },
-    { label: "Hiring Dashboard", href: "/employer", icon: FileText },
+    { label: 'Post a Job', href: '/post-job', icon: Briefcase },
+    { label: 'Hiring Dashboard', href: '/employer', icon: FileText },
   ],
   FREELANCER: [
-    { label: "Find Gigs", href: "/jobs", icon: Search },
-    { label: "My Bids", href: "/jobs", icon: FileText },
+    { label: 'Find Gigs', href: '/jobs', icon: Search },
+    { label: 'My Bids', href: '/jobs', icon: FileText },
   ],
   ADMIN: [
-    { label: "Browse Jobs", href: "/jobs", icon: Search },
-    { label: "Post a Job", href: "/post-job", icon: Briefcase },
+    { label: 'Browse Jobs', href: '/jobs', icon: Search },
+    { label: 'Post a Job', href: '/post-job', icon: Briefcase },
   ],
 };
 
@@ -51,12 +45,11 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    if (ready && !user) router.replace("/login");
+    if (ready && !user) router.replace('/login');
   }, [ready, user, router]);
 
   useEffect(() => {
-    const base =
-      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
     authenticatedFetch(`${base}/users/profile`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => data && setProfile(data))
@@ -64,21 +57,62 @@ export default function ProfilePage() {
   }, []);
 
   if (!ready || !user) {
-    return (
-      <div className="container-page py-24 text-center text-muted">
-        Loading your profile…
-      </div>
-    );
+    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
   }
 
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
   const role = roleMeta[user.role] ?? {
     label: user.role,
-    className: "bg-muted/10 text-muted",
+    className: 'bg-muted/10 text-muted',
   };
-  const actions =
-    quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
+  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
+  const [slots, setSlots] = useState([]);
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
+  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const loadAvailability = async () => {
+    const res = await authenticatedFetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
+    );
+    const data = await res.json();
+    console.log('Availability data:', data);
+    setSlots(data);
+  };
+  const handleDelete = async () => {
+    if (!deleteSlotId) return;
 
+    try {
+      setDeleting(true);
+
+      const res = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability/${deleteSlotId}`,
+        {
+          method: 'DELETE',
+        },
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Something went wrong');
+      }
+
+      await loadAvailability();
+
+      toast.success(data.message);
+    } catch (err) {
+      console.error(err);
+
+      toast.error(err instanceof Error ? err.message : 'Failed to delete availability slot.');
+    } finally {
+      setDeleting(false);
+      setDeleteSlotId(null);
+    }
+  };
+
+  useEffect(() => {
+    loadAvailability();
+  }, []);
   return (
     <div className="container-page py-10">
       <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">
@@ -119,9 +153,7 @@ export default function ProfilePage() {
             </span>
             <div>
               <p className="text-sm font-semibold text-ink">{a.label}</p>
-              <p className="text-xs text-muted">
-                Go to {a.label.toLowerCase()}
-              </p>
+              <p className="text-xs text-muted">Go to {a.label.toLowerCase()}</p>
             </div>
           </Link>
         ))}
@@ -130,12 +162,10 @@ export default function ProfilePage() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-2xl border border-border bg-white p-6">
           <h2 className="text-sm font-semibold text-ink">About</h2>
-          {profile?.headline && (
-            <p className="mt-3 font-medium text-ink">{profile.headline}</p>
-          )}
+          {profile?.headline && <p className="mt-3 font-medium text-ink">{profile.headline}</p>}
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {profile?.bio ||
-              "You haven’t added a bio yet. A short summary helps employers get to know you."}
+              'You haven’t added a bio yet. A short summary helps employers get to know you.'}
           </p>
           {profile?.location && (
             <p className="mt-4 flex items-center gap-1.5 text-sm text-muted">
@@ -178,6 +208,35 @@ export default function ProfilePage() {
           </dl>
         </div>
       </div>
+
+      <div className="mt-8 rounded-2xl border border-border bg-white p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Your Interview Availability</h2>
+            <p className="text-sm text-muted">
+              Add and update your available interview time slots.
+            </p>
+          </div>
+        </div>
+        <AvailabilityCard
+          slots={slots}
+          onRefresh={loadAvailability}
+          onDelete={(id) => setDeleteSlotId(id)}
+        />
+      </div>
+      <ConfirmDialog
+        open={!!deleteSlotId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteSlotId(null);
+          }
+        }}
+        title="Delete availability slot?"
+        description="This action cannot be undone. The selected interview availability time will be permanently removed."
+        confirmLabel={deleting ? 'Deleting...' : 'Delete Slot'}
+        destructive
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
