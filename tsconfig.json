@@ -24,5 +24,11 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node", "jest"]
   },
-  "exclude": ["node_modules", "dist", "coverage", "beleqet-jobs-nextjs"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "beleqet-jobs-nextjs",
+    "frontend"
+  ]
 }

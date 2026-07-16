@@ -1,11 +1,12 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import { BriefcaseBusiness, Eye, Plus, Users } from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { BriefcaseBusiness, Eye, Plus, Users } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
+import { toast } from 'sonner';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 type Job = {
   id: string;
   title: string;
@@ -22,12 +23,12 @@ type Applicant = {
   user: { firstName: string; lastName: string; email: string };
 };
 const statuses = [
-  "SUBMITTED",
-  "SCREENING",
-  "SHORTLISTED",
-  "INTERVIEW_SCHEDULED",
-  "OFFERED",
-  "REJECTED",
+  'SUBMITTED',
+  'SCREENING',
+  'SHORTLISTED',
+  'INTERVIEW_SCHEDULED',
+  'OFFERED',
+  'REJECTED',
 ];
 
 export default function EmployerPage() {
@@ -40,27 +41,55 @@ export default function EmployerPage() {
     if (response.ok) setJobs(await response.json());
   }, []);
   useEffect(() => {
-    if (user && ["EMPLOYER", "ADMIN"].includes(user.role)) loadJobs();
+    if (user && ['EMPLOYER', 'ADMIN'].includes(user.role)) loadJobs();
   }, [user, loadJobs]);
   async function openApplicants(job: Job) {
     setSelected(job);
-    const response = await authenticatedFetch(
-      `${API_URL}/applications/job/${job.id}`,
-    );
+    const response = await authenticatedFetch(`${API_URL}/applications/job/${job.id}`);
     if (response.ok) setApplicants(await response.json());
   }
   async function changeStatus(id: string, status: string) {
-    const response = await authenticatedFetch(
-      `${API_URL}/applications/${id}/status`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      },
-    );
+    const response = await authenticatedFetch(`${API_URL}/applications/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
     if (response.ok && selected) openApplicants(selected);
   }
-  if (!ready || !user || !["EMPLOYER", "ADMIN"].includes(user.role))
+  async function autoSchedule(applicationId: string) {
+    try {
+      const response = await authenticatedFetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/auto-schedule`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            applicationId,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.message ?? 'Unable to schedule interview.');
+        return;
+      }
+
+      toast.success(data.message ?? 'Interview scheduled successfully.');
+
+      if (selected) {
+        openApplicants(selected);
+      }
+    } catch (error) {
+      console.error(error);
+
+      toast.error('Failed to schedule interview. Please try again.');
+    }
+  }
+  if (!ready || !user || !['EMPLOYER', 'ADMIN'].includes(user.role))
     return (
       <div className="container-page py-24 text-center text-muted">
         Employer access is required.
@@ -86,14 +115,10 @@ export default function EmployerPage() {
       </section>
       <div className="container-page py-10">
         <div className="grid gap-4 md:grid-cols-3">
-          <Metric
-            label="Total jobs"
-            value={jobs.length}
-            icon={BriefcaseBusiness}
-          />
+          <Metric label="Total jobs" value={jobs.length} icon={BriefcaseBusiness} />
           <Metric
             label="Published"
-            value={jobs.filter((j) => j.status === "PUBLISHED").length}
+            value={jobs.filter((j) => j.status === 'PUBLISHED').length}
             icon={Eye}
           />
           <Metric
@@ -135,9 +160,7 @@ export default function EmployerPage() {
         </div>
         {selected && (
           <section className="mt-8">
-            <h2 className="text-2xl font-black text-primary">
-              Applicants · {selected.title}
-            </h2>
+            <h2 className="text-2xl font-black text-primary">Applicants · {selected.title}</h2>
             <div className="mt-4 space-y-3">
               {applicants.length ? (
                 applicants.map((item) => (
@@ -148,19 +171,35 @@ export default function EmployerPage() {
                           {item.user.firstName} {item.user.lastName}
                         </h3>
                         <p className="text-xs text-muted">
-                          {item.user.email} ·{" "}
-                          {new Date(item.createdAt).toLocaleDateString()}
+                          {item.user.email} · {new Date(item.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <select
-                        value={item.status}
-                        onChange={(e) => changeStatus(item.id, e.target.value)}
-                        className="rounded-xl border border-border px-3 py-2 text-xs font-bold"
-                      >
-                        {statuses.map((status) => (
-                          <option key={status}>{status}</option>
-                        ))}
-                      </select>
+                      <div className="flex flex-col gap-3 sm:items-end">
+                        <select
+                          value={item.status}
+                          onChange={(e) => changeStatus(item.id, e.target.value)}
+                          className="rounded-xl border border-border px-3 py-2 text-xs font-bold"
+                        >
+                          {statuses.map((status) => (
+                            <option key={status}>{status}</option>
+                          ))}
+                        </select>
+
+                        {item.status === 'SHORTLISTED' && (
+                          <button
+                            onClick={() => autoSchedule(item.id)}
+                            className="rounded-xl bg-brandGreen px-4 py-2 text-xs font-bold text-white transition hover:opacity-90"
+                          >
+                            Schedule Interview
+                          </button>
+                        )}
+
+                        {item.status === 'INTERVIEW_SCHEDULED' && (
+                          <span className="rounded-xl bg-green-100 px-4 py-2 text-xs font-bold text-green-700">
+                            Interview Scheduled
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {item.coverLetter && (
                       <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted">
