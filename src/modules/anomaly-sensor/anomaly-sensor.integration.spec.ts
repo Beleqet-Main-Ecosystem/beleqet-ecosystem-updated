@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { EventEmitterModule, EventEmitter2 } from '@nestjs/event-emitter';
 import { AnomalySensorModule } from './anomaly-sensor.module';
 import { ConfigModule } from '@nestjs/config';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 
 describe('AnomalySensor Integration (e2e)', () => {
@@ -30,8 +30,9 @@ describe('AnomalySensor Integration (e2e)', () => {
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         EventEmitterModule.forRoot(),
+        // Fixed: Migrated 'redis' option to 'connection' for @nestjs/bullmq compatibility
         BullModule.forRoot({
-          redis: { host: 'localhost', port: 6379 }
+          connection: { host: 'localhost', port: 6379 }
         }),
         BullModule.registerQueue({ name: 'notifications' }),
         AnomalySensorModule,

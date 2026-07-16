@@ -1,4 +1,13 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "frontend", "beleqet-jobs-nextjs", "prisma", "scripts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "frontend",
+    "beleqet-jobs-nextjs",
+    "**/*spec.ts",
+    "test",
+    "prisma",
+    "scripts"
+  ]
 }

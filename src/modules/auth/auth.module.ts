@@ -2,7 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq'; 
 import { PrismaModule } from '../../prisma/prisma.module';
 import { QueuesModule } from '../queues/queues.module';
 import { QUEUE_NAMES } from '../queues/queues.constants';
@@ -29,37 +29,10 @@ import { AuthExceptionFilter } from './filters/auth-exception.filter';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
 
 /**
- * Injection token for the fully-loaded, validated {@link AuthEnvConfig}.
- * Loaded exactly once at module initialization rather than re-read from
- * `process.env` throughout the module.
- */
-
-/**
- * Loaded once, synchronously, when this file is first imported — see
- * prior commit history for why this is synchronous rather than an async
- * factory (circular DI issue with JwtModule.registerAsync).
+ * Synchronously loaded Auth environment configuration.
  */
 const authEnvConfig = loadAuthEnvConfig();
 
-/**
- * Composition root for BOTH the pre-existing local email/password auth
- * system (AuthService, AuthController's register/login/etc. routes) and
- * the Social Logins OAuth module (Google/LinkedIn strategies,
- * AccountLinkingService). These live in one module because they share
- * one AuthController and one token-issuance mechanism
- * (AuthService.issueTokens / issueTokensForUserId) — OAuth logins do NOT
- * have their own separate refresh-token system; both paths write to the
- * same `RefreshToken` table via the same code path, avoiding the
- * raw-vs-hashed-token format conflict a separate OAuth-only token
- * service would have introduced.
- *
- * NOTE: JwtModule is registered synchronously (JwtModule.register), not
- * via JwtModule.registerAsync with an injected ConfigService — that
- * previously caused a circular DI issue (see authEnvConfig comment
- * above). Every JwtService.sign()/verify() call site in AuthService
- * passes its own explicit secret and expiresIn, so nothing depends on
- * this module-level config beyond needing a valid default at startup.
- */
 @Module({
   imports: [
     PrismaModule,
