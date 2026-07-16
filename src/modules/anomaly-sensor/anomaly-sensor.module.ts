@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '../queues/queues.constants';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AlertingService } from './alerting.service';

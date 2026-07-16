@@ -4,7 +4,6 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   HttpStatus,
   Param,
   Post,
@@ -72,7 +71,7 @@ export class PresignedUrlDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(255)
-  filename: string;
+  filename!: string;
 
   @ApiProperty({
     description: 'MIME type of the uploaded file',
@@ -85,7 +84,7 @@ export class PresignedUrlDto {
   @IsIn(ALLOWED_MIME_TYPES, {
     message: 'Invalid file type. Executables and HTML files are not allowed.',
   })
-  contentType: string;
+  contentType!: string;
 
   @ApiProperty({
     description: 'File size in bytes. Must not exceed the upload limit.',
@@ -98,7 +97,7 @@ export class PresignedUrlDto {
   @Max(MAX_UPLOAD_FILE_SIZE_BYTES, {
     message: `File size must not exceed ${MAX_UPLOAD_FILE_SIZE_BYTES} bytes.`,
   })
-  fileSize: number;
+  fileSize!: number;
 
   @ApiProperty({
     required: false,
@@ -121,7 +120,7 @@ export class UploadFileDto {
   @IsNotEmpty()
   @IsString()
   @IsIn(['true', 'false'])
-  hasConsentedToProcessing: string;
+  hasConsentedToProcessing!: string;
 }
 
 @ApiTags('uploads')

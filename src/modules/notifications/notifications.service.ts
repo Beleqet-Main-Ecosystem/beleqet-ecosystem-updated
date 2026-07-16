@@ -3,8 +3,8 @@
 // =============================================================================
 
 import { Injectable } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { I18nService } from 'nestjs-i18n';
 
 import { PrismaService } from '../../prisma/prisma.service';

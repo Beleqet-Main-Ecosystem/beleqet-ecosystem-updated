@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 
@@ -33,6 +33,7 @@ import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+// ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
@@ -59,18 +60,18 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
       maxListeners: 20,
     }),
 
-    //  BullMQ (Redis-backed job queues)
+    // ── Unified BullMQ (Redis-backed job queues) ───────────────────────────
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        redis: {
+        connection: {
           host: config.get<string>('REDIS_HOST', 'localhost'),
           port: config.get<number>('REDIS_PORT', 6379),
           password: config.get<string>('REDIS_PASSWORD'),
           tls: config.get<string>('REDIS_TLS') === 'true' ? {} : undefined,
         },
         defaultJobOptions: {
-          removeOnComplete: 100, // keep last 100 completed jobs
+          removeOnComplete: 100,
           removeOnFail: 200,
           attempts: 3,
           backoff: { type: 'exponential', delay: 2_000 },
@@ -117,6 +118,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
+    // ── Fixed: PerformanceWorkerModule removed from imports array ──
     TwoFactorModule,
     KycModule,
     ResumeBrainModule,

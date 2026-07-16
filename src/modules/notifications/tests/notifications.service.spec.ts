@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationsService } from '../notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { I18nService } from 'nestjs-i18n';
-import { getQueueToken } from '@nestjs/bull';
+import { getQueueToken } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '../../queues/queues.constants';
 
 describe('NotificationsService', () => {

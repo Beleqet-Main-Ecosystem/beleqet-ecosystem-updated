@@ -607,6 +607,7 @@ model Interview {
   @@index([candidateId])
   @@index([startTime])
   @@map("interviews")
+}
 model UserTwoFactor {
   id                   String       @id @default(uuid())
   userId               String       @unique
