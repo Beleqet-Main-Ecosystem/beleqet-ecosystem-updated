@@ -59,6 +59,16 @@ model User {
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
 
+  /// Whether the user has consented to their search history, skills, and
+  /// saved jobs being used to personalize their AI job feed. Defaults to
+  /// true; when false, the AI Feed module falls back to a generic,
+  /// non-personalized feed and reads none of that data (GDPR compliance).
+  gdprConsent           Boolean             @default(true)
+
+  /// Back-relation required by Prisma for the one-to-many relationship
+  /// declared on SearchHistory.user below. Not queried directly from the
+  /// User side — the AI Feed module reads SearchHistory independently.
+  searchHistories       SearchHistory[]
   storedFiles           StoredFile[]
 
   @@map("users")
@@ -77,6 +87,31 @@ model OAuthAccount {
   @@unique([provider, providerAccountId])   // prevents one social identity from attaching to 2 users
   @@index([userId])
   @@map("oauth_accounts")
+}
+
+/// Records each search term a user enters on the job board, timestamped.
+/// Used exclusively by the AI Personal Feed module as one of the signals
+/// (alongside User.skills and SavedJob) used to rank job recommendations.
+/// Only read when the owning user's `gdprConsent` is true.
+model SearchHistory {
+  id         String   @id @default(uuid())
+
+  /// Owning user. Cascade delete: if the user is deleted, their search
+  /// history is deleted with them rather than left orphaned.
+  userId     String
+
+  /// The raw search term as typed by the user (e.g. "React developer").
+  searchTerm String
+
+  /// When this search was performed. The AI Feed module only considers
+  /// terms from the last 30 days as "recent" signal.
+  searchedAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Speeds up the AI Feed module's "recent searches for this user" query.
+  @@index([userId, searchedAt])
+  @@map("search_histories")
 }
 
 enum OAuthProvider {

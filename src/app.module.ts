@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bull';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
+import { APP_GUARD } from '@nestjs/core';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -31,6 +32,9 @@ import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
+import { KycModule } from './modules/kyc/kyc.module';
+import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
+import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { CacheConfigModule } from './cache/cache.module';
 
 import configuration from './config/configuration';
@@ -106,7 +110,16 @@ import configuration from './config/configuration';
     DbIndexMasterModule,
     PaymentsModule,
     TwoFactorModule,
+    KycModule,
+    AiFeedModule,
+    ResumeBrainModule,
     CacheConfigModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
