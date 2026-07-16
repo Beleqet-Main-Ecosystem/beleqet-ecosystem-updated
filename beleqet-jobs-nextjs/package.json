@@ -10,7 +10,9 @@
     "test": "jest",
     "test:unit": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "docker:build": "docker build -t beleqet-jobs-frontend .",
+    "docker:dev": "docker compose up --build"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

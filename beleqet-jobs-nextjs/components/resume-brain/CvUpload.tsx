@@ -4,7 +4,7 @@ import { ChangeEvent, DragEvent, useCallback, useRef, useState } from 'react';
 import { FileText, Loader2, UploadCloud, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadResume, messageFromResumeBrainError } from './api';
-import { useResumeBrainI18n } from './i18n';
+import { ResumeBrainLocale, useResumeBrainI18n } from './i18n';
 import { UploadResumeResponse } from './types';
 
 const ACCEPTED_MIME_TYPES = [
@@ -22,14 +22,20 @@ export interface CvUploadProps {
   onUploaded: (result: UploadResumeResponse) => void;
   /** Maximum accepted file size in MB, must match the backend's configured limit. */
   maxSizeMb?: number;
+  /** Locale used by the Resume Brain UI strings. */
+  locale?: ResumeBrainLocale;
 }
 
 /**
  * Drag-and-drop (and click-to-browse) CV uploader with GDPR consent gating,
  * client-side type/size validation, upload progress, and error states.
  */
-export function CvUpload({ onUploaded, maxSizeMb = DEFAULT_MAX_SIZE_MB }: CvUploadProps) {
-  const { t } = useResumeBrainI18n();
+export function CvUpload({
+  onUploaded,
+  maxSizeMb = DEFAULT_MAX_SIZE_MB,
+  locale = 'en',
+}: CvUploadProps) {
+  const { t } = useResumeBrainI18n(locale);
   const [file, setFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -162,7 +168,10 @@ export function CvUpload({ onUploaded, maxSizeMb = DEFAULT_MAX_SIZE_MB }: CvUplo
       </label>
 
       {error && (
-        <p role="alert" className="mt-3 rounded-xl bg-redAccent/10 px-4 py-3 text-sm font-semibold text-redAccent">
+        <p
+          role="alert"
+          className="mt-3 rounded-xl bg-redAccent/10 px-4 py-3 text-sm font-semibold text-redAccent"
+        >
           {error}
         </p>
       )}

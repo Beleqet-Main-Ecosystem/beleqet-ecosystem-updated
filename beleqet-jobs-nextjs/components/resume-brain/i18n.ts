@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 export type ResumeBrainLocale = 'en' | 'am';
 
@@ -24,6 +24,9 @@ const dictionaries: Record<ResumeBrainLocale, Record<string, string>> = {
     uploading: 'Uploading…',
     parsing: 'Parsing your CV…',
     uploadSuccess: 'Your CV was parsed successfully.',
+    pageTitle: 'Upload your CV. We’ll do the typing.',
+    pageSubtitle:
+      'Upload a PDF or Word CV and Resume Brain extracts your education, work experience, and skills automatically — review and confirm before it fills in your profile.',
     errorGeneric: 'Something went wrong. Please try again.',
     errorFileType: 'Only PDF, DOC, and DOCX files are accepted.',
     errorFileSize: 'File exceeds the maximum size of {maxSizeMb}MB.',
@@ -73,6 +76,9 @@ const dictionaries: Record<ResumeBrainLocale, Record<string, string>> = {
     uploading: 'በመላክ ላይ…',
     parsing: 'ሲቪዎን በመተንተን ላይ…',
     uploadSuccess: 'ሲቪዎ በተሳካ ሁኔታ ተተንትኗል።',
+    pageTitle: 'ሲቪዎን ይላኩ። እኛ እንጽፋዋለን።',
+    pageSubtitle:
+      'PDF ወይም Word ሲቪ ይላኩ፣ Resume Brain ትምህርትዎን፣ የስራ ልምድዎን እና ክህሎቶችዎን በአይነት ይገናኛል — በመገምገም በፊት እንዲሞሉ ያረጋግጡ።',
     errorGeneric: 'የሆነ ችግር ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።',
     errorFileType: 'PDF, DOC, እና DOCX ፋይሎች ብቻ ተቀባይነት አላቸው።',
     errorFileSize: 'ፋይሉ ከፍተኛውን መጠን «{maxSizeMb}ሜባ» አልፏል።',
@@ -98,9 +104,13 @@ const dictionaries: Record<ResumeBrainLocale, Record<string, string>> = {
     languagesSection: 'ቋንቋዎች',
     languageLabel: 'ቋንቋ',
     proficiencyLabel: 'ብቃት',
+    compensationLabel: 'የሥራ ክፍያ',
     confirmButton: 'አረጋግጥ እና መገለጫ ሙላ',
     autofilling: 'ወደ መገለጫ በመተግበር ላይ…',
     autofillSuccess: 'መገለጫ በተሳካ ሁኔታ ተዘምኗል።',
+    deleteResumeButton: 'የተተነሰውን ሲቪ አጥፋ',
+    deleting: 'እየወገደ ነው…',
+    deleteSuccess: 'የተተነሰው ሲቪ በተሳካ ሁኔታ አጥፋዋል።',
     addEntry: 'ጨምር',
     removeEntry: 'አስወግድ',
     noEducation: 'ምንም የትምህርት መረጃ አልተገኘም።',
@@ -115,18 +125,24 @@ const dictionaries: Record<ResumeBrainLocale, Record<string, string>> = {
  * Translation hook scoped to the Resume Brain feature. Supports `{placeholder}`
  * interpolation via the optional `args` map.
  */
+export function translate(
+  locale: ResumeBrainLocale,
+  key: string,
+  args?: Record<string, string | number>,
+): string {
+  const template = dictionaries[locale][key] ?? key;
+  if (!args) return template;
+  return Object.entries(args).reduce(
+    (result, [argKey, value]) => result.replaceAll(`{${argKey}}`, String(value)),
+    template,
+  );
+}
+
 export function useResumeBrainI18n(initialLocale: ResumeBrainLocale = 'en') {
   const [locale, setLocale] = useState<ResumeBrainLocale>(initialLocale);
 
   const t = useCallback(
-    (key: string, args?: Record<string, string | number>): string => {
-      const template = dictionaries[locale][key] ?? key;
-      if (!args) return template;
-      return Object.entries(args).reduce(
-        (result, [argKey, value]) => result.replaceAll(`{${argKey}}`, String(value)),
-        template,
-      );
-    },
+    (key: string, args?: Record<string, string | number>): string => translate(locale, key, args),
     [locale],
   );
 
