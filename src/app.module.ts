@@ -24,7 +24,11 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { InterviewPlannerModule } from './modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
+import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
+import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
+import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { CacheConfigModule } from './cache/cache.module';
@@ -95,6 +99,10 @@ import configuration from './config/configuration';
     UploadsModule,
     TelegramModule,
     ContactModule,
+    InterviewPlannerModule,
+    AnomalySensorModule,
+    AdminStatsModule,
+    DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
     TwoFactorModule,
