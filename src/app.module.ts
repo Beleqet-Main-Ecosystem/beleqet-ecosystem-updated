@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq'; // ✅ BullMQ migration
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 import { APP_GUARD } from '@nestjs/core';
@@ -57,9 +57,10 @@ import configuration from './config/configuration';
       maxListeners: 20,
     }),
     BullModule.forRootAsync({
+      // ✅ Correct BullMQ import from '@nestjs/bullmq'
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        redis: {
+        connection: {
           host: config.get<string>('REDIS_HOST', 'localhost'),
           port: config.get<number>('REDIS_PORT', 6379),
           password: config.get<string>('REDIS_PASSWORD'),
@@ -113,7 +114,7 @@ import configuration from './config/configuration';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
-    CacheConfigModule,
+    CacheConfigModule, // ✅ Your cache module
   ],
   providers: [
     {
