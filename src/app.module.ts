@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 
@@ -24,48 +24,55 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+
+import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
+import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
+import { APP_GUARD } from '@nestjs/core';
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
-import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
+
 import { PaymentsModule } from './modules/payments/payments.module';
+// ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
+import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
+import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 
 @Module({
   imports: [
-    //  Configuration (loads .env) 
+    //  Configuration (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
 
-    //  Rate limiting 
+    //  Rate limiting
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 10 },
       { name: 'medium', ttl: 10_000, limit: 50 },
       { name: 'long', ttl: 60_000, limit: 200 },
     ]),
 
-    //  Event bus (in-process events between modules) 
+    //  Event bus (in-process events between modules)
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.',
       maxListeners: 20,
     }),
 
-    //  BullMQ (Redis-backed job queues) 
+    // ── Unified BullMQ (Redis-backed job queues) ───────────────────────────
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        redis: {
+        connection: {
           host: config.get<string>('REDIS_HOST', 'localhost'),
           port: config.get<number>('REDIS_PORT', 6379),
           password: config.get<string>('REDIS_PASSWORD'),
           tls: config.get<string>('REDIS_TLS') === 'true' ? {} : undefined,
         },
         defaultJobOptions: {
-          removeOnComplete: 100, // keep last 100 completed jobs
+          removeOnComplete: 100,
           removeOnFail: 200,
           attempts: 3,
           backoff: { type: 'exponential', delay: 2_000 },
@@ -73,7 +80,7 @@ import { KycModule } from './modules/kyc/kyc.module';
       }),
     }),
 
-    //  Internationalization (i18n) 
+    //  Internationalization (i18n)
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
@@ -87,7 +94,7 @@ import { KycModule } from './modules/kyc/kyc.module';
       ],
     }),
 
-    //  Feature modules 
+    //  Feature modules
     PrismaModule,
     QueuesModule,
     RedisModule,
@@ -106,13 +113,23 @@ import { KycModule } from './modules/kyc/kyc.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
+    InterviewPlannerModule,
     AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
+    // ── Fixed: PerformanceWorkerModule removed from imports array ──
     TwoFactorModule,
     KycModule,
+    AiFeedModule,
+    ResumeBrainModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
-export class AppModule { }
+export class AppModule {}
