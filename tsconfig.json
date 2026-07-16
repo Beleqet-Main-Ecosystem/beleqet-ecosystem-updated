@@ -10,12 +10,10 @@
     "jsx": "react-jsx",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
-    "types": ["node", "jest"],
     "paths": {
-      "@common/*": ["src/common/*"],
-      "@modules/*": ["src/modules/*"],
-      "@prisma-client": ["src/prisma/prisma.service"]
+      "@common/*": ["./src/common/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@prisma-client": ["./src/prisma/prisma.service"]
     },
     "incremental": true,
     "skipLibCheck": true,
@@ -23,7 +21,8 @@
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "types": ["node", "jest"]
   },
   "exclude": [
     "node_modules",
