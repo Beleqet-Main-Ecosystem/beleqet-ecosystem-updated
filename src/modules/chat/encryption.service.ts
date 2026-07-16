@@ -8,6 +8,7 @@ import * as crypto from 'crypto';
  * Requires the `BACKEND_ENCRYPTION_KEY` environment variable; if missing the
  * service will abort application startup to avoid insecure defaults.
  */
+
 @Injectable()
 export class EncryptionService {
   private readonly logger = new Logger(EncryptionService.name);
