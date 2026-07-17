@@ -64,9 +64,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -132,9 +132,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -195,9 +195,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -250,9 +250,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -306,9 +306,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -361,9 +361,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -427,9 +427,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -487,9 +487,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -540,9 +540,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -593,9 +593,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -647,9 +647,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -700,9 +700,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
@@ -753,9 +753,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/tax-calculator/calculate",
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
               "host": [
-                "{{baseUrl}}"
+                "localhost:4000"
               ],
               "path": [
                 "api",
