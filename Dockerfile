@@ -29,4 +29,5 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 4000
 
-CMD sh -c "npx prisma db push && npm run start:prod"
+# Apply committed migrations (production-safe) before starting the server.
+CMD sh -c "npx prisma migrate deploy && npm run start:prod"
