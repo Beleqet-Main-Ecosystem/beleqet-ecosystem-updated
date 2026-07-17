@@ -12,6 +12,9 @@ export default function AffiliateDashboard() {
   const [isRegistered, setIsRegistered] = useState<boolean>(false);
   const [referralLink, setReferralLink] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
+  const [fullName, setFullName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [errors, setErrors] = useState<{ fullName?: string; email?: string }>({});
 
   // Mock initial metrics state
   const [metrics] = useState({
@@ -20,9 +23,35 @@ export default function AffiliateDashboard() {
     earnings: 2450.00
   });
 
+  const fullNamePattern = /^[A-Za-z]+(?:[ '\-][A-Za-z]+)*$/;
+  const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
   /** Generates a localized unique affiliate tracking link */
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim();
+    const validationErrors: { fullName?: string; email?: string } = {};
+
+    if (!trimmedName) {
+      validationErrors.fullName = "Please enter your company or full name.";
+    } else if (!fullNamePattern.test(trimmedName)) {
+      validationErrors.fullName = "Name can only include letters, spaces, hyphens, and apostrophes.";
+    }
+
+    if (!trimmedEmail) {
+      validationErrors.email = "Please enter your email address.";
+    } else if (!emailPattern.test(trimmedEmail)) {
+      validationErrors.email = "Please enter a valid email like example@domain.com.";
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors({});
     const uniqueId = Math.random().toString(36).substring(2, 8).toUpperCase();
     setReferralLink(`https://beleqet.com/register?ref=${uniqueId}`);
     setIsRegistered(true);
@@ -62,11 +91,32 @@ export default function AffiliateDashboard() {
                 <label className="block text-sm font-medium mb-1">Company or Full Name</label>
                 <input 
                   type="text" 
-                  required 
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
                   className="w-full p-2 border border-border rounded bg-transparent dark:border-brandGreen focus:ring-2 focus:ring-success outline-none" 
                   placeholder="Enter name..."
+                  aria-invalid={errors.fullName ? "true" : "false"}
                 />
+                {errors.fullName ? (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.fullName}</p>
+                ) : null}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="w-full p-2 border border-border rounded bg-transparent dark:border-brandGreen focus:ring-2 focus:ring-success outline-none"
+                  placeholder="Enter email..."
+                  aria-invalid={errors.email ? "true" : "false"}
+                />
+                {errors.email ? (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
+                ) : null}
+              </div>
+
               <button 
                 type="submit"
                 className="bg-brandGreen hover:bg-darkGreen dark:bg-success dark:hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors"
