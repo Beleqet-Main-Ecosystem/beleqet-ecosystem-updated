@@ -12,6 +12,11 @@ export default function AffiliateDashboard() {
   const [referralLink, setReferralLink] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
 
+  // New State for Validation
+  const [fullName, setFullName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [errors, setErrors] = useState<{ fullName?: string; email?: string }>({});
+
   // Mock initial dashboard metrics state
   const [metrics] = useState({
     clicks: 142,
@@ -19,9 +24,39 @@ export default function AffiliateDashboard() {
     earnings: 2450.00
   });
 
+  // Regex Patterns for Strict Validation
+  const fullNamePattern = /^[A-Za-z]+(?:[ '\-][A-Za-z]+)*$/;
+  const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
   /** Generates a localized unique affiliate tracking link */
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim();
+    const validationErrors: { fullName?: string; email?: string } = {};
+
+    // Run Validation Checks
+    if (!trimmedName) {
+      validationErrors.fullName = "Please enter your full name.";
+    } else if (!fullNamePattern.test(trimmedName)) {
+      validationErrors.fullName = "Name can only include letters, spaces, hyphens, and apostrophes.";
+    }
+
+    if (!trimmedEmail) {
+      validationErrors.email = "Please enter your email address.";
+    } else if (!emailPattern.test(trimmedEmail)) {
+      validationErrors.email = "Please enter a valid email like example@domain.com.";
+    }
+
+    // Stop submission if errors exist
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    // If passed, clear errors and generate link
+    setErrors({});
     const uniqueId = Math.random().toString(36).substring(2, 8).toUpperCase();
     setReferralLink(`https://beleqet.com/register?ref=${uniqueId}`);
     setIsRegistered(true);
@@ -45,33 +80,15 @@ export default function AffiliateDashboard() {
         transition: "background-color var(--transition-base), color var(--transition-base)",
       }}
     >
-      
       {/* Decorative Cloud Background Glow using your native tokens */}
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        pointerEvents: "none",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        opacity: 0.12,
-        zIndex: 0
-      }}>
-        <div style={{
-          width: "700px",
-          height: "450px",
-          background: "radial-gradient(circle, var(--accent-blue) 0%, transparent 70%)",
-          filter: "blur(80px)",
-          position: "absolute",
-          top: "5%"
-        }}></div>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", display: "flex", justifyContent: "center", alignItems: "center", opacity: 0.12, zIndex: 0 }}>
+        <div style={{ width: "700px", height: "450px", background: "radial-gradient(circle, var(--accent-blue) 0%, transparent 70%)", filter: "blur(80px)", position: "absolute", top: "5%" }}></div>
       </div>
 
       {/* Styled Header matching your .page-header specifications */}
       <header className="page-header" style={{ position: "relative", zIndex: 10 }}>
         <div>
           <div className="flex items-center gap-3">
-            {/* Native Brand Cloud SVG */}
             <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" style={{ color: "var(--accent-blue)" }}>
               <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>
             </svg>
@@ -96,7 +113,6 @@ export default function AffiliateDashboard() {
               <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "32px", maxWidth: "520px", margin: "0 auto 32px" }}>
                 Join the program to start selling success, amplify tech reach, and build the brand's affiliate network.
               </p>
-              
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", textAlign: "left", maxWidth: "520px", margin: "0 auto" }}>
                 <div className="flex items-center gap-2">
                   <span style={{ color: "var(--accent-green)", fontWeight: "bold" }}>✓</span>
@@ -117,22 +133,40 @@ export default function AffiliateDashboard() {
               </div>
             </div>
 
-            {/* Card 2: Interactive Advocate Entry Form */}
+            {/* Card 2: Interactive Advocate Entry Form (UPDATED WITH VALIDATION) */}
             <div className="card" style={{ padding: "32px" }}>
               <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "20px", textAlign: "center" }}>Become a Beleqet Advocate</h3>
               <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                
                 <div className="form-group">
                   <label className="form-label">Full Name</label>
-                  <input type="text" required placeholder="Full Name (e.g. Abebe kebede)" />
+                  <input 
+                    type="text" 
+                    placeholder="Full Name (e.g. Abebe kebede)" 
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    style={{ borderColor: errors.fullName ? "#ef4444" : undefined }}
+                  />
+                  {errors.fullName && <span style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px", display: "block" }}>{errors.fullName}</span>}
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Email Address</label>
-                  <input type="email" required placeholder="Email Address" />
+                  <input 
+                    type="text" 
+                    placeholder="Email Address" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    style={{ borderColor: errors.email ? "#ef4444" : undefined }}
+                  />
+                  {errors.email && <span style={{ color: "#ef4444", fontSize: "13px", marginTop: "4px", display: "block" }}>{errors.email}</span>}
                 </div>
+
                 <div className="form-group">
                   <label className="form-label">Company / Website (Optional)</label>
                   <input type="text" placeholder="Company / Website (Optional)" />
                 </div>
+                
                 <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "12px", padding: "12px" }}>
                   Activate My Portal
                 </button>
@@ -148,12 +182,7 @@ export default function AffiliateDashboard() {
               <h2 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "6px" }}>Your Unique Promotion Link</h2>
               <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginBottom: "16px" }}>Share this unique tracking link across your tech channels to collect dynamic metrics.</p>
               <div style={{ display: "flex", gap: "12px" }}>
-                <input 
-                  type="text" 
-                  readOnly 
-                  value={referralLink} 
-                  style={{ fontFamily: "monospace", fontSize: "13px" }} 
-                />
+                <input type="text" readOnly value={referralLink} style={{ fontFamily: "monospace", fontSize: "13px" }} />
                 <button onClick={copyToClipboard} className="btn btn-primary" style={{ whiteSpace: "nowrap", padding: "0 24px" }}>
                   {copied ? "Copied! ✓" : "Copy Link"}
                 </button>
