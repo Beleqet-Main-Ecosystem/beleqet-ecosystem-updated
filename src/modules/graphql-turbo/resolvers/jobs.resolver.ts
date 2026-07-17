@@ -47,7 +47,7 @@ export class JobsResolver {
   @Query(() => GqlJobConnection, { name: 'jobs', description: 'Fetch jobs with filters and pagination' })
   async getJobs(
     @Args('filter', { nullable: true }) filter?: GqlJobFilterInput,
-  ): Promise<GqlJobConnection> {
+  ) {
     const page = filter?.page || 1;
     const limit = Math.min(filter?.limit || 20, 100);
     const skip = (page - 1) * limit;
@@ -125,7 +125,7 @@ export class JobsResolver {
    * ```
    */
   @Query(() => GqlJob, { name: 'job', description: 'Fetch a single job by ID', nullable: true })
-  async getJob(@Args('id') id: string): Promise<GqlJob | null> {
+  async getJob(@Args('id') id: string) {
     return this.prisma.job.findUnique({ where: { id } });
   }
 
@@ -135,7 +135,7 @@ export class JobsResolver {
   @Query(() => [GqlJob], { name: 'jobsByCompany', description: 'Fetch all jobs for a company' })
   async getJobsByCompany(
     @Args('companyId') companyId: string,
-  ): Promise<GqlJob[]> {
+  ) {
     return this.prisma.job.findMany({
       where: { companyId, status: 'PUBLISHED' },
       orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
