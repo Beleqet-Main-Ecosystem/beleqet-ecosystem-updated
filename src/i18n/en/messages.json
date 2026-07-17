@@ -37,6 +37,7 @@
     "invalid_question_index": "Invalid question index. Please ensure you are responding to a valid interview question.",
     "evaluation_pending": "Interview evaluation is still in progress. Please check back shortly.",
     "forbidden": "You do not have permission to access this interview session.",
-    "gdpr_request_accepted": "Your data deletion request has been accepted. All interview data will be permanently removed within 30 days."
+    "gdpr_request_accepted": "Your data deletion request has been accepted. All interview data will be permanently removed within 30 days.",
+    "invalid_video_url": "The video URL must point to an approved Beleqet storage or CDN host."
   }
 }

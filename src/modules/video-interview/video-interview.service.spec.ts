@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { I18nService } from 'nestjs-i18n';
 import { VideoInterviewService } from './video-interview.service';
@@ -24,6 +25,17 @@ const mockPrisma = {
 const mockI18n = { t: jest.fn((key: string) => Promise.resolve(key)) };
 const mockCircuitBreaker = { execute: jest.fn() };
 const mockQueue = { add: jest.fn() };
+const mockConfig = {
+  get: jest.fn((key: string, fallback?: string) => {
+    const map: Record<string, string> = {
+      R2_PUBLIC_BASE_URL: 'https://cdn.beleqet.com',
+      AWS_S3_BUCKET: 'beleqet-uploads',
+      AWS_REGION: 'us-east-1',
+      VIDEO_URL_ALLOWED_HOSTS: '',
+    };
+    return map[key] ?? fallback ?? '';
+  }),
+};
 
 describe('VideoInterviewService', () => {
   let service: VideoInterviewService;
@@ -35,6 +47,7 @@ describe('VideoInterviewService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: I18nService, useValue: mockI18n },
         { provide: CircuitBreakerService, useValue: mockCircuitBreaker },
+        { provide: ConfigService, useValue: mockConfig },
         { provide: getQueueToken(QUEUE_NAMES.VIDEO_INTERVIEW), useValue: mockQueue },
       ],
     }).compile();
@@ -153,6 +166,51 @@ describe('VideoInterviewService', () => {
     it('throws ForbiddenException for wrong user', async () => {
       mockPrisma.videoInterview.findUnique.mockResolvedValue({ id: 's1', userId: 'u1' });
       await expect(service.requestGdprDeletion('s1', 'intruder')).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  // ── submitResponse SSRF + re-record ─────────────────────────────────────
+
+  describe('submitResponse()', () => {
+    const baseSession = {
+      id: 's1',
+      userId: 'u1',
+      expiresAt: null,
+      status: 'IN_PROGRESS',
+      metadata: { questions: [{ id: 'q1', text: 'Q', durationSec: 60 }] },
+      responses: [],
+    };
+
+    it('rejects SSRF videoUrl pointing at AWS metadata', async () => {
+      mockPrisma.videoInterview.findUnique.mockResolvedValue(baseSession);
+      await expect(
+        service.submitResponse('s1', 'u1', {
+          questionIndex: 0,
+          videoUrl: 'http://169.254.169.254/latest/meta-data/',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.videoResponse.upsert).not.toHaveBeenCalled();
+    });
+
+    it('accepts allowlisted CDN URL and resets COMPLETED session for re-record', async () => {
+      mockPrisma.videoInterview.findUnique.mockResolvedValue({
+        ...baseSession,
+        status: 'COMPLETED',
+      });
+      mockPrisma.videoResponse.upsert.mockResolvedValue({ id: 'resp-1' });
+      mockPrisma.interviewEvaluation.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrisma.videoInterview.update.mockResolvedValue({ id: 's1', status: 'IN_PROGRESS' });
+
+      await service.submitResponse('s1', 'u1', {
+        questionIndex: 0,
+        videoUrl: 'https://cdn.beleqet.com/interviews/a.webm',
+      });
+
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockPrisma.interviewEvaluation.deleteMany).toHaveBeenCalledWith({
+        where: { videoInterviewId: 's1' },
+      });
+      expect(mockQueue.add).toHaveBeenCalled();
     });
   });
 });

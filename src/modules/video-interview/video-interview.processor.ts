@@ -376,8 +376,8 @@ ${qa}`;
    * Check if all questions have been transcribed; if so, enqueue evaluation once.
    *
    * Dedup strategy (both required):
-   * 1. Atomic claim via status transition IN_PROGRESS → PROCESSING (updateMany count).
-   * 2. Stable Bull `jobId` so concurrent/add retries cannot create a second EVALUATE job.
+   * 1. Atomic claim via status → PROCESSING (allows re-claim after COMPLETED/FAILED re-record).
+   * 2. Stable Bull `jobId` with prior job removal so re-evals are not blocked by a finished job.
    */
   private async maybeEnqueueEvaluation(sessionId: string, lang: string): Promise<void> {
     const session = await this.prisma.videoInterview.findUnique({
@@ -392,11 +392,12 @@ ${qa}`;
 
     if (transcribed < totalQuestions) return;
 
-    // Only one concurrent worker can win this conditional update
+    // Claim for first eval OR re-eval after candidate re-record (COMPLETED/FAILED).
+    // PROCESSING stays exclusive so concurrent TRANSCRIBE completions cannot double-enqueue.
     const claimed = await this.prisma.videoInterview.updateMany({
       where: {
         id: sessionId,
-        status: { in: ['PENDING', 'IN_PROGRESS'] },
+        status: { in: ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED'] },
       },
       data: { status: 'PROCESSING' },
     });
@@ -409,12 +410,19 @@ ${qa}`;
     }
 
     this.logger.log(`All ${totalQuestions} responses transcribed — queuing evaluation`);
+    const jobId = `evaluate-${sessionId}`;
     try {
+      // Re-record path: a completed/failed EVALUATE may still occupy this jobId
+      const existing = await this.videoQueue.getJob(jobId);
+      if (existing) {
+        await existing.remove();
+      }
+
       await this.videoQueue.add(
         VIDEO_INTERVIEW_JOBS.EVALUATE,
         { sessionId, lang },
         {
-          jobId: `evaluate-${sessionId}`,
+          jobId,
           attempts: 3,
           backoff: { type: 'exponential', delay: 10_000 },
         },

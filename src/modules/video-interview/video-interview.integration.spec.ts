@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { VideoInterviewService } from './video-interview.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
@@ -96,6 +97,17 @@ describe('VideoInterview × Multi-Currency Integration', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: I18nService, useValue: { t: jest.fn(async (k: string) => k) } },
         { provide: CircuitBreakerService, useValue: { execute: jest.fn() } },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (key: string, fb?: string) => {
+              if (key === 'R2_PUBLIC_BASE_URL') return 'https://cdn.beleqet.com';
+              if (key === 'AWS_S3_BUCKET') return 'beleqet-uploads';
+              if (key === 'AWS_REGION') return 'us-east-1';
+              return fb ?? '';
+            },
+          },
+        },
         { provide: getQueueToken(QUEUE_NAMES.VIDEO_INTERVIEW), useValue: mockQueue },
       ],
     }).compile();
@@ -144,7 +156,7 @@ describe('VideoInterview × Multi-Currency Integration', () => {
 
     await service.submitResponse('vi-1', candidateId, {
       questionIndex: 0,
-      videoUrl: 'https://cdn.example/a.webm',
+      videoUrl: 'https://cdn.beleqet.com/a.webm',
     });
 
     expect(mockQueue.add).toHaveBeenCalledWith(

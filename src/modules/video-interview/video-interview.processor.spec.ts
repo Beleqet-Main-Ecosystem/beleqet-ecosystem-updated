@@ -28,7 +28,7 @@ const mockPrisma = {
   $transaction: jest.fn((ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
 };
 
-const mockQueue = { add: jest.fn() };
+const mockQueue = { add: jest.fn(), getJob: jest.fn().mockResolvedValue(null) };
 const mockCircuitBreaker = {
   execute: jest.fn(async (_name: string, action: () => Promise<unknown>) => action()),
 };
@@ -115,7 +115,7 @@ describe('VideoInterviewProcessor', () => {
       expect(mockPrisma.videoInterview.updateMany).toHaveBeenCalledWith({
         where: {
           id: 'sess-1',
-          status: { in: ['PENDING', 'IN_PROGRESS'] },
+          status: { in: ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED'] },
         },
         data: { status: 'PROCESSING' },
       });
@@ -123,6 +123,43 @@ describe('VideoInterviewProcessor', () => {
         VIDEO_INTERVIEW_JOBS.EVALUATE,
         { sessionId: 'sess-1', lang: 'en' },
         expect.objectContaining({ jobId: 'evaluate-sess-1' }),
+      );
+    });
+
+    it('re-claims COMPLETED sessions after re-record and removes prior EVALUATE job', async () => {
+      mockPrisma.videoResponse.findUnique.mockResolvedValue({
+        id: 'resp-3',
+        videoUrl: 'https://cdn.example/v.webm',
+        language: 'en',
+      });
+      mockPrisma.videoResponse.update.mockResolvedValue({});
+      mockCircuitBreaker.execute.mockResolvedValueOnce({
+        text: 'hello again',
+        segments: [],
+        language: 'en',
+        duration: 1,
+      });
+
+      mockPrisma.videoInterview.findUnique.mockResolvedValue({
+        id: 'sess-3',
+        status: 'COMPLETED',
+        metadata: { questions: [{ id: 'q1' }] },
+        responses: [{ processingStatus: 'TRANSCRIBED' }],
+      });
+      mockPrisma.videoInterview.updateMany.mockResolvedValue({ count: 1 });
+      const remove = jest.fn().mockResolvedValue(undefined);
+      mockQueue.getJob.mockResolvedValueOnce({ remove });
+      mockQueue.add.mockResolvedValue({ id: 'job-2' });
+
+      await processor.processTranscription({
+        data: { responseId: 'resp-3', sessionId: 'sess-3', lang: 'en' },
+      } as never);
+
+      expect(remove).toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        VIDEO_INTERVIEW_JOBS.EVALUATE,
+        { sessionId: 'sess-3', lang: 'en' },
+        expect.objectContaining({ jobId: 'evaluate-sess-3' }),
       );
     });
 

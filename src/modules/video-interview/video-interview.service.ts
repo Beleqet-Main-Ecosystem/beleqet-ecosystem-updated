@@ -12,9 +12,11 @@ import { Prisma } from '@prisma/client';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
+import { assertAllowedVideoUrl } from './ffmpeg.service';
 import { CreateInterviewSessionDto } from './dto/create-interview-session.dto';
 import { SubmitResponseDto } from './dto/submit-response.dto';
 import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../queues/queues.constants';
+import { ConfigService } from '@nestjs/config';
 
 /** GDPR retention period: 90 days in milliseconds. */
 const GDPR_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
@@ -39,6 +41,7 @@ export class VideoInterviewService {
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
     private readonly circuitBreaker: CircuitBreakerService,
+    private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.VIDEO_INTERVIEW)
     private readonly videoQueue: Queue,
   ) {}
@@ -205,6 +208,13 @@ export class VideoInterviewService {
       );
     }
 
+    // SSRF: only allow configured storage / CDN / API hosts
+    assertAllowedVideoUrl(
+      dto.videoUrl,
+      this.config,
+      await this.i18n.t('video_interview.invalid_video_url', { lang }),
+    );
+
     const response = await this.prisma.videoResponse.upsert({
       where: {
         // Composite natural key via Prisma's @unique on [videoInterviewId, questionIndex]
@@ -230,12 +240,26 @@ export class VideoInterviewService {
       },
     });
 
-    // Update session to IN_PROGRESS on first response
+    // First response → IN_PROGRESS; re-record after eval → reset so a new EVALUATE can be claimed
     if (session.status === 'PENDING') {
       await this.prisma.videoInterview.update({
         where: { id: sessionId },
         data: { status: 'IN_PROGRESS' },
       });
+    } else if (
+      session.status === 'PROCESSING'
+      || session.status === 'COMPLETED'
+      || session.status === 'FAILED'
+    ) {
+      await this.prisma.$transaction([
+        this.prisma.interviewEvaluation.deleteMany({
+          where: { videoInterviewId: sessionId },
+        }),
+        this.prisma.videoInterview.update({
+          where: { id: sessionId },
+          data: { status: 'IN_PROGRESS' },
+        }),
+      ]);
     }
 
     // Enqueue Whisper transcription (wrapped in circuit breaker inside processor)
