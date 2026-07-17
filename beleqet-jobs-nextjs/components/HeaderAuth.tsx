@@ -89,7 +89,7 @@ export default function HeaderAuth() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-white shadow-cardHover">
+        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-surface shadow-cardHover">
           <div className="border-b border-border p-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brandGreen to-darkGreen text-sm font-bold uppercase text-white">

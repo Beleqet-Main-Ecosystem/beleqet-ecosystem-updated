@@ -183,7 +183,7 @@ export default function PostJobPage() {
           {companyCheckError.includes("expired") && (
             <Link
               href="/login?next=/post-job"
-              className="rounded-full border border-primary/15 px-5 py-2.5 text-sm font-bold text-primary"
+              className="rounded-full border border-primary/15 px-5 py-2.5 text-sm font-bold text-ink"
             >
               Sign in
             </Link>
@@ -202,12 +202,12 @@ export default function PostJobPage() {
     );
   if (ready && user && hasCompany === false)
     return (
-      <div className="bg-[#f7f5ef] py-16">
+      <div className="bg-pageBg py-16">
         <div className="container-page max-w-2xl">
           <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
             First-time setup
           </p>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-primary">
+          <h1 className="mt-3 text-4xl font-black tracking-tight text-ink">
             Create your company profile
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
@@ -216,7 +216,7 @@ export default function PostJobPage() {
           </p>
           <form
             onSubmit={createCompany}
-            className="mt-8 space-y-4 rounded-[24px] border border-primary/10 bg-white p-6"
+            className="mt-8 space-y-4 rounded-[24px] border border-primary/10 bg-surface p-6"
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <Field name="name" label="Company name" placeholder="e.g. Acme Ethiopia" required />
@@ -244,7 +244,7 @@ export default function PostJobPage() {
     return (
       <div className="container-page py-24 text-center">
         <CheckCircle2 className="mx-auto h-14 w-14 text-brandGreen" />
-        <h1 className="mt-5 text-3xl font-black text-primary">Job published</h1>
+        <h1 className="mt-5 text-3xl font-black text-ink">Job published</h1>
         <p className="mt-2 text-muted">
           The listing is now stored and available to job seekers.
         </p>
@@ -258,10 +258,10 @@ export default function PostJobPage() {
     );
 
   return (
-    <div className="bg-[#f7f5ef]">
+    <div className="bg-pageBg">
       <section className="bg-primary py-14 text-white">
         <div className="container-page">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-lime">
             Employer workspace
           </p>
           <h1 className="mt-3 text-[clamp(2.8rem,6vw,5rem)] font-black leading-none tracking-[-.055em]">
@@ -405,7 +405,7 @@ function Gate({
   return (
     <div className="container-page py-24 text-center">
       <BriefcaseBusiness className="mx-auto h-12 w-12 text-brandGreen" />
-      <h1 className="mt-5 text-3xl font-black text-primary">{title}</h1>
+      <h1 className="mt-5 text-3xl font-black text-ink">{title}</h1>
       <p className="mx-auto mt-3 max-w-md text-muted">{text}</p>
       <Link
         href={href}
@@ -426,19 +426,19 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] border border-primary/10 bg-white p-6">
+    <section className="rounded-[24px] border border-primary/10 bg-surface p-6">
       <div className="mb-5 flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#d8ff3e] text-primary">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-lime text-primary">
           <Icon className="h-5 w-5" />
         </span>
-        <h2 className="font-extrabold text-primary">{title}</h2>
+        <h2 className="font-extrabold text-ink">{title}</h2>
       </div>
       {children}
     </section>
   );
 }
 const control =
-  "mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none focus:border-brandGreen";
+  "mt-1.5 w-full rounded-xl border border-primary/10 bg-surface px-3.5 py-3 text-sm outline-none focus:border-brandGreen";
 function Field({
   name,
   label,
@@ -526,9 +526,9 @@ function Tip({
   text: string;
 }) {
   return (
-    <div className="rounded-2xl border border-primary/10 bg-white p-5">
+    <div className="rounded-2xl border border-primary/10 bg-surface p-5">
       <Icon className="h-5 w-5 text-brandGreen" />
-      <h3 className="mt-3 text-sm font-extrabold text-primary">{title}</h3>
+      <h3 className="mt-3 text-sm font-extrabold text-ink">{title}</h3>
       <p className="mt-1 text-xs leading-5 text-muted">{text}</p>
     </div>
   );

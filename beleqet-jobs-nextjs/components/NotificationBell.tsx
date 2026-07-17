@@ -62,7 +62,7 @@ export default function NotificationBell() {
           if (!open) load();
         }}
         aria-label={`Notifications, ${unread} unread`}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary/10 text-primary hover:bg-primary/5"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border text-ink hover:bg-primary/5"
       >
         <Bell className="h-4 w-4" />
         {unread > 0 && (
@@ -72,9 +72,9 @@ export default function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-xl">
+        <div className="absolute right-0 top-12 z-50 w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
           <div className="flex items-center justify-between border-b border-border p-4">
-            <p className="text-sm font-extrabold text-primary">Notifications</p>
+            <p className="text-sm font-extrabold text-ink">Notifications</p>
             {unread > 0 && (
               <button
                 onClick={readAll}
@@ -92,7 +92,7 @@ export default function NotificationBell() {
                   onClick={() => read(item)}
                   className={`block w-full border-b border-border p-4 text-left hover:bg-pageBg ${item.read ? "opacity-60" : "bg-brandGreen/[.04]"}`}
                 >
-                  <p className="text-sm font-bold text-primary">{item.title}</p>
+                  <p className="text-sm font-bold text-ink">{item.title}</p>
                   <p className="mt-1 text-xs leading-5 text-muted">
                     {item.body}
                   </p>

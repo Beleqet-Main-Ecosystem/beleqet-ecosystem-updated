@@ -40,10 +40,10 @@ export default function Footer() {
             href="/"
             className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight"
           >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#d8ff3e] text-primary">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] bg-lime text-primary">
               <BriefcaseBusiness className="h-5 w-5" />
             </span>
-            Beleqet<span className="text-[#d8ff3e]">.</span>
+            Beleqet<span className="text-lime">.</span>
           </Link>
           <p className="mt-5 max-w-xs text-sm leading-6 text-white/55">
             Beleqet helps job seekers discover opportunities and employers
@@ -53,7 +53,7 @@ export default function Footer() {
 
         {footerColumns.map((col) => (
           <div key={col.title}>
-            <h4 className="mb-5 text-xs font-extrabold uppercase tracking-[.16em] text-[#d8ff3e]">
+            <h4 className="mb-5 text-xs font-extrabold uppercase tracking-[.16em] text-lime">
               {col.title}
             </h4>
             <ul className="space-y-2.5">

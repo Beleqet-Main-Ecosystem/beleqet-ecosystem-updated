@@ -19,7 +19,7 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
     return parts.map((part, idx) => {
       if (part.startsWith("**") && part.endsWith("**")) {
         return (
-          <strong key={idx} className={`font-extrabold ${isUser ? "text-white" : "text-primary"}`}>
+          <strong key={idx} className={`font-extrabold ${isUser ? "text-white" : "text-ink"}`}>
             {part.slice(2, -2)}
           </strong>
         );
@@ -195,7 +195,7 @@ export default function ChatWidget() {
       </button>
 
       <div
-        className={`fixed bottom-24 right-5 z-50 flex h-[72vh] max-h-[560px] w-[92vw] max-w-[380px] flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-[0_24px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out ${
+         className={`fixed bottom-24 right-5 z-50 flex h-[72vh] max-h-[560px] w-[92vw] max-w-[380px] flex-col overflow-hidden rounded-3xl border border-black/5 bg-surface shadow-[0_24px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out ${
           open ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
         }`}
       >
@@ -221,7 +221,7 @@ export default function ChatWidget() {
           </div>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-pageBg to-white px-4 py-4">
+        <div className="flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-pageBg to-surface px-4 py-4">
           {messages.map((m, i) => (
             <div key={i} className={`flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               {m.role === "assistant" && (
@@ -233,7 +233,7 @@ export default function ChatWidget() {
                 className={`max-w-[78%] px-4 py-2.5 text-sm shadow-sm ${
                   m.role === "user"
                     ? "rounded-2xl rounded-br-md bg-gradient-to-br from-brandGreen to-darkGreen text-white"
-                    : "rounded-2xl rounded-bl-md border border-border bg-white text-ink"
+                    : "rounded-2xl rounded-bl-md border border-border bg-surface text-ink"
                 }`}
               >
                 <MarkdownContent content={m.content} isUser={m.role === "user"} />
@@ -246,7 +246,7 @@ export default function ChatWidget() {
               <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brandGreen/10 text-brandGreen">
                 <Sparkles className="h-3.5 w-3.5" />
               </span>
-              <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-border bg-white px-4 py-3.5">
+              <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-border bg-surface px-4 py-3.5">
                 {[0, 150, 300].map((d) => (
                   <span
                     key={d}
@@ -264,7 +264,7 @@ export default function ChatWidget() {
                 <button
                   key={s}
                   onClick={() => sendText(s)}
-                  className="rounded-full border border-brandGreen/30 bg-white px-3 py-1.5 text-xs font-medium text-brandGreen hover:bg-brandGreen/5 transition-colors"
+                  className="rounded-full border border-brandGreen/30 bg-surface px-3 py-1.5 text-xs font-medium text-brandGreen hover:bg-brandGreen/5 transition-colors"
                 >
                   {s}
                 </button>
@@ -280,7 +280,7 @@ export default function ChatWidget() {
             e.preventDefault();
             sendText(input);
           }}
-          className="flex items-center gap-2 border-t border-border bg-white p-3"
+          className="flex items-center gap-2 border-t border-border bg-surface p-3"
         >
           <input
             ref={inputRef}

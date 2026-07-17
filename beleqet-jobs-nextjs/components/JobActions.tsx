@@ -124,7 +124,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
 
   return (
     <>
-      <div className="rounded-2xl border border-border bg-white p-6">
+      <div className="rounded-2xl border border-border bg-surface p-6">
         <button
           onClick={startApplication}
           disabled={applied || !ready}
@@ -150,20 +150,20 @@ export default function JobActions({ jobId }: { jobId: string }) {
 
       {open && (
         <div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-primary/70 p-0 backdrop-blur-sm sm:items-center sm:p-5"
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-5"
           role="dialog"
           aria-modal="true"
           aria-labelledby="application-title"
         >
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-[28px] bg-[#f7f5ef] shadow-2xl sm:rounded-[28px]">
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-primary/10 bg-white px-6 py-5">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-[28px] bg-pageBg shadow-2xl sm:rounded-[28px]">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-6 py-5">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-wider text-brandGreen">
                   Job application
                 </p>
                 <h2
                   id="application-title"
-                  className="mt-1 text-xl font-black text-primary"
+                  className="mt-1 text-xl font-black text-ink"
                 >
                   Tell the employer about yourself
                 </h2>
@@ -186,7 +186,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
                   maxLength={10000}
                   rows={8}
                   placeholder="Explain why your experience and skills fit this role…"
-                  className="mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm leading-6 outline-none focus:border-brandGreen"
+                  className="mt-1.5 w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-sm leading-6 outline-none focus:border-brandGreen"
                 />
                 <span className="mt-1 block font-normal text-muted">
                   Minimum 50 characters. Be specific to this role.
@@ -194,7 +194,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
               </label>
               <label className="block text-xs font-bold text-ink">
                 Resume or CV
-                <span className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-primary/15 bg-white p-5 text-sm font-semibold text-muted hover:border-brandGreen">
+                <span className="mt-1.5 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-border bg-surface p-5 text-sm font-semibold text-muted hover:border-brandGreen">
                   <FileUp className="h-5 w-5 text-brandGreen" />
                   <input
                     name="resume"
@@ -214,7 +214,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
                     name="portfolioUrl"
                     type="url"
                     placeholder="https://…"
-                    className="mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none focus:border-brandGreen"
+                    className="mt-1.5 w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-sm outline-none focus:border-brandGreen"
                   />
                 </label>
                 <label className="block text-xs font-bold text-ink">
@@ -224,7 +224,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
                     type="number"
                     min="0"
                     placeholder="Optional"
-                    className="mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none focus:border-brandGreen"
+                    className="mt-1.5 w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-sm outline-none focus:border-brandGreen"
                   />
                 </label>
               </div>
@@ -241,7 +241,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
                   type="button"
                   onClick={() => setOpen(false)}
                   disabled={applying}
-                  className="rounded-full border border-primary/15 px-5 py-3 text-sm font-bold text-primary"
+                  className="rounded-full border border-border px-5 py-3 text-sm font-bold text-ink"
                 >
                   Cancel
                 </button>

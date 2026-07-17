@@ -60,7 +60,7 @@ export default function SaveJobButton({
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:cursor-wait disabled:opacity-60 ${
         light
           ? "bg-pageBg text-muted hover:bg-brandGreen/10 hover:text-brandGreen"
-          : "bg-white/10 text-white/60 hover:text-[#d8ff3e]"
+          : "bg-white/10 text-white/60 hover:text-lime"
       }`}
     >
       {loading ? (

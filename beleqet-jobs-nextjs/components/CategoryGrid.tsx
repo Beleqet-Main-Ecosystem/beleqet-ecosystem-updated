@@ -37,7 +37,7 @@ export default function CategoryGrid({
           <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
             Explore your field
           </p>
-          <h2 className="text-sectionH2 tracking-tight text-primary">
+          <h2 className="text-sectionH2 tracking-tight text-ink">
             There’s a place for your talent.
           </h2>
           <p className="mt-2 text-sm text-muted">
@@ -60,13 +60,13 @@ export default function CategoryGrid({
             <Link
               key={cat.id}
               href={`/jobs?category=${cat.id}`}
-              className="group flex min-h-40 flex-col justify-between rounded-[22px] border border-primary/10 bg-white p-4 text-left transition-all hover:-translate-y-1 hover:border-primary hover:bg-primary"
+              className="group flex min-h-40 flex-col justify-between rounded-[22px] border border-border bg-surface p-4 text-left transition-all hover:-translate-y-1 hover:border-primary hover:bg-primary"
             >
-              <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#d8ff3e] text-primary">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-lime text-primary">
                 <Icon className="h-5 w-5" />
               </span>
               <div>
-                <span className="block text-sm font-extrabold text-primary group-hover:text-white">
+                <span className="block text-sm font-extrabold text-ink group-hover:text-white">
                   {cat.label}
                 </span>
                 {cat.count ? (
