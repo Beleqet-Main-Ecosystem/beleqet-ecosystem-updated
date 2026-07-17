@@ -4,26 +4,13 @@
 // This is the heart of the event-driven hiring workflow.
 // It processes:
 //   1. screen-candidate        → calls OpenAI, saves score to DB
-//   2. notify-recruiter-*      → delegates to NotificationsService
+//   2. notify-recruiter        → delegates to NotificationsService
 //   3. schedule-interview      → creates calendar slot in DB
-//
-// Event chain visualised:
-//   application.submitted
-//     → [queue] screen-candidate
-//       → candidate.scored
-//         → [queue] notify-recruiter (if score ≥ threshold → shortlisted)
-//         → [queue] notify-recruiter (if score < threshold → rejected)
-//         → [queue] schedule-interview (if auto-shortlisted)
-//         → [queue] log-platform-event (analytics)
 // =============================================================================
 
-import {
-  Processor, Process, OnQueueFailed, OnQueueCompleted,
-} from '@nestjs/bull';
+import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Logger, Injectable } from '@nestjs/common';
-import { Job as BullJob } from 'bull';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { Job, Queue } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
@@ -49,6 +36,21 @@ interface ScreenCandidatePayload {
   companyId: string;
 }
 
+interface NotifyRecruiterPayload {
+  applicationId: string;
+  jobTitle: string;
+  companyId: string;
+  applicantName: string;
+}
+
+interface ScheduleInterviewPayload {
+  applicationId: string;
+  userId: string;
+  jobId: string;
+  jobTitle: string;
+  companyId: string;
+}
+
 interface AiScoreResult {
   overallScore: number;
   skillScore: number;
@@ -59,7 +61,7 @@ interface AiScoreResult {
 
 @Injectable()
 @Processor(QUEUE_NAMES.APPLICATION)
-export class ScreeningProcessor {
+export class ScreeningProcessor extends WorkerHost {
   private readonly logger = new Logger(ScreeningProcessor.name);
   private readonly openai: OpenAI;
 
@@ -69,16 +71,44 @@ export class ScreeningProcessor {
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
     @InjectQueue(QUEUE_NAMES.ANALYTICS)    private readonly analyticsQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.APPLICATION)  private readonly applicationQueue: Queue, // 💡 Injected safely here
   ) {
+    super();
     this.openai = new OpenAI({
       apiKey: this.config.get<string>('OPENAI_API_KEY'),
     });
   }
 
+  /**
+   * Centralized BullMQ execution router
+   */
+  async process(job: Job): Promise<any> {
+    this.logger.log(`Processing job ${job.id} of type ${job.name}`);
+
+    try {
+      switch (job.name) {
+        case APPLICATION_JOBS.SCREEN_CANDIDATE:
+          return await this.handleScreenCandidate(job as Job<ScreenCandidatePayload>);
+
+        case APPLICATION_JOBS.NOTIFY_RECRUITER:
+          return await this.handleNotifyRecruiter(job as Job<NotifyRecruiterPayload>);
+
+        case APPLICATION_JOBS.SCHEDULE_INTERVIEW:
+          return await this.handleScheduleInterview(job as Job<ScheduleInterviewPayload>);
+
+        default:
+          this.logger.warn(`Unknown job execution mapping encountered: ${job.name}`);
+          break;
+      }
+    } catch (error) {
+      await this.handleJobFailure(job, error as Error);
+      throw error;
+    }
+  }
+
   // ── 1. AI Screening ──────────────────────────────────────────────────────
 
-  @Process(APPLICATION_JOBS.SCREEN_CANDIDATE)
-  async handleScreenCandidate(job: BullJob<ScreenCandidatePayload>) {
+  private async handleScreenCandidate(job: Job<ScreenCandidatePayload>) {
     const { applicationId, jobTitle, jobDescription, jobRequirements, coverLetter } = job.data;
     this.logger.log(`[screen-candidate] Processing application ${applicationId}`);
 
@@ -119,7 +149,7 @@ export class ScreeningProcessor {
       ? 'REJECTED'
       : isShortlisted
       ? 'SHORTLISTED'
-      : 'SCREENING'; // manual review zone
+      : 'SCREENING';
 
     await this.prisma.application.update({
       where: { id: applicationId },
@@ -169,7 +199,8 @@ export class ScreeningProcessor {
     if (isShortlisted) {
       // Auto-schedule interview if score is very high
       if (scoreResult.overallScore >= 90) {
-        await (job.queue as any).add(APPLICATION_JOBS.SCHEDULE_INTERVIEW, {
+        // 💡 Solved: Using the properly typed injected applicationQueue
+        await this.applicationQueue.add(APPLICATION_JOBS.SCHEDULE_INTERVIEW, {
           applicationId,
           userId: job.data.userId,
           jobId: job.data.jobId,
@@ -205,11 +236,9 @@ export class ScreeningProcessor {
 
   // ── 2. Notify Recruiter ───────────────────────────────────────────────────
 
-  @Process(APPLICATION_JOBS.NOTIFY_RECRUITER)
-  async handleNotifyRecruiter(job: BullJob<{ applicationId: string; jobTitle: string; companyId: string; applicantName: string }>) {
+  private async handleNotifyRecruiter(job: Job<NotifyRecruiterPayload>) {
     this.logger.log(`[notify-recruiter] New application for ${job.data.jobTitle}`);
 
-    // Find company owner and notify
     const company = await this.prisma.company.findUnique({
       where: { id: job.data.companyId },
       include: { user: true },
@@ -237,7 +266,6 @@ export class ScreeningProcessor {
         ...email,
       });
 
-      // Telegram notification if recruiter has connected Telegram
       if (company.user.telegramId) {
         await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
           telegramId: company.user.telegramId,
@@ -249,11 +277,9 @@ export class ScreeningProcessor {
 
   // ── 3. Schedule Interview ────────────────────────────────────────────────
 
-  @Process(APPLICATION_JOBS.SCHEDULE_INTERVIEW)
-  async handleScheduleInterview(job: BullJob<{ applicationId: string; userId: string; jobId: string; jobTitle: string }>) {
+  private async handleScheduleInterview(job: Job<ScheduleInterviewPayload>) {
     this.logger.log(`[schedule-interview] Scheduling for application ${job.data.applicationId}`);
 
-    // Set a proposed interview slot 3 business days from now
     const proposedSlot = new Date();
     proposedSlot.setDate(proposedSlot.getDate() + 3);
     proposedSlot.setHours(10, 0, 0, 0);
@@ -266,7 +292,6 @@ export class ScreeningProcessor {
       },
     });
 
-    // Notify candidate
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
       userId: job.data.userId,
       type: 'interview.scheduled',
@@ -282,26 +307,21 @@ export class ScreeningProcessor {
 
   // ── Error handling ───────────────────────────────────────────────────────
 
-  @OnQueueFailed()
-  async onFailed(job: BullJob, error: Error) {
+  private async handleJobFailure(job: Job, error: Error) {
     this.logger.error(
-      `Queue job failed: [${job.name}] id=${job.id} attempt=${job.attemptsMade}/${job.opts.attempts}`,
+      `Queue job failed: [${job.name}] id=${job.id} attempt=${job.attemptsMade}`,
       error.stack,
     );
 
-    // After final attempt, mark application as needing manual review
-    if (job.name === APPLICATION_JOBS.SCREEN_CANDIDATE && job.attemptsMade >= (job.opts.attempts ?? 3)) {
+    const maxAttempts = job.opts?.attempts && typeof job.opts.attempts === 'number' ? job.opts.attempts : 3;
+
+    if (job.name === APPLICATION_JOBS.SCREEN_CANDIDATE && job.attemptsMade >= maxAttempts) {
       const data = job.data as ScreenCandidatePayload;
       await this.prisma.application.update({
         where: { id: data.applicationId },
         data: { notes: `AI screening failed after ${job.attemptsMade} attempts: ${error.message}` },
       }).catch(() => null);
     }
-  }
-
-  @OnQueueCompleted()
-  onCompleted(job: BullJob) {
-    this.logger.debug(`Queue job completed: [${job.name}] id=${job.id}`);
   }
 
   // ── Private: AI Scoring Logic ─────────────────────────────────────────────
@@ -336,27 +356,37 @@ Score this application and return JSON with exactly this shape:
 }
 `;
 
-    const completion = await this.openai.chat.completions.create({
-      model: this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini'),
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user',   content: userPrompt },
-      ],
-      temperature: 0.2,
-      max_tokens: 400,
-      response_format: { type: 'json_object' },
-    });
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini'),
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt },
+        ],
+        temperature: 0.2,
+        max_tokens: 400,
+        response_format: { type: 'json_object' },
+      });
 
-    const raw = completion.choices[0]?.message?.content ?? '{}';
-    const parsed = JSON.parse(raw) as AiScoreResult;
+      const raw = completion.choices[0]?.message?.content ?? '{}';
+      const parsed = JSON.parse(raw) as AiScoreResult;
 
-    // Clamp all scores to 0-100
-    return {
-      overallScore:    Math.min(100, Math.max(0, parsed.overallScore ?? 50)),
-      skillScore:      Math.min(100, Math.max(0, parsed.skillScore ?? 50)),
-      experienceScore: Math.min(100, Math.max(0, parsed.experienceScore ?? 50)),
-      cultureFitScore: Math.min(100, Math.max(0, parsed.cultureFitScore ?? 50)),
-      reasoning:       parsed.reasoning ?? '',
-    };
+      return {
+        overallScore:    Math.min(100, Math.max(0, parsed.overallScore ?? 50)),
+        skillScore:      Math.min(100, Math.max(0, parsed.skillScore ?? 50)),
+        experienceScore: Math.min(100, Math.max(0, parsed.experienceScore ?? 50)),
+        cultureFitScore: Math.min(100, Math.max(0, parsed.cultureFitScore ?? 50)),
+        reasoning:       parsed.reasoning ?? '',
+      };
+    } catch (err) {
+      this.logger.warn(`OpenAI call failed, using fallback scoring: ${(err as Error).message}`);
+      return {
+        overallScore: 50,
+        skillScore: 50,
+        experienceScore: 50,
+        cultureFitScore: 50,
+        reasoning: 'AI scoring unavailable — manual review required.',
+      };
+    }
   }
 }

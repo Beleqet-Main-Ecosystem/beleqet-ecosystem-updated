@@ -1,0 +1,24 @@
+/**
+ * Notification type identifiers.
+ *
+ * Used across:
+ * - Notifications
+ * - Interview Planner
+ * - Applications
+ * - Analytics
+ * - Email jobs
+ */
+export const NOTIFICATION_TYPES = {
+  INTERVIEW_SCHEDULED: 'INTERVIEW_SCHEDULED',
+
+  APPLICATION_SUBMITTED: 'APPLICATION_SUBMITTED',
+  APPLICATION_SHORTLISTED: 'APPLICATION_SHORTLISTED',
+  APPLICATION_REJECTED: 'APPLICATION_REJECTED',
+
+  CONTRACT_CREATED: 'CONTRACT_CREATED',
+
+  PAYMENT_RECEIVED: 'PAYMENT_RECEIVED',
+  PAYMENT_RELEASED: 'PAYMENT_RELEASED',
+} as const;
+
+export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];

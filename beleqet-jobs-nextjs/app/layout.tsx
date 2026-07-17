@@ -27,7 +27,11 @@ export default function RootLayout({
         <AuthProvider>
           <WebSiteSchema />
           <Header />
-          <main>{children}</main>
+          <main>
+            {' '}
+            {children}
+            <Toaster position="top-right" richColors />
+          </main>
           <Footer />
           <ChatWidget />
         </AuthProvider>
