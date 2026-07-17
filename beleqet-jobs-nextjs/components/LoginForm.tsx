@@ -61,7 +61,7 @@ export default function LoginForm() {
         <label className="block text-sm font-medium text-ink mb-1.5">
           Email
         </label>
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 focus-within:border-brandGreen">
           <Mail className="h-4 w-4 text-muted shrink-0" />
           <input
             type="email"
@@ -81,7 +81,7 @@ export default function LoginForm() {
             Forgot password?
           </Link>
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 focus-within:border-brandGreen">
           <Lock className="h-4 w-4 text-muted shrink-0" />
           <input
             type={showPassword ? "text" : "password"}

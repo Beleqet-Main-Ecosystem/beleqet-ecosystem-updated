@@ -56,7 +56,7 @@ export default function JobsListing({
 
       <form
         onSubmit={(e) => e.preventDefault()}
-        className="bg-white rounded-2xl border border-border p-2 flex flex-col sm:flex-row gap-2 mb-4 shadow-card"
+        className="bg-surface rounded-2xl border border-border p-2 flex flex-col sm:flex-row gap-2 mb-4 shadow-card"
       >
         <div className="flex items-center flex-1 gap-2 px-3 py-2.5 rounded-xl">
           <Search className="h-4 w-4 text-muted shrink-0" />
@@ -99,7 +99,7 @@ export default function JobsListing({
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          <div className="rounded-xl border border-border bg-white p-5">
+          <div className="rounded-xl border border-border bg-surface p-5">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-ink mb-4">
               <SlidersHorizontal className="h-4 w-4" /> Category
             </h3>
@@ -118,7 +118,7 @@ export default function JobsListing({
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-white p-5">
+          <div className="rounded-xl border border-border bg-surface p-5">
             <h3 className="text-sm font-semibold text-ink mb-4">Job Type</h3>
             <div className="space-y-1">
               <FilterButton active={type === ""} onClick={() => setType("")}>
@@ -135,7 +135,7 @@ export default function JobsListing({
 
         <div>
           {filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-white p-12 text-center">
+            <div className="rounded-xl border border-dashed border-border bg-surface p-12 text-center">
               <p className="text-ink font-semibold">No jobs match your filters</p>
               <p className="text-sm text-muted mt-1">Try adjusting your search or clearing filters.</p>
               {hasFilters && (

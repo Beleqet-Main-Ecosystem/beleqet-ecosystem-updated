@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,19 +9,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#041603",
-        primary2: "#0A2C03",
-        brandGreen: "#00653B",
-        darkGreen: "#015230",
+        /* Brand — edit values in app/globals.css (:root / .dark) */
+        primary: "rgb(var(--tw-primary-rgb) / <alpha-value>)",
+        primary2: "rgb(var(--tw-primary2-rgb) / <alpha-value>)",
+        brandGreen: "rgb(var(--tw-brandGreen-rgb) / <alpha-value>)",
+        darkGreen: "rgb(var(--tw-darkGreen-rgb) / <alpha-value>)",
+        lime: "rgb(var(--tw-lime-rgb) / <alpha-value>)",
+        cta: "rgb(var(--tw-cta-rgb) / <alpha-value>)",
+
+        /* Surfaces & text */
+        pageBg: "rgb(var(--tw-pageBg-rgb) / <alpha-value>)",
+        surface: "rgb(var(--tw-surface-rgb) / <alpha-value>)",
+        headerBg: "rgb(var(--tw-headerBg-rgb) / <alpha-value>)",
+        elevated: "rgb(var(--tw-elevated-rgb) / <alpha-value>)",
+        muted: "rgb(var(--tw-muted-rgb) / <alpha-value>)",
+        border: "rgb(var(--tw-border-rgb) / <alpha-value>)",
+        ink: "rgb(var(--tw-ink-rgb) / <alpha-value>)",
+
+        /* Fixed accents (rarely themed) */
         success: "#22C55E",
         cyanAccent: "#38BDF8",
         orangeAccent: "#F97316",
         redAccent: "#EF4444",
         purpleAccent: "#7C3AED",
-        pageBg: "#F5F7FA",
-        muted: "#64748B",
-        border: "#E2E8F0",
-        ink: "#1E293B",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],

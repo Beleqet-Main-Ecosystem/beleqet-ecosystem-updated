@@ -96,18 +96,18 @@ export default function EmployerPage() {
       </div>
     );
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
+    <div className="min-h-screen bg-pageBg">
       <section className="bg-primary py-14 text-white">
         <div className="container-page flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+            <p className="text-xs font-extrabold uppercase tracking-[.2em] text-lime">
               Employer dashboard
             </p>
             <h1 className="mt-3 text-4xl font-black">Hiring workspace</h1>
           </div>
           <Link
             href="/post-job"
-            className="flex items-center gap-2 rounded-full bg-[#d8ff3e] px-5 py-3 text-sm font-bold text-primary"
+            className="flex items-center gap-2 rounded-full bg-lime px-5 py-3 text-sm font-bold text-primary"
           >
             <Plus className="h-4 w-4" /> Post a job
           </Link>
@@ -127,7 +127,7 @@ export default function EmployerPage() {
             icon={Users}
           />
         </div>
-        <div className="mt-8 overflow-x-auto rounded-2xl bg-white">
+        <div className="mt-8 overflow-x-auto rounded-2xl bg-surface">
           <table className="w-full min-w-[650px] text-left text-sm">
             <thead>
               <tr className="bg-primary/5 text-xs uppercase text-muted">
@@ -141,7 +141,7 @@ export default function EmployerPage() {
             <tbody>
               {jobs.map((job) => (
                 <tr key={job.id} className="border-t border-border">
-                  <td className="p-4 font-bold text-primary">{job.title}</td>
+                  <td className="p-4 font-bold text-ink">{job.title}</td>
                   <td>{job.status}</td>
                   <td>{job._count.applications}</td>
                   <td>{new Date(job.createdAt).toLocaleDateString()}</td>
@@ -160,14 +160,16 @@ export default function EmployerPage() {
         </div>
         {selected && (
           <section className="mt-8">
-            <h2 className="text-2xl font-black text-primary">Applicants · {selected.title}</h2>
+            <h2 className="text-2xl font-black text-ink">
+              Applicants · {selected.title}
+            </h2>
             <div className="mt-4 space-y-3">
               {applicants.length ? (
                 applicants.map((item) => (
-                  <article key={item.id} className="rounded-2xl bg-white p-5">
+                  <article key={item.id} className="rounded-2xl bg-surface p-5">
                     <div className="flex flex-col justify-between gap-4 sm:flex-row">
                       <div>
-                        <h3 className="font-extrabold text-primary">
+                        <h3 className="font-extrabold text-ink">
                           {item.user.firstName} {item.user.lastName}
                         </h3>
                         <p className="text-xs text-muted">
@@ -219,7 +221,7 @@ export default function EmployerPage() {
                   </article>
                 ))
               ) : (
-                <p className="rounded-2xl bg-white p-10 text-center text-muted">
+                <p className="rounded-2xl bg-surface p-10 text-center text-muted">
                   No applications for this job.
                 </p>
               )}
@@ -240,9 +242,9 @@ function Metric({
   icon: typeof Users;
 }) {
   return (
-    <div className="rounded-2xl bg-white p-5">
+    <div className="rounded-2xl bg-surface p-5">
       <Icon className="h-5 w-5 text-brandGreen" />
-      <p className="mt-4 text-3xl font-black text-primary">{value}</p>
+      <p className="mt-4 text-3xl font-black text-ink">{value}</p>
       <p className="text-xs font-bold uppercase text-muted">{label}</p>
     </div>
   );

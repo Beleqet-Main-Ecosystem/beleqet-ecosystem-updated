@@ -16,7 +16,7 @@ const iconMap: Record<string, LucideIcon> = {
 
 export default function StatsBar() {
   return (
-    <section className="border-y border-primary/10 bg-[#d8ff3e]">
+    <section className="border-y border-primary/10 bg-lime">
       <div className="container-page grid grid-cols-2 sm:grid-cols-4">
         {stats.map((stat) => {
           const Icon = iconMap[stat.icon] ?? Briefcase;
@@ -25,7 +25,7 @@ export default function StatsBar() {
               key={stat.label}
               className="flex items-center gap-3.5 border-primary/10 px-3 py-7 even:border-l sm:border-l sm:px-6 first:sm:border-l-0"
             >
-              <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-[#d8ff3e] lg:inline-flex">
+              <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-lime lg:inline-flex">
                 <Icon className="h-5 w-5" />
               </span>
               <div>

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { logout } from '@/lib/api';
 import { ShieldCheck, LogOut, LayoutDashboard, Gavel } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface User {
   firstName: string;
@@ -92,6 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="role">{user.role}</div>
           </div>
+          <ThemeToggle />
           <button className="btn btn-ghost" onClick={handleLogout} title="Logout" type="button">
             <LogOut size={18} />
           </button>

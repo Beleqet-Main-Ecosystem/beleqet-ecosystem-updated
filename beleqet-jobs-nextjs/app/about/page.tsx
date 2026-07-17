@@ -34,13 +34,13 @@ const values = [
 
 export default function AboutPage() {
   return (
-    <div className="bg-[#f7f5ef]">
+    <div className="bg-pageBg">
       <OrganizationSchema />
 
       <section className="relative overflow-hidden bg-primary py-20 text-white lg:py-28">
-        <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full border-[70px] border-[#d8ff3e]/10" />
+        <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full border-[70px] border-lime/10" />
         <div className="container-page relative">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-lime">
             Our purpose
           </p>
           <h1 className="mt-5 max-w-5xl text-[clamp(3.2rem,8vw,7.5rem)] font-black leading-[.86] tracking-[-.065em]">
@@ -60,7 +60,7 @@ export default function AboutPage() {
           <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
             Why we exist
           </p>
-          <h2 className="mt-4 text-[clamp(2.2rem,5vw,4.5rem)] font-black leading-[.95] tracking-[-.055em] text-primary">
+          <h2 className="mt-4 text-[clamp(2.2rem,5vw,4.5rem)] font-black leading-[.95] tracking-[-.055em] text-ink">
             The distance between talent and opportunity should be shorter.
           </h2>
         </div>
@@ -79,7 +79,7 @@ export default function AboutPage() {
           </p>
         </div>
       </section>
-      <section className="border-y border-primary/10 bg-white">
+      <section className="border-y border-primary/10 bg-surface">
         <div className="container-page grid grid-cols-2 md:grid-cols-4">
           {[
             { icon: Search, value: "10K+", label: "Active opportunities" },
@@ -96,7 +96,7 @@ export default function AboutPage() {
               className="border-primary/10 p-7 even:border-l md:border-l first:md:border-l-0"
             >
               <item.icon className="h-5 w-5 text-brandGreen" />
-              <p className="mt-5 text-3xl font-black tracking-tight text-primary">
+              <p className="mt-5 text-3xl font-black tracking-tight text-ink">
                 {item.value}
               </p>
               <p className="mt-1 text-xs font-bold uppercase tracking-wider text-muted">
@@ -111,7 +111,7 @@ export default function AboutPage() {
           <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
             What guides us
           </p>
-          <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-primary">
+          <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-ink">
             A marketplace people can rely on.
           </h2>
         </div>
@@ -119,17 +119,17 @@ export default function AboutPage() {
           {values.map((value, index) => (
             <div
               key={value.title}
-              className="rounded-[24px] border border-primary/10 bg-white p-7"
+              className="rounded-[24px] border border-primary/10 bg-surface p-7"
             >
               <div className="flex items-center justify-between">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#d8ff3e] text-primary">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-lime text-primary">
                   <value.icon className="h-5 w-5" />
                 </span>
-                <span className="text-3xl font-black text-primary/10">
+                <span className="text-3xl font-black text-ink/10">
                   0{index + 1}
                 </span>
               </div>
-              <h3 className="mt-8 text-lg font-black text-primary">
+              <h3 className="mt-8 text-lg font-black text-ink">
                 {value.title}
               </h3>
               <p className="mt-2 text-sm leading-6 text-muted">{value.text}</p>
@@ -138,7 +138,7 @@ export default function AboutPage() {
         </div>
       </section>
       <section className="container-page pb-20">
-        <div className="flex flex-col justify-between gap-7 rounded-[30px] bg-[#d8ff3e] p-8 sm:p-12 lg:flex-row lg:items-center">
+        <div className="flex flex-col justify-between gap-7 rounded-[30px] bg-lime p-8 sm:p-12 lg:flex-row lg:items-center">
           <div>
             <h2 className="text-3xl font-black tracking-tight text-primary">
               Make your next move.

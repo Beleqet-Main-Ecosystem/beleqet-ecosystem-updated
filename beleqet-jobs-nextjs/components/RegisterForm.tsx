@@ -74,7 +74,7 @@ export default function RegisterForm() {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-ink mb-1.5">First name</label>
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 focus-within:border-brandGreen">
             <User className="h-4 w-4 text-muted shrink-0" />
             <input
               value={form.firstName}
@@ -86,7 +86,7 @@ export default function RegisterForm() {
         </div>
         <div>
           <label className="block text-sm font-medium text-ink mb-1.5">Last name</label>
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 focus-within:border-brandGreen">
             <input
               value={form.lastName}
               onChange={(e) => setForm({ ...form, lastName: e.target.value })}
@@ -99,7 +99,7 @@ export default function RegisterForm() {
 
       <div>
         <label className="block text-sm font-medium text-ink mb-1.5">Email</label>
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 focus-within:border-brandGreen">
           <Mail className="h-4 w-4 text-muted shrink-0" />
           <input
             type="email"
@@ -114,7 +114,7 @@ export default function RegisterForm() {
 
       <div>
         <label className="block text-sm font-medium text-ink mb-1.5">Password</label>
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 focus-within:border-brandGreen">
           <Lock className="h-4 w-4 text-muted shrink-0" />
           <input
             type={showPassword ? "text" : "password"}
@@ -144,9 +144,9 @@ export default function RegisterForm() {
               type="button"
               onClick={() => setForm({ ...form, role: r.value })}
               className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
-                form.role === r.value
-                  ? "border-brandGreen bg-brandGreen/10 text-brandGreen"
-                  : "border-border bg-white text-muted hover:border-brandGreen"
+                  form.role === r.value
+                    ? "border-brandGreen bg-brandGreen/10 text-brandGreen"
+                    : "border-border bg-surface text-muted hover:border-brandGreen"
               }`}
             >
               {r.label}

@@ -27,19 +27,19 @@ export default function Hero() {
   }
 
   return (
-    <section className="hero-grid relative overflow-hidden bg-[#fffdf8]">
+    <section className="hero-grid relative overflow-hidden bg-headerBg">
       <div className="container-page relative grid min-h-[690px] items-center gap-14 py-16 lg:grid-cols-[1.08fr_.92fr] lg:py-20">
         <div className="relative z-10">
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-brandGreen/20 bg-brandGreen/5 px-3.5 py-2 text-xs font-bold text-brandGreen">
             <Sparkles className="h-3.5 w-3.5" /> Ethiopia’s career marketplace
           </div>
-          <h1 className="max-w-3xl text-[clamp(3rem,7vw,6.7rem)] font-black leading-[.88] tracking-[-0.065em] text-primary">
+          <h1 className="max-w-3xl text-[clamp(3rem,7vw,6.7rem)] font-black leading-[.88] tracking-[-0.065em] text-ink">
             Work that
             <br />
             moves you{" "}
             <span className="relative whitespace-nowrap text-brandGreen">
               forward
-              <span className="absolute -bottom-1 left-1 h-2 w-[96%] -rotate-1 rounded-full bg-[#d8ff3e] -z-10" />
+              <span className="absolute -bottom-1 left-1 h-2 w-[96%] -rotate-1 rounded-full bg-lime -z-10" />
             </span>
             .
           </h1>
@@ -50,7 +50,7 @@ export default function Hero() {
 
           <form
             onSubmit={handleSearch}
-            className="mt-9 grid max-w-3xl gap-2 rounded-[22px] border border-primary/10 bg-white p-2.5 shadow-[0_20px_70px_rgba(4,22,3,.12)] sm:grid-cols-[1fr_1fr_auto]"
+            className="mt-9 grid max-w-3xl gap-2 rounded-[22px] border border-primary/10 bg-surface p-2.5 shadow-[0_20px_70px_rgba(4,22,3,.12)] sm:grid-cols-[1fr_1fr_auto]"
           >
             <label className="flex items-center gap-3 rounded-2xl px-3 py-3">
               <Search className="h-5 w-5 shrink-0 text-brandGreen" />
@@ -88,7 +88,7 @@ export default function Hero() {
                 onClick={() =>
                   router.push(`/jobs?q=${encodeURIComponent(term)}`)
                 }
-                className="rounded-full border border-primary/10 bg-white px-3 py-1.5 transition hover:border-brandGreen hover:text-brandGreen"
+                className="rounded-full border border-primary/10 bg-surface px-3 py-1.5 transition hover:border-brandGreen hover:text-brandGreen"
               >
                 {term}
               </button>
@@ -97,7 +97,7 @@ export default function Hero() {
         </div>
 
         <div className="relative mx-auto hidden w-full max-w-[520px] lg:block">
-          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#d8ff3e]/60 blur-2xl" />
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-lime/60 blur-2xl" />
           <div className="relative rotate-2 rounded-[36px] bg-primary p-6 shadow-[0_35px_80px_rgba(4,22,3,.2)]">
             <div className="flex items-center justify-between border-b border-white/10 pb-5">
               <div>
@@ -108,7 +108,7 @@ export default function Hero() {
                   Fresh opportunities
                 </p>
               </div>
-              <span className="rounded-full bg-[#d8ff3e] px-3 py-1 text-xs font-extrabold text-primary">
+              <span className="rounded-full bg-lime px-3 py-1 text-xs font-extrabold text-primary">
                 24 new
               </span>
             </div>
@@ -117,21 +117,21 @@ export default function Hero() {
                 title="Senior Product Designer"
                 company="Kifiya Financial Technology"
                 meta="Addis Ababa · Hybrid"
-                tone="bg-[#d8ff3e]"
+                tone="bg-lime"
                 initials="KF"
               />
               <Opportunity
                 title="Frontend Engineer"
                 company="PRAGMA Investment"
                 meta="Remote · Full time"
-                tone="bg-[#ffbc80]"
+                tone="bg-cta"
                 initials="PI"
               />
               <Opportunity
                 title="Marketing Lead"
                 company="Dodai Manufacturing"
                 meta="Addis Ababa · Full time"
-                tone="bg-[#b8e5ff]"
+                tone="bg-cyanAccent/40"
                 initials="DM"
               />
             </div>
@@ -142,19 +142,19 @@ export default function Hero() {
               Explore all openings <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="absolute -bottom-10 -left-16 -rotate-3 rounded-2xl border border-primary/10 bg-white p-4 shadow-xl">
+          <div className="absolute -bottom-10 -left-16 -rotate-3 rounded-2xl border border-primary/10 bg-surface p-4 shadow-xl">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-brandGreen/10 text-brandGreen">
                 <TrendingUp className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-lg font-black text-primary">3.2×</p>
+                <p className="text-lg font-black text-ink">3.2×</p>
                 <p className="text-xs text-muted">more profile views</p>
               </div>
             </div>
           </div>
-          <div className="absolute -right-8 top-24 rotate-6 rounded-2xl bg-white p-3 shadow-xl">
-            <div className="flex items-center gap-2 text-xs font-bold text-primary">
+          <div className="absolute -right-8 top-24 rotate-6 rounded-2xl bg-surface p-3 shadow-xl">
+            <div className="flex items-center gap-2 text-xs font-bold text-ink">
               <CheckCircle2 className="h-5 w-5 text-brandGreen" /> Verified
               employers
             </div>
@@ -179,7 +179,7 @@ function Opportunity({
   initials: string;
 }) {
   return (
-    <div className="rounded-[20px] bg-white p-4">
+    <div className="rounded-[20px] bg-surface p-4">
       <div className="flex gap-3">
         <span
           className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xs font-black text-primary ${tone}`}
@@ -187,7 +187,7 @@ function Opportunity({
           {initials}
         </span>
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-extrabold text-primary">
+          <h3 className="truncate text-sm font-extrabold text-ink">
             {title}
           </h3>
           <p className="mt-0.5 truncate text-xs text-muted">{company}</p>
