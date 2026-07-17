@@ -1,7 +1,4 @@
 import { Module } from '@nestjs/common';
-import { GraphQLModule } from '@nestjs/graphql';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { join } from 'path';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { JobsResolver } from './resolvers/jobs.resolver';
 import { UsersResolver } from './resolvers/users.resolver';
@@ -32,23 +29,8 @@ import { AnalyticsResolver } from './resolvers/analytics.resolver';
  * fetching layer for frontend optimization.
  */
 @Module({
-  imports: [
-    PrismaModule,
-    GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), 'src/modules/graphql-turbo/schema.gql'),
-      sortSchema: true,
-      playground: true,
-      introspection: true,
-      // Allow both REST and GraphQL to coexist
-      path: 'graphql',
-      // CORS is handled by the main NestJS CORS config
-      context: (ctx: { req: unknown }) => ({ req: ctx.req }),
-      // Enable field suggestions for development
-      includeStacktraceInErrorResponses: process.env.NODE_ENV !== 'production',
-    }),
-  ],
+  imports: [PrismaModule],
   providers: [JobsResolver, UsersResolver, ApplicationsResolver, AnalyticsResolver],
-  exports: [GraphQLModule],
+  exports: [JobsResolver, UsersResolver, ApplicationsResolver, AnalyticsResolver],
 })
 export class GraphqlTurboModule {}

@@ -40,6 +40,9 @@ import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { EncryptedInboxModule } from './modules/encrypted-inbox/encrypted-inbox.module';
 import { GraphqlTurboModule } from './modules/graphql-turbo/graphql-turbo.module';
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -128,6 +131,17 @@ import { GraphqlTurboModule } from './modules/graphql-turbo/graphql-turbo.module
     ResumeBrainModule,
     EncryptedInboxModule,
     GraphqlTurboModule,
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+      sortSchema: true,
+      playground: true,
+      introspection: true,
+      path: 'graphql',
+      context: (ctx: { req: unknown }) => ({ req: ctx.req }),
+      includeStacktraceInErrorResponses: process.env.NODE_ENV !== 'production',
+      include: [GraphqlTurboModule],
+    }),
   ],
   providers: [
     {
