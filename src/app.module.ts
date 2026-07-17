@@ -38,6 +38,8 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { EncryptedInboxModule } from './modules/encrypted-inbox/encrypted-inbox.module';
+import { GraphqlTurboModule } from './modules/graphql-turbo/graphql-turbo.module';
 
 @Module({
   imports: [
@@ -124,6 +126,8 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    EncryptedInboxModule,
+    GraphqlTurboModule,
   ],
   providers: [
     {
