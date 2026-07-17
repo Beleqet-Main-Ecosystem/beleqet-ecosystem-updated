@@ -673,6 +673,17 @@ model BackupCode {
   @@map("backup_codes")
 }
 
+model UserPublicKey {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  publicKey String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_public_keys")
+}
+
 enum UserRole {
   ADMIN
   EMPLOYER
