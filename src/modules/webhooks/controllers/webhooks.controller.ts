@@ -82,14 +82,14 @@ export class WebhooksController {
   async handleStripe(
     @Req() req: RawBodyRequest<Request>,
     @Headers('x-stripe-signature') stripeSignature: string,
-    @Headers('user-agent') userAgent: string,
+    @Headers('user-agent') _userAgent: string,
   ) {
     const signature = stripeSignature || '';
     const rawBody = req.rawBody;
     const ipAddress = (req.ip || req.socket.remoteAddress || '').toString();
 
     this.logger.debug(
-      `[Stripe] Webhook received - IP: ${ipAddress}, User-Agent: ${userAgent}`,
+      `[Stripe] Webhook received - IP: ${ipAddress}, User-Agent: ${_userAgent}`,
     );
 
     try {
@@ -158,7 +158,7 @@ export class WebhooksController {
     @Headers('x-paypal-transmission-time') transmissionTime: string,
     @Headers('x-paypal-cert-url') certUrl: string,
     @Headers('x-paypal-transmission-sig') signature: string,
-    @Headers('user-agent') userAgent: string,
+    @Headers('user-agent') _userAgent: string,
     @Req() req: Request,
   ) {
     const ipAddress = (req.ip || req.socket.remoteAddress || '').toString();
@@ -234,7 +234,7 @@ export class WebhooksController {
   async handleChapa(
     @Body() payload: Record<string, any>,
     @Headers('x-chapa-signature') signature: string,
-    @Headers('user-agent') userAgent: string,
+    @Headers('user-agent') _userAgent: string,
     @Req() req: Request,
   ) {
     const ipAddress = (req.ip || req.socket.remoteAddress || '').toString();
