@@ -38,6 +38,7 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 
 @Module({
   imports: [
@@ -124,6 +125,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    SmartSkillTesterModule,
   ],
   providers: [
     {

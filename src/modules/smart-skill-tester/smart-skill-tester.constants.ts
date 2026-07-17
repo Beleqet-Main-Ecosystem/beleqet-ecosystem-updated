@@ -1,0 +1,6 @@
+export const DEFAULT_QUESTION_COUNT = 5;
+export const MAX_QUESTION_COUNT = 10;
+export const AI_TEMPERATURE_GENERATE = 0.3;
+export const AI_TEMPERATURE_EVALUATE = 0.2;
+export const AI_MAX_TOKENS_GENERATE = 2_000;
+export const AI_MAX_TOKENS_EVALUATE = 2_500;

@@ -70,6 +70,7 @@ model User {
   /// User side — the AI Feed module reads SearchHistory independently.
   searchHistories       SearchHistory[]
   storedFiles           StoredFile[]
+  skillTests            SkillTest[]
 
   @@map("users")
 }
@@ -329,6 +330,64 @@ model CandidateScore {
 
   @@index([userId])
   @@map("candidate_scores")
+}
+
+// ── Smart Skill Tester ────────────────────────────────────────────────────────
+
+model SkillTest {
+  id            String             @id @default(uuid())
+  userId        String
+  skill         String
+  status        SkillTestStatus    @default(PENDING)
+  overallScore  Float?
+  aiFeedback    String?
+  modelUsed     String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions     SkillTestQuestion[]
+  answers       SkillTestAnswer[]
+
+  @@index([userId, createdAt])
+  @@map("skill_tests")
+}
+
+model SkillTestQuestion {
+  id               String            @id @default(uuid())
+  testId           String
+  question         String
+  expectedConcepts String[]
+  order            Int               @default(0)
+  test             SkillTest         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  answers          SkillTestAnswer[]
+
+  @@index([testId])
+  @@map("skill_test_questions")
+}
+
+model SkillTestAnswer {
+  id          String             @id @default(uuid())
+  testId      String
+  questionId  String
+  answer      String
+  score       Float?
+  feedback    String?
+  evaluatedAt DateTime?
+  test        SkillTest          @relation(fields: [testId], references: [id])
+  question    SkillTestQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([questionId])
+  @@map("skill_test_answers")
+}
+
+enum SkillTestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  EVALUATED
 }
 
 model FreelanceCategory {
