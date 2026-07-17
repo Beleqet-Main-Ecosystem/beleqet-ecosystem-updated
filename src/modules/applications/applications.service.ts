@@ -1,14 +1,12 @@
 import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { QUEUE_NAMES, APPLICATION_JOBS, ANALYTICS_JOBS, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
 import { applicationReceivedEmail, applicationStatusEmail } from '../notifications/email-templates';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 
 @Injectable()
 export class ApplicationsService {
@@ -42,7 +40,6 @@ export class ApplicationsService {
       throw new ConflictException('You have already applied to this job');
     }
 
-    // Atomic create + event log
     const application = await this.prisma.$transaction(async (tx: any) => {
       const app = await tx.application.create({
         data: {
@@ -80,7 +77,6 @@ export class ApplicationsService {
       return app;
     });
 
-    // Fire-and-forget: do not await Redis queues so the UI doesn't hang if Redis is down locally.
     this.applicationQueue
       .add(
         APPLICATION_JOBS.SCREEN_CANDIDATE,
@@ -177,7 +173,6 @@ export class ApplicationsService {
   }
 
   async updateStatus(id: string, status: string, employerId: string) {
-    // 1. Verify the application exists AND belongs to a job owned by this employer
     const application = await this.prisma.application.findFirst({
       where: { id, job: { company: { userId: employerId } } },
       include: {
@@ -192,7 +187,6 @@ export class ApplicationsService {
       );
     }
 
-    // 2. Update the status
     const updated = await this.prisma.application.update({
       where: { id },
       data: { status: status as never },

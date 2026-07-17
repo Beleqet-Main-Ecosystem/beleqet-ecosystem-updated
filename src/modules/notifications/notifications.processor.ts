@@ -1,6 +1,6 @@
-import { Processor, Process } from '@nestjs/bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq'; // Pull WorkerHost and Processor
 import { Logger, Injectable } from '@nestjs/common';
-import { Job } from 'bull';
+import { Job as BullMQJob } from 'bullmq'; // Use bullmq Job types
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
@@ -28,7 +28,7 @@ export interface EmailPayload {
 
 @Injectable()
 @Processor(QUEUE_NAMES.NOTIFICATIONS)
-export class NotificationsProcessor {
+export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
   private readonly transporter: nodemailer.Transporter;
 
@@ -36,6 +36,7 @@ export class NotificationsProcessor {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
+    super();
     this.transporter = nodemailer.createTransport({
       host: this.config.get<string>('SMTP_HOST'),
       port: this.config.get<number>('SMTP_PORT'),
@@ -47,8 +48,24 @@ export class NotificationsProcessor {
     });
   }
 
-  @Process(NOTIFICATION_JOBS.SEND_IN_APP)
-  async sendInApp(job: Job<InAppPayload>) {
+  // Handle all targeted job actions routed through the WorkerHost router method
+  async process(job: BullMQJob<any, any, string>): Promise<any> {
+    switch (job.name) {
+      case NOTIFICATION_JOBS.SEND_IN_APP:
+        await this.sendInApp(job);
+        break;
+      case NOTIFICATION_JOBS.SEND_TELEGRAM:
+        await this.sendTelegram(job);
+        break;
+      case NOTIFICATION_JOBS.SEND_EMAIL:
+        await this.sendEmail(job);
+        break;
+      default:
+        this.logger.warn(`Unhandled job type context: ${job.name}`);
+    }
+  }
+
+  async sendInApp(job: BullMQJob<InAppPayload>) {
     const { userId, type, title, body, metadata } = job.data;
     if (!userId) return;
     await this.prisma.notification.create({
@@ -64,8 +81,7 @@ export class NotificationsProcessor {
     this.logger.debug(`In-app → ${userId}: ${title}`);
   }
 
-  @Process(NOTIFICATION_JOBS.SEND_TELEGRAM)
-  async sendTelegram(job: Job<TelegramPayload>) {
+  async sendTelegram(job: BullMQJob<TelegramPayload>) {
     const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN');
     if (!botToken) return;
     try {
@@ -84,8 +100,7 @@ export class NotificationsProcessor {
     }
   }
 
-  @Process(NOTIFICATION_JOBS.SEND_EMAIL)
-  async sendEmail(job: Job<EmailPayload>) {
+  async sendEmail(job: BullMQJob<EmailPayload>) {
     const { to, subject, html, text } = job.data;
     if (!to) return;
 

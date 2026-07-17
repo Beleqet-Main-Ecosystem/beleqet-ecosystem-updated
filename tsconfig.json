@@ -11,6 +11,7 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "types": ["node", "jest"],
     "paths": {
       "@common/*": ["src/common/*"],
       "@modules/*": ["src/modules/*"],
@@ -24,9 +25,11 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true
   },
-"exclude": [
+  "exclude": [
     "node_modules",
     "dist",
-    "beleqet-jobs-nextjs"
+    "coverage",
+    "beleqet-jobs-nextjs",
+    "frontend"
   ]
 }

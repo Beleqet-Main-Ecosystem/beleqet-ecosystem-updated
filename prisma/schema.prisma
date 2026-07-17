@@ -10,7 +10,7 @@ datasource db {
 model User {
   id                    String              @id @default(uuid())
   email                 String              @unique
-  passwordHash          String
+  passwordHash          String?
   firstName             String
   lastName              String
   role                  UserRole            @default(JOB_SEEKER)
@@ -29,6 +29,7 @@ model User {
   location              String?
   portfolioUrl          String?
   skills                String[]            @default([])
+  oauthAccounts         OAuthAccount[]
   applications          Application[]
   bids                  Bid[]
   candidateScores       CandidateScore[]
@@ -47,6 +48,9 @@ model User {
   cvDraft               CvDraft?
   clientFeedback        Json?
   skillVerified         Boolean             @default(false)
+  availabilities        UserAvailability[]  @relation("UserAvailabilities")
+  employerInterviews    Interview[]         @relation("EmployerInterviews")
+  candidateInterviews   Interview[]         @relation("CandidateInterviews")
   referralsGiven        Referral[]          @relation("ReferralReferrer")
   referralsReceived     Referral[]          @relation("ReferralReferred")
   jobAlerts             JobAlert[]
@@ -55,11 +59,65 @@ model User {
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
 
+  /// Whether the user has consented to their search history, skills, and
+  /// saved jobs being used to personalize their AI job feed. Defaults to
+  /// true; when false, the AI Feed module falls back to a generic,
+  /// non-personalized feed and reads none of that data (GDPR compliance).
+  gdprConsent           Boolean             @default(true)
+
+  /// Back-relation required by Prisma for the one-to-many relationship
+  /// declared on SearchHistory.user below. Not queried directly from the
+  /// User side — the AI Feed module reads SearchHistory independently.
+  searchHistories       SearchHistory[]
   storedFiles           StoredFile[]
 
   @@map("users")
 }
+model OAuthAccount {
+  id                    String   @id @default(uuid())
+  userId                String
+  provider              OAuthProvider
+  providerAccountId     String            // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
+  encryptedAccessToken  String?           // AES-256-GCM ciphertext, never raw
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  linkedAt              DateTime @default(now())
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([provider, providerAccountId])   // prevents one social identity from attaching to 2 users
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+/// Records each search term a user enters on the job board, timestamped.
+/// Used exclusively by the AI Personal Feed module as one of the signals
+/// (alongside User.skills and SavedJob) used to rank job recommendations.
+/// Only read when the owning user's `gdprConsent` is true.
+model SearchHistory {
+  id         String   @id @default(uuid())
+
+  /// Owning user. Cascade delete: if the user is deleted, their search
+  /// history is deleted with them rather than left orphaned.
+  userId     String
+
+  /// The raw search term as typed by the user (e.g. "React developer").
+  searchTerm String
+
+  /// When this search was performed. The AI Feed module only considers
+  /// terms from the last 30 days as "recent" signal.
+  searchedAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Speeds up the AI Feed module's "recent searches for this user" query.
+  @@index([userId, searchedAt])
+  @@map("search_histories")
+}
+
+enum OAuthProvider {
+  GOOGLE
+  LINKEDIN
+}
 model SavedJob {
   id        String   @id @default(uuid())
   userId    String
@@ -164,45 +222,47 @@ model JobCategory {
   @@map("job_categories")
 }
 
+
 model Job {
-  id                String        @id @default(uuid())
-  title             String
-  description       String
-  requirements      String?
-  location          String
-  type              JobType
-  categoryId        String
-  salaryMin         Int?
-  salaryMax         Int?
-  currency          String        @default("ETB")
-  deadline          DateTime?
-  status            JobStatus     @default(DRAFT)
-  featured          Boolean       @default(false)
-  companyId         String
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  applyEmail        String?
-  applyType         String?
-  applyUrl          String?
-  companyLogo       String?
-  companyName       String?
-  contactPhone      String?
-  experienceLevel   String?
-  expiryDate        DateTime?
-  filled            Boolean       @default(false)
-  gender            String?
-  jobSite           String?
-  qualification     String?
-  salaryType        String?
-  tags              String[]      @default([])
-  urgent            Boolean       @default(false)
-  vacancies         Int?          @default(1)
-  yearsOfExperience String?
-  applications      Application[]
-  questions         JobQuestion[]
-  savedBy           SavedJob[]
-  category          JobCategory   @relation(fields: [categoryId], references: [id])
-  company           Company       @relation(fields: [companyId], references: [id])
+  id                       String        @id @default(uuid())
+  title                    String
+  description              String
+  requirements             String?
+  location                 String
+  type                     JobType
+  categoryId               String
+  salaryMin                Int?
+  salaryMax                Int?
+  currency                 String        @default("ETB")
+  deadline                 DateTime?
+  status                   JobStatus     @default(DRAFT)
+  featured                 Boolean       @default(false)
+  companyId                String
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+  applyEmail               String?
+  applyType                String?
+  applyUrl                 String?
+  companyLogo              String?
+  companyName              String?
+  contactPhone             String?
+  experienceLevel          String?
+  expiryDate               DateTime?
+  filled                   Boolean       @default(false)
+  gender                   String?
+  jobSite                  String?
+  qualification            String?
+  salaryType               String?
+  interviewDurationMinutes Int           @default(60)
+  tags                     String[]      @default([])
+  urgent                   Boolean       @default(false)
+  vacancies                Int?          @default(1)
+  yearsOfExperience        String?
+  applications             Application[]
+  questions                JobQuestion[]
+  savedBy                  SavedJob[]
+  category                 JobCategory   @relation(fields: [categoryId], references: [id])
+  company                  Company       @relation(fields: [companyId], references: [id])
 
   @@index([title, location])
   @@index([status, featured])
@@ -244,6 +304,7 @@ model Application {
   job              Job               @relation(fields: [jobId], references: [id])
   user             User              @relation(fields: [userId], references: [id])
   score            CandidateScore?
+  interview        Interview?
 
   @@unique([jobId, userId])
   @@index([userId, status])
@@ -375,21 +436,21 @@ model Deliverable {
 }
 
 model EscrowTransaction {
-  id              String       @id @default(uuid())
-  freelanceJobId  String       @unique
+  id                  String       @id @default(uuid())
+  freelanceJobId      String       @unique
   grossAmount         Int
   platformFee         Int
   netAmount           Int
   walletAppliedAmount Int          @default(0)
   currency            String       @default("ETB")
-  status          EscrowStatus @default(PENDING)
-  gatewayRef      String?
-  gatewayResponse Json?
-  fundedAt        DateTime?
-  releasedAt      DateTime?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  freelanceJob    FreelanceJob @relation(fields: [freelanceJobId], references: [id])
+  status              EscrowStatus @default(PENDING)
+  gatewayRef          String?
+  gatewayResponse     Json?
+  fundedAt            DateTime?
+  releasedAt          DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  freelanceJob        FreelanceJob @relation(fields: [freelanceJobId], references: [id])
 
   @@map("escrow_transactions")
 }
@@ -422,27 +483,27 @@ model WalletTransaction {
 }
 
 model EmployerWallet {
-  id               String                      @id @default(uuid())
-  userId           String                      @unique
-  balance          Int                         @default(0)
-  lockedBalance    Int                         @default(0)
-  currency         String                      @default("ETB")
-  updatedAt        DateTime                    @updatedAt
-  user             User                        @relation(fields: [userId], references: [id])
-  transactions     EmployerWalletTransaction[]
+  id            String                      @id @default(uuid())
+  userId        String                      @unique
+  balance       Int                         @default(0)
+  lockedBalance Int                         @default(0)
+  currency      String                      @default("ETB")
+  updatedAt     DateTime                    @updatedAt
+  user          User                        @relation(fields: [userId], references: [id])
+  transactions  EmployerWalletTransaction[]
 
   @@map("employer_wallets")
 }
 
 model EmployerWalletTransaction {
-  id          String                @id @default(uuid())
-  walletId    String
-  type        WalletTransactionType
-  amount      Int
-  note        String?
-  escrowId    String?
-  createdAt   DateTime              @default(now())
-  wallet      EmployerWallet        @relation(fields: [walletId], references: [id])
+  id        String                @id @default(uuid())
+  walletId  String
+  type      WalletTransactionType
+  amount    Int
+  note      String?
+  escrowId  String?
+  createdAt DateTime              @default(now())
+  wallet    EmployerWallet        @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
   @@map("employer_wallet_transactions")
@@ -533,6 +594,55 @@ model Message {
   @@map("messages")
 }
 
+model UserAvailability {
+  id        String   @id @default(uuid())
+  userId    String
+  startTime DateTime
+  endTime   DateTime
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserAvailabilities", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([startTime, endTime])
+  @@map("user_availability")
+}
+
+model Interview {
+  id            String @id @default(uuid())
+  applicationId String @unique
+
+  employerId  String
+  candidateId String
+
+  startTime       DateTime
+  endTime         DateTime
+  durationMinutes Int      @default(60)
+
+  timezone String @default("UTC")
+
+  meetingLink String?
+
+  notes String?
+
+  status InterviewStatus @default(SCHEDULED)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  employer    User        @relation("EmployerInterviews", fields: [employerId], references: [id])
+  candidate   User        @relation("CandidateInterviews", fields: [candidateId], references: [id])
+
+  @@index([candidateId, startTime])
+  @@index([employerId, startTime])
+  @@index([employerId])
+  @@index([candidateId])
+  @@index([startTime])
+  @@map("interviews")
+}
 model UserTwoFactor {
   id                   String       @id @default(uuid())
   userId               String       @unique
@@ -647,24 +757,29 @@ enum NotificationChannel {
   EMAIL
 }
 
-// ── Referrals ──────────────────────────────────────────────────────────────
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
 
 model Referral {
-  id           String         @id @default(uuid())
-  referrerId   String
-  referredId   String?
-  code         String         @unique
-  status       ReferralStatus @default(PENDING)
+  id          String         @id @default(uuid())
+  referrerId  String
+  referredId  String?
+  code        String         @unique
+  status      ReferralStatus @default(PENDING)
   /// Bonus amount in minor units (e.g. cents / santim)
-  bonusAmount  Int            @default(0)
+  bonusAmount Int            @default(0)
   /// ISO 4217 currency code (e.g. ETB, USD, EUR) — multi-currency support
-  currency     String         @default("ETB")
-  expiresAt    DateTime
-  redeemedAt   DateTime?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  referrer     User           @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
-  referred     User?          @relation("ReferralReferred", fields: [referredId], references: [id], onDelete: SetNull)
+  currency    String         @default("ETB")
+  expiresAt   DateTime
+  redeemedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  referrer    User           @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred    User?          @relation("ReferralReferred", fields: [referredId], references: [id], onDelete: SetNull)
 
   @@index([referrerId])
   @@index([code])
@@ -675,7 +790,7 @@ model Referral {
 // ── Job Alerts ─────────────────────────────────────────────────────────────
 
 model JobAlert {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
   keywords   String[]
   location   String?
@@ -683,12 +798,12 @@ model JobAlert {
   /// Minimum salary in minor units — multi-currency support
   minSalary  Int?
   /// ISO 4217 currency code
-  currency   String   @default("ETB")
-  isActive   Boolean  @default(true)
+  currency   String    @default("ETB")
+  isActive   Boolean   @default(true)
   lastSentAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([isActive])
@@ -717,27 +832,27 @@ enum ReferralStatus {
 // Multi-currency: `currency` is ISO 4217. `amount` is in smallest unit
 // (cents/fils/pence) for Stripe; stored as-is for PayPal (decimal × 100).
 model Payment {
-  id                 String          @id @default(uuid())
+  id                String          @id @default(uuid())
   /// UUID of the Beleqet user who initiated this payment
-  userId             String
+  userId            String
   /// Payment provider: STRIPE or PAYPAL
-  provider           PaymentProvider
+  provider          PaymentProvider
   /// Provider-side payment / order ID (pi_… for Stripe, alphanumeric for PayPal)
-  providerPaymentId  String          @unique
+  providerPaymentId String          @unique
   /// Amount in smallest currency unit (e.g. cents for USD)
-  amount             Int
+  amount            Int
   /// ISO 4217 currency code (e.g. USD, EUR, ETB)
-  currency           String          @default("USD")
+  currency          String          @default("USD")
   /// Current lifecycle status
-  status             PaymentStatus   @default(PENDING)
+  status            PaymentStatus   @default(PENDING)
   /// Human-readable description (stripped of PII before storage)
-  description        String?
+  description       String?
   /// Sanitised key-value metadata (no PII keys)
-  metadata           Json?
+  metadata          Json?
   /// Timestamp when this payment was refunded (null if not refunded)
-  refundedAt         DateTime?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  refundedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -749,7 +864,6 @@ model Payment {
   @@index([providerPaymentId])
   /// Index for currency-based reporting (multi-currency analytics)
   @@index([currency, status])
-
   @@map("payments")
 }
 

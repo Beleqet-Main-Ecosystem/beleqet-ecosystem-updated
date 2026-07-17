@@ -3,14 +3,27 @@ import { MapPin, Building2 } from "lucide-react";
 import type { Job } from "@/lib/api";
 import SaveJobButton from "@/components/SaveJobButton";
 
+/** Formats a salary amount using the job's own currency (multi-currency support). */
+function formatCurrency(amount: number, currency: string = "ETB") {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export default function JobCard({
   job,
   variant = "dark",
+  showMatchScore = false,
 }: {
   job: Job;
   variant?: "dark" | "light";
+  /** Set on the AI Personal Feed page to surface the computed relevanceScore. */
+  showMatchScore?: boolean;
 }) {
   const isLight = variant === "light";
+  const hasSalary = job.salaryMin != null || job.salaryMax != null;
 
   return (
     <article
@@ -24,7 +37,18 @@ export default function JobCard({
         <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#d8ff3e] text-primary">
           <Building2 className="h-5 w-5" />
         </span>
-        <SaveJobButton jobId={job.id} light={isLight} />
+        <div className="flex items-center gap-2">
+          {showMatchScore && typeof job.relevanceScore === "number" && (
+            <span
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                isLight ? "bg-brandGreen/10 text-brandGreen" : "bg-[#d8ff3e]/20 text-[#d8ff3e]"
+              }`}
+            >
+              {job.relevanceScore}% match
+            </span>
+          )}
+          <SaveJobButton jobId={job.id} light={isLight} />
+        </div>
       </div>
 
       <Link href={`/jobs/${job.id}`} className="flex flex-1 flex-col">
@@ -47,6 +71,14 @@ export default function JobCard({
           <MapPin className="h-3.5 w-3.5" />
           {job.location}
         </div>
+
+        {hasSalary && (
+          <div className={`mt-2 text-xs font-medium ${isLight ? "text-ink" : "text-white/70"}`}>
+            {job.salaryMin != null && formatCurrency(job.salaryMin, job.currency)}
+            {job.salaryMin != null && job.salaryMax != null && " – "}
+            {job.salaryMax != null && formatCurrency(job.salaryMax, job.currency)}
+          </div>
+        )}
 
         <div
           className={`mt-auto flex items-center justify-between border-t pt-4 ${

@@ -71,7 +71,11 @@ export default function RootLayout({
         <I18nProvider>
           <AuthProvider>
             <Header />
-            <main>{children}</main>
+            <main>
+            {' '}
+            {children}
+            <Toaster position="top-right" richColors />
+          </main>
             <Footer />
             <Suspense fallback={null}>
               <MobileBottomNav />
