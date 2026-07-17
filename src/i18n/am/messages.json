@@ -1,0 +1,43 @@
+{
+  "forum": {
+    "validation": {
+      "title": "የርዕስ ርዕስ",
+      "titleMinLength": "ርዕስ ቢያንስ 5 ፊደላት መሆን አለበት",
+      "titleMaxLength": "ርዕስ ከ200 ፊደላት መብለጥ የለበትም",
+      "content": "የርዕስ ይዘት",
+      "contentMinLength": "ይዘት ቢያንስ 20 ፊደላት መሆን አለበት",
+      "contentMaxLength": "ይዘት ከ10,000 ፊደላት መብለጥ የለበትም",
+      "replyMinLength": "ምላሽ ባዶ መሆን የለበትም",
+      "replyMaxLength": "ምላሽ ከ5,000 ፊደላት መብለጥ የለበትም",
+      "parentReplyId": "የወላጅ ምላሽ መለያ",
+      "isAnonymous": "ስም አልባ ለመለጠፍ"
+    },
+    "error": {
+      "threadNotFound": "የፎረም ርዕስ አልተገኘም",
+      "replyNotFound": "ምላሽ አልተገኘም",
+      "parentReplyNotFound": "የወላጅ ምላሽ አልተገኘም",
+      "threadLocked": "ይህ ርዕስ ተቆልፏል እና ከእንግዲህ ምላሾችን አይቀበልም"
+    },
+    "list": {
+      "title": "የማህበረሰብ መድረክ",
+      "subtitle": "ልምዶችን ያካፍሉ፣ ጥያቄዎችን ይጠይቁ እና ሌሎች ነፃ ሰራተኞችን ይርዱ",
+      "createThread": "ርዕስ ፍጠር",
+      "searchPlaceholder": "ውይይቶችን ይፈልጉ...",
+      "sortLatest": "አዲስ",
+      "sortPopular": "ታዋቂ",
+      "sortUnanswered": "መልስ የሌላቸው",
+      "noThreads": "ምንም ውይይቶች አልተገኙም። የመጀመሪያው ይሁኑ!",
+      "reply": "ምላሽ",
+      "replies": "ምላሾች",
+      "upvotes": "ድምጾች",
+      "by": "በ",
+      "pinned": "የተሰካ"
+    },
+    "detail": {
+      "replyToThread": "ምላሽዎን ይጻፉ...",
+      "submitReply": "ምላሽ ልጠፍ",
+      "loginToReply": "ምላሽ ለመስጠት ይግቡ",
+      "threadLocked": "ይህ ርዕስ ተቆልፏል"
+    }
+  }
+}

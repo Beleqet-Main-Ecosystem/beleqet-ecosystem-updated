@@ -29,7 +29,7 @@
     "node_modules",
     "dist",
     "coverage",
-    "beleqet-jobs-nextjs",
-    "frontend"
+    "frontend",
+    "beleqet-jobs-nextjs"
   ]
 }
