@@ -1,0 +1,147 @@
+# =============================================================================
+# Beleqet — staging stack
+#
+# Rendered on the staging server by scripts/deploy/deploy-staging.sh:
+#   docker compose --env-file .env.staging --env-file .env.images \
+#     -f docker-compose.staging.yml config
+#
+# All secrets come from .env.staging (server-side, never committed) via
+# required interpolation (${VAR:?...}) — this file contains no credentials and
+# refuses to render when a required variable is missing. Image references are
+# exact commit-SHA tags written to .env.images by the deploy script.
+# =============================================================================
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${STAGING_DB_USER:?STAGING_DB_USER is required}
+      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD:?STAGING_DB_PASSWORD is required}
+      POSTGRES_DB: ${STAGING_DB_NAME:?STAGING_DB_NAME is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required (set by the deploy script)}
+    restart: unless-stopped
+    ports:
+      - '${STAGING_BACKEND_PORT:-4000}:4000'
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+      FRONTEND_URL: ${STAGING_FRONTEND_URLS:?STAGING_FRONTEND_URLS is required}
+      APP_BASE_URL: ${STAGING_APP_BASE_URL:?STAGING_APP_BASE_URL is required}
+      DATABASE_URL: postgresql://${STAGING_DB_USER}:${STAGING_DB_PASSWORD}@db:5432/${STAGING_DB_NAME}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_TLS: 'false'
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_ACCESS_EXPIRES: ${JWT_ACCESS_EXPIRES:-15m}
+      JWT_REFRESH_EXPIRES: ${JWT_REFRESH_EXPIRES:-30d}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET is required}
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required}
+      TOTP_TEMP_SECRET: ${TOTP_TEMP_SECRET:?TOTP_TEMP_SECRET is required}
+      TOTP_ISSUER: ${TOTP_ISSUER:-Beleqet}
+      OAUTH_TOKEN_ENCRYPTION_KEY: ${OAUTH_TOKEN_ENCRYPTION_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
+      LINKEDIN_CALLBACK_URL: ${LINKEDIN_CALLBACK_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.1-8b-instant}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:-}
+      CHAPA_SECRET_KEY: ${CHAPA_SECRET_KEY:-}
+      CHAPA_PUBLIC_KEY: ${CHAPA_PUBLIC_KEY:-}
+      CHAPA_WEBHOOK_SECRET: ${CHAPA_WEBHOOK_SECRET:-}
+      CHAPA_CALLBACK_URL: ${CHAPA_CALLBACK_URL:-}
+      CHAPA_RETURN_URL: ${CHAPA_RETURN_URL:-}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
+      R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_FROM: ${SMTP_FROM:-}
+      BULL_BOARD_USERNAME: ${BULL_BOARD_USERNAME:-}
+      BULL_BOARD_PASSWORD: ${BULL_BOARD_PASSWORD:-}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  admin-frontend:
+    image: ${ADMIN_IMAGE:?ADMIN_IMAGE is required (set by the deploy script)}
+    restart: unless-stopped
+    ports:
+      - '${STAGING_ADMIN_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/ || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  jobs-frontend:
+    image: ${JOBS_IMAGE:?JOBS_IMAGE is required (set by the deploy script)}
+    restart: unless-stopped
+    ports:
+      - '${STAGING_JOBS_PORT:-3001}:3001'
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3001/ || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  postgres_data:
+  redis_data:
