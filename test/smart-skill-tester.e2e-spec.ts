@@ -44,7 +44,7 @@ class MockAiProvider implements AiChatProvider {
     }
 
     const results = answerLines.map((_, i) => ({
-      questionId: `eval-q-${i}`,
+      index: i + 1,
       score: Math.floor(Math.random() * 30) + 65,
       feedback: 'Good understanding demonstrated.',
     }));
@@ -98,6 +98,12 @@ const mockPrisma = {
     update: async (args: any) => {
       Object.assign(store[args.where.id], args.data);
       return store[args.where.id];
+    },
+    updateMany: async (args: any) => {
+      const record = store[args.where.id];
+      if (!record || record.status !== args.where.status) return { count: 0 };
+      Object.assign(record, args.data);
+      return { count: 1 };
     },
   },
   skillTestAnswer: {
@@ -181,6 +187,13 @@ describe('SmartSkillTester (e2e)', () => {
         .expect(400);
     });
 
+    it('returns 400 for a skill longer than 100 characters', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/smart-skill-tester/generate')
+        .send({ skill: 'A'.repeat(101) })
+        .expect(400);
+    });
+
     it('returns 400 for questionCount above the maximum', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/smart-skill-tester/generate')
@@ -222,6 +235,21 @@ describe('SmartSkillTester (e2e)', () => {
       });
     });
 
+    it('returns 400 for an answer longer than 5000 characters', async () => {
+      const gen = await request(app.getHttpServer())
+        .post('/api/v1/smart-skill-tester/generate')
+        .send({ skill: 'React', questionCount: 1 })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/smart-skill-tester/evaluate')
+        .send({
+          testId: gen.body.testId,
+          answers: [{ questionId: gen.body.questions[0].id, answer: 'X'.repeat(5001) }],
+        })
+        .expect(400);
+    });
+
     it('returns 404 for a non-existent test', async () => {
       await request(app.getHttpServer())
         .post('/api/v1/smart-skill-tester/evaluate')
@@ -232,7 +260,7 @@ describe('SmartSkillTester (e2e)', () => {
         .expect(404);
     });
 
-    it('returns 400 for a test that was already evaluated', async () => {
+    it('returns 409 for a test that was already evaluated', async () => {
       const gen = await request(app.getHttpServer())
         .post('/api/v1/smart-skill-tester/generate')
         .send({ skill: 'React', questionCount: 1 })
@@ -252,7 +280,7 @@ describe('SmartSkillTester (e2e)', () => {
           testId: gen.body.testId,
           answers: [{ questionId: gen.body.questions[0].id, answer: 'Second attempt' }],
         })
-        .expect(400);
+        .expect(409);
     });
   });
 

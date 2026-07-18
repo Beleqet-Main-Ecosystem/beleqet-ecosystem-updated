@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -12,8 +13,6 @@ import {
   AiCompletion,
 } from '../resume-brain/ai/ai-chat-provider.interface';
 import { SmartSkillTesterService } from './smart-skill-tester.service';
-
-// ── Mock factories ───────────────────────────────────────────────────────────
 
 const mockProvider = (): jest.Mocked<AiChatProvider> => ({
   name: 'groq',
@@ -26,6 +25,7 @@ const mockPrisma = () => ({
     findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   },
   skillTestAnswer: {
     create: jest.fn(),
@@ -36,8 +36,6 @@ const mockPrisma = () => ({
 const mockConfig = () => ({
   get: jest.fn((key: string, defaultValue?: unknown) => defaultValue),
 });
-
-// ── Test data ────────────────────────────────────────────────────────────────
 
 const USER_ID = 'user-1';
 const SKILL = 'React';
@@ -61,8 +59,8 @@ const AI_QUESTIONS_RESPONSE: AiCompletion = {
 const EVALUATION_RESPONSE: AiCompletion = {
   content: JSON.stringify({
     results: [
-      { questionId: 'q-1', score: 85, feedback: 'Good explanation.' },
-      { questionId: 'q-2', score: 70, feedback: 'Could be more detailed.' },
+      { index: 1, score: 85, feedback: 'Good explanation.' },
+      { index: 2, score: 70, feedback: 'Could be more detailed.' },
     ],
     overallScore: 77.5,
     overallFeedback: 'Solid understanding of React basics.',
@@ -79,7 +77,6 @@ describe('SmartSkillTesterService', () => {
     provider = mockProvider();
     prisma = mockPrisma();
 
-    // Spy on Date to return a fixed value
     jest.useFakeTimers().setSystemTime(NOW);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -235,18 +232,17 @@ describe('SmartSkillTesterService', () => {
 
     it('evaluates answers and persists results', async () => {
       prisma.skillTest.findUnique.mockResolvedValue(existingTest);
+      prisma.skillTest.updateMany.mockResolvedValue({ count: 1 });
       provider.complete.mockResolvedValue(EVALUATION_RESPONSE);
       prisma.$transaction.mockImplementation(async (cb: any) => cb);
       prisma.skillTestAnswer.create.mockReturnValue({} as any);
 
       const result = await service.evaluateAnswers(USER_ID, TEST_ID, answers);
 
-      expect(prisma.skillTest.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: TEST_ID },
-          data: expect.objectContaining({ status: 'IN_PROGRESS' }),
-        }),
-      );
+      expect(prisma.skillTest.updateMany).toHaveBeenCalledWith({
+        where: { id: TEST_ID, status: 'PENDING' },
+        data: { status: 'IN_PROGRESS' },
+      });
 
       expect(provider.complete).toHaveBeenCalledWith(
         expect.arrayContaining([
@@ -293,15 +289,38 @@ describe('SmartSkillTesterService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('throws BadRequestException when test is already evaluated', async () => {
+    it('throws ConflictException when test is already evaluated', async () => {
       prisma.skillTest.findUnique.mockResolvedValue({
+        ...existingTest,
+        status: 'EVALUATED',
+      });
+      prisma.skillTest.updateMany.mockResolvedValue({ count: 0 });
+      prisma.skillTest.findUnique.mockResolvedValueOnce({
         ...existingTest,
         status: 'EVALUATED',
       });
 
       await expect(
         service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('resets test status to PENDING when AI evaluation fails', async () => {
+      prisma.skillTest.findUnique.mockResolvedValue(existingTest);
+      prisma.skillTest.updateMany.mockResolvedValue({ count: 1 });
+      provider.complete.mockRejectedValue(new Error('AI timeout'));
+      prisma.skillTest.update.mockResolvedValue({} as any);
+
+      await expect(
+        service.evaluateAnswers(USER_ID, TEST_ID, answers),
+      ).rejects.toThrow();
+
+      expect(prisma.skillTest.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: TEST_ID },
+          data: { status: 'PENDING' },
+        }),
+      );
     });
   });
 

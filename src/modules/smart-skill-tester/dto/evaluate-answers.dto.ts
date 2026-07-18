@@ -1,4 +1,4 @@
-import { IsString, IsArray, ValidateNested, MinLength } from 'class-validator';
+import { IsString, IsArray, ValidateNested, MinLength, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -10,6 +10,7 @@ export class AnswerDto {
   @ApiProperty({ example: 'React is a library for building user interfaces...' })
   @IsString()
   @MinLength(1)
+  @MaxLength(5000)
   answer: string;
 }
 

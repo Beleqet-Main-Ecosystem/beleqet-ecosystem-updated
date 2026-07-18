@@ -5,6 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -65,7 +66,7 @@ interface AiGeneratedQuestion {
 }
 
 interface AiEvaluationResult {
-  questionId: string;
+  index: number;
   score: number;
   feedback: string;
 }
@@ -200,60 +201,85 @@ export class SmartSkillTesterService {
     if (test.userId !== userId) {
       throw new ForbiddenException('You do not own this skill test');
     }
-    if (test.status === 'EVALUATED') {
-      throw new BadRequestException('This test has already been evaluated');
-    }
-
-    await this.prisma.skillTest.update({
-      where: { id: testId },
+    const claimed = await this.prisma.skillTest.updateMany({
+      where: { id: testId, status: 'PENDING' },
       data: { status: 'IN_PROGRESS' },
     });
 
-    const evaluation = await this.runEvaluation(
-      test.skill,
-      test.questions.map((q) => ({
-        id: q.id,
-        question: q.question,
-        expectedConcepts: q.expectedConcepts,
-      })),
-      answers,
-    );
+    if (claimed.count === 0) {
+      const existing = await this.prisma.skillTest.findUnique({
+        where: { id: testId },
+      });
+      if (!existing) {
+        throw new NotFoundException('Skill test not found');
+      }
+      if (existing.userId !== userId) {
+        throw new ForbiddenException('You do not own this skill test');
+      }
+      throw new ConflictException(
+        'This test has already been evaluated or is in progress',
+      );
+    }
 
-    const now = new Date();
+    try {
+      const evaluation = await this.runEvaluation(
+        test.skill,
+        test.questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          expectedConcepts: q.expectedConcepts,
+        })),
+        answers,
+      );
 
-    await this.prisma.$transaction([
-      ...evaluation.results.map((r) =>
-        this.prisma.skillTestAnswer.create({
+      const now = new Date();
+
+      await this.prisma.$transaction([
+        ...evaluation.results.map((r) =>
+          this.prisma.skillTestAnswer.create({
+            data: {
+              testId,
+              questionId: r.questionId,
+              answer:
+                answers.find((a) => a.questionId === r.questionId)?.answer ?? '',
+              score: r.score,
+              feedback: r.feedback,
+              evaluatedAt: now,
+            },
+          }),
+        ),
+        this.prisma.skillTest.update({
+          where: { id: testId },
           data: {
-            testId,
-            questionId: r.questionId,
-            answer:
-              answers.find((a) => a.questionId === r.questionId)?.answer ?? '',
-            score: r.score,
-            feedback: r.feedback,
-            evaluatedAt: now,
+            status: 'EVALUATED',
+            overallScore: evaluation.overallScore,
+            aiFeedback: evaluation.overallFeedback,
+            completedAt: now,
           },
         }),
-      ),
-      this.prisma.skillTest.update({
-        where: { id: testId },
-        data: {
-          status: 'EVALUATED',
-          overallScore: evaluation.overallScore,
-          aiFeedback: evaluation.overallFeedback,
-          completedAt: now,
-        },
-      }),
-    ]);
+      ]);
 
-    return {
-      testId,
-      skill: test.skill,
-      overallScore: evaluation.overallScore,
-      overallFeedback: evaluation.overallFeedback,
-      results: evaluation.results,
-      completedAt: now,
-    };
+      return {
+        testId,
+        skill: test.skill,
+        overallScore: evaluation.overallScore,
+        overallFeedback: evaluation.overallFeedback,
+        results: evaluation.results,
+        completedAt: now,
+      };
+    } catch (err) {
+      await this.prisma.skillTest
+        .update({
+          where: { id: testId },
+          data: { status: 'PENDING' },
+        })
+        .catch((resetErr) => {
+          this.logger.error(
+            `Failed to reset test status after evaluation error: ${(resetErr as Error).message}`,
+          );
+        });
+      throw err;
+    }
   }
 
   /**
@@ -342,13 +368,19 @@ Return a JSON array with exactly this shape:
       expectedConcepts: string[];
     }>,
     answers: Array<{ questionId: string; answer: string }>,
-  ): Promise<AiEvaluationResponse> {
+  ): Promise<{
+    results: EvaluationResult[];
+    overallScore: number;
+    overallFeedback: string;
+  }> {
     const qaBlock = questions
-      .map((q) => {
+      .map((q, i) => {
+        const index = i + 1;
         const answer =
           answers.find((a) => a.questionId === q.id)?.answer ??
           'No answer provided';
-        return `Q: ${q.question}
+        return `Index: ${index}
+Q: ${q.question}
 Expected concepts: ${q.expectedConcepts.join(', ')}
 Answer: ${answer}
 ---`;
@@ -364,7 +396,7 @@ Return JSON with exactly this shape:
 {
   "results": [
     {
-      "questionId": "string",
+      "index": number (the question index shown above as "Index: N"),
       "score": number (0-100),
       "feedback": "string — specific, actionable feedback for this answer"
     }
@@ -399,11 +431,19 @@ Return JSON with exactly this shape:
       }
 
       return {
-        results: parsed.results.map((r) => ({
-          questionId: r.questionId,
-          score: Math.min(100, Math.max(0, Math.round(r.score ?? 0))),
-          feedback: r.feedback ?? '',
-        })),
+        results: parsed.results.map((r) => {
+          const qIdx = r.index - 1;
+          if (qIdx < 0 || qIdx >= questions.length) {
+            throw new BadRequestException(
+              'AI returned an invalid question index',
+            );
+          }
+          return {
+            questionId: questions[qIdx].id,
+            score: Math.min(100, Math.max(0, Math.round(r.score ?? 0))),
+            feedback: r.feedback ?? '',
+          };
+        }),
         overallScore: Math.min(
           100,
           Math.max(0, Math.round(parsed.overallScore ?? 0)),
