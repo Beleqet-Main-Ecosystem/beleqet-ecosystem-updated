@@ -25,7 +25,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { SalaryModule } from './modules/salary/salary.module';
-
+import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -114,6 +114,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
+    PlagiarismModule,
     InterviewPlannerModule,
     AnomalySensorModule,
     AdminStatsModule,
@@ -134,4 +135,4 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

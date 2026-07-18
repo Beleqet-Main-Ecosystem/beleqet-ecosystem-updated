@@ -114,6 +114,24 @@ export const ROUTE_REGISTRY: Record<string, RouteSeoProfile> = {
     noindex: true,
     nofollow: true,
   },
+  PORTFOLIO: {
+    pattern: "/portfolio",
+    name: "Portfolio Builder",
+    noindex: true,
+    nofollow: true,
+  },
+  PORTFOLIO_TEMPLATES: {
+    pattern: "/portfolio/templates",
+    name: "Portfolio Templates",
+    noindex: true,
+    nofollow: true,
+  },
+  PROFILE_PORTFOLIO: {
+    pattern: "/profile/portfolio",
+    name: "Manage Portfolio",
+    noindex: true,
+    nofollow: true,
+  },
   APPLICATIONS: {
     pattern: "/applications",
     name: "Applications",

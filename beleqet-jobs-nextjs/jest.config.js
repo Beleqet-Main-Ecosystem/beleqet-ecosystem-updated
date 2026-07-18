@@ -11,7 +11,7 @@ const path = require("path");
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  roots: ["<rootDir>/lib"],
+  roots: ["<rootDir>/lib", "<rootDir>/portfolio"],
   testMatch: ["**/*.spec.ts"],
   moduleNameMapper: {
     "^@/(.*)$": path.join(__dirname, "$1"),
