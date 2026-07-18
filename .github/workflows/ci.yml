@@ -12,6 +12,7 @@ env:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -26,6 +27,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
       redis:
         image: redis:7-alpine
         ports:
@@ -35,6 +37,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +46,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
+      # Existing project dependencies
       - run: npm ci
 
       - name: Create .env for CI
@@ -52,23 +56,13 @@ jobs:
           REDIS_HOST=127.0.0.1
           REDIS_PORT=6379
           REDIS_PASSWORD=
-          JWT_ACCESS_SECRET=ci_test_jwt_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+          JWT_ACCESS_SECRET=ci_test_jwt_secret
           JWT_ACCESS_EXPIRES=15m
           JWT_REFRESH_EXPIRES=30d
-          TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
-          TOTP_TEMP_SECRET=ci_test_totp_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-          TOTP_ISSUER=Beleqet
           NODE_ENV=test
-          CHAPA_SECRET_KEY=""
           PORT=4000
           FRONTEND_URL=http://localhost:3000
-          BULL_BOARD_USERNAME=admin
-          BULL_BOARD_PASSWORD=ci_board_password
           OPENAI_API_KEY=sk-test-dummy-key-for-ci
-          STRIPE_SECRET_KEY=sk_test_dummy
-          STRIPE_WEBHOOK_SECRET=whsec_dummy
-          PAYPAL_CLIENT_ID=dummy_client_id
-          PAYPAL_CLIENT_SECRET=dummy_client_secret
           EOF
 
       - run: npx prisma generate
@@ -76,10 +70,35 @@ jobs:
       - run: npm run build
       - run: npm test
 
+
+      # ===============================
+      # Salary Estimator Backend
+      # ===============================
+
+      - name: Install salary estimator backend dependencies
+        working-directory: Salary_estimater/backend
+        run: npm ci
+
+      - name: Build salary estimator backend
+        working-directory: Salary_estimater/backend
+        run: npm run build
+
+
+
+      - name: Install salary estimator frontend dependencies
+        working-directory: Salary_estimater/frontend
+        run: npm ci
+
+      - name: Build salary estimator frontend
+        working-directory: Salary_estimater/frontend
+        run: npm run build
+
+
   playwright-e2e:
     needs: [unit-tests]
     continue-on-error: true
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -89,20 +108,12 @@ jobs:
           POSTGRES_DB: beleqet_test
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+
       redis:
         image: redis:7-alpine
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -119,24 +130,8 @@ jobs:
           DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/beleqet_test
           REDIS_HOST=127.0.0.1
           REDIS_PORT=6379
-          REDIS_PASSWORD=
-          JWT_ACCESS_SECRET=ci_test_jwt_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-          JWT_ACCESS_EXPIRES=15m
-          JWT_REFRESH_EXPIRES=30d
-          TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
-          TOTP_TEMP_SECRET=ci_test_totp_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-          TOTP_ISSUER=Beleqet
           NODE_ENV=test
-          CHAPA_SECRET_KEY=""
           PORT=4000
-          FRONTEND_URL=http://localhost:3000
-          BULL_BOARD_USERNAME=admin
-          BULL_BOARD_PASSWORD=ci_board_password
-          OPENAI_API_KEY=sk-test-dummy-key-for-ci
-          STRIPE_SECRET_KEY=sk_test_dummy
-          STRIPE_WEBHOOK_SECRET=whsec_dummy
-          PAYPAL_CLIENT_ID=dummy_client_id
-          PAYPAL_CLIENT_SECRET=dummy_client_secret
           EOF
 
       - run: npx prisma generate
@@ -146,9 +141,7 @@ jobs:
       - name: Start backend in background
         run: |
           node dist/main &
-          echo "PID=$!"
           timeout 45 sh -c 'until nc -z 127.0.0.1 4000; do sleep 1; done'
-          echo "Backend ready"
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
