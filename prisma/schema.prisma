@@ -551,6 +551,8 @@ model EventLog {
   createdAt   DateTime @default(now())
 
   @@index([eventType, entityId])
+  @@index([createdAt], map: "idx_events_log_created_at")
+  @@index([entityType], map: "idx_events_log_entity_type")
   @@map("events_log")
 }
 

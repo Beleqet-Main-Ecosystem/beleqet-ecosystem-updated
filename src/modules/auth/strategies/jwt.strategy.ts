@@ -15,9 +15,21 @@ export interface AccessTokenPayload {
   readonly role?: string;
 }
 
-/** Shape attached to `req.user` for any route behind {@link JwtAuthGuard}. */
+/**
+ * Shape attached to `req.user` for any route behind {@link JwtAuthGuard}.
+ *
+ * FIX: previously only `userId` was returned here, silently dropping
+ * `email`/`role` even though both are present in the signed JWT payload
+ * and `CurrentUserPayload` (common/decorators/current-user.decorator.ts)
+ * already declares them as required. This meant every `@Roles('ADMIN')`
+ * check across the app (dispute-manager, admin-stats, etc.) was
+ * comparing against `undefined` and silently failing — discovered while
+ * verifying the new Audit Trail module's admin-only endpoint.
+ */
 export interface AuthenticatedRequestUser {
   readonly userId: string;
+  readonly email?: string;
+  readonly role?: string;
 }
 
 /**
@@ -37,6 +49,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   /** Passport calls this after signature + expiry verification succeeds. */
   public validate(payload: AccessTokenPayload): AuthenticatedRequestUser {
-    return { userId: payload.sub };
+    return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 }

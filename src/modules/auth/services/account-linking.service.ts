@@ -12,7 +12,7 @@ import {
   ProviderIdentityAlreadyLinkedError,
   UnverifiedEmailLinkAttemptError,
 } from '../errors/auth.errors';
-import { IAuditLogger, AUDIT_LOGGER } from '../interfaces/audit-logger.interface';
+import { IAuditLogger, AUDIT_LOGGER } from '../../../common/interfaces/audit-logger.interface';
 
 /**
  * Injection token for the {@link IAccountRepository} implementation.
