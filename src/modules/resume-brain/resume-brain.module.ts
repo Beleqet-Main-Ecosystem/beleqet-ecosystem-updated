@@ -17,10 +17,10 @@ import { GroqProvider } from './ai/groq.provider';
     AiBudgetService,
     ResumeValidatorService,
     ProfileMapperService,
-    // The active AI provider lives behind a token so it can be swapped for a
-    // GeminiProvider later without touching AIExtractorService.
-    { provide: AI_CHAT_PROVIDER, useClass: GroqProvider },
+    GroqProvider,
+    { provide: AI_CHAT_PROVIDER, useExisting: GroqProvider },
   ],
   controllers: [ResumeBrainController],
+  exports: [AI_CHAT_PROVIDER],
 })
 export class ResumeBrainModule {}

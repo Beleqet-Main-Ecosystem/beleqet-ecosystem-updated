@@ -76,6 +76,8 @@ scripts/
 .agents/
 issue_pr_matches.md
 AGENTS.md
+README.md
+**/README.md
 **/nest_readme.md
 nest_readme.md
 **/next_readme.md
