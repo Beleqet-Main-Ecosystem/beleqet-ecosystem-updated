@@ -80,27 +80,60 @@ export class InternetSourceService {
    * Downloads a page and strips HTML tags to plain text.
    */
   private async fetchPageText(url: string): Promise<string> {
-    await this.validateFetchUrl(url);
+    const parsedUrl = new URL(url);
+    const resolvedAddresses = await this.validateFetchUrl(parsedUrl);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.fetchTimeoutMs);
  
     try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: { 'User-Agent': 'Beleqet-PlagiarismScout/2.0' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const html = await response.text();
+      const html = await this.fetchHtmlByIp(parsedUrl, resolvedAddresses[0], controller.signal);
       return this.stripHtml(html);
     } finally {
       clearTimeout(timeout);
     }
   }
+ 
+  private async fetchHtmlByIp(parsedUrl: URL, ip: string, signal: AbortSignal): Promise<string> {
+    const isHttps = parsedUrl.protocol === 'https:';
+    const httpModule = isHttps ? await import('https') : await import('http');
+    const port = parsedUrl.port || (isHttps ? '443' : '80');
 
+    return new Promise<string>((resolve, reject) => {
+      const request = httpModule.request(
+        {
+          protocol: parsedUrl.protocol,
+          hostname: ip,
+          port,
+          path: parsedUrl.pathname + parsedUrl.search,
+          method: 'GET',
+          headers: {
+            Host: parsedUrl.host,
+            'User-Agent': 'Beleqet-PlagiarismScout/2.0',
+          },
+          signal,
+          ...(isHttps ? { servername: parsedUrl.hostname } : {}),
+        },
+        (response) => {
+          if (response.statusCode && response.statusCode >= 400) {
+            reject(new Error(`HTTP ${response.statusCode}`));
+            response.resume();
+            return;
+          }
+
+          let body = '';
+          response.setEncoding('utf8');
+          response.on('data', (chunk) => {
+            body += chunk;
+          });
+          response.on('end', () => resolve(body));
+        },
+      );
+
+      request.on('error', reject);
+      request.end();
+    });
+  }
+ 
   /**
    * Removes scripts, styles, and HTML tags from raw page content.
    */
@@ -119,8 +152,7 @@ export class InternetSourceService {
       .trim();
   }
  
-  private async validateFetchUrl(url: string): Promise<void> {
-    const parsedUrl = new URL(url);
+  private async validateFetchUrl(parsedUrl: URL): Promise<string[]> {
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       throw new Error('Only http:// and https:// URLs are allowed for internet sources');
     }
@@ -135,11 +167,14 @@ export class InternetSourceService {
       throw new Error('Unable to resolve URL hostname');
     }
  
-    for (const address of addresses) {
-      if (this.isPrivateIp(address.address)) {
+    const resolvedAddresses = addresses.map((address) => address.address);
+    for (const address of resolvedAddresses) {
+      if (this.isPrivateIp(address)) {
         throw new Error('URL resolves to a private or local IP address');
       }
     }
+ 
+    return resolvedAddresses;
   }
  
   private isPrivateIp(ip: string): boolean {

@@ -6,16 +6,21 @@ import { TokenizerService } from '../tokenizer/tokenizer.service';
 import { PlagiarismConfig } from '../utils/plagiarism.config';
 
 describe('QualityAnalyzerService', () => {
+  let module: TestingModule;
   let analyzer: QualityAnalyzerService;
-
+ 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [QualityAnalyzerService, TokenizerService],
     }).compile();
 
     analyzer = module.get<QualityAnalyzerService>(QualityAnalyzerService);
   });
-
+ 
+  afterEach(async () => {
+    await module?.close();
+  });
+ 
   it('scores high originality for low similarity', () => {
     const assessment = analyzer.analyze(
       'Unique professional content about software engineering and cloud architecture with detailed experience.',
@@ -43,10 +48,11 @@ describe('QualityAnalyzerService', () => {
 });
 
 describe('ReportService', () => {
+  let module: TestingModule;
   let reportService: ReportService;
-
+ 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         ReportService,
         QualityAnalyzerService,
@@ -58,7 +64,11 @@ describe('ReportService', () => {
 
     reportService = module.get<ReportService>(ReportService);
   });
-
+ 
+  afterEach(async () => {
+    await module?.close();
+  });
+ 
   it('generates verdict based on similarity thresholds', () => {
     const report = reportService.buildReport({
       inputText: 'Sample text for testing the report generation service.',

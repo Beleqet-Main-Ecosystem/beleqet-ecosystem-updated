@@ -5,8 +5,9 @@ import { PlagiarismConfig } from '../utils/plagiarism.config';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 describe('PlatformSourceService', () => {
+  let module: TestingModule;
   let service: PlatformSourceService;
-
+ 
   const mockPrisma = {
     job: { findMany: jest.fn().mockResolvedValue([{ id: 'j1', title: 'Dev', description: 'Code', requirements: 'TS' }]) },
     freelanceJob: { findMany: jest.fn().mockResolvedValue([]) },
@@ -18,7 +19,7 @@ describe('PlatformSourceService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         PlatformSourceService,
         PlagiarismConfig,
@@ -26,8 +27,12 @@ describe('PlatformSourceService', () => {
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();
-
+ 
     service = module.get<PlatformSourceService>(PlatformSourceService);
+  });
+ 
+  afterEach(async () => {
+    await module?.close();
   });
 
   it('loads platform documents from database', async () => {

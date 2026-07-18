@@ -2,14 +2,19 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NgramService } from './ngram.service';
 
 describe('NgramService', () => {
+  let module: TestingModule;
   let service: NgramService;
-
+ 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [NgramService],
     }).compile();
 
     service = module.get<NgramService>(NgramService);
+  });
+ 
+  afterEach(async () => {
+    await module?.close();
   });
 
   it('returns zero for very short texts', () => {

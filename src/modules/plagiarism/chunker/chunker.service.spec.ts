@@ -4,18 +4,23 @@ import { ChunkerService } from './chunker.service';
 import { PlagiarismConfig } from '../utils/plagiarism.config';
 
 describe('ChunkerService', () => {
+  let module: TestingModule;
   let chunker: ChunkerService;
-
+ 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         ChunkerService,
         PlagiarismConfig,
         { provide: ConfigService, useValue: { get: jest.fn() } },
       ],
     }).compile();
-
+ 
     chunker = module.get<ChunkerService>(ChunkerService);
+  });
+ 
+  afterEach(async () => {
+    await module?.close();
   });
 
   it('splits text into paragraphs', () => {

@@ -15,14 +15,18 @@ describe('HistoryService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         HistoryService,
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();
-
+ 
     historyService = module.get<HistoryService>(HistoryService);
+  });
+ 
+  afterEach(async () => {
+    await module?.close();
   });
 
   it('saves check results to event log', async () => {
