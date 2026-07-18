@@ -4,6 +4,7 @@ import { HistoryService } from './history.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 describe('HistoryService', () => {
+  let moduleRef: TestingModule;
   let historyService: HistoryService;
   const mockPrisma = {
     eventLog: {
@@ -15,18 +16,18 @@ describe('HistoryService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    module = await Test.createTestingModule({
+    moduleRef = await Test.createTestingModule({
       providers: [
         HistoryService,
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();
  
-    historyService = module.get<HistoryService>(HistoryService);
+    historyService = moduleRef.get<HistoryService>(HistoryService);
   });
  
   afterEach(async () => {
-    await module?.close();
+    await moduleRef?.close();
   });
 
   it('saves check results to event log', async () => {
