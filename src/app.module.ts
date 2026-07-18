@@ -59,6 +59,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
+import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
 
 @Module({
   imports: [
@@ -169,6 +170,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     CacheConfigModule,
     FaqBotModule,
     EncryptionModule,
+    ChatToTextModule,
   ],
   providers: [
     {
