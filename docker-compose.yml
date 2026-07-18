@@ -30,10 +30,10 @@ services:
     container_name: beleqet-backend
     restart: unless-stopped
     ports:
-      - '4000:4000'
+      - '4001:4001'
     environment:
       - NODE_ENV=development
-      - PORT=4000
+      - PORT=4001
       - FRONTEND_URL=http://localhost:3000
       - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
       - REDIS_HOST=redis
@@ -62,7 +62,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+        - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
     container_name: beleqet-frontend
     restart: unless-stopped
     ports:
@@ -77,13 +77,13 @@ services:
       context: ./beleqet-jobs-nextjs
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+        - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
     container_name: beleqet-jobs-frontend
     restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
     depends_on:
       - backend
 

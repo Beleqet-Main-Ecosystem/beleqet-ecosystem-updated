@@ -27,9 +27,9 @@ const payload = {
 const signature = "a423b17f8b602e66ab6b9c6a1923ac259a3fa86ab1c7b5754ed72e781daa6d7c";
 
 async function simulate() {
-  console.log('Sending exact Chapa payload to localhost:4000...');
+  console.log('Sending exact Chapa payload to localhost:4001...');
   try {
-    const res = await fetch('http://localhost:4000/api/v1/escrow/callback', {
+    const res = await fetch('http://localhost:4001/api/v1/escrow/callback', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

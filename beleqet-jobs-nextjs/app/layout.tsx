@@ -7,6 +7,8 @@ import ChatWidget from "@/components/ChatWidget";
 import { WebSiteSchema } from "@/lib/seo/schemas";
 import { getSeoConfig } from "@/lib/seo/config";
 import { homePageMetadata } from "@/lib/seo/generate-metadata";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = homePageMetadata();
 
@@ -24,17 +26,19 @@ export default function RootLayout({
         <meta name="color-scheme" content="light" />
       </head>
       <body className="font-sans antialiased">
-        <AuthProvider>
-          <WebSiteSchema />
-          <Header />
-          <main>
-            {' '}
-            {children}
-            <Toaster position="top-right" richColors />
-          </main>
-          <Footer />
-          <ChatWidget />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AuthProvider>
+            <WebSiteSchema />
+            <Header />
+            <main>
+              {' '}
+              {children}
+              <Toaster position="top-right" richColors />
+            </main>
+            <Footer />
+            <ChatWidget />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

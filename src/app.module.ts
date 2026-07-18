@@ -38,6 +38,7 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
 
 @Module({
   imports: [
@@ -124,6 +125,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    ChatToTextModule,
   ],
   providers: [
     {
