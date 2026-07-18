@@ -14,8 +14,7 @@ const usage = (total: number): AiUsage => ({
 /** ConfigService stub driven by a plain map, with the production defaults. */
 function configWith(values: Record<string, unknown> = {}) {
   return {
-    get: <T>(key: string, fallback?: T): T =>
-      (values[key] as T) ?? (fallback as T),
+    get: <T>(key: string, fallback?: T): T => (values[key] as T) ?? (fallback as T),
   } as unknown as ConfigService;
 }
 
@@ -107,9 +106,7 @@ describe('AiBudgetService', () => {
 
     it('honours configured budget overrides', async () => {
       redis.mget.mockResolvedValue(['3', '0']);
-      const service = await build(
-        configWith({ RESUME_AI_DAILY_REQUEST_BUDGET: 3 }),
-      );
+      const service = await build(configWith({ RESUME_AI_DAILY_REQUEST_BUDGET: 3 }));
       await expect(service.assertWithinBudget('user-1')).rejects.toMatchObject({
         status: HttpStatus.TOO_MANY_REQUESTS,
       });
@@ -136,19 +133,10 @@ describe('AiBudgetService', () => {
       await service.recordUsage('user-1', usage(280));
 
       expect(redis.incr).toHaveBeenCalledWith('resume-brain:budget:req:user-1');
-      expect(redis.incrby).toHaveBeenCalledWith(
-        'resume-brain:budget:tok:user-1',
-        280,
-      );
+      expect(redis.incrby).toHaveBeenCalledWith('resume-brain:budget:tok:user-1', 280);
       // TTL is set on the first write so the window is a fixed 24h.
-      expect(redis.expire).toHaveBeenCalledWith(
-        'resume-brain:budget:req:user-1',
-        86_400,
-      );
-      expect(redis.expire).toHaveBeenCalledWith(
-        'resume-brain:budget:tok:user-1',
-        86_400,
-      );
+      expect(redis.expire).toHaveBeenCalledWith('resume-brain:budget:req:user-1', 86_400);
+      expect(redis.expire).toHaveBeenCalledWith('resume-brain:budget:tok:user-1', 86_400);
     });
 
     it('does not reset the TTL on subsequent requests in the window', async () => {
@@ -173,10 +161,7 @@ describe('AiBudgetService', () => {
 
       await service.recordUsage('user-1', usage(280));
 
-      expect(redis.expire).toHaveBeenCalledWith(
-        'resume-brain:budget:req:user-1',
-        86_400,
-      );
+      expect(redis.expire).toHaveBeenCalledWith('resume-brain:budget:req:user-1', 86_400);
       expect(redis.expire).toHaveBeenCalledTimes(1);
     });
 

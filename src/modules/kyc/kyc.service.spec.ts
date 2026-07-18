@@ -3,7 +3,7 @@ import { KycService } from './kyc.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { KycDocumentType, KycStatus } from '@prisma/client';
-import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConflictException, BadRequestException } from '@nestjs/common';
 import { KycModule } from './kyc.module';
 import { ConfigService } from '@nestjs/config';
 
@@ -24,10 +24,14 @@ const mockPrismaService = {
   $transaction: jest.fn(),
 };
 
-mockPrismaService.$transaction.mockImplementation((callback: (tx: unknown) => unknown) => callback(mockPrismaService));
+mockPrismaService.$transaction.mockImplementation((callback: (tx: unknown) => unknown) =>
+  callback(mockPrismaService),
+);
 
 const mockUploadsService = {
-  uploadFile: jest.fn(() => Promise.resolve({ publicUrl: 'https://storage.com/file.jpg', key: 'file.jpg' })),
+  uploadFile: jest.fn(() =>
+    Promise.resolve({ publicUrl: 'https://storage.com/file.jpg', key: 'file.jpg' }),
+  ),
 };
 
 const mockKycProvider = {
@@ -56,7 +60,11 @@ describe('KycService', () => {
   });
 
   describe('submitVerification', () => {
-    const mockFile = { buffer: Buffer.from('test'), originalname: 'test.jpg', mimetype: 'image/jpeg' };
+    const mockFile = {
+      buffer: Buffer.from('test'),
+      originalname: 'test.jpg',
+      mimetype: 'image/jpeg',
+    };
 
     it('should throw BadRequestException if files are missing', async () => {
       await expect(
@@ -87,7 +95,12 @@ describe('KycService', () => {
         livenessPassed: true,
       });
 
-      const result = await service.submitVerification('user-1', KycDocumentType.PASSPORT, mockFile, mockFile);
+      const result = await service.submitVerification(
+        'user-1',
+        KycDocumentType.PASSPORT,
+        mockFile,
+        mockFile,
+      );
 
       expect(result.status).toBe(KycStatus.APPROVED);
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
@@ -109,7 +122,12 @@ describe('KycService', () => {
         livenessPassed: true,
       });
 
-      const result = await service.submitVerification('user-1', KycDocumentType.PASSPORT, mockFile, mockFile);
+      const result = await service.submitVerification(
+        'user-1',
+        KycDocumentType.PASSPORT,
+        mockFile,
+        mockFile,
+      );
 
       expect(result.status).toBe(KycStatus.REJECTED);
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
@@ -121,8 +139,14 @@ describe('KycService', () => {
 
   describe('admin overrides', () => {
     it('should approve kyc verification manually', async () => {
-      mockPrismaService.kycVerification.findUnique.mockResolvedValue({ id: 'kyc-1', userId: 'user-1' });
-      mockPrismaService.kycVerification.update.mockResolvedValue({ id: 'kyc-1', status: KycStatus.APPROVED });
+      mockPrismaService.kycVerification.findUnique.mockResolvedValue({
+        id: 'kyc-1',
+        userId: 'user-1',
+      });
+      mockPrismaService.kycVerification.update.mockResolvedValue({
+        id: 'kyc-1',
+        status: KycStatus.APPROVED,
+      });
 
       const result = await service.approveVerification('kyc-1', 'admin-1');
 
@@ -134,8 +158,14 @@ describe('KycService', () => {
     });
 
     it('should reject kyc verification manually', async () => {
-      mockPrismaService.kycVerification.findUnique.mockResolvedValue({ id: 'kyc-1', userId: 'user-1' });
-      mockPrismaService.kycVerification.update.mockResolvedValue({ id: 'kyc-1', status: KycStatus.REJECTED });
+      mockPrismaService.kycVerification.findUnique.mockResolvedValue({
+        id: 'kyc-1',
+        userId: 'user-1',
+      });
+      mockPrismaService.kycVerification.update.mockResolvedValue({
+        id: 'kyc-1',
+        status: KycStatus.REJECTED,
+      });
 
       const result = await service.rejectVerification('kyc-1', 'admin-1', 'ID not readable');
 
@@ -148,7 +178,7 @@ describe('KycService', () => {
   });
 
   describe('KycModule KycProvider Factory', () => {
-    let factory: Function;
+    let factory: (...args: unknown[]) => unknown;
 
     beforeAll(() => {
       const providers = Reflect.getMetadata('providers', KycModule);
@@ -185,7 +215,7 @@ describe('KycService', () => {
       const openaiProvider = {} as any;
 
       expect(() => factory(mockConfig, mockProvider, openaiProvider)).toThrow(
-        /OPENAI_API_KEY is missing or set to a dummy value in production environment/
+        /OPENAI_API_KEY is missing or set to a dummy value in production environment/,
       );
     });
   });

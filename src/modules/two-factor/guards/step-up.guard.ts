@@ -30,18 +30,16 @@ export class StepUpGuard implements CanActivate {
     this.accessSecret = config.get<string>('JWT_ACCESS_SECRET')!;
     const ts = config.get<string>('TOTP_TEMP_SECRET');
     if (!ts) {
-      throw new Error(
-        'TOTP_TEMP_SECRET is required. Set it in your environment variables.',
-      );
+      throw new Error('TOTP_TEMP_SECRET is required. Set it in your environment variables.');
     }
     this.tempSecret = ts;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isSensitive = this.reflector.getAllAndOverride<boolean>(
-      SENSITIVE_ACTION_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const isSensitive = this.reflector.getAllAndOverride<boolean>(SENSITIVE_ACTION_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!isSensitive) return true;
 
     const request = context.switchToHttp().getRequest();
@@ -93,9 +91,7 @@ export class StepUpGuard implements CanActivate {
       return true;
     }
 
-    this.logger.warn(
-      `Sensitive action attempted without step-up verification by user ${userId}`,
-    );
+    this.logger.warn(`Sensitive action attempted without step-up verification by user ${userId}`);
 
     throw new UnauthorizedException({
       requiresStepUp: true,
@@ -118,10 +114,10 @@ export class StepUpGuard implements CanActivate {
   private validateActionScope(context: ExecutionContext, payload: Record<string, any>): void {
     if (!payload.action) return;
 
-    const routeAction = this.reflector.getAllAndOverride<string | undefined>(
-      ACTION_TYPE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const routeAction = this.reflector.getAllAndOverride<string | undefined>(ACTION_TYPE_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     if (!routeAction) return;
 
     if (payload.action !== routeAction) {

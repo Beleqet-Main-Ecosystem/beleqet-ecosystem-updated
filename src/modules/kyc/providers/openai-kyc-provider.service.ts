@@ -35,7 +35,9 @@ export class OpenAiKycProvider implements KycProvider {
 
     const apiKey = this.config.get<string>('OPENAI_API_KEY');
     if (!apiKey || apiKey === 'dummy_key_for_testing') {
-      this.logger.warn('OpenAI API key not configured or dummy. Falling back to simulated verification.');
+      this.logger.warn(
+        'OpenAI API key not configured or dummy. Falling back to simulated verification.',
+      );
       return this.getFallbackResult();
     }
 
@@ -64,8 +66,8 @@ export class OpenAiKycProvider implements KycProvider {
                 type: 'text',
                 text:
                   'You are given two images:\n' +
-                  'Image 1: User uploaded ID document (passport, national ID card, or driver\'s license).\n' +
-                  'Image 2: User\'s live face scan (selfie).\n\n' +
+                  "Image 1: User uploaded ID document (passport, national ID card, or driver's license).\n" +
+                  "Image 2: User's live face scan (selfie).\n\n" +
                   'Please perform these checks:\n' +
                   '1. Verify if the ID document in Image 1 is authentic, valid, not expired, and contains clear details.\n' +
                   '2. Perform a face comparison: Does the face in the ID document (Image 1) match the face in the selfie (Image 2)?\n' +
@@ -113,7 +115,10 @@ export class OpenAiKycProvider implements KycProvider {
         rejectionReason: parsed.rejectionReason || undefined,
       };
     } catch (err) {
-      this.logger.error(`OpenAI Vision call failed: ${(err as Error).message}`, (err as Error).stack);
+      this.logger.error(
+        `OpenAI Vision call failed: ${(err as Error).message}`,
+        (err as Error).stack,
+      );
       return {
         matchScore: 0,
         livenessPassed: false,
@@ -128,12 +133,7 @@ export class OpenAiKycProvider implements KycProvider {
    */
   private detectMimeType(buffer: Buffer): string {
     if (buffer.length >= 4) {
-      if (
-        buffer[0] === 0x89 &&
-        buffer[1] === 0x50 &&
-        buffer[2] === 0x4e &&
-        buffer[3] === 0x47
-      ) {
+      if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) {
         return 'image/png';
       }
       if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
@@ -152,11 +152,7 @@ export class OpenAiKycProvider implements KycProvider {
       ) {
         return 'image/webp';
       }
-      if (
-        buffer[0] === 0x47 &&
-        buffer[1] === 0x49 &&
-        buffer[2] === 0x46
-      ) {
+      if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
         return 'image/gif';
       }
     }

@@ -32,7 +32,9 @@ describe('RedisIoAdapter', () => {
   };
 
   const mockConfigService: MockConfigService = {
-    get: jest.fn((key: string, defaultValue?: unknown) => configValues[key] ?? defaultValue) as ConfigService['get'],
+    get: jest.fn(
+      (key: string, defaultValue?: unknown) => configValues[key] ?? defaultValue,
+    ) as ConfigService['get'],
   };
 
   const mockApp: MockAppContext = {
