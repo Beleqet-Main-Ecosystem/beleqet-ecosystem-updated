@@ -159,7 +159,9 @@ if compose ps --status running db 2>/dev/null | grep -q db; then
   fi
 else
   log "db service not running yet (first deployment?) — starting db/redis before migration"
-  compose up -d db redis
+  # --wait blocks until the containers' healthchecks pass; without it the
+  # migration would race a Postgres that is still initializing.
+  compose up -d --wait db redis
 fi
 
 # ── 7. Apply migrations exactly once ─────────────────────────────────────────

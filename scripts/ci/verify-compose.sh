@@ -41,6 +41,13 @@ JWT_ACCESS_SECRET=synthetic_jwt_secret
 SESSION_SECRET=synthetic_session_secret
 TOTP_ENCRYPTION_KEY=synthetic_totp_key
 TOTP_TEMP_SECRET=synthetic_totp_temp
+OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=
+GOOGLE_CLIENT_ID=synthetic_google_client_id
+GOOGLE_CLIENT_SECRET=synthetic_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:4000/api/v1/auth/google/callback
+LINKEDIN_CLIENT_ID=synthetic_linkedin_client_id
+LINKEDIN_CLIENT_SECRET=synthetic_linkedin_client_secret
+LINKEDIN_CALLBACK_URL=http://localhost:4000/api/v1/auth/linkedin/callback
 EOF
 images_env="$workdir/env.images"
 cat >"$images_env" <<'EOF'
