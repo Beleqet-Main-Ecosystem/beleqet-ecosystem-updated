@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { logout } from '@/lib/api';
-import { ShieldCheck, LogOut, LayoutDashboard, Gavel } from 'lucide-react';
+import { ShieldCheck, LogOut, LayoutDashboard, Gavel, ScrollText } from 'lucide-react';
 
 interface User {
   firstName: string;
@@ -59,6 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navLinks = [
     { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { href: '/admin/disputes', label: 'Dispute Manager', icon: <Gavel size={18} /> },
+    { href: '/admin/audit-logs', label: 'Audit Trail', icon: <ScrollText size={18} /> },
   ];
 
   return (
