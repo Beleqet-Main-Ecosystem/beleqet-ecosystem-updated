@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { getSeoConfig } from "@/lib/seo/config";
 import { buildCanonical, isNoindexRoute, stripTrackingParams } from "@/lib/seo/canonical";
 import { ROUTE_REGISTRY, INDEXABLE_ROUTES, NOINDEX_ROUTES } from "@/lib/seo/route-registry";
