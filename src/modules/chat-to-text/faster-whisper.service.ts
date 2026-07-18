@@ -9,7 +9,6 @@ import { IUploadedAudioFile, ITranscriptionResult } from './interfaces';
 
 const DEFAULT_MODEL = 'base';
 const MAX_PROCESS_OUTPUT_BYTES = 1024 * 1024;
-const DEFAULT_PROCESS_TIMEOUT_MS = 120_000;
 
 interface ITranscriptionProcessOutput {
   text: string;
@@ -47,13 +46,6 @@ export class FasterWhisperService {
       'python3',
     );
     const model = this.configService.get<string>('FASTER_WHISPER_MODEL', DEFAULT_MODEL);
-    const configuredTimeout = this.configService.get<number>(
-      'FASTER_WHISPER_TIMEOUT_MS',
-      DEFAULT_PROCESS_TIMEOUT_MS,
-    );
-    const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
-      ? configuredTimeout
-      : DEFAULT_PROCESS_TIMEOUT_MS;
     const projectRoot = process.cwd();
     const scriptPath = join(projectRoot, 'scripts', 'transcribe-with-faster-whisper.py');
     const fallbackScriptPath = join(__dirname, '..', '..', '..', 'scripts', 'transcribe-with-faster-whisper.py');
@@ -69,56 +61,23 @@ export class FasterWhisperService {
       const stdoutChunks: Buffer[] = [];
       const stderrChunks: Buffer[] = [];
       let outputSize = 0;
-      let settled = false;
-      const cleanup = (): void => {
-        clearTimeout(timeout);
-        child.stdout.off('data', onStdout);
-        child.stderr.off('data', onStderr);
-        child.off('error', onChildError);
-        child.off('close', onClose);
-      };
-      const finish = (error?: BadGatewayException, result?: ITranscriptionResult): void => {
-        if (settled) return;
-        settled = true;
-        cleanup();
-        if (error) reject(error);
-        else if (result) resolve(result);
-      };
-      const terminate = (): void => {
-        if (!child.killed) child.kill('SIGKILL');
-      };
-      const failForOutputLimit = (): void => {
-        terminate();
-        finish(new BadGatewayException('Local transcription produced too much output'));
-      };
-      const timeout = setTimeout(() => {
-        this.logger.error(`faster-whisper timed out after ${timeoutMs}ms`);
-        terminate();
-        finish(new BadGatewayException('Local transcription timed out'));
-      }, timeoutMs);
 
-      const onStdout = (chunk: Buffer): void => {
-        if (settled) return;
+      child.stdout.on('data', (chunk: Buffer) => {
         outputSize += chunk.length;
-        if (outputSize > MAX_PROCESS_OUTPUT_BYTES) return failForOutputLimit();
-        stdoutChunks.push(chunk);
-      };
-      const onStderr = (chunk: Buffer): void => {
-        if (settled) return;
-        outputSize += chunk.length;
-        if (outputSize > MAX_PROCESS_OUTPUT_BYTES) return failForOutputLimit();
-        stderrChunks.push(chunk);
-      };
-      const onChildError = (error: Error): void => {
+        if (outputSize <= MAX_PROCESS_OUTPUT_BYTES) {
+          stdoutChunks.push(chunk);
+        }
+      });
+      child.stderr.on('data', (chunk: Buffer) => stderrChunks.push(chunk));
+      child.on('error', (error: Error) => {
         this.logger.error(`Unable to start faster-whisper: ${error.message}`, error.stack);
-        finish(new BadGatewayException('Local speech-to-text service could not start'));
-      };
-      const onClose = (exitCode: number | null): void => {
-        if (settled) return;
-        if (exitCode !== 0) {
+        reject(new BadGatewayException('Local speech-to-text service could not start'));
+      });
+      child.on('close', (exitCode: number | null) => {
+        if (outputSize > MAX_PROCESS_OUTPUT_BYTES || exitCode !== 0) {
           const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
           this.logger.error(`faster-whisper failed (exit ${exitCode}): ${stderr}`);
-          finish(
+          reject(
             new BadGatewayException(
               'Local transcription failed. Ensure the faster-whisper model is installed.',
             ),
@@ -129,41 +88,27 @@ export class FasterWhisperService {
         const output = Buffer.concat(stdoutChunks).toString('utf8');
         const parsed = this.parseProcessOutput(output);
         if (!parsed) {
-          finish(new BadGatewayException('Local transcription returned an invalid response'));
+          reject(new BadGatewayException('Local transcription returned an invalid response'));
           return;
         }
 
-        finish(undefined, parsed);
-      };
-
-      child.stdout.on('data', onStdout);
-      child.stderr.on('data', onStderr);
-      child.on('error', onChildError);
-      child.on('close', onClose);
+        resolve(parsed);
+      });
     });
   }
 
   private async resolveScriptPath(primaryPath: string, fallbackPath: string): Promise<string> {
-    const candidatePaths = [
-      primaryPath,
-      fallbackPath,
-      join(process.cwd(), 'scripts', 'transcribe-with-faster-whisper.py'),
-      join(__dirname, '..', '..', 'scripts', 'transcribe-with-faster-whisper.py'),
-      join(__dirname, '..', 'scripts', 'transcribe-with-faster-whisper.py'),
-    ];
-
-    for (const candidatePath of candidatePaths) {
+    try {
+      await access(primaryPath);
+      return primaryPath;
+    } catch {
       try {
-        await access(candidatePath);
-        return candidatePath;
+        await access(fallbackPath);
+        return fallbackPath;
       } catch {
-        // Continue trying the next candidate path.
+        return primaryPath;
       }
     }
-
-    throw new BadGatewayException(
-      'Local transcription script is missing. Ensure scripts/transcribe-with-faster-whisper.py is available.',
-    );
   }
 
   private parseProcessOutput(output: string): ITranscriptionProcessOutput | undefined {

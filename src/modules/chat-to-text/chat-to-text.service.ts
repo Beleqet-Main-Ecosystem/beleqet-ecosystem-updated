@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateConversationDto,
@@ -31,7 +31,23 @@ export class ChatToTextService {
   /**
    * Creates a new speech conversation record.
    */
-  async createConversation(createConversationDto: CreateConversationDto, userId: string) {
+  async createConversation(createConversationDto: CreateConversationDto) {
+    let userId: string | null | undefined = createConversationDto.userId;
+
+    if (createConversationDto.userId) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { id: createConversationDto.userId },
+        select: { id: true },
+      });
+
+      if (!existingUser) {
+        this.logger.warn(
+          `User with ID ${createConversationDto.userId} not found; creating conversation without user relation`,
+        );
+        userId = null;
+      }
+    }
+
     const conversation = await this.prisma.speechConversation.create({
       data: {
         title: createConversationDto.title,
@@ -50,9 +66,7 @@ export class ChatToTextService {
   async transcribeAudio(
     file: IUploadedAudioFile,
     transcribeAudioDto: TranscribeAudioDto,
-    userId: string,
   ): Promise<SpeechTranscript> {
-    await this.findOwnedConversation(transcribeAudioDto.conversationId, userId);
     const transcription = await this.fasterWhisperService.transcribe(
       file,
       transcribeAudioDto.language,
@@ -63,7 +77,7 @@ export class ChatToTextService {
       language: transcribeAudioDto.language,
       provider: 'faster-whisper' as CreateTranscriptDto['provider'],
       rawText: transcription.text,
-    }, userId);
+    });
   }
 
   /**
@@ -73,64 +87,17 @@ export class ChatToTextService {
   async transcribeChunk(
     file: IUploadedAudioFile,
     transcribeAudioDto: TranscribeAudioDto,
-    userId: string,
   ): Promise<SpeechTranscript> {
-    await this.findOwnedConversation(transcribeAudioDto.conversationId, userId);
     const transcription = await this.fasterWhisperService.transcribe(
       file,
       transcribeAudioDto.language,
     );
 
-    const activeTranscript = await this.prisma.speechTranscript.findFirst({
-      where: {
-        conversationId: transcribeAudioDto.conversationId,
-        provider: 'faster-whisper',
-        status: SpeechTranscriptStatus.PROCESSING,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!activeTranscript) {
-      const normalizedText = this.getTranscriptContent(transcription.text);
-      return this.prisma.speechTranscript.create({
-        data: {
-          conversationId: transcribeAudioDto.conversationId,
-          rawText: transcription.text,
-          normalizedText,
-          language: transcribeAudioDto.language || 'en',
-          provider: 'faster-whisper',
-          status: transcribeAudioDto.isFinal
-            ? SpeechTranscriptStatus.COMPLETED
-            : SpeechTranscriptStatus.PROCESSING,
-          messages: {
-            create: {
-              content: normalizedText,
-              conversation: { connect: { id: transcribeAudioDto.conversationId } },
-              sender: 'speech-to-text',
-              type: SpeechMessageType.USER,
-            },
-          },
-        },
-      });
-    }
-
-    const rawText = `${activeTranscript.rawText || ''} ${transcription.text}`.trim();
-    const normalizedText = this.getTranscriptContent(rawText);
-    return this.prisma.speechTranscript.update({
-      where: { id: activeTranscript.id },
-      data: {
-        rawText,
-        normalizedText,
-        status: transcribeAudioDto.isFinal
-          ? SpeechTranscriptStatus.COMPLETED
-          : SpeechTranscriptStatus.PROCESSING,
-        messages: {
-          updateMany: {
-            where: { transcriptId: activeTranscript.id },
-            data: { content: normalizedText },
-          },
-        },
-      },
+    return this.create({
+      conversationId: transcribeAudioDto.conversationId,
+      language: transcribeAudioDto.language,
+      provider: 'faster-whisper' as CreateTranscriptDto['provider'],
+      rawText: transcription.text,
     });
   }
 
@@ -178,9 +145,18 @@ export class ChatToTextService {
   /**
    * Create a new transcript and save to database.
    */
-  async create(createTranscriptDto: CreateTranscriptDto, userId: string): Promise<SpeechTranscript> {
+  async create(createTranscriptDto: CreateTranscriptDto): Promise<SpeechTranscript> {
     try {
-      const conversation = await this.findOwnedConversation(createTranscriptDto.conversationId, userId);
+      const conversation = await this.prisma.speechConversation.findUnique({
+        where: { id: createTranscriptDto.conversationId },
+        select: { id: true },
+      });
+
+      if (!conversation) {
+        throw new NotFoundException(
+          `Conversation with ID ${createTranscriptDto.conversationId} not found`,
+        );
+      }
 
       const normalizedText = this.getTranscriptContent(createTranscriptDto.rawText);
 
@@ -226,9 +202,18 @@ export class ChatToTextService {
     }
   }
 
-  async findByConversation(conversationId: string, userId: string): Promise<SpeechTranscript[]> {
+  async findByConversation(conversationId: string): Promise<SpeechTranscript[]> {
     try {
-      await this.findOwnedConversation(conversationId, userId);
+      const conversation = await this.prisma.speechConversation.findUnique({
+        where: { id: conversationId },
+        select: { id: true },
+      });
+
+      if (!conversation) {
+        throw new NotFoundException(
+          `Conversation with ID ${conversationId} not found`,
+        );
+      }
 
       return this.prisma.speechTranscript.findMany({
         where: { conversationId },
@@ -259,7 +244,7 @@ export class ChatToTextService {
     }
   }
 
-  async findById(id: string, userId: string): Promise<SpeechTranscript> {
+  async findById(id: string): Promise<SpeechTranscript> {
     try {
       const transcript = await this.prisma.speechTranscript.findUnique({
         where: { id },
@@ -272,7 +257,6 @@ export class ChatToTextService {
       if (!transcript) {
         throw new NotFoundException(`Transcript with ID ${id} not found`);
       }
-      await this.findOwnedConversation(transcript.conversationId, userId);
 
       return transcript;
     } catch (error) {
@@ -284,7 +268,7 @@ export class ChatToTextService {
     }
   }
 
-  async update(id: string, updateTranscriptDto: UpdateTranscriptDto, userId: string): Promise<SpeechTranscript> {
+  async update(id: string, updateTranscriptDto: UpdateTranscriptDto): Promise<SpeechTranscript> {
     try {
       const existingTranscript = await this.prisma.speechTranscript.findUnique({
         where: { id },
@@ -293,7 +277,6 @@ export class ChatToTextService {
       if (!existingTranscript) {
         throw new NotFoundException(`Transcript with ID ${id} not found`);
       }
-      await this.findOwnedConversation(existingTranscript.conversationId, userId);
 
       const normalizedText = updateTranscriptDto.rawText
         ? this.normalizeText(updateTranscriptDto.rawText)
@@ -319,11 +302,8 @@ export class ChatToTextService {
     }
   }
 
-  async delete(id: string, userId: string): Promise<SpeechTranscript> {
+  async delete(id: string): Promise<SpeechTranscript> {
     try {
-      const transcript = await this.prisma.speechTranscript.findUnique({ where: { id } });
-      if (!transcript) throw new NotFoundException(`Transcript with ID ${id} not found`);
-      await this.findOwnedConversation(transcript.conversationId, userId);
       const deleted = await this.prisma.speechTranscript.delete({
         where: { id },
       });
@@ -346,7 +326,7 @@ export class ChatToTextService {
     }
   }
 
-  async getConversationHistory(conversationId: string, userId: string): Promise<IConversationHistory> {
+  async getConversationHistory(conversationId: string): Promise<IConversationHistory> {
     try {
       const conversation = await this.prisma.speechConversation.findUnique({
         where: { id: conversationId },
@@ -373,7 +353,6 @@ export class ChatToTextService {
           `Conversation with ID ${conversationId} not found`,
         );
       }
-      this.assertConversationOwner(conversation.userId, userId);
 
       return {
         id: conversation.id,
@@ -416,9 +395,8 @@ export class ChatToTextService {
     return /[.!?]$/.test(normalized) ? normalized : `${normalized}.`;
   }
 
-  async getStatistics(conversationId: string, userId: string): Promise<IConversationStatistics> {
+  async getStatistics(conversationId: string): Promise<IConversationStatistics> {
     try {
-      await this.findOwnedConversation(conversationId, userId);
       const transcripts = await this.prisma.speechTranscript.findMany({
         where: { conversationId },
       });
@@ -446,24 +424,6 @@ export class ChatToTextService {
         this.getErrorStack(error),
       );
       throw error;
-    }
-  }
-
-  /** Looks up a conversation and ensures the caller is its authenticated owner. */
-  private async findOwnedConversation(conversationId: string, userId: string) {
-    const conversation = await this.prisma.speechConversation.findUnique({
-      where: { id: conversationId },
-      select: { id: true, userId: true },
-    });
-    if (!conversation) throw new NotFoundException(`Conversation with ID ${conversationId} not found`);
-    this.assertConversationOwner(conversation.userId, userId);
-    return conversation;
-  }
-
-  /** Prevents cross-user access even when another conversation identifier is known. */
-  private assertConversationOwner(conversationUserId: string | null, userId: string): void {
-    if (conversationUserId !== userId) {
-      throw new ForbiddenException('You do not have access to this conversation');
     }
   }
 }

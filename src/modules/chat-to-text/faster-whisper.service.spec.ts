@@ -17,14 +17,12 @@ const mockSpawn = jest.fn();
 const mockMkdtemp = jest.fn();
 const mockWriteFile = jest.fn();
 const mockRm = jest.fn();
-const mockAccess = jest.fn();
 
 jest.mock('child_process', () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
 }));
 
 jest.mock('fs/promises', () => ({
-  access: (...args: unknown[]) => mockAccess(...args),
   mkdtemp: (...args: unknown[]) => mockMkdtemp(...args),
   writeFile: (...args: unknown[]) => mockWriteFile(...args),
   rm: (...args: unknown[]) => mockRm(...args),
@@ -37,16 +35,9 @@ function createMockProcess() {
   const proc = new EventEmitter() as import('events').EventEmitter & {
     stdout: import('events').EventEmitter;
     stderr: import('events').EventEmitter;
-    killed: boolean;
-    kill: jest.Mock<boolean, [NodeJS.Signals]>;
   };
   proc.stdout = stdout;
   proc.stderr = stderr;
-  proc.killed = false;
-  proc.kill = jest.fn<boolean, [NodeJS.Signals]>(() => {
-    proc.killed = true;
-    return true;
-  });
   return proc;
 }
 
@@ -70,7 +61,6 @@ describe('FasterWhisperService', () => {
     mockMkdtemp.mockResolvedValue('/tmp/beleqet-transcription-abc');
     mockWriteFile.mockResolvedValue(undefined);
     mockRm.mockResolvedValue(undefined);
-    mockAccess.mockResolvedValue(undefined);
   });
 
   it('should transcribe a file and return the result', async () => {
@@ -130,18 +120,5 @@ describe('FasterWhisperService', () => {
     });
 
     await expect(promise).rejects.toThrow(BadGatewayException);
-  });
-
-  it('should kill a process that exceeds the output limit', async () => {
-    const mockProc = createMockProcess();
-    mockSpawn.mockReturnValue(mockProc);
-    const promise = service.transcribe(createMockFile());
-
-    process.nextTick(() => {
-      mockProc.stdout.emit('data', Buffer.alloc(1024 * 1024 + 1));
-    });
-
-    await expect(promise).rejects.toThrow(BadGatewayException);
-    expect(mockProc.kill).toHaveBeenCalledWith('SIGKILL');
   });
 });

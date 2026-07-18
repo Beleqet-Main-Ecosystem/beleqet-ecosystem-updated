@@ -13,12 +13,9 @@ import {
   ParseFilePipeBuilder,
   UploadedFile,
   UseInterceptors,
-  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ChatToTextService } from './chat-to-text.service';
 import {
   CreateConversationDto,
@@ -70,8 +67,6 @@ function isSupportedAudioOrVideoFile(file: IUploadedAudioFile): boolean {
 }
 
 @ApiTags('chat-to-text')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('chat-to-text')
 export class ChatToTextController {
   private readonly logger = new Logger(ChatToTextController.name);
@@ -81,8 +76,8 @@ export class ChatToTextController {
   @Post('conversations')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a speech conversation record' })
-  async createConversation(@Body() createConversationDto: CreateConversationDto, @CurrentUser() user: CurrentUserPayload) {
-    const conversation = await this.chatToTextService.createConversation(createConversationDto, user.userId);
+  async createConversation(@Body() createConversationDto: CreateConversationDto) {
+    const conversation = await this.chatToTextService.createConversation(createConversationDto);
     return {
       success: true,
       data: conversation,
@@ -102,13 +97,12 @@ export class ChatToTextController {
     )
     file: IUploadedAudioFile,
     @Body() transcribeAudioDto: TranscribeAudioDto,
-    @CurrentUser() user: CurrentUserPayload,
   ) {
     if (!isSupportedAudioOrVideoFile(file)) {
       throw new BadRequestException('Unsupported audio or video file type');
     }
 
-    const transcript = await this.chatToTextService.transcribeAudio(file, transcribeAudioDto, user.userId);
+    const transcript = await this.chatToTextService.transcribeAudio(file, transcribeAudioDto);
 
     return {
       success: true,
@@ -129,13 +123,12 @@ export class ChatToTextController {
     )
     file: IUploadedAudioFile,
     @Body() transcribeAudioDto: TranscribeAudioDto,
-    @CurrentUser() user: CurrentUserPayload,
   ) {
     if (!isSupportedAudioOrVideoFile(file)) {
       throw new BadRequestException('Unsupported audio or video file type');
     }
 
-    const transcript = await this.chatToTextService.transcribeChunk(file, transcribeAudioDto, user.userId);
+    const transcript = await this.chatToTextService.transcribeChunk(file, transcribeAudioDto);
 
     return {
       success: true,
@@ -147,11 +140,11 @@ export class ChatToTextController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a transcript from raw text' })
-  async create(@Body() createTranscriptDto: CreateTranscriptDto, @CurrentUser() user: CurrentUserPayload) {
+  async create(@Body() createTranscriptDto: CreateTranscriptDto) {
     this.logger.log(
       `Creating transcript for conversation: ${createTranscriptDto.conversationId}`,
     );
-    const transcript = await this.chatToTextService.create(createTranscriptDto, user.userId);
+    const transcript = await this.chatToTextService.create(createTranscriptDto);
     return {
       success: true,
       data: transcript,
@@ -161,8 +154,8 @@ export class ChatToTextController {
 
   @Get('conversation/:conversationId')
   @ApiOperation({ summary: 'List transcripts for a conversation' })
-  async findByConversation(@Param('conversationId') conversationId: string, @CurrentUser() user: CurrentUserPayload) {
-    const transcripts = await this.chatToTextService.findByConversation(conversationId, user.userId);
+  async findByConversation(@Param('conversationId') conversationId: string) {
+    const transcripts = await this.chatToTextService.findByConversation(conversationId);
     return {
       success: true,
       data: transcripts,
@@ -172,8 +165,8 @@ export class ChatToTextController {
 
   @Get('history/:conversationId')
   @ApiOperation({ summary: 'Get full conversation history' })
-  async getHistory(@Param('conversationId') conversationId: string, @CurrentUser() user: CurrentUserPayload) {
-    const history = await this.chatToTextService.getConversationHistory(conversationId, user.userId);
+  async getHistory(@Param('conversationId') conversationId: string) {
+    const history = await this.chatToTextService.getConversationHistory(conversationId);
     return {
       success: true,
       data: history,
@@ -182,8 +175,8 @@ export class ChatToTextController {
 
   @Get('stats/:conversationId')
   @ApiOperation({ summary: 'Get conversation transcription statistics' })
-  async getStatistics(@Param('conversationId') conversationId: string, @CurrentUser() user: CurrentUserPayload) {
-    const statistics = await this.chatToTextService.getStatistics(conversationId, user.userId);
+  async getStatistics(@Param('conversationId') conversationId: string) {
+    const statistics = await this.chatToTextService.getStatistics(conversationId);
     return {
       success: true,
       data: statistics,
@@ -192,8 +185,8 @@ export class ChatToTextController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a transcript by ID' })
-  async findById(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
-    const transcript = await this.chatToTextService.findById(id, user.userId);
+  async findById(@Param('id') id: string) {
+    const transcript = await this.chatToTextService.findById(id);
     return {
       success: true,
       data: transcript,
@@ -202,8 +195,8 @@ export class ChatToTextController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a transcript' })
-  async update(@Param('id') id: string, @Body() updateTranscriptDto: UpdateTranscriptDto, @CurrentUser() user: CurrentUserPayload) {
-    const transcript = await this.chatToTextService.update(id, updateTranscriptDto, user.userId);
+  async update(@Param('id') id: string, @Body() updateTranscriptDto: UpdateTranscriptDto) {
+    const transcript = await this.chatToTextService.update(id, updateTranscriptDto);
     return {
       success: true,
       data: transcript,
@@ -214,8 +207,8 @@ export class ChatToTextController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a transcript' })
-  async delete(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
-    await this.chatToTextService.delete(id, user.userId);
+  async delete(@Param('id') id: string) {
+    await this.chatToTextService.delete(id);
     return {
       success: true,
       message: 'Transcript deleted successfully',
