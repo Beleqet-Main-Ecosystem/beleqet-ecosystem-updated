@@ -6,6 +6,8 @@ import { EscrowService } from './escrow.service';
 import { EscrowController } from './escrow.controller';
 import { EscrowProcessor } from './escrow.processor';
 import { WalletModule } from '../wallet/wallet.module';
+import { ChapaClient } from './chapa.client';
+import { ChapaSignatureService } from './chapa-signature.service';
 
 @Module({
   imports: [
@@ -13,8 +15,8 @@ import { WalletModule } from '../wallet/wallet.module';
     WalletModule,
     TwoFactorModule,
   ],
-  providers: [EscrowService, EscrowProcessor],
+  providers: [EscrowService, EscrowProcessor, ChapaClient, ChapaSignatureService],
   controllers: [EscrowController],
-  exports: [EscrowService],
+  exports: [EscrowService, ChapaClient, ChapaSignatureService],
 })
 export class EscrowModule {}

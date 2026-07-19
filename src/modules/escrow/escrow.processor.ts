@@ -3,20 +3,15 @@ import { Logger, Injectable } from '@nestjs/common';
 import { Job as BullJob, Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS, NOTIFICATION_JOBS } from '../queues/queues.constants';
+import { ChapaClient } from './chapa.client';
+import { ChapaWebhookPayload } from './chapa.types';
 
-// Cast to any to bypass strict 'as const' literal checks if other files are cached/unsaved
 const EscrowJobs: any = ESCROW_JOBS;
 
-interface WebhookPayload {
-  reference: string;
-  status: string;
-  amount?: number;
-  currency?: string;
-  tx_ref?: string;
-  [key: string]: unknown;
-}
+type WebhookPayload = ChapaWebhookPayload;
 
 interface AutoReleasePayload {
   milestoneId: string;
@@ -46,6 +41,7 @@ export class EscrowProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly chapaClient: ChapaClient,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS)
     private readonly notificationsQueue: Queue,
     @InjectQueue(QUEUE_NAMES.ESCROW)
@@ -62,7 +58,7 @@ export class EscrowProcessor extends WorkerHost {
       case EscrowJobs.AUTO_RELEASE:
         await this.handleAutoRelease(job);
         break;
-      case EscrowJobs.PROCESS_WITHDRAWAL || 'process-withdrawal': // Fallback string literal
+      case EscrowJobs.PROCESS_WITHDRAWAL || 'process-withdrawal':
         await this.handleWithdrawal(job);
         break;
       case EscrowJobs.UNLOCK_FUNDS:
@@ -73,37 +69,66 @@ export class EscrowProcessor extends WorkerHost {
     }
   }
 
+  /**
+   * Processes Chapa payment webhooks idempotently. Successful payment events
+   * are always re-verified against Chapa before the escrow and freelance gig
+   * move to FUNDED.
+   */
   async handleWebhook(job: BullJob<WebhookPayload>) {
-    const { reference, status, tx_ref } = job.data;
-    this.logger.log(`[escrow-webhook] ref=${reference} status=${status}`);
+    const txRef = String(job.data.tx_ref ?? job.data.trx_ref ?? job.data.reference ?? '');
+    const reference = String(job.data.reference ?? txRef);
+    const status = String(job.data.status ?? '');
+    const eventName = String(job.data.event ?? job.data.type ?? 'payment');
+    const eventKey = `${eventName}:${txRef}:${reference}:${status || 'no-status'}`;
+    this.logger.log(`[escrow-webhook] txRef=${txRef} reference=${reference} status=${status}`);
+
+    const alreadyProcessed = await this.prisma.eventLog.findFirst({
+      where: { eventType: 'chapa.webhook.processed', entityId: eventKey },
+    });
+    if (alreadyProcessed) {
+      this.logger.debug(`[escrow-webhook] Duplicate event skipped: ${eventKey}`);
+      return;
+    }
 
     const escrow = await this.prisma.escrowTransaction.findFirst({
-      where: {
-        OR: [{ gatewayRef: reference }, { gatewayRef: tx_ref }],
-      },
-      include: {
-        freelanceJob: { include: { client: true } },
-      },
+      where: { OR: [{ gatewayRef: txRef }, { gatewayRef: reference }] },
+      include: { freelanceJob: { include: { client: true } } },
     });
 
     if (!escrow) {
-      this.logger.warn(`[escrow-webhook] No escrow found for ref=${reference}`);
+      this.logger.warn(`[escrow-webhook] No escrow found for txRef=${txRef || reference}`);
       return;
     }
 
     if (escrow.status === 'FUNDED') {
+      await this.markWebhookProcessed(eventKey, escrow.id, job.data);
       this.logger.debug(`[escrow-webhook] Already funded, skipping`);
       return;
     }
 
-    if (status === 'success' || status === 'SUCCESS') {
-      const transactions = [
+    const isSuccessful = eventName === 'charge.success' || status.toLowerCase() === 'success';
+    if (isSuccessful) {
+      const providerTxRef = escrow.gatewayRef ?? txRef;
+      const verified = await this.chapaClient.verifyTransaction(providerTxRef);
+      const verifiedData = verified.data;
+      const expectedChapaAmount = escrow.grossAmount - escrow.walletAppliedAmount;
+
+      if (
+        verifiedData?.status !== 'success' ||
+        verifiedData.tx_ref !== providerTxRef ||
+        verifiedData.currency !== escrow.currency ||
+        !this.amountMatches(verifiedData.amount, expectedChapaAmount)
+      ) {
+        throw new Error(`Chapa verification mismatch for escrow ${escrow.id}`);
+      }
+
+      const transactions: Prisma.PrismaPromise<unknown>[] = [
         this.prisma.escrowTransaction.update({
           where: { id: escrow.id },
           data: {
             status: 'FUNDED',
             fundedAt: new Date(),
-            gatewayResponse: job.data as object,
+            gatewayResponse: verified as object,
           },
         }),
         this.prisma.freelanceJob.update({
@@ -121,7 +146,7 @@ export class EscrowProcessor extends WorkerHost {
             this.prisma.employerWallet.update({
               where: { id: wallet.id },
               data: { lockedBalance: { decrement: escrow.walletAppliedAmount } },
-            }) as never,
+            }),
           );
           transactions.push(
             this.prisma.employerWalletTransaction.create({
@@ -132,7 +157,7 @@ export class EscrowProcessor extends WorkerHost {
                 note: `Partially funded escrow for job ${escrow.freelanceJobId}`,
                 escrowId: escrow.id,
               },
-            }) as never,
+            }),
           );
         }
       }
@@ -143,36 +168,35 @@ export class EscrowProcessor extends WorkerHost {
             eventType: 'escrow.funded',
             entityId: escrow.id,
             entityType: 'EscrowTransaction',
-            payload: { amount: escrow.grossAmount },
+            payload: { amount: escrow.grossAmount, txRef: providerTxRef },
             processedBy: EscrowProcessor.name,
           },
-        }) as never,
+        }),
       );
+      transactions.push(this.processedEventLog(eventKey, escrow.id, job.data));
 
       await this.prisma.$transaction(transactions);
 
       await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
         userId: escrow.freelanceJob.clientId,
         type: 'escrow.funded',
-        title: '✅ Escrow funded — your gig is now live!',
-        body: `ETB ${escrow.grossAmount.toLocaleString()} has been secured. Freelancers can now bid on your project.`,
+        title: 'Escrow funded - your gig is now live',
+        body: `${escrow.currency} ${escrow.grossAmount.toLocaleString()} has been secured.`,
         metadata: { escrowId: escrow.id, freelanceJobId: escrow.freelanceJobId },
       });
 
-      this.logger.log(`[escrow-webhook] Escrow ${escrow.id} funded — gig published`);
-    } else {
-      await this.prisma.escrowTransaction.update({
-        where: { id: escrow.id },
-        data: { gatewayResponse: job.data as object },
-      });
-      this.logger.warn(`[escrow-webhook] Payment failed for escrow ${escrow.id}`);
-      if (escrow.walletAppliedAmount > 0) {
-        await this.releaseLockedFunds(
-          escrow.id,
-          escrow.freelanceJob.clientId,
-          escrow.walletAppliedAmount,
-        );
-      }
+      this.logger.log(`[escrow-webhook] Escrow ${escrow.id} funded after Chapa verification`);
+      return;
+    }
+
+    await this.prisma.escrowTransaction.update({
+      where: { id: escrow.id },
+      data: { gatewayResponse: job.data as object },
+    });
+    await this.markWebhookProcessed(eventKey, escrow.id, job.data);
+    this.logger.warn(`[escrow-webhook] Payment failed for escrow ${escrow.id}`);
+    if (escrow.walletAppliedAmount > 0) {
+      await this.releaseLockedFunds(escrow.id, escrow.freelanceJob.clientId, escrow.walletAppliedAmount);
     }
   }
 
@@ -207,7 +231,7 @@ export class EscrowProcessor extends WorkerHost {
         walletId: wallet.id,
         type: 'CREDIT_AVAILABLE',
         amount,
-        note: `Milestone payout cleared — 3-day hold complete`,
+        note: 'Milestone payout cleared - 3-day hold complete',
         milestoneId,
       },
     });
@@ -225,7 +249,7 @@ export class EscrowProcessor extends WorkerHost {
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
       userId: freelancerId,
       type: 'wallet.credited',
-      title: `💰 ETB ${amount.toLocaleString()} is now available`,
+      title: `ETB ${amount.toLocaleString()} is now available`,
       body: 'Your hold period has cleared. You can now withdraw these funds.',
       metadata: { milestoneId, amount },
     });
@@ -234,7 +258,7 @@ export class EscrowProcessor extends WorkerHost {
     if (user?.telegramId) {
       await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
         telegramId: user.telegramId,
-        message: `💰 *ETB ${amount.toLocaleString()} is now available in your Beleqet wallet!*\n\nYour 3-day hold has cleared. Withdraw at: ${this.config.get('FRONTEND_URL')}/freelance/wallet`,
+        message: `ETB ${amount.toLocaleString()} is now available in your Beleqet wallet. Withdraw at: ${this.config.get('FRONTEND_URL')}/freelance/wallet`,
       });
     }
 
@@ -282,7 +306,7 @@ export class EscrowProcessor extends WorkerHost {
       userId,
       type: 'wallet.withdrawal_processing',
       title: `Withdrawal of ETB ${amount.toLocaleString()} is processing`,
-      body: `Your ${method} withdrawal is being processed. Funds typically arrive within 1–2 business days.`,
+      body: `Your ${method} withdrawal is being processed. Funds typically arrive within 1-2 business days.`,
       metadata: { amount, method },
     });
   }
@@ -298,7 +322,7 @@ export class EscrowProcessor extends WorkerHost {
   private async releaseLockedFunds(escrowId: string, clientId: string, amount: number) {
     const escrow = await this.prisma.escrowTransaction.findUnique({ where: { id: escrowId } });
     if (!escrow || escrow.status === 'FUNDED' || escrow.status === 'REFUNDED') {
-      return; // Already handled or not found
+      return;
     }
 
     const wallet = await this.prisma.employerWallet.findUnique({ where: { userId: clientId } });
@@ -330,6 +354,27 @@ export class EscrowProcessor extends WorkerHost {
     this.logger.log(
       `[unlock-funds] Released ETB ${amount} back to employer ${clientId} for abandoned escrow ${escrowId}`,
     );
+  }
+
+  private processedEventLog(eventKey: string, escrowId: string, payload: WebhookPayload) {
+    return this.prisma.eventLog.create({
+      data: {
+        eventType: 'chapa.webhook.processed',
+        entityId: eventKey,
+        entityType: 'EscrowTransaction',
+        payload: { escrowId, ...payload },
+        processedBy: EscrowProcessor.name,
+      },
+    });
+  }
+
+  private async markWebhookProcessed(eventKey: string, escrowId: string, payload: WebhookPayload) {
+    await this.processedEventLog(eventKey, escrowId, payload);
+  }
+
+  private amountMatches(providerAmount: string | number | undefined, expectedAmount: number): boolean {
+    const normalized = Number(providerAmount);
+    return Number.isFinite(normalized) && Math.abs(normalized - expectedAmount) < 0.01;
   }
 
   @OnWorkerEvent('failed')

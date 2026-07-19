@@ -420,6 +420,8 @@ model Milestone {
   deadline     DateTime
   status       MilestoneStatus @default(PENDING)
   approvedAt   DateTime?
+  employerApprovedAt   DateTime?
+  freelancerApprovedAt DateTime?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   deliverables Deliverable[]
@@ -555,6 +557,7 @@ model EventLog {
   createdAt   DateTime @default(now())
 
   @@index([eventType, entityId])
+  @@index([eventType, entityId, createdAt])
   @@map("events_log")
 }
 
