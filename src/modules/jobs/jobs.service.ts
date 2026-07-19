@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
@@ -88,8 +88,6 @@ export class JobsService {
     const limitNum = Number(query.limit) || 20;
     const { q, category, location, type } = query;
 
-    // Build a plain where object without Prisma namespace types
-    // (avoids Prisma.JobWhereInput which requires generated client)
     const where: Record<string, unknown> = { status: 'PUBLISHED' };
     if (type)     where['type']     = type;
     if (category) where['category'] = { slug: category };
