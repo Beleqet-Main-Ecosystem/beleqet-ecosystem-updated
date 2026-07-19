@@ -5,6 +5,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
+import { APP_GUARD } from '@nestjs/core';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -24,45 +25,37 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
-import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
- 
-import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
+import { InterviewPlannerModule } from './modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
-import { APP_GUARD } from '@nestjs/core';
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
-
 import { PaymentsModule } from './modules/payments/payments.module';
-// ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { CacheConfigModule } from './cache/cache.module';
+
+import configuration from './config/configuration';
 
 @Module({
   imports: [
-    //  Configuration (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
     }),
-
-    //  Rate limiting
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 10 },
       { name: 'medium', ttl: 10_000, limit: 50 },
       { name: 'long', ttl: 60_000, limit: 200 },
     ]),
-
-    //  Event bus (in-process events between modules)
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.',
       maxListeners: 20,
     }),
-
-    // ── Unified BullMQ (Redis-backed job queues) ───────────────────────────
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -80,8 +73,6 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
         },
       }),
     }),
-
-    //  Internationalization (i18n)
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
@@ -94,11 +85,9 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
         new HeaderResolver(['x-custom-lang']),
       ],
     }),
-
-    //  Feature modules
+    RedisModule,
     PrismaModule,
     QueuesModule,
-    RedisModule,
     AuthModule,
     UsersModule,
     JobsModule,
@@ -114,18 +103,17 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     UploadsModule,
     TelegramModule,
     ContactModule,
-    PlagiarismModule,
     InterviewPlannerModule,
     AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
-    // ── Fixed: PerformanceWorkerModule removed from imports array ──
     TwoFactorModule,
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    CacheConfigModule,
   ],
   providers: [
     {
@@ -134,4 +122,4 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
