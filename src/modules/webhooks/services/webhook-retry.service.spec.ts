@@ -1,32 +1,35 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebhookRetryService } from './webhook-retry.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { Queue } from 'bullmq';
 import { getQueueToken } from '@nestjs/bullmq';
 import { PaymentProvider, WebhookEventType } from '../types/webhook.types';
 
 describe('WebhookRetryService', () => {
   let service: WebhookRetryService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: any;
   let mockQueue: jest.Mocked<Queue>;
 
   beforeEach(async () => {
     mockQueue = {
       add: jest.fn().mockResolvedValue({ id: 'job_123' }),
+      getJob: jest.fn().mockResolvedValue(null),
     } as any;
+
+    const mockPrisma = {
+      webhookLog: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockResolvedValue({}),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhookRetryService,
         {
           provide: PrismaService,
-          useValue: {
-            webhookLog: {
-              findUnique: jest.fn(),
-              update: jest.fn(),
-              findMany: jest.fn(),
-            },
-          },
+          useValue: mockPrisma,
         },
         {
           provide: getQueueToken('webhooks'),
@@ -36,7 +39,7 @@ describe('WebhookRetryService', () => {
     }).compile();
 
     service = module.get<WebhookRetryService>(WebhookRetryService);
-    prismaService = module.get(PrismaService) as jest.Mocked<PrismaService>;
+    prismaService = mockPrisma;
   });
 
   describe('enqueueWebhook', () => {
@@ -65,7 +68,7 @@ describe('WebhookRetryService', () => {
         processedAt: new Date(),
       };
 
-      prismaService.webhookLog.findUnique.mockResolvedValue(existingLog as any);
+      prismaService.webhookLog.findUnique.mockResolvedValue(existingLog);
 
       const jobId = await service.enqueueWebhook(
         PaymentProvider.STRIPE,
@@ -147,27 +150,38 @@ describe('WebhookRetryService', () => {
       expect(prismaService.webhookLog.findMany).toHaveBeenCalledWith({
         where: { idempotencyKey: 'evt_123' },
         orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          statusCode: true,
+          error: true,
+          retryCount: true,
+          retryUntil: true,
+          processedAt: true,
+          createdAt: true,
+        },
       });
     });
   });
 
   describe('checkStatus', () => {
     it('should return webhook processing status', async () => {
-      const mockLog = {
-        id: 'log_123',
-        status: 'completed',
-        retryCount: 1,
-        processedAt: new Date(),
+      const mockJob = {
+        id: 'job_123',
+        attemptsMade: 1,
+        processedOn: Date.now(),
+        opts: { delay: 1000 },
+        getState: jest.fn().mockResolvedValue('completed'),
       };
 
-      prismaService.webhookLog.findUnique.mockResolvedValue(mockLog as any);
+      mockQueue.getJob.mockResolvedValue(mockJob as any);
 
-      const result = await service.checkStatus('log_123');
+      const result = await service.checkStatus('job_123');
 
       expect(result).toBeDefined();
-      expect(prismaService.webhookLog.findUnique).toHaveBeenCalledWith({
-        where: { id: 'log_123' },
-      });
+      expect(result.status).toBe('completed');
+      expect(result.attempt).toBe(1);
+      expect(mockQueue.getJob).toHaveBeenCalledWith('job_123');
     });
   });
 });

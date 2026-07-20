@@ -85,7 +85,7 @@ export class WebhooksController {
     @Headers('user-agent') _userAgent: string,
   ) {
     const signature = stripeSignature || '';
-    const rawBody = req.rawBody;
+    const rawBody: Buffer = req.rawBody || Buffer.from('');
     const ipAddress = (req.ip || req.socket.remoteAddress || '').toString();
 
     this.logger.debug(

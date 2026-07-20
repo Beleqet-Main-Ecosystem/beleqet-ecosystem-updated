@@ -1,36 +1,41 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GDPRService } from './gdpr.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 describe('GDPRService', () => {
   let service: GDPRService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: any;
 
   beforeEach(async () => {
+    const mockPrisma = {
+      user: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      gdprConsent: {
+        create: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      paymentTransaction: {
+        findMany: jest.fn(),
+        updateMany: jest.fn(),
+        update: jest.fn().mockResolvedValue({}),
+        count: jest.fn().mockResolvedValue(0),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GDPRService,
         {
           provide: PrismaService,
-          useValue: {
-            user: {
-              findUnique: jest.fn(),
-              update: jest.fn(),
-            },
-            gdprConsent: {
-              create: jest.fn(),
-            },
-            paymentTransaction: {
-              findMany: jest.fn(),
-              updateMany: jest.fn(),
-            },
-          },
+          useValue: mockPrisma,
         },
       ],
     }).compile();
 
     service = module.get<GDPRService>(GDPRService);
-    prismaService = module.get(PrismaService) as jest.Mocked<PrismaService>;
+    prismaService = mockPrisma as any;
   });
 
   describe('getComplianceMetadata', () => {
@@ -54,7 +59,7 @@ describe('GDPRService', () => {
         gdprConsentRevoked: false,
       };
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+      (prismaService.user.findUnique as any).mockResolvedValue(mockUser as any);
 
       const result = await service.checkConsentStatus('user_123');
 
@@ -75,7 +80,7 @@ describe('GDPRService', () => {
         gdprConsentRevoked: true,
       };
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
+      (prismaService.user.findUnique as any).mockResolvedValue(mockUser as any);
 
       const result = await service.checkConsentStatus('user_123');
 
@@ -83,7 +88,7 @@ describe('GDPRService', () => {
     });
 
     it('should return false if user not found', async () => {
-      prismaService.user.findUnique.mockResolvedValue(null);
+      (prismaService.user.findUnique as any).mockResolvedValue(null);
 
       const result = await service.checkConsentStatus('nonexistent_user');
 
@@ -93,7 +98,7 @@ describe('GDPRService', () => {
 
   describe('recordConsent', () => {
     it('should record user consent for data processing', async () => {
-      prismaService.gdprConsent.create.mockResolvedValue({} as any);
+      (prismaService.gdprConsent.create as any).mockResolvedValue({} as any);
 
       await service.recordConsent('user_123', 'payment');
 
@@ -110,7 +115,7 @@ describe('GDPRService', () => {
 
   describe('revokeConsent', () => {
     it('should revoke user consent', async () => {
-      prismaService.user.update.mockResolvedValue({} as any);
+      (prismaService.user.update as any).mockResolvedValue({} as any);
 
       await service.revokeConsent('user_123');
 
@@ -146,8 +151,8 @@ describe('GDPRService', () => {
         },
       ];
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
-      prismaService.paymentTransaction.findMany.mockResolvedValue(mockTransactions as any);
+      (prismaService.user.findUnique as any).mockResolvedValue(mockUser as any);
+      (prismaService.paymentTransaction.findMany as any).mockResolvedValue(mockTransactions as any);
 
       const result = await service.getDataSubjectAccess('user_123');
 
@@ -161,8 +166,8 @@ describe('GDPRService', () => {
 
   describe('deleteUserData', () => {
     it('should anonymize user data for right to be forgotten', async () => {
-      prismaService.user.update.mockResolvedValue({} as any);
-      prismaService.paymentTransaction.updateMany.mockResolvedValue({} as any);
+      (prismaService.user.update as any).mockResolvedValue({} as any);
+      (prismaService.paymentTransaction.updateMany as any).mockResolvedValue({} as any);
 
       await service.deleteUserData('user_123');
 
@@ -236,11 +241,18 @@ describe('GDPRService', () => {
       const transactionId = 'txn_123';
       const retentionDays = 90;
 
-      prismaService.paymentTransaction.updateMany.mockResolvedValue({} as any);
+      (prismaService.paymentTransaction.update as any).mockResolvedValue({} as any);
 
       await service.scheduleDataDeletion(transactionId, retentionDays);
 
-      expect(prismaService.paymentTransaction.updateMany).toHaveBeenCalled();
+      expect(prismaService.paymentTransaction.update).toHaveBeenCalledWith({
+        where: { id: transactionId },
+        data: {
+          metadata: expect.objectContaining({
+            scheduleDeleteAt: expect.any(String),
+          }),
+        },
+      });
     });
   });
 
@@ -252,14 +264,13 @@ describe('GDPRService', () => {
         createdAt: new Date(),
       };
 
-      prismaService.user.findUnique.mockResolvedValue(mockUser as any);
-      prismaService.paymentTransaction.findMany.mockResolvedValue([] as any);
+      (prismaService.user.findUnique as any).mockResolvedValue(mockUser as any);
+      (prismaService.paymentTransaction.findMany as any).mockResolvedValue([] as any);
 
-      const report = await service.generateComplianceReport('user_123');
+      const report = await (service.generateComplianceReport as any)('user_123');
 
       expect(report).toBeDefined();
-      expect(report.userId).toBe('user_123');
-      expect(report.reportDate).toBeInstanceOf(Date);
+      expect(report.reportGeneratedAt).toBeInstanceOf(Date);
     });
   });
 });

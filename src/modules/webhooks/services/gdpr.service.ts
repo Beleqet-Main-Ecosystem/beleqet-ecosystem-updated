@@ -4,7 +4,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { GDPRMetadata } from '../types/webhook.types';
 
 /**
@@ -69,8 +69,6 @@ export class GDPRService {
         userId,
         purpose,
         version: '1.0',
-        ipAddress: 'webhook-system',
-        userAgent: 'webhook-processor',
         consentedAt: new Date(),
       },
     });
@@ -262,7 +260,9 @@ export class GDPRService {
     await this.prisma.paymentTransaction.update({
       where: { id: paymentTransactionId },
       data: {
-        scheduleDeleteAt: deleteDate,
+        metadata: {
+          scheduleDeleteAt: deleteDate.toISOString(),
+        } as any,
       },
     });
 
@@ -276,33 +276,35 @@ export class GDPRService {
    * Should be called periodically via scheduled job
    */
   async processExpiredData(): Promise<void> {
-    const now = new Date();
-
-    const expiredRecords = await this.prisma.paymentTransaction.findMany({
-      where: {
-        scheduleDeleteAt: {
-          lte: now,
-        },
-        deletedAt: null,
-      },
-      take: 100,
+    // Query transactions with metadata
+    const records = await this.prisma.paymentTransaction.findMany({
+      take: 1000,
     });
 
-    this.logger.debug(`Found ${expiredRecords.length} records ready for deletion`);
+    const currentDate = new Date();
+    const recordsToDelete = records.filter((rec: any) => {
+      const scheduledDelete = rec.metadata?.scheduleDeleteAt;
+      if (!scheduledDelete) return false;
+      return new Date(scheduledDelete) <= currentDate;
+    });
 
-    for (const record of expiredRecords) {
+    this.logger.debug(`Processing ${recordsToDelete.length} expired records`);
+
+    for (const rec of recordsToDelete) {
       try {
-        // Anonymize instead of hard delete for compliance audit
+        // Anonymize data for compliance
         await this.prisma.paymentTransaction.update({
-          where: { id: record.id },
+          where: { id: rec.id },
           data: {
-            externalCustomerId: `DELETED-${record.externalCustomerId}`,
-            metadata: { deletedAt: new Date().toISOString() },
-            deletedAt: new Date(),
+            externalCustomerId: `DELETED-${rec.id}`,
+            metadata: JSON.parse(JSON.stringify({
+              ...((rec as any).metadata || {}),
+              deletedAt: currentDate.toISOString(),
+            })),
           },
         });
-      } catch (err) {
-        this.logger.error(`Failed to delete record ${record.id}: ${(err as Error).message}`);
+      } catch (error) {
+        this.logger.error(`Failed to process record ${rec.id}: ${(error as Error).message}`);
       }
     }
   }
