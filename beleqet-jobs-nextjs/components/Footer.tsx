@@ -8,6 +8,7 @@ const footerColumns = [
       { label: "Find Jobs", href: "/jobs" },
       { label: "Browse Categories", href: "/jobs" },
       { label: "CV Maker", href: "/cv-maker" },
+      { label: "Portfolio Builder", href: "/portfolio" },
       { label: "Telegram Alerts", href: "https://t.me/BeleqetJobs" },
     ],
   },

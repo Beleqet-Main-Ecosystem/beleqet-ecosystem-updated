@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
 import { BullModule } from '@nestjs/bullmq'; 
@@ -28,17 +29,18 @@ import { AuthController } from './auth.controller';
 import { AuthExceptionFilter } from './filters/auth-exception.filter';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
 
-/**
- * Synchronously loaded Auth environment configuration.
- */
-const authEnvConfig = loadAuthEnvConfig();
-
 @Module({
   imports: [
     PrismaModule,
     QueuesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({ secret: authEnvConfig.jwtAccessSecret }),
+    JwtModule.registerAsync({
+      useFactory: (configService: ConfigService) => {
+        const authConfig = loadAuthEnvConfig();
+        return { secret: authConfig.jwtAccessSecret };
+      },
+      inject: [ConfigService],
+    }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
     forwardRef(() => TwoFactorModule),
   ],
@@ -46,7 +48,7 @@ const authEnvConfig = loadAuthEnvConfig();
   providers: [
     {
       provide: AUTH_ENV_CONFIG,
-      useValue: authEnvConfig,
+      useFactory: () => loadAuthEnvConfig(),
     },
     {
       provide: TOKEN_ENCRYPTION_KEY,

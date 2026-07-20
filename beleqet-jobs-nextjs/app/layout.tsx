@@ -18,6 +18,15 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
+import QueryProvider from "@/components/QueryProvider";
+import ChatWidget from "@/components/ChatWidget";
+import { WebSiteSchema } from "@/lib/seo/schemas";
+import { getSeoConfig } from "@/lib/seo/config";
+import { homePageMetadata } from "@/lib/seo/generate-metadata";
+import { Toaster } from "sonner";
+
+export const metadata: Metadata = homePageMetadata();
+
 import { I18nProvider } from "@/lib/i18n";
 
 /* Lazy-loaded modules that are not critical for first paint. */
@@ -70,14 +79,15 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <I18nProvider>
           <AuthProvider>
-            <Header />
-            <main>
-            {' '}
-            {children}
-            <Toaster position="top-right" richColors />
-          </main>
-            <Footer />
-            <Suspense fallback={null}>
+          <QueryProvider>
+                <Header />
+              <main>
+              {' '}
+              {children}
+              <Toaster position="top-right" richColors />
+            </main>
+              <Footer />
+              <Suspense fallback={null}>
               <MobileBottomNav />
             </Suspense>
             <Suspense fallback={null}>
@@ -85,6 +95,7 @@ export default function RootLayout({
             </Suspense>
             <Suspense fallback={null}>
               <ChatWidget />
+          </QueryProvider>
             </Suspense>
           </AuthProvider>
         </I18nProvider>
