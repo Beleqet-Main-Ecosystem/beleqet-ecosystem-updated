@@ -322,6 +322,87 @@ describe('SmartSkillTesterService', () => {
         }),
       );
     });
+
+    it('throws BadRequestException when AI returns fewer results than questions', async () => {
+      prisma.skillTest.findUnique.mockResolvedValue(existingTest);
+      prisma.skillTest.updateMany.mockResolvedValue({ count: 1 });
+      prisma.skillTest.update.mockResolvedValue({} as any);
+      provider.complete.mockResolvedValue({
+        content: JSON.stringify({
+          results: [{ index: 1, score: 80, feedback: 'Good.' }],
+          overallScore: 80,
+          overallFeedback: 'OK',
+        }),
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      });
+
+      await expect(
+        service.evaluateAnswers(USER_ID, TEST_ID, answers),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when AI returns duplicate indexes', async () => {
+      prisma.skillTest.findUnique.mockResolvedValue(existingTest);
+      prisma.skillTest.updateMany.mockResolvedValue({ count: 1 });
+      prisma.skillTest.update.mockResolvedValue({} as any);
+      provider.complete.mockResolvedValue({
+        content: JSON.stringify({
+          results: [
+            { index: 1, score: 80, feedback: 'Good.' },
+            { index: 1, score: 90, feedback: 'Great.' },
+          ],
+          overallScore: 85,
+          overallFeedback: 'OK',
+        }),
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      });
+
+      await expect(
+        service.evaluateAnswers(USER_ID, TEST_ID, answers),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when AI returns an out-of-range index', async () => {
+      prisma.skillTest.findUnique.mockResolvedValue(existingTest);
+      prisma.skillTest.updateMany.mockResolvedValue({ count: 1 });
+      prisma.skillTest.update.mockResolvedValue({} as any);
+      provider.complete.mockResolvedValue({
+        content: JSON.stringify({
+          results: [
+            { index: 1, score: 80, feedback: 'Good.' },
+            { index: 99, score: 90, feedback: 'Great.' },
+          ],
+          overallScore: 85,
+          overallFeedback: 'OK',
+        }),
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      });
+
+      await expect(
+        service.evaluateAnswers(USER_ID, TEST_ID, answers),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when AI misses a required index', async () => {
+      prisma.skillTest.findUnique.mockResolvedValue(existingTest);
+      prisma.skillTest.updateMany.mockResolvedValue({ count: 1 });
+      prisma.skillTest.update.mockResolvedValue({} as any);
+      provider.complete.mockResolvedValue({
+        content: JSON.stringify({
+          results: [
+            { index: 1, score: 80, feedback: 'Good.' },
+            { index: 3, score: 90, feedback: 'Great.' },
+          ],
+          overallScore: 85,
+          overallFeedback: 'OK',
+        }),
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      });
+
+      await expect(
+        service.evaluateAnswers(USER_ID, TEST_ID, answers),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   // ── getHistory ─────────────────────────────────────────────────────────────

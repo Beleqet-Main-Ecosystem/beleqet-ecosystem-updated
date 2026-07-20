@@ -430,14 +430,43 @@ Return JSON with exactly this shape:
         );
       }
 
+      if (parsed.results.length !== questions.length) {
+        throw new BadRequestException(
+          `AI returned ${parsed.results.length} result(s) for ${questions.length} question(s)`,
+        );
+      }
+
+      const seenIndexes = new Set<number>();
+      for (const r of parsed.results) {
+        if (
+          r.index == null ||
+          !Number.isInteger(r.index) ||
+          r.index < 1 ||
+          r.index > questions.length
+        ) {
+          throw new BadRequestException(
+            `AI returned an invalid question index: ${r.index}`,
+          );
+        }
+        if (seenIndexes.has(r.index)) {
+          throw new BadRequestException(
+            `AI returned a duplicate question index: ${r.index}`,
+          );
+        }
+        seenIndexes.add(r.index);
+      }
+
+      for (let i = 1; i <= questions.length; i++) {
+        if (!seenIndexes.has(i)) {
+          throw new BadRequestException(
+            `AI evaluation is missing result for question index ${i}`,
+          );
+        }
+      }
+
       return {
         results: parsed.results.map((r) => {
           const qIdx = r.index - 1;
-          if (qIdx < 0 || qIdx >= questions.length) {
-            throw new BadRequestException(
-              'AI returned an invalid question index',
-            );
-          }
           return {
             questionId: questions[qIdx].id,
             score: Math.min(100, Math.max(0, Math.round(r.score ?? 0))),
