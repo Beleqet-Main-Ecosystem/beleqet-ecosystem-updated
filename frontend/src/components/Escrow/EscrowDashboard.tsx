@@ -1,26 +1,55 @@
 import { FormEvent, useMemo, useState } from 'react';
-import {
-  CheckCircle2,
-  ClipboardCheck,
-  CreditCard,
-  Hourglass,
-  Link as LinkIcon,
-  Send,
-  ShieldCheck,
-} from 'lucide-react';
-import {
-  confirmEscrowMilestone,
-  enqueueChapaCallback,
-  initiateEscrow,
-  type EscrowInitiationResult,
-  type MilestoneConfirmationResult,
-} from '../../lib/api';
 
 const currencies = ['ETB', 'USD', 'EUR'];
 const paymentStatuses = ['success', 'failed', 'pending'];
 
+type EscrowInitiationResult = {
+  escrowId: string;
+  checkoutUrl?: string | null;
+  grossAmount: number;
+  platformFee: number;
+  netAmount: number;
+  walletAppliedAmount: number;
+  amountToPay?: number;
+};
+
+type MilestoneConfirmationResult = {
+  success: boolean;
+  released: boolean;
+  waitingFor?: 'EMPLOYER' | 'FREELANCER';
+  alreadyReleased?: boolean;
+};
+
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function getAccessToken() {
+  return localStorage.getItem('access_token') || localStorage.getItem('accessToken');
+}
+
+async function apiRequest<T>(path: string, body?: Record<string, unknown>): Promise<T> {
+  const token = getAccessToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`/api/v1${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = typeof data.message === 'string' ? data.message : 'Request failed';
+    throw new Error(message);
+  }
+
+  return data as T;
 }
 
 function ResultPanel({
@@ -41,7 +70,7 @@ function ResultPanel({
       {initiation && (
         <div className="mb-4 last:mb-0">
           <div className="mb-2 flex items-center gap-2 font-semibold text-slate-900">
-            <CreditCard size={16} />
+            <span aria-hidden="true">C</span>
             <span>Escrow initialized</span>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -57,7 +86,7 @@ function ResultPanel({
               rel="noreferrer"
               className="mt-3 inline-flex items-center gap-2 text-blue-700 hover:text-blue-900"
             >
-              <LinkIcon size={16} />
+              <span aria-hidden="true">L</span>
               Open Chapa checkout
             </a>
           )}
@@ -67,7 +96,7 @@ function ResultPanel({
       {confirmation && (
         <div className="mb-4 last:mb-0">
           <div className="mb-2 flex items-center gap-2 font-semibold text-slate-900">
-            {confirmation.released ? <CheckCircle2 size={16} /> : <Hourglass size={16} />}
+            <span aria-hidden="true">{confirmation.released ? 'A' : 'W'}</span>
             <span>{confirmation.released ? 'Milestone queued for release' : 'Confirmation recorded'}</span>
           </div>
           {!confirmation.released && confirmation.waitingFor && (
@@ -79,7 +108,7 @@ function ResultPanel({
       {callbackResult && (
         <div>
           <div className="mb-2 flex items-center gap-2 font-semibold text-slate-900">
-            <Send size={16} />
+            <span aria-hidden="true">Q</span>
             <span>Callback queued</span>
           </div>
           <pre className="overflow-auto rounded bg-white p-3 text-xs text-slate-700">
@@ -113,7 +142,7 @@ export function EscrowDashboard() {
     setLoading('initiate');
     setError(null);
     try {
-      setInitiation(await initiateEscrow(gigId.trim()));
+      setInitiation(await apiRequest<EscrowInitiationResult>(`/escrow/initiate/${gigId.trim()}`));
     } catch (err) {
       setError(getErrorMessage(err, 'Could not initiate escrow.'));
     } finally {
@@ -126,7 +155,12 @@ export function EscrowDashboard() {
     setLoading('confirm');
     setError(null);
     try {
-      setConfirmation(await confirmEscrowMilestone(milestoneId.trim(), note.trim() || undefined));
+      setConfirmation(
+        await apiRequest<MilestoneConfirmationResult>(
+          `/escrow/milestones/${milestoneId.trim()}/confirm`,
+          note.trim() ? { note: note.trim() } : {},
+        ),
+      );
     } catch (err) {
       setError(getErrorMessage(err, 'Could not confirm milestone.'));
     } finally {
@@ -147,7 +181,7 @@ export function EscrowDashboard() {
         amount: amount ? Number(amount) : undefined,
         currency,
       };
-      setCallbackResult(await enqueueChapaCallback(payload));
+      setCallbackResult(await apiRequest<Record<string, unknown>>('/escrow/callback', payload));
     } catch (err) {
       setError(getErrorMessage(err, 'Could not queue callback.'));
     } finally {
@@ -163,7 +197,7 @@ export function EscrowDashboard() {
           <p className="text-sm text-gray-500">Fund, verify, and confirm milestone release.</p>
         </div>
         <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-          <ShieldCheck size={14} />
+          <span aria-hidden="true">V</span>
           Verified before funding
         </span>
       </div>
@@ -173,7 +207,7 @@ export function EscrowDashboard() {
       <div className="grid gap-4 lg:grid-cols-3">
         <form onSubmit={handleInitiate} className="rounded-lg border border-gray-200 p-4">
           <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
-            <CreditCard size={16} />
+            <span aria-hidden="true">C</span>
             <span>Fund escrow</span>
           </div>
           <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="escrow-gig-id">
@@ -191,14 +225,14 @@ export function EscrowDashboard() {
             disabled={!gigId.trim() || loading === 'initiate'}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
-            <CreditCard size={16} />
+            <span aria-hidden="true">C</span>
             {loading === 'initiate' ? 'Starting...' : 'Initialize'}
           </button>
         </form>
 
         <form onSubmit={handleConfirm} className="rounded-lg border border-gray-200 p-4">
           <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
-            <ClipboardCheck size={16} />
+            <span aria-hidden="true">M</span>
             <span>Confirm milestone</span>
           </div>
           <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="escrow-milestone-id">
@@ -226,14 +260,14 @@ export function EscrowDashboard() {
             disabled={!milestoneId.trim() || loading === 'confirm'}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
           >
-            <ClipboardCheck size={16} />
+            <span aria-hidden="true">M</span>
             {loading === 'confirm' ? 'Saving...' : 'Confirm'}
           </button>
         </form>
 
         <form onSubmit={handleCallback} className="rounded-lg border border-gray-200 p-4">
           <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900">
-            <Send size={16} />
+            <span aria-hidden="true">Q</span>
             <span>Queue callback</span>
           </div>
           <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="escrow-tx-ref">
@@ -298,7 +332,7 @@ export function EscrowDashboard() {
             disabled={!canSendCallback || loading === 'callback'}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-900 disabled:opacity-50"
           >
-            <Send size={16} />
+            <span aria-hidden="true">Q</span>
             {loading === 'callback' ? 'Queueing...' : 'Queue'}
           </button>
         </form>
