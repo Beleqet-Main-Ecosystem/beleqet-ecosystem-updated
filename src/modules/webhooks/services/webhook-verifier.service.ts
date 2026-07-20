@@ -9,6 +9,7 @@ import * as crypto from 'crypto';
 import {
   PaymentProvider,
   WebhookVerificationResult,
+  WebhookEventType,
   StripeWebhookPayload,
   PayPalWebhookPayload,
   ChapaWebhookPayload,
@@ -79,6 +80,12 @@ export class WebhookVerifierService {
       .update(signedContent)
       .digest('hex');
 
+    // Check length first to avoid timingSafeEqual RangeError
+    if (signaturePart.length !== expectedSignature.length) {
+      this.logger.warn('[Stripe] Signature verification failed - length mismatch');
+      throw new BadRequestException('Stripe signature verification failed');
+    }
+
     if (!crypto.timingSafeEqual(Buffer.from(signaturePart), Buffer.from(expectedSignature))) {
       this.logger.warn('[Stripe] Signature verification failed');
       throw new BadRequestException('Stripe signature verification failed');
@@ -148,7 +155,7 @@ export class WebhookVerifierService {
 
     this.logger.debug('[PayPal] Signature verified successfully');
 
-    const paypalPayload: PayPalWebhookPayload = payload;
+    const paypalPayload = payload as PayPalWebhookPayload;
     return {
       isValid: true,
       provider: PaymentProvider.PAYPAL,
@@ -183,6 +190,12 @@ export class WebhookVerifierService {
       .update(payloadString)
       .digest('hex');
 
+    // Check length first to avoid timingSafeEqual RangeError
+    if (signature.length !== expectedSignature.length) {
+      this.logger.warn('[Chapa] Signature verification failed - length mismatch');
+      throw new BadRequestException('Chapa signature verification failed');
+    }
+
     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
       this.logger.warn('[Chapa] Signature verification failed');
       throw new BadRequestException('Chapa signature verification failed');
@@ -190,7 +203,7 @@ export class WebhookVerifierService {
 
     this.logger.debug('[Chapa] Signature verified successfully');
 
-    const chapaPayload: ChapaWebhookPayload = payload;
+    const chapaPayload = payload as ChapaWebhookPayload;
     return {
       isValid: true,
       provider: PaymentProvider.CHAPA,
@@ -206,17 +219,17 @@ export class WebhookVerifierService {
    *
    * @private
    */
-  private mapStripeEventType(stripeEventType: string): string {
-    const eventMap: Record<string, string> = {
-      'charge.succeeded': 'payment.success',
-      'charge.failed': 'payment.failed',
-      'charge.refunded': 'payment.refunded',
-      'charge.dispute.created': 'payment.disputed',
-      'customer.subscription.created': 'subscription.created',
-      'customer.subscription.deleted': 'subscription.cancelled',
-      'invoice.payment_succeeded': 'invoice.paid',
+  private mapStripeEventType(stripeEventType: string): WebhookEventType {
+    const eventMap: Record<string, WebhookEventType> = {
+      'charge.succeeded': WebhookEventType.PAYMENT_SUCCESS,
+      'charge.failed': WebhookEventType.PAYMENT_FAILED,
+      'charge.refunded': WebhookEventType.PAYMENT_REFUNDED,
+      'charge.dispute.created': WebhookEventType.PAYMENT_DISPUTED,
+      'customer.subscription.created': WebhookEventType.SUBSCRIPTION_CREATED,
+      'customer.subscription.deleted': WebhookEventType.SUBSCRIPTION_CANCELLED,
+      'invoice.payment_succeeded': WebhookEventType.INVOICE_PAID,
     };
-    return eventMap[stripeEventType] || stripeEventType;
+    return eventMap[stripeEventType] || WebhookEventType.PAYMENT_SUCCESS;
   }
 
   /**
@@ -224,15 +237,15 @@ export class WebhookVerifierService {
    *
    * @private
    */
-  private mapPayPalEventType(paypalEventType: string): string {
-    const eventMap: Record<string, string> = {
-      'PAYMENT.CAPTURE.COMPLETED': 'payment.success',
-      'PAYMENT.CAPTURE.DENIED': 'payment.failed',
-      'PAYMENT.CAPTURE.REFUNDED': 'payment.refunded',
-      'BILLING.SUBSCRIPTION.CREATED': 'subscription.created',
-      'BILLING.SUBSCRIPTION.CANCELLED': 'subscription.cancelled',
+  private mapPayPalEventType(paypalEventType: string): WebhookEventType {
+    const eventMap: Record<string, WebhookEventType> = {
+      'PAYMENT.CAPTURE.COMPLETED': WebhookEventType.PAYMENT_SUCCESS,
+      'PAYMENT.CAPTURE.DENIED': WebhookEventType.PAYMENT_FAILED,
+      'PAYMENT.CAPTURE.REFUNDED': WebhookEventType.PAYMENT_REFUNDED,
+      'BILLING.SUBSCRIPTION.CREATED': WebhookEventType.SUBSCRIPTION_CREATED,
+      'BILLING.SUBSCRIPTION.CANCELLED': WebhookEventType.SUBSCRIPTION_CANCELLED,
     };
-    return eventMap[paypalEventType] || paypalEventType;
+    return eventMap[paypalEventType] || WebhookEventType.PAYMENT_SUCCESS;
   }
 
   /**
@@ -240,12 +253,12 @@ export class WebhookVerifierService {
    *
    * @private
    */
-  private mapChapaEventType(chapaEventType: string): string {
-    const eventMap: Record<string, string> = {
-      'charge.success': 'payment.success',
-      'charge.failed': 'payment.failed',
-      'charge.refunded': 'payment.refunded',
+  private mapChapaEventType(chapaEventType: string): WebhookEventType {
+    const eventMap: Record<string, WebhookEventType> = {
+      'charge.success': WebhookEventType.PAYMENT_SUCCESS,
+      'charge.failed': WebhookEventType.PAYMENT_FAILED,
+      'charge.refunded': WebhookEventType.PAYMENT_REFUNDED,
     };
-    return eventMap[chapaEventType] || chapaEventType;
+    return eventMap[chapaEventType] || WebhookEventType.PAYMENT_SUCCESS;
   }
 }

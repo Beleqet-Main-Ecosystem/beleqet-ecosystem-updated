@@ -5,9 +5,9 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { PrismaService } from '../../../prisma/prisma.service';
 import {
   WebhookEventType,
   PaymentProvider,
@@ -119,12 +119,12 @@ export class WebhookProcessorService {
       where: { id: transaction.id },
       data: {
         status: 'completed',
-        completedAt: event.timestamp,
         metadata: {
-          ...transaction.metadata,
+          ...(transaction.metadata as any || {}),
           externalProvider: event.provider,
           externalId: event.externalTransactionId,
-        },
+          completedAt: event.timestamp.toISOString(),
+        } as any,
       },
     });
 
@@ -194,11 +194,11 @@ export class WebhookProcessorService {
       where: { id: transaction.id },
       data: {
         status: 'failed',
-        failedAt: event.timestamp,
         metadata: {
-          ...transaction.metadata,
+          ...(transaction.metadata as any || {}),
+          failedAt: event.timestamp.toISOString(),
           failureReason: event.metadata?.reason || 'Payment declined',
-        },
+        } as any,
       },
     });
 
@@ -255,15 +255,15 @@ export class WebhookProcessorService {
     await this.prisma.walletTransaction.create({
       data: {
         walletId: transaction.walletId,
-        type: 'debit',
+        type: 'DEBIT_WITHDRAWAL',
         amount: refundAmount,
-        description: `Refund for transaction ${transaction.id}`,
-        status: 'completed',
+        note: `Refund for transaction ${transaction.id}`,
         externalTransactionId: `REFUND-${event.externalTransactionId}`,
+        status: 'completed',
         metadata: {
           originalTransactionId: event.externalTransactionId,
           provider: event.provider,
-        },
+        } as any,
       },
     });
 
@@ -272,7 +272,10 @@ export class WebhookProcessorService {
       where: { id: transaction.id },
       data: {
         status: 'refunded',
-        refundedAt: event.timestamp,
+        metadata: {
+          ...(transaction.metadata as any || {}),
+          refundedAt: event.timestamp.toISOString(),
+        } as any,
       },
     });
 
@@ -314,16 +317,19 @@ export class WebhookProcessorService {
       return;
     }
 
-    // Create dispute record
-    await this.prisma.dispute.create({
+    // Update transaction with dispute information
+    await this.prisma.walletTransaction.update({
+      where: { id: transaction.id },
       data: {
-        reason: `Payment disputed by ${event.provider}`,
-        status: 'open',
-        amount: event.amount,
-        currency: event.currency,
-        externalId: event.externalTransactionId,
-        provider: event.provider,
-        metadata: event.metadata,
+        status: 'disputed',
+        metadata: {
+          ...(transaction.metadata as any || {}),
+          disputedAt: event.timestamp.toISOString(),
+          disputeReason: event.metadata?.reason || 'Payment disputed',
+          disputeProvider: event.provider,
+          disputeAmount: event.amount,
+          disputeCurrency: event.currency,
+        } as any,
       },
     });
 
@@ -354,8 +360,8 @@ export class WebhookProcessorService {
   ): Promise<void> {
     this.logger.debug(`[${event.provider}] Subscription created: ${event.externalTransactionId}`);
 
-    // Find user by external customer ID
-    const user = await this.prisma.user.findFirst({
+    // Locate user by external customer identifier
+    const foundUser = await this.prisma.user.findFirst({
       where: {
         externalCustomerId: {
           equals: event.externalCustomerId,
@@ -363,32 +369,33 @@ export class WebhookProcessorService {
       },
     });
 
-    if (!user) {
+    if (!foundUser) {
       this.logger.warn(`User not found for customer: ${event.externalCustomerId}`);
       return;
     }
 
-    // Update user subscription status
+    // Activate user subscription
+    const userUpdateFields = {
+      subscriptionStatus: 'active',
+      externalSubscriptionId: event.externalTransactionId,
+    };
+    
     await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        subscriptionStatus: 'active',
-        subscriptionProvider: event.provider,
-        externalSubscriptionId: event.externalTransactionId,
-      },
+      where: { id: foundUser.id },
+      data: userUpdateFields,
     });
 
-    // Queue welcome notification
+    // Send notification
     await this.notificationQueue.add(
       'subscription-activated',
       {
-        userId: user.id,
+        userId: foundUser.id,
         provider: event.provider,
       },
       { priority: 1 },
     );
 
-    this.logger.log(`Subscription activated for user: ${user.id}`);
+    this.logger.log(`Subscription activated for user: ${foundUser.id}`);
   }
 
   /**
@@ -462,9 +469,22 @@ export class WebhookProcessorService {
    */
   private normalizeStripeEvent(payload: any): NormalizedWebhookEvent {
     const chargeObject = payload.data.object;
+    
+    // Map Stripe event types to normalized event types
+    const eventTypeMap: Record<string, WebhookEventType> = {
+      'charge.succeeded': WebhookEventType.PAYMENT_SUCCESS,
+      'charge.failed': WebhookEventType.PAYMENT_FAILED,
+      'charge.pending': WebhookEventType.PAYMENT_PENDING,
+      'charge.refunded': WebhookEventType.PAYMENT_REFUNDED,
+      'charge.dispute.created': WebhookEventType.PAYMENT_DISPUTED,
+      'customer.subscription.created': WebhookEventType.SUBSCRIPTION_CREATED,
+      'customer.subscription.deleted': WebhookEventType.SUBSCRIPTION_CANCELLED,
+      'invoice.paid': WebhookEventType.INVOICE_PAID,
+    };
+    
     return {
       provider: PaymentProvider.STRIPE,
-      eventType: payload.type as WebhookEventType,
+      eventType: eventTypeMap[payload.type] || payload.type as WebhookEventType,
       externalTransactionId: chargeObject.id,
       externalCustomerId: chargeObject.customer || '',
       amount: (chargeObject.amount || 0) / 100, // Stripe uses cents
@@ -482,9 +502,22 @@ export class WebhookProcessorService {
    */
   private normalizePayPalEvent(payload: any): NormalizedWebhookEvent {
     const resource = payload.resource;
+    
+    // Map PayPal event types to normalized event types
+    const eventTypeMap: Record<string, WebhookEventType> = {
+      'PAYMENT.CAPTURE.COMPLETED': WebhookEventType.PAYMENT_SUCCESS,
+      'PAYMENT.CAPTURE.DENIED': WebhookEventType.PAYMENT_FAILED,
+      'PAYMENT.CAPTURE.PENDING': WebhookEventType.PAYMENT_PENDING,
+      'PAYMENT.CAPTURE.REFUNDED': WebhookEventType.PAYMENT_REFUNDED,
+      'CUSTOMER.DISPUTE.CREATED': WebhookEventType.PAYMENT_DISPUTED,
+      'BILLING.SUBSCRIPTION.CREATED': WebhookEventType.SUBSCRIPTION_CREATED,
+      'BILLING.SUBSCRIPTION.CANCELLED': WebhookEventType.SUBSCRIPTION_CANCELLED,
+      'INVOICING.INVOICE.PAID': WebhookEventType.INVOICE_PAID,
+    };
+    
     return {
       provider: PaymentProvider.PAYPAL,
-      eventType: payload.event_type as WebhookEventType,
+      eventType: eventTypeMap[payload.event_type] || payload.event_type as WebhookEventType,
       externalTransactionId: resource.id,
       externalCustomerId: resource.payer?.email_address || '',
       amount: parseFloat(resource.amount_with_breakdown?.gross_amount?.value || 0),
@@ -502,9 +535,19 @@ export class WebhookProcessorService {
    */
   private normalizeChapaEvent(payload: any): NormalizedWebhookEvent {
     const data = payload.data;
+    
+    // Map Chapa event types to normalized event types
+    const eventTypeMap: Record<string, WebhookEventType> = {
+      'charge.success': WebhookEventType.PAYMENT_SUCCESS,
+      'charge.failed': WebhookEventType.PAYMENT_FAILED,
+      'charge.pending': WebhookEventType.PAYMENT_PENDING,
+      'charge.refund': WebhookEventType.PAYMENT_REFUNDED,
+      'charge.dispute': WebhookEventType.PAYMENT_DISPUTED,
+    };
+    
     return {
       provider: PaymentProvider.CHAPA,
-      eventType: payload.event as WebhookEventType,
+      eventType: eventTypeMap[payload.event] || payload.event as WebhookEventType,
       externalTransactionId: data.reference || data.tx_ref || '',
       externalCustomerId: data.email || '',
       amount: data.amount || 0,
@@ -535,10 +578,10 @@ export class WebhookProcessorService {
         amount: event.amount,
         currency: event.currency,
         status: event.status,
-        metadata: {
+        metadata: JSON.parse(JSON.stringify({
           ...event.metadata,
           gdprCompliance,
-        },
+        })),
       },
     }).catch(err => {
       if (err.code === 'P2002') {

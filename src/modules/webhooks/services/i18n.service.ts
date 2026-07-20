@@ -69,7 +69,7 @@ export class I18nService {
       'payment.success': 'Paiement réussi! Votre compte a été crédité.',
       'payment.failed': 'Le traitement du paiement a échoué. Veuillez réessayer.',
       'payment.refunded': 'Votre paiement a été remboursé avec succès.',
-      'payment.disputed': 'Votre paiement est en cours d\\'examen en cas de litige.',
+      'payment.disputed': 'Votre paiement est en cours d\'examen en cas de litige.',
       'subscription.created': 'Votre abonnement est maintenant actif.',
       'subscription.cancelled': 'Votre abonnement a été annulé.',
     },

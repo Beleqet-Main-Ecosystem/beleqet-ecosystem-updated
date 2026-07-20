@@ -4,9 +4,9 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue, Job } from 'bull';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue, Job } from 'bullmq';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { RetryConfig, PaymentProvider, WebhookEventType } from '../types/webhook.types';
 
 /**
@@ -230,7 +230,7 @@ export class WebhookRetryService {
     return {
       status: (state as any) || 'pending',
       attempt: job.attemptsMade || 0,
-      nextRetry: job.nextProcessTimestamp ? new Date(job.nextProcessTimestamp) : undefined,
+      nextRetry: job.processedOn ? new Date(job.processedOn + (job.opts?.delay || 0)) : undefined,
     };
   }
 
@@ -270,10 +270,11 @@ export class WebhookRetryService {
       throw new Error(`Webhook not found: ${webhookId}`);
     }
 
+    // Type cast JsonValue to Record<string, any> for enqueueWebhook
     const jobId = await this.enqueueWebhook(
-      webhook.provider,
-      webhook.eventType,
-      webhook.requestBody,
+      webhook.provider as PaymentProvider,
+      webhook.eventType as WebhookEventType,
+      webhook.requestBody as Record<string, any>,
       webhook.idempotencyKey,
     );
 

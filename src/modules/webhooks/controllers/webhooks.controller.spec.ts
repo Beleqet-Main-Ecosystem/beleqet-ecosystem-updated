@@ -179,7 +179,11 @@ describe('WebhooksController', () => {
 
   describe('checkStatus', () => {
     it('should return webhook processing status', async () => {
-      const mockStatus = { status: 'completed', attempt: 1, nextRetry: null };
+      const mockStatus = {
+        status: 'completed' as const,
+        attempt: 1,
+        nextRetry: undefined,
+      };
       retryService.checkStatus.mockResolvedValue(mockStatus);
 
       const result = await controller.checkStatus('job_123');
@@ -192,8 +196,24 @@ describe('WebhooksController', () => {
   describe('getRetryHistory', () => {
     it('should return retry history for a webhook', async () => {
       const mockHistory = [
-        { id: 'log_1', statusCode: 500, error: 'Database timeout', retryCount: 1 },
-        { id: 'log_2', statusCode: 200, error: null, retryCount: 2 },
+        { 
+          id: 'log_1', 
+          statusCode: 500, 
+          error: 'Database timeout', 
+          retryCount: 1,
+          retryUntil: new Date('2024-01-01T12:00:00Z'),
+          processedAt: null,
+          createdAt: new Date('2024-01-01T10:00:00Z'),
+        },
+        { 
+          id: 'log_2', 
+          statusCode: 200, 
+          error: null, 
+          retryCount: 2,
+          retryUntil: null,
+          processedAt: new Date('2024-01-01T10:05:00Z'),
+          createdAt: new Date('2024-01-01T10:00:00Z'),
+        },
       ];
       retryService.getRetryHistory.mockResolvedValue(mockHistory);
 

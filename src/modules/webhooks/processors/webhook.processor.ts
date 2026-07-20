@@ -4,4 +4,87 @@
  */
 
 import { Logger } from '@nestjs/common';
-import { Process, Processor } from '@nestjs/bull';\nimport { Job } from 'bull';\nimport { WebhookProcessorService } from '../services/webhook-processor.service';\nimport { WebhookRetryService } from '../services/webhook-retry.service';\nimport { WebhookVerifierService } from '../services/webhook-verifier.service';\nimport { PaymentProvider, WebhookEventType } from '../types/webhook.types';\n\n/**\n * BullMQ processor for webhook queue\n * Handles retries, monitoring, and business logic execution\n *\n * @class WebhookQueueProcessor\n */\n@Processor('webhooks')\nexport class WebhookQueueProcessor {\n  private readonly logger = new Logger(WebhookQueueProcessor.name);\n\n  constructor(\n    private processorService: WebhookProcessorService,\n    private retryService: WebhookRetryService,\n    private verifierService: WebhookVerifierService,\n  ) {}\n\n  /**\n   * Process Stripe webhook events\n   *\n   * @param job - BullMQ job\n   */\n  @Process('webhook-stripe-*')\n  async processStripe(job: Job<any>) {\n    const { provider, eventType, payload, idempotencyKey, attempt } = job.data;\n\n    this.logger.log(\n      `[Stripe Processing] Event: ${eventType}, Attempt: ${attempt + 1}, Job: ${job.id}`,\n    );\n\n    try {\n      // Create verification result from payload\n      const verification = {\n        isValid: true,\n        provider: PaymentProvider.STRIPE,\n        eventType: eventType as WebhookEventType,\n        payload,\n        timestamp: new Date(payload.created * 1000),\n        idempotencyKey,\n      };\n\n      // Process the webhook\n      await this.processorService.processWebhook(verification);\n\n      this.logger.log(`[Stripe Processing] Success: ${idempotencyKey}`);\n      return { success: true, eventType, idempotencyKey };\n    } catch (err) {\n      const error = err as Error;\n      this.logger.error(\n        `[Stripe Processing] Failed (Attempt ${attempt + 1}): ${error.message}`,\n      );\n\n      // Log failure and schedule retry\n      await this.retryService.markAsFailed(job.id!.toString(), error.message, attempt);\n\n      // Rethrow to trigger BullMQ retry mechanism\n      throw err;\n    }\n  }\n\n  /**\n   * Process PayPal webhook events\n   *\n   * @param job - BullMQ job\n   */\n  @Process('webhook-paypal-*')\n  async processPayPal(job: Job<any>) {\n    const { provider, eventType, payload, idempotencyKey, attempt } = job.data;\n\n    this.logger.log(\n      `[PayPal Processing] Event: ${eventType}, Attempt: ${attempt + 1}, Job: ${job.id}`,\n    );\n\n    try {\n      const verification = {\n        isValid: true,\n        provider: PaymentProvider.PAYPAL,\n        eventType: eventType as WebhookEventType,\n        payload,\n        timestamp: new Date(payload.create_time),\n        idempotencyKey,\n      };\n\n      await this.processorService.processWebhook(verification);\n\n      this.logger.log(`[PayPal Processing] Success: ${idempotencyKey}`);\n      return { success: true, eventType, idempotencyKey };\n    } catch (err) {\n      const error = err as Error;\n      this.logger.error(\n        `[PayPal Processing] Failed (Attempt ${attempt + 1}): ${error.message}`,\n      );\n\n      await this.retryService.markAsFailed(job.id!.toString(), error.message, attempt);\n      throw err;\n    }\n  }\n\n  /**\n   * Process Chapa webhook events\n   *\n   * @param job - BullMQ job\n   */\n  @Process('webhook-chapa-*')\n  async processChapa(job: Job<any>) {\n    const { provider, eventType, payload, idempotencyKey, attempt } = job.data;\n\n    this.logger.log(\n      `[Chapa Processing] Event: ${eventType}, Attempt: ${attempt + 1}, Job: ${job.id}`,\n    );\n\n    try {\n      const verification = {\n        isValid: true,\n        provider: PaymentProvider.CHAPA,\n        eventType: eventType as WebhookEventType,\n        payload,\n        timestamp: new Date(),\n        idempotencyKey,\n      };\n\n      await this.processorService.processWebhook(verification);\n\n      this.logger.log(`[Chapa Processing] Success: ${idempotencyKey}`);\n      return { success: true, eventType, idempotencyKey };\n    } catch (err) {\n      const error = err as Error;\n      this.logger.error(\n        `[Chapa Processing] Failed (Attempt ${attempt + 1}): ${error.message}`,\n      );\n\n      await this.retryService.markAsFailed(job.id!.toString(), error.message, attempt);\n      throw err;\n    }\n  }\n\n  /**\n   * Process webhook retries\n   *\n   * @param job - BullMQ job\n   */\n  @Process('webhook-retry-*')\n  async processRetry(job: Job<any>) {\n    const { webhookId, provider, eventType, payload, idempotencyKey, attempt } = job.data;\n\n    this.logger.log(\n      `[Webhook Retry] Webhook: ${webhookId}, Provider: ${provider}, Attempt: ${attempt}`,\n    );\n\n    try {\n      const verification = {\n        isValid: true,\n        provider,\n        eventType,\n        payload,\n        timestamp: new Date(),\n        idempotencyKey,\n      };\n\n      await this.processorService.processWebhook(verification);\n      await this.retryService.markAsProcessed(webhookId);\n\n      this.logger.log(`[Webhook Retry] Success after ${attempt} retries: ${webhookId}`);\n      return { success: true, attempts: attempt };\n    } catch (err) {\n      const error = err as Error;\n      this.logger.error(\n        `[Webhook Retry] Failed (Attempt ${attempt + 1}): ${error.message}`,\n      );\n\n      await this.retryService.markAsFailed(webhookId, error.message, attempt);\n      throw err;\n    }\n  }\n}\n
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
+import { WebhookProcessorService } from '../services/webhook-processor.service';
+import { WebhookRetryService } from '../services/webhook-retry.service';
+import { WebhookVerifierService } from '../services/webhook-verifier.service';
+import { PaymentProvider, WebhookEventType } from '../types/webhook.types';
+
+/**
+ * BullMQ processor for webhook queue
+ * Handles retries, monitoring, and business logic execution
+ *
+ * @class WebhookQueueProcessor
+ */
+@Processor('webhooks')
+export class WebhookQueueProcessor extends WorkerHost {
+  private readonly logger = new Logger(WebhookQueueProcessor.name);
+
+  constructor(
+    private processorService: WebhookProcessorService,
+    private retryService: WebhookRetryService,
+    private verifierService: WebhookVerifierService,
+  ) {
+    super();
+  }
+
+  /**
+   * Process webhook jobs from the queue
+   *
+   * @param job - BullMQ job
+   */
+  async process(job: Job<any>): Promise<any> {
+    const { provider, eventType, payload, idempotencyKey, attempt = 0 } = job.data;
+
+    this.logger.log(
+      `[${provider} Processing] Event: ${eventType}, Attempt: ${attempt + 1}, Job: ${job.id}`,
+    );
+
+    try {
+      // Create verification result from payload
+      const verification = {
+        isValid: true,
+        provider: provider as PaymentProvider,
+        eventType: eventType as WebhookEventType,
+        payload,
+        timestamp: this.getTimestamp(provider, payload),
+        idempotencyKey,
+      };
+
+      // Process the webhook
+      await this.processorService.processWebhook(verification);
+
+      this.logger.log(`[${provider} Processing] Success: ${idempotencyKey}`);
+      return { success: true, eventType, idempotencyKey };
+    } catch (err) {
+      const error = err as Error;
+      this.logger.error(
+        `[${provider} Processing] Failed (Attempt ${attempt + 1}): ${error.message}`,
+      );
+
+      // Log failure and schedule retry
+      await this.retryService.markAsFailed(job.id?.toString() || '', error.message, attempt);
+
+      // Rethrow to trigger BullMQ retry mechanism
+      throw err;
+    }
+  }
+
+  /**
+   * Get timestamp based on provider payload
+   *
+   * @private
+   */
+  private getTimestamp(provider: string, payload: any): Date {
+    switch (provider) {
+      case PaymentProvider.STRIPE:
+        return new Date(payload.created * 1000);
+      case PaymentProvider.PAYPAL:
+        return new Date(payload.create_time);
+      case PaymentProvider.CHAPA:
+      default:
+        return new Date();
+    }
+  }
+}
