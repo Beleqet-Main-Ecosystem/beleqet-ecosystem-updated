@@ -17,6 +17,34 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class SalaryProcessor extends WorkerHost {
   private readonly logger = new Logger(SalaryProcessor.name);
 
+  private readonly locationMultipliers: Record<string, number> = {
+    'Addis Ababa': 1.3,
+    'Dire Dawa': 1.0,
+    Hawassa: 0.9,
+    Mekelle: 0.85,
+    Adama: 0.95,
+    'Bahir Dar': 0.9,
+  };
+
+  private readonly industryMultipliers: Record<string, number> = {
+    Technology: 1.5,
+    Finance: 1.4,
+    Healthcare: 1.2,
+    Education: 0.9,
+    Retail: 0.7,
+    Manufacturing: 0.95,
+    Telecommunications: 1.3,
+    Consulting: 1.35,
+  };
+
+  private readonly experienceLevelMultipliers: Record<string, number> = {
+    JUNIOR: 0.7,
+    MID: 1.0,
+    SENIOR: 1.4,
+    LEAD: 1.8,
+    PRINCIPAL: 2.2,
+  };
+
   constructor(private readonly prismaService: PrismaService) {
     super();
   }
@@ -85,91 +113,90 @@ export class SalaryProcessor extends WorkerHost {
       }
 
       const now = new Date();
-      for (let i = 0; i < stalePredictions.length; i += BATCH_SIZE) {
-        const batch = stalePredictions.slice(i, i + BATCH_SIZE);
+      const batchSize = 20;
+      for (let i = 0; i < stalePredictions.length; i += batchSize) {
+        const batch = stalePredictions.slice(i, i + batchSize);
+
+        const jobTitles = [...new Set(batch.map((p) => p.jobTitle))];
+        const locations = [...new Set(batch.map((p) => p.location))];
+
+        const marketJobs = await this.prismaService.job.findMany({
+          where: {
+            title: { in: jobTitles, mode: 'insensitive' },
+            location: { in: locations, mode: 'insensitive' },
+            salaryMin: { not: null },
+            salaryMax: { not: null },
+          },
+          select: { title: true, location: true, salaryMin: true, salaryMax: true },
+        });
+
         await this.prismaService.$transaction(async (tx) => {
           for (const prediction of batch) {
-            const jobTitleLower = prediction.jobTitle.toLowerCase();
+            const relevantJobs = marketJobs.filter(
+              (j) =>
+                j.title.toLowerCase().includes(prediction.jobTitle.toLowerCase()) ||
+                prediction.jobTitle.toLowerCase().includes(j.title.toLowerCase()),
+            );
 
-            const baseSalaryMap: Record<string, number> = {
-              developer: 100000,
-              designer: 80000,
-              manager: 120000,
-              analyst: 90000,
-              engineer: 110000,
-              consultant: 130000,
-              intern: 40000,
-              junior: 60000,
-            };
+            if (relevantJobs.length > 0) {
+              const midpoints = relevantJobs.map(
+                (j) => Math.round(((j.salaryMin ?? 0) + (j.salaryMax ?? 0)) / 2),
+              );
+              const total = midpoints.reduce((sum, v) => sum + v, 0);
+              const averageSalary = Math.round(total / midpoints.length);
+              const sorted = [...midpoints].sort((a, b) => a - b);
+              const medianSalary =
+                midpoints.length % 2 === 0
+                  ? Math.round(
+                      (sorted[midpoints.length / 2 - 1] + sorted[midpoints.length / 2]) / 2,
+                    )
+                  : sorted[Math.floor(midpoints.length / 2)];
+              const minSalary = Math.min(...midpoints);
+              const maxSalary = Math.max(...midpoints);
+              const squaredDiffs = midpoints.map((v) => (v - averageSalary) ** 2);
+              const variance =
+                squaredDiffs.reduce((sum, v) => sum + v, 0) / midpoints.length;
+              const standardDeviation = Math.round(Math.sqrt(variance));
+              const dataPointsCount = midpoints.length;
+              const confidenceScore = Math.min(0.99, 0.3 + (dataPointsCount / 100) * 0.7);
 
-            let baseSalary = 80000;
-            for (const [key, salary] of Object.entries(baseSalaryMap)) {
-              if (jobTitleLower.includes(key)) {
-                baseSalary = salary;
-                break;
-              }
+              await tx.salaryPrediction.update({
+                where: { id: prediction.id },
+                data: {
+                  minSalary,
+                  maxSalary,
+                  averageSalary,
+                  medianSalary,
+                  dataPointsCount,
+                  standardDeviation,
+                  confidenceScore,
+                  version: { increment: 1 },
+                  lastUpdatedAt: now,
+                },
+              });
+            } else {
+              const locationMultiplier = this.locationMultipliers?.[prediction.location] ?? 1.0;
+              const industryMultiplier = this.industryMultipliers?.[prediction.industry ?? 'Technology'] ?? 1.0;
+              const experienceMultiplier = this.experienceLevelMultipliers?.[prediction.experienceLevel ?? 'MID'] ?? 1.0;
+
+              const adjustedSalary = 80000 * locationMultiplier * industryMultiplier * experienceMultiplier;
+              const variance = adjustedSalary * 0.25;
+
+              await tx.salaryPrediction.update({
+                where: { id: prediction.id },
+                data: {
+                  minSalary: Math.round(adjustedSalary - variance),
+                  maxSalary: Math.round(adjustedSalary + variance),
+                  averageSalary: Math.round(adjustedSalary),
+                  medianSalary: Math.round(adjustedSalary),
+                  dataPointsCount: 0,
+                  standardDeviation: Math.round(variance * 0.5),
+                  confidenceScore: 0.3,
+                  version: { increment: 1 },
+                  lastUpdatedAt: now,
+                },
+              });
             }
-
-            const locationMultipliers: Record<string, number> = {
-              'Addis Ababa': 1.3,
-              'Dire Dawa': 1.0,
-              Hawassa: 0.9,
-              Mekelle: 0.85,
-              Adama: 0.95,
-              'Bahir Dar': 0.9,
-            };
-
-            const industryMultipliers: Record<string, number> = {
-              Technology: 1.5,
-              Finance: 1.4,
-              Healthcare: 1.2,
-              Education: 0.9,
-              Retail: 0.7,
-              Manufacturing: 0.95,
-              Telecommunications: 1.3,
-              Consulting: 1.35,
-            };
-
-            const experienceLevelMultipliers: Record<string, number> = {
-              JUNIOR: 0.7,
-              MID: 1.0,
-              SENIOR: 1.4,
-              LEAD: 1.8,
-              PRINCIPAL: 2.2,
-            };
-
-            const locationMultiplier = locationMultipliers[prediction.location] || 1.0;
-            const industryMultiplier = industryMultipliers[prediction.industry || 'Technology'] || 1.0;
-            const experienceMultiplier =
-              experienceLevelMultipliers[prediction.experienceLevel || 'MID'] || 1.0;
-
-            const adjustedSalary =
-              baseSalary * locationMultiplier * industryMultiplier * experienceMultiplier;
-
-            const variance = adjustedSalary * 0.25;
-            const minSalary = Math.round(adjustedSalary - variance);
-            const maxSalary = Math.round(adjustedSalary + variance);
-            const averageSalary = Math.round(adjustedSalary);
-            const medianSalary = Math.round(adjustedSalary);
-
-            const dataPointsCount = Math.min(100, Math.floor(Math.random() * 80) + 20);
-            const confidenceScore = Math.min(0.95, 0.5 + dataPointsCount / 300);
-            const standardDeviation = Math.round(variance * 0.5);
-
-            await tx.salaryPrediction.update({
-              where: { id: prediction.id },
-              data: {
-                minSalary,
-                maxSalary,
-                averageSalary,
-                medianSalary,
-                dataPointsCount,
-                standardDeviation,
-                confidenceScore,
-                version: { increment: 1 },
-                lastUpdatedAt: now,
-              },
-            });
           }
         });
       }
@@ -191,41 +218,37 @@ export class SalaryProcessor extends WorkerHost {
       const groups = await this.prismaService.salaryPrediction.groupBy({
         by: ['location', 'industry'],
         where: { isAnonymized: true },
+        _avg: { averageSalary: true },
+        _sum: { dataPointsCount: true },
+        _count: true,
       });
 
       this.logger.log(`[Job: compute-analytics] Found ${groups.length} location-industry groups`);
+
+      const titleFrequencies = await this.prismaService.salaryPrediction.groupBy({
+        by: ['location', 'industry', 'jobTitle'],
+        where: { isAnonymized: true },
+        _count: true,
+        orderBy: { _count: { jobTitle: 'desc' } },
+      });
 
       const totalTasks = groups.length;
       let completedTasks = 0;
 
       for (const group of groups) {
-        const predictions = await this.prismaService.salaryPrediction.findMany({
-          where: {
-            location: group.location,
-            industry: group.industry,
-          },
-        });
+        const averageSalary = Math.round(group._avg.averageSalary ?? 0);
+        const totalDataPoints = group._sum.dataPointsCount ?? 0;
+        const predictionCount = group._count;
 
-        if (predictions.length === 0) continue;
+        if (predictionCount === 0) continue;
 
-        const totalDataPoints = predictions.reduce((sum, p) => sum + (p.dataPointsCount || 1), 0);
-        const averageSalary = Math.round(
-          predictions.reduce((sum, p) => sum + p.averageSalary * (p.dataPointsCount || 1), 0) /
-            totalDataPoints,
-        );
+        const groupTitles = titleFrequencies
+          .filter(
+            (t) => t.location === group.location && t.industry === group.industry,
+          )
+          .slice(0, 5)
+          .map((t) => t.jobTitle);
 
-        const sortedBySalary = [...predictions].sort((a, b) => a.averageSalary - b.averageSalary);
-        let cumulativeWeight = 0;
-        let medianSalary = sortedBySalary[0]?.averageSalary || 0;
-        for (const p of sortedBySalary) {
-          cumulativeWeight += p.dataPointsCount || 1;
-          if (cumulativeWeight >= totalDataPoints / 2) {
-            medianSalary = p.averageSalary;
-            break;
-          }
-        }
-
-        const topJobTitles = this.getTopJobTitles(predictions, 5);
         const growthRate = await this.computeGrowthRate(group.location, group.industry);
 
         await this.prismaService.salaryAnalytics.upsert({
@@ -237,18 +260,18 @@ export class SalaryProcessor extends WorkerHost {
             location: group.location,
             industry: group.industry,
             averageSalary,
-            medianSalary,
+            medianSalary: averageSalary,
             salaryGrowthRate: growthRate,
-            topJobTitles,
+            topJobTitles: groupTitles,
             periodStartDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
             periodEndDate: new Date(),
             computedAt: new Date(),
           },
           update: {
             averageSalary,
-            medianSalary,
+            medianSalary: averageSalary,
             salaryGrowthRate: growthRate,
-            topJobTitles,
+            topJobTitles: groupTitles,
             computedAt: new Date(),
           },
         });
@@ -379,21 +402,6 @@ export class SalaryProcessor extends WorkerHost {
       this.logger.error('[Job: anonymize-data] Error anonymizing data:', error);
       throw error;
     }
-  }
-
-  private getTopJobTitles(predictions: any[], n: number): string[] {
-    const titleCounts = predictions.reduce(
-      (acc, p) => {
-        acc[p.jobTitle] = (acc[p.jobTitle] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    return Object.entries(titleCounts)
-      .sort((a, b) => (b[1] as number) - (a[1] as number))
-      .slice(0, n)
-      .map(([title]) => title);
   }
 
   private async computeGrowthRate(location: string, industry: string | null): Promise<number> {

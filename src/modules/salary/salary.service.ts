@@ -10,20 +10,10 @@ import {
   SalaryPredictionQueryDto,
 } from './dto/salary-prediction.dto';
 
-/**
- * SalaryService - Handles AI-powered salary prediction and market analysis
- *
- * This service manages:
- * - Salary prediction based on job title, industry, location, and experience level
- * - Market data aggregation and statistical analysis
- * - Historical tracking of salary trends
- * - GDPR-compliant anonymization of salary data
- */
 @Injectable()
 export class SalaryService {
   private readonly logger = new Logger(SalaryService.name);
 
-  // Market adjustment factors by region (relative to base salary)
   private readonly locationMultipliers: Record<string, number> = {
     'Addis Ababa': 1.3,
     'Dire Dawa': 1.0,
@@ -33,7 +23,6 @@ export class SalaryService {
     'Bahir Dar': 0.9,
   };
 
-  // Industry adjustment factors
   private readonly industryMultipliers: Record<string, number> = {
     Technology: 1.5,
     Finance: 1.4,
@@ -45,7 +34,6 @@ export class SalaryService {
     Consulting: 1.35,
   };
 
-  // Experience level adjusters
   private readonly experienceLevelMultipliers: Record<string, number> = {
     JUNIOR: 0.7,
     MID: 1.0,
@@ -59,92 +47,103 @@ export class SalaryService {
     private readonly currencyService: CurrencyService,
   ) {}
 
-  /**
-   * Predict salary for a given job position
-   * Uses machine learning-based calculations on historical job data
-   *
-   * @param dto - Salary prediction request with job details
-   * @returns Predicted salary range with confidence metrics
-   * @throws BadRequestException if input validation fails
-   */
   async predictSalary(dto: CreateSalaryPredictionDto): Promise<SalaryPredictionResponseDto> {
     this.logger.debug(`Predicting salary for: ${dto.jobTitle} in ${dto.location}`);
 
-    // Validate input
     if (!dto.jobTitle || !dto.location) {
       throw new BadRequestException('Job title and location are required');
     }
 
-    // Validate currency
     const requestedCurrency = (dto.currency || 'ETB') as CurrencyCode;
     if (!this.currencyService.isSupported(requestedCurrency)) {
       throw new BadRequestException(`Unsupported currency: ${dto.currency}`);
     }
 
-    // Fetch existing prediction or calculate new one
-    let prediction = await this.prismaService.salaryPrediction.findFirst({
+    const existingPrediction = await this.prismaService.salaryPrediction.findFirst({
       where: {
-        jobTitle: {
-          equals: dto.jobTitle,
-          mode: 'insensitive',
-        },
-        location: {
-          equals: dto.location,
-          mode: 'insensitive',
-        },
+        jobTitle: { equals: dto.jobTitle, mode: 'insensitive' },
+        location: { equals: dto.location, mode: 'insensitive' },
         experienceLevel: dto.experienceLevel,
         industry: dto.industry || undefined,
       },
+      orderBy: { lastUpdatedAt: 'desc' },
     });
 
-    // If fresh prediction exists (less than 7 days old), convert and return it
-    if (prediction && this.isPredictionFresh(prediction.lastUpdatedAt)) {
+    if (existingPrediction && this.isPredictionFresh(existingPrediction.lastUpdatedAt)) {
       this.logger.debug(`Found fresh prediction for ${dto.jobTitle}`);
-      const response = this.mapPredictionToResponse(prediction);
-      // Convert to requested currency if different from stored
-      if (prediction.currency && prediction.currency !== requestedCurrency) {
+      const response = this.mapPredictionToResponse(existingPrediction);
+      if (existingPrediction.currency && existingPrediction.currency !== requestedCurrency) {
         const converted = this.currencyService.convertSalaryPrediction(
           response,
           requestedCurrency,
-          prediction.currency as CurrencyCode,
+          existingPrediction.currency as CurrencyCode,
         );
         return { ...response, ...converted };
       }
       return response;
     }
 
-    // Calculate new prediction based on job market data (stored in ETB)
     const calculatedPrediction = await this.calculatePredictionFromJobData(dto);
 
-    // Archive previous predictions for history BEFORE saving the new one
-    // so we don't immediately archive the freshly created prediction.
-    await this.archivePreviousPredictions(dto);
+    const savedPrediction = await this.prismaService.$transaction(async (tx) => {
+      if (existingPrediction) {
+        await tx.salaryHistory.create({
+          data: {
+            jobTitle: existingPrediction.jobTitle,
+            jobCategoryId: existingPrediction.jobCategoryId,
+            industry: existingPrediction.industry,
+            location: existingPrediction.location,
+            experienceLevel: existingPrediction.experienceLevel,
+            currency: existingPrediction.currency,
+            minSalary: existingPrediction.minSalary,
+            maxSalary: existingPrediction.maxSalary,
+            averageSalary: existingPrediction.averageSalary,
+            medianSalary: existingPrediction.medianSalary,
+            dataPointsCount: existingPrediction.dataPointsCount,
+            version: existingPrediction.version,
+            isAnonymized: true,
+          },
+        });
 
-    // Store prediction for future reference (always store in original currency)
-    const savedPrediction = await this.prismaService.salaryPrediction.create({
-      data: {
-        jobTitle: dto.jobTitle,
-        jobCategoryId: dto.jobCategoryId,
-        industry: dto.industry,
-        location: dto.location,
-        experienceLevel: dto.experienceLevel,
-        currency: dto.currency || 'ETB',
-        minSalary: calculatedPrediction.minSalary,
-        maxSalary: calculatedPrediction.maxSalary,
-        averageSalary: calculatedPrediction.averageSalary,
-        medianSalary: calculatedPrediction.medianSalary,
-        dataPointsCount: calculatedPrediction.dataPointsCount,
-        standardDeviation: calculatedPrediction.standardDeviation,
-        confidenceScore: calculatedPrediction.confidenceScore,
-        version: 1,
-        isAnonymized: true,
-      },
+        return tx.salaryPrediction.update({
+          where: { id: existingPrediction.id },
+          data: {
+            minSalary: calculatedPrediction.minSalary,
+            maxSalary: calculatedPrediction.maxSalary,
+            averageSalary: calculatedPrediction.averageSalary,
+            medianSalary: calculatedPrediction.medianSalary,
+            dataPointsCount: calculatedPrediction.dataPointsCount,
+            standardDeviation: calculatedPrediction.standardDeviation,
+            confidenceScore: calculatedPrediction.confidenceScore,
+            version: { increment: 1 },
+          },
+        });
+      }
+
+      return tx.salaryPrediction.create({
+        data: {
+          jobTitle: dto.jobTitle,
+          jobCategoryId: dto.jobCategoryId,
+          industry: dto.industry,
+          location: dto.location,
+          experienceLevel: dto.experienceLevel,
+          currency: dto.currency || 'ETB',
+          minSalary: calculatedPrediction.minSalary,
+          maxSalary: calculatedPrediction.maxSalary,
+          averageSalary: calculatedPrediction.averageSalary,
+          medianSalary: calculatedPrediction.medianSalary,
+          dataPointsCount: calculatedPrediction.dataPointsCount,
+          standardDeviation: calculatedPrediction.standardDeviation,
+          confidenceScore: calculatedPrediction.confidenceScore,
+          version: 1,
+          isAnonymized: true,
+        },
+      });
     });
 
-    this.logger.log(`Salary prediction created: ${savedPrediction.id}`);
+    this.logger.log(`Salary prediction saved: ${savedPrediction.id}`);
     const response = this.mapPredictionToResponse(savedPrediction);
 
-    // Convert to requested currency if different from stored
     if (dto.currency && dto.currency !== 'ETB') {
       const converted = this.currencyService.convertSalaryPrediction(
         response,
@@ -376,10 +375,6 @@ export class SalaryService {
     return daysOld < 7;
   }
 
-  /**
-   * Calculate salary prediction based on historical job data
-   * Implements AI logic for market-based salary estimation
-   */
   private async calculatePredictionFromJobData(dto: CreateSalaryPredictionDto): Promise<{
     minSalary: number;
     maxSalary: number;
@@ -389,50 +384,74 @@ export class SalaryService {
     standardDeviation: number;
     confidenceScore: number;
   }> {
-    // Base salary by job title/category (in ETB)
-    const baseSalaryMap: Record<string, number> = {
-      developer: 100000,
-      designer: 80000,
-      manager: 120000,
-      analyst: 90000,
-      engineer: 110000,
-      consultant: 130000,
-      intern: 40000,
-      junior: 60000,
-    };
+    const matchingJobs = await this.prismaService.job.findMany({
+      where: {
+        title: { contains: dto.jobTitle, mode: 'insensitive' },
+        location: { contains: dto.location, mode: 'insensitive' },
+        salaryMin: { not: null },
+        salaryMax: { not: null },
+      },
+      select: { salaryMin: true, salaryMax: true },
+      take: 500,
+    });
 
-    const jobTitleLower = dto.jobTitle.toLowerCase();
-    let baseSalary = 80000; // Default
+    const dataPointsCount = matchingJobs.length;
 
-    for (const [key, salary] of Object.entries(baseSalaryMap)) {
-      if (jobTitleLower.includes(key)) {
-        baseSalary = salary;
-        break;
-      }
+    if (dataPointsCount > 0) {
+      const midpoints = matchingJobs.map(
+        (j) => Math.round(((j.salaryMin ?? 0) + (j.salaryMax ?? 0)) / 2),
+      );
+
+      const total = midpoints.reduce((sum, v) => sum + v, 0);
+      const averageSalary = Math.round(total / dataPointsCount);
+
+      const sorted = [...midpoints].sort((a, b) => a - b);
+      const medianSalary =
+        dataPointsCount % 2 === 0
+          ? Math.round((sorted[dataPointsCount / 2 - 1] + sorted[dataPointsCount / 2]) / 2)
+          : sorted[Math.floor(dataPointsCount / 2)];
+
+      const squaredDiffs = midpoints.map((v) => (v - averageSalary) ** 2);
+      const variance = squaredDiffs.reduce((sum, v) => sum + v, 0) / dataPointsCount;
+      const standardDeviation = Math.round(Math.sqrt(variance));
+
+      const minSalary = Math.min(...midpoints);
+      const maxSalary = Math.max(...midpoints);
+
+      const confidenceScore = Math.min(0.99, 0.3 + (dataPointsCount / 100) * 0.7);
+
+      this.logger.debug(
+        `Prediction from ${dataPointsCount} actual job postings: avg=${averageSalary}, confidence=${confidenceScore.toFixed(2)}`,
+      );
+
+      return {
+        minSalary,
+        maxSalary,
+        averageSalary,
+        medianSalary,
+        dataPointsCount,
+        standardDeviation,
+        confidenceScore,
+      };
     }
 
-    // Apply adjustments
     const locationMultiplier = this.locationMultipliers[dto.location] || 1.0;
     const industryMultiplier = this.industryMultipliers[dto.industry || 'Technology'] || 1.0;
     const experienceMultiplier = this.experienceLevelMultipliers[dto.experienceLevel] || 1.0;
 
+    const fallbackBase = 80000;
     const adjustedSalary =
-      baseSalary * locationMultiplier * industryMultiplier * experienceMultiplier;
+      fallbackBase * locationMultiplier * industryMultiplier * experienceMultiplier;
 
-    // Calculate range around adjusted salary
-    const variance = adjustedSalary * 0.25; // 25% variance
+    const variance = adjustedSalary * 0.25;
     const minSalary = Math.round(adjustedSalary - variance);
     const maxSalary = Math.round(adjustedSalary + variance);
     const averageSalary = Math.round(adjustedSalary);
     const medianSalary = Math.round(adjustedSalary);
-
-    // Simulate confidence based on available data
-    const dataPointsCount = Math.min(100, Math.floor(Math.random() * 80) + 20);
-    const confidenceScore = Math.min(0.95, 0.5 + dataPointsCount / 300);
     const standardDeviation = Math.round(variance * 0.5);
 
     this.logger.debug(
-      `Calculated prediction: ${averageSalary} (confidence: ${confidenceScore.toFixed(2)})`,
+      `No job postings found — using fallback estimate: ${averageSalary} (confidence: 0.30)`,
     );
 
     return {
@@ -440,44 +459,10 @@ export class SalaryService {
       maxSalary,
       averageSalary,
       medianSalary,
-      dataPointsCount,
+      dataPointsCount: 0,
       standardDeviation,
-      confidenceScore,
+      confidenceScore: 0.3,
     };
-  }
-
-  /**
-   * Archive previous predictions to history table
-   */
-  private async archivePreviousPredictions(dto: CreateSalaryPredictionDto): Promise<void> {
-    const lastPrediction = await this.prismaService.salaryPrediction.findFirst({
-      where: {
-        jobTitle: { equals: dto.jobTitle, mode: 'insensitive' },
-        location: { equals: dto.location, mode: 'insensitive' },
-        experienceLevel: dto.experienceLevel,
-      },
-      orderBy: { lastUpdatedAt: 'desc' },
-    });
-
-    if (lastPrediction) {
-      await this.prismaService.salaryHistory.create({
-        data: {
-          jobTitle: lastPrediction.jobTitle,
-          jobCategoryId: lastPrediction.jobCategoryId,
-          industry: lastPrediction.industry,
-          location: lastPrediction.location,
-          experienceLevel: lastPrediction.experienceLevel,
-          currency: lastPrediction.currency,
-          minSalary: lastPrediction.minSalary,
-          maxSalary: lastPrediction.maxSalary,
-          averageSalary: lastPrediction.averageSalary,
-          medianSalary: lastPrediction.medianSalary,
-          dataPointsCount: lastPrediction.dataPointsCount,
-          version: lastPrediction.version,
-          isAnonymized: true,
-        },
-      });
-    }
   }
 
   /**

@@ -23,12 +23,20 @@ describe('SalaryService', () => {
       create: jest.fn(),
       findMany: jest.fn(),
       count: jest.fn(),
+      update: jest.fn(),
       updateMany: jest.fn(),
     },
     salaryHistory: {
       findMany: jest.fn(),
       create: jest.fn(),
     },
+    job: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    $transaction: jest.fn().mockImplementation(async (cb: any) => {
+      if (typeof cb === 'function') return cb(mockPrismaService);
+      return cb;
+    }),
   };
 
   beforeEach(async () => {
@@ -93,7 +101,9 @@ describe('SalaryService', () => {
       expect(result.jobTitle).toBe('Senior Developer');
       expect(result.averageSalary).toBeGreaterThan(0);
       expect(result.confidenceScore).toBeGreaterThan(0);
-      expect(mockPrismaService.salaryPrediction.create).toHaveBeenCalled();
+      expect(mockPrismaService.salaryPrediction.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { lastUpdatedAt: 'desc' } }),
+      );
     });
 
     it('should throw BadRequestException when job title is missing', async () => {
@@ -140,6 +150,9 @@ describe('SalaryService', () => {
       const result = await service.predictSalary(dto);
 
       expect(result).toBeDefined();
+      expect(mockPrismaService.salaryPrediction.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { lastUpdatedAt: 'desc' } }),
+      );
       expect(mockPrismaService.salaryPrediction.create).not.toHaveBeenCalled();
     });
   });
@@ -183,6 +196,7 @@ describe('SalaryService', () => {
       mockPrismaService.salaryPrediction.findFirst.mockResolvedValue(null);
       mockPrismaService.salaryPrediction.create.mockResolvedValue(mockResult);
       mockPrismaService.salaryHistory.create.mockResolvedValue(null);
+      mockPrismaService.job.findMany.mockResolvedValue([]);
 
       const result = await service.batchPredict(batchDto as any);
 
