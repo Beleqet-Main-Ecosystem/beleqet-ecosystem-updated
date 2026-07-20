@@ -4,11 +4,5 @@
     "currencyMismatch": "ምንዛሬ \"{currency}\" ከግብር ክልል \"{countryCode}\" ጋር አይጣጣምም። የሚጠበቀው፦ {expectedCurrency}።",
     "invalidGrossIncome": "grossIncome በትንሹ የምንዛሬ አሃድ የተገለጸ ትክክለኛ ቁጥር መሆን አለበት።",
     "calculationFailed": "የግብር ስሌት አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
-  },
-  "skillTester": {
-    "invalidPayload": "ልክ ያልሆነ የክህሎት ፈተና ጥያቄ።",
-    "requestFailed": "የክህሎት ፈተና ጥያቄ አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
-    "aiGenerationFailed": "የክህሎት ግምገማ ጥያቄዎችን ማመንጨት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
-    "sessionClosed": "ይህ የክህሎት ግምገማ ክፍለ ጊዜ አስቀድሞ ተጠናቋል።"
   }
 }

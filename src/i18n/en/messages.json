@@ -28,11 +28,5 @@
     "currencyMismatch": "Currency \"{currency}\" does not match jurisdiction \"{countryCode}\". Expected {expectedCurrency}.",
     "invalidGrossIncome": "grossIncome must be a finite number in smallest currency units.",
     "calculationFailed": "Tax calculation failed. Please try again."
-  },
-  "skillTester": {
-    "invalidPayload": "Invalid skill tester payload.",
-    "requestFailed": "Skill tester request failed. Please try again.",
-    "aiGenerationFailed": "Failed to generate skill assessment questions. Please try again.",
-    "sessionClosed": "This skill assessment session is already completed."
   }
 }

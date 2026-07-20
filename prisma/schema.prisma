@@ -68,9 +68,8 @@ model User {
   /// Back-relation required by Prisma for the one-to-many relationship
   /// declared on SearchHistory.user below. Not queried directly from the
   /// User side — the AI Feed module reads SearchHistory independently.
-  searchHistories           SearchHistory[]
-  storedFiles               StoredFile[]
-  skillAssessmentSessions   SkillAssessmentSession[]
+  searchHistories       SearchHistory[]
+  storedFiles           StoredFile[]
 
   @@map("users")
 }
@@ -928,41 +927,4 @@ model StoredFile {
   uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
-}
-
-enum SkillLevel {
-  ENTRY
-  MID
-  SENIOR
-}
-
-model SkillAssessmentSession {
-  id          String               @id @default(uuid())
-  userId      String
-  jobRole     String
-  skillLevel  SkillLevel
-  score       Int                  @default(0)
-  isCompleted Boolean              @default(false)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  questions   AssessmentQuestion[]
-
-  @@index([userId, createdAt])
-  @@index([userId, isCompleted])
-  @@map("skill_assessment_sessions")
-}
-
-model AssessmentQuestion {
-  id             String                  @id @default(uuid())
-  sessionId      String
-  questionText   String
-  options        Json
-  correctAnswer  String
-  candidateAnswer String?
-  isCorrect      Boolean?
-  session        SkillAssessmentSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  @@index([sessionId])
-  @@map("assessment_questions")
 }

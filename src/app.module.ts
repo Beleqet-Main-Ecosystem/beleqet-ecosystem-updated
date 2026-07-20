@@ -39,7 +39,6 @@ import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
-import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 
 @Module({
   imports: [
@@ -127,7 +126,6 @@ import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill
     AiFeedModule,
     ResumeBrainModule,
     TaxCalculatorModule,
-    SmartSkillTesterModule,
   ],
   providers: [
     {
