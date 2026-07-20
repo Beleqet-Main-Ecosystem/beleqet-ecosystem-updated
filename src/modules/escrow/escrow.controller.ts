@@ -23,7 +23,7 @@ import { Request } from 'express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ChapaSignatureService } from './chapa-signature.service';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
-import { ChapaWebhookPayload } from './chapa.types';
+import { ChapaWebhookPayload } from '../chapa/chapa.types';
 
 @ApiTags('escrow')
 @Controller('escrow')
@@ -66,7 +66,12 @@ export class EscrowController {
         );
       }
 
-      if (secret && req.rawBody && signature && !this.signatures.verifyWebhook(req.rawBody, headers)) {
+      if (
+        secret &&
+        req.rawBody &&
+        signature &&
+        !this.signatures.verifyWebhook(req.rawBody, headers)
+      ) {
         throw new UnauthorizedException('Invalid Webhook Signature');
       }
     }

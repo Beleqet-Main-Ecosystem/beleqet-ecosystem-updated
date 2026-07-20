@@ -14,10 +14,22 @@ describe('ChapaSignatureService', () => {
     expect(service.verifyWebhook(rawBody, { 'x-chapa-signature': signature })).toBe(true);
   });
 
-  it('accepts a valid chapa-signature secret HMAC', () => {
-    const signature = service.hmac('webhook-secret', 'webhook-secret');
+  it('accepts a valid chapa-signature payload HMAC', () => {
+    const signature = service.hmac(rawBody.toString('utf8'), 'webhook-secret');
 
     expect(service.verifyWebhook(rawBody, { 'chapa-signature': signature })).toBe(true);
+  });
+
+  it('accepts sha256-prefixed payload HMACs', () => {
+    const signature = service.hmac(rawBody.toString('utf8'), 'webhook-secret');
+
+    expect(service.verifyWebhook(rawBody, { 'chapa-signature': `sha256=${signature}` })).toBe(true);
+  });
+
+  it('rejects static secret HMACs', () => {
+    const signature = service.hmac('webhook-secret', 'webhook-secret');
+
+    expect(service.verifyWebhook(rawBody, { 'chapa-signature': signature })).toBe(false);
   });
 
   it('rejects invalid signatures', () => {

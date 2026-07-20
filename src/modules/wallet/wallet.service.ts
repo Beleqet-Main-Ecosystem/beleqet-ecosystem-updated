@@ -10,6 +10,7 @@ import {
 import { IsEnum, IsInt, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { ChapaClient } from '../chapa/chapa.client';
 
 export class WithdrawDto {
   @IsInt()
@@ -48,6 +49,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly chapaClient: ChapaClient,
   ) {}
 
   async onModuleInit() {
@@ -165,23 +167,14 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
     const chapaSecret = this.config.get<string>('CHAPA_SECRET_KEY');
     if (chapaSecret) {
       try {
-        const response = await fetch('https://api.chapa.co/v1/transfers', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${chapaSecret}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            account_name: 'Freelancer',
-            account_number: dto.accountRef,
-            amount: dto.amount.toString(),
-            currency: 'ETB',
-            reference: tx.id,
-            bank_code: dto.method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
-          }),
+        const data = await this.chapaClient.createTransfer({
+          accountName: 'Freelancer',
+          accountNumber: dto.accountRef,
+          amount: dto.amount.toString(),
+          currency: 'ETB',
+          reference: tx.id,
+          bankCode: dto.method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
         });
-
-        const data = (await response.json()) as { status: string; message?: string };
         if (data.status !== 'success') {
           this.logger.warn(
             `Chapa payout rejected: ${data.message}. Rolling back balance for user ${userId}`,

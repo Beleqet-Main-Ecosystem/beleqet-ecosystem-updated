@@ -42,6 +42,7 @@ import { StripeService } from './stripe.service';
 import { PaypalService } from './paypal.service';
 import { WalletService, WithdrawDto } from '../wallet/wallet.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ChapaClient } from '../chapa/chapa.client';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDK mocks — hoisted before any import that initialises the SDKs
@@ -89,9 +90,12 @@ jest.mock('paypal-rest-sdk', () => ({
   notification: { webhookEvent: { verify: jest.fn() } },
 }));
 
-// Mock the global `fetch` used by WalletService (Chapa payouts)
+// Mock the global `fetch` used by WalletService live exchange-rate refreshes.
 const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
+const mockChapaClient = {
+  createTransfer: jest.fn(),
+};
 
 import * as paypal from 'paypal-rest-sdk';
 
@@ -224,6 +228,7 @@ async function buildCtx(walletBalance = 10_000, configExtra: Record<string, stri
       WalletService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
+      { provide: ChapaClient, useValue: mockChapaClient },
       {
         provide: EventEmitter2,
         useValue: { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]) },
@@ -389,9 +394,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
   // ── 8. Full ETB withdrawal ────────────────────────────────────────────────
   describe('Scenario 8 – Full ETB withdrawal flow', () => {
     it('decrements wallet balance and calls Chapa API', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ status: 'success' }),
-      } as Response);
+      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
 
       const dto: WithdrawDto = {
         amount: 500,
@@ -405,9 +408,11 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       expect(result.success).toBe(true);
       expect(result.amount).toBe(500);
       expect(result.method).toBe('CHAPA');
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.chapa.co/v1/transfers',
-        expect.objectContaining({ method: 'POST' }),
+      expect(mockChapaClient.createTransfer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: '500',
+          accountNumber: '0912345678',
+        }),
       );
     });
   });
@@ -418,9 +423,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       // 10 USD = 1205 ETB; wallet has 10,000 ETB — sufficient
       const ctx = await buildCtx(10_000);
 
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ status: 'success' }),
-      } as Response);
+      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
 
       const dto: WithdrawDto = {
         amount: 10,
@@ -449,7 +452,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       await expect(ctx.walletService.withdraw('user-001', dto)).rejects.toThrow(
         BadRequestException,
       );
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
     });
   });
 
@@ -474,9 +477,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
   // ── 12. Chapa rejects payout → rollback ──────────────────────────────────
   describe('Scenario 12 – Chapa rejects payout → InternalServerErrorException + rollback', () => {
     it('throws InternalServerErrorException when Chapa returns error status', async () => {
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ status: 'error', message: 'Invalid account number' }),
-      } as Response);
+      mockChapaClient.createTransfer.mockResolvedValueOnce({
+        status: 'error',
+        message: 'Invalid account number',
+      });
 
       const dto: WithdrawDto = {
         amount: 200,
@@ -494,7 +498,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
   // ── 13. Chapa network failure → rollback ─────────────────────────────────
   describe('Scenario 13 – Chapa network failure → InternalServerErrorException + rollback', () => {
     it('throws InternalServerErrorException on fetch network error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+      mockChapaClient.createTransfer.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
       const dto: WithdrawDto = {
         amount: 300,
@@ -561,7 +565,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       await expect(ctx.walletService.withdraw('ghost-user', dto)).rejects.toThrow(
         NotFoundException,
       );
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
     });
   });
 

@@ -6,8 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS, NOTIFICATION_JOBS } from '../queues/queues.constants';
-import { ChapaClient } from './chapa.client';
-import { ChapaWebhookPayload } from './chapa.types';
+import { ChapaClient } from '../chapa/chapa.client';
+import { ChapaWebhookPayload } from '../chapa/chapa.types';
 
 const EscrowJobs: any = ESCROW_JOBS;
 
@@ -196,7 +196,11 @@ export class EscrowProcessor extends WorkerHost {
     await this.markWebhookProcessed(eventKey, escrow.id, job.data);
     this.logger.warn(`[escrow-webhook] Payment failed for escrow ${escrow.id}`);
     if (escrow.walletAppliedAmount > 0) {
-      await this.releaseLockedFunds(escrow.id, escrow.freelanceJob.clientId, escrow.walletAppliedAmount);
+      await this.releaseLockedFunds(
+        escrow.id,
+        escrow.freelanceJob.clientId,
+        escrow.walletAppliedAmount,
+      );
     }
   }
 
@@ -273,30 +277,14 @@ export class EscrowProcessor extends WorkerHost {
 
     const chapaSecret = this.config.get<string>('CHAPA_SECRET_KEY');
     if (chapaSecret) {
-      const response = await fetch('https://api.chapa.co/v1/transfers', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${chapaSecret}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          account_name: 'Freelancer',
-          account_number: job.data.accountRef,
-          amount: amount.toString(),
-          currency: 'ETB',
-          reference: `withdrawal-${job.id}`,
-          bank_code: method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
-        }),
+      const responseData = await this.chapaClient.createTransfer({
+        accountName: 'Freelancer',
+        accountNumber: job.data.accountRef,
+        amount: amount.toString(),
+        currency: 'ETB',
+        reference: `withdrawal-${job.id}`,
+        bankCode: method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Chapa withdrawal failed with HTTP status ${response.status}: ${errorText}`,
-        );
-      }
-
-      const responseData = (await response.json()) as { status: string; message?: string };
       if (responseData.status !== 'success') {
         throw new Error(`Chapa withdrawal rejected: ${JSON.stringify(responseData)}`);
       }
@@ -372,7 +360,10 @@ export class EscrowProcessor extends WorkerHost {
     await this.processedEventLog(eventKey, escrowId, payload);
   }
 
-  private amountMatches(providerAmount: string | number | undefined, expectedAmount: number): boolean {
+  private amountMatches(
+    providerAmount: string | number | undefined,
+    expectedAmount: number,
+  ): boolean {
     const normalized = Number(providerAmount);
     return Number.isFinite(normalized) && Math.abs(normalized - expectedAmount) < 0.01;
   }

@@ -4,6 +4,7 @@ This feature branch integrates Chapa escrow funding into the existing Beleqet Ne
 
 ## Backend
 
+- `src/modules/chapa` contains the shared Chapa client used by escrow funding and wallet withdrawal transfers.
 - `POST /api/v1/escrow/initiate/:gigId` creates or refreshes an escrow transaction and initializes Chapa checkout for the amount not covered by the employer wallet.
 - `POST /api/v1/escrow/callback` verifies Chapa webhook signatures when configured, then queues idempotent webhook processing.
 - `GET /api/v1/escrow/callback` supports the browser redirect path and relies on server-side Chapa verification before funding.
@@ -34,7 +35,7 @@ CHAPA_RETURN_URL=http://localhost:3000/freelance/payment-success
 ```bash
 npm ci
 npm run prisma:generate
-npm test -- src/modules/escrow --runInBand
+npm test -- src/modules/chapa src/modules/escrow --runInBand
 npm run build
 ```
 

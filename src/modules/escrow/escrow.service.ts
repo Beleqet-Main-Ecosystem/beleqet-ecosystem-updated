@@ -14,12 +14,14 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS } from '../queues/queues.constants';
 import { WalletService } from '../wallet/wallet.service';
-import { ChapaClient } from './chapa.client';
-import { ChapaWebhookPayload } from './chapa.types';
+import { ChapaClient } from '../chapa/chapa.client';
+import { ChapaWebhookPayload } from '../chapa/chapa.types';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
 import { applyMilestoneConfirmation, isMilestoneFullyConfirmed } from './escrow-state';
 
 const PLATFORM_FEE_PCT = 0.1;
+const MILESTONE_HOLD_MS = 3 * 24 * 60 * 60 * 1000;
+
 type MilestoneWithEscrow = Prisma.MilestoneGetPayload<{
   include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } };
 }>;
@@ -57,7 +59,9 @@ export class EscrowService {
       );
     }
 
-    const employerWallet = await this.prisma.employerWallet.findUnique({ where: { userId: clientId } });
+    const employerWallet = await this.prisma.employerWallet.findUnique({
+      where: { userId: clientId },
+    });
     const availableBalance = employerWallet?.balance || 0;
     let amountToPay = grossAmount;
     let walletAppliedAmount = 0;
@@ -129,7 +133,14 @@ export class EscrowService {
         data: { lockedBalance: { decrement: walletAppliedAmount } },
       });
 
-      return { escrowId: escrow.id, checkoutUrl: null, grossAmount, platformFee, netAmount, walletAppliedAmount };
+      return {
+        escrowId: escrow.id,
+        checkoutUrl: null,
+        grossAmount,
+        platformFee,
+        netAmount,
+        walletAppliedAmount,
+      };
     }
 
     let checkoutUrl = `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${escrow.id}`;
@@ -145,7 +156,9 @@ export class EscrowService {
           callbackUrl: this.config.get<string>('CHAPA_CALLBACK_URL'),
           returnUrl: this.config.get<string>('CHAPA_RETURN_URL'),
           title: 'Beleqet Escrow',
-          description: `Payment for Gig - ${job.title}`.replace(/[^a-zA-Z0-9\-_.\s]/g, '').substring(0, 50),
+          description: `Payment for Gig - ${job.title}`
+            .replace(/[^a-zA-Z0-9\-_.\s]/g, '')
+            .substring(0, 50),
         });
         checkoutUrl = data.data?.checkout_url ?? checkoutUrl;
       } catch (err) {
@@ -161,7 +174,15 @@ export class EscrowService {
       timestamp: new Date().toISOString(),
     });
 
-    return { escrowId: escrow.id, checkoutUrl, grossAmount, platformFee, netAmount, walletAppliedAmount, amountToPay };
+    return {
+      escrowId: escrow.id,
+      checkoutUrl,
+      grossAmount,
+      platformFee,
+      netAmount,
+      walletAppliedAmount,
+      amountToPay,
+    };
   }
 
   /**
@@ -187,6 +208,8 @@ export class EscrowService {
    * transaction is funded.
    */
   async confirmMilestone(milestoneId: string, userId: string, _dto: ConfirmMilestoneDto = {}) {
+    void _dto;
+
     const milestone = await this.prisma.milestone.findFirst({
       where: {
         id: milestoneId,
@@ -252,7 +275,10 @@ export class EscrowService {
     });
     if (!milestone) throw new NotFoundException('Milestone not found');
 
-    if (!milestone.contract.freelanceJob.escrowTx || milestone.contract.freelanceJob.escrowTx.status !== 'FUNDED') {
+    if (
+      !milestone.contract.freelanceJob.escrowTx ||
+      milestone.contract.freelanceJob.escrowTx.status !== 'FUNDED'
+    ) {
       throw new ConflictException('Escrow must be funded before milestone release.');
     }
 
@@ -278,18 +304,49 @@ export class EscrowService {
   }
 
   private async queueMilestoneRelease(milestone: MilestoneWithEscrow) {
+    const netAmountInETB = this.netMilestoneAmountInETB(milestone);
+
     if (milestone.status === 'APPROVED') {
+      await this.enqueueMilestoneAutoRelease(
+        milestone,
+        netAmountInETB,
+        milestone.approvedAt ?? new Date(),
+      );
       return { success: true, released: true, alreadyReleased: true };
     }
 
     if (!isMilestoneFullyConfirmed(milestone)) {
-      throw new ForbiddenException('Both employer and professional must confirm milestone completion.');
+      throw new ForbiddenException(
+        'Both employer and professional must confirm milestone completion.',
+      );
     }
+
+    const approvedAt = new Date();
 
     await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.milestone.update({
         where: { id: milestone.id },
-        data: { status: 'APPROVED', approvedAt: new Date() },
+        data: { status: 'APPROVED', approvedAt },
+      });
+
+      const wallet = await tx.freelancerWallet.upsert({
+        where: { userId: milestone.contract.freelancerId },
+        update: { pendingBalance: { increment: netAmountInETB } },
+        create: {
+          userId: milestone.contract.freelancerId,
+          pendingBalance: netAmountInETB,
+          availableBalance: 0,
+        },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          type: 'CREDIT_PENDING',
+          amount: netAmountInETB,
+          note: `Milestone ${milestone.id} approved - pending hold`,
+          milestoneId: milestone.id,
+        },
       });
 
       await tx.eventLog.create({
@@ -307,33 +364,43 @@ export class EscrowService {
       });
     });
 
-    try {
-      const contractCurrency = milestone.contract.currency || 'ETB';
-      const grossAmountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
-      const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
-      const netAmountInETB = grossAmountInETB - platformFee;
-
-      await this.prisma.freelancerWallet.upsert({
-        where: { userId: milestone.contract.freelancerId },
-        update: { pendingBalance: { increment: netAmountInETB } },
-        create: {
-          userId: milestone.contract.freelancerId,
-          pendingBalance: netAmountInETB,
-          availableBalance: 0,
-        },
-      });
-
-      await this.escrowQueue.add(ESCROW_JOBS.AUTO_RELEASE, {
-        milestoneId: milestone.id,
-        freelancerId: milestone.contract.freelancerId,
-        amount: netAmountInETB,
-        releaseAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      });
-    } catch (err) {
-      this.logger.error(`Failed to enqueue auto-release for milestone ${milestone.id}`, err instanceof Error ? err.stack : err);
-    }
+    await this.enqueueMilestoneAutoRelease(milestone, netAmountInETB, approvedAt);
 
     this.logger.log(`Milestone ${milestone.id} approved after both confirmations; payout queued`);
     return { success: true, released: true };
+  }
+
+  private netMilestoneAmountInETB(milestone: MilestoneWithEscrow): number {
+    const contractCurrency = milestone.contract.currency || 'ETB';
+    const grossAmountInETB = this.walletSvc.convertCurrency(
+      milestone.amount,
+      contractCurrency,
+      'ETB',
+    );
+    const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
+    return grossAmountInETB - platformFee;
+  }
+
+  private async enqueueMilestoneAutoRelease(
+    milestone: MilestoneWithEscrow,
+    amount: number,
+    approvedAt: Date,
+  ): Promise<void> {
+    const releaseAt = new Date(approvedAt.getTime() + MILESTONE_HOLD_MS);
+    const delay = Math.max(0, releaseAt.getTime() - Date.now());
+
+    await this.escrowQueue.add(
+      ESCROW_JOBS.AUTO_RELEASE,
+      {
+        milestoneId: milestone.id,
+        freelancerId: milestone.contract.freelancerId,
+        amount,
+        releaseAt,
+      },
+      {
+        delay,
+        jobId: `auto-release:${milestone.id}`,
+      },
+    );
   }
 }

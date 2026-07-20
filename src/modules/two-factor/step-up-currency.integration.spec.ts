@@ -4,6 +4,7 @@ import { BadRequestException } from '@nestjs/common';
 
 import { WalletService, WithdrawDto } from '../wallet/wallet.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ChapaClient } from '../chapa/chapa.client';
 import { StepUpGuard } from './guards/step-up.guard';
 import { SENSITIVE_ACTION_KEY } from './decorators/sensitive-action.decorator';
 
@@ -11,6 +12,9 @@ const USD_ETB_RATE = 120.5;
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
+const mockChapaClient = {
+  createTransfer: jest.fn(),
+};
 
 function buildMockPrisma(walletBalance = 10_000, walletCurrency = 'ETB') {
   const walletRecord = {
@@ -82,6 +86,7 @@ async function buildCtx(walletBalance = 10_000) {
       WalletService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
+      { provide: ChapaClient, useValue: mockChapaClient },
     ],
   }).compile();
 
@@ -93,6 +98,7 @@ describe('Step-Up + Multi-Currency integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFetch.mockReset();
+    mockChapaClient.createTransfer.mockReset();
   });
 
   describe('WithdrawDto — currency parameter acceptance', () => {
@@ -129,9 +135,7 @@ describe('Step-Up + Multi-Currency integration', () => {
     it('succeeds when converting USD to ETB and wallet has sufficient balance', async () => {
       const ctx = await buildCtx(10_000);
 
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ status: 'success' }),
-      } as Response);
+      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
 
       const dto: WithdrawDto = {
         amount: 10,
@@ -145,11 +149,10 @@ describe('Step-Up + Multi-Currency integration', () => {
       expect(result.success).toBe(true);
       expect(result.amount).toBe(10);
       expect(result.method).toBe('CHAPA');
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.chapa.co/v1/transfers',
+      expect(mockChapaClient.createTransfer).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('"amount":"10"'),
+          amount: '10',
+          accountNumber: '0912345678',
         }),
       );
     });
@@ -157,9 +160,7 @@ describe('Step-Up + Multi-Currency integration', () => {
     it('deducts correct ETB equivalent when withdrawal is in USD', async () => {
       const ctx = await buildCtx(10_000);
 
-      mockFetch.mockResolvedValueOnce({
-        json: () => Promise.resolve({ status: 'success' }),
-      } as Response);
+      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
 
       const dto: WithdrawDto = {
         amount: 50,
@@ -169,7 +170,7 @@ describe('Step-Up + Multi-Currency integration', () => {
       };
 
       await ctx.walletService.withdraw('user-001', dto);
-      expect(mockFetch).toHaveBeenCalled();
+      expect(mockChapaClient.createTransfer).toHaveBeenCalled();
     });
 
     it('throws BadRequestException when USD amount exceeds ETB wallet balance', async () => {
@@ -185,7 +186,7 @@ describe('Step-Up + Multi-Currency integration', () => {
       await expect(ctx.walletService.withdraw('user-001', dto)).rejects.toThrow(
         BadRequestException,
       );
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
     });
   });
 

@@ -32,6 +32,25 @@ export type ChapaVerifyResponse = {
   };
 };
 
+export type ChapaTransferRequest = {
+  accountName: string;
+  accountNumber: string;
+  amount: string;
+  currency: string;
+  reference: string;
+  bankCode: string;
+};
+
+export type ChapaTransferResponse = {
+  status: string;
+  message?: string;
+  data?: {
+    reference?: string;
+    status?: string;
+    [key: string]: unknown;
+  };
+};
+
 export type ChapaWebhookPayload = {
   event?: string;
   type?: string;

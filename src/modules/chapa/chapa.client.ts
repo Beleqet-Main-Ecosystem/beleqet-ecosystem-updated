@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import {
   ChapaInitializeRequest,
   ChapaInitializeResponse,
+  ChapaTransferRequest,
+  ChapaTransferResponse,
   ChapaVerifyResponse,
 } from './chapa.types';
 
@@ -46,6 +48,22 @@ export class ChapaClient {
     return this.get<ChapaVerifyResponse>(`/transaction/verify/${encodeURIComponent(txRef)}`);
   }
 
+  /**
+   * Initiates a Chapa transfer for freelancer withdrawals. Keeping this call in
+   * the shared client ensures escrow processors and wallet services use the
+   * same provider error handling and request authentication.
+   */
+  async createTransfer(request: ChapaTransferRequest): Promise<ChapaTransferResponse> {
+    return this.post<ChapaTransferResponse>('/transfers', {
+      account_name: request.accountName,
+      account_number: request.accountNumber,
+      amount: request.amount,
+      currency: request.currency,
+      reference: request.reference,
+      bank_code: request.bankCode,
+    });
+  }
+
   private async get<T>(path: string): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'GET',
@@ -73,18 +91,30 @@ export class ChapaClient {
 
   private async parse<T>(response: Response): Promise<T> {
     const text = await response.text();
-    const payload = text
-      ? (JSON.parse(text) as T & { message?: string })
-      : ({} as T & { message?: string });
+    let payload: (T & { message?: string }) | undefined;
+
+    try {
+      payload = text
+        ? (JSON.parse(text) as T & { message?: string })
+        : ({} as T & { message?: string });
+    } catch {
+      throw new BadGatewayException({
+        message: 'Chapa returned a non-JSON response',
+        statusCode: response.status,
+        provider: {
+          body: text.slice(0, 500),
+        },
+      });
+    }
 
     if (!response.ok) {
       throw new BadGatewayException({
-        message: payload.message ?? 'Chapa request failed',
+        message: payload?.message ?? 'Chapa request failed',
         statusCode: response.status,
         provider: payload,
       });
     }
 
-    return payload;
+    return payload as T;
   }
 }
