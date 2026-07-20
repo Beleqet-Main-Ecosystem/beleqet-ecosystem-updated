@@ -73,8 +73,8 @@ export const TWO_FACTOR_JOBS = {
 // ── Video interview jobs ──────────────────────────────────────────────────
 
 export const VIDEO_INTERVIEW_JOBS = {
-  TRANSCRIBE:      'transcribe-video-response',
-  EVALUATE:        'evaluate-interview',
+  TRANSCRIBE: 'transcribe-video-response',
+  EVALUATE: 'evaluate-interview',
   CLEANUP_EXPIRED: 'cleanup-expired-interviews',
   NOTIFY_COMPLETE: 'notify-interview-complete',
 } as const;

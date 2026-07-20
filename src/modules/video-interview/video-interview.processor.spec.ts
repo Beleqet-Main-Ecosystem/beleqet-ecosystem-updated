@@ -7,7 +7,12 @@ import { VideoInterviewProcessor } from './video-interview.processor';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { FfmpegService } from './ffmpeg.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS, REFERRAL_JOBS, JOB_ALERT_JOBS } from '../queues/queues.constants';
+import {
+  QUEUE_NAMES,
+  VIDEO_INTERVIEW_JOBS,
+  REFERRAL_JOBS,
+  JOB_ALERT_JOBS,
+} from '../queues/queues.constants';
 
 const mockPrisma = {
   videoResponse: {
@@ -104,10 +109,7 @@ describe('VideoInterviewProcessor', () => {
         id: 'sess-1',
         status: 'IN_PROGRESS',
         metadata: { questions: [{ id: 'q1' }, { id: 'q2' }] },
-        responses: [
-          { processingStatus: 'TRANSCRIBED' },
-          { processingStatus: 'TRANSCRIBED' },
-        ],
+        responses: [{ processingStatus: 'TRANSCRIBED' }, { processingStatus: 'TRANSCRIBED' }],
       });
       mockPrisma.videoInterview.updateMany.mockResolvedValue({ count: 1 });
       mockQueue.add.mockResolvedValue({ id: 'job-1' });

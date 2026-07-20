@@ -22,62 +22,59 @@ export class PlatformSourceService {
   async loadDocuments(excludeEntityId?: string): Promise<ComparisonDocument[]> {
     const limit = this.config.maxPlatformDocuments;
 
-    const [jobs, freelanceJobs, applications, bids, users, companies] =
-      await Promise.all([
-        this.prisma.job.findMany({
-          take: limit,
-          orderBy: { updatedAt: 'desc' },
-          select: { id: true, title: true, description: true, requirements: true },
-        }),
-        this.prisma.freelanceJob.findMany({
-          take: limit,
-          orderBy: { updatedAt: 'desc' },
-          select: { id: true, title: true, description: true },
-        }),
-        this.prisma.application.findMany({
-          take: limit,
-          orderBy: { updatedAt: 'desc' },
-          where: { coverLetter: { not: null } },
-          select: { id: true, coverLetter: true, job: { select: { title: true } } },
-        }),
-        this.prisma.bid.findMany({
-          take: limit,
-          orderBy: { updatedAt: 'desc' },
-          select: {
-            id: true,
-            coverLetter: true,
-            freelanceJob: { select: { title: true } },
-          },
-        }),
-        this.prisma.user.findMany({
-          take: limit,
-          orderBy: { updatedAt: 'desc' },
-          where: {
-            OR: [{ bio: { not: null } }, { headline: { not: null } }],
-          },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            bio: true,
-            headline: true,
-          },
-        }),
-        this.prisma.company.findMany({
-          take: limit,
-          orderBy: { updatedAt: 'desc' },
-          where: { description: { not: null } },
-          select: { id: true, name: true, description: true },
-        }),
-      ]);
+    const [jobs, freelanceJobs, applications, bids, users, companies] = await Promise.all([
+      this.prisma.job.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true, title: true, description: true, requirements: true },
+      }),
+      this.prisma.freelanceJob.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true, title: true, description: true },
+      }),
+      this.prisma.application.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        where: { coverLetter: { not: null } },
+        select: { id: true, coverLetter: true, job: { select: { title: true } } },
+      }),
+      this.prisma.bid.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          coverLetter: true,
+          freelanceJob: { select: { title: true } },
+        },
+      }),
+      this.prisma.user.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        where: {
+          OR: [{ bio: { not: null } }, { headline: { not: null } }],
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          bio: true,
+          headline: true,
+        },
+      }),
+      this.prisma.company.findMany({
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+        where: { description: { not: null } },
+        select: { id: true, name: true, description: true },
+      }),
+    ]);
 
     const documents: ComparisonDocument[] = [];
 
     for (const job of jobs) {
       if (job.id === excludeEntityId) continue;
-      const content = [job.title, job.description, job.requirements]
-        .filter(Boolean)
-        .join('\n');
+      const content = [job.title, job.description, job.requirements].filter(Boolean).join('\n');
       if (content.trim().length > 0) {
         documents.push({
           id: job.id,

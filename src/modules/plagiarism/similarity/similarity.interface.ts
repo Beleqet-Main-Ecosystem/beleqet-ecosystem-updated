@@ -17,5 +17,8 @@ export interface ISimilarityAlgorithm {
   /**
    * Compares two texts and returns a similarity score between 0 and 1.
    */
-  compare(textA: string, textB: string): SimilarityAlgorithmResult | Promise<SimilarityAlgorithmResult>;
+  compare(
+    textA: string,
+    textB: string,
+  ): SimilarityAlgorithmResult | Promise<SimilarityAlgorithmResult>;
 }

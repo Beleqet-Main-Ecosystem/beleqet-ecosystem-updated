@@ -35,7 +35,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
     QueuesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
-      useFactory: (configService: ConfigService) => {
+      useFactory: (_configService: ConfigService) => {
         const authConfig = loadAuthEnvConfig();
         return { secret: authConfig.jwtAccessSecret };
       },
