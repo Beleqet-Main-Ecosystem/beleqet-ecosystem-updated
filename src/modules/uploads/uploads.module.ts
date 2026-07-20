@@ -8,6 +8,6 @@ import { ConfigModule } from '@nestjs/config';
   imports: [PrismaModule, ConfigModule],
   providers: [UploadsService],
   controllers: [UploadsController],
-  exports: [UploadsService]
+  exports: [UploadsService],
 })
 export class UploadsModule {}

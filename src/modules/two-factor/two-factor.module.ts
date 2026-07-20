@@ -1,5 +1,5 @@
 import { Module, Global, forwardRef } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RedisModule } from '../redis/redis.module';
@@ -18,6 +18,10 @@ import { StepUpGuard } from './guards/step-up.guard';
     forwardRef(() => AuthModule),
     RedisModule,
     QueuesModule,
+    // ── Register the Feature Queue Name for BullMQ ─────────────────────
+    BullModule.registerQueue({
+      name: 'two-factor',
+    }),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -34,6 +38,6 @@ import { StepUpGuard } from './guards/step-up.guard';
     TwoFactorProcessor,
     StepUpGuard,
   ],
-  exports: [TwoFactorService, EncryptionService, StepUpGuard, JwtModule],
+  exports: [TwoFactorService, EncryptionService, StepUpGuard, JwtModule, BullModule],
 })
 export class TwoFactorModule {}
