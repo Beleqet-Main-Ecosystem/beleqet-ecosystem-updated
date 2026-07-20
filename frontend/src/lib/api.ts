@@ -3,7 +3,7 @@
  * All backend communication is handled here - not inside components (DRY principle).
  */
 import apiClient from './apiClient';
-import type { AuthResponse, Dispute, PlatformStats } from '@/types';
+import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters } from '@/types';
 
 /** Logs in a user and stores the JWT token in localStorage */
 export async function login(email: string, password: string): Promise<AuthResponse> {
@@ -74,5 +74,11 @@ export async function createDispute(
     reason,
     evidenceUrls,
   });
+  return data;
+}
+
+/** Fetches a paginated, filterable slice of the audit trail (Admin-only). */
+export async function fetchAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogPage> {
+  const { data } = await apiClient.get<AuditLogPage>('/audit-logs', { params: filters });
   return data;
 }

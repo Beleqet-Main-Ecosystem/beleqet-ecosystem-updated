@@ -11,7 +11,7 @@ import {
   ProviderIdentityAlreadyLinkedError,
   UnverifiedEmailLinkAttemptError,
 } from '../errors/auth.errors';
-import { AUDIT_LOGGER, IAuditLogger } from '../interfaces/audit-logger.interface';
+import { AUDIT_LOGGER, IAuditLogger } from '../../../common/interfaces/audit-logger.interface';
 
 /**
  * Builds a fully-typed mock of {@link IAccountRepository}. Every method is

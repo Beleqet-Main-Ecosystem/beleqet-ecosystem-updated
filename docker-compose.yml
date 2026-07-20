@@ -3,23 +3,23 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: beleqet-postgres
+    container_name: beleqet2-postgres
     restart: always
     environment:
       POSTGRES_USER: beleqet_user
       POSTGRES_PASSWORD: your_password
       POSTGRES_DB: beleqet_db
     ports:
-      - '5432:5432'
+      - '5435:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
-    container_name: beleqet-redis
+    container_name: beleqet2-redis
     restart: always
     ports:
-      - '6379:6379'
+      - '6380:6379'
     volumes:
       - redis_data:/data
 
@@ -27,10 +27,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: beleqet-backend
+    container_name: beleqet2-backend
     restart: unless-stopped
     ports:
-      - '4000:4000'
+      - '4002:4000'
     environment:
       - NODE_ENV=development
       - PORT=4000
@@ -62,13 +62,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
-    container_name: beleqet-frontend
+        - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
+    container_name: beleqet2-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
     depends_on:
       - backend
 
@@ -77,13 +77,13 @@ services:
       context: ./beleqet-jobs-nextjs
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
-    container_name: beleqet-jobs-frontend
+        - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
+    container_name: beleqet2-jobs-frontend
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3002:3001"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
     depends_on:
       - backend
 

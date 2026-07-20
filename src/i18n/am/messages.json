@@ -1,0 +1,10 @@
+{
+  "audit": {
+    "ACCESS_DENIED": "የኦዲት መዝገቡን ለማየት ፈቃድ የለዎትም።",
+    "INVALID_DATE_RANGE": "የተሰጠው የቀን ክልል ልክ ያልሆነ ነው።",
+    "LOG_ENTRY_CREATED": "አዲስ የኦዲት መዝገብ ተመዝግቧል።",
+    "IMMUTABLE_VIOLATION_ATTEMPT": "የማይለወጥ የኦዲት መዝገብን ለመቀየር የተደረገ ሙከራ ታግዷል።",
+    "FILTER_NO_RESULTS": "ከአሁኑ ማጣሪያዎችዎ ጋር የሚዛመድ የኦዲት መዝገብ የለም።",
+    "EXPORT_SUCCESS": "የኦዲት መዝገብ ወደ ውጪ መላክ በተሳካ ሁኔታ ተጠናቅቋል።"
+  }
+}
