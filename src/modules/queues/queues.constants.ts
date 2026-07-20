@@ -11,8 +11,9 @@ export const QUEUE_NAMES = {
   WALLET:        'wallet',
   SEARCH_INDEX:  'search-index',
   SCHEDULED:     'scheduled',
-  REFERRALS:     'referrals',
-  JOB_ALERTS:    'job-alerts',
+  REFERRALS:       'referrals',
+  JOB_ALERTS:      'job-alerts',
+  VIDEO_INTERVIEW: 'video-interview',
 } as const;
 
 // ── Referral jobs ─────────────────────────────────────────────────────────
@@ -67,6 +68,15 @@ export const ESCROW_JOBS = {
 
 export const TWO_FACTOR_JOBS = {
   CLEANUP_EXPIRED_ENROLLMENT: 'cleanup-expired-enrollment',
+} as const;
+
+// ── Video interview jobs ──────────────────────────────────────────────────
+
+export const VIDEO_INTERVIEW_JOBS = {
+  TRANSCRIBE:      'transcribe-video-response',
+  EVALUATE:        'evaluate-interview',
+  CLEANUP_EXPIRED: 'cleanup-expired-interviews',
+  NOTIFY_COMPLETE: 'notify-interview-complete',
 } as const;
 
 // ── Scoring thresholds ────────────────────────────────────────────────────
