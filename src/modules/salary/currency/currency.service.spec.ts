@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { CurrencyService, CurrencyCode } from './currency.service';
+import { CurrencyService } from './currency.service';
 
 describe('CurrencyService', () => {
   let service: CurrencyService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let configService: ConfigService;
 
   beforeEach(async () => {
@@ -110,7 +111,7 @@ describe('CurrencyService', () => {
 
   describe('updateExchangeRates', () => {
     it('should update exchange rates', () => {
-      const initialRate = service.getExchangeRate('USD');
+      service.getExchangeRate('USD');
 
       service.updateExchangeRates({ USD: 150 });
 

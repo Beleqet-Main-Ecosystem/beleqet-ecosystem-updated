@@ -139,8 +139,8 @@ export class SalaryProcessor extends WorkerHost {
             );
 
             if (relevantJobs.length > 0) {
-              const midpoints = relevantJobs.map(
-                (j) => Math.round(((j.salaryMin ?? 0) + (j.salaryMax ?? 0)) / 2),
+              const midpoints = relevantJobs.map((j) =>
+                Math.round(((j.salaryMin ?? 0) + (j.salaryMax ?? 0)) / 2),
               );
               const total = midpoints.reduce((sum, v) => sum + v, 0);
               const averageSalary = Math.round(total / midpoints.length);
@@ -154,8 +154,7 @@ export class SalaryProcessor extends WorkerHost {
               const minSalary = Math.min(...midpoints);
               const maxSalary = Math.max(...midpoints);
               const squaredDiffs = midpoints.map((v) => (v - averageSalary) ** 2);
-              const variance =
-                squaredDiffs.reduce((sum, v) => sum + v, 0) / midpoints.length;
+              const variance = squaredDiffs.reduce((sum, v) => sum + v, 0) / midpoints.length;
               const standardDeviation = Math.round(Math.sqrt(variance));
               const dataPointsCount = midpoints.length;
               const confidenceScore = Math.min(0.99, 0.3 + (dataPointsCount / 100) * 0.7);
@@ -176,10 +175,13 @@ export class SalaryProcessor extends WorkerHost {
               });
             } else {
               const locationMultiplier = this.locationMultipliers?.[prediction.location] ?? 1.0;
-              const industryMultiplier = this.industryMultipliers?.[prediction.industry ?? 'Technology'] ?? 1.0;
-              const experienceMultiplier = this.experienceLevelMultipliers?.[prediction.experienceLevel ?? 'MID'] ?? 1.0;
+              const industryMultiplier =
+                this.industryMultipliers?.[prediction.industry ?? 'Technology'] ?? 1.0;
+              const experienceMultiplier =
+                this.experienceLevelMultipliers?.[prediction.experienceLevel ?? 'MID'] ?? 1.0;
 
-              const adjustedSalary = 80000 * locationMultiplier * industryMultiplier * experienceMultiplier;
+              const adjustedSalary =
+                80000 * locationMultiplier * industryMultiplier * experienceMultiplier;
               const variance = adjustedSalary * 0.25;
 
               await tx.salaryPrediction.update({
@@ -237,15 +239,13 @@ export class SalaryProcessor extends WorkerHost {
 
       for (const group of groups) {
         const averageSalary = Math.round(group._avg.averageSalary ?? 0);
-        const totalDataPoints = group._sum.dataPointsCount ?? 0;
+        const _totalDataPoints = group._sum.dataPointsCount ?? 0;
         const predictionCount = group._count;
 
         if (predictionCount === 0) continue;
 
         const groupTitles = titleFrequencies
-          .filter(
-            (t) => t.location === group.location && t.industry === group.industry,
-          )
+          .filter((t) => t.location === group.location && t.industry === group.industry)
           .slice(0, 5)
           .map((t) => t.jobTitle);
 

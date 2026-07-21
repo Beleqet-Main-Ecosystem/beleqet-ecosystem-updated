@@ -7,7 +7,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('SalaryService', () => {
   let service: SalaryService;
-  let prismaService: PrismaService;
+  let _prismaService: PrismaService;
 
   // Mock Currency Service
   const mockCurrencyService = {
@@ -244,9 +244,9 @@ describe('SalaryService', () => {
     it('should throw NotFoundException when no data exists', async () => {
       mockPrismaService.salaryPrediction.findMany.mockResolvedValue([]);
 
-      await expect(service.getSalaryStatistics('UnknownLocation', undefined, 30, 'ETB')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getSalaryStatistics('UnknownLocation', undefined, 30, 'ETB'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

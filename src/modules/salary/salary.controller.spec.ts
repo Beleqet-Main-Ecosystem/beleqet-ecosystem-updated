@@ -6,7 +6,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('SalaryController', () => {
   let controller: SalaryController;
-  let service: SalaryService;
+  let _service: SalaryService;
 
   const mockSalaryService = {
     predictSalary: jest.fn(),
@@ -263,7 +263,12 @@ describe('SalaryController', () => {
       expect(result).toBeDefined();
       expect(result.location).toBe(location);
       expect(result.averageSalary).toBe(150000);
-      expect(mockSalaryService.getSalaryStatistics).toHaveBeenCalledWith(location, undefined, 30, 'ETB');
+      expect(mockSalaryService.getSalaryStatistics).toHaveBeenCalledWith(
+        location,
+        undefined,
+        30,
+        'ETB',
+      );
     });
 
     it('should filter statistics by industry', async () => {
@@ -274,7 +279,12 @@ describe('SalaryController', () => {
 
       await controller.getSalaryStatistics(location, industry);
 
-      expect(mockSalaryService.getSalaryStatistics).toHaveBeenCalledWith(location, industry, 30, 'ETB');
+      expect(mockSalaryService.getSalaryStatistics).toHaveBeenCalledWith(
+        location,
+        industry,
+        30,
+        'ETB',
+      );
     });
 
     it('should support currency parameter', async () => {
@@ -285,7 +295,12 @@ describe('SalaryController', () => {
 
       await controller.getSalaryStatistics(location, undefined, undefined, currency);
 
-      expect(mockSalaryService.getSalaryStatistics).toHaveBeenCalledWith(location, undefined, 30, 'USD');
+      expect(mockSalaryService.getSalaryStatistics).toHaveBeenCalledWith(
+        location,
+        undefined,
+        30,
+        'USD',
+      );
     });
 
     it('should handle not found error', async () => {

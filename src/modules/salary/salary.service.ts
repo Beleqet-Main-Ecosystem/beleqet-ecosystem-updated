@@ -398,8 +398,8 @@ export class SalaryService {
     const dataPointsCount = matchingJobs.length;
 
     if (dataPointsCount > 0) {
-      const midpoints = matchingJobs.map(
-        (j) => Math.round(((j.salaryMin ?? 0) + (j.salaryMax ?? 0)) / 2),
+      const midpoints = matchingJobs.map((j) =>
+        Math.round(((j.salaryMin ?? 0) + (j.salaryMax ?? 0)) / 2),
       );
 
       const total = midpoints.reduce((sum, v) => sum + v, 0);
@@ -527,7 +527,8 @@ export class SalaryService {
 
     const totalWeight = predictions.reduce((sum, p) => sum + (p.dataPointsCount || 1), 0);
     const avg =
-      predictions.reduce((sum, p) => sum + p.averageSalary * (p.dataPointsCount || 1), 0) / totalWeight;
+      predictions.reduce((sum, p) => sum + p.averageSalary * (p.dataPointsCount || 1), 0) /
+      totalWeight;
 
     const sortedBySalary = [...predictions].sort((a, b) => a.averageSalary - b.averageSalary);
     let cumulativeWeight = 0;
