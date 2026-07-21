@@ -1,12 +1,4 @@
-import {
-  IsEnum,
-  IsInt,
-  IsString,
-  IsUppercase,
-  Length,
-  Matches,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsString, IsUppercase, Length, Matches, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum TaxCurrency {
@@ -16,8 +8,7 @@ export enum TaxCurrency {
 
 export class CalculateTaxDto {
   @ApiProperty({
-    description:
-      'Gross income in smallest currency unit (cents/Santim). Annual freelancer income.',
+    description: 'Gross income in smallest currency unit (cents/Santim). Annual freelancer income.',
     example: 12000000,
     minimum: 0,
   })
