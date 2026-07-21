@@ -55,12 +55,10 @@ export class ExaSearchProvider implements ISearchProvider {
       }[];
     };
     this.logger.debug(`Exa search returned ${data.results?.length ?? 0} results`);
-    return (data.results ?? [])
-      .slice(0, maxResults)
-      .map((result) => ({
-        title: result.title,
-        url: result.url,
-        snippet: result.text,
-      }));
+    return (data.results ?? []).slice(0, maxResults).map((result) => ({
+      title: result.title,
+      url: result.url,
+      snippet: result.text,
+    }));
   }
 }

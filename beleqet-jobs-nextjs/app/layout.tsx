@@ -5,10 +5,10 @@ import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
 import QueryProvider from "@/components/QueryProvider";
 import ChatWidget from "@/components/ChatWidget";
+import { Toaster } from "sonner";
 import { WebSiteSchema } from "@/lib/seo/schemas";
 import { getSeoConfig } from "@/lib/seo/config";
 import { homePageMetadata } from "@/lib/seo/generate-metadata";
-import { Toaster } from "sonner";
 
 export const metadata: Metadata = homePageMetadata();
 

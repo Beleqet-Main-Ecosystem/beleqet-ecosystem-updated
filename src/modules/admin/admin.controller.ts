@@ -1,6 +1,14 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MinLength, IsArray } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsArray,
+} from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -153,7 +161,7 @@ export class AdminController {
             to: u.email,
             subject: dto.title,
             ...email,
-          })
+          }),
         )
         .catch(() => {});
     }
@@ -196,14 +204,14 @@ export class AdminController {
 
     let chatHistory: any[] = [];
     const chatRoom = await this.prisma.chatRoom.findUnique({
-      where: { contractId: dispute.contractId }
+      where: { contractId: dispute.contractId },
     });
 
     if (chatRoom) {
       chatHistory = await this.prisma.message.findMany({
         where: { roomId: chatRoom.id },
         orderBy: { createdAt: 'asc' },
-        include: { sender: { select: safeUserSelect } }
+        include: { sender: { select: safeUserSelect } },
       });
     }
 

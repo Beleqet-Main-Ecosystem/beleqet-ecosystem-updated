@@ -89,10 +89,7 @@ describe('AccountLinkingService', () => {
       });
       repository.findUserById.mockResolvedValueOnce(existingUser);
 
-      const result = await service.handleOAuthSignIn(
-        buildProfile(),
-        'encrypted-access-token',
-      );
+      const result = await service.handleOAuthSignIn(buildProfile(), 'encrypted-access-token');
 
       expect(result).toEqual({ kind: 'LOGIN', user: existingUser });
       expect(repository.findUserByEmail).not.toHaveBeenCalled();
@@ -107,9 +104,9 @@ describe('AccountLinkingService', () => {
       });
       repository.findUserById.mockResolvedValueOnce(null);
 
-      await expect(
-        service.handleOAuthSignIn(buildProfile(), 'token'),
-      ).rejects.toBeInstanceOf(ProviderIdentityAlreadyLinkedError);
+      await expect(service.handleOAuthSignIn(buildProfile(), 'token')).rejects.toBeInstanceOf(
+        ProviderIdentityAlreadyLinkedError,
+      );
     });
 
     it('returns a SIGNUP outcome and provisions a new user when no email match exists', async () => {
@@ -142,9 +139,9 @@ describe('AccountLinkingService', () => {
 
       const unverifiedProfile = buildProfile({ emailVerified: false });
 
-      await expect(
-        service.handleOAuthSignIn(unverifiedProfile, 'token'),
-      ).rejects.toBeInstanceOf(UnverifiedEmailLinkAttemptError);
+      await expect(service.handleOAuthSignIn(unverifiedProfile, 'token')).rejects.toBeInstanceOf(
+        UnverifiedEmailLinkAttemptError,
+      );
 
       // Critical assertion: no linking or signup side effect must occur.
       expect(repository.issueVerificationToken).not.toHaveBeenCalled();

@@ -180,11 +180,7 @@ export class CircuitBreakerService {
     throw new ServiceUnavailableException(message);
   }
 
-  private recordSuccess(
-    name: string,
-    circuit: CircuitSnapshot,
-    opts: CircuitBreakerOptions,
-  ): void {
+  private recordSuccess(name: string, circuit: CircuitSnapshot, opts: CircuitBreakerOptions): void {
     circuit.failureCount = 0;
     if (circuit.state === CircuitState.HALF_OPEN) {
       circuit.successCount++;
@@ -203,13 +199,10 @@ export class CircuitBreakerService {
   ): void {
     circuit.failureCount++;
     circuit.lastFailureTime = Date.now();
-    this.logger.error(
-      `[CircuitBreaker] ${name} failure #${circuit.failureCount}: ${err.message}`,
-    );
+    this.logger.error(`[CircuitBreaker] ${name} failure #${circuit.failureCount}: ${err.message}`);
 
     const shouldOpen =
-      circuit.state === CircuitState.HALF_OPEN ||
-      circuit.failureCount >= opts.failureThreshold;
+      circuit.state === CircuitState.HALF_OPEN || circuit.failureCount >= opts.failureThreshold;
 
     if (shouldOpen) {
       circuit.state = CircuitState.OPEN;

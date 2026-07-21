@@ -69,9 +69,7 @@ export class FfmpegService {
 
     const ext = this.guessExtFromUrl(url);
     const outputPath = join(tmpdir(), `beleqet-dl-${randomUUID()}.${ext}`);
-    const nodeStream = Readable.fromWeb(
-      response.body as import('stream/web').ReadableStream,
-    );
+    const nodeStream = Readable.fromWeb(response.body as import('stream/web').ReadableStream);
     const sizeGuard = this.createSizeLimitTransform(maxBytes);
 
     const onAbort = () => {
@@ -107,11 +105,15 @@ export class FfmpegService {
 
     try {
       await execFileAsync('ffmpeg', [
-        '-i', inputPath,
+        '-i',
+        inputPath,
         '-vn',
-        '-acodec', 'pcm_s16le',
-        '-ar', '16000',
-        '-ac', '1',
+        '-acodec',
+        'pcm_s16le',
+        '-ar',
+        '16000',
+        '-ac',
+        '1',
         '-y',
         outputPath,
       ]);
@@ -134,9 +136,12 @@ export class FfmpegService {
   async stripMetadataFromFile(inputPath: string): Promise<string> {
     const outputPath = join(tmpdir(), `beleqet-clean-${randomUUID()}.webm`);
     await execFileAsync('ffmpeg', [
-      '-i', inputPath,
-      '-map_metadata', '-1',
-      '-c', 'copy',
+      '-i',
+      inputPath,
+      '-map_metadata',
+      '-1',
+      '-c',
+      'copy',
       '-y',
       outputPath,
     ]);
@@ -151,9 +156,12 @@ export class FfmpegService {
    */
   async getDurationSecondsFromFile(inputPath: string): Promise<number> {
     const { stdout } = await execFileAsync('ffprobe', [
-      '-v', 'error',
-      '-show_entries', 'format=duration',
-      '-of', 'default=noprint_wrappers=1:nokey=1',
+      '-v',
+      'error',
+      '-show_entries',
+      'format=duration',
+      '-of',
+      'default=noprint_wrappers=1:nokey=1',
       inputPath,
     ]);
     return parseFloat(stdout.trim()) || 0;
@@ -214,9 +222,7 @@ export class FfmpegService {
   private getDownloadTimeoutMs(): number {
     const raw = this.config.get<string>('VIDEO_INTERVIEW_DOWNLOAD_TIMEOUT_MS');
     const parsed = raw ? Number(raw) : DEFAULT_VIDEO_DOWNLOAD_TIMEOUT_MS;
-    return Number.isFinite(parsed) && parsed > 0
-      ? parsed
-      : DEFAULT_VIDEO_DOWNLOAD_TIMEOUT_MS;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_VIDEO_DOWNLOAD_TIMEOUT_MS;
   }
 
   private createSizeLimitTransform(maxBytes: number): Transform & { bytesRead: number } {
@@ -226,9 +232,7 @@ export class FfmpegService {
         bytesRead += chunk.length;
         (transform as Transform & { bytesRead: number }).bytesRead = bytesRead;
         if (bytesRead > maxBytes) {
-          callback(
-            new Error(`Video exceeds maximum allowed size of ${maxBytes} bytes`),
-          );
+          callback(new Error(`Video exceeds maximum allowed size of ${maxBytes} bytes`));
           return;
         }
         callback(null, chunk);
@@ -313,8 +317,8 @@ export function collectAllowedVideoHosts(config: ConfigService): string[] {
   addFromUrl(config.get<string>('AWS_ENDPOINT'));
   addFromUrl(config.get<string>('API_BASE_URL'));
 
-  const bucket = config.get<string>('R2_BUCKET_NAME')
-    ?? config.get<string>('AWS_S3_BUCKET', 'beleqet-uploads');
+  const bucket =
+    config.get<string>('R2_BUCKET_NAME') ?? config.get<string>('AWS_S3_BUCKET', 'beleqet-uploads');
   const region = config.get<string>('AWS_REGION', 'us-east-1');
   hosts.add(`${bucket}.s3.${region}.amazonaws.com`);
   hosts.add(`${bucket}.s3.amazonaws.com`);
@@ -330,19 +334,17 @@ export function collectAllowedVideoHosts(config: ConfigService): string[] {
 }
 
 function hostMatchesAllowlist(host: string, allowed: string[]): boolean {
-  return allowed.some(
-    (entry) => host === entry || host.endsWith(`.${entry}`),
-  );
+  return allowed.some((entry) => host === entry || host.endsWith(`.${entry}`));
 }
 
 function isBlockedLiteralHost(host: string): boolean {
   return (
-    host === 'localhost'
-    || host === '127.0.0.1'
-    || host === '0.0.0.0'
-    || host === '::1'
-    || host === 'metadata.google.internal'
-    || host === '169.254.169.254'
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host === 'metadata.google.internal' ||
+    host === '169.254.169.254'
   );
 }
 

@@ -103,7 +103,11 @@ docker-compose.override.yml
 # Project-specific ignores
 beleqend_jobs.sql
 users_export.json
-scripts/
+# CI/CD tooling under scripts/ci and scripts/deploy is tracked;
+# everything else in scripts/ stays ignored (ad-hoc local tooling).
+scripts/*
+!scripts/ci/
+!scripts/deploy/
 .agents/
 issue_pr_matches.md
 AGENTS.md

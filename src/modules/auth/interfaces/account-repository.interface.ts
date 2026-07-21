@@ -81,9 +81,7 @@ export interface IAccountRepository {
    * OAuth account. Used only for genuine first-time signups (no existing
    * user with that email).
    */
-  createUserWithOAuthAccount(
-    input: CreateOAuthUserInput,
-  ): Promise<UserIdentitySnapshot>;
+  createUserWithOAuthAccount(input: CreateOAuthUserInput): Promise<UserIdentitySnapshot>;
 
   /**
    * Attaches a new provider identity to an already-existing user.
@@ -98,10 +96,7 @@ export interface IAccountRepository {
    * given user and purpose, persisted via the existing `VerificationToken`
    * table. Returns the opaque token string to be emailed to the user.
    */
-  issueVerificationToken(
-    userId: string,
-    type: VerificationTokenType,
-  ): Promise<string>;
+  issueVerificationToken(userId: string, type: VerificationTokenType): Promise<string>;
 
   /**
    * Atomically validates and consumes a verification token. Returns the

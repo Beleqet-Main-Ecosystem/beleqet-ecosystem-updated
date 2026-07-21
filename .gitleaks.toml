@@ -1,0 +1,33 @@
+# Gitleaks configuration for the Beleqet repository.
+#
+# Extends the default ruleset. The allowlist below covers ONLY files and value
+# shapes that are synthetic by design (documented placeholders, CI test
+# fixtures, spec-file mock data). Real configuration surfaces — src/ runtime
+# code, deployment scripts, deploy workflows — remain fully scanned.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholders and synthetic test fixtures (no real credentials)"
+paths = [
+  # Committed templates: placeholders only, instructions say so inline.
+  '''\.env\.example$''',
+  '''\.env\.staging\.example$''',
+  # Generates the synthetic CI test environment (all values fake).
+  '''scripts/ci/create-test-env\.sh$''',
+  # Jest/Vitest spec files use synthetic mock data by policy.
+  '''[^/]+\.spec\.ts$''',
+]
+regexes = [
+  # Placeholder / synthetic naming conventions used across the repo.
+  '''REPLACE_WITH''',
+  '''(?i)synthetic''',
+  '''ci_test_''',
+  '''ci_smoke_''',
+  '''please_change_in_production''',
+  # Documented example TOTP key (docker-compose dev defaults, CI env).
+  '''abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789''',
+  # Documented example base64 OAuth key ("TestEncryptionKey32BytesLongXYZ1").
+  '''VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=''',
+]

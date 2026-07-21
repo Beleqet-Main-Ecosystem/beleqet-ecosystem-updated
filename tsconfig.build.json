@@ -9,6 +9,7 @@
     "test",
     "prisma",
     "scripts",
-    "web"
+    "web",
+    "tools"
   ]
 }

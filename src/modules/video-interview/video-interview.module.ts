@@ -19,9 +19,7 @@ import { QueryMonitorService } from './query-monitor.service';
  * - {@link VideoInterviewProcessor} — handles transcription, evaluation, cleanup.
  */
 @Module({
-  imports: [
-    BullModule.registerQueue({ name: QUEUE_NAMES.VIDEO_INTERVIEW }),
-  ],
+  imports: [BullModule.registerQueue({ name: QUEUE_NAMES.VIDEO_INTERVIEW })],
   controllers: [VideoInterviewController],
   providers: [
     VideoInterviewService,
