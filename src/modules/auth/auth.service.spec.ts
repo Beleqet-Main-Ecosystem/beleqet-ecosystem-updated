@@ -120,9 +120,9 @@ describe('AuthService', () => {
 
       const result = await svc.issueTokensForUserId(userId);
 
-      expect(result).toEqual({ 
-        accessToken: 'signed-access', 
-        refreshToken: expect.any(String) // Gracefully matches the dynamic generated UUID v4
+      expect(result).toEqual({
+        accessToken: 'signed-access',
+        refreshToken: expect.any(String), // Gracefully matches the dynamic generated UUID v4
       });
       expect(mockPrisma.refreshToken.create).toHaveBeenCalled();
     });
