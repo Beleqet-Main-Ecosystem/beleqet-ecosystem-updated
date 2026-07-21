@@ -15,7 +15,8 @@ export class SmartBiddingController {
   @Get('predict/:jobId')
   @ApiOperation({
     summary: 'Predict optimal bidding price for the authenticated freelancer',
-    description: 'Calculates recommendations based on the target job profile matched against the logged-in user\'s profile.',
+    description:
+      "Calculates recommendations based on the target job profile matched against the logged-in user's profile.",
   })
   predictForSelf(
     @Param('jobId') jobId: string,
@@ -27,7 +28,8 @@ export class SmartBiddingController {
   @Get('predict/:jobId/freelancer/:freelancerId')
   @ApiOperation({
     summary: 'Predict optimal bidding price for a specific freelancer',
-    description: 'Calculates bid recommendations for a specified freelancer ID, useful for admin/employer analysis.',
+    description:
+      'Calculates bid recommendations for a specified freelancer ID, useful for admin/employer analysis.',
   })
   predictForFreelancer(
     @Param('jobId') jobId: string,
@@ -39,7 +41,8 @@ export class SmartBiddingController {
   @Get('predict-generic/:jobId')
   @ApiOperation({
     summary: 'Predict standard generic bidding price range for a job',
-    description: 'Calculates general bidding averages for a job without matching against any specific freelancer profile.',
+    description:
+      'Calculates general bidding averages for a job without matching against any specific freelancer profile.',
   })
   predictGeneric(@Param('jobId') jobId: string): Promise<PredictBidResponseDto> {
     return this.svc.predictBid(jobId);
