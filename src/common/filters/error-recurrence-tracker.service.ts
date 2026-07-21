@@ -44,10 +44,10 @@ export interface RecurrenceSnapshot {
   topPaths: string[];
 }
 
-const DEFAULT_WINDOW_MS  = 5 * 60 * 1_000; // 5 minutes
-const DEFAULT_THRESHOLD  = 10;              // alerts after 10 hits in window
-const MAX_OCCURRENCES    = 500;             // cap per-code history to save memory
-const MESSAGE_MAX_LEN    = 200;             // truncate long messages
+const DEFAULT_WINDOW_MS = 5 * 60 * 1_000; // 5 minutes
+const DEFAULT_THRESHOLD = 10; // alerts after 10 hits in window
+const MAX_OCCURRENCES = 500; // cap per-code history to save memory
+const MESSAGE_MAX_LEN = 200; // truncate long messages
 
 @Injectable()
 export class ErrorRecurrenceTrackerService {
@@ -64,7 +64,7 @@ export class ErrorRecurrenceTrackerService {
    * @param threshold  Number of hits in window before an alert fires.
    */
   constructor(
-    private readonly windowMs: number  = DEFAULT_WINDOW_MS,
+    private readonly windowMs: number = DEFAULT_WINDOW_MS,
     private readonly threshold: number = DEFAULT_THRESHOLD,
   ) {}
 
@@ -92,7 +92,7 @@ export class ErrorRecurrenceTrackerService {
 
     // Prune entries outside the window
     const cutoff = now - this.windowMs;
-    const fresh  = occurrences.filter((o) => o.timestamp >= cutoff);
+    const fresh = occurrences.filter((o) => o.timestamp >= cutoff);
 
     // Add current occurrence (cap to MAX_OCCURRENCES)
     fresh.push({
@@ -130,13 +130,14 @@ export class ErrorRecurrenceTrackerService {
       if (fresh.length === 0) continue;
 
       snapshots.push({
-        errorCode:        code,
-        hitCount:         fresh.length,
-        alertTriggered:   this.alerted.has(code),
-        recentTimestamps: fresh
-          .slice(-5)
-          .map((o) => new Date(o.timestamp).toISOString()),
-        topPaths: this.topN(fresh.map((o) => o.path), 3),
+        errorCode: code,
+        hitCount: fresh.length,
+        alertTriggered: this.alerted.has(code),
+        recentTimestamps: fresh.slice(-5).map((o) => new Date(o.timestamp).toISOString()),
+        topPaths: this.topN(
+          fresh.map((o) => o.path),
+          3,
+        ),
       });
     }
 
@@ -172,24 +173,23 @@ export class ErrorRecurrenceTrackerService {
    * Extension point: inject TelegramService / EventEmitter2 here to send
    * real-time alerts to the on-call channel.
    */
-  private triggerAlert(
-    errorCode: ErrorCode,
-    occurrences: ErrorOccurrence[],
-    now: number,
-  ): void {
+  private triggerAlert(errorCode: ErrorCode, occurrences: ErrorOccurrence[], now: number): void {
     if (this.alerted.has(errorCode)) return; // already alerted this window
 
     this.alerted.add(errorCode);
 
-    const topPaths = this.topN(occurrences.map((o) => o.path), 3);
+    const topPaths = this.topN(
+      occurrences.map((o) => o.path),
+      3,
+    );
 
     this.logger.error(
       JSON.stringify({
-        level:     'CRITICAL',
-        alert:     'RECURRING_ERROR_THRESHOLD_BREACHED',
+        level: 'CRITICAL',
+        alert: 'RECURRING_ERROR_THRESHOLD_BREACHED',
         errorCode,
-        hitCount:  occurrences.length,
-        windowMs:  this.windowMs,
+        hitCount: occurrences.length,
+        windowMs: this.windowMs,
         threshold: this.threshold,
         topPaths,
         detectedAt: new Date(now).toISOString(),
