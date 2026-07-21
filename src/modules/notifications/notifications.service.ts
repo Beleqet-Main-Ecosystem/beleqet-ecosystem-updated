@@ -23,12 +23,13 @@ export class NotificationsService {
 
   /**
    * Sends interview scheduled notifications to both the employer
-   * and the candidate.
+   * and the candidate based on their registered notification preferences
+   * and GDPR settings.
    *
    * This method:
-   * - Creates in-app notifications.
-   * - Queues email notifications when an email address exists.
-   * - Queues Telegram notifications when a Telegram account is linked.
+   * - Loads user details along with notification preferences.
+   * - Verifies channel enablement (IN_APP, EMAIL, TELEGRAM, PUSH, SMS).
+   * - Queues jobs only for channels that are enabled and have required user identifiers.
    *
    * @param interviewId Unique interview identifier.
    * @param employerId Employer user identifier.
@@ -37,7 +38,7 @@ export class NotificationsService {
    * @param startTime Interview start date and time.
    * @param endTime Interview end date and time.
    * @param timezone Time zone used when formatting the interview time.
-   * @returns A promise that resolves after all notification jobs have been queued.
+   * @returns A promise that resolves after all enabled notification jobs have been queued.
    */
   async sendInterviewScheduled(
     interviewId: string,
@@ -53,7 +54,9 @@ export class NotificationsService {
         where: { id: candidateId },
         select: {
           email: true,
+          phone: true,
           telegramId: true,
+          notificationPreference: true,
         },
       }),
 
@@ -61,12 +64,39 @@ export class NotificationsService {
         where: { id: employerId },
         select: {
           email: true,
+          phone: true,
           telegramId: true,
+          notificationPreference: true,
         },
       }),
     ]);
 
-    const title = await this.i18n.translate('interview.notification.scheduledTitle');
+    const candidatePref = candidate?.notificationPreference ?? {
+      inAppEnabled: true,
+      emailEnabled: true,
+      telegramEnabled: true,
+      pushEnabled: false,
+      smsEnabled: false,
+      language: 'en',
+    };
+
+    const employerPref = employer?.notificationPreference ?? {
+      inAppEnabled: true,
+      emailEnabled: true,
+      telegramEnabled: true,
+      pushEnabled: false,
+      smsEnabled: false,
+      language: 'en',
+    };
+
+    const candidateLang = candidatePref.language || 'en';
+    const employerLang = employerPref.language || 'en';
+
+    const [candidateTitle, employerTitle] = await Promise.all([
+      this.i18n.translate('interview.notification.scheduledTitle', { lang: candidateLang }),
+      this.i18n.translate('interview.notification.scheduledTitle', { lang: employerLang }),
+    ]);
+
     const notificationType = NOTIFICATION_TYPES.INTERVIEW_SCHEDULED;
     const formattedStart = startTime.toLocaleString('en-US', {
       timeZone: timezone,
@@ -75,26 +105,27 @@ export class NotificationsService {
     const formattedEnd = endTime.toLocaleString('en-US', {
       timeZone: timezone,
     });
-    const candidateBody = await this.i18n.translate(
-      'interview.notification.candidateScheduledBody',
-      {
+
+    const [candidateBody, employerBody] = await Promise.all([
+      this.i18n.translate('interview.notification.candidateScheduledBody', {
+        lang: candidateLang,
         args: {
           jobTitle: jobTitle,
           startTime: formattedStart,
           endTime: formattedEnd,
           timezone: timezone,
         },
-      },
-    );
-
-    const employerBody = await this.i18n.translate('interview.notification.employerScheduledBody', {
-      args: {
-        jobTitle: jobTitle,
-        startTime: formattedStart,
-        endTime: formattedEnd,
-        timezone: timezone,
-      },
-    });
+      }),
+      this.i18n.translate('interview.notification.employerScheduledBody', {
+        lang: employerLang,
+        args: {
+          jobTitle: jobTitle,
+          startTime: formattedStart,
+          endTime: formattedEnd,
+          timezone: timezone,
+        },
+      }),
+    ]);
 
     const metadata = {
       interviewId,
@@ -103,52 +134,113 @@ export class NotificationsService {
       endTime: formattedEnd,
       timezone,
     };
-    await Promise.all([
-      this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
-        userId: candidateId,
-        type: notificationType,
-        title: title,
-        body: candidateBody,
-        metadata,
-      }),
 
-      this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
-        userId: employerId,
-        type: notificationType,
-        title: title,
-        body: employerBody,
-        metadata,
-      }),
+    const jobsToQueue: Promise<unknown>[] = [];
 
-      candidate?.email
-        ? this.notificationQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
-            to: candidate.email,
-            subject: title,
-            html: `<p>${candidateBody}</p>`,
-          })
-        : Promise.resolve(),
+    // Candidate jobs according to user preferences
+    if (candidatePref.inAppEnabled) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
+          userId: candidateId,
+          type: notificationType,
+          title: candidateTitle,
+          body: candidateBody,
+          metadata,
+        }),
+      );
+    }
 
-      employer?.email
-        ? this.notificationQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
-            to: employer.email,
-            subject: title,
-            html: `<p>${employerBody}</p>`,
-          })
-        : Promise.resolve(),
+    if (candidatePref.emailEnabled && candidate?.email) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+          to: candidate.email,
+          subject: candidateTitle,
+          html: `<p>${candidateBody}</p>`,
+        }),
+      );
+    }
 
-      candidate?.telegramId
-        ? this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
-            telegramId: candidate.telegramId,
-            message: candidateBody,
-          })
-        : Promise.resolve(),
+    if (candidatePref.telegramEnabled && candidate?.telegramId) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
+          telegramId: candidate.telegramId,
+          message: candidateBody,
+        }),
+      );
+    }
 
-      employer?.telegramId
-        ? this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
-            telegramId: employer.telegramId,
-            message: employerBody,
-          })
-        : Promise.resolve(),
-    ]);
+    if (candidatePref.pushEnabled) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_PUSH, {
+          userId: candidateId,
+          title: candidateTitle,
+          body: candidateBody,
+          payload: metadata,
+        }),
+      );
+    }
+
+    if (candidatePref.smsEnabled && candidate?.phone) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_SMS, {
+          to: candidate.phone,
+          message: candidateBody,
+        }),
+      );
+    }
+
+    // Employer jobs according to user preferences
+    if (employerPref.inAppEnabled) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
+          userId: employerId,
+          type: notificationType,
+          title: employerTitle,
+          body: employerBody,
+          metadata,
+        }),
+      );
+    }
+
+    if (employerPref.emailEnabled && employer?.email) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+          to: employer.email,
+          subject: employerTitle,
+          html: `<p>${employerBody}</p>`,
+        }),
+      );
+    }
+
+    if (employerPref.telegramEnabled && employer?.telegramId) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
+          telegramId: employer.telegramId,
+          message: employerBody,
+        }),
+      );
+    }
+
+    if (employerPref.pushEnabled) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_PUSH, {
+          userId: employerId,
+          title: employerTitle,
+          body: employerBody,
+          payload: metadata,
+        }),
+      );
+    }
+
+    if (employerPref.smsEnabled && employer?.phone) {
+      jobsToQueue.push(
+        this.notificationQueue.add(NOTIFICATION_JOBS.SEND_SMS, {
+          to: employer.phone,
+          message: employerBody,
+        }),
+      );
+    }
+
+    await Promise.all(jobsToQueue);
   }
 }

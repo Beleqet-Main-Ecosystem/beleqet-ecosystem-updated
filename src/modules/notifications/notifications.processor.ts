@@ -2,19 +2,20 @@ import { Processor, WorkerHost } from '@nestjs/bullmq'; // Pull WorkerHost and P
 import { Logger, Injectable } from '@nestjs/common';
 import { Job as BullMQJob } from 'bullmq'; // Use bullmq Job types
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import * as nodemailer from 'nodemailer';
 
-interface InAppPayload {
+export interface InAppPayload {
   userId: string;
   type: string;
   title: string;
   body: string;
-  metadata?: object;
+  metadata?: Record<string, unknown>;
 }
 
-interface TelegramPayload {
+export interface TelegramPayload {
   telegramId: string;
   message: string;
 }
@@ -25,6 +26,34 @@ export interface EmailPayload {
   html: string;
   text?: string;
 }
+
+export interface PushPayload {
+  userId: string;
+  title: string;
+  body: string;
+  payload?: Record<string, unknown>;
+}
+
+export interface SmsPayload {
+  to: string;
+  message: string;
+}
+
+export type NotificationJobPayloadMap = {
+  [NOTIFICATION_JOBS.SEND_IN_APP]: InAppPayload;
+  [NOTIFICATION_JOBS.SEND_TELEGRAM]: TelegramPayload;
+  [NOTIFICATION_JOBS.SEND_EMAIL]: EmailPayload;
+  [NOTIFICATION_JOBS.SEND_PUSH]: PushPayload;
+  [NOTIFICATION_JOBS.SEND_SMS]: SmsPayload;
+};
+
+export type NotificationJobName = keyof NotificationJobPayloadMap;
+
+export type NotificationJob<K extends NotificationJobName = NotificationJobName> = BullMQJob<
+  NotificationJobPayloadMap[K],
+  void,
+  K
+>;
 
 @Injectable()
 @Processor(QUEUE_NAMES.NOTIFICATIONS)
@@ -48,24 +77,39 @@ export class NotificationsProcessor extends WorkerHost {
     });
   }
 
-  // Handle all targeted job actions routed through the WorkerHost router method
-  async process(job: BullMQJob<any, any, string>): Promise<any> {
+  /**
+   * Router method for processing incoming notification jobs from BullMQ queue.
+   *
+   * @param job Strongly-typed BullMQ notification job.
+   */
+  async process(job: NotificationJob): Promise<void> {
     switch (job.name) {
       case NOTIFICATION_JOBS.SEND_IN_APP:
-        await this.sendInApp(job);
+        await this.sendInApp(job as BullMQJob<InAppPayload, void, typeof NOTIFICATION_JOBS.SEND_IN_APP>);
         break;
       case NOTIFICATION_JOBS.SEND_TELEGRAM:
-        await this.sendTelegram(job);
+        await this.sendTelegram(job as BullMQJob<TelegramPayload, void, typeof NOTIFICATION_JOBS.SEND_TELEGRAM>);
         break;
       case NOTIFICATION_JOBS.SEND_EMAIL:
-        await this.sendEmail(job);
+        await this.sendEmail(job as BullMQJob<EmailPayload, void, typeof NOTIFICATION_JOBS.SEND_EMAIL>);
+        break;
+      case NOTIFICATION_JOBS.SEND_PUSH:
+        await this.sendPush(job as BullMQJob<PushPayload, void, typeof NOTIFICATION_JOBS.SEND_PUSH>);
+        break;
+      case NOTIFICATION_JOBS.SEND_SMS:
+        await this.sendSms(job as BullMQJob<SmsPayload, void, typeof NOTIFICATION_JOBS.SEND_SMS>);
         break;
       default:
-        this.logger.warn(`Unhandled job type context: ${job.name}`);
+        this.logger.warn(`Unhandled job type context: ${(job as BullMQJob).name}`);
     }
   }
 
-  async sendInApp(job: BullMQJob<InAppPayload>) {
+  /**
+   * Handles in-app notification creation by inserting a record in the database.
+   *
+   * @param job Job containing InAppPayload.
+   */
+  async sendInApp(job: BullMQJob<InAppPayload>): Promise<void> {
     const { userId, type, title, body, metadata } = job.data;
     if (!userId) return;
     await this.prisma.notification.create({
@@ -75,13 +119,18 @@ export class NotificationsProcessor extends WorkerHost {
         title,
         body,
         channel: 'IN_APP',
-        metadata: metadata as never,
+        metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       },
     });
     this.logger.debug(`In-app → ${userId}: ${title}`);
   }
 
-  async sendTelegram(job: BullMQJob<TelegramPayload>) {
+  /**
+   * Handles Telegram message delivery via Telegram Bot HTTP API.
+   *
+   * @param job Job containing TelegramPayload.
+   */
+  async sendTelegram(job: BullMQJob<TelegramPayload>): Promise<void> {
     const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN');
     if (!botToken) return;
     try {
@@ -100,7 +149,12 @@ export class NotificationsProcessor extends WorkerHost {
     }
   }
 
-  async sendEmail(job: BullMQJob<EmailPayload>) {
+  /**
+   * Handles Email notification dispatch using SMTP transporter.
+   *
+   * @param job Job containing EmailPayload.
+   */
+  async sendEmail(job: BullMQJob<EmailPayload>): Promise<void> {
     const { to, subject, html, text } = job.data;
     if (!to) return;
 
@@ -118,5 +172,27 @@ export class NotificationsProcessor extends WorkerHost {
     } catch (e) {
       this.logger.warn(`Email failed: ${(e as Error).message}`);
     }
+  }
+
+  /**
+   * Handles Push notification dispatch (Clean structure ready for Push provider integration).
+   *
+   * @param job Job containing PushPayload.
+   */
+  async sendPush(job: BullMQJob<PushPayload>): Promise<void> {
+    const { userId, title, body } = job.data;
+    if (!userId) return;
+    this.logger.debug(`Push notification queued for user ${userId}: ${title} - ${body}`);
+  }
+
+  /**
+   * Handles SMS notification dispatch (Clean structure ready for SMS provider integration).
+   *
+   * @param job Job containing SmsPayload.
+   */
+  async sendSms(job: BullMQJob<SmsPayload>): Promise<void> {
+    const { to, message } = job.data;
+    if (!to) return;
+    this.logger.debug(`SMS notification queued for ${to}: ${message}`);
   }
 }
