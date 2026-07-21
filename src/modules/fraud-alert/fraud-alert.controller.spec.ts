@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getQueueToken } from '@nestjs/bull';
+import { getQueueToken } from '@nestjs/bullmq';
 import { I18nService } from 'nestjs-i18n';
 import { FraudAlertController } from './fraud-alert.controller';
 import { QUEUE_NAMES } from '../queues/queues.constants';
