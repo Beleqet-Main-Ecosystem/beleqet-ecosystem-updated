@@ -23,17 +23,13 @@ describe('SmartSkillTesterController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SmartSkillTesterController],
-      providers: [
-        { provide: SmartSkillTesterService, useValue: mockService() },
-      ],
+      providers: [{ provide: SmartSkillTesterService, useValue: mockService() }],
     })
       .overrideGuard(ThrottlerGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
-    controller = module.get<SmartSkillTesterController>(
-      SmartSkillTesterController,
-    );
+    controller = module.get<SmartSkillTesterController>(SmartSkillTesterController);
     service = module.get(SmartSkillTesterService);
   });
 
@@ -44,20 +40,14 @@ describe('SmartSkillTesterController', () => {
         testId: 'test-1',
         skill: 'React',
         status: 'PENDING' as const,
-        questions: [
-          { id: 'q-1', question: 'What is JSX?', order: 1 },
-        ],
+        questions: [{ id: 'q-1', question: 'What is JSX?', order: 1 }],
         createdAt: NOW,
       };
       service.generateTest.mockResolvedValue(expected);
 
       const result = await controller.generate(dto, USER);
 
-      expect(service.generateTest).toHaveBeenCalledWith(
-        'user-1',
-        'React',
-        3,
-      );
+      expect(service.generateTest).toHaveBeenCalledWith('user-1', 'React', 3);
       expect(result).toEqual(expected);
     });
 
@@ -73,11 +63,7 @@ describe('SmartSkillTesterController', () => {
 
       await controller.generate(dto, USER);
 
-      expect(service.generateTest).toHaveBeenCalledWith(
-        'user-1',
-        'React',
-        5,
-      );
+      expect(service.generateTest).toHaveBeenCalledWith('user-1', 'React', 5);
     });
   });
 
@@ -85,29 +71,21 @@ describe('SmartSkillTesterController', () => {
     it('delegates to service.evaluateAnswers', async () => {
       const dto = {
         testId: 'test-1',
-        answers: [
-          { questionId: 'q-1', answer: 'JSX is a syntax extension...' },
-        ],
+        answers: [{ questionId: 'q-1', answer: 'JSX is a syntax extension...' }],
       };
       const expected = {
         testId: 'test-1',
         skill: 'React',
         overallScore: 85,
         overallFeedback: 'Good.',
-        results: [
-          { questionId: 'q-1', score: 85, feedback: 'Nice.' },
-        ],
+        results: [{ questionId: 'q-1', score: 85, feedback: 'Nice.' }],
         completedAt: NOW,
       };
       service.evaluateAnswers.mockResolvedValue(expected);
 
       const result = await controller.evaluate(dto, USER);
 
-      expect(service.evaluateAnswers).toHaveBeenCalledWith(
-        'user-1',
-        'test-1',
-        dto.answers,
-      );
+      expect(service.evaluateAnswers).toHaveBeenCalledWith('user-1', 'test-1', dto.answers);
       expect(result).toEqual(expected);
     });
   });

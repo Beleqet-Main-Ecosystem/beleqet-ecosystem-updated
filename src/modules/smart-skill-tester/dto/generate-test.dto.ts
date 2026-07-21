@@ -1,18 +1,7 @@
-import {
-  IsString,
-  IsOptional,
-  IsInt,
-  Min,
-  Max,
-  MinLength,
-  MaxLength,
-} from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, Max, MinLength, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  DEFAULT_QUESTION_COUNT,
-  MAX_QUESTION_COUNT,
-} from '../smart-skill-tester.constants';
+import { DEFAULT_QUESTION_COUNT, MAX_QUESTION_COUNT } from '../smart-skill-tester.constants';
 
 export class GenerateTestDto {
   @ApiProperty({ example: 'React' })
