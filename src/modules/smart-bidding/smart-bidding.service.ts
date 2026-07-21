@@ -23,7 +23,7 @@ export class SmartBiddingService {
 
   async predictBid(jobId: string, freelancerId?: string): Promise<PredictBidResponseDto> {
     const cacheKey = `smart-bidding:job:${jobId}:freelancer:${freelancerId || 'generic'}`;
-    
+
     // 1. Check Redis Cache
     try {
       const cached = await this.redis.get(cacheKey);
@@ -110,10 +110,15 @@ export class SmartBiddingService {
         }
 
         // Skills match multiplier
-        if (freelancer.skills && freelancer.skills.length > 0 && job.skills && job.skills.length > 0) {
+        if (
+          freelancer.skills &&
+          freelancer.skills.length > 0 &&
+          job.skills &&
+          job.skills.length > 0
+        ) {
           hasFreelancerSkills = true;
-          const matchingSkills = job.skills.filter(s =>
-            freelancer.skills.some(fs => fs.toLowerCase() === s.toLowerCase()),
+          const matchingSkills = job.skills.filter((s) =>
+            freelancer.skills.some((fs) => fs.toLowerCase() === s.toLowerCase()),
           );
           const ratio = matchingSkills.length / job.skills.length;
           // Scale multiplier between 0.9 (no matching skills) and 1.15 (100% matching skills)
@@ -125,7 +130,8 @@ export class SmartBiddingService {
     // 5. LLM-Based Complexity & Scope Parsing with fallback
     let complexityFactor = 1.0;
     let estimatedTimelineDays = job.deadlineDays;
-    let explanationEn = 'Calculation based on platform historical category averages and freelance job parameters.';
+    let explanationEn =
+      'Calculation based on platform historical category averages and freelance job parameters.';
     let explanationAm = 'ስሌቱ የተከናወነው በታሪካዊ የዘርፍ አማካዮች እና በፍሪላንስ ስራው መለኪያዎች ላይ በመመስረት ነው።';
     let aiModelUsed = 'none (fallback heuristic)';
     let isAiProcessed = false;

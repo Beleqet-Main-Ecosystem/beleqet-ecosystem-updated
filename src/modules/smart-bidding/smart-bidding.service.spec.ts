@@ -101,7 +101,9 @@ describe('SmartBiddingService', () => {
 
       const result = await service.predictBid('job-123', 'freelancer-456');
 
-      expect(redisMock.get).toHaveBeenCalledWith('smart-bidding:job:job-123:freelancer:freelancer-456');
+      expect(redisMock.get).toHaveBeenCalledWith(
+        'smart-bidding:job:job-123:freelancer:freelancer-456',
+      );
       expect(result).toBeDefined();
       expect(result.cached).toBe(true);
       expect(result.recommendedBidAmount).toBe(1500);
@@ -133,7 +135,7 @@ describe('SmartBiddingService', () => {
       prismaMock.freelanceJob.findUnique.mockResolvedValue(mockJob);
       prismaMock.contract.findMany.mockResolvedValue([]);
       prismaMock.bid.findMany.mockResolvedValue([]);
-      
+
       // Senior freelancer mock
       prismaMock.user.findUnique.mockResolvedValue({
         id: 'freelancer-senior',
@@ -179,7 +181,7 @@ describe('SmartBiddingService', () => {
     it('should utilize historical completed contract prices to establish baseline', async () => {
       redisMock.get.mockResolvedValue(null);
       prismaMock.freelanceJob.findUnique.mockResolvedValue(mockJob);
-      
+
       // Mock past completed contracts with average price = 1800
       prismaMock.contract.findMany.mockResolvedValue([
         { agreedAmount: 1700 },

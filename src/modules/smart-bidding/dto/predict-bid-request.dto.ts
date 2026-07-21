@@ -6,7 +6,10 @@ export class PredictBidRequestDto {
   @IsUUID()
   jobId: string;
 
-  @ApiProperty({ description: 'Optional Freelancer User UUID to customize recommendations', required: false })
+  @ApiProperty({
+    description: 'Optional Freelancer User UUID to customize recommendations',
+    required: false,
+  })
   @IsOptional()
   @IsUUID()
   freelancerId?: string;
