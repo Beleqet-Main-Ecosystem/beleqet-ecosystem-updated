@@ -97,7 +97,9 @@ function ResultPanel({
         <div className="mb-4 last:mb-0">
           <div className="mb-2 flex items-center gap-2 font-semibold text-slate-900">
             <span aria-hidden="true">{confirmation.released ? 'A' : 'W'}</span>
-            <span>{confirmation.released ? 'Milestone queued for release' : 'Confirmation recorded'}</span>
+            <span>
+              {confirmation.released ? 'Milestone queued for release' : 'Confirmation recorded'}
+            </span>
           </div>
           {!confirmation.released && confirmation.waitingFor && (
             <p>Waiting for {confirmation.waitingFor.toLowerCase()} confirmation.</p>
@@ -202,7 +204,9 @@ export function EscrowDashboard() {
         </span>
       </div>
 
-      {error && <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <form onSubmit={handleInitiate} className="rounded-lg border border-gray-200 p-4">
@@ -235,7 +239,10 @@ export function EscrowDashboard() {
             <span aria-hidden="true">M</span>
             <span>Confirm milestone</span>
           </div>
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="escrow-milestone-id">
+          <label
+            className="mb-1 block text-sm font-medium text-gray-700"
+            htmlFor="escrow-milestone-id"
+          >
             Milestone ID
           </label>
           <input
@@ -280,7 +287,10 @@ export function EscrowDashboard() {
             placeholder="tx_ref"
             className="mb-3 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
-          <label className="mb-1 block text-sm font-medium text-gray-700" htmlFor="escrow-reference">
+          <label
+            className="mb-1 block text-sm font-medium text-gray-700"
+            htmlFor="escrow-reference"
+          >
             Chapa reference
           </label>
           <input
@@ -316,7 +326,10 @@ export function EscrowDashboard() {
               ))}
             </select>
           </div>
-          <label className="mb-1 mt-3 block text-sm font-medium text-gray-700" htmlFor="escrow-amount">
+          <label
+            className="mb-1 mt-3 block text-sm font-medium text-gray-700"
+            htmlFor="escrow-amount"
+          >
             Amount
           </label>
           <input
@@ -339,7 +352,11 @@ export function EscrowDashboard() {
       </div>
 
       <div className="mt-6">
-        <ResultPanel initiation={initiation} confirmation={confirmation} callbackResult={callbackResult} />
+        <ResultPanel
+          initiation={initiation}
+          confirmation={confirmation}
+          callbackResult={callbackResult}
+        />
       </div>
     </div>
   );

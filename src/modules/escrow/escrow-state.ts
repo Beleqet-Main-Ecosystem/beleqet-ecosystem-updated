@@ -12,7 +12,9 @@ export function applyMilestoneConfirmation(
     employerApprovedAt:
       actor === 'EMPLOYER' ? (state.employerApprovedAt ?? confirmedAt) : state.employerApprovedAt,
     freelancerApprovedAt:
-      actor === 'FREELANCER' ? (state.freelancerApprovedAt ?? confirmedAt) : state.freelancerApprovedAt,
+      actor === 'FREELANCER'
+        ? (state.freelancerApprovedAt ?? confirmedAt)
+        : state.freelancerApprovedAt,
   };
 }
 

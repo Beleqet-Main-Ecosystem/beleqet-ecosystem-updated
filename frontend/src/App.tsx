@@ -11,12 +11,21 @@ function ApiStatus() {
   const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   useEffect(() => {
-    fetch('/api/v1/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    fetch('/api/v1/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
       .then(() => setStatus('online'))
       .catch(() => setStatus('offline'));
   }, []);
 
-  const color = status === 'online' ? 'text-green-600' : status === 'offline' ? 'text-red-600' : 'text-yellow-600';
+  const color =
+    status === 'online'
+      ? 'text-green-600'
+      : status === 'offline'
+        ? 'text-red-600'
+        : 'text-yellow-600';
   return <span className={color + ' text-sm ml-4'}>API: {status}</span>;
 }
 
@@ -33,7 +42,9 @@ export function App() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setTwoFactorStatus(await res.json());
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const tabs: { key: Tab; label: string }[] = [
@@ -55,7 +66,7 @@ export function App() {
 
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 flex gap-1">
-          {tabs.map(t => (
+          {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -110,16 +121,9 @@ export function App() {
         </div>
 
         {tab === '2fa' && (
-          <TwoFactorSettings
-            status={twoFactorStatus}
-            onRefreshStatus={handleRefreshStatus}
-          />
+          <TwoFactorSettings status={twoFactorStatus} onRefreshStatus={handleRefreshStatus} />
         )}
-        {tab === 'wallet' && (
-          <WithdrawForm
-            onBalanceChange={(b) => setBalance(b)}
-          />
-        )}
+        {tab === 'wallet' && <WithdrawForm onBalanceChange={(b) => setBalance(b)} />}
         {tab === 'escrow' && <EscrowDashboard />}
         {tab === 'password' && <PasswordChangeForm />}
         {tab === 'email' && <EmailChangeForm />}

@@ -65,29 +65,30 @@ model User {
   /// saved jobs being used to personalize their AI job feed. Defaults to
   /// true; when false, the AI Feed module falls back to a generic,
   /// non-personalized feed and reads none of that data (GDPR compliance).
-  gdprConsent           Boolean             @default(true)
+  gdprConsent Boolean @default(true)
 
   /// Back-relation required by Prisma for the one-to-many relationship
   /// declared on SearchHistory.user below. Not queried directly from the
   /// User side — the AI Feed module reads SearchHistory independently.
-  searchHistories       SearchHistory[]
-  storedFiles           StoredFile[]
+  searchHistories         SearchHistory[]
+  storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
 
   @@map("users")
 }
+
 model OAuthAccount {
-  id                    String   @id @default(uuid())
+  id                    String        @id @default(uuid())
   userId                String
   provider              OAuthProvider
-  providerAccountId     String            // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
-  encryptedAccessToken  String?           // AES-256-GCM ciphertext, never raw
+  providerAccountId     String // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
+  encryptedAccessToken  String? // AES-256-GCM ciphertext, never raw
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
-  linkedAt              DateTime @default(now())
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedAt              DateTime      @default(now())
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])   // prevents one social identity from attaching to 2 users
+  @@unique([provider, providerAccountId]) // prevents one social identity from attaching to 2 users
   @@index([userId])
   @@map("oauth_accounts")
 }
@@ -97,11 +98,11 @@ model OAuthAccount {
 /// (alongside User.skills and SavedJob) used to rank job recommendations.
 /// Only read when the owning user's `gdprConsent` is true.
 model SearchHistory {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
   /// Owning user. Cascade delete: if the user is deleted, their search
   /// history is deleted with them rather than left orphaned.
-  userId     String
+  userId String
 
   /// The raw search term as typed by the user (e.g. "React developer").
   searchTerm String
@@ -110,7 +111,7 @@ model SearchHistory {
   /// terms from the last 30 days as "recent" signal.
   searchedAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   /// Speeds up the AI Feed module's "recent searches for this user" query.
   @@index([userId, searchedAt])
@@ -121,6 +122,7 @@ enum OAuthProvider {
   GOOGLE
   LINKEDIN
 }
+
 model SavedJob {
   id        String   @id @default(uuid())
   userId    String
@@ -224,7 +226,6 @@ model JobCategory {
 
   @@map("job_categories")
 }
-
 
 model Job {
   id                       String        @id @default(uuid())
@@ -412,20 +413,20 @@ model Contract {
 }
 
 model Milestone {
-  id           String          @id @default(uuid())
-  contractId   String
-  title        String
-  description  String?
-  amount       Int
-  deadline     DateTime
-  status       MilestoneStatus @default(PENDING)
-  approvedAt   DateTime?
+  id                   String          @id @default(uuid())
+  contractId           String
+  title                String
+  description          String?
+  amount               Int
+  deadline             DateTime
+  status               MilestoneStatus @default(PENDING)
+  approvedAt           DateTime?
   employerApprovedAt   DateTime?
   freelancerApprovedAt DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deliverables Deliverable[]
-  contract     Contract        @relation(fields: [contractId], references: [id])
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  deliverables         Deliverable[]
+  contract             Contract        @relation(fields: [contractId], references: [id])
 
   @@map("milestones")
 }
@@ -650,6 +651,7 @@ model Interview {
   @@index([startTime])
   @@map("interviews")
 }
+
 model UserTwoFactor {
   id                   String       @id @default(uuid())
   userId               String       @unique
@@ -668,12 +670,12 @@ model UserTwoFactor {
 }
 
 model BackupCode {
-  id         String        @id @default(uuid())
+  id          String        @id @default(uuid())
   twoFactorId String
-  codeHash   String
-  usedAt     DateTime?
-  createdAt  DateTime      @default(now())
-  twoFactor  UserTwoFactor @relation(fields: [twoFactorId], references: [id], onDelete: Cascade)
+  codeHash    String
+  usedAt      DateTime?
+  createdAt   DateTime      @default(now())
+  twoFactor   UserTwoFactor @relation(fields: [twoFactorId], references: [id], onDelete: Cascade)
 
   @@index([twoFactorId])
   @@map("backup_codes")
@@ -888,10 +890,10 @@ model VideoInterview {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
-  application   Application          @relation(fields: [applicationId], references: [id])
-  user          User                 @relation(fields: [userId], references: [id])
-  responses     VideoResponse[]
-  evaluation    InterviewEvaluation?
+  application Application          @relation(fields: [applicationId], references: [id])
+  user        User                 @relation(fields: [userId], references: [id])
+  responses   VideoResponse[]
+  evaluation  InterviewEvaluation?
 
   @@index([userId, status])
   @@index([status, expiresAt])
@@ -903,7 +905,7 @@ model VideoInterview {
 /// rawWhisperResponse (JSONB) stores the full Whisper API payload;
 /// GIN index allows querying by language/word-level timestamps.
 model VideoResponse {
-  id                   String         @id @default(uuid())
+  id                   String   @id @default(uuid())
   videoInterviewId     String
   questionIndex        Int
   /// S3 presigned URL — files auto-deleted after gdprDeleteAt
@@ -912,13 +914,13 @@ model VideoResponse {
   /// Full Whisper response: { text, segments, language, duration }
   rawWhisperResponse   Json?
   processingDurationMs Int?
-  language             String         @default("en")
+  language             String   @default("en")
   /// PENDING | TRANSCRIBING | TRANSCRIBED | FAILED
-  processingStatus     String         @default("PENDING")
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  processingStatus     String   @default("PENDING")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  videoInterview       VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@unique([videoInterviewId, questionIndex])
   @@index([videoInterviewId, questionIndex])
@@ -930,20 +932,20 @@ model VideoResponse {
 /// scores (JSONB) holds per-question and trait scores for flexible querying.
 /// rawAiResponse stores the full Ollama/OpenAI output for audit purposes.
 model InterviewEvaluation {
-  id               String         @id @default(uuid())
-  videoInterviewId String         @unique
+  id               String   @id @default(uuid())
+  videoInterviewId String   @unique
   overallScore     Float
   /// JSONB: { perQuestion: [{idx, score, feedback}], traits: {communication, clarity} }
   scores           Json
   reasoning        String?
   /// Raw model output for audit trail
   rawAiResponse    Json?
-  modelUsed        String         @default("llama3")
+  modelUsed        String   @default("llama3")
   /// GDPR: matches parent VideoInterview.gdprDeleteAt
   gdprDeleteAt     DateTime
-  evaluatedAt      DateTime       @default(now())
+  evaluatedAt      DateTime @default(now())
 
-  videoInterview   VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@index([scores], type: Gin)
   @@index([rawAiResponse], type: Gin)
@@ -1234,18 +1236,18 @@ model WebhookEvent {
 }
 
 model StoredFile {
-  id                         String    @id @default(uuid())
-  key                        String    @unique
-  filename                   String
-  mimeType                   String
-  size                       Int
-  uploadedById               String?
-  hasConsentedToProcessing   Boolean   @default(false)
-  isDeleted                  Boolean   @default(false)
-  deletedAt                  DateTime?
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
-  uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
+  id                       String    @id @default(uuid())
+  key                      String    @unique
+  filename                 String
+  mimeType                 String
+  size                     Int
+  uploadedById             String?
+  hasConsentedToProcessing Boolean   @default(false)
+  isDeleted                Boolean   @default(false)
+  deletedAt                DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  uploadedBy               User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
 }

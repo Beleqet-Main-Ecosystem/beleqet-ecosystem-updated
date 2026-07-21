@@ -2,7 +2,11 @@ import { applyMilestoneConfirmation, isMilestoneFullyConfirmed } from './escrow-
 
 describe('escrow-state', () => {
   it('requires employer and freelancer confirmations before release', () => {
-    const employerOnly = applyMilestoneConfirmation({}, 'EMPLOYER', new Date('2026-07-19T00:00:00Z'));
+    const employerOnly = applyMilestoneConfirmation(
+      {},
+      'EMPLOYER',
+      new Date('2026-07-19T00:00:00Z'),
+    );
 
     expect(isMilestoneFullyConfirmed(employerOnly)).toBe(false);
 

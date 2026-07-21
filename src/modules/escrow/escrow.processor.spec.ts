@@ -74,7 +74,9 @@ describe('EscrowProcessor', () => {
       expect.objectContaining({ data: expect.objectContaining({ status: 'FUNDED' }) }),
     );
     expect(prisma.eventLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ eventType: 'chapa.webhook.processed' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ eventType: 'chapa.webhook.processed' }),
+      }),
     );
     expect(notificationsQueue.add).toHaveBeenCalled();
   });
