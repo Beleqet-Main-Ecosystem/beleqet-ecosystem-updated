@@ -48,6 +48,13 @@ ENV NODE_ENV=production
 # original single-stage Dockerfile which installed it in both stages.
 RUN apk add --no-cache openssl ffmpeg
 
+# node:20-alpine's bundled npm (10.8.2) ships tar@6.2.1 (CVE-2026-59873,
+# CRITICAL). npm itself is still needed at runtime — scripts/deploy/migrate.sh
+# runs `npx prisma migrate deploy` inside this exact image — so it can't just
+# be removed. npm@11 bundles a patched tar (7.5.19+) and still supports
+# Node 20 (engines: ^20.17.0 || >=22.9.0).
+RUN npm install -g npm@11
+
 COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
 COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
