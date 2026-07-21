@@ -43,9 +43,11 @@ export const APPLICATION_JOBS = {
 // ── Notification jobs ─────────────────────────────────────────────────────
 
 export const NOTIFICATION_JOBS = {
-  SEND_IN_APP: 'send-in-app',
+  SEND_IN_APP:   'send-in-app',
   SEND_TELEGRAM: 'send-telegram',
-  SEND_EMAIL: 'send-email',
+  SEND_EMAIL:    'send-email',
+  SEND_SMS:      'send-sms',
+  SEND_PUSH:     'send-push',
 } as const;
 
 // ── Analytics jobs ────────────────────────────────────────────────────────

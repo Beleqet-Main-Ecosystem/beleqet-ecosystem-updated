@@ -6,6 +6,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { jobPostConfirmationEmail, jobAlertEmail } from '../notifications/email-templates';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class JobsService {
@@ -14,6 +16,8 @@ export class JobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly eventEmitter: EventEmitter2,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
   ) {}
 
@@ -24,6 +28,9 @@ export class JobsService {
     });
     const company = await this.prisma.company.findUnique({ where: { userId: employerId } });
     if (!company) throw new ForbiddenException('Create a company profile before posting jobs');
+
+    // ── Enforce subscription plan limits ──
+    await this.subscriptionsService.checkUserLimit(employerId, 'maxJobs');
 
     const data: any = { ...dto, companyId: company.id, status: dto.status || 'PUBLISHED' };
     if (data.deadline) data.deadline = new Date(data.deadline);

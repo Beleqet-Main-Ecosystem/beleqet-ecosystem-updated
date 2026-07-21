@@ -151,4 +151,93 @@ export class NotificationsService {
         : Promise.resolve(),
     ]);
   }
+
+  // ── Multi-channel notification dispatcher ────────────────────────────────
+
+  /**
+   * Dispatches a notification to a user across all channels they have opted into.
+   * Respects the user's NotificationPreference settings (email, sms, push, inApp).
+   */
+  async sendNotification(
+    userId: string,
+    type: string,
+    title: string,
+    body: string,
+    metadata?: Record<string, any>,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { pushSubscriptions: true },
+    });
+    if (!user) return;
+
+    let prefs = await this.prisma.notificationPreference.findUnique({ where: { userId } });
+    if (!prefs) {
+      prefs = await this.prisma.notificationPreference.create({ data: { userId } });
+    }
+
+    if (prefs.inApp) {
+      await this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, { userId, type, title, body, metadata });
+    }
+    if (prefs.email && user.email) {
+      await this.notificationQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+        to: user.email,
+        subject: title,
+        html: `<p>${body}</p>`,
+      });
+    }
+    if (prefs.sms && user.phone) {
+      await this.notificationQueue.add(NOTIFICATION_JOBS.SEND_SMS, {
+        to: user.phone,
+        message: `${title}: ${body}`,
+      });
+    }
+    if (prefs.push && user.pushSubscriptions.length > 0) {
+      for (const sub of user.pushSubscriptions) {
+        await this.notificationQueue.add(NOTIFICATION_JOBS.SEND_PUSH, {
+          subscription: { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload: JSON.stringify({ title, body, metadata }),
+        });
+      }
+    }
+  }
+
+  // ── User Preference Management ───────────────────────────────────────────
+
+  async getPreferences(userId: string) {
+    let prefs = await this.prisma.notificationPreference.findUnique({ where: { userId } });
+    if (!prefs) prefs = await this.prisma.notificationPreference.create({ data: { userId } });
+    return prefs;
+  }
+
+  async updatePreferences(userId: string, dto: UpdatePreferencesDto) {
+    return this.prisma.notificationPreference.upsert({
+      where: { userId },
+      update: dto,
+      create: { userId, ...dto },
+    });
+  }
+
+  async registerPushToken(userId: string, dto: RegisterPushDto) {
+    return this.prisma.pushSubscription.upsert({
+      where: { endpoint: dto.endpoint },
+      update: { userId, p256dh: dto.p256dh, auth: dto.auth },
+      create: { userId, endpoint: dto.endpoint, p256dh: dto.p256dh, auth: dto.auth },
+    });
+  }
+}
+
+// ── DTOs ─────────────────────────────────────────────────────────────────────
+
+export class UpdatePreferencesDto {
+  email?: boolean;
+  sms?: boolean;
+  push?: boolean;
+  inApp?: boolean;
+}
+
+export class RegisterPushDto {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }

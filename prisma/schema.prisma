@@ -71,6 +71,9 @@ model User {
   /// User side — the AI Feed module reads SearchHistory independently.
   searchHistories       SearchHistory[]
   storedFiles           StoredFile[]
+  subscription              Subscription?
+  notificationPreference    NotificationPreference?
+  pushSubscriptions         PushSubscription[]
 
   @@map("users")
 }
@@ -1019,4 +1022,127 @@ model StoredFile {
   uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
+}
+
+// ── Subscription Manager Models ──────────────────────────────────────────────
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  PAST_DUE
+  INACTIVE
+  UNPAID
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+model SubscriptionPlan {
+  id            String                  @id @default(uuid())
+  slug          String                  @unique
+  name          Json                    // Localized e.g. { "en": "Pro", "am": "ፕሮ" }
+  description   Json?
+  features      Json                    // Array of feature strings
+  limits        Json                    // e.g. { "maxJobs": 15 }
+  isActive      Boolean                 @default(true)
+  prices        SubscriptionPlanPrice[]
+  subscriptions Subscription[]
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@map("subscription_plans")
+}
+
+model SubscriptionPlanPrice {
+  id             String           @id @default(uuid())
+  planId         String
+  currency       String           // "ETB", "USD"
+  amount         Int              // Smallest currency unit (cents)
+  interval       BillingInterval  @default(MONTHLY)
+  gatewayPriceId String?          // Stripe price ID
+  plan           SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  subscriptions  Subscription[]
+
+  @@unique([planId, currency, interval])
+  @@map("subscription_plan_prices")
+}
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  userId                String             @unique
+  planId                String
+  priceId               String
+  status                SubscriptionStatus @default(INACTIVE)
+  currency              String
+  amount                Int
+  billingInterval       BillingInterval
+  startDate             DateTime           @default(now())
+  currentPeriodStart    DateTime           @default(now())
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean            @default(false)
+  canceledAt            DateTime?
+  endedAt               DateTime?
+  gatewaySubscriptionId String?            @unique
+  gatewayCustomerId     String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                  SubscriptionPlan   @relation(fields: [planId], references: [id])
+  price                 SubscriptionPlanPrice @relation(fields: [priceId], references: [id])
+  invoices              SubscriptionInvoice[]
+
+  @@map("subscriptions")
+}
+
+model SubscriptionInvoice {
+  id             String        @id @default(uuid())
+  subscriptionId String
+  gatewayTxRef   String?       @unique
+  amount         Int
+  currency       String
+  status         InvoiceStatus @default(PENDING)
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("subscription_invoices")
+}
+
+// ── Auto-Notification Models ─────────────────────────────────────────────────
+
+model NotificationPreference {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  email     Boolean  @default(true)
+  sms       Boolean  @default(true)
+  push      Boolean  @default(true)
+  inApp     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

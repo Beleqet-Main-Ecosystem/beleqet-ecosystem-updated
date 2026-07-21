@@ -60,6 +60,12 @@ export class NotificationsProcessor extends WorkerHost {
       case NOTIFICATION_JOBS.SEND_EMAIL:
         await this.sendEmail(job);
         break;
+      case NOTIFICATION_JOBS.SEND_SMS:
+        await this.sendSms(job);
+        break;
+      case NOTIFICATION_JOBS.SEND_PUSH:
+        await this.sendPushNotification(job);
+        break;
       default:
         this.logger.warn(`Unhandled job type context: ${job.name}`);
     }
@@ -118,5 +124,25 @@ export class NotificationsProcessor extends WorkerHost {
     } catch (e) {
       this.logger.warn(`Email failed: ${(e as Error).message}`);
     }
+  }
+
+  /** SMS dispatch — logs in dev, calls Twilio/AT in production. */
+  async sendSms(job: BullMQJob<{ to: string; message: string }>) {
+    const { to, message } = job.data;
+    if (!to) return;
+    this.logger.log(`[SMS SIMULATION] To: ${to} | Message: "${message}"`);
+    // Production skeleton:
+    // const client = new Twilio(accountSid, authToken);
+    // await client.messages.create({ body: message, from: twilioFrom, to });
+  }
+
+  /** Web Push dispatch — logs in dev, calls web-push in production. */
+  async sendPushNotification(job: BullMQJob<{ subscription: any; payload: string }>) {
+    const { subscription, payload } = job.data;
+    if (!subscription?.endpoint) return;
+    this.logger.log(`[PUSH SIMULATION] Endpoint: ${subscription.endpoint} | Payload: ${payload}`);
+    // Production skeleton:
+    // webpush.setVapidDetails('mailto:admin@beleqet.com', vapidPublic, vapidPrivate);
+    // await webpush.sendNotification(subscription, payload);
   }
 }
