@@ -15,14 +15,16 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { I18nService, I18nContext } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 
 const DEFAULT_CURRENCY = 'ETB';
 const DEFAULT_RETENTION_DAYS = 90;
+/** Round-amount threshold base: 1000.00 in minor units (cents). */
+const BASE_ROUND_AMOUNT_CENTS = 100000;
 
 /**
  * Exchange-rate factors for normalising amounts to a common base currency.
@@ -240,7 +242,7 @@ export class FraudAlertService {
       score += 15;
     }
 
-    const roundThreshold = Math.max(10, Math.round(10 * factor));
+    const roundThreshold = Math.round(BASE_ROUND_AMOUNT_CENTS * factor);
     const roundAmounts = recent24h.filter((t) => this.normalizeAmount(t.amount, currency) % roundThreshold === 0);
     if (roundAmounts.length > 5) {
       flags.push('repeated_round_amounts');
@@ -393,6 +395,7 @@ export class FraudAlertService {
       currency?: string;
     },
     evidence?: Record<string, unknown>,
+    options?: { adminIds?: string[] },
   ): Promise<{ id: string }> {
     const sanitizedEvidence = evidence
       ? this.sanitizeEvidence(evidence)
@@ -441,28 +444,30 @@ export class FraudAlertService {
     const notificationTitle = this.t(`fraud.alert.title.${alert.ruleType}`, {
       args: { score: alert.score },
     });
-    if (!notificationTitle.startsWith('fraud.')) {
-      const notificationBody =
-        this.t(`fraud.alert.body.${alert.ruleType}`) || alert.reason;
+    const notificationBody =
+      this.t(`fraud.alert.body.${alert.ruleType}`) || alert.reason;
 
-      const admins = await this.prisma.user.findMany({
-        where: { role: 'ADMIN', isActive: true },
-        select: { id: true },
-      });
+    const adminIds =
+      options?.adminIds ??
+      (
+        await this.prisma.user.findMany({
+          where: { role: 'ADMIN', isActive: true },
+          select: { id: true },
+        })
+      ).map((admin) => admin.id);
 
-      for (const admin of admins) {
-        this.notificationsQueue
-          .add(NOTIFICATION_JOBS.SEND_IN_APP, {
-            userId: admin.id,
-            type: 'fraud.alert',
-            title: notificationTitle,
-            body: `${notificationBody} [Score: ${alert.score}]`,
-            metadata: { alertId: result.id, severity: alert.severity },
-          })
-          .catch((err: Error) =>
-            this.logger.error(`Failed to enqueue notification: ${err.message}`),
-          );
-      }
+    for (const adminId of adminIds) {
+      this.notificationsQueue
+        .add(NOTIFICATION_JOBS.SEND_IN_APP, {
+          userId: adminId,
+          type: 'fraud.alert',
+          title: notificationTitle,
+          body: `${notificationBody} [Score: ${alert.score}]`,
+          metadata: { alertId: result.id, severity: alert.severity },
+        })
+        .catch((err: Error) =>
+          this.logger.error(`Failed to enqueue notification: ${err.message}`),
+        );
     }
 
     this.eventEmitter.emit('fraud.alert.created', {
@@ -642,26 +647,34 @@ export class FraudAlertService {
    *
    * @param userId - The user to scan
    */
-  async scanUser(userId: string): Promise<string[]> {
+  async scanUser(
+    userId: string,
+    options?: { rules?: { id: string }[]; adminIds?: string[] },
+  ): Promise<string[]> {
     const alertIds: string[] = [];
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { company: true },
+      include: { company: true, candidateScores: true },
     });
     if (!user) return alertIds;
 
-    const rules = await this.prisma.fraudRule.findMany({
-      where: { enabled: true, ruleType: 'FAKE_PROFILE' },
-    });
+    const rules =
+      options?.rules ??
+      (await this.prisma.fraudRule.findMany({
+        where: { enabled: true, ruleType: 'FAKE_PROFILE' },
+      }));
 
     for (const rule of rules) {
-      const result = this.detectFakeProfile({
-        emailVerified: user.emailVerified,
-        skillVerified: user.skillVerified,
-        skills: user.skills,
-        company: user.company ? { verified: user.company.verified } : null,
-      });
+      const result = this.detectFakeProfile(
+        {
+          emailVerified: user.emailVerified,
+          skillVerified: user.skillVerified,
+          skills: user.skills,
+          company: user.company ? { verified: user.company.verified } : null,
+        },
+        user.candidateScores,
+      );
 
       if (result.score > 0) {
         const severity = result.score >= 70 ? 'HIGH' : result.score >= 40 ? 'MEDIUM' : 'LOW';
@@ -677,6 +690,7 @@ export class FraudAlertService {
             reason: result.flags.join('; '),
           },
           { flags: result.flags },
+          { adminIds: options?.adminIds },
         );
         alertIds.push(id);
       }
@@ -908,16 +922,28 @@ export class FraudAlertService {
    * @returns Count of alerts generated
    */
   async scanAll(options?: { skip?: number; take?: number }): Promise<number> {
-    const users = await this.prisma.user.findMany({
-      where: { isActive: true, role: { not: 'ADMIN' } },
-      select: { id: true },
-      skip: options?.skip ?? 0,
-      take: options?.take ?? 100,
-    });
+    const [users, rules, admins] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { isActive: true, role: { not: 'ADMIN' } },
+        select: { id: true },
+        skip: options?.skip ?? 0,
+        take: options?.take ?? 100,
+      }),
+      this.prisma.fraudRule.findMany({
+        where: { enabled: true, ruleType: 'FAKE_PROFILE' },
+        select: { id: true },
+      }),
+      this.prisma.user.findMany({
+        where: { role: 'ADMIN', isActive: true },
+        select: { id: true },
+      }),
+    ]);
+
+    const adminIds = admins.map((admin) => admin.id);
 
     let alertCount = 0;
     for (const u of users) {
-      const ids = await this.scanUser(u.id);
+      const ids = await this.scanUser(u.id, { rules, adminIds });
       alertCount += ids.length;
     }
 

@@ -62,7 +62,7 @@ async function bootstrap() {
     const passwordHash = await bcrypt.hash(adminPassword, 12);
     await prisma.user.upsert({
       where: { email: adminEmail },
-      update: { role: 'ADMIN', isActive: true, passwordHash },
+      update: { role: 'ADMIN', isActive: true },
       create: {
         email: adminEmail,
         passwordHash,

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { getQueueToken } from '@nestjs/bull';
+import { getQueueToken } from '@nestjs/bullmq';
 import { I18nService } from 'nestjs-i18n';
 import { FraudAlertService } from './fraud-alert.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -191,7 +191,7 @@ describe('FraudAlertService', () => {
       const now = new Date();
       const transactions = Array(8).fill(null).map((_, i) => ({
         type: 'CREDIT_AVAILABLE',
-        amount: 10000,
+        amount: 100000,
         createdAt: new Date(now.getTime() - i * 2 * 60 * 60 * 1000).toISOString(),
       }));
       const result = service.detectPaymentAnomaly(transactions);

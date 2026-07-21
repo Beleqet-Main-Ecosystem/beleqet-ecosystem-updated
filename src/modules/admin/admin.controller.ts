@@ -1,8 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
- 
 import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MinLength, IsArray, IsInt, Min } from 'class-validator';
- 
 import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -15,7 +13,9 @@ import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { adminAnnouncementEmail } from '../notifications/email-templates';
 import { ChatService } from '../chat/chat.service';
 import { FraudAlertService } from '../fraud-alert/fraud-alert.service';
-import { Type } from 'class-transformer';
+import { QueryFraudAlertsDto } from '../fraud-alert/dto/query-fraud-alerts.dto';
+import { ResolveFraudAlertDto } from '../fraud-alert/dto/resolve-fraud-alert.dto';
+import { CreateFraudRuleDto, UpdateFraudRuleDto } from '../fraud-alert/dto/create-fraud-rule.dto';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -44,37 +44,6 @@ class BroadcastDto {
 }
 class ResolveDisputeDto {
   @IsString() @MinLength(10) resolution!: string;
-}
-
-class QueryFraudAlertsDto {
-  @IsOptional() @IsString() status?: string;
-  @IsOptional() @IsString() severity?: string;
-  @IsOptional() @IsString() ruleType?: string;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number = 1;
-  @IsOptional() @Type(() => Number) @IsInt() @Min(1) limit?: number = 20;
-}
-
-class ResolveFraudAlertDto {
-  @IsEnum(['RESOLVED', 'FALSE_POSITIVE', 'CONFIRMED']) status: 'RESOLVED' | 'FALSE_POSITIVE' | 'CONFIRMED';
-  @IsOptional() @IsString() @MinLength(5) resolutionNote?: string;
-}
-
-class CreateFraudRuleDto {
-  @IsString() @MinLength(3) name: string;
-  @IsEnum(['OFF_PLATFORM_PAYMENT', 'FAKE_PROFILE', 'PAYMENT_ANOMALY', 'DUPLICATE_LISTING'])
-  ruleType: 'OFF_PLATFORM_PAYMENT' | 'FAKE_PROFILE' | 'PAYMENT_ANOMALY' | 'DUPLICATE_LISTING';
-  @IsOptional() @IsEnum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']) severity?: string = 'MEDIUM';
-  @IsOptional() @IsBoolean() enabled?: boolean = true;
-  @IsOptional() config?: Record<string, unknown>;
-  @IsString() i18nKey: string;
-}
-
-class UpdateFraudRuleDto {
-  @IsOptional() @IsString() @MinLength(3) name?: string;
-  @IsOptional() @IsEnum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']) severity?: string;
-  @IsOptional() @IsBoolean() enabled?: boolean;
-  @IsOptional() config?: Record<string, unknown>;
-  @IsOptional() @IsString() i18nKey?: string;
 }
 
 const safeUserSelect = {
@@ -339,7 +308,7 @@ export class AdminController {
       },
     });
 
-    if (!alert) return null;
+    if (!alert) throw new NotFoundException(`Fraud alert ${id} not found`);
 
     const context: Record<string, unknown> = {};
 
