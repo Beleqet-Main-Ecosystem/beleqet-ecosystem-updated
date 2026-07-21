@@ -28,6 +28,10 @@ body {
   mask-image: linear-gradient(to right, black, transparent 80%);
 }
 
+/* ------------------------------------------------------------------ */
+/*  Print styles                                                       */
+/* ------------------------------------------------------------------ */
+
 @media print {
   header,
   footer,
@@ -43,6 +47,10 @@ body {
     margin: 0;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Utility classes                                                     */
+/* ------------------------------------------------------------------ */
 
 @layer utilities {
   .text-hero {
@@ -75,8 +83,71 @@ body {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Component classes                                                   */
+/* ------------------------------------------------------------------ */
+
 @layer components {
   .control {
     @apply rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-brandGreen;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Mobile Dashboard Module – global styles                            */
+/* ------------------------------------------------------------------ */
+
+/* Ensure minimum 44px touch targets on all interactive elements. */
+@layer utilities {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Hide the full footer on mobile when the bottom nav is present. */
+@media (max-width: 1023px) {
+  main {
+    /* Reserve space for the fixed MobileBottomNav (approx. 64px + safe area). */
+    padding-bottom: 4rem;
+  }
+}
+
+/* Drawer animation helpers (Tailwind animate-in plugin). */
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-in.slide-in-from-right {
+  animation: slide-in-from-right 200ms ease-out forwards;
+}
+
+/* Custom scrollbar for notification lists (mobile). */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+/* GDPR banner: prevent content shift when it appears. */
+[data-consent] {
+  transition: none;
 }

@@ -1,8 +1,11 @@
 import { Check, Zap, Building2, Rocket, ArrowRight, Star } from "lucide-react";
 import Link from "next/link";
-import { pricingPageMetadata } from "@/lib/seo/generate-metadata";
 
-export const metadata = pricingPageMetadata();
+export const metadata = {
+  title: "Pricing | Beleqet Jobs",
+  description:
+    "Simple, transparent pricing for Ethiopian employers. Post jobs and reach thousands of qualified candidates on Beleqet.",
+};
 
 const plans = [
   {

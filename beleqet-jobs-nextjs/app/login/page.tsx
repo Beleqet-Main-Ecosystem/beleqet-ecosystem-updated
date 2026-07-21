@@ -1,8 +1,9 @@
 import AuthShell from "@/components/AuthShell";
 import LoginForm from "@/components/LoginForm";
-import { loginPageMetadata } from "@/lib/seo/generate-metadata";
 
-export const metadata = loginPageMetadata();
+export const metadata = {
+  title: "Sign In | Beleqet Jobs",
+};
 
 export default function LoginPage() {
   return (
