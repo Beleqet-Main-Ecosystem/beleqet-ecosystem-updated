@@ -12,7 +12,7 @@ module.exports = {
   ],
   root: true,
   env: { node: true, jest: true },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: ['.eslintrc.js', 'frontend/**', 'beleqet-jobs-nextjs/**'],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',

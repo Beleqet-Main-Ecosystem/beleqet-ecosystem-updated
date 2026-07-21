@@ -9,7 +9,9 @@ import { REDIS_CLIENT } from '../redis/redis.module';
 
 jest.mock('otplib', () => ({
   generateSecret: jest.fn().mockReturnValue('JBSWY3DPEHPK3PXP'),
-  generateURI: jest.fn().mockReturnValue('otpauth://totp/Test:user@test.com?secret=JBSWY3DPEHPK3PXP&issuer=Test'),
+  generateURI: jest
+    .fn()
+    .mockReturnValue('otpauth://totp/Test:user@test.com?secret=JBSWY3DPEHPK3PXP&issuer=Test'),
   generate: jest.fn().mockResolvedValue('123456'),
   verify: jest.fn().mockImplementation(({ secret, token }: { secret: string; token: string }) => {
     return Promise.resolve({ valid: token === '123456', delta: token === '123456' ? 0 : -1 });
@@ -18,8 +20,19 @@ jest.mock('otplib', () => ({
 
 const _mockPrisma: Record<string, any> = {
   user: { findUnique: jest.fn() },
-  userTwoFactor: { findUnique: jest.fn(), upsert: jest.fn(), update: jest.fn(), delete: jest.fn(), deleteMany: jest.fn() },
-  backupCode: { findMany: jest.fn(), createMany: jest.fn(), update: jest.fn(), deleteMany: jest.fn() },
+  userTwoFactor: {
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  backupCode: {
+    findMany: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
+    deleteMany: jest.fn(),
+  },
   eventLog: { create: jest.fn() },
   $transaction: jest.fn((cb: (p: any) => any) => cb(_mockPrisma)),
 };
@@ -78,14 +91,17 @@ describe('TwoFactorService', () => {
         return mockConfig.get(key);
       }),
     };
-    expect(() => new TwoFactorService(
-      mockRedis as any,
-      mockPrisma as any,
-      mockJwt as any,
-      badConfig as any,
-      new EncryptionService(mockConfig as any),
-      new BackupCodeService(),
-    )).toThrow('TOTP_TEMP_SECRET is required');
+    expect(
+      () =>
+        new TwoFactorService(
+          mockRedis as any,
+          mockPrisma as any,
+          mockJwt as any,
+          badConfig as any,
+          new EncryptionService(mockConfig as any),
+          new BackupCodeService(),
+        ),
+    ).toThrow('TOTP_TEMP_SECRET is required');
   });
 
   describe('startEnrollment', () => {
@@ -217,23 +233,28 @@ describe('TwoFactorService', () => {
 
   describe('confirmEnrollment', () => {
     it('should throw with invalid enrollment token', async () => {
-      mockJwt.verify.mockImplementation(() => { throw new Error('invalid'); });
-      await expect(service.confirmEnrollment('user-1', 'bad-token', '123456'))
-        .rejects.toThrow('Invalid or expired enrollment token');
+      mockJwt.verify.mockImplementation(() => {
+        throw new Error('invalid');
+      });
+      await expect(service.confirmEnrollment('user-1', 'bad-token', '123456')).rejects.toThrow(
+        'Invalid or expired enrollment token',
+      );
     });
 
     it('should throw when no pending enrollment found', async () => {
       mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_enrollment' });
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue(null);
-      await expect(service.confirmEnrollment('user-1', 'token', '123456'))
-        .rejects.toThrow('No pending enrollment found');
+      await expect(service.confirmEnrollment('user-1', 'token', '123456')).rejects.toThrow(
+        'No pending enrollment found',
+      );
     });
 
     it('should throw if already enabled', async () => {
       mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_enrollment' });
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({ enabled: true });
-      await expect(service.confirmEnrollment('user-1', 'token', '123456'))
-        .rejects.toThrow('Already enabled');
+      await expect(service.confirmEnrollment('user-1', 'token', '123456')).rejects.toThrow(
+        'Already enabled',
+      );
     });
 
     it('should throw with invalid code', async () => {
@@ -248,8 +269,9 @@ describe('TwoFactorService', () => {
       mockPrisma.$transaction.mockImplementation((cb: any) => cb(mockPrisma));
       mockPrisma.backupCode.createMany.mockResolvedValue({ count: 10 });
 
-      await expect(service.confirmEnrollment('user-1', 'token', '000000'))
-        .rejects.toThrow('Invalid code');
+      await expect(service.confirmEnrollment('user-1', 'token', '000000')).rejects.toThrow(
+        'Invalid code',
+      );
     });
 
     it('should succeed with valid code', async () => {
@@ -274,8 +296,9 @@ describe('TwoFactorService', () => {
   describe('verifyStepUp', () => {
     it('should throw if 2FA not enabled', async () => {
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue(null);
-      await expect(service.verifyStepUp('user-1', '123456'))
-        .rejects.toThrow('Two-factor authentication is not enabled');
+      await expect(service.verifyStepUp('user-1', '123456')).rejects.toThrow(
+        'Two-factor authentication is not enabled',
+      );
     });
 
     it('should throw with invalid code', async () => {
@@ -285,8 +308,7 @@ describe('TwoFactorService', () => {
         enabled: true,
         secret: encrypted.ciphertext,
       });
-      await expect(service.verifyStepUp('user-1', '000000'))
-        .rejects.toThrow('Invalid code');
+      await expect(service.verifyStepUp('user-1', '000000')).rejects.toThrow('Invalid code');
     });
 
     it('should return step-up token with valid code', async () => {
@@ -312,27 +334,28 @@ describe('TwoFactorService', () => {
         enabled: true,
         secret: encrypted.ciphertext,
       });
-      await expect(service.verifyStepUp('user-1', '123456'))
-        .rejects.toThrow('This code has already been used');
+      await expect(service.verifyStepUp('user-1', '123456')).rejects.toThrow(
+        'This code has already been used',
+      );
     });
   });
 
   describe('verifyBackupCode', () => {
     it('should throw if 2FA not enabled', async () => {
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue(null);
-      await expect(service.verifyBackupCode('user-1', 'CODE1234'))
-        .rejects.toThrow('Two-factor authentication is not enabled');
+      await expect(service.verifyBackupCode('user-1', 'CODE1234')).rejects.toThrow(
+        'Two-factor authentication is not enabled',
+      );
     });
 
     it('should throw with invalid code', async () => {
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: true,
-        backupCodes: [
-          { codeHash: '$2a$10$invalidhash', usedAt: null },
-        ],
+        backupCodes: [{ codeHash: '$2a$10$invalidhash', usedAt: null }],
       });
-      await expect(service.verifyBackupCode('user-1', 'WRONGCODE'))
-        .rejects.toThrow('Invalid or already used backup code');
+      await expect(service.verifyBackupCode('user-1', 'WRONGCODE')).rejects.toThrow(
+        'Invalid or already used backup code',
+      );
     });
 
     it('should consume a backup code and return remaining count', async () => {

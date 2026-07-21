@@ -134,9 +134,7 @@ describe('AiFeedService', () => {
       const result = await service.getPersonalizedFeed('user-1', 5);
 
       expect(result.every((job) => job.relevanceScore === 0)).toBe(true);
-      expect(prisma.job.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 5 }),
-      );
+      expect(prisma.job.findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 5 }));
     });
 
     it('bounds the candidate query instead of loading every published job', async () => {
@@ -196,7 +194,10 @@ describe('AiFeedService', () => {
       // single combined OR clause with one shared `take`.
       expect(prisma.job.findMany).toHaveBeenCalledTimes(2);
       expect(prisma.job.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 150, where: expect.objectContaining({ OR: expect.any(Array) }) }),
+        expect.objectContaining({
+          take: 150,
+          where: expect.objectContaining({ OR: expect.any(Array) }),
+        }),
       );
       expect(prisma.job.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -230,8 +231,18 @@ describe('AiFeedService', () => {
 
     it('prioritizes recent search terms over static skills when truncating to MAX_KEYWORDS', async () => {
       const searchWords = [
-        'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot',
-        'golf', 'hotel', 'india', 'juliet', 'kilo', 'lima',
+        'alpha',
+        'bravo',
+        'charlie',
+        'delta',
+        'echo',
+        'foxtrot',
+        'golf',
+        'hotel',
+        'india',
+        'juliet',
+        'kilo',
+        'lima',
       ];
       mockPrismaService.searchHistory.findMany.mockResolvedValue(
         searchWords.map((word) => ({ searchTerm: word })),
@@ -244,9 +255,9 @@ describe('AiFeedService', () => {
       await service.getPersonalizedFeed('user-1', 5);
 
       const [[callArgs]] = (prisma.job.findMany as jest.Mock).mock.calls;
-      const titleKeywords = callArgs.where.OR
-        .filter((clause: { title?: { contains: string } }) => clause.title)
-        .map((clause: { title: { contains: string } }) => clause.title.contains);
+      const titleKeywords = callArgs.where.OR.filter(
+        (clause: { title?: { contains: string } }) => clause.title,
+      ).map((clause: { title: { contains: string } }) => clause.title.contains);
 
       expect(titleKeywords).toEqual(expect.arrayContaining(searchWords));
       expect(titleKeywords).not.toEqual(expect.arrayContaining(['zuluskill']));

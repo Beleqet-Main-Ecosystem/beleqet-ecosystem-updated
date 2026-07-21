@@ -43,16 +43,16 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 
-import { StripeService }  from './stripe.service';
-import { PaypalService }  from './paypal.service';
+import { StripeService } from './stripe.service';
+import { PaypalService } from './paypal.service';
 
-import { CreatePaymentIntentDto }  from './dto/create-payment-intent.dto';
-import { CreatePaypalOrderDto }    from './dto/create-paypal-order.dto';
+import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import { CreatePaypalOrderDto } from './dto/create-paypal-order.dto';
 import { CreateRefundDto, CapturePaypalOrderDto } from './dto/webhook.dto';
 
-import { JwtAuthGuard }  from '../../common/guards/jwt-auth.guard';
-import { RolesGuard }    from '../../common/guards/roles.guard';
-import { Roles }         from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stripe routes
@@ -86,12 +86,12 @@ Supports **135+ currencies** (ISO 4217). Metadata is GDPR-sanitised
     description: 'PaymentIntent created successfully. Use clientSecret in Stripe.js.',
     schema: {
       example: {
-        id:           'pi_3Pq1234567890',
+        id: 'pi_3Pq1234567890',
         clientSecret: 'pi_3Pq1234_secret_XXXXXXXX',
-        status:       'requires_payment_method',
-        amount:       1500,
-        currency:     'USD',
-        createdAt:    '2026-07-06T11:00:00.000Z',
+        status: 'requires_payment_method',
+        amount: 1500,
+        currency: 'USD',
+        createdAt: '2026-07-06T11:00:00.000Z',
       },
     },
   })
@@ -110,7 +110,11 @@ Supports **135+ currencies** (ISO 4217). Metadata is GDPR-sanitised
     description: 'Confirms an existing PaymentIntent using a pre-attached payment method.',
   })
   @ApiParam({ name: 'paymentIntentId', description: 'Stripe Payment Intent ID (pi_…)' })
-  @ApiQuery({ name: 'paymentMethodId', description: 'Stripe Payment Method ID (pm_…)', required: true })
+  @ApiQuery({
+    name: 'paymentMethodId',
+    description: 'Stripe Payment Method ID (pm_…)',
+    required: true,
+  })
   @ApiResponse({ status: 200, description: 'PaymentIntent confirmed' })
   @ApiResponse({ status: 422, description: 'Card declined or invalid payment method' })
   confirmPayment(
@@ -127,7 +131,8 @@ Supports **135+ currencies** (ISO 4217). Metadata is GDPR-sanitised
   @Roles('ADMIN')
   @ApiOperation({
     summary: 'Issue a Stripe refund (Admin only)',
-    description: 'Issues a full or partial refund against an existing Stripe charge. Requires ADMIN role.',
+    description:
+      'Issues a full or partial refund against an existing Stripe charge. Requires ADMIN role.',
   })
   @ApiBody({ type: CreateRefundDto })
   @ApiResponse({ status: 200, description: 'Refund issued successfully' })
@@ -140,16 +145,17 @@ Supports **135+ currencies** (ISO 4217). Metadata is GDPR-sanitised
   @Get('currencies')
   @ApiOperation({
     summary: 'List Stripe-supported currencies',
-    description: 'Returns a curated list of ISO 4217 currency codes supported by Stripe, with minimum amounts.',
+    description:
+      'Returns a curated list of ISO 4217 currency codes supported by Stripe, with minimum amounts.',
   })
   @ApiResponse({
     status: 200,
     description: 'List of supported currencies',
     schema: {
       example: [
-        { code: 'USD', minimumAmount: 50,   zeroDecimal: false },
-        { code: 'ETB', minimumAmount: 100,  zeroDecimal: false },
-        { code: 'JPY', minimumAmount: 50,   zeroDecimal: true  },
+        { code: 'USD', minimumAmount: 50, zeroDecimal: false },
+        { code: 'ETB', minimumAmount: 100, zeroDecimal: false },
+        { code: 'JPY', minimumAmount: 50, zeroDecimal: true },
       ],
     },
   })
@@ -189,7 +195,11 @@ Supported events:
 - charge.refunded
     `,
   })
-  @ApiHeader({ name: 'stripe-signature', description: 'Stripe HMAC signature header', required: true })
+  @ApiHeader({
+    name: 'stripe-signature',
+    description: 'Stripe HMAC signature header',
+    required: true,
+  })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   @ApiResponse({ status: 422, description: 'Signature verification failed' })
   handleWebhook(
@@ -231,12 +241,12 @@ Optionally include \`subscriptionPlanId\` to create a **recurring subscription**
     description: 'PayPal order created. Redirect user to approvalUrl.',
     schema: {
       example: {
-        id:          '5O190127TN364715T',
-        status:      'created',
+        id: '5O190127TN364715T',
+        status: 'created',
         approvalUrl: 'https://www.sandbox.paypal.com/cgi-bin/webscr?cmd=_express-checkout&token=…',
-        amount:      '25.00',
-        currency:    'USD',
-        createdAt:   '2026-07-06T11:00:00.000Z',
+        amount: '25.00',
+        currency: 'USD',
+        createdAt: '2026-07-06T11:00:00.000Z',
       },
     },
   })
@@ -251,16 +261,18 @@ Optionally include \`subscriptionPlanId\` to create a **recurring subscription**
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Capture an approved PayPal order',
-    description: 'Executes (captures) a PayPal order after payer approval. Pass the orderId and PayerID from the PayPal redirect.',
+    description:
+      'Executes (captures) a PayPal order after payer approval. Pass the orderId and PayerID from the PayPal redirect.',
   })
   @ApiBody({ type: CapturePaypalOrderDto })
-  @ApiQuery({ name: 'PayerID', description: 'PayPal PayerID from approval redirect', required: true })
+  @ApiQuery({
+    name: 'PayerID',
+    description: 'PayPal PayerID from approval redirect',
+    required: true,
+  })
   @ApiResponse({ status: 200, description: 'Order captured successfully' })
   @ApiResponse({ status: 400, description: 'PayerID missing or invalid' })
-  captureOrder(
-    @Body() dto: CapturePaypalOrderDto,
-    @Query('PayerID') payerId: string,
-  ) {
+  captureOrder(@Body() dto: CapturePaypalOrderDto, @Query('PayerID') payerId: string) {
     return this.paypalService.captureOrder(dto, payerId);
   }
 
@@ -270,7 +282,8 @@ Optionally include \`subscriptionPlanId\` to create a **recurring subscription**
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Create a PayPal recurring subscription',
-    description: 'Creates a PayPal Billing Agreement (subscription) for recurring payments. Returns approvalUrl to activate.',
+    description:
+      'Creates a PayPal Billing Agreement (subscription) for recurring payments. Returns approvalUrl to activate.',
   })
   @ApiBody({ type: CreatePaypalOrderDto })
   @ApiResponse({ status: 201, description: 'Subscription created. Redirect user to approvalUrl.' })
@@ -311,7 +324,11 @@ Supported events:
 - BILLING.SUBSCRIPTION.CANCELLED
     `,
   })
-  @ApiHeader({ name: 'paypal-transmission-id', description: 'PayPal transmission ID', required: true })
+  @ApiHeader({
+    name: 'paypal-transmission-id',
+    description: 'PayPal transmission ID',
+    required: true,
+  })
   @ApiHeader({ name: 'paypal-transmission-sig', description: 'PayPal signature', required: true })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
   @ApiResponse({ status: 422, description: 'Signature verification failed' })

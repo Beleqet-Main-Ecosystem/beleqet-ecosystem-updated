@@ -52,7 +52,7 @@ describe('DisputeManagerService', () => {
       (prismaService.contract.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        service.createDispute('user-id', { contractId: 'c-id', reason: 'r', evidenceUrls: [] })
+        service.createDispute('user-id', { contractId: 'c-id', reason: 'r', evidenceUrls: [] }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -64,7 +64,11 @@ describe('DisputeManagerService', () => {
       });
 
       await expect(
-        service.createDispute('unauthorized-user', { contractId: 'c-id', reason: 'r', evidenceUrls: [] })
+        service.createDispute('unauthorized-user', {
+          contractId: 'c-id',
+          reason: 'r',
+          evidenceUrls: [],
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 

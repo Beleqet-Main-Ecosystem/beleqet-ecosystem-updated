@@ -53,23 +53,23 @@ function isPrismaError(err: unknown): err is PrismaKnownError {
 // ─────────────────────────────────────────────────────────────────────────────
 export const ERROR_CODES = {
   // 4xx — operational
-  BAD_REQUEST:              'ERR_BAD_REQUEST',
-  UNAUTHORIZED:             'ERR_UNAUTHORIZED',
-  FORBIDDEN:                'ERR_FORBIDDEN',
-  NOT_FOUND:                'ERR_RESOURCE_NOT_FOUND',
-  CONFLICT:                 'ERR_CONFLICT',
-  UNPROCESSABLE:            'ERR_VALIDATION_FAILED',
-  TOO_MANY_REQUESTS:        'ERR_RATE_LIMIT_EXCEEDED',
+  BAD_REQUEST: 'ERR_BAD_REQUEST',
+  UNAUTHORIZED: 'ERR_UNAUTHORIZED',
+  FORBIDDEN: 'ERR_FORBIDDEN',
+  NOT_FOUND: 'ERR_RESOURCE_NOT_FOUND',
+  CONFLICT: 'ERR_CONFLICT',
+  UNPROCESSABLE: 'ERR_VALIDATION_FAILED',
+  TOO_MANY_REQUESTS: 'ERR_RATE_LIMIT_EXCEEDED',
   // 5xx — system
-  INTERNAL_SERVER_ERROR:    'ERR_INTERNAL',
-  DB_UNIQUE_VIOLATION:      'ERR_DUPLICATE_RECORD',
-  DB_RECORD_NOT_FOUND:      'ERR_RECORD_NOT_FOUND',
+  INTERNAL_SERVER_ERROR: 'ERR_INTERNAL',
+  DB_UNIQUE_VIOLATION: 'ERR_DUPLICATE_RECORD',
+  DB_RECORD_NOT_FOUND: 'ERR_RECORD_NOT_FOUND',
   DB_FOREIGN_KEY_VIOLATION: 'ERR_REFERENTIAL_INTEGRITY',
-  DB_CONNECTION:            'ERR_DB_UNAVAILABLE',
-  UNKNOWN:                  'ERR_UNKNOWN',
+  DB_CONNECTION: 'ERR_DB_UNAVAILABLE',
+  UNKNOWN: 'ERR_UNKNOWN',
 } as const;
 
-export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Structured log entry shape (written to stdout for log aggregators)
@@ -128,22 +128,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.httpAdapterHost;
-    const ctx     = host.switchToHttp();
-    const req     = ctx.getRequest<Request>();
+    const ctx = host.switchToHttp();
+    const req = ctx.getRequest<Request>();
     const traceId = this.generateTraceId();
     const safePath = this.redactSensitiveParams(req.url);
 
     // ── Classify the exception ─────────────────────────────────────────────
-    const { statusCode, errorCode, internalMessage, prismaCode } =
-      this.classify(exception);
+    const { statusCode, errorCode, internalMessage, prismaCode } = this.classify(exception);
 
     // ── Structured internal log ────────────────────────────────────────────
     const logEntry: StructuredErrorLog = {
-      level:           statusCode >= 500 ? 'error' : 'warn',
-      timestamp:       new Date().toISOString(),
+      level: statusCode >= 500 ? 'error' : 'warn',
+      timestamp: new Date().toISOString(),
       traceId,
-      method:          req.method,
-      path:            safePath,
+      method: req.method,
+      path: safePath,
       statusCode,
       errorCode,
       internalMessage,
@@ -204,12 +203,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // 1. NestJS HttpException hierarchy (includes ValidationPipe errors)
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
-      const response   = exception.getResponse();
+      const response = exception.getResponse();
       const internalMessage =
         typeof response === 'string'
           ? response
-          : (response as { message?: string | string[] }).message?.toString()
-            ?? exception.message;
+          : ((response as { message?: string | string[] }).message?.toString() ??
+            exception.message);
 
       return {
         statusCode,
@@ -226,16 +225,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // 3. Standard JS / TS Error
     if (exception instanceof Error) {
       return {
-        statusCode:      HttpStatus.INTERNAL_SERVER_ERROR,
-        errorCode:       ERROR_CODES.INTERNAL_SERVER_ERROR,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR,
         internalMessage: exception.message,
       };
     }
 
     // 4. Non-Error throw (string, number, object…)
     return {
-      statusCode:      HttpStatus.INTERNAL_SERVER_ERROR,
-      errorCode:       ERROR_CODES.UNKNOWN,
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      errorCode: ERROR_CODES.UNKNOWN,
       internalMessage: String(exception),
     };
   }
@@ -249,39 +248,54 @@ export class AllExceptionsFilter implements ExceptionFilter {
   } {
     switch (err.code) {
       case 'P2002': // Unique constraint
-        return { statusCode: HttpStatus.CONFLICT,
-                 errorCode: ERROR_CODES.DB_UNIQUE_VIOLATION,
-                 internalMessage: err.message, prismaCode: err.code };
+        return {
+          statusCode: HttpStatus.CONFLICT,
+          errorCode: ERROR_CODES.DB_UNIQUE_VIOLATION,
+          internalMessage: err.message,
+          prismaCode: err.code,
+        };
       case 'P2025': // Record not found
-        return { statusCode: HttpStatus.NOT_FOUND,
-                 errorCode: ERROR_CODES.DB_RECORD_NOT_FOUND,
-                 internalMessage: err.message, prismaCode: err.code };
+        return {
+          statusCode: HttpStatus.NOT_FOUND,
+          errorCode: ERROR_CODES.DB_RECORD_NOT_FOUND,
+          internalMessage: err.message,
+          prismaCode: err.code,
+        };
       case 'P2003': // Foreign key constraint
-        return { statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-                 errorCode: ERROR_CODES.DB_FOREIGN_KEY_VIOLATION,
-                 internalMessage: err.message, prismaCode: err.code };
+        return {
+          statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+          errorCode: ERROR_CODES.DB_FOREIGN_KEY_VIOLATION,
+          internalMessage: err.message,
+          prismaCode: err.code,
+        };
       case 'P1001': // Cannot reach DB server
       case 'P1002': // DB timed out
-        return { statusCode: HttpStatus.SERVICE_UNAVAILABLE,
-                 errorCode: ERROR_CODES.DB_CONNECTION,
-                 internalMessage: err.message, prismaCode: err.code };
+        return {
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          errorCode: ERROR_CODES.DB_CONNECTION,
+          internalMessage: err.message,
+          prismaCode: err.code,
+        };
       default:
-        return { statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                 errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR,
-                 internalMessage: err.message, prismaCode: err.code };
+        return {
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR,
+          internalMessage: err.message,
+          prismaCode: err.code,
+        };
     }
   }
 
   /** Map HTTP status integer to an i18n error code. */
   private httpStatusToCode(status: number): ErrorCode {
     const map: Record<number, ErrorCode> = {
-      [HttpStatus.BAD_REQUEST]:           ERROR_CODES.BAD_REQUEST,
-      [HttpStatus.UNAUTHORIZED]:          ERROR_CODES.UNAUTHORIZED,
-      [HttpStatus.FORBIDDEN]:             ERROR_CODES.FORBIDDEN,
-      [HttpStatus.NOT_FOUND]:             ERROR_CODES.NOT_FOUND,
-      [HttpStatus.CONFLICT]:              ERROR_CODES.CONFLICT,
-      [HttpStatus.UNPROCESSABLE_ENTITY]:  ERROR_CODES.UNPROCESSABLE,
-      [HttpStatus.TOO_MANY_REQUESTS]:     ERROR_CODES.TOO_MANY_REQUESTS,
+      [HttpStatus.BAD_REQUEST]: ERROR_CODES.BAD_REQUEST,
+      [HttpStatus.UNAUTHORIZED]: ERROR_CODES.UNAUTHORIZED,
+      [HttpStatus.FORBIDDEN]: ERROR_CODES.FORBIDDEN,
+      [HttpStatus.NOT_FOUND]: ERROR_CODES.NOT_FOUND,
+      [HttpStatus.CONFLICT]: ERROR_CODES.CONFLICT,
+      [HttpStatus.UNPROCESSABLE_ENTITY]: ERROR_CODES.UNPROCESSABLE,
+      [HttpStatus.TOO_MANY_REQUESTS]: ERROR_CODES.TOO_MANY_REQUESTS,
       [HttpStatus.INTERNAL_SERVER_ERROR]: ERROR_CODES.INTERNAL_SERVER_ERROR,
     };
     return map[status] ?? ERROR_CODES.INTERNAL_SERVER_ERROR;
@@ -324,7 +338,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Development convenience
     if (exception instanceof Error) return exception.message;
-    if (isPrismaError(exception))   return `Database error (${exception.code}).`;
+    if (isPrismaError(exception)) return `Database error (${exception.code}).`;
     return 'An unexpected error occurred.';
   }
 
@@ -346,9 +360,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         .split('&')
         .map((pair) => {
           const [key] = pair.split('=');
-          return SENSITIVE_PARAMS.includes(key.toLowerCase())
-            ? `${key}=[REDACTED]`
-            : pair;
+          return SENSITIVE_PARAMS.includes(key.toLowerCase()) ? `${key}=[REDACTED]` : pair;
         })
         .join('&');
 
@@ -360,9 +372,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   /** Produce a short, unique trace ID without external dependencies. */
   private generateTraceId(): string {
-    return (
-      Date.now().toString(36) +
-      Math.random().toString(36).substring(2, 8)
-    ).toUpperCase();
+    return (Date.now().toString(36) + Math.random().toString(36).substring(2, 8)).toUpperCase();
   }
 }

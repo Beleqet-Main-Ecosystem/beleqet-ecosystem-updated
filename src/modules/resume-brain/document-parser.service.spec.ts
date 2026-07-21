@@ -63,9 +63,7 @@ describe('DocumentParserService', () => {
     it('throws 422 when the PDF has no readable text (scanned/image-only)', async () => {
       mockPdfText('   \n  \n');
 
-      await expect(service.extractText(makeFile())).rejects.toThrow(
-        UnprocessableEntityException,
-      );
+      await expect(service.extractText(makeFile())).rejects.toThrow(UnprocessableEntityException);
     });
 
     it('throws 422 when the PDF cannot be parsed (corrupt/encrypted)', async () => {
@@ -75,9 +73,7 @@ describe('DocumentParserService', () => {
         destroy,
       }));
 
-      await expect(service.extractText(makeFile())).rejects.toThrow(
-        UnprocessableEntityException,
-      );
+      await expect(service.extractText(makeFile())).rejects.toThrow(UnprocessableEntityException);
       expect(destroy).toHaveBeenCalledTimes(1); // still cleaned up
     });
   });
@@ -86,8 +82,7 @@ describe('DocumentParserService', () => {
     const docxFile = () =>
       makeFile({
         originalname: 'cv.docx',
-        mimetype:
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       });
 
     it('extracts and returns the plain text of a DOCX', async () => {
@@ -96,18 +91,14 @@ describe('DocumentParserService', () => {
         messages: [],
       });
 
-      await expect(service.extractText(docxFile())).resolves.toBe(
-        'Jane Doe\nProduct Manager',
-      );
+      await expect(service.extractText(docxFile())).resolves.toBe('Jane Doe\nProduct Manager');
       expect(PDFParseMock).not.toHaveBeenCalled();
     });
 
     it('throws 422 when mammoth fails', async () => {
       extractRawTextMock.mockRejectedValue(new Error('not a valid zip'));
 
-      await expect(service.extractText(docxFile())).rejects.toThrow(
-        UnprocessableEntityException,
-      );
+      await expect(service.extractText(docxFile())).rejects.toThrow(UnprocessableEntityException);
     });
   });
 
@@ -118,9 +109,7 @@ describe('DocumentParserService', () => {
         mimetype: 'application/msword',
       });
 
-      await expect(service.extractText(doc)).rejects.toThrow(
-        UnprocessableEntityException,
-      );
+      await expect(service.extractText(doc)).rejects.toThrow(UnprocessableEntityException);
       expect(PDFParseMock).not.toHaveBeenCalled();
       expect(extractRawTextMock).not.toHaveBeenCalled();
     });

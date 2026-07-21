@@ -936,38 +936,22 @@ model StoredFile {
 // ─────────────────────────────────────────────────────────────────────────────
 // Encrypted Inbox – E2EE Zero-Knowledge Architecture (Task Vault-Security-001)
 // ─────────────────────────────────────────────────────────────────────────────
-//
-// GDPR notes:
-//   - Message content is stored as ciphertext only; the server never holds
-//     plaintext.  Only the recipient's private key (held client-side) can
-//     decrypt the content.
-//   - Server-side AES-256-GCM copy exists solely for GDPR data-export and
-//     account-deletion workflows; it is encrypted with a server-held key
-//     that is rotated quarterly.
-//   - No raw PII is stored alongside the ciphertext — only UUID references
-//     to the users table.
 
-/// Stores each user's asymmetric key pair.  The public key is in plaintext
-/// (safe to share); the private key is AES-256-GCM encrypted at rest using
-/// a server-held key so the server can facilitate GDPR data exports when the
-/// user proves identity.  The actual E2EE decryption happens client-side.
 model E2EKeyPair {
   id                       String   @id @default(uuid())
   userId                   String   @unique
-  publicKey                String   // SPKI-encoded public key (plaintext)
-  encryptedPrivateKey      String   // AES-256-GCM ciphertext of the PKCS8 private key
+  publicKey                String
+  encryptedPrivateKey      String
   encryptionKeyVersion     String   @default("v1")
   algorithm                String   @default("RSA-OAEP-256")
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
-
   user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("e2e_key_pairs")
 }
 
-/// End-to-end encrypted conversation between two users.
 model EncryptedConversation {
   id               String                  @id @default(uuid())
   initiatorId      String
@@ -991,18 +975,14 @@ enum EncryptedConversationStatus {
   BLOCKED
 }
 
-/// A single end-to-end encrypted message.  The `ciphertext` field contains
-/// the AES-256-GCM encrypted message body; only the recipient's private key
-/// can decrypt it.  The `serverCiphertext` field holds an independent
-/// server-side encryption copy for GDPR export/deletion workflows.
 model EncryptedMessage {
   id                  String    @id @default(uuid())
   conversationId      String
   senderId            String
-  ciphertext          String    // Client-side E2EE ciphertext (AES-256-GCM)
-  iv                  String    // Initialization vector for client-side decryption
-  encryptedMetadata   Json?     // Encrypted message metadata (type, timestamp, etc.)
-  serverCiphertext    String?   // Server-side encryption copy (GDPR export only)
+  ciphertext          String
+  iv                  String
+  encryptedMetadata   Json?
+  serverCiphertext    String?
   serverEncryptionVersion String @default("v1")
   isSystem            Boolean   @default(false)
   isDeleted           Boolean   @default(false)
@@ -1016,7 +996,6 @@ model EncryptedMessage {
   @@map("encrypted_messages")
 }
 
-/// Records GDPR data-export and deletion requests for audit compliance.
 model GdprAuditLog {
   id          String   @id @default(uuid())
   userId      String

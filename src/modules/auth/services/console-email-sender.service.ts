@@ -15,8 +15,6 @@ export class ConsoleEmailSender implements IEmailSender {
     toEmail: string,
     confirmationUrl: string,
   ): Promise<void> {
-    this.logger.warn(
-      `[DEV ONLY] Account-link confirmation for ${toEmail}: ${confirmationUrl}`,
-    );
+    this.logger.warn(`[DEV ONLY] Account-link confirmation for ${toEmail}: ${confirmationUrl}`);
   }
 }

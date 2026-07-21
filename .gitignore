@@ -40,8 +40,15 @@ yarn-error.log*
 Thumbs.db
 # Next.js
 .next/
+**/.next/
+out/
+**/out/
 pnpm-debug.log*
 lerna-debug.log*
+
+# Next.js auto-generated
+frontend/next-env.d.ts
+beleqet-jobs-nextjs/next-env.d.ts
 
 # OS metadata
 .DS_Store

@@ -33,7 +33,9 @@ export interface KycUploadFile {
  */
 export class SubmitKycDto {
   /** The type of uploaded ID card or passport */
-  @IsEnum(KycDocumentType, { message: 'documentType must be PASSPORT, NATIONAL_ID, or DRIVERS_LICENSE' })
+  @IsEnum(KycDocumentType, {
+    message: 'documentType must be PASSPORT, NATIONAL_ID, or DRIVERS_LICENSE',
+  })
   @IsNotEmpty()
   documentType: KycDocumentType;
 }
@@ -107,10 +109,15 @@ export class KycController {
     const faceScanFile = files?.faceScan?.[0];
 
     if (!documentFile || !faceScanFile) {
-      throw new BadRequestException('Both identification document and live face scan files must be uploaded.');
+      throw new BadRequestException(
+        'Both identification document and live face scan files must be uploaded.',
+      );
     }
 
-    if (documentFile.buffer.length > 5 * 1024 * 1024 || faceScanFile.buffer.length > 5 * 1024 * 1024) {
+    if (
+      documentFile.buffer.length > 5 * 1024 * 1024 ||
+      faceScanFile.buffer.length > 5 * 1024 * 1024
+    ) {
       throw new BadRequestException('File size exceeds the maximum limit of 5MB.');
     }
 
@@ -118,7 +125,9 @@ export class KycController {
       !documentFile.mimetype.match(/^image\/(jpeg|png|webp|gif)$/) ||
       !faceScanFile.mimetype.match(/^image\/(jpeg|png|webp|gif)$/)
     ) {
-      throw new BadRequestException('Only image files (JPEG, PNG, WEBP, GIF) are allowed for KYC verification.');
+      throw new BadRequestException(
+        'Only image files (JPEG, PNG, WEBP, GIF) are allowed for KYC verification.',
+      );
     }
 
     return this.kycService.submitVerification(
