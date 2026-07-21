@@ -37,10 +37,10 @@ import {
 } from '@nestjs/common';
 import Stripe from 'stripe';
 
-import { StripeService }  from './stripe.service';
-import { PaypalService }  from './paypal.service';
+import { StripeService } from './stripe.service';
+import { PaypalService } from './paypal.service';
 import { WalletService, WithdrawDto } from '../wallet/wallet.service';
-import { PrismaService }  from '../../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDK mocks — hoisted before any import that initialises the SDKs
@@ -48,29 +48,44 @@ import { PrismaService }  from '../../prisma/prisma.service';
 
 jest.mock('stripe', () => {
   const mockPaymentIntents = { create: jest.fn(), confirm: jest.fn() };
-  const mockRefunds        = { create: jest.fn() };
-  const mockWebhooks       = { constructEvent: jest.fn() };
+  const mockRefunds = { create: jest.fn() };
+  const mockWebhooks = { constructEvent: jest.fn() };
 
   const MockStripe = jest.fn().mockImplementation(() => ({
     paymentIntents: mockPaymentIntents,
-    refunds:        mockRefunds,
-    webhooks:       mockWebhooks,
+    refunds: mockRefunds,
+    webhooks: mockWebhooks,
   }));
 
   (MockStripe as any).errors = {
-    StripeCardError:           class StripeCardError  extends Error { constructor(m: string) { super(m); this.name = 'StripeCardError'; } },
-    StripeInvalidRequestError: class extends Error    { constructor(m: string) { super(m); this.name = 'StripeInvalidRequestError'; } },
-    StripeError:               class StripeError      extends Error { constructor(m: string) { super(m); this.name = 'StripeError'; } },
+    StripeCardError: class StripeCardError extends Error {
+      constructor(m: string) {
+        super(m);
+        this.name = 'StripeCardError';
+      }
+    },
+    StripeInvalidRequestError: class extends Error {
+      constructor(m: string) {
+        super(m);
+        this.name = 'StripeInvalidRequestError';
+      }
+    },
+    StripeError: class StripeError extends Error {
+      constructor(m: string) {
+        super(m);
+        this.name = 'StripeError';
+      }
+    },
   };
 
   return { __esModule: true, default: MockStripe };
 });
 
 jest.mock('paypal-rest-sdk', () => ({
-  configure:        jest.fn(),
-  payment:          { create: jest.fn(), execute: jest.fn() },
+  configure: jest.fn(),
+  payment: { create: jest.fn(), execute: jest.fn() },
   billingAgreement: { create: jest.fn() },
-  notification:     { webhookEvent: { verify: jest.fn() } },
+  notification: { webhookEvent: { verify: jest.fn() } },
 }));
 
 // Mock the global `fetch` used by WalletService (Chapa payouts)
@@ -91,12 +106,12 @@ const EUR_ETB_RATE = 130.2;
 
 function makeStripeIntent(amount: number, currency: string): Partial<Stripe.PaymentIntent> {
   return {
-    id:            `pi_test_${currency.toLowerCase()}_${amount}`,
+    id: `pi_test_${currency.toLowerCase()}_${amount}`,
     client_secret: `pi_secret_${currency.toLowerCase()}`,
-    status:        'requires_payment_method' as Stripe.PaymentIntent.Status,
+    status: 'requires_payment_method' as Stripe.PaymentIntent.Status,
     amount,
-    currency:      currency.toLowerCase(),
-    created:       Math.floor(Date.now() / 1000),
+    currency: currency.toLowerCase(),
+    created: Math.floor(Date.now() / 1000),
   };
 }
 
@@ -121,29 +136,36 @@ function makePaypalExecuted() {
 
 function buildMockPrisma(walletBalance = 10_000) {
   const walletRecord = {
-    id:               'wallet-user-001',
-    userId:           'user-001',
-    currency:         'ETB',
+    id: 'wallet-user-001',
+    userId: 'user-001',
+    currency: 'ETB',
     availableBalance: walletBalance,
-    lockedBalance:    0,
-    transactions:     [],
+    lockedBalance: 0,
+    transactions: [],
   };
 
-  const txRecord = { id: 'tx-001', walletId: walletRecord.id, amount: 0, type: 'DEBIT_WITHDRAWAL', note: '' };
+  const txRecord = {
+    id: 'tx-001',
+    walletId: walletRecord.id,
+    amount: 0,
+    type: 'DEBIT_WITHDRAWAL',
+    note: '',
+  };
 
   return {
     payment: {
-      upsert:     jest.fn().mockResolvedValue({}),
+      upsert: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     freelancerWallet: {
       findUnique: jest.fn().mockResolvedValue(walletRecord),
-      upsert:     jest.fn().mockResolvedValue(walletRecord),
-      update:     jest.fn().mockResolvedValue(walletRecord),
+      upsert: jest.fn().mockResolvedValue(walletRecord),
+      update: jest.fn().mockResolvedValue(walletRecord),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     employerWallet: {
       findUnique: jest.fn().mockResolvedValue(null),
-      create:     jest.fn().mockResolvedValue({ ...walletRecord, balance: 0 }),
+      create: jest.fn().mockResolvedValue({ ...walletRecord, balance: 0 }),
     },
     walletTransaction: {
       create: jest.fn().mockResolvedValue(txRecord),
@@ -152,7 +174,10 @@ function buildMockPrisma(walletBalance = 10_000) {
     $transaction: jest.fn().mockImplementation(async (cbOrArray: unknown) => {
       if (typeof cbOrArray === 'function') {
         const stubPrisma = {
-          freelancerWallet:  { update: jest.fn().mockResolvedValue(walletRecord) },
+          freelancerWallet: {
+            update: jest.fn().mockResolvedValue(walletRecord),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
           walletTransaction: {
             create: jest.fn().mockResolvedValue(txRecord),
             update: jest.fn().mockResolvedValue(txRecord),
@@ -167,15 +192,15 @@ function buildMockPrisma(walletBalance = 10_000) {
 
 function buildMockConfig(extra: Record<string, string> = {}) {
   const defaults: Record<string, string> = {
-    STRIPE_SECRET_KEY:     'sk_test_mock',
+    STRIPE_SECRET_KEY: 'sk_test_mock',
     STRIPE_WEBHOOK_SECRET: 'whsec_mock',
-    PAYPAL_CLIENT_ID:      'paypal_id_mock',
-    PAYPAL_CLIENT_SECRET:  'paypal_secret_mock',
-    PAYPAL_MODE:           'sandbox',
-    PAYPAL_WEBHOOK_ID:     '',
-    PAYPAL_RETURN_URL:     'https://beleqet.com/success',
-    PAYPAL_CANCEL_URL:     'https://beleqet.com/cancel',
-    CHAPA_SECRET_KEY:      'test_chapa_secret_key',
+    PAYPAL_CLIENT_ID: 'paypal_id_mock',
+    PAYPAL_CLIENT_SECRET: 'paypal_secret_mock',
+    PAYPAL_MODE: 'sandbox',
+    PAYPAL_WEBHOOK_ID: '',
+    PAYPAL_RETURN_URL: 'https://beleqet.com/success',
+    PAYPAL_CANCEL_URL: 'https://beleqet.com/cancel',
+    CHAPA_SECRET_KEY: 'test_chapa_secret_key',
     ...extra,
   };
   return {
@@ -188,8 +213,8 @@ function buildMockConfig(extra: Record<string, string> = {}) {
 }
 
 async function buildCtx(walletBalance = 10_000, configExtra: Record<string, string> = {}) {
-  const prisma  = buildMockPrisma(walletBalance);
-  const config  = buildMockConfig(configExtra);
+  const prisma = buildMockPrisma(walletBalance);
+  const config = buildMockConfig(configExtra);
 
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -228,11 +253,11 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
   let prisma: ReturnType<typeof buildMockPrisma>;
 
   beforeEach(async () => {
-    const ctx    = await buildCtx();
+    const ctx = await buildCtx();
     stripeService = ctx.stripeService;
     paypalService = ctx.paypalService;
     walletService = ctx.walletService;
-    prisma        = ctx.prisma as ReturnType<typeof buildMockPrisma>;
+    prisma = ctx.prisma as ReturnType<typeof buildMockPrisma>;
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -244,7 +269,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       (stripe.paymentIntents.create as jest.Mock).mockResolvedValue(makeStripeIntent(100, 'USD'));
 
       const intent = await stripeService.createPaymentIntent({
-        amount: 100, currency: 'USD', userId: 'user-001',
+        amount: 100,
+        currency: 'USD',
+        userId: 'user-001',
       });
 
       expect(intent.currency).toBe('USD');
@@ -262,7 +289,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       (stripe.paymentIntents.create as jest.Mock).mockResolvedValue(makeStripeIntent(50, 'EUR'));
 
       await stripeService.createPaymentIntent({
-        amount: 50, currency: 'EUR', userId: 'user-001',
+        amount: 50,
+        currency: 'EUR',
+        userId: 'user-001',
       });
 
       const etbAmount = walletService.convertCurrency(50, 'EUR', 'ETB');
@@ -318,7 +347,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       );
 
       const order = await paypalService.createOrder({
-        amount: 25, currency: 'USD', userId: 'user-001',
+        amount: 25,
+        currency: 'USD',
+        userId: 'user-001',
       });
 
       expect(order.currency).toBe('USD');
@@ -332,14 +363,14 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
   describe('Scenario 7 – PayPal capture → DB record marked SUCCEEDED', () => {
     it('captures a PayPal order and persists SUCCEEDED status in the DB', async () => {
       (paypal.payment.execute as jest.Mock).mockImplementation(
-        (_id: string, _d: unknown, cb: (e: null, p: ReturnType<typeof makePaypalExecuted>) => void) =>
-          cb(null, makePaypalExecuted()),
+        (
+          _id: string,
+          _d: unknown,
+          cb: (e: null, p: ReturnType<typeof makePaypalExecuted>) => void,
+        ) => cb(null, makePaypalExecuted()),
       );
 
-      const result = await paypalService.captureOrder(
-        { orderId: 'PAY-usd-25' },
-        'PAYERID-ABC',
-      );
+      const result = await paypalService.captureOrder({ orderId: 'PAY-usd-25' }, 'PAYERID-ABC');
 
       expect(result.status).toBe('approved');
       expect(prisma.payment.updateMany).toHaveBeenCalledWith(
@@ -358,7 +389,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       } as Response);
 
       const dto: WithdrawDto = {
-        amount: 500, method: 'CHAPA', accountRef: '0912345678', currency: 'ETB',
+        amount: 500,
+        method: 'CHAPA',
+        accountRef: '0912345678',
+        currency: 'ETB',
       };
 
       const result = await walletService.withdraw('user-001', dto);
@@ -384,7 +418,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       } as Response);
 
       const dto: WithdrawDto = {
-        amount: 10, method: 'CHAPA', accountRef: '0912345678', currency: 'USD',
+        amount: 10,
+        method: 'CHAPA',
+        accountRef: '0912345678',
+        currency: 'USD',
       };
 
       const result = await ctx.walletService.withdraw('user-001', dto);
@@ -398,7 +435,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       const ctx = await buildCtx(50); // only 50 ETB
 
       const dto: WithdrawDto = {
-        amount: 1000, method: 'CHAPA', accountRef: '0912345678', currency: 'ETB',
+        amount: 1000,
+        method: 'CHAPA',
+        accountRef: '0912345678',
+        currency: 'ETB',
       };
 
       await expect(ctx.walletService.withdraw('user-001', dto)).rejects.toThrow(
@@ -414,7 +454,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       const ctx = await buildCtx(100); // 100 ETB — cannot cover 5 USD (~602 ETB)
 
       const dto: WithdrawDto = {
-        amount: 5, method: 'CHAPA', accountRef: '0912345678', currency: 'USD',
+        amount: 5,
+        method: 'CHAPA',
+        accountRef: '0912345678',
+        currency: 'USD',
       };
 
       await expect(ctx.walletService.withdraw('user-001', dto)).rejects.toThrow(
@@ -431,7 +474,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       } as Response);
 
       const dto: WithdrawDto = {
-        amount: 200, method: 'CHAPA', accountRef: 'bad_account', currency: 'ETB',
+        amount: 200,
+        method: 'CHAPA',
+        accountRef: 'bad_account',
+        currency: 'ETB',
       };
 
       await expect(walletService.withdraw('user-001', dto)).rejects.toThrow(
@@ -446,7 +492,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
       const dto: WithdrawDto = {
-        amount: 300, method: 'TELEBIRR', accountRef: '0911111111', currency: 'ETB',
+        amount: 300,
+        method: 'TELEBIRR',
+        accountRef: '0911111111',
+        currency: 'ETB',
       };
 
       await expect(walletService.withdraw('user-001', dto)).rejects.toThrow(
@@ -480,12 +529,12 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
   // ── 15. Parametrised conversion accuracy ─────────────────────────────────
   describe('Scenario 15 – Parametrised multi-currency → ETB conversion accuracy', () => {
     it.each([
-      [100,   'USD',  Math.round(100   * USD_ETB_RATE)],
-      [200,   'USD',  Math.round(200   * USD_ETB_RATE)],
-      [1,     'USD',  Math.round(1     * USD_ETB_RATE)],
-      [50,    'EUR',  Math.round(50    * EUR_ETB_RATE)],
-      [100,   'EUR',  Math.round(100   * EUR_ETB_RATE)],
-      [1000,  'ETB',  1000                            ],
+      [100, 'USD', Math.round(100 * USD_ETB_RATE)],
+      [200, 'USD', Math.round(200 * USD_ETB_RATE)],
+      [1, 'USD', Math.round(1 * USD_ETB_RATE)],
+      [50, 'EUR', Math.round(50 * EUR_ETB_RATE)],
+      [100, 'EUR', Math.round(100 * EUR_ETB_RATE)],
+      [1000, 'ETB', 1000],
     ])('%d %s → %d ETB', (amount, currency, expectedEtb) => {
       expect(walletService.convertCurrency(amount, currency, 'ETB')).toBe(expectedEtb);
     });
@@ -498,7 +547,10 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       (ctx.prisma as any).freelancerWallet.findUnique.mockResolvedValue(null);
 
       const dto: WithdrawDto = {
-        amount: 100, method: 'CHAPA', accountRef: '0912345678', currency: 'ETB',
+        amount: 100,
+        method: 'CHAPA',
+        accountRef: '0912345678',
+        currency: 'ETB',
       };
 
       await expect(ctx.walletService.withdraw('ghost-user', dto)).rejects.toThrow(
@@ -512,13 +564,13 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
   describe('Scenario 17 – Reverse ETB→USD conversion', () => {
     it('applies the correct reverse rate when converting ETB to USD', () => {
       const etbAmount = 1205;
-      const result    = walletService.convertCurrency(etbAmount, 'ETB', 'USD');
+      const result = walletService.convertCurrency(etbAmount, 'ETB', 'USD');
       expect(result).toBe(Math.round(etbAmount * (1 / USD_ETB_RATE)));
     });
 
     it('applies the correct reverse rate when converting ETB to EUR', () => {
       const etbAmount = 1302;
-      const result    = walletService.convertCurrency(etbAmount, 'ETB', 'EUR');
+      const result = walletService.convertCurrency(etbAmount, 'ETB', 'EUR');
       expect(result).toBe(Math.round(etbAmount * (1 / EUR_ETB_RATE)));
     });
   });

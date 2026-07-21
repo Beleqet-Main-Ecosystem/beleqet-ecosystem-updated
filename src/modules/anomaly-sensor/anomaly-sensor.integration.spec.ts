@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { EventEmitterModule, EventEmitter2 } from '@nestjs/event-emitter';
 import { AnomalySensorModule } from './anomaly-sensor.module';
 import { ConfigModule } from '@nestjs/config';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 
 describe('AnomalySensor Integration (e2e)', () => {
@@ -30,17 +30,18 @@ describe('AnomalySensor Integration (e2e)', () => {
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         EventEmitterModule.forRoot(),
+        // Fixed: Migrated 'redis' option to 'connection' for @nestjs/bullmq compatibility
         BullModule.forRoot({
-          redis: { host: 'localhost', port: 6379 }
+          connection: { host: 'localhost', port: 6379 },
         }),
         BullModule.registerQueue({ name: 'notifications' }),
         AnomalySensorModule,
       ],
     })
-    // Override the PrismaService from the module
-    .overrideProvider(PrismaService)
-    .useValue(mockPrismaService)
-    .compile();
+      // Override the PrismaService from the module
+      .overrideProvider(PrismaService)
+      .useValue(mockPrismaService)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -60,7 +61,7 @@ describe('AnomalySensor Integration (e2e)', () => {
     for (let i = 0; i < 6; i++) {
       eventEmitter.emit('auth.login.failed', {
         email: testEmail,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -74,10 +75,10 @@ describe('AnomalySensor Integration (e2e)', () => {
           eventType: 'ANOMALY_DETECTED',
           entityId: testEmail,
           payload: expect.objectContaining({
-            type: 'AUTH_BRUTE_FORCE'
-          })
-        })
-      })
+            type: 'AUTH_BRUTE_FORCE',
+          }),
+        }),
+      }),
     );
   });
 
@@ -91,7 +92,7 @@ describe('AnomalySensor Integration (e2e)', () => {
     for (let i = 0; i < 5; i++) {
       eventEmitter.emit('auth.login.failed', {
         email,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -100,7 +101,7 @@ describe('AnomalySensor Integration (e2e)', () => {
     // User successfully logs in - should reset counter
     eventEmitter.emit('auth.login.success', {
       email,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -108,28 +109,29 @@ describe('AnomalySensor Integration (e2e)', () => {
     // One more failure after success should NOT trigger alert
     eventEmitter.emit('auth.login.failed', {
       email,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Verify no brute-force alert was dispatched for this email
     const bruteForceCallsForEmail = (prismaService.eventLog.create as jest.Mock).mock.calls.filter(
-      (call) => call[0]?.data?.entityId === email && call[0]?.data?.payload?.type === 'AUTH_BRUTE_FORCE'
+      (call) =>
+        call[0]?.data?.entityId === email && call[0]?.data?.payload?.type === 'AUTH_BRUTE_FORCE',
     );
     expect(bruteForceCallsForEmail.length).toBe(0);
   });
 
   it('should successfully receive payment.escrow.initiated and process same-currency Z-score', async () => {
     const clientId = 'integration-client-123';
-    
+
     // Emit event with large amount in ETB (matches mock history currency)
     eventEmitter.emit('payment.escrow.initiated', {
       escrowId: 'new-tx',
       clientId,
       grossAmount: 5000,
       currency: 'ETB',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -140,7 +142,7 @@ describe('AnomalySensor Integration (e2e)', () => {
         where: expect.objectContaining({
           currency: 'ETB',
         }),
-      })
+      }),
     );
 
     // Verify it was logged
@@ -150,10 +152,10 @@ describe('AnomalySensor Integration (e2e)', () => {
           eventType: 'ANOMALY_DETECTED',
           entityId: clientId,
           payload: expect.objectContaining({
-            type: 'PAYMENT_UNUSUAL_AMOUNT'
-          })
-        })
-      })
+            type: 'PAYMENT_UNUSUAL_AMOUNT',
+          }),
+        }),
+      }),
     );
   });
 });

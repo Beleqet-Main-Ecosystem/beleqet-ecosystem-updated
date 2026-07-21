@@ -1,14 +1,22 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MinLength, IsArray } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsArray,
+} from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
-import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { adminAnnouncementEmail } from '../notifications/email-templates';
 import { ChatService } from '../chat/chat.service';
@@ -20,11 +28,11 @@ enum ManagedRole {
   ADMIN = 'ADMIN',
 }
 class CreateUserDto {
-  @IsEmail() email: string;
-  @IsString() @MinLength(2) firstName: string;
-  @IsString() @MinLength(2) lastName: string;
-  @IsString() @MinLength(8) password: string;
-  @IsEnum(ManagedRole) role: ManagedRole;
+  @IsEmail() email!: string;
+  @IsString() @MinLength(2) firstName!: string;
+  @IsString() @MinLength(2) lastName!: string;
+  @IsString() @MinLength(8) password!: string;
+  @IsEnum(ManagedRole) role!: ManagedRole;
 }
 class UpdateUserDto {
   @IsOptional() @IsString() @MinLength(2) firstName?: string;
@@ -33,13 +41,13 @@ class UpdateUserDto {
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 class BroadcastDto {
-  @IsString() @MinLength(3) title: string;
-  @IsString() @MinLength(5) body: string;
+  @IsString() @MinLength(3) title!: string;
+  @IsString() @MinLength(5) body!: string;
   @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
   @IsOptional() @IsArray() @IsString({ each: true }) userIds?: string[];
 }
 class ResolveDisputeDto {
-  @IsString() @MinLength(10) resolution: string;
+  @IsString() @MinLength(10) resolution!: string;
 }
 
 const safeUserSelect = {
@@ -148,7 +156,7 @@ export class AdminController {
             to: u.email,
             subject: dto.title,
             ...email,
-          })
+          }),
         )
         .catch(() => {});
     }
@@ -191,14 +199,14 @@ export class AdminController {
 
     let chatHistory: any[] = [];
     const chatRoom = await this.prisma.chatRoom.findUnique({
-      where: { contractId: dispute.contractId }
+      where: { contractId: dispute.contractId },
     });
 
     if (chatRoom) {
       chatHistory = await this.prisma.message.findMany({
         where: { roomId: chatRoom.id },
         orderBy: { createdAt: 'asc' },
-        include: { sender: { select: safeUserSelect } }
+        include: { sender: { select: safeUserSelect } },
       });
     }
 

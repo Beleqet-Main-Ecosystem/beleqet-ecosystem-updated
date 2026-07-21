@@ -18,8 +18,8 @@ import { ConfigModule } from '@nestjs/config';
 
 import { PrismaModule } from '../../prisma/prisma.module';
 
-import { StripeService }             from './stripe.service';
-import { PaypalService }             from './paypal.service';
+import { StripeService } from './stripe.service';
+import { PaypalService } from './paypal.service';
 import {
   StripeController,
   StripeWebhookController,
@@ -38,13 +38,7 @@ import {
     PaypalController,
     PaypalWebhookController,
   ],
-  providers: [
-    StripeService,
-    PaypalService,
-  ],
-  exports: [
-    StripeService,
-    PaypalService,
-  ],
+  providers: [StripeService, PaypalService],
+  exports: [StripeService, PaypalService],
 })
 export class PaymentsModule {}

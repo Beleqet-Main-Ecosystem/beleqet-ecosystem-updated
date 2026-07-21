@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bull';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
@@ -21,11 +21,11 @@ export interface AlertPayload {
 
 const escapeHtml = (unsafe: string) => {
   return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 };
 
 /**
@@ -52,10 +52,7 @@ export class AlertingService {
    */
   async dispatchAlert(payload: AlertPayload): Promise<void> {
     try {
-      await Promise.all([
-        this.sendEmailAlert(payload),
-        this.sendSlackAlert(payload),
-      ]);
+      await Promise.all([this.sendEmailAlert(payload), this.sendSlackAlert(payload)]);
     } catch (error) {
       this.logger.error(`Failed to dispatch alert: ${(error as Error).message}`);
     }
@@ -96,7 +93,12 @@ export class AlertingService {
     }
 
     try {
-      const color = payload.severity === 'CRITICAL' ? '#FF0000' : payload.severity === 'HIGH' ? '#FFA500' : '#FFFF00';
+      const color =
+        payload.severity === 'CRITICAL'
+          ? '#FF0000'
+          : payload.severity === 'HIGH'
+            ? '#FFA500'
+            : '#FFFF00';
       const response = await fetch(this.slackWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,7 +115,9 @@ export class AlertingService {
       });
 
       if (!response.ok) {
-        this.logger.warn(`Failed to send Slack alert. Slack returned status ${response.status}: ${await response.text()}`);
+        this.logger.warn(
+          `Failed to send Slack alert. Slack returned status ${response.status}: ${await response.text()}`,
+        );
       } else {
         this.logger.debug('Slack alert sent.');
       }
