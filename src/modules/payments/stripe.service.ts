@@ -8,10 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  CreatePaymentIntentDto,
-  StripePaymentMethod,
-} from './dto/create-payment-intent.dto';
+import { CreatePaymentIntentDto, StripePaymentMethod } from './dto/create-payment-intent.dto';
 import { CreateRefundDto } from './dto/webhook.dto';
 import {
   StripePaymentIntentResult,
@@ -23,21 +20,21 @@ import {
 } from './interfaces/payment.interfaces';
 
 const STRIPE_SUPPORTED_CURRENCIES: SupportedCurrency[] = [
-  { code: 'USD', minimumAmount: 50,   zeroDecimal: false },
-  { code: 'EUR', minimumAmount: 50,   zeroDecimal: false },
-  { code: 'GBP', minimumAmount: 30,   zeroDecimal: false },
-  { code: 'ETB', minimumAmount: 100,  zeroDecimal: false },
-  { code: 'KES', minimumAmount: 500,  zeroDecimal: false },
+  { code: 'USD', minimumAmount: 50, zeroDecimal: false },
+  { code: 'EUR', minimumAmount: 50, zeroDecimal: false },
+  { code: 'GBP', minimumAmount: 30, zeroDecimal: false },
+  { code: 'ETB', minimumAmount: 100, zeroDecimal: false },
+  { code: 'KES', minimumAmount: 500, zeroDecimal: false },
   { code: 'NGN', minimumAmount: 5000, zeroDecimal: false },
-  { code: 'ZAR', minimumAmount: 500,  zeroDecimal: false },
-  { code: 'GHS', minimumAmount: 500,  zeroDecimal: false },
-  { code: 'AED', minimumAmount: 200,  zeroDecimal: false },
+  { code: 'ZAR', minimumAmount: 500, zeroDecimal: false },
+  { code: 'GHS', minimumAmount: 500, zeroDecimal: false },
+  { code: 'AED', minimumAmount: 200, zeroDecimal: false },
   { code: 'INR', minimumAmount: 5000, zeroDecimal: false },
-  { code: 'CAD', minimumAmount: 50,   zeroDecimal: false },
-  { code: 'AUD', minimumAmount: 50,   zeroDecimal: false },
-  { code: 'JPY', minimumAmount: 50,   zeroDecimal: true  },
-  { code: 'CNY', minimumAmount: 100,  zeroDecimal: false },
-  { code: 'CHF', minimumAmount: 50,   zeroDecimal: false },
+  { code: 'CAD', minimumAmount: 50, zeroDecimal: false },
+  { code: 'AUD', minimumAmount: 50, zeroDecimal: false },
+  { code: 'JPY', minimumAmount: 50, zeroDecimal: true },
+  { code: 'CNY', minimumAmount: 100, zeroDecimal: false },
+  { code: 'CHF', minimumAmount: 50, zeroDecimal: false },
 ];
 
 const PII_METADATA_KEYS = ['email', 'phone', 'name', 'address', 'telegramId'];
@@ -75,42 +72,47 @@ export class StripeService {
       beleqet_version: '1.0',
     });
 
-    this.logger.log(`Creating PaymentIntent: amount=${dto.amount} ${dto.currency} userId=${dto.userId}`);
+    this.logger.log(
+      `Creating PaymentIntent: amount=${dto.amount} ${dto.currency} userId=${dto.userId}`,
+    );
 
     try {
       const intent = await this.stripe.paymentIntents.create({
-        amount:               dto.amount,
-        currency:             dto.currency.toLowerCase(),
+        amount: dto.amount,
+        currency: dto.currency.toLowerCase(),
         payment_method_types: [dto.paymentMethodType ?? StripePaymentMethod.CARD],
-        description:          dto.description,
-        metadata:             sanitisedMetadata,
+        description: dto.description,
+        metadata: sanitisedMetadata,
       });
 
       await this.upsertPaymentRecord({
-        userId:            dto.userId,
-        provider:          'STRIPE',
+        userId: dto.userId,
+        provider: 'STRIPE',
         providerPaymentId: intent.id,
-        amount:            dto.amount,
-        currency:          dto.currency.toUpperCase(),
-        status:            'PENDING',
-        description:       dto.description ?? null,
-        metadata:          sanitisedMetadata,
+        amount: dto.amount,
+        currency: dto.currency.toUpperCase(),
+        status: 'PENDING',
+        description: dto.description ?? null,
+        metadata: sanitisedMetadata,
       });
 
       return {
-        id:           intent.id,
+        id: intent.id,
         clientSecret: intent.client_secret!,
-        status:       intent.status,
-        amount:       intent.amount,
-        currency:     intent.currency.toUpperCase(),
-        createdAt:    new Date(intent.created * 1000).toISOString(),
+        status: intent.status,
+        amount: intent.amount,
+        currency: intent.currency.toUpperCase(),
+        createdAt: new Date(intent.created * 1000).toISOString(),
       };
     } catch (err) {
       this.handleStripeError(err, 'createPaymentIntent');
     }
   }
 
-  async confirmPayment(paymentIntentId: string, paymentMethodId: string): Promise<StripePaymentIntentResult> {
+  async confirmPayment(
+    paymentIntentId: string,
+    paymentMethodId: string,
+  ): Promise<StripePaymentIntentResult> {
     this.logger.log(`Confirming PaymentIntent: ${paymentIntentId}`);
 
     try {
@@ -121,12 +123,12 @@ export class StripeService {
       await this.updatePaymentStatus(intent.id, this.mapStripeStatusToDB(intent.status));
 
       return {
-        id:           intent.id,
+        id: intent.id,
         clientSecret: intent.client_secret!,
-        status:       intent.status,
-        amount:       intent.amount,
-        currency:     intent.currency.toUpperCase(),
-        createdAt:    new Date(intent.created * 1000).toISOString(),
+        status: intent.status,
+        amount: intent.amount,
+        currency: intent.currency.toUpperCase(),
+        createdAt: new Date(intent.created * 1000).toISOString(),
       };
     } catch (err) {
       this.handleStripeError(err, 'confirmPayment');
@@ -134,7 +136,9 @@ export class StripeService {
   }
 
   async refund(dto: CreateRefundDto): Promise<StripeRefundResult> {
-    this.logger.log(`Issuing refund: paymentIntentId=${dto.paymentIntentId} amount=${dto.amount ?? 'full'}`);
+    this.logger.log(
+      `Issuing refund: paymentIntentId=${dto.paymentIntentId} amount=${dto.amount ?? 'full'}`,
+    );
 
     try {
       const refundParams: Stripe.RefundCreateParams = { payment_intent: dto.paymentIntentId };
@@ -147,12 +151,12 @@ export class StripeService {
       await this.updatePaymentStatusByProviderPaymentId(dto.paymentIntentId, newStatus);
 
       return {
-        id:              refund.id,
-        status:          refund.status ?? 'unknown',
-        amount:          refund.amount,
-        currency:        (refund.currency ?? 'unknown').toUpperCase(),
+        id: refund.id,
+        status: refund.status ?? 'unknown',
+        amount: refund.amount,
+        currency: (refund.currency ?? 'unknown').toUpperCase(),
         paymentIntentId: dto.paymentIntentId,
-        createdAt:       new Date(refund.created * 1000).toISOString(),
+        createdAt: new Date(refund.created * 1000).toISOString(),
       };
     } catch (err) {
       this.handleStripeError(err, 'refund');
@@ -173,10 +177,10 @@ export class StripeService {
     await this.processWebhookEvent(event);
 
     return {
-      id:       event.id,
-      type:     event.type,
-      data:     { object: event.data.object as unknown as Record<string, unknown> },
-      created:  event.created,
+      id: event.id,
+      type: event.type,
+      data: { object: event.data.object as unknown as Record<string, unknown> },
+      created: event.created,
       livemode: event.livemode,
     };
   }
@@ -204,9 +208,10 @@ export class StripeService {
       }
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge;
-        const paymentIntentId = typeof charge.payment_intent === 'string'
-          ? charge.payment_intent
-          : (charge.payment_intent as Stripe.PaymentIntent)?.id;
+        const paymentIntentId =
+          typeof charge.payment_intent === 'string'
+            ? charge.payment_intent
+            : (charge.payment_intent as Stripe.PaymentIntent)?.id;
         if (paymentIntentId) {
           await this.updatePaymentStatusByProviderPaymentId(paymentIntentId, 'REFUNDED');
         }
@@ -220,10 +225,14 @@ export class StripeService {
   private validateCurrency(currency: string): void {
     const supported = STRIPE_SUPPORTED_CURRENCIES.map((c) => c.code);
     if (!supported.includes(currency.toUpperCase())) {
-      this.logger.warn(`Currency ${currency} not in local list — forwarding to Stripe for validation.`);
+      this.logger.warn(
+        `Currency ${currency} not in local list — forwarding to Stripe for validation.`,
+      );
     }
     if (!/^[A-Z]{3}$/.test(currency.toUpperCase())) {
-      throw new BadRequestException(`Invalid currency code: ${currency}. Must be ISO 4217 3-letter code.`);
+      throw new BadRequestException(
+        `Invalid currency code: ${currency}. Must be ISO 4217 3-letter code.`,
+      );
     }
   }
 
@@ -238,13 +247,13 @@ export class StripeService {
 
   private mapStripeStatusToDB(status: Stripe.PaymentIntent.Status): PaymentStatus {
     const map: Record<Stripe.PaymentIntent.Status, PaymentStatus> = {
-      requires_payment_method:  'PENDING',
-      requires_confirmation:    'PENDING',
-      requires_action:          'PENDING',
-      processing:               'PROCESSING',
-      requires_capture:         'PROCESSING',
-      canceled:                 'CANCELLED',
-      succeeded:                'SUCCEEDED',
+      requires_payment_method: 'PENDING',
+      requires_confirmation: 'PENDING',
+      requires_action: 'PENDING',
+      processing: 'PROCESSING',
+      requires_capture: 'PROCESSING',
+      canceled: 'CANCELLED',
+      succeeded: 'SUCCEEDED',
     };
     return map[status] ?? 'PENDING';
   }
@@ -261,17 +270,17 @@ export class StripeService {
   }): Promise<void> {
     try {
       await this.prisma.payment.upsert({
-        where:  { providerPaymentId: data.providerPaymentId },
+        where: { providerPaymentId: data.providerPaymentId },
         update: { status: data.status, updatedAt: new Date() },
         create: {
-          userId:            data.userId,
-          provider:          data.provider,
+          userId: data.userId,
+          provider: data.provider,
           providerPaymentId: data.providerPaymentId,
-          amount:            data.amount,
-          currency:          data.currency,
-          status:            data.status,
-          description:       data.description,
-          metadata:          data.metadata,
+          amount: data.amount,
+          currency: data.currency,
+          status: data.status,
+          description: data.description,
+          metadata: data.metadata,
         },
       });
     } catch (err) {
@@ -279,18 +288,24 @@ export class StripeService {
     }
   }
 
-  private async updatePaymentStatusByProviderPaymentId(providerPaymentId: string, status: PaymentStatus): Promise<void> {
+  private async updatePaymentStatusByProviderPaymentId(
+    providerPaymentId: string,
+    status: PaymentStatus,
+  ): Promise<void> {
     try {
       await this.prisma.payment.updateMany({
-        where:  { providerPaymentId },
-        data:   { status, updatedAt: new Date() },
+        where: { providerPaymentId },
+        data: { status, updatedAt: new Date() },
       });
     } catch (err) {
       this.logger.error(`Failed to update payment status (${providerPaymentId}): ${String(err)}`);
     }
   }
 
-  private async updatePaymentStatus(providerPaymentId: string, status: PaymentStatus): Promise<void> {
+  private async updatePaymentStatus(
+    providerPaymentId: string,
+    status: PaymentStatus,
+  ): Promise<void> {
     await this.updatePaymentStatusByProviderPaymentId(providerPaymentId, status);
   }
 
@@ -308,6 +323,8 @@ export class StripeService {
       throw new InternalServerErrorException('Payment provider error. Please try again later.');
     }
     this.logger.error(`[${context}] Unexpected error: ${String(err)}`);
-    throw new InternalServerErrorException('An unexpected error occurred during payment processing.');
+    throw new InternalServerErrorException(
+      'An unexpected error occurred during payment processing.',
+    );
   }
 }

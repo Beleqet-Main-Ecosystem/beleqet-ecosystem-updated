@@ -15,7 +15,10 @@ export class DuckDuckGoSearchProvider implements ISearchProvider {
   /**
    * Searches DuckDuckGo lite and parses result links from HTML.
    */
-  async search(query: string, maxResults: number): Promise<{ title: string; url: string; snippet?: string }[]> {
+  async search(
+    query: string,
+    maxResults: number,
+  ): Promise<{ title: string; url: string; snippet?: string }[]> {
     try {
       const body = new URLSearchParams({ q: query });
       const response = await fetch('https://lite.duckduckgo.com/lite/', {

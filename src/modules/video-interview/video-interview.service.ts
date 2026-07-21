@@ -56,11 +56,7 @@ export class VideoInterviewService {
    * @param dto         Session configuration (questions, schedule, expiry).
    * @param lang        i18n locale for error messages.
    */
-  async createSession(
-    employerId: string,
-    dto: CreateInterviewSessionDto,
-    lang = 'en',
-  ) {
+  async createSession(employerId: string, dto: CreateInterviewSessionDto, lang = 'en') {
     const application = await this.prisma.application.findFirst({
       where: { id: dto.applicationId },
       include: {
@@ -81,18 +77,14 @@ export class VideoInterviewService {
 
     // Only the employer who owns the job may create an interview
     if (application.job.company.userId !== employerId) {
-      throw new ForbiddenException(
-        await this.i18n.t('video_interview.forbidden', { lang }),
-      );
+      throw new ForbiddenException(await this.i18n.t('video_interview.forbidden', { lang }));
     }
 
     const existing = await this.prisma.videoInterview.findUnique({
       where: { applicationId: dto.applicationId },
     });
     if (existing) {
-      throw new ConflictException(
-        await this.i18n.t('video_interview.already_exists', { lang }),
-      );
+      throw new ConflictException(await this.i18n.t('video_interview.already_exists', { lang }));
     }
 
     const gdprDeleteAt = new Date(Date.now() + GDPR_RETENTION_MS);
@@ -135,28 +127,20 @@ export class VideoInterviewService {
     });
 
     if (!session) {
-      throw new NotFoundException(
-        await this.i18n.t('video_interview.not_found', { lang }),
-      );
+      throw new NotFoundException(await this.i18n.t('video_interview.not_found', { lang }));
     }
 
     // If GDPR-deleted, return tombstone message
     if (session.gdprDeleteAt && session.gdprDeleteAt < new Date() && session.status === 'EXPIRED') {
-      throw new NotFoundException(
-        await this.i18n.t('video_interview.gdpr_deleted', { lang }),
-      );
+      throw new NotFoundException(await this.i18n.t('video_interview.gdpr_deleted', { lang }));
     }
 
     if (session.userId !== userId) {
-      throw new ForbiddenException(
-        await this.i18n.t('video_interview.forbidden', { lang }),
-      );
+      throw new ForbiddenException(await this.i18n.t('video_interview.forbidden', { lang }));
     }
 
     if (session.expiresAt && session.expiresAt < new Date()) {
-      throw new BadRequestException(
-        await this.i18n.t('video_interview.expired', { lang }),
-      );
+      throw new BadRequestException(await this.i18n.t('video_interview.expired', { lang }));
     }
 
     return session;
@@ -174,34 +158,25 @@ export class VideoInterviewService {
    * @param dto        Response payload (questionIndex + S3 videoUrl).
    * @param lang       i18n locale.
    */
-  async submitResponse(
-    sessionId: string,
-    userId: string,
-    dto: SubmitResponseDto,
-    lang = 'en',
-  ) {
+  async submitResponse(sessionId: string, userId: string, dto: SubmitResponseDto, lang = 'en') {
     const session = await this.prisma.videoInterview.findUnique({
       where: { id: sessionId },
       include: { responses: true },
     });
 
     if (!session) {
-      throw new NotFoundException(
-        await this.i18n.t('video_interview.not_found', { lang }),
-      );
+      throw new NotFoundException(await this.i18n.t('video_interview.not_found', { lang }));
     }
     if (session.userId !== userId) {
-      throw new ForbiddenException(
-        await this.i18n.t('video_interview.forbidden', { lang }),
-      );
+      throw new ForbiddenException(await this.i18n.t('video_interview.forbidden', { lang }));
     }
     if (session.expiresAt && session.expiresAt < new Date()) {
-      throw new BadRequestException(
-        await this.i18n.t('video_interview.expired', { lang }),
-      );
+      throw new BadRequestException(await this.i18n.t('video_interview.expired', { lang }));
     }
 
-    const metadata = session.metadata as { questions: { id: string; text: string; durationSec: number }[] };
+    const metadata = session.metadata as {
+      questions: { id: string; text: string; durationSec: number }[];
+    };
     if (dto.questionIndex >= metadata.questions.length) {
       throw new BadRequestException(
         await this.i18n.t('video_interview.invalid_question_index', { lang }),
@@ -247,9 +222,9 @@ export class VideoInterviewService {
         data: { status: 'IN_PROGRESS' },
       });
     } else if (
-      session.status === 'PROCESSING'
-      || session.status === 'COMPLETED'
-      || session.status === 'FAILED'
+      session.status === 'PROCESSING' ||
+      session.status === 'COMPLETED' ||
+      session.status === 'FAILED'
     ) {
       await this.prisma.$transaction([
         this.prisma.interviewEvaluation.deleteMany({
@@ -291,14 +266,10 @@ export class VideoInterviewService {
     });
 
     if (!session) {
-      throw new NotFoundException(
-        await this.i18n.t('video_interview.not_found', { lang }),
-      );
+      throw new NotFoundException(await this.i18n.t('video_interview.not_found', { lang }));
     }
     if (session.userId !== userId) {
-      throw new ForbiddenException(
-        await this.i18n.t('video_interview.forbidden', { lang }),
-      );
+      throw new ForbiddenException(await this.i18n.t('video_interview.forbidden', { lang }));
     }
 
     // Immediate soft-delete: clear PII, mark as expired
@@ -346,9 +317,7 @@ export class VideoInterviewService {
       );
     }
     if (application.job.company.userId !== employerId) {
-      throw new ForbiddenException(
-        await this.i18n.t('video_interview.forbidden', { lang }),
-      );
+      throw new ForbiddenException(await this.i18n.t('video_interview.forbidden', { lang }));
     }
 
     return this.prisma.videoInterview.findMany({

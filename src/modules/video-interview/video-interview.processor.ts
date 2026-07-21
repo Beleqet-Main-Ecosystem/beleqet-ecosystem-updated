@@ -200,7 +200,9 @@ export class VideoInterviewProcessor extends WorkerHost {
         }),
       ]);
 
-      this.logger.log(`Evaluation complete for session ${sessionId} — score: ${evaluation.overallScore}`);
+      this.logger.log(
+        `Evaluation complete for session ${sessionId} — score: ${evaluation.overallScore}`,
+      );
 
       await this.videoQueue.add(
         VIDEO_INTERVIEW_JOBS.NOTIFY_COMPLETE,
@@ -390,7 +392,9 @@ ${qa}`;
 
     const metadata = session.metadata as { questions: unknown[] };
     const totalQuestions = metadata.questions.length;
-    const transcribed = session.responses.filter((r) => r.processingStatus === 'TRANSCRIBED').length;
+    const transcribed = session.responses.filter(
+      (r) => r.processingStatus === 'TRANSCRIBED',
+    ).length;
 
     if (transcribed < totalQuestions) return;
 

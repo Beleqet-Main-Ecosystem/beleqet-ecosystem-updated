@@ -36,8 +36,25 @@ const SEARCH_HISTORY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 /** Common English stop-words filtered out of extracted keyword sets. */
 const STOP_WORDS = new Set([
-  'the', 'a', 'an', 'and', 'or', 'but', 'for', 'on', 'at', 'to', 'in',
-  'with', 'without', 'of', 'by', 'is', 'are', 'job', 'jobs',
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'but',
+  'for',
+  'on',
+  'at',
+  'to',
+  'in',
+  'with',
+  'without',
+  'of',
+  'by',
+  'is',
+  'are',
+  'job',
+  'jobs',
 ]);
 
 /**
@@ -282,9 +299,7 @@ export class AiFeedService {
     let score = 0;
 
     if (keywords.length > 0) {
-      const tokens = this.tokenize(
-        `${job.title} ${job.description} ${(job.tags ?? []).join(' ')}`,
-      );
+      const tokens = this.tokenize(`${job.title} ${job.description} ${(job.tags ?? []).join(' ')}`);
       const matches = keywords.filter((keyword) => tokens.has(keyword)).length;
       score += (matches / keywords.length) * KEYWORD_MATCH_WEIGHT;
     }
@@ -302,7 +317,12 @@ export class AiFeedService {
    * substrings.
    */
   private tokenize(text: string): Set<string> {
-    return new Set(text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+    return new Set(
+      text
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(Boolean),
+    );
   }
 
   /**
