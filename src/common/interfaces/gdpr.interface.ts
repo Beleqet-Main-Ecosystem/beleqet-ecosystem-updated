@@ -30,12 +30,15 @@ export class GdprUtil {
     }
 
     // Match and mask email addresses (e.g. bem...@domain.com)
-    let sanitized = text.replace(/([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (match: string, emailName: string, domain: string): string => {
-      if (emailName.length <= 4) {
-        return '****@' + domain;
-      }
-      return emailName.substring(0, 3) + '...' + emailName.slice(-1) + '@' + domain;
-    });
+    let sanitized = text.replace(
+      /([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+      (match: string, emailName: string, domain: string): string => {
+        if (emailName.length <= 4) {
+          return '****@' + domain;
+        }
+        return emailName.substring(0, 3) + '...' + emailName.slice(-1) + '@' + domain;
+      },
+    );
 
     // Match and mask typical phone numbers (e.g. +251 912 345 678 -> +251 912 *** ***)
     sanitized = sanitized.replace(/(\+?[0-9\s-]{7,15})/g, (match: string): string => {

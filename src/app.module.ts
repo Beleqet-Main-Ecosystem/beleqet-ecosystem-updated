@@ -40,6 +40,7 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -128,6 +129,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    HealthModule,
   ],
   providers: [
     {
@@ -136,4 +138,4 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

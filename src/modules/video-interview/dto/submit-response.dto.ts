@@ -18,7 +18,11 @@ export class SubmitResponseDto {
   @IsUrl()
   videoUrl: string;
 
-  @ApiPropertyOptional({ example: 'en', default: 'en', description: 'BCP-47 language tag for Whisper' })
+  @ApiPropertyOptional({
+    example: 'en',
+    default: 'en',
+    description: 'BCP-47 language tag for Whisper',
+  })
   @IsOptional()
   @IsString()
   language?: string;

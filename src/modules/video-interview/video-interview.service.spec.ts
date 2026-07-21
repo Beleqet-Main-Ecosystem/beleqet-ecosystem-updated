@@ -1,5 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
@@ -72,7 +77,9 @@ describe('VideoInterviewService', () => {
 
     it('throws NotFoundException when application does not exist', async () => {
       mockPrisma.application.findFirst.mockResolvedValue(null);
-      await expect(service.createSession(employerId, dto as never)).rejects.toBeInstanceOf(NotFoundException);
+      await expect(service.createSession(employerId, dto as never)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
 
     it('throws ForbiddenException when caller is not the job owner', async () => {
@@ -81,7 +88,9 @@ describe('VideoInterviewService', () => {
         userId: 'candidate-1',
         job: { company: { userId: 'other-employer' } },
       });
-      await expect(service.createSession(employerId, dto as never)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.createSession(employerId, dto as never)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
     });
 
     it('throws ConflictException when session already exists', async () => {
@@ -91,7 +100,9 @@ describe('VideoInterviewService', () => {
         job: { company: { userId: employerId } },
       });
       mockPrisma.videoInterview.findUnique.mockResolvedValue({ id: 'existing' });
-      await expect(service.createSession(employerId, dto as never)).rejects.toBeInstanceOf(ConflictException);
+      await expect(service.createSession(employerId, dto as never)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
     });
 
     it('creates and returns session on success', async () => {
@@ -127,7 +138,9 @@ describe('VideoInterviewService', () => {
         responses: [],
         evaluation: null,
       });
-      await expect(service.getSession('session-1', 'caller')).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.getSession('session-1', 'caller')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
     });
 
     it('returns session when authorized', async () => {
@@ -169,7 +182,9 @@ describe('VideoInterviewService', () => {
 
     it('throws ForbiddenException for wrong user', async () => {
       mockPrisma.videoInterview.findUnique.mockResolvedValue({ id: 's1', userId: 'u1' });
-      await expect(service.requestGdprDeletion('s1', 'intruder')).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.requestGdprDeletion('s1', 'intruder')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
     });
   });
 

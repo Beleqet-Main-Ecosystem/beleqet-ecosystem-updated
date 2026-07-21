@@ -3,7 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
-import { BullModule } from '@nestjs/bullmq'; 
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { QueuesModule } from '../queues/queues.module';
 import { QUEUE_NAMES } from '../queues/queues.constants';
@@ -35,7 +35,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
     QueuesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
-      useFactory: (configService: ConfigService) => {
+      useFactory: (_configService: ConfigService) => {
         const authConfig = loadAuthEnvConfig();
         return { secret: authConfig.jwtAccessSecret };
       },

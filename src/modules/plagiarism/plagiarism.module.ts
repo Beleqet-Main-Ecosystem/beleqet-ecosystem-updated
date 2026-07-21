@@ -16,7 +16,10 @@ import { ReportService } from './report/report.service';
 import { CosineService } from './similarity/cosine.service';
 import { JaccardService } from './similarity/jaccard.service';
 import { NgramService } from './similarity/ngram.service';
-import { ScoreAggregatorService, SimilarityEngineService } from './similarity/score-aggregator.service';
+import {
+  ScoreAggregatorService,
+  SimilarityEngineService,
+} from './similarity/score-aggregator.service';
 import { SemanticService } from './similarity/semantic.service';
 import { TokenizerService } from './tokenizer/tokenizer.service';
 import { NormalizationService } from './utils/normalization.service';
