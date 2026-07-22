@@ -87,8 +87,24 @@ export class SalaryProcessor extends WorkerHost {
       );
 
       const BATCH_SIZE = 20;
+      const now = new Date();
+
       for (let i = 0; i < stalePredictions.length; i += BATCH_SIZE) {
         const batch = stalePredictions.slice(i, i + BATCH_SIZE);
+
+        const jobTitles = [...new Set(batch.map((p) => p.jobTitle))];
+        const locations = [...new Set(batch.map((p) => p.location))];
+
+        const marketJobs = await this.prismaService.job.findMany({
+          where: {
+            title: { in: jobTitles, mode: 'insensitive' },
+            location: { in: locations, mode: 'insensitive' },
+            salaryMin: { not: null },
+            salaryMax: { not: null },
+          },
+          select: { title: true, location: true, salaryMin: true, salaryMax: true },
+        });
+
         await this.prismaService.$transaction(async (tx) => {
           for (const prediction of batch) {
             await tx.salaryHistory.create({
@@ -108,30 +124,7 @@ export class SalaryProcessor extends WorkerHost {
                 isAnonymized: true,
               },
             });
-          }
-        });
-      }
 
-      const now = new Date();
-      const batchSize = 20;
-      for (let i = 0; i < stalePredictions.length; i += batchSize) {
-        const batch = stalePredictions.slice(i, i + batchSize);
-
-        const jobTitles = [...new Set(batch.map((p) => p.jobTitle))];
-        const locations = [...new Set(batch.map((p) => p.location))];
-
-        const marketJobs = await this.prismaService.job.findMany({
-          where: {
-            title: { in: jobTitles, mode: 'insensitive' },
-            location: { in: locations, mode: 'insensitive' },
-            salaryMin: { not: null },
-            salaryMax: { not: null },
-          },
-          select: { title: true, location: true, salaryMin: true, salaryMax: true },
-        });
-
-        await this.prismaService.$transaction(async (tx) => {
-          for (const prediction of batch) {
             const relevantJobs = marketJobs.filter(
               (j) =>
                 j.title.toLowerCase().includes(prediction.jobTitle.toLowerCase()) ||
