@@ -24,6 +24,8 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
+import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
 
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
@@ -40,6 +42,7 @@ import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -115,6 +118,8 @@ import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.mod
     UploadsModule,
     TelegramModule,
     ContactModule,
+    VideoInterviewModule,
+    PlagiarismModule,
     InterviewPlannerModule,
     AnomalySensorModule,
     AdminStatsModule,
@@ -128,6 +133,7 @@ import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.mod
     ResumeBrainModule,
     SmartSkillTesterModule,
     TaxCalculatorModule,
+    HealthModule,
   ],
   providers: [
     {

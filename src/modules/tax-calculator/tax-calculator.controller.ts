@@ -10,10 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { I18nService } from 'nestjs-i18n';
-import {
-  CalculateTaxDto,
-  TaxCalculationResult,
-} from './dto/calculate-tax.dto';
+import { CalculateTaxDto, TaxCalculationResult } from './dto/calculate-tax.dto';
 import { TaxCalculatorService } from './tax-calculator.service';
 
 @ApiTags('tax-calculator')
@@ -35,8 +32,7 @@ export class TaxCalculatorController {
   @ApiResponse({ status: 200, description: 'Tax calculation result' })
   @ApiResponse({
     status: 400,
-    description:
-      'Validation failed, unsupported jurisdiction, or currency/jurisdiction mismatch',
+    description: 'Validation failed, unsupported jurisdiction, or currency/jurisdiction mismatch',
   })
   async calculate(@Body() dto: CalculateTaxDto): Promise<TaxCalculationResult> {
     try {
@@ -72,12 +68,11 @@ export class TaxCalculatorController {
       typeof response === 'object' && response !== null
         ? (response as Record<string, unknown>)
         : {};
-    const errorCode =
-      typeof payload.errorCode === 'string' ? payload.errorCode : undefined;
+    const errorCode = typeof payload.errorCode === 'string' ? payload.errorCode : undefined;
     const countryCode =
       (typeof payload.countryCode === 'string'
         ? payload.countryCode
-        : dto.countryCode?.toUpperCase?.() ?? dto.countryCode) || undefined;
+        : (dto.countryCode?.toUpperCase?.() ?? dto.countryCode)) || undefined;
 
     if (errorCode === 'ERR_TAX_CURRENCY_MISMATCH') {
       const expectedCurrency =

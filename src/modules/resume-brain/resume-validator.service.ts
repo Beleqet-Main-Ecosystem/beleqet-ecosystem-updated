@@ -1,10 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync, ValidationError } from 'class-validator';
-import {
-  ExtractedResume,
-  ExtractedResumeDto,
-} from './dto/extracted-resume.dto';
+import { ExtractedResume, ExtractedResumeDto } from './dto/extracted-resume.dto';
 
 /**
  * ResumeValidatorService

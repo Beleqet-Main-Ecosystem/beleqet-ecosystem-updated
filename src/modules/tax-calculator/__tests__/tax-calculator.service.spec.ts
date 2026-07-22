@@ -253,8 +253,7 @@ describe('TaxCalculatorService', () => {
 
       const expectedRate =
         Number(
-          (BigInt(result.taxAmount) * 1_000_000n +
-            BigInt(result.grossIncome) / 2n) /
+          (BigInt(result.taxAmount) * 1_000_000n + BigInt(result.grossIncome) / 2n) /
             BigInt(result.grossIncome),
         ) / 1_000_000;
 
@@ -336,8 +335,7 @@ describe('TaxCalculatorService', () => {
 
       const expectedRate =
         Number(
-          (BigInt(result.taxAmount) * 1_000_000n +
-            BigInt(result.grossIncome) / 2n) /
+          (BigInt(result.taxAmount) * 1_000_000n + BigInt(result.grossIncome) / 2n) /
             BigInt(result.grossIncome),
         ) / 1_000_000;
 
@@ -377,10 +375,7 @@ describe('TaxCalculatorService', () => {
         fail('expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_UNSUPPORTED_JURISDICTION');
         expect(String(body.message)).toMatch(/Unsupported tax jurisdiction/);
       }
@@ -398,10 +393,7 @@ describe('TaxCalculatorService', () => {
         fail('expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_CURRENCY_MISMATCH');
         expect(body.expectedCurrency).toBe('ETB');
       }
@@ -417,10 +409,7 @@ describe('TaxCalculatorService', () => {
         fail('expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_CURRENCY_MISMATCH');
         expect(body.expectedCurrency).toBe('USD');
       }
@@ -461,10 +450,7 @@ describe('TaxCalculatorService', () => {
         fail('expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_INVALID_GROSS_INCOME');
       }
     });

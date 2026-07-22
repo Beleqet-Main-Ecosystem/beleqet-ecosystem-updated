@@ -31,44 +31,48 @@ describe('KycController', () => {
 
   describe('submitKyc', () => {
     const mockUser = { userId: 'user-1', email: 'test@beleqet.com', role: 'FREELANCER' };
-    const mockFile = { buffer: Buffer.from('test'), originalname: 'test.jpg', mimetype: 'image/jpeg' } as KycUploadFile;
+    const mockFile = {
+      buffer: Buffer.from('test'),
+      originalname: 'test.jpg',
+      mimetype: 'image/jpeg',
+    } as KycUploadFile;
 
     it('should throw BadRequestException if files are missing', async () => {
       const dto: SubmitKycDto = { documentType: KycDocumentType.PASSPORT };
-      
+
       await expect(
-        controller.submitKyc(
-          { document: undefined, faceScan: undefined },
-          mockUser,
-          dto,
-        ),
+        controller.submitKyc({ document: undefined, faceScan: undefined }, mockUser, dto),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if files exceed 5MB', async () => {
       const dto: SubmitKycDto = { documentType: KycDocumentType.PASSPORT };
-      const largeFile = { buffer: Buffer.alloc(6 * 1024 * 1024), originalname: 'large.jpg', mimetype: 'image/jpeg' } as KycUploadFile;
+      const largeFile = {
+        buffer: Buffer.alloc(6 * 1024 * 1024),
+        originalname: 'large.jpg',
+        mimetype: 'image/jpeg',
+      } as KycUploadFile;
       const files = {
         document: [largeFile],
         faceScan: [mockFile],
       };
 
-      await expect(
-        controller.submitKyc(files, mockUser, dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(controller.submitKyc(files, mockUser, dto)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if files are not image mimetypes', async () => {
       const dto: SubmitKycDto = { documentType: KycDocumentType.PASSPORT };
-      const invalidFile = { buffer: Buffer.from('test'), originalname: 'doc.pdf', mimetype: 'application/pdf' } as KycUploadFile;
+      const invalidFile = {
+        buffer: Buffer.from('test'),
+        originalname: 'doc.pdf',
+        mimetype: 'application/pdf',
+      } as KycUploadFile;
       const files = {
         document: [invalidFile],
         faceScan: [mockFile],
       };
 
-      await expect(
-        controller.submitKyc(files, mockUser, dto),
-      ).rejects.toThrow(BadRequestException);
+      await expect(controller.submitKyc(files, mockUser, dto)).rejects.toThrow(BadRequestException);
     });
 
     it('should submit verification details when valid files are uploaded', async () => {
@@ -123,7 +127,11 @@ describe('KycController', () => {
       const result = await controller.reject('kyc-1', mockAdmin, dto);
 
       expect(result.status).toBe(KycStatus.REJECTED);
-      expect(mockKycService.rejectVerification).toHaveBeenCalledWith('kyc-1', 'admin-1', 'ID mismatch');
+      expect(mockKycService.rejectVerification).toHaveBeenCalledWith(
+        'kyc-1',
+        'admin-1',
+        'ID mismatch',
+      );
     });
   });
 });

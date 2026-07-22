@@ -33,6 +33,7 @@ model User {
   applications          Application[]
   bids                  Bid[]
   candidateScores       CandidateScore[]
+  videoInterviews       VideoInterview[]
   chatParticipants      ChatParticipant[]
   company               Company?
   contractsAsClient     Contract[]          @relation("ContractClient")
@@ -305,6 +306,7 @@ model Application {
   job              Job               @relation(fields: [jobId], references: [id])
   user             User              @relation(fields: [userId], references: [id])
   score            CandidateScore?
+  videoInterview   VideoInterview?
   interview        Interview?
 
   @@unique([jobId, userId])
@@ -756,6 +758,96 @@ enum NotificationChannel {
   IN_APP
   TELEGRAM
   EMAIL
+}
+
+// ── AI Video Interview ─────────────────────────────────────────────────────
+
+enum VideoInterviewStatus {
+  PENDING
+  IN_PROGRESS
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+/// AI video interview session linked to a job application.
+/// metadata (JSONB) holds question config; GIN index enables fast JSONB queries.
+/// GDPR: gdprDeleteAt drives scheduled hard-delete of all PII + video files.
+model VideoInterview {
+  id            String               @id @default(uuid())
+  applicationId String               @unique
+  userId        String
+  status        VideoInterviewStatus @default(PENDING)
+  /// JSONB: { questions: [{id, text, durationSec}], locale, jobTitle }
+  metadata      Json
+  scheduledAt   DateTime?
+  expiresAt     DateTime?
+  /// GDPR retention window — hard-delete after this date (default 90 days)
+  gdprDeleteAt  DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  application   Application          @relation(fields: [applicationId], references: [id])
+  user          User                 @relation(fields: [userId], references: [id])
+  responses     VideoResponse[]
+  evaluation    InterviewEvaluation?
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+  @@index([metadata], type: Gin)
+  @@map("video_interviews")
+}
+
+/// One row per question response within a VideoInterview.
+/// rawWhisperResponse (JSONB) stores the full Whisper API payload;
+/// GIN index allows querying by language/word-level timestamps.
+model VideoResponse {
+  id                   String         @id @default(uuid())
+  videoInterviewId     String
+  questionIndex        Int
+  /// S3 presigned URL — files auto-deleted after gdprDeleteAt
+  videoUrl             String?
+  transcript           String?
+  /// Full Whisper response: { text, segments, language, duration }
+  rawWhisperResponse   Json?
+  processingDurationMs Int?
+  language             String         @default("en")
+  /// PENDING | TRANSCRIBING | TRANSCRIBED | FAILED
+  processingStatus     String         @default("PENDING")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  videoInterview       VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+
+  @@unique([videoInterviewId, questionIndex])
+  @@index([videoInterviewId, questionIndex])
+  @@index([rawWhisperResponse], type: Gin)
+  @@map("video_responses")
+}
+
+/// AI evaluation result for a completed interview.
+/// scores (JSONB) holds per-question and trait scores for flexible querying.
+/// rawAiResponse stores the full Ollama/OpenAI output for audit purposes.
+model InterviewEvaluation {
+  id               String         @id @default(uuid())
+  videoInterviewId String         @unique
+  overallScore     Float
+  /// JSONB: { perQuestion: [{idx, score, feedback}], traits: {communication, clarity} }
+  scores           Json
+  reasoning        String?
+  /// Raw model output for audit trail
+  rawAiResponse    Json?
+  modelUsed        String         @default("llama3")
+  /// GDPR: matches parent VideoInterview.gdprDeleteAt
+  gdprDeleteAt     DateTime
+  evaluatedAt      DateTime       @default(now())
+
+  videoInterview   VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+
+  @@index([scores], type: Gin)
+  @@index([rawAiResponse], type: Gin)
+  @@map("interview_evaluations")
 }
 
 enum InterviewStatus {

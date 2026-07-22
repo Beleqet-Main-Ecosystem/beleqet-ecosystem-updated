@@ -4,7 +4,8 @@ import { EncryptionService } from './encryption.service';
 
 const mockConfigService = {
   get: jest.fn((key: string) => {
-    if (key === 'TOTP_ENCRYPTION_KEY') return '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+    if (key === 'TOTP_ENCRYPTION_KEY')
+      return '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
     return undefined;
   }),
 };
@@ -14,10 +15,7 @@ describe('EncryptionService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        EncryptionService,
-        { provide: ConfigService, useValue: mockConfigService },
-      ],
+      providers: [EncryptionService, { provide: ConfigService, useValue: mockConfigService }],
     }).compile();
 
     service = module.get<EncryptionService>(EncryptionService);
@@ -52,7 +50,8 @@ describe('EncryptionService', () => {
 
     const wrongConfig = {
       get: jest.fn((key: string) => {
-        if (key === 'TOTP_ENCRYPTION_KEY') return 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+        if (key === 'TOTP_ENCRYPTION_KEY')
+          return 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
         return undefined;
       }),
     };

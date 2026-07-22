@@ -63,10 +63,7 @@ export class DbIndexMasterService {
    * @throws BadRequestException  if DDL / dangerous keywords are present.
    * @throws InternalServerErrorException on query execution failure.
    */
-  async explainQuery(
-    sql: string,
-    params: unknown[] = [],
-  ): Promise<ExplainResult> {
+  async explainQuery(sql: string, _params: unknown[] = []): Promise<ExplainResult> {
     this.validateQuerySql(sql);
 
     const sanitisedForLog = this.sanitiseSqlForLog(sql);
@@ -163,10 +160,7 @@ export class DbIndexMasterService {
 
     const suggestions = this.generateSuggestions(seqTables);
 
-    const totalIndexSizeBytes = allIndexes.reduce(
-      (acc, r) => acc + Number(r.sizeBytes ?? 0),
-      0,
-    );
+    const totalIndexSizeBytes = allIndexes.reduce((acc, r) => acc + Number(r.sizeBytes ?? 0), 0);
 
     return {
       generatedAt: new Date().toISOString(),
@@ -205,8 +199,8 @@ export class DbIndexMasterService {
       /\bINSERT\b/i,
       /\bGRANT\b/i,
       /\bREVOKE\b/i,
-      /;\s*--/,        // SQL injection via comment after semicolon
-      /;.*\w/,         // multiple statements
+      /;\s*--/, // SQL injection via comment after semicolon
+      /;.*\w/, // multiple statements
     ];
 
     for (const pattern of BLOCKED_PATTERNS) {
@@ -224,7 +218,7 @@ export class DbIndexMasterService {
    */
   private sanitiseSqlForLog(sql: string): string {
     return sql
-      .replace(/'[^']*'/g, "'[REDACTED]'")   // single-quoted strings
+      .replace(/'[^']*'/g, "'[REDACTED]'") // single-quoted strings
       .replace(/"[^"]{20,}"/g, '"[REDACTED]"') // long double-quoted identifiers
       .replace(/\s+/g, ' ')
       .trim();
@@ -239,18 +233,18 @@ export class DbIndexMasterService {
   ): ExplainResult['summary'] {
     const root = plan['Plan'] as Record<string, unknown> | undefined;
 
-    const totalCost   = (root?.['Total Cost']   as number) ?? 0;
-    const actualMs    = (root?.['Actual Total Time'] as number) ?? 0;
-    const rows        = (root?.['Actual Rows']   as number) ?? 0;
-    const planType    = (root?.['Node Type']     as string) ?? 'Unknown';
-    const seqScan     = this.treeContains(root, 'Seq Scan');
-    const indexScan   = this.treeContains(root, 'Index Scan');
+    const totalCost = (root?.['Total Cost'] as number) ?? 0;
+    const actualMs = (root?.['Actual Total Time'] as number) ?? 0;
+    const rows = (root?.['Actual Rows'] as number) ?? 0;
+    const planType = (root?.['Node Type'] as string) ?? 'Unknown';
+    const seqScan = this.treeContains(root, 'Seq Scan');
+    const indexScan = this.treeContains(root, 'Index Scan');
     const indexOnlyScan = this.treeContains(root, 'Index Only Scan');
 
     const warning: string[] = [];
-    if (seqScan)      warning.push('Sequential scan detected — consider adding an index.');
+    if (seqScan) warning.push('Sequential scan detected — consider adding an index.');
     if (totalCost > 10_000) warning.push('High estimated cost — query may be slow on large data.');
-    if (actualMs > 1_000)   warning.push('Execution time exceeded 1 second.');
+    if (actualMs > 1_000) warning.push('Execution time exceeded 1 second.');
 
     const suggestion = this.suggestIndexTypeFromPlan(originalSql, root);
 
@@ -270,10 +264,7 @@ export class DbIndexMasterService {
    * Recursively check whether a plan node or any of its children uses a
    * particular node type (e.g. "Seq Scan").
    */
-  private treeContains(
-    node: Record<string, unknown> | undefined,
-    nodeType: string,
-  ): boolean {
+  private treeContains(node: Record<string, unknown> | undefined, nodeType: string): boolean {
     if (!node) return false;
     if (node['Node Type'] === nodeType) return true;
     const plans = node['Plans'] as Record<string, unknown>[] | undefined;
@@ -325,9 +316,9 @@ export class DbIndexMasterService {
 
   /** Human-readable byte formatter (no external dependency). */
   private bytesToHuman(bytes: number): string {
-    if (bytes < 1_024)          return `${bytes} B`;
-    if (bytes < 1_048_576)      return `${(bytes / 1_024).toFixed(1)} KB`;
-    if (bytes < 1_073_741_824)  return `${(bytes / 1_048_576).toFixed(1)} MB`;
+    if (bytes < 1_024) return `${bytes} B`;
+    if (bytes < 1_048_576) return `${(bytes / 1_024).toFixed(1)} KB`;
+    if (bytes < 1_073_741_824) return `${(bytes / 1_048_576).toFixed(1)} MB`;
     return `${(bytes / 1_073_741_824).toFixed(2)} GB`;
   }
 }

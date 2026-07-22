@@ -1,9 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import {
-  CalculateTaxDto,
-  TaxCalculationResult,
-  TaxCurrency,
-} from './dto/calculate-tax.dto';
+import { CalculateTaxDto, TaxCalculationResult, TaxCurrency } from './dto/calculate-tax.dto';
 
 interface TaxBracket {
   upToExclusive: number | null;
@@ -87,10 +83,7 @@ export class TaxCalculatorService {
     };
   }
 
-  private assertCurrencyMatchesJurisdiction(
-    countryCode: string,
-    currency: TaxCurrency,
-  ): void {
+  private assertCurrencyMatchesJurisdiction(countryCode: string, currency: TaxCurrency): void {
     if (countryCode !== 'ET' && countryCode !== 'US') {
       return;
     }
@@ -113,8 +106,7 @@ export class TaxCalculatorService {
       throw new BadRequestException({
         statusCode: 400,
         errorCode: 'ERR_TAX_INVALID_GROSS_INCOME',
-        message:
-          'grossIncome must be a finite number in smallest currency units.',
+        message: 'grossIncome must be a finite number in smallest currency units.',
       });
     }
 
@@ -181,9 +173,7 @@ export class TaxCalculatorService {
       }
 
       const sliceCeiling =
-        upperBound === null
-          ? incomeSmallest
-          : Math.min(incomeSmallest, upperBound);
+        upperBound === null ? incomeSmallest : Math.min(incomeSmallest, upperBound);
       const taxableInBand = sliceCeiling - lowerBound;
 
       if (taxableInBand > 0) {
@@ -216,8 +206,7 @@ export class TaxCalculatorService {
     }
 
     const scaled =
-      (BigInt(taxAmount) * 1_000_000n + BigInt(grossIncome) / 2n) /
-      BigInt(grossIncome);
+      (BigInt(taxAmount) * 1_000_000n + BigInt(grossIncome) / 2n) / BigInt(grossIncome);
 
     return Number(scaled) / 1_000_000;
   }

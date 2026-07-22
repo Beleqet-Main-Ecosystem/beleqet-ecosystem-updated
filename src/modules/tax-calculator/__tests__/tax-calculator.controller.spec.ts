@@ -6,11 +6,7 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import {
-  CalculateTaxDto,
-  TaxCurrency,
-  TaxCalculationResult,
-} from '../dto/calculate-tax.dto';
+import { CalculateTaxDto, TaxCurrency, TaxCalculationResult } from '../dto/calculate-tax.dto';
 import { TaxCalculatorController } from '../tax-calculator.controller';
 import { TaxCalculatorService } from '../tax-calculator.service';
 
@@ -113,9 +109,7 @@ describe('TaxCalculatorController', () => {
       taxCalculatorService.calculate.mockImplementation(() => {
         throw serviceError;
       });
-      i18nService.t.mockResolvedValue(
-        'Translated: unsupported jurisdiction "XX"',
-      );
+      i18nService.t.mockResolvedValue('Translated: unsupported jurisdiction "XX"');
 
       const dto: CalculateTaxDto = {
         grossIncome: 1_000_000,
@@ -123,19 +117,14 @@ describe('TaxCalculatorController', () => {
         countryCode: 'XX',
       };
 
-      await expect(controller.calculate(dto)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(controller.calculate(dto)).rejects.toBeInstanceOf(BadRequestException);
 
       try {
         await controller.calculate(dto);
         fail('expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_UNSUPPORTED_JURISDICTION');
         expect(body.message).toBe('Translated: unsupported jurisdiction "XX"');
         expect(body.countryCode).toBe('XX');
@@ -169,14 +158,9 @@ describe('TaxCalculatorController', () => {
         });
         fail('expected BadRequestException');
       } catch (error) {
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_UNSUPPORTED_JURISDICTION');
-        expect(body.message).toBe(
-          'Unsupported tax jurisdiction "ZZ". Supported: ET, US.',
-        );
+        expect(body.message).toBe('Unsupported tax jurisdiction "ZZ". Supported: ET, US.');
       }
     });
   });
@@ -193,9 +177,7 @@ describe('TaxCalculatorController', () => {
           expectedCurrency: 'ETB',
         });
       });
-      i18nService.t.mockResolvedValue(
-        'Translated: currency USD does not match ET (expected ETB)',
-      );
+      i18nService.t.mockResolvedValue('Translated: currency USD does not match ET (expected ETB)');
 
       const dto: CalculateTaxDto = {
         grossIncome: 1_000_000,
@@ -208,14 +190,9 @@ describe('TaxCalculatorController', () => {
         fail('expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_CURRENCY_MISMATCH');
-        expect(body.message).toBe(
-          'Translated: currency USD does not match ET (expected ETB)',
-        );
+        expect(body.message).toBe('Translated: currency USD does not match ET (expected ETB)');
         expect(body.countryCode).toBe('ET');
         expect(body.currency).toBe(TaxCurrency.USD);
         expect(body.expectedCurrency).toBe('ETB');
@@ -251,10 +228,7 @@ describe('TaxCalculatorController', () => {
         });
         fail('expected BadRequestException');
       } catch (error) {
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_CURRENCY_MISMATCH');
         expect(body.expectedCurrency).toBe('USD');
         expect(body.message).toBe('US requires USD');
@@ -280,10 +254,7 @@ describe('TaxCalculatorController', () => {
         });
         fail('expected BadRequestException');
       } catch (error) {
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_INVALID_GROSS_INCOME');
         expect(body.message).toBe('Translated: invalid gross income');
       }
@@ -309,9 +280,10 @@ describe('TaxCalculatorController', () => {
         fail('expected InternalServerErrorException');
       } catch (error) {
         expect(error).toBeInstanceOf(InternalServerErrorException);
-        const body = (
-          error as InternalServerErrorException
-        ).getResponse() as Record<string, unknown>;
+        const body = (error as InternalServerErrorException).getResponse() as Record<
+          string,
+          unknown
+        >;
         expect(body.errorCode).toBe('ERR_TAX_CALCULATION_FAILED');
         expect(body.message).toBe('Translated: calculation failed');
         expect(body.statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -326,10 +298,7 @@ describe('TaxCalculatorController', () => {
     });
 
     it('re-throws non-BadRequest HttpException without i18n remapping', async () => {
-      const conflict = new HttpException(
-        'Conflict from upstream',
-        HttpStatus.CONFLICT,
-      );
+      const conflict = new HttpException('Conflict from upstream', HttpStatus.CONFLICT);
       taxCalculatorService.calculate.mockImplementation(() => {
         throw conflict;
       });
@@ -348,10 +317,7 @@ describe('TaxCalculatorController', () => {
         await controller.calculate(etDto);
         fail('expected BadRequestException');
       } catch (error) {
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.errorCode).toBe('ERR_TAX_UNSUPPORTED_JURISDICTION');
         expect(body.message).toBe('Translated fallback unsupported');
         expect(body.countryCode).toBe('ET');
@@ -388,10 +354,7 @@ describe('TaxCalculatorController', () => {
         await pending;
         fail('expected BadRequestException');
       } catch (error) {
-        const body = (error as BadRequestException).getResponse() as Record<
-          string,
-          unknown
-        >;
+        const body = (error as BadRequestException).getResponse() as Record<string, unknown>;
         expect(body.message).toBe('Amharic unsupported XX');
         expect(body.message).not.toBe('[object Promise]');
       }
