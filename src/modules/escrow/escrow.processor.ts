@@ -213,42 +213,63 @@ export class EscrowProcessor extends WorkerHost {
     const releaseAt = new Date(job.data.releaseAt);
     if (releaseAt > new Date()) {
       const delayMs = releaseAt.getTime() - Date.now();
-      await this.escrowQueue.add(EscrowJobs.AUTO_RELEASE, job.data, { delay: delayMs });
+      await this.escrowQueue.add(EscrowJobs.AUTO_RELEASE, job.data, {
+        delay: delayMs,
+        jobId: `auto-release:${milestoneId}`,
+      });
       return;
     }
 
-    const wallet = await this.prisma.freelancerWallet.upsert({
-      where: { userId: freelancerId },
-      update: {
-        pendingBalance: { decrement: amount },
-        availableBalance: { increment: amount },
-      },
-      create: {
-        userId: freelancerId,
-        pendingBalance: 0,
-        availableBalance: amount,
-      },
+    const credited = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.$queryRaw`SELECT id FROM "milestones" WHERE id = ${milestoneId} FOR UPDATE`;
+
+      const alreadyCredited = await tx.eventLog.findFirst({
+        where: { eventType: 'wallet.credited', entityId: milestoneId },
+      });
+      if (alreadyCredited) {
+        return false;
+      }
+
+      const wallet = await tx.freelancerWallet.upsert({
+        where: { userId: freelancerId },
+        update: {
+          pendingBalance: { decrement: amount },
+          availableBalance: { increment: amount },
+        },
+        create: {
+          userId: freelancerId,
+          pendingBalance: 0,
+          availableBalance: amount,
+        },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          type: 'CREDIT_AVAILABLE',
+          amount,
+          note: 'Milestone payout cleared - 3-day hold complete',
+          milestoneId,
+        },
+      });
+
+      await tx.eventLog.create({
+        data: {
+          eventType: 'wallet.credited',
+          entityId: milestoneId,
+          entityType: 'Milestone',
+          payload: { milestoneId, freelancerId, amount },
+          processedBy: EscrowProcessor.name,
+        },
+      });
+
+      return true;
     });
 
-    await this.prisma.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        type: 'CREDIT_AVAILABLE',
-        amount,
-        note: 'Milestone payout cleared - 3-day hold complete',
-        milestoneId,
-      },
-    });
-
-    await this.prisma.eventLog.create({
-      data: {
-        eventType: 'wallet.credited',
-        entityId: milestoneId,
-        entityType: 'Milestone',
-        payload: { milestoneId, freelancerId, amount },
-        processedBy: EscrowProcessor.name,
-      },
-    });
+    if (!credited) {
+      this.logger.debug(`[auto-release] Milestone ${milestoneId} already credited; skipping`);
+      return;
+    }
 
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
       userId: freelancerId,
@@ -308,27 +329,27 @@ export class EscrowProcessor extends WorkerHost {
   }
 
   private async releaseLockedFunds(escrowId: string, clientId: string, amount: number) {
-    const escrow = await this.prisma.escrowTransaction.findUnique({ where: { id: escrowId } });
-    if (!escrow || escrow.status === 'FUNDED' || escrow.status === 'REFUNDED') {
-      return;
-    }
+    const released = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const wallet = await tx.employerWallet.findUnique({ where: { userId: clientId } });
+      if (!wallet) return false;
 
-    const wallet = await this.prisma.employerWallet.findUnique({ where: { userId: clientId } });
-    if (!wallet) return;
-
-    await this.prisma.$transaction([
-      this.prisma.escrowTransaction.update({
-        where: { id: escrowId },
+      const refundClaim = await tx.escrowTransaction.updateMany({
+        where: { id: escrowId, status: { notIn: ['FUNDED', 'REFUNDED'] } },
         data: { status: 'REFUNDED' },
-      }),
-      this.prisma.employerWallet.update({
+      });
+      if (refundClaim.count === 0) {
+        return false;
+      }
+
+      await tx.employerWallet.update({
         where: { id: wallet.id },
         data: {
           lockedBalance: { decrement: amount },
           balance: { increment: amount },
         },
-      }),
-      this.prisma.employerWalletTransaction.create({
+      });
+
+      await tx.employerWalletTransaction.create({
         data: {
           walletId: wallet.id,
           type: 'CREDIT_AVAILABLE',
@@ -336,8 +357,12 @@ export class EscrowProcessor extends WorkerHost {
           note: `Refund for failed/abandoned escrow ${escrowId}`,
           escrowId,
         },
-      }),
-    ]);
+      });
+
+      return true;
+    });
+
+    if (!released) return;
 
     this.logger.log(
       `[unlock-funds] Released ETB ${amount} back to employer ${clientId} for abandoned escrow ${escrowId}`,

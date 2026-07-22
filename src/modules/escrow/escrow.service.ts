@@ -17,7 +17,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { ChapaClient } from '../chapa/chapa.client';
 import { ChapaWebhookPayload } from '../chapa/chapa.types';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
-import { applyMilestoneConfirmation, isMilestoneFullyConfirmed } from './escrow-state';
+import { isMilestoneFullyConfirmed } from './escrow-state';
 
 const PLATFORM_FEE_PCT = 0.1;
 const MILESTONE_HOLD_MS = 3 * 24 * 60 * 60 * 1000;
@@ -25,6 +25,7 @@ const MILESTONE_HOLD_MS = 3 * 24 * 60 * 60 * 1000;
 type MilestoneWithEscrow = Prisma.MilestoneGetPayload<{
   include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } };
 }>;
+type MilestoneActor = 'EMPLOYER' | 'FREELANCER';
 
 @Injectable()
 export class EscrowService {
@@ -210,57 +211,7 @@ export class EscrowService {
   async confirmMilestone(milestoneId: string, userId: string, _dto: ConfirmMilestoneDto = {}) {
     void _dto;
 
-    const milestone = await this.prisma.milestone.findFirst({
-      where: {
-        id: milestoneId,
-        contract: { OR: [{ clientId: userId }, { freelancerId: userId }] },
-      },
-      include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
-    });
-    if (!milestone) throw new NotFoundException('Milestone not found');
-
-    const escrow = milestone.contract.freelanceJob.escrowTx;
-    if (!escrow || escrow.status !== 'FUNDED') {
-      throw new ConflictException('Escrow must be funded before milestone confirmation.');
-    }
-
-    const actor = milestone.contract.clientId === userId ? 'EMPLOYER' : 'FREELANCER';
-    const next = applyMilestoneConfirmation(
-      {
-        employerApprovedAt: milestone.employerApprovedAt,
-        freelancerApprovedAt: milestone.freelancerApprovedAt,
-      },
-      actor,
-    );
-
-    const updated = await this.prisma.milestone.update({
-      where: { id: milestoneId },
-      data: {
-        employerApprovedAt: next.employerApprovedAt,
-        freelancerApprovedAt: next.freelancerApprovedAt,
-      },
-      include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
-    });
-
-    await this.prisma.eventLog.create({
-      data: {
-        eventType: 'milestone.confirmed',
-        entityId: milestoneId,
-        entityType: 'Milestone',
-        payload: { actor, userId, milestoneId },
-        processedBy: EscrowService.name,
-      },
-    });
-
-    if (!isMilestoneFullyConfirmed(updated)) {
-      return {
-        success: true,
-        released: false,
-        waitingFor: actor === 'EMPLOYER' ? 'FREELANCER' : 'EMPLOYER',
-      };
-    }
-
-    return this.queueMilestoneRelease(updated);
+    return this.recordMilestoneConfirmation(milestoneId, userId);
   }
 
   /**
@@ -269,35 +220,70 @@ export class EscrowService {
    * release, satisfying the two-party escrow requirement.
    */
   async releaseMilestone(milestoneId: string, clientId: string) {
-    const milestone = await this.prisma.milestone.findFirst({
-      where: { id: milestoneId, contract: { clientId } },
-      include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
-    });
-    if (!milestone) throw new NotFoundException('Milestone not found');
+    return this.recordMilestoneConfirmation(milestoneId, clientId, 'EMPLOYER');
+  }
 
-    if (
-      !milestone.contract.freelanceJob.escrowTx ||
-      milestone.contract.freelanceJob.escrowTx.status !== 'FUNDED'
-    ) {
-      throw new ConflictException('Escrow must be funded before milestone release.');
-    }
+  private async recordMilestoneConfirmation(
+    milestoneId: string,
+    userId: string,
+    requiredActor?: MilestoneActor,
+  ) {
+    const { actor, updated } = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        await tx.$queryRaw`SELECT id FROM "milestones" WHERE id = ${milestoneId} FOR UPDATE`;
 
-    const next = applyMilestoneConfirmation(
-      {
-        employerApprovedAt: milestone.employerApprovedAt,
-        freelancerApprovedAt: milestone.freelancerApprovedAt,
+        const milestone = await tx.milestone.findFirst({
+          where: {
+            id: milestoneId,
+            contract: { OR: [{ clientId: userId }, { freelancerId: userId }] },
+          },
+          include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
+        });
+        if (!milestone) throw new NotFoundException('Milestone not found');
+
+        const escrow = milestone.contract.freelanceJob.escrowTx;
+        if (!escrow || escrow.status !== 'FUNDED') {
+          throw new ConflictException('Escrow must be funded before milestone confirmation.');
+        }
+
+        const actor: MilestoneActor =
+          milestone.contract.clientId === userId ? 'EMPLOYER' : 'FREELANCER';
+        if (requiredActor && actor !== requiredActor) {
+          throw new NotFoundException('Milestone not found');
+        }
+
+        const confirmedAt = new Date();
+        const confirmationData =
+          actor === 'EMPLOYER'
+            ? { employerApprovedAt: milestone.employerApprovedAt ?? confirmedAt }
+            : { freelancerApprovedAt: milestone.freelancerApprovedAt ?? confirmedAt };
+
+        const updated = await tx.milestone.update({
+          where: { id: milestoneId },
+          data: confirmationData,
+          include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
+        });
+
+        await tx.eventLog.create({
+          data: {
+            eventType: 'milestone.confirmed',
+            entityId: milestoneId,
+            entityType: 'Milestone',
+            payload: { actor, userId, milestoneId },
+            processedBy: EscrowService.name,
+          },
+        });
+
+        return { actor, updated };
       },
-      'EMPLOYER',
     );
 
-    const updated = await this.prisma.milestone.update({
-      where: { id: milestoneId },
-      data: { employerApprovedAt: next.employerApprovedAt },
-      include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
-    });
-
     if (!isMilestoneFullyConfirmed(updated)) {
-      return { success: true, released: false, waitingFor: 'FREELANCER' };
+      return {
+        success: true,
+        released: false,
+        waitingFor: actor === 'EMPLOYER' ? 'FREELANCER' : 'EMPLOYER',
+      };
     }
 
     return this.queueMilestoneRelease(updated);
@@ -323,11 +309,14 @@ export class EscrowService {
 
     const approvedAt = new Date();
 
-    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.milestone.update({
-        where: { id: milestone.id },
+    const claimedApproval = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const approval = await tx.milestone.updateMany({
+        where: { id: milestone.id, status: { not: 'APPROVED' } },
         data: { status: 'APPROVED', approvedAt },
       });
+      if (approval.count === 0) {
+        return false;
+      }
 
       const wallet = await tx.freelancerWallet.upsert({
         where: { userId: milestone.contract.freelancerId },
@@ -362,7 +351,18 @@ export class EscrowService {
           processedBy: EscrowService.name,
         },
       });
+
+      return true;
     });
+
+    if (!claimedApproval) {
+      await this.enqueueMilestoneAutoRelease(
+        milestone,
+        netAmountInETB,
+        milestone.approvedAt ?? approvedAt,
+      );
+      return { success: true, released: true, alreadyReleased: true };
+    }
 
     await this.enqueueMilestoneAutoRelease(milestone, netAmountInETB, approvedAt);
 
