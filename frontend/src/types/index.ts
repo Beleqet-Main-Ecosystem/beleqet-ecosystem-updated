@@ -56,3 +56,33 @@ export interface StatCardData {
   icon: ReactNode;
   color: string;
 }
+
+/** Notification item from the backend */
+export interface Notification {
+  id: string;
+  userId: string;
+  channel: 'IN_APP' | 'EMAIL' | 'TELEGRAM' | 'PUSH' | 'SMS';
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+/** Notification channel */
+export type NotificationChannel = 'IN_APP' | 'EMAIL' | 'TELEGRAM' | 'PUSH' | 'SMS';
+
+/** Notification preference settings */
+export interface NotificationPreference {
+  id: string;
+  userId: string;
+  emailEnabled: boolean;
+  telegramEnabled: boolean;
+  inAppEnabled: boolean;
+  pushEnabled: boolean;
+  smsEnabled: boolean;
+  language: string;
+  createdAt: string;
+  updatedAt: string;
+}

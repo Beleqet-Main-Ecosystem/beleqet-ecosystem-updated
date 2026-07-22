@@ -1,0 +1,25 @@
+$kind: http-request
+name: http://localhost:4000/api/v1/notifications
+description: ""
+url: http://localhost:4000/api/v1/notifications
+method: GET
+headers:
+  Authorization: Bearer {{json_web_token_1ej2}}
+body:
+  type: json
+  content: "[\r
+
+    \  {\r
+
+    \    \"id\": \"5464ccd3-8b28-4096-8acb-fec610ef8afb\",\r
+
+    \    \"title\": \"New Job Application\",\r
+
+    \    \"message\": \"John Doe applied for Frontend Developer.\",\r
+
+    \    \"read\": false\r
+
+    \  }\r
+
+    ]"
+order: 4378118155400452

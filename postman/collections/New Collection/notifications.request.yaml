@@ -1,0 +1,27 @@
+$kind: http-request
+name: notifications
+description: ""
+url: http://localhost:4000/api/v1/notifications
+method: GET
+headers:
+  Authorization: Bearer {{supabase_service_role_api_key_1ej2}}
+body:
+  type: json
+  content: "[\r
+
+    \  {\r
+
+    \    \"id\": \"5464ccd3-8b28-4096-8acb-fec610ef8afb\",\r
+
+    \    \"title\": \"New Job Application\",\r
+
+    \    \"message\": \"John Doe applied for Frontend Developer.\",\r
+
+    \    \"read\": false\r
+
+    \  }\r
+
+    \ \r
+
+    ]"
+order: 2433128025900716

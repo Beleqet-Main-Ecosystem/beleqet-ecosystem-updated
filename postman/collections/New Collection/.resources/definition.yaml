@@ -1,0 +1,9 @@
+$kind: collection
+name: New Collection
+variables:
+  - key: supabase_service_role_api_key_1ej2
+    secret: true
+  - key: bearer_token_0aku
+    secret: true
+  - key: json_web_token_1ej2
+    secret: true

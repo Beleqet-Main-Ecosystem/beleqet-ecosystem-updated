@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateUserDto, CreateCompanyDto } from './dto/update-user.dto';
+import { UpdateUserDto, CreateCompanyDto, UpdateNotificationPreferenceDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -117,6 +117,26 @@ export class UsersService {
     return this.prisma.notification.updateMany({
       where: { userId, read: false },
       data: { read: true },
+    });
+  }
+
+  async getNotificationPreferences(userId: string) {
+    const pref = await this.prisma.notificationPreference.findUnique({
+      where: { userId },
+    });
+    if (!pref) {
+      return this.prisma.notificationPreference.create({
+        data: { userId },
+      });
+    }
+    return pref;
+  }
+
+  async updateNotificationPreferences(userId: string, dto: UpdateNotificationPreferenceDto) {
+    return this.prisma.notificationPreference.upsert({
+      where: { userId },
+      create: { userId, ...dto },
+      update: dto,
     });
   }
 

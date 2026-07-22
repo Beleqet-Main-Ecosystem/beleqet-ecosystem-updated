@@ -4,7 +4,7 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
-import { UpdateUserDto, CreateCompanyDto, SaveCvDraftDto } from './dto/update-user.dto';
+import { UpdateUserDto, CreateCompanyDto, SaveCvDraftDto, UpdateNotificationPreferenceDto } from './dto/update-user.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -46,6 +46,16 @@ export class UsersController {
   @Patch('notifications/read-all')
   markAllRead(@CurrentUser() u: CurrentUserPayload) {
     return this.svc.markAllNotificationsRead(u.userId);
+  }
+
+  @Get('notification-preferences')
+  getPreferences(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getNotificationPreferences(u.userId);
+  }
+
+  @Patch('notification-preferences')
+  updatePreferences(@CurrentUser() u: CurrentUserPayload, @Body() dto: UpdateNotificationPreferenceDto) {
+    return this.svc.updateNotificationPreferences(u.userId, dto);
   }
 
   @Get('saved-jobs')

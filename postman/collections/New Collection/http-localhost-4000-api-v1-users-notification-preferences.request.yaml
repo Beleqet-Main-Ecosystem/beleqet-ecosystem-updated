@@ -1,0 +1,19 @@
+$kind: http-request
+name: http://localhost:4000/api/v1/users/notification-preferences
+description: ""
+url: http://localhost:4000/api/v1/users/notification-preferences
+method: GET
+headers:
+  Authorization: "{{bearer_token_0aku}}"
+body:
+  type: json
+  content: "{\r
+
+    \  \"email\": false,\r
+
+    \  \"push\": true,\r
+
+    \  \"inApp\": true\r
+
+    }"
+order: 4228011322511843
