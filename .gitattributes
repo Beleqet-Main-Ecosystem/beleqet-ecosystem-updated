@@ -1,3 +1,10 @@
 # Shell scripts must keep LF endings — they execute on Linux (CI runners,
 # Docker containers, the staging server) regardless of the contributor's OS.
 *.sh text eol=lf
+
+# TypeScript and JSON source files must use LF so Prettier/ESLint checks
+# pass on both Windows contributors and Linux CI runners.
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
