@@ -88,33 +88,32 @@ export interface AuditLogFilters {
   limit?: number;
 }
 
-/** A single immutable audit trail entry (mirrors the backend's `events_log` / EventLog model). */
-export interface AuditLog {
+/** Notification item from the backend */
+export interface Notification {
   id: string;
-  eventType: string;
-  entityId: string;
-  entityType: string;
-  payload: Record<string, unknown>;
-  processedBy: string | null;
+  userId: string;
+  channel: 'IN_APP' | 'EMAIL' | 'TELEGRAM' | 'PUSH' | 'SMS';
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
-/** Paginated response shape returned by GET /audit-logs. */
-export interface AuditLogPage {
-  items: AuditLog[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+/** Notification channel */
+export type NotificationChannel = 'IN_APP' | 'EMAIL' | 'TELEGRAM' | 'PUSH' | 'SMS';
 
-/** Filters accepted by GET /audit-logs. */
-export interface AuditLogFilters {
-  eventType?: string;
-  entityType?: string;
-  entityId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  page?: number;
-  limit?: number;
+/** Notification preference settings */
+export interface NotificationPreference {
+  id: string;
+  userId: string;
+  emailEnabled: boolean;
+  telegramEnabled: boolean;
+  inAppEnabled: boolean;
+  pushEnabled: boolean;
+  smsEnabled: boolean;
+  language: string;
+  createdAt: string;
+  updatedAt: string;
 }

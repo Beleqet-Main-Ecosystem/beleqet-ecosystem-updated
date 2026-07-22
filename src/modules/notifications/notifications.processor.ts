@@ -131,6 +131,8 @@ export class NotificationsProcessor extends WorkerHost {
    * @param job Job containing TelegramPayload.
    */
   async sendTelegram(job: BullMQJob<TelegramPayload>): Promise<void> {
+    const telegramEnabled = this.config.get<string>('TELEGRAM_ENABLED', 'false');
+    if (telegramEnabled !== 'true') return;
     const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN');
     if (!botToken) return;
     try {
