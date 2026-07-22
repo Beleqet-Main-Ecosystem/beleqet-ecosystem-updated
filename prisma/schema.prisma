@@ -70,6 +70,7 @@ model User {
   /// User side — the AI Feed module reads SearchHistory independently.
   searchHistories       SearchHistory[]
   storedFiles           StoredFile[]
+  skillAssessmentSessions SkillAssessmentSession[]
 
   @@map("users")
 }
@@ -927,4 +928,44 @@ model StoredFile {
   uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
+}
+
+/// A Smart Skill Tester assessment run for a user against a job role and level.
+model SkillAssessmentSession {
+  id          String     @id @default(uuid())
+  userId      String
+  jobRole     String
+  skillLevel  SkillLevel
+  score       Int?
+  isCompleted Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions   AssessmentQuestion[]
+
+  @@index([userId, createdAt])
+  @@map("skill_assessment_sessions")
+}
+
+/// Individual multiple-choice question belonging to a SkillAssessmentSession.
+model AssessmentQuestion {
+  id              String                 @id @default(uuid())
+  sessionId       String
+  questionText    String
+  options         Json
+  correctAnswer   String
+  candidateAnswer String?
+  isCorrect       Boolean?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  session         SkillAssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("assessment_questions")
+}
+
+enum SkillLevel {
+  ENTRY
+  MID
+  SENIOR
 }
