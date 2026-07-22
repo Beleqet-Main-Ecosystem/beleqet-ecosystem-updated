@@ -9,11 +9,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  AI_CHAT_PROVIDER,
-  AiChatProvider,
-  AiProviderError,
-} from '../resume-brain/ai/ai-chat-provider.interface';
+import { AI_CHAT_PROVIDER, AiChatProvider } from '../resume-brain/ai/ai-chat-provider.interface';
 import {
   AI_TEMPERATURE_GENERATE,
   AI_TEMPERATURE_EVALUATE,
@@ -131,11 +127,7 @@ export class SmartSkillTesterService {
    * @throws {BadRequestException} If the AI provider returns malformed JSON.
    * @throws {AiProviderError}      If the AI provider is unavailable.
    */
-  async generateTest(
-    userId: string,
-    skill: string,
-    count: number,
-  ): Promise<GeneratedTest> {
+  async generateTest(userId: string, skill: string, count: number): Promise<GeneratedTest> {
     const questions = await this.generateQuestions(skill, count);
 
     const test = await this.prisma.skillTest.create({
@@ -216,9 +208,7 @@ export class SmartSkillTesterService {
       if (existing.userId !== userId) {
         throw new ForbiddenException('You do not own this skill test');
       }
-      throw new ConflictException(
-        'This test has already been evaluated or is in progress',
-      );
+      throw new ConflictException('This test has already been evaluated or is in progress');
     }
 
     try {
@@ -240,8 +230,7 @@ export class SmartSkillTesterService {
             data: {
               testId,
               questionId: r.questionId,
-              answer:
-                answers.find((a) => a.questionId === r.questionId)?.answer ?? '',
+              answer: answers.find((a) => a.questionId === r.questionId)?.answer ?? '',
               score: r.score,
               feedback: r.feedback,
               evaluatedAt: now,
@@ -308,10 +297,7 @@ export class SmartSkillTesterService {
 
   // ── Private: AI question generation ────────────────────────────────────────
 
-  private async generateQuestions(
-    skill: string,
-    count: number,
-  ): Promise<AiGeneratedQuestion[]> {
+  private async generateQuestions(skill: string, count: number): Promise<AiGeneratedQuestion[]> {
     const userPrompt = `Generate ${count} questions to test a candidate's practical knowledge of "${skill}".
 
 Return a JSON array with exactly this shape:
@@ -337,24 +323,16 @@ Return a JSON array with exactly this shape:
     try {
       const parsed = JSON.parse(completion.content) as AiGeneratedQuestion[];
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new BadRequestException(
-          'AI returned an empty question set',
-        );
+        throw new BadRequestException('AI returned an empty question set');
       }
       return parsed.slice(0, count).map((q) => ({
         question: q.question,
-        expectedConcepts: Array.isArray(q.expectedConcepts)
-          ? q.expectedConcepts
-          : [],
+        expectedConcepts: Array.isArray(q.expectedConcepts) ? q.expectedConcepts : [],
       }));
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
-      this.logger.error(
-        `Failed to parse AI-generated questions: ${(err as Error).message}`,
-      );
-      throw new BadRequestException(
-        'Failed to parse skill test questions from AI response',
-      );
+      this.logger.error(`Failed to parse AI-generated questions: ${(err as Error).message}`);
+      throw new BadRequestException('Failed to parse skill test questions from AI response');
     }
   }
 
@@ -376,9 +354,7 @@ Return a JSON array with exactly this shape:
     const qaBlock = questions
       .map((q, i) => {
         const index = i + 1;
-        const answer =
-          answers.find((a) => a.questionId === q.id)?.answer ??
-          'No answer provided';
+        const answer = answers.find((a) => a.questionId === q.id)?.answer ?? 'No answer provided';
         return `Index: ${index}
 Q: ${q.question}
 Expected concepts: ${q.expectedConcepts.join(', ')}
@@ -420,14 +396,8 @@ Return JSON with exactly this shape:
     try {
       const parsed = JSON.parse(completion.content) as AiEvaluationResponse;
 
-      if (
-        !parsed.results ||
-        !Array.isArray(parsed.results) ||
-        parsed.results.length === 0
-      ) {
-        throw new BadRequestException(
-          'AI returned an empty evaluation result set',
-        );
+      if (!parsed.results || !Array.isArray(parsed.results) || parsed.results.length === 0) {
+        throw new BadRequestException('AI returned an empty evaluation result set');
       }
 
       if (parsed.results.length !== questions.length) {
@@ -444,23 +414,17 @@ Return JSON with exactly this shape:
           r.index < 1 ||
           r.index > questions.length
         ) {
-          throw new BadRequestException(
-            `AI returned an invalid question index: ${r.index}`,
-          );
+          throw new BadRequestException(`AI returned an invalid question index: ${r.index}`);
         }
         if (seenIndexes.has(r.index)) {
-          throw new BadRequestException(
-            `AI returned a duplicate question index: ${r.index}`,
-          );
+          throw new BadRequestException(`AI returned a duplicate question index: ${r.index}`);
         }
         seenIndexes.add(r.index);
       }
 
       for (let i = 1; i <= questions.length; i++) {
         if (!seenIndexes.has(i)) {
-          throw new BadRequestException(
-            `AI evaluation is missing result for question index ${i}`,
-          );
+          throw new BadRequestException(`AI evaluation is missing result for question index ${i}`);
         }
       }
 
@@ -473,20 +437,13 @@ Return JSON with exactly this shape:
             feedback: r.feedback ?? '',
           };
         }),
-        overallScore: Math.min(
-          100,
-          Math.max(0, Math.round(parsed.overallScore ?? 0)),
-        ),
+        overallScore: Math.min(100, Math.max(0, Math.round(parsed.overallScore ?? 0))),
         overallFeedback: parsed.overallFeedback ?? '',
       };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
-      this.logger.error(
-        `Failed to parse AI evaluation: ${(err as Error).message}`,
-      );
-      throw new BadRequestException(
-        'Failed to parse skill test evaluation from AI response',
-      );
+      this.logger.error(`Failed to parse AI evaluation: ${(err as Error).message}`);
+      throw new BadRequestException('Failed to parse skill test evaluation from AI response');
     }
   }
 }

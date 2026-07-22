@@ -174,9 +174,7 @@ describe('SmartSkillTesterService', () => {
         usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
       });
 
-      await expect(
-        service.generateTest(USER_ID, SKILL, 2),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.generateTest(USER_ID, SKILL, 2)).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadRequestException when AI returns malformed JSON', async () => {
@@ -185,9 +183,7 @@ describe('SmartSkillTesterService', () => {
         usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
       });
 
-      await expect(
-        service.generateTest(USER_ID, SKILL, 2),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.generateTest(USER_ID, SKILL, 2)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -273,9 +269,9 @@ describe('SmartSkillTesterService', () => {
     it('throws NotFoundException when test does not exist', async () => {
       prisma.skillTest.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws ForbiddenException when test belongs to another user', async () => {
@@ -284,9 +280,9 @@ describe('SmartSkillTesterService', () => {
         userId: 'other-user',
       });
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('throws ConflictException when test is already evaluated', async () => {
@@ -300,9 +296,9 @@ describe('SmartSkillTesterService', () => {
         status: 'EVALUATED',
       });
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('resets test status to PENDING when AI evaluation fails', async () => {
@@ -311,9 +307,7 @@ describe('SmartSkillTesterService', () => {
       provider.complete.mockRejectedValue(new Error('AI timeout'));
       prisma.skillTest.update.mockResolvedValue({} as any);
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow();
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow();
 
       expect(prisma.skillTest.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -336,9 +330,9 @@ describe('SmartSkillTesterService', () => {
         usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
       });
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when AI returns duplicate indexes', async () => {
@@ -357,9 +351,9 @@ describe('SmartSkillTesterService', () => {
         usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
       });
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when AI returns an out-of-range index', async () => {
@@ -378,9 +372,9 @@ describe('SmartSkillTesterService', () => {
         usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
       });
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when AI misses a required index', async () => {
@@ -399,9 +393,9 @@ describe('SmartSkillTesterService', () => {
         usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
       });
 
-      await expect(
-        service.evaluateAnswers(USER_ID, TEST_ID, answers),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.evaluateAnswers(USER_ID, TEST_ID, answers)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

@@ -52,9 +52,7 @@ class MockAiProvider implements AiChatProvider {
     return {
       content: JSON.stringify({
         results,
-        overallScore: Math.round(
-          results.reduce((s, r) => s + r.score, 0) / results.length,
-        ),
+        overallScore: Math.round(results.reduce((s, r) => s + r.score, 0) / results.length),
         overallFeedback: 'Solid grasp of the fundamentals.',
       }),
       usage: { promptTokens: 200, completionTokens: 150, totalTokens: 350 },
@@ -71,18 +69,33 @@ const mockPrisma = {
       const id = `test-${Date.now()}`;
       const now = new Date();
       const qs = (args.data.questions?.create ?? []).map((q: any, i: number) => ({
-        id: `q-${id}-${i}`, testId: id, question: q.question,
-        expectedConcepts: q.expectedConcepts, order: q.order,
+        id: `q-${id}-${i}`,
+        testId: id,
+        question: q.question,
+        expectedConcepts: q.expectedConcepts,
+        order: q.order,
       }));
       const t = {
-        id, userId: args.data.userId, skill: args.data.skill,
-        status: 'PENDING', overallScore: null, aiFeedback: null,
-        modelUsed: args.data.modelUsed ?? null, startedAt: now,
-        completedAt: null, createdAt: now, updatedAt: now, questions: qs, answers: [],
+        id,
+        userId: args.data.userId,
+        skill: args.data.skill,
+        status: 'PENDING',
+        overallScore: null,
+        aiFeedback: null,
+        modelUsed: args.data.modelUsed ?? null,
+        startedAt: now,
+        completedAt: null,
+        createdAt: now,
+        updatedAt: now,
+        questions: qs,
+        answers: [],
       };
       store[id] = t;
       return args.include?.questions
-        ? { ...t, questions: qs.map((q: any) => ({ id: q.id, question: q.question, order: q.order })) }
+        ? {
+            ...t,
+            questions: qs.map((q: any) => ({ id: q.id, question: q.question, order: q.order })),
+          }
         : t;
     },
     findUnique: async (args: any) => {
@@ -214,8 +227,11 @@ describe('SmartSkillTester (e2e)', () => {
         .send({
           testId: gen.body.testId,
           answers: [
-            { questionId: gen.body.questions[0].id, answer: 'JSX is a syntax extension for JavaScript.' },
-            { questionId: gen.body.questions[1].id, answer: 'State is a component\'s memory.' },
+            {
+              questionId: gen.body.questions[0].id,
+              answer: 'JSX is a syntax extension for JavaScript.',
+            },
+            { questionId: gen.body.questions[1].id, answer: "State is a component's memory." },
           ],
         })
         .expect(201);

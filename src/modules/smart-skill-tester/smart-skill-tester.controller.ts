@@ -1,21 +1,8 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import {
-  CurrentUser,
-  CurrentUserPayload,
-} from '../../common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { SmartSkillTesterService } from './smart-skill-tester.service';
 import { GenerateTestDto } from './dto/generate-test.dto';
 import { EvaluateAnswersDto } from './dto/evaluate-answers.dto';
@@ -34,9 +21,7 @@ import { EvaluateAnswersDto } from './dto/evaluate-answers.dto';
 @UseGuards(JwtAuthGuard, ThrottlerGuard)
 @Controller('smart-skill-tester')
 export class SmartSkillTesterController {
-  constructor(
-    private readonly smartSkillTesterService: SmartSkillTesterService,
-  ) {}
+  constructor(private readonly smartSkillTesterService: SmartSkillTesterService) {}
 
   /**
    * Generates a set of AI-powered skill test questions for the given skill.
@@ -51,10 +36,7 @@ export class SmartSkillTesterController {
   @Post('generate')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Generate AI-powered skill test questions' })
-  async generate(
-    @Body() dto: GenerateTestDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  async generate(@Body() dto: GenerateTestDto, @CurrentUser() user: CurrentUserPayload) {
     return this.smartSkillTesterService.generateTest(
       user.userId,
       dto.skill,
@@ -75,15 +57,8 @@ export class SmartSkillTesterController {
   @Post('evaluate')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Submit answers and receive AI evaluation' })
-  async evaluate(
-    @Body() dto: EvaluateAnswersDto,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
-    return this.smartSkillTesterService.evaluateAnswers(
-      user.userId,
-      dto.testId,
-      dto.answers,
-    );
+  async evaluate(@Body() dto: EvaluateAnswersDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.smartSkillTesterService.evaluateAnswers(user.userId, dto.testId, dto.answers);
   }
 
   /**
