@@ -1,13 +1,14 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { SmartBiddingService } from './smart-bidding.service';
 import { PredictBidResponseDto } from './dto/predict-bid-response.dto';
 
 @ApiTags('smart-bidding')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('smart-bidding')
 export class SmartBiddingController {
   constructor(private readonly svc: SmartBiddingService) {}
@@ -34,7 +35,16 @@ export class SmartBiddingController {
   predictForFreelancer(
     @Param('jobId') jobId: string,
     @Param('freelancerId') freelancerId: string,
+    @CurrentUser() user: CurrentUserPayload,
   ): Promise<PredictBidResponseDto> {
+    // RBAC Check: Ensure users can only inspect their own metrics unless they are an ADMIN
+    const isAdmin = user.role === 'ADMIN';
+    if (!isAdmin && user.userId !== freelancerId) {
+      throw new ForbiddenException(
+        'You are not authorized to view bid predictions for other freelancers.',
+      );
+    }
+
     return this.svc.predictBid(jobId, freelancerId);
   }
 
