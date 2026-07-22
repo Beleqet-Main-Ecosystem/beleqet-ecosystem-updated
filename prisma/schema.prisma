@@ -674,6 +674,102 @@ model BackupCode {
   @@map("backup_codes")
 }
 
+// SalaryPrediction Model - Stores AI-powered salary predictions
+// Tracks average market values for job positions based on industry, location, and experience level
+model SalaryPrediction {
+  id                  String    @id @default(uuid())
+  jobTitle            String
+  jobCategoryId       String?
+  industry            String?
+  location            String
+  experienceLevel     String?   // JUNIOR, MID, SENIOR, LEAD, etc.
+  currency            String    @default("ETB")
+  
+  // Salary ranges calculated from market data
+  minSalary           Int
+  maxSalary           Int
+  averageSalary       Int       // Mean of all salary data points
+  medianSalary        Int       // Median salary from dataset
+  
+  // Statistical data
+  dataPointsCount     Int       @default(0)    // Number of job postings used in calculation
+  standardDeviation   Float     @default(0)
+  confidenceScore     Float     @default(0.5)  // 0.0 - 1.0, higher = more reliable
+  
+  // Version tracking for updates
+  version             Int       @default(1)
+  lastUpdatedAt       DateTime  @updatedAt
+  createdAt           DateTime  @default(now())
+  
+  // For GDPR compliance
+  isAnonymized        Boolean   @default(true)
+  
+  // For optimization
+  @@index([jobTitle, location, experienceLevel])
+  @@index([jobCategoryId, location])
+  @@index([location, industry])
+  @@index([lastUpdatedAt])
+  @@map("salary_predictions")
+}
+
+// SalaryHistory Model - Audit trail for salary predictions
+// Maintains historical records of salary trends over time
+model SalaryHistory {
+  id                String   @id @default(uuid())
+  jobTitle          String
+  jobCategoryId     String?
+  industry          String?
+  location          String
+  experienceLevel   String?
+  currency          String   @default("ETB")
+  
+  // Historical snapshot
+  minSalary         Int
+  maxSalary         Int
+  averageSalary     Int
+  medianSalary      Int
+  dataPointsCount   Int
+  
+  // Metadata
+  recordedAt        DateTime @default(now())
+  version           Int      @default(1)
+  
+  // For GDPR compliance
+  isAnonymized      Boolean  @default(true)
+  
+  @@index([jobTitle, location])
+  @@index([recordedAt, location])
+  @@map("salary_history")
+}
+
+// SalaryAnalytics Model - Pre-computed analytics for performance
+// Stores aggregated data for quick dashboard queries
+model SalaryAnalytics {
+  id                  String    @id @default(uuid())
+  
+  // Aggregation scope
+  location            String
+  industry            String?
+  jobCategoryId       String?
+  currency            String    @default("ETB")
+  
+  // Statistics
+  averageSalary       Int
+  medianSalary        Int
+  salaryGrowthRate    Float     @default(0)      // Month-over-month percentage
+  topJobTitles        String[]  @default([])     // Top 5 job titles by frequency
+  
+  // Reporting period
+  periodStartDate     DateTime
+  periodEndDate       DateTime
+  
+  computedAt          DateTime  @default(now())
+  
+  @@index([location, industry])
+  @@index([periodEndDate])
+  @@map("salary_analytics")
+}
+
 enum UserRole {
   ADMIN
   EMPLOYER
