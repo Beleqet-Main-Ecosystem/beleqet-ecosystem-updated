@@ -34,6 +34,16 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Strip base-image npm/corepack — runtime starts Next via `node`, and the
+# bundled `tar` (CVE-2026-59873) fails the Trivy CRITICAL image gate.
+RUN rm -rf \
+  /usr/local/lib/node_modules/npm \
+  /usr/local/lib/node_modules/corepack \
+  /usr/local/bin/npm \
+  /usr/local/bin/npx \
+  /usr/local/bin/corepack \
+  /opt/yarn-v*
+
 COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
 COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next ./.next
@@ -47,4 +57,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
   CMD wget -qO- http://127.0.0.1:3000/ || exit 1
 
-CMD ["npm", "run", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3000"]
