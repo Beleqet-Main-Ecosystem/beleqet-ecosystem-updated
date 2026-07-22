@@ -1,0 +1,8 @@
+{
+  "tax": {
+    "unsupportedJurisdiction": "ያልተደገፈ የግብር ክልል \"{countryCode}\". የሚደገፉት፦ ET, US።",
+    "currencyMismatch": "ምንዛሬ \"{currency}\" ከግብር ክልል \"{countryCode}\" ጋር አይጣጣምም። የሚጠበቀው፦ {expectedCurrency}።",
+    "invalidGrossIncome": "grossIncome በትንሹ የምንዛሬ አሃድ የተገለጸ ትክክለኛ ቁጥር መሆን አለበት።",
+    "calculationFailed": "የግብር ስሌት አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+  }
+}
