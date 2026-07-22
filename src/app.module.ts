@@ -1,3 +1,5 @@
+import { CacheConfigModule } from './cache/cache.module';
+import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -49,6 +51,7 @@ import { HealthModule } from './modules/health/health.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
     }),
 
     //  Rate limiting
@@ -132,6 +135,7 @@ import { HealthModule } from './modules/health/health.module';
     ResumeBrainModule,
     TaxCalculatorModule,
     HealthModule,
+    CacheConfigModule
   ],
   providers: [
     {
