@@ -41,5 +41,30 @@
     "passwordLabel": "የይለፍ ቃል",
     "verifying": "ክፍለ-ጊዜውን በማረጋገጥ ላይ...",
     "authorizeButton": "አረጋግጥ እና ፍቀድ"
+  },
+  "taxCalculator": {
+    "badge": "The Vault",
+    "title": "የነጻ ስራ ግብር ማስያ",
+    "subtitle": "ለኢትዮጵያ እና ለአሜሪካ የግብር ግምት ያድርጉ። ዓመታዊ ጠቅላላ ገቢዎን በዋናው ምንዛሬ ያስገቡ — ስሌቱ በሰርቨር ላይ በሳንቲም ወይም በሳንቲም ይከናወናል።",
+    "formTitle": "የገቢ መረጃ",
+    "annualNote": "ዓመታዊ ነጻ ስራ ገቢ",
+    "grossIncomeLabel": "ጠቅላላ ገቢ",
+    "grossIncomeHint": "የአስርዮሽ ቁጥር ያስገቡ (ለምሳሌ 120000.00)። ከስሌት በፊት ወደ ትንሽ יחידות ይቀየራል።",
+    "countryLabel": "የግብር ክልል",
+    "currencyLabel": "ምንዛሬ",
+    "countryET": "ኢትዮጵያ (ET)",
+    "countryUS": "አሜሪካ (US)",
+    "calculateButton": "ግብር አስላ",
+    "calculating": "በማስላት ላይ…",
+    "resultsTitle": "ግምት",
+    "resultsEmpty": "ገቢዎን ያስገቡ እና ጠቅላላ፣ ግብር፣ ንጹህ ገቢ እና ተጽዕኖ መጠን ለማየት ስሌቱን ያስኬዱ።",
+    "grossIncome": "ጠቅላላ ገቢ",
+    "taxAmount": "የተገመተ ግብር",
+    "netIncome": "ንጹህ ገቢ",
+    "effectiveRate": "ተጽዕኖ መጠን",
+    "smallestUnits": "ትንሽ יחידות",
+    "units": "יחידות",
+    "errorGeneric": "የግብር ስሌት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+    "errorInvalidAmount": "ትክክለኛ የማይነስ ገቢ መጠን ያስገቡ።"
   }
 }

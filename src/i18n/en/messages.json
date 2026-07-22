@@ -103,6 +103,12 @@
       "Consulting": "Management Consulting"
     }
   },
+  "tax": {
+    "unsupportedJurisdiction": "Unsupported tax jurisdiction \"{countryCode}\". Supported: ET, US.",
+    "currencyMismatch": "Currency \"{currency}\" does not match jurisdiction \"{countryCode}\". Expected {expectedCurrency}.",
+    "invalidGrossIncome": "grossIncome must be a finite number in smallest currency units.",
+    "calculationFailed": "Tax calculation failed. Please try again."
+  },
   "video_interview": {
     "not_found": "Video interview session not found.",
     "already_exists": "A video interview session already exists for this application.",
