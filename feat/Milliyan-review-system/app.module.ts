@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ReviewModule } from './modules/review/review.module';
+import { ReviewModule } from './review.module';
 // import other feature modules, e.g. FreelancerModule, PaymentModule, AuthModule...
 
 /**
