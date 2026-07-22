@@ -16,10 +16,7 @@ import { ValidationError } from 'class-validator';
 import { I18nService } from 'nestjs-i18n';
 import { GenerateQuestionsDto } from './dto/generate-questions.dto';
 import { SubmitAnswersDto } from './dto/submit-answers.dto';
-import {
-  GenerateQuestionsResult,
-  SubmitAnswersResult,
-} from './interfaces/skill-tester.interfaces';
+import { GenerateQuestionsResult, SubmitAnswersResult } from './interfaces/skill-tester.interfaces';
 import { SkillTesterInvalidPayloadFilter } from './skill-tester-invalid-payload.filter';
 import { SmartSkillTesterService } from './smart-skill-tester.service';
 
@@ -33,24 +30,16 @@ const skillTesterValidationPipe = new ValidationPipe({
     return new BadRequestException({
       statusCode: HttpStatus.BAD_REQUEST,
       errorCode: 'ERR_SKILL_TEST_INVALID_PAYLOAD',
-      message:
-        messages.join('; ') || 'Invalid skill tester payload.',
+      message: messages.join('; ') || 'Invalid skill tester payload.',
     });
   },
 });
 
-function flattenValidationMessages(
-  errors: ValidationError[],
-  parentPath = '',
-): string[] {
+function flattenValidationMessages(errors: ValidationError[], parentPath = ''): string[] {
   return errors.flatMap((error) => {
-    const propertyPath = parentPath
-      ? `${parentPath}.${error.property}`
-      : error.property;
+    const propertyPath = parentPath ? `${parentPath}.${error.property}` : error.property;
     const current = error.constraints
-      ? Object.values(error.constraints).map(
-          (message) => `${propertyPath}: ${message}`,
-        )
+      ? Object.values(error.constraints).map((message) => `${propertyPath}: ${message}`)
       : [];
     const nested = error.children?.length
       ? flattenValidationMessages(error.children, propertyPath)

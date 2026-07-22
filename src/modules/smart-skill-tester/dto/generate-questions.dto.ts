@@ -1,12 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsEnum,
-  IsNotEmpty,
-  IsString,
-  IsUUID,
-  MaxLength,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export enum SkillLevel {
   ENTRY = 'ENTRY',

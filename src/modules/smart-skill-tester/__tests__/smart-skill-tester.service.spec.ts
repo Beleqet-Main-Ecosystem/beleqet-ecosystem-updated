@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
@@ -121,8 +118,7 @@ describe('SmartSkillTesterService', () => {
     };
 
     prisma.$transaction.mockImplementation(
-      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
-        callback(prisma),
+      async (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma),
     );
 
     const module: TestingModule = await Test.createTestingModule({
@@ -140,13 +136,11 @@ describe('SmartSkillTesterService', () => {
     it('persists a session and five questions, omitting correctAnswer from the client payload', async () => {
       provider.enqueue(JSON.stringify(buildValidAiQuestions()));
 
-      const persistedQuestions = buildValidAiQuestions().questions.map(
-        (question, index) => ({
-          id: `q-${index + 1}`,
-          questionText: question.questionText,
-          options: question.options,
-        }),
-      );
+      const persistedQuestions = buildValidAiQuestions().questions.map((question, index) => ({
+        id: `q-${index + 1}`,
+        questionText: question.questionText,
+        options: question.options,
+      }));
 
       prisma.skillAssessmentSession.create.mockResolvedValue({
         id: 'session-1',
@@ -320,14 +314,10 @@ describe('SmartSkillTesterService', () => {
 
       const dto: SubmitAnswersDto = {
         sessionId: 'session-closed',
-        answers: [
-          { questionId: 'q-1', selectedOption: 'A function with lexical scope' },
-        ],
+        answers: [{ questionId: 'q-1', selectedOption: 'A function with lexical scope' }],
       };
 
-      await expect(service.submitAnswers(dto)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(service.submitAnswers(dto)).rejects.toBeInstanceOf(BadRequestException);
 
       try {
         await service.submitAnswers(dto);

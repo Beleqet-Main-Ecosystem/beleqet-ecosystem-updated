@@ -33,6 +33,7 @@
     "invalidPayload": "Invalid skill tester payload: {details}",
     "aiGenerationFailed": "Failed to generate skill assessment questions. Please try again.",
     "requestFailed": "Skill tester request failed. Please try again."
+  },
   "video_interview": {
     "not_found": "Video interview session not found.",
     "already_exists": "A video interview session already exists for this application.",

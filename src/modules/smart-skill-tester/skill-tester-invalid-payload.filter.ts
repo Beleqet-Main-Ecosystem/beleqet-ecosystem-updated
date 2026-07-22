@@ -14,10 +14,7 @@ import { I18nService } from 'nestjs-i18n';
 export class SkillTesterInvalidPayloadFilter implements ExceptionFilter {
   constructor(private readonly i18n: I18nService) {}
 
-  async catch(
-    exception: BadRequestException,
-    host: ArgumentsHost,
-  ): Promise<void> {
+  async catch(exception: BadRequestException, host: ArgumentsHost): Promise<void> {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();

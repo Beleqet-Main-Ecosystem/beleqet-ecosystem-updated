@@ -37,15 +37,10 @@ export class SmartSkillTesterService {
     @Inject(AI_CHAT_PROVIDER) private readonly ai: AiChatProvider,
   ) {}
 
-  async generateSession(
-    dto: GenerateQuestionsDto,
-  ): Promise<GenerateQuestionsResult> {
+  async generateSession(dto: GenerateQuestionsDto): Promise<GenerateQuestionsResult> {
     this.assertGeneratePayload(dto);
 
-    const generated = await this.requestQuestionsFromAi(
-      dto.jobRole,
-      dto.skillLevel,
-    );
+    const generated = await this.requestQuestionsFromAi(dto.jobRole, dto.skillLevel);
 
     const session = await this.prisma.$transaction(async (tx) => {
       return tx.skillAssessmentSession.create({
@@ -83,9 +78,7 @@ export class SmartSkillTesterService {
     };
   }
 
-  async generateQuestions(
-    dto: GenerateQuestionsDto,
-  ): Promise<GenerateQuestionsResult> {
+  async generateQuestions(dto: GenerateQuestionsDto): Promise<GenerateQuestionsResult> {
     return this.generateSession(dto);
   }
 
@@ -120,8 +113,7 @@ export class SmartSkillTesterService {
     let correctCount = 0;
     const graded = session.questions.map((question) => {
       const selectedOption = answerByQuestionId.get(question.id) ?? null;
-      const isCorrect =
-        selectedOption !== null && selectedOption === question.correctAnswer;
+      const isCorrect = selectedOption !== null && selectedOption === question.correctAnswer;
 
       if (isCorrect) {
         correctCount += 1;
@@ -135,10 +127,7 @@ export class SmartSkillTesterService {
     });
 
     const totalQuestions = session.questions.length;
-    const score =
-      totalQuestions === 0
-        ? 0
-        : Math.round((correctCount / totalQuestions) * 100);
+    const score = totalQuestions === 0 ? 0 : Math.round((correctCount / totalQuestions) * 100);
 
     await this.prisma.$transaction(async (tx) => {
       for (const gradedQuestion of graded) {
@@ -264,22 +253,15 @@ export class SmartSkillTesterService {
     );
   }
 
-  private parseAndValidateQuestions(
-    raw: string,
-  ): AiGeneratedQuestion[] | null {
+  private parseAndValidateQuestions(raw: string): AiGeneratedQuestion[] | null {
     const parsed = this.parseJson(raw);
     if (!parsed) {
       return null;
     }
 
-    const questionsValue = Array.isArray(parsed)
-      ? parsed
-      : parsed.questions;
+    const questionsValue = Array.isArray(parsed) ? parsed : parsed.questions;
 
-    if (
-      !Array.isArray(questionsValue) ||
-      questionsValue.length !== REQUIRED_QUESTION_COUNT
-    ) {
+    if (!Array.isArray(questionsValue) || questionsValue.length !== REQUIRED_QUESTION_COUNT) {
       return null;
     }
 
@@ -322,11 +304,7 @@ export class SmartSkillTesterService {
       .replace(/```\s*$/i, '')
       .trim();
 
-    const candidates = [
-      cleaned,
-      this.firstJsonObject(cleaned),
-      this.firstJsonArray(cleaned),
-    ];
+    const candidates = [cleaned, this.firstJsonObject(cleaned), this.firstJsonArray(cleaned)];
 
     for (const candidate of candidates) {
       if (!candidate) {
@@ -354,11 +332,7 @@ export class SmartSkillTesterService {
     return this.firstBalanced(text, '[', ']');
   }
 
-  private firstBalanced(
-    text: string,
-    open: '{' | '[',
-    close: '}' | ']',
-  ): string | null {
+  private firstBalanced(text: string, open: '{' | '[', close: '}' | ']'): string | null {
     const start = text.indexOf(open);
     if (start === -1) {
       return null;
@@ -429,8 +403,7 @@ export class SmartSkillTesterService {
     return new UnprocessableEntityException({
       statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
       errorCode: 'ERR_SKILL_TEST_AI_GENERATION_FAILED',
-      message:
-        'Failed to generate skill assessment questions. Please try again.',
+      message: 'Failed to generate skill assessment questions. Please try again.',
     });
   }
 

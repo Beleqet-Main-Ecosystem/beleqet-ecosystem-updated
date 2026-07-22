@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -13,9 +10,7 @@ import { SmartSkillTesterService } from '../smart-skill-tester.service';
 
 describe('SmartSkillTesterController', () => {
   let controller: SmartSkillTesterController;
-  let service: jest.Mocked<
-    Pick<SmartSkillTesterService, 'generateSession' | 'submitAnswers'>
-  >;
+  let service: jest.Mocked<Pick<SmartSkillTesterService, 'generateSession' | 'submitAnswers'>>;
   let i18nService: { t: jest.Mock };
 
   const generateDto: GenerateQuestionsDto = {
@@ -33,8 +28,9 @@ describe('SmartSkillTesterController', () => {
     };
 
     i18nService = {
-      t: jest.fn(async (_key: string, options?: { defaultValue?: string }) =>
-        options?.defaultValue ?? 'translated',
+      t: jest.fn(
+        async (_key: string, options?: { defaultValue?: string }) =>
+          options?.defaultValue ?? 'translated',
       ),
     };
 
@@ -94,8 +90,7 @@ describe('SmartSkillTesterController', () => {
       expect(i18nService.t).toHaveBeenCalledWith(
         'messages.skillTester.aiGenerationFailed',
         expect.objectContaining({
-          defaultValue:
-            'Failed to generate skill assessment questions. Please try again.',
+          defaultValue: 'Failed to generate skill assessment questions. Please try again.',
         }),
       );
     });
@@ -167,9 +162,7 @@ describe('SmartSkillTesterController', () => {
 
       expect(errors.length).toBeGreaterThan(0);
       expect(
-        errors.some((error) =>
-          ['jobRole', 'skillLevel', 'userId'].includes(error.property),
-        ),
+        errors.some((error) => ['jobRole', 'skillLevel', 'userId'].includes(error.property)),
       ).toBe(true);
     });
 
