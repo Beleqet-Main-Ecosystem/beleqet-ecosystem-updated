@@ -23,6 +23,86 @@
     "presignedUrlCreated": "Upload URL created successfully.",
     "assetUploaded": "Asset uploaded successfully."
   },
+  "salary": {
+    "title": "AI Salary Helper",
+    "description": "AI-powered salary prediction and market analysis",
+    "prediction": {
+      "title": "Salary Prediction",
+      "description": "Get AI-powered salary predictions based on market data",
+      "request": {
+        "jobTitle": "Job Title",
+        "jobTitleDescription": "The position or job role to predict salary for",
+        "location": "Location",
+        "locationDescription": "Geographic location (e.g., Addis Ababa, Dire Dawa)",
+        "industry": "Industry",
+        "industryDescription": "Industry sector (e.g., Technology, Finance, Healthcare)",
+        "experienceLevel": "Experience Level",
+        "experienceLevelDescription": "JUNIOR, MID, SENIOR, LEAD, or PRINCIPAL",
+        "currency": "Currency",
+        "currencyDescription": "Currency code (default: ETB)"
+      },
+      "response": {
+        "minSalary": "Minimum Salary",
+        "maxSalary": "Maximum Salary",
+        "averageSalary": "Average Salary",
+        "medianSalary": "Median Salary",
+        "dataPointsCount": "Data Points",
+        "confidenceScore": "Confidence Score",
+        "standardDeviation": "Standard Deviation"
+      }
+    },
+    "statistics": {
+      "title": "Salary Statistics",
+      "description": "Market statistics and trends for a location",
+      "salaryGrowthRate": "Salary Growth Rate",
+      "period": "Reporting Period",
+      "location": "Location",
+      "industry": "Industry"
+    },
+    "history": {
+      "title": "Salary History",
+      "description": "Historical salary trends over time",
+      "noDataFound": "No historical data found"
+    },
+    "batch": {
+      "title": "Batch Prediction",
+      "description": "Predict salaries for multiple positions at once",
+      "maxLimit": "Maximum 50 predictions per batch",
+      "successCount": "Successful Predictions",
+      "failureCount": "Failed Predictions"
+    },
+    "errors": {
+      "jobTitleRequired": "Job title is required",
+      "locationRequired": "Location is required",
+      "experienceLevelRequired": "Experience level is required",
+      "invalidLocation": "Invalid or unsupported location",
+      "noDataFound": "No salary data found for the specified criteria",
+      "batchSizeExceeded": "Batch size exceeds maximum limit of 50 predictions",
+      "invalidExperienceLevel": "Invalid experience level. Must be JUNIOR, MID, SENIOR, LEAD, or PRINCIPAL"
+    },
+    "success": {
+      "predictionCreated": "Salary prediction created successfully",
+      "batchProcessed": "Batch predictions processed successfully",
+      "statisticsRetrieved": "Salary statistics retrieved successfully"
+    },
+    "experienceLevels": {
+      "JUNIOR": "Junior (0-2 years)",
+      "MID": "Mid-level (2-5 years)",
+      "SENIOR": "Senior (5-10 years)",
+      "LEAD": "Lead (10+ years)",
+      "PRINCIPAL": "Principal/Executive (15+ years)"
+    },
+    "industries": {
+      "Technology": "Technology / Software",
+      "Finance": "Finance / Banking",
+      "Healthcare": "Healthcare / Medical",
+      "Education": "Education",
+      "Retail": "Retail / Commerce",
+      "Manufacturing": "Manufacturing",
+      "Telecommunications": "Telecommunications",
+      "Consulting": "Management Consulting"
+    }
+  },
   "tax": {
     "unsupportedJurisdiction": "Unsupported tax jurisdiction \"{countryCode}\". Supported: ET, US.",
     "currencyMismatch": "Currency \"{currency}\" does not match jurisdiction \"{countryCode}\". Expected {expectedCurrency}.",

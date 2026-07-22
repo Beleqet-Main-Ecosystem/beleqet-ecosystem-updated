@@ -24,9 +24,9 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
-
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -132,6 +132,7 @@ import { HealthModule } from './modules/health/health.module';
     AiFeedModule,
     ResumeBrainModule,
     SmartSkillTesterModule,
+    SalaryModule,
     TaxCalculatorModule,
     HealthModule,
   ],
