@@ -31,6 +31,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { getQueueToken } from '@nestjs/bullmq';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -43,6 +44,7 @@ import { PaypalService } from './paypal.service';
 import { WalletService, WithdrawDto } from '../wallet/wallet.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChapaClient } from '../chapa/chapa.client';
+import { QUEUE_NAMES, WALLET_JOBS } from '../queues/queues.constants';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SDK mocks — hoisted before any import that initialises the SDKs
@@ -95,6 +97,9 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
 const mockChapaClient = {
   createTransfer: jest.fn(),
+};
+const mockWalletQueue = {
+  add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal:tx-001' }),
 };
 
 import * as paypal from 'paypal-rest-sdk';
@@ -229,6 +234,7 @@ async function buildCtx(walletBalance = 10_000, configExtra: Record<string, stri
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
       { provide: ChapaClient, useValue: mockChapaClient },
+      { provide: getQueueToken(QUEUE_NAMES.WALLET), useValue: mockWalletQueue },
       {
         provide: EventEmitter2,
         useValue: { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]) },
@@ -391,11 +397,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
     });
   });
 
-  // ── 8. Full ETB withdrawal ────────────────────────────────────────────────
-  describe('Scenario 8 – Full ETB withdrawal flow', () => {
-    it('decrements wallet balance and calls Chapa API', async () => {
-      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
-
+  // 8. Full ETB withdrawal
+  describe('Scenario 8 - Full ETB withdrawal flow', () => {
+    it('decrements wallet balance and queues the Chapa payout job', async () => {
       const dto: WithdrawDto = {
         amount: 500,
         method: 'CHAPA',
@@ -408,22 +412,29 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       expect(result.success).toBe(true);
       expect(result.amount).toBe(500);
       expect(result.method).toBe('CHAPA');
-      expect(mockChapaClient.createTransfer).toHaveBeenCalledWith(
+      expect(result.status).toBe('PENDING');
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).toHaveBeenCalledWith(
+        WALLET_JOBS.PROCESS_WITHDRAWAL,
         expect.objectContaining({
-          amount: '500',
-          accountNumber: '0912345678',
+          withdrawalTxId: 'tx-001',
+          walletAmount: 500,
+          payoutAmount: 500,
+          payoutCurrency: 'ETB',
+          accountRef: '0912345678',
+        }),
+        expect.objectContaining({
+          jobId: 'wallet-withdrawal:tx-001',
+          attempts: 5,
         }),
       );
     });
   });
 
-  // ── 9. USD withdrawal → ETB conversion before deduction ──────────────────
-  describe('Scenario 9 – USD withdrawal → converted to ETB before deduction', () => {
-    it('succeeds when wallet has enough ETB to cover the USD amount', async () => {
-      // 10 USD = 1205 ETB; wallet has 10,000 ETB — sufficient
+  // 9. USD withdrawal conversion before payout queueing
+  describe('Scenario 9 - USD withdrawal converted to ETB before payout queueing', () => {
+    it('queues the ETB equivalent when wallet has enough balance for the USD amount', async () => {
       const ctx = await buildCtx(10_000);
-
-      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
 
       const dto: WithdrawDto = {
         amount: 10,
@@ -433,14 +444,28 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       };
 
       const result = await ctx.walletService.withdraw('user-001', dto);
+
       expect(result.success).toBe(true);
+      expect(result.amountInETB).toBe(1205);
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).toHaveBeenCalledWith(
+        WALLET_JOBS.PROCESS_WITHDRAWAL,
+        expect.objectContaining({
+          requestedAmount: 10,
+          requestedCurrency: 'USD',
+          walletAmount: 1205,
+          payoutAmount: 1205,
+          payoutCurrency: 'ETB',
+        }),
+        expect.any(Object),
+      );
     });
   });
 
-  // ── 10. Insufficient ETB balance ─────────────────────────────────────────
-  describe('Scenario 10 – Insufficient ETB balance → BadRequestException', () => {
-    it('throws before writing to DB or calling Chapa', async () => {
-      const ctx = await buildCtx(50); // only 50 ETB
+  // 10. Insufficient ETB balance
+  describe('Scenario 10 - Insufficient ETB balance -> BadRequestException', () => {
+    it('throws before writing to DB or queueing Chapa payout', async () => {
+      const ctx = await buildCtx(50);
 
       const dto: WithdrawDto = {
         amount: 1000,
@@ -453,13 +478,14 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
         BadRequestException,
       );
       expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).not.toHaveBeenCalled();
     });
   });
 
-  // ── 11. Insufficient balance — USD amount exceeds ETB wallet ─────────────
-  describe('Scenario 11 – USD withdrawal exceeds ETB balance', () => {
+  // 11. Insufficient balance after USD conversion
+  describe('Scenario 11 - USD withdrawal exceeds ETB balance', () => {
     it('throws BadRequestException when converted amount exceeds available balance', async () => {
-      const ctx = await buildCtx(100); // 100 ETB — cannot cover 5 USD (~602 ETB)
+      const ctx = await buildCtx(100);
 
       const dto: WithdrawDto = {
         amount: 5,
@@ -471,16 +497,14 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       await expect(ctx.walletService.withdraw('user-001', dto)).rejects.toThrow(
         BadRequestException,
       );
+      expect(mockWalletQueue.add).not.toHaveBeenCalled();
     });
   });
 
-  // ── 12. Chapa rejects payout → rollback ──────────────────────────────────
-  describe('Scenario 12 – Chapa rejects payout → InternalServerErrorException + rollback', () => {
-    it('throws InternalServerErrorException when Chapa returns error status', async () => {
-      mockChapaClient.createTransfer.mockResolvedValueOnce({
-        status: 'error',
-        message: 'Invalid account number',
-      });
+  // 12. Withdrawal queue failure rollback
+  describe('Scenario 12 - Withdrawal queue failure -> InternalServerErrorException + rollback', () => {
+    it('restores the wallet balance when payout queueing fails', async () => {
+      mockWalletQueue.add.mockRejectedValueOnce(new Error('Redis unavailable'));
 
       const dto: WithdrawDto = {
         amount: 200,
@@ -492,14 +516,23 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       await expect(walletService.withdraw('user-001', dto)).rejects.toThrow(
         InternalServerErrorException,
       );
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(prisma.freelancerWallet.update).toHaveBeenCalledWith({
+        where: { userId: 'user-001' },
+        data: { availableBalance: { increment: 200 } },
+      });
+      expect(prisma.walletTransaction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'tx-001' },
+          data: expect.objectContaining({ note: expect.stringContaining('Withdrawal FAILED') }),
+        }),
+      );
     });
   });
 
-  // ── 13. Chapa network failure → rollback ─────────────────────────────────
-  describe('Scenario 13 – Chapa network failure → InternalServerErrorException + rollback', () => {
-    it('throws InternalServerErrorException on fetch network error', async () => {
-      mockChapaClient.createTransfer.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-
+  // 13. Request path never performs Chapa transfer
+  describe('Scenario 13 - Request path never performs Chapa transfer', () => {
+    it('leaves provider I/O to the retryable worker', async () => {
       const dto: WithdrawDto = {
         amount: 300,
         method: 'TELEBIRR',
@@ -507,12 +540,22 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
         currency: 'ETB',
       };
 
-      await expect(walletService.withdraw('user-001', dto)).rejects.toThrow(
-        InternalServerErrorException,
+      await expect(walletService.withdraw('user-001', dto)).resolves.toMatchObject({
+        success: true,
+        status: 'PENDING',
+      });
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).toHaveBeenCalledWith(
+        WALLET_JOBS.PROCESS_WITHDRAWAL,
+        expect.objectContaining({
+          method: 'TELEBIRR',
+          payoutAmount: 300,
+          payoutCurrency: 'ETB',
+        }),
+        expect.any(Object),
       );
     });
   });
-
   // ── 14. Concurrent Stripe + PayPal intents ────────────────────────────────
   describe('Scenario 14 – Concurrent Stripe + PayPal intents', () => {
     it('persists both intents independently in the DB', async () => {

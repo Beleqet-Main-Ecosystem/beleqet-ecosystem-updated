@@ -119,19 +119,42 @@ export class EscrowService {
     }
 
     if (amountToPay === 0) {
-      await this.prisma.employerWalletTransaction.create({
-        data: {
-          walletId: employerWallet!.id,
-          type: 'DEBIT_WITHDRAWAL',
-          amount: walletAppliedAmount,
-          note: `Fully funded escrow for job ${freelanceJobId}`,
-          escrowId: escrow.id,
-        },
-      });
+      await this.prisma.$transaction([
+        this.prisma.employerWalletTransaction.create({
+          data: {
+            walletId: employerWallet!.id,
+            type: 'DEBIT_WITHDRAWAL',
+            amount: walletAppliedAmount,
+            note: `Fully funded escrow for job ${freelanceJobId}`,
+            escrowId: escrow.id,
+          },
+        }),
+        this.prisma.employerWallet.update({
+          where: { userId: clientId },
+          data: { lockedBalance: { decrement: walletAppliedAmount } },
+        }),
+        this.prisma.freelanceJob.update({
+          where: { id: freelanceJobId },
+          data: { status: 'FUNDED' },
+        }),
+        this.prisma.eventLog.create({
+          data: {
+            eventType: 'escrow.funded',
+            entityId: escrow.id,
+            entityType: 'EscrowTransaction',
+            payload: { amount: grossAmount, walletAppliedAmount, source: 'employer_wallet' },
+            processedBy: EscrowService.name,
+          },
+        }),
+      ]);
 
-      await this.prisma.employerWallet.update({
-        where: { userId: clientId },
-        data: { lockedBalance: { decrement: walletAppliedAmount } },
+      this.eventEmitter.emit('payment.escrow.funded', {
+        escrowId: escrow.id,
+        clientId,
+        grossAmount,
+        currency: job.currency,
+        source: 'employer_wallet',
+        timestamp: new Date().toISOString(),
       });
 
       return {
@@ -141,6 +164,7 @@ export class EscrowService {
         platformFee,
         netAmount,
         walletAppliedAmount,
+        amountToPay,
       };
     }
 

@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { getQueueToken } from '@nestjs/bullmq';
 import { BadRequestException } from '@nestjs/common';
 
 import { WalletService, WithdrawDto } from '../wallet/wallet.service';
@@ -7,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ChapaClient } from '../chapa/chapa.client';
 import { StepUpGuard } from './guards/step-up.guard';
 import { SENSITIVE_ACTION_KEY } from './decorators/sensitive-action.decorator';
+import { QUEUE_NAMES, WALLET_JOBS } from '../queues/queues.constants';
 
 const USD_ETB_RATE = 120.5;
 
@@ -14,6 +16,9 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
 const mockChapaClient = {
   createTransfer: jest.fn(),
+};
+const mockWalletQueue = {
+  add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal:tx-001' }),
 };
 
 function buildMockPrisma(walletBalance = 10_000, walletCurrency = 'ETB') {
@@ -87,6 +92,7 @@ async function buildCtx(walletBalance = 10_000) {
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
       { provide: ChapaClient, useValue: mockChapaClient },
+      { provide: getQueueToken(QUEUE_NAMES.WALLET), useValue: mockWalletQueue },
     ],
   }).compile();
 
@@ -99,6 +105,7 @@ describe('Step-Up + Multi-Currency integration', () => {
     jest.clearAllMocks();
     mockFetch.mockReset();
     mockChapaClient.createTransfer.mockReset();
+    mockWalletQueue.add.mockClear();
   });
 
   describe('WithdrawDto — currency parameter acceptance', () => {
@@ -135,8 +142,6 @@ describe('Step-Up + Multi-Currency integration', () => {
     it('succeeds when converting USD to ETB and wallet has sufficient balance', async () => {
       const ctx = await buildCtx(10_000);
 
-      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
-
       const dto: WithdrawDto = {
         amount: 10,
         method: 'CHAPA',
@@ -149,18 +154,22 @@ describe('Step-Up + Multi-Currency integration', () => {
       expect(result.success).toBe(true);
       expect(result.amount).toBe(10);
       expect(result.method).toBe('CHAPA');
-      expect(mockChapaClient.createTransfer).toHaveBeenCalledWith(
+      expect(result.amountInETB).toBe(1205);
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).toHaveBeenCalledWith(
+        WALLET_JOBS.PROCESS_WITHDRAWAL,
         expect.objectContaining({
-          amount: '10',
-          accountNumber: '0912345678',
+          requestedCurrency: 'USD',
+          payoutAmount: 1205,
+          payoutCurrency: 'ETB',
+          accountRef: '0912345678',
         }),
+        expect.objectContaining({ jobId: 'wallet-withdrawal:tx-001' }),
       );
     });
 
     it('deducts correct ETB equivalent when withdrawal is in USD', async () => {
       const ctx = await buildCtx(10_000);
-
-      mockChapaClient.createTransfer.mockResolvedValueOnce({ status: 'success' });
 
       const dto: WithdrawDto = {
         amount: 50,
@@ -170,7 +179,16 @@ describe('Step-Up + Multi-Currency integration', () => {
       };
 
       await ctx.walletService.withdraw('user-001', dto);
-      expect(mockChapaClient.createTransfer).toHaveBeenCalled();
+      expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).toHaveBeenCalledWith(
+        WALLET_JOBS.PROCESS_WITHDRAWAL,
+        expect.objectContaining({
+          walletAmount: 6025,
+          payoutAmount: 6025,
+          payoutCurrency: 'ETB',
+        }),
+        expect.any(Object),
+      );
     });
 
     it('throws BadRequestException when USD amount exceeds ETB wallet balance', async () => {
@@ -187,6 +205,7 @@ describe('Step-Up + Multi-Currency integration', () => {
         BadRequestException,
       );
       expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).not.toHaveBeenCalled();
     });
   });
 

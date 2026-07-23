@@ -55,6 +55,76 @@ function buildService(overrides: Record<string, unknown> = {}) {
   return { service, prisma, tx, escrowQueue };
 }
 
+function buildInitiateService() {
+  const freelanceJob = {
+    id: 'gig-1',
+    title: 'Backend escrow task',
+    budgetMax: 1000,
+    currency: 'ETB',
+    client: {
+      email: 'client@example.com',
+      firstName: 'Client',
+      lastName: 'User',
+    },
+    contract: {
+      agreedAmount: 1000,
+    },
+  };
+  const employerWallet = {
+    id: 'employer-wallet-1',
+    userId: 'client-1',
+    balance: 1000,
+    lockedBalance: 0,
+  };
+  const escrow = {
+    id: 'escrow-1',
+    freelanceJobId: 'gig-1',
+    grossAmount: 1000,
+    platformFee: 100,
+    netAmount: 900,
+    walletAppliedAmount: 1000,
+    currency: 'ETB',
+    status: 'FUNDED',
+    gatewayRef: 'tx-1',
+  };
+
+  const prisma = {
+    freelanceJob: {
+      findFirst: jest.fn().mockResolvedValue(freelanceJob),
+      update: jest.fn().mockResolvedValue({ ...freelanceJob, status: 'FUNDED' }),
+    },
+    employerWallet: {
+      findUnique: jest.fn().mockResolvedValue(employerWallet),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      update: jest.fn().mockResolvedValue({ ...employerWallet, lockedBalance: 0 }),
+    },
+    employerWalletTransaction: {
+      create: jest.fn().mockResolvedValue({ id: 'employer-wallet-tx-1' }),
+    },
+    escrowTransaction: {
+      upsert: jest.fn().mockResolvedValue(escrow),
+    },
+    eventLog: {
+      create: jest.fn().mockResolvedValue({ id: 'event-1' }),
+    },
+    $transaction: jest.fn(async (items: Promise<unknown>[]) => Promise.all(items)),
+  };
+  const escrowQueue = { add: jest.fn() };
+  const eventEmitter = { emit: jest.fn() };
+  const chapaClient = { initializePayment: jest.fn() };
+
+  const service = new EscrowService(
+    prisma as never,
+    { get: jest.fn() } as never,
+    { convertCurrency: jest.fn((amount: number) => amount) } as never,
+    chapaClient as never,
+    escrowQueue as never,
+    eventEmitter as never,
+  );
+
+  return { service, prisma, escrowQueue, eventEmitter, chapaClient };
+}
+
 describe('EscrowService milestone confirmations', () => {
   it('does not release after only one party confirms', async () => {
     const { service } = buildService();
@@ -182,6 +252,45 @@ describe('EscrowService milestone confirmations', () => {
       }),
       expect.objectContaining({
         jobId: 'auto-release:milestone-1',
+      }),
+    );
+  });
+});
+
+describe('EscrowService initiate wallet funding', () => {
+  it('starts the freelance job when escrow is fully funded from employer wallet', async () => {
+    const { service, prisma, escrowQueue, eventEmitter, chapaClient } = buildInitiateService();
+
+    await expect(service.initiate('client-1', 'gig-1')).resolves.toMatchObject({
+      escrowId: 'escrow-1',
+      checkoutUrl: null,
+      grossAmount: 1000,
+      platformFee: 100,
+      netAmount: 900,
+      walletAppliedAmount: 1000,
+      amountToPay: 0,
+    });
+
+    expect(chapaClient.initializePayment).not.toHaveBeenCalled();
+    expect(escrowQueue.add).not.toHaveBeenCalled();
+    expect(prisma.freelanceJob.update).toHaveBeenCalledWith({
+      where: { id: 'gig-1' },
+      data: { status: 'FUNDED' },
+    });
+    expect(prisma.eventLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: 'escrow.funded',
+          entityId: 'escrow-1',
+          payload: expect.objectContaining({ source: 'employer_wallet' }),
+        }),
+      }),
+    );
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      'payment.escrow.funded',
+      expect.objectContaining({
+        escrowId: 'escrow-1',
+        source: 'employer_wallet',
       }),
     );
   });
