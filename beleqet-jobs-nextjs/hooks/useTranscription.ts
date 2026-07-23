@@ -67,9 +67,9 @@ export function useTranscription() {
     }
   }, [addTranscript, clearError, conversationId, selectedLanguage, setError, setIsLoading]);
 
-  const sendStreamChunk = useCallback(async () => {
+  const sendStreamChunk = useCallback(async (isFinal = false) => {
     const currentConversationId = conversationId.trim();
-    if (!currentConversationId || audioChunksRef.current.length === 0 || !isRecordingRef.current) {
+    if (!currentConversationId || audioChunksRef.current.length === 0 || (!isRecordingRef.current && !isFinal)) {
       return;
     }
 
@@ -82,6 +82,7 @@ export function useTranscription() {
         currentConversationId,
         selectedLanguage,
         chunkBlob,
+        isFinal,
       );
       addTranscript(transcript);
     } catch (error) {
@@ -122,7 +123,7 @@ export function useTranscription() {
           chunkTimerRef.current = null;
         }
         stream.getTracks().forEach((track) => track.stop());
-        await handleTranscription();
+        await sendStreamChunk(true);
       };
 
       mediaRecorderRef.current = mediaRecorder;

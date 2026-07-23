@@ -118,6 +118,7 @@ scripts/*
 !scripts/deploy/
 !scripts/export-wp-users.ts
 !scripts/import-users.ts
+!scripts/transcribe-with-faster-whisper.py
 .agents/
 issue_pr_matches.md
 AGENTS.md

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ChatToTextService } from './chat-to-text.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FasterWhisperService } from './faster-whisper.service';
@@ -10,9 +10,6 @@ describe('ChatToTextService', () => {
   let service: ChatToTextService;
 
   const mockPrismaService = {
-    user: {
-      findUnique: jest.fn(),
-    },
     speechConversation: {
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -23,6 +20,7 @@ describe('ChatToTextService', () => {
       findMany: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      findFirst: jest.fn(),
     },
   };
 
@@ -70,31 +68,20 @@ describe('ChatToTextService', () => {
   });
 
   describe('createConversation', () => {
-    it('should create a conversation without a user relation when the requested user does not exist', async () => {
-      const createDto: CreateTranscriptDto = {
-        conversationId: 'conv_123',
-        rawText: 'hello world',
-        language: 'en',
-      };
-
-      mockPrismaService.user.findUnique.mockResolvedValue(null);
-      mockPrismaService.speechConversation.create.mockResolvedValue({
-        ...mockConversation,
-        userId: null,
-      });
+    it('should assign the conversation to the authenticated user', async () => {
+      mockPrismaService.speechConversation.create.mockResolvedValue(mockConversation);
 
       const result = await service.createConversation({
         title: 'Local smoke test',
         description: 'Test',
-        userId: '123e4567-e89b-12d3-a456-426614174000',
-      });
+      }, 'user_123');
 
-      expect(result.userId).toBeNull();
+      expect(result.userId).toBe('user_123');
       expect(mockPrismaService.speechConversation.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             title: 'Local smoke test',
-            userId: null,
+            userId: 'user_123',
           }),
         }),
       );
@@ -112,12 +99,12 @@ describe('ChatToTextService', () => {
       mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
       mockPrismaService.speechTranscript.create.mockResolvedValue(mockTranscript);
 
-      const result = await service.create(createDto);
+      const result = await service.create(createDto, 'user_123');
 
       expect(result).toEqual(mockTranscript);
       expect(mockPrismaService.speechConversation.findUnique).toHaveBeenCalledWith({
         where: { id: 'conv_123' },
-        select: { id: true },
+        select: { id: true, userId: true },
       });
       expect(mockPrismaService.speechTranscript.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -134,7 +121,7 @@ describe('ChatToTextService', () => {
       mockPrismaService.speechConversation.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.create({ conversationId: 'invalid_conv', rawText: 'hello world' }),
+        service.create({ conversationId: 'invalid_conv', rawText: 'hello world' }, 'user_123'),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -142,7 +129,7 @@ describe('ChatToTextService', () => {
       mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
       mockPrismaService.speechTranscript.create.mockResolvedValue(mockTranscript);
 
-      await expect(service.create({ conversationId: 'conv_123', rawText: 'You' })).resolves.toEqual(
+      await expect(service.create({ conversationId: 'conv_123', rawText: 'You' }, 'user_123')).resolves.toEqual(
         mockTranscript,
       );
       expect(mockPrismaService.speechTranscript.create).toHaveBeenCalledWith(
@@ -160,21 +147,18 @@ describe('ChatToTextService', () => {
 
   describe('delete', () => {
     it('should throw NotFoundException when a transcript is already missing', async () => {
-      const prismaError = new Prisma.PrismaClientKnownRequestError(
-        'Record to delete does not exist',
-        { code: 'P2025', clientVersion: 'test' },
-      );
-      mockPrismaService.speechTranscript.delete.mockRejectedValue(prismaError);
+      mockPrismaService.speechTranscript.findUnique.mockResolvedValue(null);
 
-      await expect(service.delete('missing_id')).rejects.toThrow(NotFoundException);
+      await expect(service.delete('missing_id', 'user_123')).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('findById', () => {
     it('should find transcript by id', async () => {
       mockPrismaService.speechTranscript.findUnique.mockResolvedValue(mockTranscript);
+      mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
 
-      const result = await service.findById('transcript_123');
+      const result = await service.findById('transcript_123', 'user_123');
 
       expect(result).toEqual(mockTranscript);
     });
@@ -182,7 +166,7 @@ describe('ChatToTextService', () => {
     it('should throw NotFoundException if transcript does not exist', async () => {
       mockPrismaService.speechTranscript.findUnique.mockResolvedValue(null);
 
-      await expect(service.findById('invalid_id')).rejects.toThrow(NotFoundException);
+      await expect(service.findById('invalid_id', 'user_123')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -205,8 +189,9 @@ describe('ChatToTextService', () => {
       ];
 
       mockPrismaService.speechTranscript.findMany.mockResolvedValue(transcripts);
+      mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
 
-      const result = await service.getStatistics('conv_123');
+      const result = await service.getStatistics('conv_123', 'user_123');
 
       expect(result).toEqual({
         totalTranscripts: 3,
@@ -236,6 +221,7 @@ describe('ChatToTextService', () => {
           size: 11,
         },
         { conversationId: 'conv_123', language: 'en' },
+        'user_123',
       );
 
       expect(result).toEqual(mockTranscript);
@@ -254,6 +240,7 @@ describe('ChatToTextService', () => {
     it('should transcribe an incoming stream chunk and persist it as a transcript', async () => {
       mockFasterWhisperService.transcribe.mockResolvedValue({ text: '  live chunk  ' });
       mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
+      mockPrismaService.speechTranscript.findFirst.mockResolvedValue(null);
       mockPrismaService.speechTranscript.create.mockResolvedValue(mockTranscript);
 
       const result = await service.transcribeChunk(
@@ -264,6 +251,7 @@ describe('ChatToTextService', () => {
           size: 11,
         },
         { conversationId: 'conv_123', language: 'en' },
+        'user_123',
       );
 
       expect(result).toEqual(mockTranscript);
@@ -272,8 +260,50 @@ describe('ChatToTextService', () => {
           data: expect.objectContaining({
             normalizedText: 'Live chunk.',
             provider: 'faster-whisper',
+            status: SpeechTranscriptStatus.PROCESSING,
           }),
         }),
+      );
+    });
+
+    it('should reuse the active processing transcript for subsequent stream chunks', async () => {
+      const existingProcessingTranscript = {
+        ...mockTranscript,
+        id: 'transcript_processing',
+        status: SpeechTranscriptStatus.PROCESSING,
+      };
+
+      mockFasterWhisperService.transcribe.mockResolvedValue({ text: '  second chunk  ' });
+      mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
+      mockPrismaService.speechTranscript.findFirst.mockResolvedValue(existingProcessingTranscript);
+      mockPrismaService.speechTranscript.update.mockResolvedValue(existingProcessingTranscript);
+
+      await service.transcribeChunk(
+        {
+          buffer: Buffer.from('chunk bytes'),
+          mimetype: 'audio/webm',
+          originalname: 'chunk.webm',
+          size: 11,
+        },
+        { conversationId: 'conv_123', language: 'en' },
+        'user_123',
+      );
+
+      expect(mockPrismaService.speechTranscript.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'transcript_processing' },
+        }),
+      );
+    });
+
+    it('should reject access to a conversation owned by another user', async () => {
+      mockPrismaService.speechConversation.findUnique.mockResolvedValue({
+        ...mockConversation,
+        userId: 'other_user',
+      });
+
+      await expect(service.findByConversation('conv_123', 'user_123')).rejects.toThrow(
+        ForbiddenException,
       );
     });
   });
