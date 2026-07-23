@@ -389,10 +389,8 @@ async function main() {
         severity: 'HIGH',
         enabled: true,
         config: {
-          maxDailyTransactions: 20,
-          roundAmountThreshold: 5,
-          maxRefundLoopCount: 3,
-          maxGatewayFailures: 5,
+          zScoreThreshold: 2.5,
+          minimumHistory: 3,
         },
         i18nKey: 'fraud.alert.title.PAYMENT_ANOMALY',
       },
@@ -407,7 +405,7 @@ async function main() {
         severity: 'LOW',
         enabled: true,
         config: {
-          maxDuplicateDistance: 0.8,
+          similarityThreshold: 0.8,
           lookbackDays: 30,
         },
         i18nKey: 'fraud.alert.title.DUPLICATE_LISTING',

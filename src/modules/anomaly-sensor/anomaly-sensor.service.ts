@@ -41,6 +41,14 @@ interface EscrowInitiatedPayload {
   timestamp: string;
 }
 
+/** Statistical result for a payment amount compared with same-currency history. */
+export interface PaymentAnomalyAnalysis {
+  anomalous: boolean;
+  zScore: number;
+  meanAmount: number;
+  standardDeviation: number;
+}
+
 /**
  * AnomalySensorService - Core anomaly detection engine.
  * Listens to platform events and applies detection rules to identify
@@ -178,6 +186,46 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Compares a payment with a same-currency historical baseline.
+   *
+   * Keeping this calculation here gives event-driven and on-demand scans one
+   * statistical detector. Callers are responsible for providing history from
+   * a single currency; amounts must not be converted or mixed across currencies.
+   */
+  analyzePaymentAmount(
+    amount: number,
+    historicalAmounts: number[],
+  ): PaymentAnomalyAnalysis {
+    if (historicalAmounts.length < 3) {
+      return {
+        anomalous: false,
+        zScore: 0,
+        meanAmount: 0,
+        standardDeviation: 0,
+      };
+    }
+
+    const meanAmount =
+      historicalAmounts.reduce((sum, value) => sum + value, 0) /
+      historicalAmounts.length;
+    const standardDeviation =
+      Math.sqrt(
+        historicalAmounts.reduce(
+          (sum, value) => sum + Math.pow(value - meanAmount, 2),
+          0,
+        ) / historicalAmounts.length,
+      ) || 1;
+    const zScore = (amount - meanAmount) / standardDeviation;
+
+    return {
+      anomalous: zScore > 2.5,
+      zScore,
+      meanAmount,
+      standardDeviation,
+    };
+  }
+
+  /**
    * Listens to escrow payment initiations and detects unusually large
    * transactions using the Z-Score statistical method.
    *
@@ -217,29 +265,27 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const amounts = history.map((tx) => tx.grossAmount);
-    const mean = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-    const stdDev =
-      Math.sqrt(amounts.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / amounts.length) || 1; // Prevent division by zero when all amounts are identical
+    const analysis = this.analyzePaymentAmount(
+      grossAmount,
+      history.map((tx) => tx.grossAmount),
+    );
 
-    const zScore = (grossAmount - mean) / stdDev;
-
-    if (zScore > 2.5) {
+    if (analysis.anomalous) {
       this.logger.warn(
-        `Payment anomaly detected for client: ${clientId}, Z-Score: ${zScore.toFixed(2)}`,
+        `Payment anomaly detected for client: ${clientId}, Z-Score: ${analysis.zScore.toFixed(2)}`,
       );
 
       await this.logAnomaly('PAYMENT_UNUSUAL_AMOUNT', clientId, 'User', {
         escrowId,
         amount: grossAmount,
         currency,
-        zScore,
-        meanAmount: mean,
+        zScore: analysis.zScore,
+        meanAmount: analysis.meanAmount,
       });
 
       await this.alertingService.dispatchAlert({
         title: 'Suspicious Payment Transaction',
-        message: `Unusually large transaction initiated by client ${clientId}. Amount: ${grossAmount} ${currency} (Z-Score: ${zScore.toFixed(2)}).`,
+        message: `Unusually large transaction initiated by client ${clientId}. Amount: ${grossAmount} ${currency} (Z-Score: ${analysis.zScore.toFixed(2)}).`,
         severity: 'CRITICAL',
         timestamp: new Date().toISOString(),
       });

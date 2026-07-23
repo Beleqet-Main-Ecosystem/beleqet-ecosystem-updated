@@ -70,15 +70,15 @@ Signals checked:
 
 ### 3. Payment Anomaly (`PAYMENT_ANOMALY`)
 
-Analyses wallet/escrow transactions:
-- 24h transaction velocity >20 → +30
-- Repeated round-number amounts (divisible by 1000) → +20
-- Refund loops (excessive DEBIT_FEE in 24h) → +25
-- Multiple gateway failures → +20
+Delegates payment amount analysis to `AnomalySensorService`, which compares a
+payment with at least three historical transactions in the same currency using
+a Z-score threshold of 2.5. The fraud module only persists the resulting
+alert; it does not implement a second velocity, refund, gateway, or currency
+normalisation heuristic.
 
 ### 4. Duplicate Listing (`DUPLICATE_LISTING`)
 
-Bigram text similarity on job descriptions:
+Uses `PlagiarismService`'s shared similarity pipeline for job descriptions:
 - Similarity >0.95 → +50 per match
 - Similarity >0.80 → +35 per match
 - Same company, within 30-day window
@@ -248,20 +248,10 @@ To add a new language, create `src/i18n/<lang>/messages.json` with the same key 
 
 **Per-transaction currency storage** — `FraudAlert.currency` records the ISO 4217 code for every alert.
 
-**Currency-aware anomaly detection** — `detectPaymentAnomaly()` normalises amounts using a static exchange-rate factor table (`CURRENCY_FACTORS`):
-
-| Currency | Factor (vs ETB) |
-|---|---|
-| ETB | 1 |
-| USD | 125 |
-| EUR | 135 |
-| GBP | 160 |
-| KES | 0.8 |
-| AED | 34 |
-
-Round-amount thresholds (`% 1000` in raw form) are scaled by the factor, so a `$100` transaction (10,000 USD cents × 125 = 1,250,000) is detected as a round amount on an ETB-equivalent basis. Velocity checks remain currency-agnostic (count-based rather than value-based).
-
-**Default fallback** — `ETB` when no currency is specified. Alert `evidence` records the currency for traceability.
+**Currency isolation** — `AnomalySensorService` builds a statistical baseline
+from transactions in the same currency. Unknown currencies are never treated
+as ETB or converted with a `1:1` fallback. Alert evidence records the currency
+and statistical baseline for traceability.
 
 ---
 

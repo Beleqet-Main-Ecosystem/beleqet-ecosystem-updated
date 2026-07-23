@@ -15,8 +15,8 @@ const RULE_TYPES = [
 const CONFIG_EXAMPLES: Record<string, string> = {
   OFF_PLATFORM_PAYMENT: JSON.stringify({ threshold: 30, patterns: ['phone', 'email', 'telebirr'] }, null, 2),
   FAKE_PROFILE: JSON.stringify({ maxUnverifiedSkills: 8, requireEmailVerification: true }, null, 2),
-  PAYMENT_ANOMALY: JSON.stringify({ maxDailyTransactions: 20, roundAmountThreshold: 5 }, null, 2),
-  DUPLICATE_LISTING: JSON.stringify({ maxDuplicateDistance: 0.8, lookbackDays: 30 }, null, 2),
+  PAYMENT_ANOMALY: JSON.stringify({ zScoreThreshold: 2.5, minimumHistory: 3 }, null, 2),
+  DUPLICATE_LISTING: JSON.stringify({ similarityThreshold: 0.8, lookbackDays: 30 }, null, 2),
 };
 
 export default function FraudRulesPage() {

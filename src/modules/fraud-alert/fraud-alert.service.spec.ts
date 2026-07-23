@@ -5,6 +5,8 @@ import { I18nService } from 'nestjs-i18n';
 import { FraudAlertService } from './fraud-alert.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+import { AnomalySensorService } from '../anomaly-sensor/anomaly-sensor.service';
+import { PlagiarismService } from '../plagiarism/plagiarism.service';
 
 const mockI18nService = {
   t: jest.fn().mockReturnValue('Translated text'),
@@ -54,6 +56,15 @@ const mockPrismaService = {
 
 const mockEventEmitter = { emit: jest.fn() };
 const mockNotificationsQueue = { add: jest.fn().mockResolvedValue(undefined) };
+const mockAnomalySensor = {
+  analyzePaymentAmount: jest.fn().mockReturnValue({
+    anomalous: false,
+    zScore: 0,
+    meanAmount: 0,
+    standardDeviation: 0,
+  }),
+};
+const mockPlagiarismService = { findSimilarDocuments: jest.fn() };
 
 describe('FraudAlertService', () => {
   let service: FraudAlertService;
@@ -68,6 +79,8 @@ describe('FraudAlertService', () => {
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: getQueueToken(QUEUE_NAMES.NOTIFICATIONS), useValue: mockNotificationsQueue },
         { provide: I18nService, useValue: mockI18nService },
+        { provide: AnomalySensorService, useValue: mockAnomalySensor },
+        { provide: PlagiarismService, useValue: mockPlagiarismService },
       ],
     }).compile();
 
@@ -175,89 +188,25 @@ describe('FraudAlertService', () => {
     });
   });
 
-  describe('detectPaymentAnomaly', () => {
-    it('should flag high-velocity transactions in 24h', () => {
-      const now = new Date();
-      const transactions = Array(25).fill(null).map((_, i) => ({
-        type: i % 5 === 0 ? 'DEBIT_FEE' : 'CREDIT_PENDING',
-        amount: 500 * (i + 1),
-        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000).toISOString(),
-      }));
-      const result = service.detectPaymentAnomaly(transactions);
-      expect(result.flags).toContain('high_velocity_24h');
-    });
-
-    it('should detect repeated round-number amounts', () => {
-      const now = new Date();
-      const transactions = Array(8).fill(null).map((_, i) => ({
-        type: 'CREDIT_AVAILABLE',
-        amount: 100000,
-        createdAt: new Date(now.getTime() - i * 2 * 60 * 60 * 1000).toISOString(),
-      }));
-      const result = service.detectPaymentAnomaly(transactions);
-      expect(result.flags).toContain('repeated_round_amounts');
-    });
-
-    it('should pass normal transaction patterns', () => {
-      const now = new Date();
-      const transactions = [
-        { type: 'CREDIT_PENDING', amount: 1500, createdAt: new Date(now.getTime() - 1 * 3600000).toISOString() },
-        { type: 'CREDIT_AVAILABLE', amount: 1500, createdAt: new Date(now.getTime() - 2 * 3600000).toISOString() },
-        { type: 'DEBIT_WITHDRAWAL', amount: 1500, createdAt: new Date(now.getTime() - 3 * 3600000).toISOString() },
-      ];
-      const result = service.detectPaymentAnomaly(transactions);
-      expect(result.score).toBe(0);
-    });
-
-    it('should flag multiple gateway failures from escrow gatewayResponse', () => {
-      const now = new Date();
-      const transactions = Array(8).fill(null).map((_, i) => ({
-        type: 'PENDING',
-        amount: 10000,
-        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000).toISOString(),
-        gatewayResponse: i < 6 ? { status: 'failed', error: 'insufficient_funds' } : { status: 'success' },
-      }));
-      const result = service.detectPaymentAnomaly(transactions);
-      expect(result.flags).toContain('multiple_gateway_failures');
-      expect(result.score).toBeGreaterThan(0);
-    });
-
-    it('should treat escrow REFUNDED status as a refund loop signal', () => {
-      const now = new Date();
-      const transactions = Array(4).fill(null).map((_, i) => ({
-        type: 'REFUNDED',
-        amount: 5000,
-        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000).toISOString(),
-      }));
-      const result = service.detectPaymentAnomaly(transactions);
-      expect(result.flags).toContain('refund_loop_suspected');
-    });
-
-    it('should not flag gateway failures when gatewayResponse is absent (wallet path)', () => {
-      const now = new Date();
-      const transactions = Array(10).fill(null).map((_, i) => ({
-        type: 'CREDIT_PENDING',
-        amount: 1500,
-        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000).toISOString(),
-      }));
-      const result = service.detectPaymentAnomaly(transactions);
-      expect(result.flags).not.toContain('multiple_gateway_failures');
-    });
-  });
-
   describe('scanEscrowTransactions', () => {
-    it('queries EscrowTransaction rows for the client and flags gateway failures', async () => {
+    it('queries escrow rows for the client and delegates amount analysis', async () => {
       const now = new Date();
       const escrowTxs = Array(8).fill(null).map((_, i) => ({
         id: `esc-${i}`,
         status: 'FUNDED',
-        grossAmount: 10000,
+        grossAmount: i === 0 ? 100000 : 10000,
         currency: 'ETB',
         gatewayResponse: i < 6 ? { status: 'failed', error: 'card_declined' } : { status: 'success' },
         createdAt: new Date(now.getTime() - i * 60 * 60 * 1000),
         freelanceJob: { currency: 'ETB' },
       }));
       mockPrismaService.escrowTransaction.findMany.mockResolvedValue(escrowTxs);
+      mockAnomalySensor.analyzePaymentAmount.mockReturnValue({
+        anomalous: true,
+        zScore: 5,
+        meanAmount: 10000,
+        standardDeviation: 1,
+      });
       mockPrismaService.fraudRule.findMany.mockResolvedValue([{ id: 'rule-esc', enabled: true }]);
       const txMock = {
         fraudAlert: { create: jest.fn().mockResolvedValue({ id: 'alert-esc' }) },
@@ -292,7 +241,7 @@ describe('FraudAlertService', () => {
   });
 
   describe('detectDuplicateListing', () => {
-    it('should detect near-identical job descriptions', () => {
+    it('should detect near-identical job descriptions', async () => {
       const job = {
         id: 'job-1',
         description: 'Build and maintain fintech applications using Node.js and React',
@@ -305,12 +254,15 @@ describe('FraudAlertService', () => {
           description: 'Build and maintain fintech applications using Node.js and React',
         },
       ];
-      const result = service.detectDuplicateListing(job, existing);
+      mockPlagiarismService.findSimilarDocuments.mockResolvedValue([
+        { entityId: 'job-2', similarity: 1 },
+      ]);
+      const result = await service.detectDuplicateListing(job, existing);
       expect(result.score).toBeGreaterThan(40);
       expect(result.matchIds).toContain('job-2');
     });
 
-    it('should not flag genuinely distinct job descriptions', () => {
+    it('should not flag genuinely distinct job descriptions', async () => {
       const job = {
         id: 'job-1',
         description: 'Senior accountant for a trading company in Addis Ababa',
@@ -323,7 +275,8 @@ describe('FraudAlertService', () => {
           description: 'Build full-stack web applications with React and PostgreSQL',
         },
       ];
-      const result = service.detectDuplicateListing(job, existing);
+      mockPlagiarismService.findSimilarDocuments.mockResolvedValue([]);
+      const result = await service.detectDuplicateListing(job, existing);
       expect(result.score).toBe(0);
     });
   });

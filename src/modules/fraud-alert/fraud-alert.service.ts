@@ -20,33 +20,11 @@ import { Queue } from 'bullmq';
 import { I18nService, I18nContext } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
+import { AnomalySensorService } from '../anomaly-sensor/anomaly-sensor.service';
+import { PlagiarismService } from '../plagiarism/plagiarism.service';
 
 const DEFAULT_CURRENCY = 'ETB';
 const DEFAULT_RETENTION_DAYS = 90;
-/** Round-amount threshold base: 1000.00 in minor units (cents). */
-const BASE_ROUND_AMOUNT_CENTS = 100000;
-
-/**
- * Exchange-rate factors for normalising amounts to a common base currency.
- * These approximate rates allow anomaly thresholds to be currency-agnostic.
- */
-const CURRENCY_FACTORS: Record<string, number> = {
-  ETB: 1,
-  USD: 125,
-  EUR: 135,
-  GBP: 160,
-  KES: 0.8,
-  AED: 34,
-};
-
-/** Shape of a rule configuration object stored in FraudRule.config */
-interface FraudRuleConfig {
-  threshold?: number;
-  patterns?: string[];
-  maxDailyTx?: number;
-  maxDuplicateDistance?: number;
-}
-
 @Injectable()
 export class FraudAlertService {
   private readonly logger = new Logger(FraudAlertService.name);
@@ -56,6 +34,8 @@ export class FraudAlertService {
     private readonly eventEmitter: EventEmitter2,
     private readonly i18n: I18nService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
+    private readonly anomalySensor: AnomalySensorService,
+    private readonly plagiarismService: PlagiarismService,
   ) {}
 
   // ─── PII Redaction ─────────────────────────────────────────────────────
@@ -191,161 +171,42 @@ export class FraudAlertService {
     return { flags, score: Math.min(score, 100) };
   }
 
-  // ── 3. Payment Anomaly Detector ────────────────────────────────────────
-
-  /**
-   * Normalises a raw integer amount to a common base for comparison
-   * across different currencies.
-   *
-   * @param amount - Raw amount in minor units (e.g. ETB cents, USD cents)
-   * @param currency - ISO 4217 currency code
-   * @returns Normalised amount in ETB-equivalent units
-   */
-  private normalizeAmount(amount: number, currency: string): number {
-    const factor = CURRENCY_FACTORS[currency.toUpperCase()];
-    if (!factor) return amount;
-    return Math.round(amount * factor);
-  }
-
-  /**
-   * Detects unusual payment patterns: high-velocity transactions in a short
-   * window, repeated exact round-number amounts (currency-aware), refund
-   * loops, and multiple gateway failures.
-   *
-   * The `gatewayResponse` field is only populated on EscrowTransaction rows;
-   * when WalletTransaction records are passed in (see scanTransaction) the
-   * multiple_gateway_failures rule will never fire because it has nothing to
-   * inspect. Use scanEscrowTransactions to evaluate that rule.
-   *
-   * @param transactions - Array of wallet/escrow transactions to analyse
-   * @param currency - The currency code for normalising thresholds
-   * @returns Object containing anomaly flags and score
-   */
-  detectPaymentAnomaly(
-    transactions: { type: string; amount: number; createdAt: string | Date; gatewayResponse?: unknown }[],
-    currency: string = DEFAULT_CURRENCY,
-  ): { flags: string[]; score: number } {
-    const flags: string[] = [];
-    let score = 0;
-    const factor = CURRENCY_FACTORS[currency.toUpperCase()] ?? 1;
-
-    const now = Date.now();
-    const recent24h = transactions.filter(
-      (t) => now - new Date(t.createdAt).getTime() < 24 * 60 * 60 * 1000,
-    );
-
-    if (recent24h.length > 20) {
-      flags.push('high_velocity_24h');
-      score += 30;
-    } else if (recent24h.length > 10) {
-      flags.push('elevated_velocity_24h');
-      score += 15;
-    }
-
-    const roundThreshold = Math.round(BASE_ROUND_AMOUNT_CENTS * factor);
-    const roundAmounts = recent24h.filter((t) => this.normalizeAmount(t.amount, currency) % roundThreshold === 0);
-    if (roundAmounts.length > 5) {
-      flags.push('repeated_round_amounts');
-      score += 20;
-    }
-
-    // Refund loops can surface as either wallet DEBIT_FEE rows or escrow
-    // rows whose status has settled to REFUNDED; honour both shapes here.
-    const refunds = recent24h.filter(
-      (t) => t.type === 'DEBIT_FEE' || t.type === 'REFUNDED',
-    );
-    if (refunds.length > 3) {
-      flags.push('refund_loop_suspected');
-      score += 25;
-    }
-
-    const gatewayFailures = transactions.filter(
-      (t) => {
-        try {
-          const resp =
-            typeof t.gatewayResponse === 'string'
-              ? JSON.parse(t.gatewayResponse)
-              : t.gatewayResponse;
-          return resp && (resp.status === 'failed' || resp.error);
-        } catch {
-          return false;
-        }
-      },
-    );
-    if (gatewayFailures.length > 5) {
-      flags.push('multiple_gateway_failures');
-      score += 20;
-    }
-
-    return { flags, score: Math.min(score, 100) };
-  }
+  // ── 3. Payment Anomaly Alert Orchestration ──────────────────────────────
 
   // ── 4. Duplicate Listing Detector ──────────────────────────────────────
 
   /**
-   * Computes a simple similarity score between two text strings using a
-   * bigram-based method. Returns a value between 0 and 1 where 1 means
-   * identical content.
-   *
-   * @param a - First text to compare
-   * @param b - Second text to compare
-   * @returns Similarity score from 0 to 1
-   */
-  private textSimilarity(a: string, b: string): number {
-    const normalize = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-    const sa = normalize(a);
-    const sb = normalize(b);
-
-    if (sa === sb) return 1.0;
-    if (!sa || !sb) return 0;
-
-    const bigramsA = new Set<string>();
-    for (let i = 0; i < sa.length - 1; i++) {
-      bigramsA.add(sa.substring(i, i + 2));
-    }
-    const bigramsB = new Set<string>();
-    for (let i = 0; i < sb.length - 1; i++) {
-      bigramsB.add(sb.substring(i, i + 2));
-    }
-
-    let intersection = 0;
-    for (const bg of bigramsA) {
-      if (bigramsB.has(bg)) intersection++;
-    }
-
-    const union = bigramsA.size + bigramsB.size - intersection;
-    return union === 0 ? 0 : intersection / union;
-  }
-
-  /**
-   * Flags job listings that are near-duplicates of other active listings
-   * from the same company within a recent time window.
+   * Flags job listings using the shared PlagiarismModule similarity pipeline.
    *
    * @param job - The job to check (with description)
    * @param existingJobs - Array of existing jobs from the same company to compare against
    * @returns Object with match details and score
    */
-  detectDuplicateListing(
+  async detectDuplicateListing(
     job: { id: string; description: string; companyId: string },
     existingJobs: { id: string; title: string; description: string }[],
-  ): { flags: string[]; score: number; matchIds: string[] } {
+  ): Promise<{ flags: string[]; score: number; matchIds: string[] }> {
     const flags: string[] = [];
     let score = 0;
     const matchIds: string[] = [];
 
-    for (const existing of existingJobs) {
-      if (existing.id === job.id) continue;
+    const matches = await this.plagiarismService.findSimilarDocuments(
+      job.description,
+      existingJobs.map((existing) => ({
+        id: existing.id,
+        entityType: 'Job',
+        title: existing.title,
+        content: existing.description,
+        sourceType: 'platform' as const,
+      })),
+      0.8,
+    );
 
-      const similarity = this.textSimilarity(job.description, existing.description);
+    for (const match of matches) {
+      const similarity = match.similarity;
       if (similarity > 0.8) {
-        flags.push(`near_duplicate_of_${existing.id}`);
-        matchIds.push(existing.id);
+        flags.push(`near_duplicate_of_${match.entityId}`);
+        matchIds.push(match.entityId);
         score += similarity > 0.95 ? 50 : 35;
       }
     }
@@ -745,8 +606,9 @@ export class FraudAlertService {
   }
 
   /**
-   * Scans a batch of recent wallet transactions for payment anomalies.
-   * Uses currency-aware normalisation for cross-currency analysis.
+   * Reuses AnomalySensorService's statistical detector for an on-demand scan.
+   * Wallet history is already single-currency, so no exchange-rate fallback is
+   * applied to unknown currencies.
    *
    * @param userId - The wallet owner to scan
    */
@@ -759,53 +621,49 @@ export class FraudAlertService {
     });
     if (!wallet) return alertIds;
 
+    const normalizedCurrency = wallet.currency || DEFAULT_CURRENCY;
+    const [latest, ...history] = wallet.transactions;
+    if (!latest) return alertIds;
+
+    const analysis = this.anomalySensor.analyzePaymentAmount(
+      latest.amount,
+      history.map((transaction) => transaction.amount),
+    );
+    if (!analysis.anomalous) return alertIds;
+
     const rules = await this.prisma.fraudRule.findMany({
       where: { enabled: true, ruleType: 'PAYMENT_ANOMALY' },
     });
 
-    const normalizedCurrency = wallet.currency || DEFAULT_CURRENCY;
-
     for (const rule of rules) {
-      const result = this.detectPaymentAnomaly(
-        wallet.transactions.map((t) => ({
-          type: t.type,
-          amount: t.amount,
-          createdAt: t.createdAt.toISOString(),
-        })),
-        normalizedCurrency,
+      const { id } = await this.createAlert(
+        {
+          entityType: 'WalletTransaction',
+          entityId: latest.id,
+          userId,
+          ruleId: rule.id,
+          ruleType: 'PAYMENT_ANOMALY',
+          severity: 'HIGH',
+          score: 100,
+          reason: `Unusual payment amount detected (${normalizedCurrency}); z-score ${analysis.zScore.toFixed(2)}`,
+          currency: normalizedCurrency,
+        },
+        {
+          zScore: analysis.zScore,
+          meanAmount: analysis.meanAmount,
+          currency: normalizedCurrency,
+        },
       );
-
-      if (result.score > 0) {
-        const severity = result.score >= 60 ? 'HIGH' : result.score >= 35 ? 'MEDIUM' : 'LOW';
-        const { id } = await this.createAlert(
-          {
-            entityType: 'WalletTransaction',
-            entityId: wallet.id,
-            userId,
-            ruleId: rule.id,
-            ruleType: 'PAYMENT_ANOMALY',
-            severity,
-            score: result.score,
-            reason: `Payment anomalies detected (${normalizedCurrency}): ${result.flags.join('; ')}`,
-            currency: normalizedCurrency,
-          },
-          { flags: result.flags, currency: normalizedCurrency },
-        );
-        alertIds.push(id);
-      }
+      alertIds.push(id);
     }
 
     return alertIds;
   }
 
   /**
-   * Scans a batch of recent escrow transactions for payment anomalies,
-   * including the multiple_gateway_failures rule which depends on the
-   * gatewayResponse field that only exists on EscrowTransaction records.
-   *
-   * EscrowTransaction does not carry a WalletTransactionType, so its
-   * EscrowStatus is mapped onto the detector's `type` field. Escrow rows
-   * are scoped to the user via the related FreelanceJob's `clientId`.
+   * Reuses AnomalySensorService's statistical detector for escrow scans.
+   * Transactions in other currencies are excluded from the baseline rather
+   * than converted with a guessed exchange rate.
    *
    * @param userId - The client whose escrow transactions should be scanned
    */
@@ -820,44 +678,46 @@ export class FraudAlertService {
     });
     if (escrowTxs.length === 0) return alertIds;
 
+    const latest = escrowTxs[0];
+    const currencyOf = (transaction: (typeof escrowTxs)[number]) =>
+      transaction.currency ||
+      transaction.freelanceJob?.currency ||
+      DEFAULT_CURRENCY;
+    const normalizedCurrency = currencyOf(latest);
+    const history = escrowTxs
+      .slice(1)
+      .filter((transaction) => currencyOf(transaction) === normalizedCurrency)
+      .map((transaction) => transaction.grossAmount);
+    const analysis = this.anomalySensor.analyzePaymentAmount(
+      latest.grossAmount,
+      history,
+    );
+    if (!analysis.anomalous) return alertIds;
+
     const rules = await this.prisma.fraudRule.findMany({
       where: { enabled: true, ruleType: 'PAYMENT_ANOMALY' },
     });
 
-    // Escrow rows may be denominated per-job; normalise against the most
-    // recent job's currency as a single representative base for the batch.
-    const normalizedCurrency =
-      escrowTxs[0]?.freelanceJob?.currency || DEFAULT_CURRENCY;
-
     for (const rule of rules) {
-      const result = this.detectPaymentAnomaly(
-        escrowTxs.map((t) => ({
-          type: t.status,
-          amount: t.grossAmount,
-          createdAt: t.createdAt.toISOString(),
-          gatewayResponse: t.gatewayResponse,
-        })),
-        normalizedCurrency,
+      const { id } = await this.createAlert(
+        {
+          entityType: 'EscrowTransaction',
+          entityId: latest.id,
+          userId,
+          ruleId: rule.id,
+          ruleType: 'PAYMENT_ANOMALY',
+          severity: 'HIGH',
+          score: 100,
+          reason: `Unusual escrow amount detected (${normalizedCurrency}); z-score ${analysis.zScore.toFixed(2)}`,
+          currency: normalizedCurrency,
+        },
+        {
+          zScore: analysis.zScore,
+          meanAmount: analysis.meanAmount,
+          currency: normalizedCurrency,
+        },
       );
-
-      if (result.score > 0) {
-        const severity = result.score >= 60 ? 'HIGH' : result.score >= 35 ? 'MEDIUM' : 'LOW';
-        const { id } = await this.createAlert(
-          {
-            entityType: 'EscrowTransaction',
-            entityId: userId,
-            userId,
-            ruleId: rule.id,
-            ruleType: 'PAYMENT_ANOMALY',
-            severity,
-            score: result.score,
-            reason: `Escrow payment anomalies detected (${normalizedCurrency}): ${result.flags.join('; ')}`,
-            currency: normalizedCurrency,
-          },
-          { flags: result.flags, currency: normalizedCurrency },
-        );
-        alertIds.push(id);
-      }
+      alertIds.push(id);
     }
 
     return alertIds;
@@ -892,7 +752,7 @@ export class FraudAlertService {
     });
 
     for (const rule of rules) {
-      const result = this.detectDuplicateListing(job, existingJobs);
+      const result = await this.detectDuplicateListing(job, existingJobs);
       if (result.score > 0) {
         const severity = result.score >= 75 ? 'HIGH' : 'MEDIUM';
         const { id } = await this.createAlert(
