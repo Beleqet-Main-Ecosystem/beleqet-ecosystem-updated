@@ -140,7 +140,7 @@ Services were **not** restarted; the previous release is still running.
 
 ```bash
 docker compose --env-file .env.staging --env-file .env.images \
-  -f docker-compose.staging.yml run --rm --no-deps backend npx prisma migrate status
+  -f docker-compose.staging.yml run --rm --no-deps backend ./node_modules/.bin/prisma migrate status
 ```
 
 Fix forward with a corrective migration in a new PR. Restore from backup only

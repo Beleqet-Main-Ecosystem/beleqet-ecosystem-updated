@@ -1,3 +1,6 @@
-# Force LF line endings for all text files so CI (Linux) and local (Windows)
-# see the same content. Prevents prettier CRLF violations.
+# Force LF line endings for all text files so CI (Linux) and local (Windows) see the same content
+# Shell scripts must keep LF endings — they execute on Linux
+*.sh text eol=lf
+
+# Ensure LF line endings (cross-platform)
 * text=auto eol=lf

@@ -87,8 +87,13 @@ scripts/*
 .agents/
 issue_pr_matches.md
 AGENTS.md
+**/nest_readme.md
+nest_readme.md
+**/next_readme.md
+next_readme.md
 
 # Local storage fallbacks
 temp-storage/
 **/temp-storage/
 
+src/i18n/am/
