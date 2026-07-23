@@ -7,6 +7,8 @@ import ChatRoom from "@/components/ChatRoom";
 import { ShieldCheck, Lock } from "lucide-react";
 import Link from "next/link";
 
+import { getToken } from "@/lib/auth";
+
 /**
  * Secure Tunnel Chat Page
  *
@@ -32,9 +34,9 @@ function ChatPageInner() {
   const lang = (searchParams.get("lang") ?? "en") as "en" | "am";
 
   useEffect(() => {
-    // Retrieve the JWT from localStorage (set by AuthProvider on login)
-    const stored = localStorage.getItem("access_token");
-    if (stored) setToken(stored);
+    if (ready) {
+      setToken(getToken());
+    }
   }, [ready]);
 
   if (!ready) {
@@ -86,19 +88,10 @@ function ChatPageInner() {
       {/* SEO meta */}
       <title>Secure Tunnel – Encrypted Chat | Beleqet</title>
 
-      {/* Top breadcrumb */}
-      <div className="bg-white border-b border-gray-200 px-5 py-3 flex items-center gap-2">
-        <Link href="/" className="text-xs text-gray-400 hover:text-emerald-600 transition-colors">
-          Home
-        </Link>
-        <span className="text-gray-300 text-xs">/</span>
-        <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1">
-          <Lock className="h-3 w-3" /> Secure Tunnel
-        </span>
-      </div>
+
 
       {/* Main chat area */}
-      <div className="flex-1 flex items-stretch container mx-auto max-w-3xl px-4 py-6">
+      <div className="flex-1 flex items-stretch container mx-auto max-w-3xl px-4 pt-[25px] pb-6">
         <div className="flex-1">
           <ChatRoom
             roomId={roomId}

@@ -24,17 +24,18 @@ describe('AuthController', () => {
     Pick<AuthService, 'issueTokensForUserId' | 'refresh' | 'validateUser' | 'login' | 'register' | 'logout' | 'verifyEmail' | 'forgotPassword' | 'resetPassword' | 'changePassword' | 'changeEmail'>
   >;
 
-  const FAKE_TOKENS = {
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
-  };
-
   const FAKE_USER = {
     id: 'user-id-123',
     email: 'test@beleqet.com',
     firstName: 'Test',
     lastName: 'User',
     role: MOCK_ROLE,
+  };
+
+  const FAKE_TOKENS = {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    user: FAKE_USER,
   };
 
   beforeEach(async () => {

@@ -12,6 +12,7 @@ import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 import { Logger, UseGuards } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { WsThrottlerGuard } from '../../common/guards/ws-throttler.guard';
 import { IsString, IsNotEmpty, IsOptional, validateOrReject } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { I18nService } from 'nestjs-i18n';
@@ -57,7 +58,7 @@ class StartVideoCallDto {
   cors: { origin: true, credentials: true },
   namespace: '/chat'
 })
-@UseGuards(ThrottlerGuard)
+@UseGuards(WsThrottlerGuard)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -79,8 +80,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const token = tokenString.replace('Bearer ', '').trim();
       const payload = this.jwtService.verify(token);
 
-      client.data.user = payload;
-      this.logger.log(`[ChatGateway] Connected: ${client.id} (User: ${payload.userId})`);
+      client.data.user = { userId: payload.sub, email: payload.email, role: payload.role };
+      this.logger.log(`[ChatGateway] Connected: ${client.id} (User: ${payload.sub})`);
     } catch (err) {
       this.logger.warn(`[ChatGateway] Unauthorized: ${client.id}`);
       client.emit('error', { message: this.i18n.t('messages.chat.unauthorized', { lang: 'en' }) });

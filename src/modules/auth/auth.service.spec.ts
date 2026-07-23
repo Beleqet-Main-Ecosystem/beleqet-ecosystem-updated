@@ -122,7 +122,14 @@ describe('AuthService', () => {
 
       expect(result).toEqual({ 
         accessToken: 'signed-access', 
-        refreshToken: expect.any(String) // Gracefully matches the dynamic generated UUID v4
+        refreshToken: expect.any(String), // Gracefully matches the dynamic generated UUID v4
+        user: {
+          id: userId,
+          email: 'test@beleqet.com',
+          firstName: 'Test',
+          lastName: 'User',
+          role: 'JOB_SEEKER',
+        }
       });
       expect(mockPrisma.refreshToken.create).toHaveBeenCalled();
     });

@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
+import { ChatController } from './chat.controller';
 import { KeysService } from './keys.service';
 import { KeysController } from './keys.controller';
 import { EncryptionService } from './encryption.service';
@@ -22,7 +23,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
       }),
     }),
   ],
-  controllers: [KeysController],
+  controllers: [KeysController, ChatController],
   providers: [ChatService, ChatGateway, KeysService, EncryptionService],
   exports: [ChatService, KeysService, EncryptionService]
 })

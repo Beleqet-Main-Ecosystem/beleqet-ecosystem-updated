@@ -43,6 +43,10 @@ export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [slots, setSlots] = useState([]);
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
+  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (ready && !user) router.replace('/login');
@@ -56,20 +60,6 @@ export default function ProfilePage() {
       .catch(() => {});
   }, []);
 
-  if (!ready || !user) {
-    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
-  }
-
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
-  const role = roleMeta[user.role] ?? {
-    label: user.role,
-    className: 'bg-muted/10 text-muted',
-  };
-  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
-  const [slots, setSlots] = useState([]);
-  const [editingSlot, setEditingSlot] = useState<any | null>(null);
-  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const loadAvailability = async () => {
     const res = await authenticatedFetch(
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
@@ -78,6 +68,7 @@ export default function ProfilePage() {
     console.log('Availability data:', data);
     setSlots(data);
   };
+
   const handleDelete = async () => {
     if (!deleteSlotId) return;
 
@@ -113,6 +104,17 @@ export default function ProfilePage() {
   useEffect(() => {
     loadAvailability();
   }, []);
+
+  if (!ready || !user) {
+    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
+  }
+
+  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+  const role = roleMeta[user.role] ?? {
+    label: user.role,
+    className: 'bg-muted/10 text-muted',
+  };
+  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
   return (
     <div className="container-page py-10">
       <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">
