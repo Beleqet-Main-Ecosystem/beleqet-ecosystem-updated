@@ -1,12 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
-import {
-  FfmpegService,
-  assertAllowedVideoUrl,
-  collectAllowedVideoHosts,
-  DEFAULT_VIDEO_MAX_BYTES,
-} from './ffmpeg.service';
+import { FfmpegService, assertAllowedVideoUrl, collectAllowedVideoHosts } from './ffmpeg.service';
 
 function configWith(map: Record<string, string>): ConfigService {
   return {
@@ -28,27 +23,27 @@ describe('assertAllowedVideoUrl (SSRF)', () => {
   });
 
   it('rejects AWS metadata endpoint', () => {
-    expect(() =>
-      assertAllowedVideoUrl('http://169.254.169.254/latest/meta-data/', config),
-    ).toThrow(BadRequestException);
+    expect(() => assertAllowedVideoUrl('http://169.254.169.254/latest/meta-data/', config)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('rejects localhost', () => {
-    expect(() =>
-      assertAllowedVideoUrl('http://localhost:3000/secret', config),
-    ).toThrow(BadRequestException);
+    expect(() => assertAllowedVideoUrl('http://localhost:3000/secret', config)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('rejects private IPs', () => {
-    expect(() =>
-      assertAllowedVideoUrl('http://192.168.1.10/video.webm', config),
-    ).toThrow(BadRequestException);
+    expect(() => assertAllowedVideoUrl('http://192.168.1.10/video.webm', config)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('rejects URLs with embedded credentials', () => {
-    expect(() =>
-      assertAllowedVideoUrl('https://user:pass@cdn.beleqet.com/a.webm', config),
-    ).toThrow(BadRequestException);
+    expect(() => assertAllowedVideoUrl('https://user:pass@cdn.beleqet.com/a.webm', config)).toThrow(
+      BadRequestException,
+    );
   });
 
   it('collectAllowedVideoHosts includes S3 bucket host', () => {
@@ -80,9 +75,9 @@ describe('FfmpegService.downloadToTempFile (DoS)', () => {
       body: Readable.toWeb(Readable.from([Buffer.from('x')])),
     } as unknown as Response);
 
-    await expect(
-      service.downloadToTempFile('https://cdn.example/huge.webm'),
-    ).rejects.toThrow(/maximum allowed size/);
+    await expect(service.downloadToTempFile('https://cdn.example/huge.webm')).rejects.toThrow(
+      /maximum allowed size/,
+    );
   });
 
   it('aborts when streamed bytes exceed the configured limit', async () => {
@@ -94,9 +89,9 @@ describe('FfmpegService.downloadToTempFile (DoS)', () => {
       body: Readable.toWeb(Readable.from(chunks)),
     } as unknown as Response);
 
-    await expect(
-      service.downloadToTempFile('https://cdn.example/stream.webm'),
-    ).rejects.toThrow(/maximum allowed size/);
+    await expect(service.downloadToTempFile('https://cdn.example/stream.webm')).rejects.toThrow(
+      /maximum allowed size/,
+    );
   });
 
   it('fails when the download deadline elapses (tarpit protection)', async () => {
@@ -119,8 +114,6 @@ describe('FfmpegService.downloadToTempFile (DoS)', () => {
       }) as Promise<Response>;
     });
 
-    await expect(
-      svc.downloadToTempFile('https://cdn.example/tarpit.webm'),
-    ).rejects.toThrow();
+    await expect(svc.downloadToTempFile('https://cdn.example/tarpit.webm')).rejects.toThrow();
   });
 });

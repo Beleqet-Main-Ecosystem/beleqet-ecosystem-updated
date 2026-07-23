@@ -70,14 +70,18 @@ describe('VideoInterview × Multi-Currency Integration', () => {
     videoResponse: { upsert: jest.fn(), updateMany: jest.fn() },
     interviewEvaluation: { deleteMany: jest.fn() },
     payment: {
-      findMany: jest.fn().mockImplementation(async ({ where }: { where: { userId: string } }) =>
-        paymentStore.filter((p) => p.userId === where.userId),
-      ),
+      findMany: jest
+        .fn()
+        .mockImplementation(async ({ where }: { where: { userId: string } }) =>
+          paymentStore.filter((p) => p.userId === where.userId),
+        ),
     },
     referral: {
-      findMany: jest.fn().mockImplementation(async ({ where }: { where: { referrerId: string } }) =>
-        referralStore.filter((r) => r.referrerId === where.referrerId),
-      ),
+      findMany: jest
+        .fn()
+        .mockImplementation(async ({ where }: { where: { referrerId: string } }) =>
+          referralStore.filter((r) => r.referrerId === where.referrerId),
+        ),
     },
     $transaction: jest.fn((ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
   };
@@ -125,7 +129,10 @@ describe('VideoInterview × Multi-Currency Integration', () => {
     const paymentsBefore = await prisma.payment.findMany({ where: { userId: candidateId } });
     const referralsBefore = await prisma.referral.findMany({ where: { referrerId: candidateId } });
 
-    expect(paymentsBefore.map((p: { currency: string }) => p.currency).sort()).toEqual(['ETB', 'USD']);
+    expect(paymentsBefore.map((p: { currency: string }) => p.currency).sort()).toEqual([
+      'ETB',
+      'USD',
+    ]);
     expect(referralsBefore[0].currency).toBe('EUR');
 
     const session = await service.createSession(employerId, {

@@ -130,10 +130,7 @@ export class PlagiarismService {
 
     for (const inputChunk of inputChunks) {
       for (const sourceChunk of sourceChunks) {
-        const result = await this.similarityEngine.compare(
-          inputChunk.text,
-          sourceChunk.text,
-        );
+        const result = await this.similarityEngine.compare(inputChunk.text, sourceChunk.text);
 
         comparisonCount++;
         if (result.similarity > bestChunkScore) {

@@ -31,6 +31,7 @@
     "dist",
     "coverage",
     "beleqet-jobs-nextjs",
-    "frontend"
+    "frontend",
+    "src/**/frontend"
   ]
 }

@@ -12,8 +12,6 @@ describe('AdminStats Module', () => {
   let service: AdminStatsService;
   let controller: AdminStatsController;
   let prismaService: jest.Mocked<PrismaService>;
-  let i18nService: jest.Mocked<I18nService>;
-  let walletService: jest.Mocked<WalletService>;
 
   beforeEach(async () => {
     const prismaMock = {
@@ -47,7 +45,6 @@ describe('AdminStats Module', () => {
     service = module.get<AdminStatsService>(AdminStatsService);
     controller = module.get<AdminStatsController>(AdminStatsController);
     prismaService = module.get(PrismaService);
-    i18nService = module.get(I18nService);
   });
 
   it('should be defined', () => {

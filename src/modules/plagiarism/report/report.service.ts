@@ -7,7 +7,6 @@ import {
   MatchedPhrase,
   PlagiarismCheckResult,
   PlagiarismMatch,
-  QualityAssessment,
   TextChunk,
 } from '../types/plagiarism.types';
 import { roundScore } from '../utils/math.utils';
@@ -37,14 +36,11 @@ export class ReportService {
    * Generates a complete plagiarism check result from comparison data.
    */
   buildReport(input: ReportInput): PlagiarismCheckResult {
-    const overallSimilarity =
-      input.matches.length > 0 ? input.matches[0].similarity : 0;
+    const overallSimilarity = input.matches.length > 0 ? input.matches[0].similarity : 0;
 
     const averageSimilarity =
       input.matches.length > 0
-        ? roundScore(
-            input.matches.reduce((sum, m) => sum + m.similarity, 0) / input.matches.length,
-          )
+        ? roundScore(input.matches.reduce((sum, m) => sum + m.similarity, 0) / input.matches.length)
         : 0;
 
     const qualityAssessment = this.qualityAnalyzer.analyze(input.inputText, overallSimilarity);

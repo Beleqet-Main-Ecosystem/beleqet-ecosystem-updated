@@ -18,69 +18,69 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { DbIndexMasterController } from './db-index-master.controller';
-import { DbIndexMasterService }    from './db-index-master.service';
-import { JwtAuthGuard }            from '../../common/guards/jwt-auth.guard';
-import { RolesGuard }              from '../../common/guards/roles.guard';
+import { DbIndexMasterService } from './db-index-master.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stub data
 // ─────────────────────────────────────────────────────────────────────────────
 
 const stubExplainResult = {
-  sql:        "SELECT id FROM jobs WHERE status = '[REDACTED]'",
-  plan:       { Plan: { 'Node Type': 'Index Scan', 'Total Cost': 50 } },
-  summary:    {
-    topNodeType:         'Index Scan',
-    estimatedTotalCost:  50,
-    actualExecutionMs:   3.2,
-    estimatedRows:       5,
-    usesSeqScan:         false,
-    usesIndexScan:       true,
-    warnings:            [],
-    indexSuggestion:     undefined,
+  sql: "SELECT id FROM jobs WHERE status = '[REDACTED]'",
+  plan: { Plan: { 'Node Type': 'Index Scan', 'Total Cost': 50 } },
+  summary: {
+    topNodeType: 'Index Scan',
+    estimatedTotalCost: 50,
+    actualExecutionMs: 3.2,
+    estimatedRows: 5,
+    usesSeqScan: false,
+    usesIndexScan: true,
+    warnings: [],
+    indexSuggestion: undefined,
   },
   analysedAt: new Date().toISOString(),
 };
 
 const stubIndexRow = {
-  schema:        'public',
-  table:         'jobs',
-  index:         'idx_jobs_status',
-  scans:         0,
-  tuplesRead:    0,
+  schema: 'public',
+  table: 'jobs',
+  index: 'idx_jobs_status',
+  scans: 0,
+  tuplesRead: 0,
   tuplesFetched: 0,
-  sizeHuman:     '16 kB',
-  sizeBytes:     16384,
+  sizeHuman: '16 kB',
+  sizeBytes: 16384,
 };
 
 const stubUsedIndexRow = {
   ...stubIndexRow,
-  index:  'idx_jobs_created_at',
-  scans:  10_000,
+  index: 'idx_jobs_created_at',
+  scans: 10_000,
   sizeBytes: 65536,
 };
 
 const stubSeqScanRow = {
-  table:          'jobs',
-  seqScans:       15_000,
-  seqTuplesRead:  300_000,
-  idxScans:       500,
-  liveRows:       30_000,
-  idxHitPercent:  3.2,
+  table: 'jobs',
+  seqScans: 15_000,
+  seqTuplesRead: 300_000,
+  idxScans: 500,
+  liveRows: 30_000,
+  idxHitPercent: 3.2,
 };
 
 const stubFullReport = {
-  generatedAt:        new Date().toISOString(),
-  totalIndexes:       2,
-  unusedIndexCount:   1,
-  unusedIndexes:      [stubIndexRow],
+  generatedAt: new Date().toISOString(),
+  totalIndexes: 2,
+  unusedIndexCount: 1,
+  unusedIndexes: [stubIndexRow],
   heavySeqScanTables: [stubSeqScanRow],
-  suggestions:        [
+  suggestions: [
     {
-      table:          'jobs',
-      reason:         '15,000 sequential scans with 30,000 live rows.',
+      table: 'jobs',
+      reason: '15,000 sequential scans with 30,000 live rows.',
       recommendation: 'Consider a B-Tree index on the most-filtered column. Index hit rate: 3.2%.',
-      priority:       'HIGH' as const,
+      priority: 'HIGH' as const,
     },
   ],
   totalIndexSizeHuman: '80 kB',
@@ -91,11 +91,11 @@ const stubFullReport = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const mockService = {
-  explainQuery:       jest.fn(),
-  listIndexes:        jest.fn(),
-  unusedIndexes:      jest.fn(),
+  explainQuery: jest.fn(),
+  listIndexes: jest.fn(),
+  unusedIndexes: jest.fn(),
   heavySeqScanTables: jest.fn(),
-  fullReport:         jest.fn(),
+  fullReport: jest.fn(),
 };
 
 // Permissive guard stubs — unit tests don't exercise auth
@@ -111,12 +111,12 @@ describe('DbIndexMasterController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DbIndexMasterController],
-      providers: [
-        { provide: DbIndexMasterService, useValue: mockService },
-      ],
+      providers: [{ provide: DbIndexMasterService, useValue: mockService }],
     })
-      .overrideGuard(JwtAuthGuard).useValue(passGuard)
-      .overrideGuard(RolesGuard).useValue(passGuard)
+      .overrideGuard(JwtAuthGuard)
+      .useValue(passGuard)
+      .overrideGuard(RolesGuard)
+      .useValue(passGuard)
       .compile();
 
     controller = module.get<DbIndexMasterController>(DbIndexMasterController);
@@ -134,10 +134,7 @@ describe('DbIndexMasterController', () => {
       const dto = { sql: "SELECT id FROM jobs WHERE status = 'PUBLISHED'" };
       const result = await controller.explainQuery(dto as any);
 
-      expect(mockService.explainQuery).toHaveBeenCalledWith(
-        dto.sql,
-        [],
-      );
+      expect(mockService.explainQuery).toHaveBeenCalledWith(dto.sql, []);
       expect(result).toEqual(stubExplainResult);
     });
 
@@ -164,20 +161,18 @@ describe('DbIndexMasterController', () => {
         new BadRequestException('SQL contains disallowed keywords.'),
       );
 
-      await expect(
-        controller.explainQuery({ sql: 'DROP TABLE users' } as any),
-      ).rejects.toThrow(BadRequestException);
+      await expect(controller.explainQuery({ sql: 'DROP TABLE users' } as any)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('propagates InternalServerErrorException thrown by the service', async () => {
       const { InternalServerErrorException } = await import('@nestjs/common');
-      mockService.explainQuery.mockRejectedValue(
-        new InternalServerErrorException('DB failure'),
-      );
+      mockService.explainQuery.mockRejectedValue(new InternalServerErrorException('DB failure'));
 
-      await expect(
-        controller.explainQuery({ sql: 'SELECT 1' } as any),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(controller.explainQuery({ sql: 'SELECT 1' } as any)).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 

@@ -11,7 +11,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 @Controller('admin-stats')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminStatsController {
-  constructor(private readonly adminStatsService: AdminStatsService) { }
+  constructor(private readonly adminStatsService: AdminStatsService) {}
 
   /**
    * Returns the dashboard statistics for admin users.

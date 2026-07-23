@@ -58,7 +58,7 @@ export class QueryMonitorService {
     if (result.seqScans.length > 0) {
       this.logger.warn(
         `[QueryMonitor] Sequential scan detected on: ${result.seqScans.join(', ')} — ` +
-        `consider adding an index. Query: ${sql.slice(0, 120)}`,
+          `consider adding an index. Query: ${sql.slice(0, 120)}`,
       );
     }
 
@@ -113,7 +113,9 @@ export class QueryMonitorService {
           `[QueryMonitor] ${status} | ${label} | ${plan.actualTimeMs?.toFixed(2) ?? '?'}ms`,
         );
       } catch (err) {
-        this.logger.error(`[QueryMonitor] Health check failed for "${label}": ${(err as Error).message}`);
+        this.logger.error(
+          `[QueryMonitor] Health check failed for "${label}": ${(err as Error).message}`,
+        );
       }
     }
   }
@@ -122,32 +124,40 @@ export class QueryMonitorService {
 
   private parsePlan(sql: string, plan: Record<string, unknown> | undefined): ExecutionPlan {
     const indexesUsed: string[] = [];
-    const seqScans: string[]   = [];
-    const warnings: string[]   = [];
+    const seqScans: string[] = [];
+    const warnings: string[] = [];
 
     if (plan) {
       this.walkPlan(plan, indexesUsed, seqScans);
     }
 
     const planNode = plan?.['Plan'] as Record<string, unknown> | undefined;
-    const totalCost   = planNode?.['Total Cost'] as number | null ?? null;
-    const actualTime  = planNode?.['Actual Total Time'] as number | null ?? null;
+    const totalCost = (planNode?.['Total Cost'] as number | null) ?? null;
+    const actualTime = (planNode?.['Actual Total Time'] as number | null) ?? null;
 
     if (seqScans.length > 0) {
       warnings.push(`Sequential scan(s) on: ${seqScans.join(', ')}`);
     }
 
-    return { query: sql, planRows: plan ? [plan] : [], totalCostEstimate: totalCost, actualTimeMs: actualTime, indexesUsed, seqScans, warnings };
+    return {
+      query: sql,
+      planRows: plan ? [plan] : [],
+      totalCostEstimate: totalCost,
+      actualTimeMs: actualTime,
+      indexesUsed,
+      seqScans,
+      warnings,
+    };
   }
 
-  private walkPlan(
-    node: Record<string, unknown>,
-    indexesUsed: string[],
-    seqScans: string[],
-  ): void {
+  private walkPlan(node: Record<string, unknown>, indexesUsed: string[], seqScans: string[]): void {
     const nodeType = node['Node Type'] as string | undefined;
 
-    if (nodeType === 'Bitmap Index Scan' || nodeType === 'Index Scan' || nodeType === 'Index Only Scan') {
+    if (
+      nodeType === 'Bitmap Index Scan' ||
+      nodeType === 'Index Scan' ||
+      nodeType === 'Index Only Scan'
+    ) {
       const idxName = node['Index Name'] as string | undefined;
       if (idxName) indexesUsed.push(idxName);
     }

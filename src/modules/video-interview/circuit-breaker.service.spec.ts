@@ -22,7 +22,9 @@ describe('CircuitBreakerService', () => {
 
     it('stays CLOSED after a single failure below threshold', async () => {
       await expect(
-        service.execute('test', async () => { throw new Error('boom'); }),
+        service.execute('test', async () => {
+          throw new Error('boom');
+        }),
       ).rejects.toThrow('boom');
       expect(service.getState('test')).toBe(CircuitState.CLOSED);
     });
@@ -30,7 +32,9 @@ describe('CircuitBreakerService', () => {
 
   describe('OPEN state', () => {
     it('opens after reaching the failure threshold', async () => {
-      const failingAction = async () => { throw new Error('fail'); };
+      const failingAction = async () => {
+        throw new Error('fail');
+      };
 
       for (let i = 0; i < 3; i++) {
         await service.execute('svc', failingAction).catch(() => {});
@@ -40,35 +44,51 @@ describe('CircuitBreakerService', () => {
     });
 
     it('fast-fails with ServiceUnavailableException when OPEN', async () => {
-      const failingAction = async () => { throw new Error('fail'); };
+      const failingAction = async () => {
+        throw new Error('fail');
+      };
       for (let i = 0; i < 3; i++) {
         await service.execute('svc2', failingAction).catch(() => {});
       }
 
-      await expect(
-        service.execute('svc2', async () => 'ok'),
-      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      await expect(service.execute('svc2', async () => 'ok')).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
     });
   });
 
   describe('HALF_OPEN state', () => {
     it('transitions to CLOSED after enough successes', async () => {
-      const failingAction = async () => { throw new Error('fail'); };
+      const failingAction = async () => {
+        throw new Error('fail');
+      };
 
       // Open the circuit
       for (let i = 0; i < 3; i++) {
-        await service.execute('svc3', failingAction, { failureThreshold: 3, timeout: 0, successThreshold: 2 }).catch(() => {});
+        await service
+          .execute('svc3', failingAction, { failureThreshold: 3, timeout: 0, successThreshold: 2 })
+          .catch(() => {});
       }
 
       // timeout=0 means it's immediately HALF_OPEN eligible
-      await service.execute('svc3', async () => 'ok', { failureThreshold: 3, timeout: 0, successThreshold: 2 });
-      await service.execute('svc3', async () => 'ok', { failureThreshold: 3, timeout: 0, successThreshold: 2 });
+      await service.execute('svc3', async () => 'ok', {
+        failureThreshold: 3,
+        timeout: 0,
+        successThreshold: 2,
+      });
+      await service.execute('svc3', async () => 'ok', {
+        failureThreshold: 3,
+        timeout: 0,
+        successThreshold: 2,
+      });
 
       expect(service.getState('svc3')).toBe(CircuitState.CLOSED);
     });
 
     it('allows only one concurrent probe while HALF_OPEN (no thundering herd)', async () => {
-      const failingAction = async () => { throw new Error('fail'); };
+      const failingAction = async () => {
+        throw new Error('fail');
+      };
       for (let i = 0; i < 3; i++) {
         await service
           .execute('herd', failingAction, { failureThreshold: 3, timeout: 0, successThreshold: 1 })
@@ -110,9 +130,7 @@ describe('CircuitBreakerService', () => {
       expect(rejected.every((r) => r.status === 'rejected')).toBe(true);
       expect(
         rejected.every(
-          (r) =>
-            r.status === 'rejected' &&
-            r.reason instanceof ServiceUnavailableException,
+          (r) => r.status === 'rejected' && r.reason instanceof ServiceUnavailableException,
         ),
       ).toBe(true);
 
@@ -124,7 +142,9 @@ describe('CircuitBreakerService', () => {
 
   describe('reset()', () => {
     it('resets an OPEN circuit back to CLOSED', async () => {
-      const failingAction = async () => { throw new Error('fail'); };
+      const failingAction = async () => {
+        throw new Error('fail');
+      };
       for (let i = 0; i < 3; i++) {
         await service.execute('svc4', failingAction).catch(() => {});
       }
@@ -148,11 +168,11 @@ describe('CircuitBreakerService', () => {
     });
 
     it('does not treat cooldown timeout as an action deadline', async () => {
-      const result = await service.execute(
-        'fast',
-        async () => 'ok',
-        { failureThreshold: 3, timeout: 1, executionTimeout: 5_000 },
-      );
+      const result = await service.execute('fast', async () => 'ok', {
+        failureThreshold: 3,
+        timeout: 1,
+        executionTimeout: 5_000,
+      });
       expect(result).toBe('ok');
     });
   });
