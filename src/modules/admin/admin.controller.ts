@@ -223,11 +223,11 @@ export class AdminController {
         contractsAsClient: true,
         contractsAsFreelancer: true,
         kycVerification: true,
- 
+
         subscriptions: { include: { transactions: true } },
- 
+
         fraudAlerts: true,
- 
+
       },
     });
 
@@ -256,8 +256,8 @@ export class AdminController {
       },
     };
   }
- 
- 
+
+
 
   // ────────────────────────────────────────────────────────────────────────
   //  Fraud Alert Management
@@ -398,5 +398,5 @@ export class AdminController {
   async deleteFraudAlertData(@Param('userId') userId: string, @CurrentUser() admin: CurrentUserPayload) {
     return this.fraudAlertService.gdprDelete(userId, admin.userId);
   }
- 
+
 }

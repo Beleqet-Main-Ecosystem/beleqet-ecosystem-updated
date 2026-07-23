@@ -1,5 +1,5 @@
 {
- 
+
   "tax": {
     "unsupportedJurisdiction": "ያልተደገፈ የግብር ክልል \"{countryCode}\". የሚደገፉት፦ ET, US።",
     "currencyMismatch": "ምንዛሬ \"{currency}\" ከግብር ክልል \"{countryCode}\" ጋር አይጣጣምም። የሚጠበቀው፦ {expectedCurrency}።",
@@ -10,7 +10,7 @@
     "invalidPayload": "ልክ ያልሆነ የክህሎት ፈተና ግብአት፦ {details}",
     "aiGenerationFailed": "የክህሎት ግምገማ ጥያቄዎችን ማመንጨት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
     "requestFailed": "የክህሎት ፈተና ጥያቄ አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
- 
+
   },
   "fraud": {
     "alert": {
@@ -75,6 +75,6 @@
       "export_audit": "የGDPR መረጃ ማውጣት ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል",
       "delete_audit": "የGDPR መረጃ መሰረዝ ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል"
     }
- 
+
   }
 }

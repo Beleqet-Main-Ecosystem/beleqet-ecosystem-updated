@@ -23,7 +23,7 @@
     "presignedUrlCreated": "Upload URL created successfully.",
     "assetUploaded": "Asset uploaded successfully."
   },
- 
+
   "salary": {
     "title": "AI Salary Helper",
     "description": "AI-powered salary prediction and market analysis",
@@ -131,7 +131,7 @@
     "forbidden": "You do not have permission to access this interview session.",
     "gdpr_request_accepted": "Your data deletion request has been accepted. All interview data will be permanently removed within 30 days.",
     "invalid_video_url": "The video URL must point to an approved Beleqet storage or CDN host."
- 
+
   },
   "fraud": {
     "alert": {
@@ -196,6 +196,6 @@
       "export_audit": "GDPR data export for fraud alerts performed",
       "delete_audit": "GDPR data deletion for fraud alerts performed"
     }
- 
+
   }
 }
