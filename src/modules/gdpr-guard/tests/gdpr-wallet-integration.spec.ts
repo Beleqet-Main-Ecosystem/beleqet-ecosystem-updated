@@ -22,11 +22,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
-        PrismaModule,
-        GdprGuardModule,
-      ],
+      imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, GdprGuardModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();

@@ -30,10 +30,7 @@ describe('GdprGuardService', () => {
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        GdprGuardService,
-        { provide: PrismaService, useValue: mockPrismaService },
-      ],
+      providers: [GdprGuardService, { provide: PrismaService, useValue: mockPrismaService }],
     }).compile();
 
     service = module.get<GdprGuardService>(GdprGuardService);
