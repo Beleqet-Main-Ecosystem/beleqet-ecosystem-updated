@@ -173,25 +173,6 @@ export class EncryptedInboxService {
       throw new ForbiddenException('This conversation is blocked');
     }
 
-    // Create server-side encrypted copy for GDPR compliance
-    let serverCiphertext: string | undefined;
-    let serverEncryptionVersion: string | undefined;
-
-    if (dto.serverCiphertext) {
-      // Client provided server ciphertext (preferred: client encrypts with server key)
-      serverCiphertext = dto.serverCiphertext;
-      serverEncryptionVersion = this.encryption.getKeyVersion();
-    } else {
-      // Fallback: server creates its own encrypted copy
-      // Note: In zero-knowledge mode, the server doesn't have plaintext,
-      // so this fallback only works for non-E2EE messages or admin operations.
-      // For true zero-knowledge, the client must provide serverCiphertext.
-      this.logger.debug(
-        `No server ciphertext provided for message in conversation ${dto.conversationId}. ` +
-          `GDPR export may not include this message until re-encrypted.`,
-      );
-    }
-
     const message = await this.prisma.encryptedMessage.create({
       data: {
         conversationId: dto.conversationId,
@@ -200,8 +181,6 @@ export class EncryptedInboxService {
         iv: dto.iv,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         encryptedMetadata: dto.encryptedMetadata ? (dto.encryptedMetadata as any) : undefined,
-        serverCiphertext,
-        serverEncryptionVersion,
       },
       include: {
         sender: {
@@ -428,26 +407,13 @@ export class EncryptedInboxService {
       conversationId: conv.id,
       status: conv.status,
       createdAt: conv.createdAt,
-      messages: conv.messages.map((msg: ConversationWithMessages['messages'][number]) => {
-        let decryptedServerCopy: string | null = null;
-        if (msg.serverCiphertext) {
-          try {
-            decryptedServerCopy = this.encryption.decrypt(msg.serverCiphertext);
-          } catch {
-            this.logger.warn(
-              `Failed to decrypt server copy for message ${msg.id} — key may have been rotated`,
-            );
-          }
-        }
-        return {
-          messageId: msg.id,
-          senderId: msg.senderId,
-          createdAt: msg.createdAt,
-          ciphertext: msg.ciphertext,
-          decryptedServerCopy,
-          isDeleted: msg.isDeleted,
-        };
-      }),
+      messages: conv.messages.map((msg: ConversationWithMessages['messages'][number]) => ({
+        messageId: msg.id,
+        senderId: msg.senderId,
+        createdAt: msg.createdAt,
+        ciphertext: msg.ciphertext,
+        isDeleted: msg.isDeleted,
+      })),
     }));
 
     // Audit log
