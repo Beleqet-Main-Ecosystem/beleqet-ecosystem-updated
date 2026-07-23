@@ -65,10 +65,21 @@ export class SubscriptionsCheckoutService {
       throw new NotFoundException('Subscription not found');
     }
 
+    const updatedSubscription = await this.subscriptionsService.cancel(id, userId);
+
     if (subscription.provider === PaymentProvider.PAYPAL && subscription.providerSubscriptionId) {
-      await this.paypalService.cancelSubscription(subscription.providerSubscriptionId);
+      try {
+        await this.paypalService.cancelSubscription(subscription.providerSubscriptionId);
+      } catch (error) {
+        // Rollback local state if gateway cancellation fails
+        await this.prisma.subscription.update({
+          where: { id },
+          data: { cancelAtPeriodEnd: subscription.cancelAtPeriodEnd },
+        });
+        throw error;
+      }
     }
 
-    return this.subscriptionsService.cancel(id, userId);
+    return updatedSubscription;
   }
 }
