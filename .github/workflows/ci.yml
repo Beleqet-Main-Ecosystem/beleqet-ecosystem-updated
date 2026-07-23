@@ -400,7 +400,7 @@ jobs:
         run: |
           docker compose --env-file .env.staging --env-file .env.images \
             -f docker-compose.staging.yml run --rm --no-deps backend \
-            npx prisma migrate deploy
+            ./node_modules/.bin/prisma migrate deploy
 
       - name: Start full stack and verify every container becomes healthy
         run: |
