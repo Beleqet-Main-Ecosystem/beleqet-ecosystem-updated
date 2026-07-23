@@ -64,8 +64,7 @@ couldn't reach Google Fonts at build time. To use **Inter** as designed, in `app
 ```tsx
 import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", weight: ["400","500","600","700","800"] });
-// add inter.variable to the <html> className
-```
+
 
 ## Design tokens (from the design process PDF)
 
