@@ -72,11 +72,14 @@ err*
 # Project-specific ignores
 beleqend_jobs.sql
 users_export.json
-# CI/CD tooling under scripts/ci and scripts/deploy is tracked;
-# everything else in scripts/ stays ignored (ad-hoc local tooling).
+
+# Keep the transcription script tracked while ignoring ad-hoc local scripts.
 scripts/*
+!scripts/
 !scripts/ci/
 !scripts/deploy/
+!scripts/transcribe-with-faster-whisper.py
+
 .agents/
 issue_pr_matches.md
 AGENTS.md

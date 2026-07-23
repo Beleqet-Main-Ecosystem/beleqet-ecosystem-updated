@@ -21,15 +21,15 @@ export default function Header() {
       ? "/employer"
       : "/post-job";
 
-  const navItems = [
-    { label: "Find jobs", href: "/jobs" },
-    { label: "For employers", href: employerHref },
-    { label: "CV maker", href: "/cv-maker" },
-    { label: "Portfolio", href: "/portfolio" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "About", href: "/about" },
-  ];
-
+ const navItems = [
+  { label: "Find jobs", href: "/jobs" },
+  { label: "For employers", href: employerHref },
+  { label: "CV maker", href: "/cv-maker" },
+  { label: "Chat to text", href: "/chat-to-text" },
+  { label: "Portfolio", href: "/portfolio" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "About", href: "/about" },
+];
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 

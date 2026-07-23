@@ -40,6 +40,7 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
@@ -135,6 +136,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    ChatToTextModule,
     SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,

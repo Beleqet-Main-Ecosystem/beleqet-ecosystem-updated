@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const app = express();
-const port = 4000;
+const port = 4001;
 
 // Credentials come from the environment — never hard-code keys in source.
 // Set CHAPA_SECRET_KEY and CHAPA_WEBHOOK_SECRET in your local .env / shell

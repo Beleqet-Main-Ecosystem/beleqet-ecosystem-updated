@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
-      - PORT=4000
+      - PORT=4001
       - FRONTEND_URL=http://localhost:3000
       - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
       - REDIS_HOST=redis
@@ -44,7 +44,7 @@ services:
     networks:
       - beleqet-net
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4000/api/docs']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4001/api/docs']
       interval: 30s
       timeout: 5s
       retries: 3
@@ -58,7 +58,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
-      - PORT=4000
+      - PORT=4001
       - FRONTEND_URL=http://localhost:3000
       - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
       - REDIS_HOST=redis
@@ -75,7 +75,7 @@ services:
     networks:
       - beleqet-net
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4000/api/docs']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4001/api/docs']
       interval: 30s
       timeout: 5s
       retries: 3

@@ -59,6 +59,7 @@ export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [slots, setSlots] = useState<any[]>([]);
   // All hooks must be registered unconditionally, before the loading-state
   // early return below (React rules-of-hooks).
   const [slots, setSlots] = useState([]);
@@ -86,9 +87,38 @@ export default function ProfilePage() {
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
     );
     const data = await res.json();
-    console.log('Availability data:', data);
     setSlots(data);
   };
+
+  const loadSubscription = async () => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const res = await authenticatedFetch(`${base}/subscriptions/me`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setSubscription(data ?? null);
+  };
+
+  const cancelSubscription = async () => {
+    if (!subscription) return;
+
+    try {
+      setCancelling(true);
+      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+      const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to cancel subscription');
+      await loadSubscription();
+      toast.success('Your subscription will not renew after the current period ends.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel subscription.');
+    } finally {
+      setCancelling(false);
+      setCancelConfirmOpen(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteSlotId) return;
 
@@ -121,57 +151,32 @@ export default function ProfilePage() {
     }
   };
 
-  useEffect(() => {
-    // Availability only loads for an authenticated user — matches the
-    // original behavior where this effect sat below the auth guard.
-    if (ready && user) loadAvailability();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user]);
-
-  const loadSubscription = async () => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-    const res = await authenticatedFetch(`${base}/subscriptions/me`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setSubscription(data ?? null);
-  };
-
-  useEffect(() => {
-    if (ready && user) loadSubscription();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user]);
-
-  const cancelSubscription = async () => {
-    if (!subscription) return;
-    try {
-      setCancelling(true);
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-      const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to cancel subscription');
-      await loadSubscription();
-      toast.success('Your subscription will not renew after the current period ends.');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to cancel subscription.');
-    } finally {
-      setCancelling(false);
-      setCancelConfirmOpen(false);
-    }
-  };
-
-  if (!ready || !user) {
-    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
+useEffect(() => {
+  if (ready && user) {
+    void loadAvailability();
   }
+}, [ready, user]);
 
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
-  const role = roleMeta[user.role] ?? {
-    label: user.role,
-    className: 'bg-muted/10 text-muted',
-  };
-  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
+useEffect(() => {
+  if (ready && user) {
+    void loadSubscription();
+  }
+}, [ready, user]);
 
+if (!ready || !user) {
+  return (
+    <div className="container-page py-24 text-center text-muted">
+      Loading your profile…
+    </div>
+  );
+}
+
+const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+const role = roleMeta[user.role] ?? {
+  label: user.role,
+  className: 'bg-muted/10 text-muted',
+};
+const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
   return (
     <div className="container-page py-10">
       <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">

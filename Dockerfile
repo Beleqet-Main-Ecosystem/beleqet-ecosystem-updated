@@ -57,12 +57,14 @@ RUN apk add --no-cache openssl ffmpeg \
     /usr/local/bin/npm \
     /usr/local/bin/npx \
     /usr/local/bin/corepack \
-    /opt/yarn-v*
+    /opt/yarn-v* \
+  && python3 -m pip install --no-cache-dir faster-whisper
 
 COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
 COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder --chown=node:node /app/scripts ./scripts
 
 USER node
 
