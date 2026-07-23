@@ -1,94 +1,67 @@
 import { Check, Zap, Building2, Rocket, ArrowRight, Star } from "lucide-react";
 import Link from "next/link";
 import { pricingPageMetadata } from "@/lib/seo/generate-metadata";
+import { fetchPlans, type Plan } from "@/lib/api";
 
 export const metadata = pricingPageMetadata();
+export const revalidate = 60;
 
-const plans = [
-  {
-    icon: Zap,
-    name: "Basic",
-    tagline: "Get started for free",
-    price: null,
-    priceLabel: "Free",
-    period: "forever",
-    desc: "Perfect for small businesses posting their first job listing.",
-    features: [
-      "1 active job listing",
-      "30 days visibility",
-      "Standard search placement",
-      "Applicant management dashboard",
-      "Email notifications",
-    ],
-    href: "/post-job",
-    action: "Post a free job",
-    highlight: false,
-    badge: null,
-  },
-  {
-    icon: Rocket,
-    name: "Featured",
-    tagline: "Most popular choice",
-    price: 1500,
-    priceLabel: "ETB 1,500",
-    period: "per month",
-    desc: "More reach, more applicants. Ideal for growing teams.",
-    features: [
-      "Up to 5 active listings",
-      "60 days visibility per listing",
-      "Featured badge on all jobs",
-      "Priority search placement",
-      "Telegram channel boost",
-      "Applicant CSV export",
-    ],
-    href: "/contact",
-    action: "Get Featured",
-    highlight: true,
-    badge: "Most Popular",
-  },
-  {
-    icon: Building2,
-    name: "Enterprise",
-    tagline: "Built for scale",
-    price: null,
-    priceLabel: "Custom",
-    period: "tailored to you",
-    desc: "High-volume hiring with a dedicated partner by your side.",
-    features: [
-      "Unlimited job listings",
-      "Dedicated account manager",
-      "Custom employer branding page",
-      "Priority candidate screening",
-      "API access & integrations",
-      "SLA-backed support",
-    ],
-    href: "/contact",
-    action: "Contact sales",
-    highlight: false,
-    badge: null,
-  },
+// Cosmetic-only lookup — purely for icon/highlight, keyed by position so the
+// page still renders sensibly if an admin renames or reorders plans.
+const PRESENTATION = [
+  { icon: Zap, highlight: false, badge: null as string | null },
+  { icon: Rocket, highlight: true, badge: "Most Popular" },
+  { icon: Building2, highlight: false, badge: null as string | null },
 ];
+
+function formatPrice(plan: Plan): { priceLabel: string; period: string; hasPrice: boolean } {
+  if (plan.priceAmount === 0) {
+    return { priceLabel: "Free", period: "forever", hasPrice: false };
+  }
+  const major = plan.priceAmount / 100;
+  const amount = major % 1 === 0 ? major.toString() : major.toFixed(2);
+  return {
+    priceLabel: `${plan.currency} ${amount}`,
+    period: plan.interval === "YEARLY" ? "per year" : "per month",
+    hasPrice: true,
+  };
+}
+
+function planFeatureList(plan: Plan): string[] {
+  if (!plan.features) return [];
+  return Object.entries(plan.features).map(([key, value]) => {
+    if (typeof value === "boolean") return value ? humanizeKey(key) : `No ${humanizeKey(key).toLowerCase()}`;
+    if (value === -1) return `Unlimited ${humanizeKey(key).toLowerCase()}`;
+    return `${humanizeKey(key)}: ${value}`;
+  });
+}
+
+function humanizeKey(key: string): string {
+  return key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()).trim();
+}
 
 const faqs = [
   {
-    q: "Can I upgrade or downgrade my plan?",
-    a: "Yes. You can upgrade anytime and the difference will be prorated. Downgrades take effect at the end of the billing period.",
+    q: "How does billing work?",
+    a: "Paid plans renew automatically every billing period via PayPal. You can cancel anytime from your profile — access continues until the end of the period you already paid for.",
   },
   {
-    q: "How do I pay?",
-    a: "We accept Telebirr, CBE Birr, and bank transfers. Contact our sales team after selecting a plan.",
+    q: "What happens if I cancel?",
+    a: "Your subscription stays active until the current billing period ends, then it won't renew. You can resubscribe at any time.",
+  },
+  {
+    q: "What happens when a subscription expires?",
+    a: "You lose access to that plan's paid features and are notified by email/in-app a few days before expiry, and again once it expires.",
   },
   {
     q: "Is the free plan really free?",
-    a: "Absolutely. No credit card required. You can post one active job listing at no cost, for as long as you need.",
-  },
-  {
-    q: "What happens when my listing expires?",
-    a: "Your job becomes invisible to job seekers. You can renew it or upgrade to a paid plan to extend visibility.",
+    a: "Yes — no credit card required to get started.",
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const plans = await fetchPlans();
+
   return (
     <div className="min-h-screen bg-[#f7f5ef]">
       {/* Hero */}
@@ -109,131 +82,126 @@ export default function PricingPage() {
 
       {/* Plans */}
       <section className="container-page py-16">
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
-          {plans.map((plan) => {
-            const Icon = plan.icon;
-            return (
-              <div
-                key={plan.name}
-                className={`relative flex flex-col overflow-hidden rounded-3xl border ${
-                  plan.highlight
-                    ? "border-brandGreen bg-primary text-white shadow-[0_20px_60px_-15px_rgba(0,101,59,0.4)]"
-                    : "border-border bg-white shadow-card"
-                }`}
-              >
-                {plan.badge && (
-                  <div className="absolute right-5 top-5 flex items-center gap-1 rounded-full bg-[#d8ff3e] px-3 py-1 text-[11px] font-extrabold text-primary">
-                    <Star className="h-3 w-3 fill-primary" />
-                    {plan.badge}
-                  </div>
-                )}
+        {plans.length === 0 ? (
+          <p className="text-center text-muted">
+            Plans are being updated. Please check back shortly.
+          </p>
+        ) : (
+          <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
+            {plans.map((plan, index) => {
+              const presentation = PRESENTATION[index % PRESENTATION.length];
+              const Icon = presentation.icon;
+              const { priceLabel, period, hasPrice } = formatPrice(plan);
+              const features = planFeatureList(plan);
+              return (
+                <div
+                  key={plan.id}
+                  className={`relative flex flex-col overflow-hidden rounded-3xl border ${
+                    presentation.highlight
+                      ? "border-brandGreen bg-primary text-white shadow-[0_20px_60px_-15px_rgba(0,101,59,0.4)]"
+                      : "border-border bg-white shadow-card"
+                  }`}
+                >
+                  {presentation.badge && (
+                    <div className="absolute right-5 top-5 flex items-center gap-1 rounded-full bg-[#d8ff3e] px-3 py-1 text-[11px] font-extrabold text-primary">
+                      <Star className="h-3 w-3 fill-primary" />
+                      {presentation.badge}
+                    </div>
+                  )}
 
-                <div className="p-7 pb-6">
-                  <span
-                    className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${
-                      plan.highlight
-                        ? "bg-white/10 text-[#d8ff3e]"
-                        : "bg-brandGreen/10 text-brandGreen"
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-
-                  <p
-                    className={`mt-4 text-xs font-extrabold uppercase tracking-widest ${
-                      plan.highlight ? "text-[#d8ff3e]" : "text-brandGreen"
-                    }`}
-                  >
-                    {plan.tagline}
-                  </p>
-                  <h2
-                    className={`mt-1 text-xl font-black ${
-                      plan.highlight ? "text-white" : "text-primary"
-                    }`}
-                  >
-                    {plan.name}
-                  </h2>
-
-                  <div className="mt-5 flex items-end gap-1">
+                  <div className="p-7 pb-6">
                     <span
-                      className={`text-4xl font-black leading-none ${
-                        plan.highlight ? "text-white" : "text-primary"
+                      className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${
+                        presentation.highlight
+                          ? "bg-white/10 text-[#d8ff3e]"
+                          : "bg-brandGreen/10 text-brandGreen"
                       }`}
                     >
-                      {plan.priceLabel}
+                      <Icon className="h-5 w-5" />
                     </span>
-                    {plan.price !== null && (
+
+                    <h2
+                      className={`mt-4 text-xl font-black ${
+                        presentation.highlight ? "text-white" : "text-primary"
+                      }`}
+                    >
+                      {plan.name}
+                    </h2>
+
+                    <div className="mt-5 flex items-end gap-1">
                       <span
-                        className={`mb-0.5 text-sm ${
-                          plan.highlight ? "text-white/50" : "text-muted"
+                        className={`text-4xl font-black leading-none ${
+                          presentation.highlight ? "text-white" : "text-primary"
                         }`}
                       >
-                        /{plan.period}
+                        {priceLabel}
                       </span>
-                    )}
-                    {plan.price === null && plan.name !== "Basic" && (
-                      <span
-                        className={`mb-0.5 text-sm ${
-                          plan.highlight ? "text-white/50" : "text-muted"
+                      {hasPrice && (
+                        <span
+                          className={`mb-0.5 text-sm ${
+                            presentation.highlight ? "text-white/50" : "text-muted"
+                          }`}
+                        >
+                          /{period}
+                        </span>
+                      )}
+                    </div>
+                    {plan.description && (
+                      <p
+                        className={`mt-3 text-sm leading-relaxed ${
+                          presentation.highlight ? "text-white/60" : "text-muted"
                         }`}
                       >
-                        — {plan.period}
-                      </span>
+                        {plan.description}
+                      </p>
                     )}
                   </div>
-                  <p
-                    className={`mt-3 text-sm leading-relaxed ${
-                      plan.highlight ? "text-white/60" : "text-muted"
+
+                  <div
+                    className={`mx-6 border-t ${
+                      presentation.highlight ? "border-white/10" : "border-border"
                     }`}
-                  >
-                    {plan.desc}
-                  </p>
+                  />
+
+                  <ul className="flex-1 space-y-3 p-7">
+                    {features.map((f) => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm">
+                        <span
+                          className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                            presentation.highlight
+                              ? "bg-white/10 text-[#d8ff3e]"
+                              : "bg-brandGreen/10 text-brandGreen"
+                          }`}
+                        >
+                          <Check className="h-3 w-3" />
+                        </span>
+                        <span
+                          className={presentation.highlight ? "text-white/80" : "text-ink/80"}
+                        >
+                          {f}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="p-7 pt-0">
+                    <Link
+                      href={plan.priceAmount === 0 ? "/register" : `/checkout?planId=${plan.id}`}
+                      className={`group flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-bold transition-all ${
+                        presentation.highlight
+                          ? "bg-[#d8ff3e] text-primary hover:bg-[#c8ef2e]"
+                          : "bg-primary text-white hover:bg-brandGreen"
+                      }`}
+                    >
+                      {plan.priceAmount === 0 ? "Get started" : `Subscribe to ${plan.name}`}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </div>
                 </div>
-
-                <div
-                  className={`mx-6 border-t ${
-                    plan.highlight ? "border-white/10" : "border-border"
-                  }`}
-                />
-
-                <ul className="flex-1 space-y-3 p-7">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <span
-                        className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                          plan.highlight
-                            ? "bg-white/10 text-[#d8ff3e]"
-                            : "bg-brandGreen/10 text-brandGreen"
-                        }`}
-                      >
-                        <Check className="h-3 w-3" />
-                      </span>
-                      <span
-                        className={plan.highlight ? "text-white/80" : "text-ink/80"}
-                      >
-                        {f}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="p-7 pt-0">
-                  <Link
-                    href={plan.href}
-                    className={`group flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-bold transition-all ${
-                      plan.highlight
-                        ? "bg-[#d8ff3e] text-primary hover:bg-[#c8ef2e]"
-                        : "bg-primary text-white hover:bg-brandGreen"
-                    }`}
-                  >
-                    {plan.action}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Trusted by strip */}
@@ -283,21 +251,21 @@ export default function PricingPage() {
       <section className="container-page pb-20">
         <div className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-primary px-8 py-12 text-center text-white shadow-[0_20px_60px_-15px_rgba(4,22,3,0.4)]">
           <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
-            Ready to hire?
+            Ready to get more from Beleqet?
           </p>
           <h2 className="mt-3 text-3xl font-black">
-            Start reaching candidates today
+            Start on the Free plan, upgrade anytime
           </h2>
           <p className="mx-auto mt-4 max-w-md text-sm text-white/60 leading-relaxed">
-            No contracts, no commitments. Post your first job free and see the
-            results before committing to a paid plan.
+            No contracts, no commitments. Cancel a paid plan whenever you like —
+            your access continues until the period you already paid for ends.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Link
-              href="/post-job"
+              href="/register"
               className="inline-flex items-center gap-2 rounded-full bg-[#d8ff3e] px-7 py-3 text-sm font-extrabold text-primary hover:bg-[#c8ef2e] transition-colors"
             >
-              Post a free job <ArrowRight className="h-4 w-4" />
+              Get started free <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/contact"

@@ -34,6 +34,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -415,6 +416,10 @@ describe('PaypalService', () => {
         PaypalService,
         { provide: ConfigService, useValue: buildMockConfig() },
         { provide: PrismaService, useValue: prisma },
+        {
+          provide: EventEmitter2,
+          useValue: { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]) },
+        },
       ],
     }).compile();
 

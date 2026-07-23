@@ -39,9 +39,14 @@ import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
 import { PerformanceGaugeThemeModule } from './modules/admin/performance-gauge-theme/performance-gauge-theme.module';
+import { PlansModule } from './modules/plans/plans.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -129,10 +134,15 @@ import { PerformanceGaugeThemeModule } from './modules/admin/performance-gauge-t
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
+    SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
     PerformanceGaugeThemeModule,
+    PlansModule,
+    SubscriptionsModule,
+    BillingModule,
+    SchedulerModule,
   ],
   providers: [
     {

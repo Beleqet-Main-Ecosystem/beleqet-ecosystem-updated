@@ -226,6 +226,7 @@ export class AdminController {
         contractsAsClient: true,
         contractsAsFreelancer: true,
         kycVerification: true,
+        subscriptions: { include: { transactions: true } },
       },
     });
 
