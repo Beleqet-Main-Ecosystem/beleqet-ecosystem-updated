@@ -48,7 +48,10 @@ describe('StepUpGuard', () => {
       providers: [
         StepUpGuard,
         Reflector,
-        { provide: JwtService, useValue: { verify: jest.fn(), sign: jest.fn().mockReturnValue('challenge-token') } },
+        {
+          provide: JwtService,
+          useValue: { verify: jest.fn(), sign: jest.fn().mockReturnValue('challenge-token') },
+        },
         { provide: ConfigService, useValue: mockConfig },
         { provide: PrismaService, useValue: mockPrisma },
       ],

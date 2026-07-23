@@ -60,6 +60,10 @@ export default function ProfilePage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [slots, setSlots] = useState<any[]>([]);
+  // All hooks must be registered unconditionally, before the loading-state
+  // early return below (React rules-of-hooks).
+  const [slots, setSlots] = useState([]);
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
   const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -78,23 +82,6 @@ export default function ProfilePage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (ready && user) {
-      void loadAvailability();
-      void loadSubscription();
-    }
-  }, [ready, user]);
-
-  if (!ready || !user) {
-    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
-  }
-
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
-  const role = roleMeta[user.role] ?? {
-    label: user.role,
-    className: 'bg-muted/10 text-muted',
-  };
-  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
   const loadAvailability = async () => {
     const res = await authenticatedFetch(
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
@@ -164,6 +151,32 @@ export default function ProfilePage() {
     }
   };
 
+useEffect(() => {
+  if (ready && user) {
+    void loadAvailability();
+  }
+}, [ready, user]);
+
+useEffect(() => {
+  if (ready && user) {
+    void loadSubscription();
+  }
+}, [ready, user]);
+
+if (!ready || !user) {
+  return (
+    <div className="container-page py-24 text-center text-muted">
+      Loading your profile…
+    </div>
+  );
+}
+
+const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+const role = roleMeta[user.role] ?? {
+  label: user.role,
+  className: 'bg-muted/10 text-muted',
+};
+const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
   return (
     <div className="container-page py-10">
       <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">
@@ -274,7 +287,9 @@ export default function ProfilePage() {
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-pageBg p-4">
             <div>
               <p className="font-semibold text-ink">{subscription.plan.name}</p>
-              <p className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}>
+              <p
+                className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}
+              >
                 {subscriptionStatusMeta[subscription.status].label}
                 {subscription.status === 'ACTIVE' &&
                   (subscription.cancelAtPeriodEnd

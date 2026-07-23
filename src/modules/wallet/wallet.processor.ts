@@ -27,7 +27,7 @@ export class WalletProcessor extends WorkerHost {
       await this.prisma.freelancerWallet.update({
         where: { id: walletId },
         data: {
-          pendingBalance:   { decrement: amount },
+          pendingBalance: { decrement: amount },
           availableBalance: { increment: amount },
         },
       });
@@ -42,7 +42,9 @@ export class WalletProcessor extends WorkerHost {
         },
       });
 
-      this.logger.log(`[wallet] Released ETB ${amount} from pending → available for user ${userId}`);
+      this.logger.log(
+        `[wallet] Released ETB ${amount} from pending → available for user ${userId}`,
+      );
     }
   }
 }

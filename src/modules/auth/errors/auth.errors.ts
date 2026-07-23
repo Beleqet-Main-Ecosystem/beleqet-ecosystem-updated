@@ -23,9 +23,7 @@ export abstract class AuthDomainError extends Error {
  */
 export class UnverifiedEmailLinkAttemptError extends AuthDomainError {
   constructor(email: string) {
-    super(
-      `Cannot link or sign in: provider did not verify ownership of email "${email}".`,
-    );
+    super(`Cannot link or sign in: provider did not verify ownership of email "${email}".`);
   }
 }
 

@@ -42,7 +42,15 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache openssl ffmpeg python3 py3-pip \
+# ffmpeg/ffprobe are invoked at runtime by the video-interview module
+# (src/modules/video-interview/ffmpeg.service.ts execFile calls), not just
+# needed to build — must be present in the final image, matching upstream's
+# original single-stage Dockerfile which installed it in both stages.
+#
+# Strip the base image's npm/corepack CLIs: runtime never needs them (CMD is
+# `node dist/main`; migrations use `./node_modules/.bin/prisma`), and they
+# ship a vulnerable bundled `tar` (CVE-2026-59873) that fails Trivy CRITICAL.
+RUN apk add --no-cache openssl ffmpeg \
   && rm -rf \
     /usr/local/lib/node_modules/npm \
     /usr/local/lib/node_modules/corepack \
