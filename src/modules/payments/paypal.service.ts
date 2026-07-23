@@ -39,9 +39,15 @@ import {
   PaymentStatus,
 } from './interfaces/payment.interfaces';
 import type {
-  SubscriptionLifecycleEvent,
   SyncFromProviderEventInput,
 } from '../subscriptions/subscriptions.service';
+
+export type SubscriptionLifecycleEvent =
+  | 'ACTIVATED'
+  | 'RENEWED'
+  | 'PAYMENT_FAILED'
+  | 'CANCELLED'
+  | 'EXPIRED';
 
 /** The event name BillingService listens for to sync subscription state (see billing.service.ts). */
 export const SUBSCRIPTION_LIFECYCLE_EVENT = 'billing.subscription.lifecycle';
