@@ -44,6 +44,7 @@ STRIPE_SECRET_KEY=sk_test_synthetic
 STRIPE_WEBHOOK_SECRET=whsec_synthetic
 PAYPAL_CLIENT_ID=synthetic_paypal_client_id
 PAYPAL_CLIENT_SECRET=synthetic_paypal_client_secret
+BILLING_WEBHOOK_SECRET=synthetic_billing_webhook_secret
 CHAPA_SECRET_KEY=
 SMTP_HOST=localhost
 SMTP_PORT=2525

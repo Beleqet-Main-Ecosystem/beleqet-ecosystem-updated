@@ -59,6 +59,7 @@ model User {
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
+  subscriptions         Subscription[]
 
   /// Whether the user has consented to their search history, skills, and
   /// saved jobs being used to personalize their AI job feed. Defaults to
@@ -71,6 +72,7 @@ model User {
   /// User side — the AI Feed module reads SearchHistory independently.
   searchHistories       SearchHistory[]
   storedFiles           StoredFile[]
+  skillAssessmentSessions SkillAssessmentSession[]
 
   @@map("users")
 }
@@ -674,6 +676,102 @@ model BackupCode {
   @@map("backup_codes")
 }
 
+// SalaryPrediction Model - Stores AI-powered salary predictions
+// Tracks average market values for job positions based on industry, location, and experience level
+model SalaryPrediction {
+  id                  String    @id @default(uuid())
+  jobTitle            String
+  jobCategoryId       String?
+  industry            String?
+  location            String
+  experienceLevel     String?   // JUNIOR, MID, SENIOR, LEAD, etc.
+  currency            String    @default("ETB")
+  
+  // Salary ranges calculated from market data
+  minSalary           Int
+  maxSalary           Int
+  averageSalary       Int       // Mean of all salary data points
+  medianSalary        Int       // Median salary from dataset
+  
+  // Statistical data
+  dataPointsCount     Int       @default(0)    // Number of job postings used in calculation
+  standardDeviation   Float     @default(0)
+  confidenceScore     Float     @default(0.5)  // 0.0 - 1.0, higher = more reliable
+  
+  // Version tracking for updates
+  version             Int       @default(1)
+  lastUpdatedAt       DateTime  @updatedAt
+  createdAt           DateTime  @default(now())
+  
+  // For GDPR compliance
+  isAnonymized        Boolean   @default(true)
+  
+  // For optimization
+  @@index([jobTitle, location, experienceLevel])
+  @@index([jobCategoryId, location])
+  @@index([location, industry])
+  @@index([lastUpdatedAt])
+  @@map("salary_predictions")
+}
+
+// SalaryHistory Model - Audit trail for salary predictions
+// Maintains historical records of salary trends over time
+model SalaryHistory {
+  id                String   @id @default(uuid())
+  jobTitle          String
+  jobCategoryId     String?
+  industry          String?
+  location          String
+  experienceLevel   String?
+  currency          String   @default("ETB")
+  
+  // Historical snapshot
+  minSalary         Int
+  maxSalary         Int
+  averageSalary     Int
+  medianSalary      Int
+  dataPointsCount   Int
+  
+  // Metadata
+  recordedAt        DateTime @default(now())
+  version           Int      @default(1)
+  
+  // For GDPR compliance
+  isAnonymized      Boolean  @default(true)
+  
+  @@index([jobTitle, location])
+  @@index([recordedAt, location])
+  @@map("salary_history")
+}
+
+// SalaryAnalytics Model - Pre-computed analytics for performance
+// Stores aggregated data for quick dashboard queries
+model SalaryAnalytics {
+  id                  String    @id @default(uuid())
+  
+  // Aggregation scope
+  location            String
+  industry            String?
+  jobCategoryId       String?
+  currency            String    @default("ETB")
+  
+  // Statistics
+  averageSalary       Int
+  medianSalary        Int
+  salaryGrowthRate    Float     @default(0)      // Month-over-month percentage
+  topJobTitles        String[]  @default([])     // Top 5 job titles by frequency
+  
+  // Reporting period
+  periodStartDate     DateTime
+  periodEndDate       DateTime
+  
+  computedAt          DateTime  @default(now())
+  
+  @@index([location, industry])
+  @@index([periodEndDate])
+  @@map("salary_analytics")
+}
+
 enum UserRole {
   ADMIN
   EMPLOYER
@@ -1004,6 +1102,134 @@ enum KycStatus {
   REJECTED
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Subscription Manager (Task: Admin & Control — Subscription Manager)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Plan catalog + per-user Subscription lifecycle + billing ledger, layered on
+// top of the existing Global Payment Gateway (Payment/PaymentProvider above).
+// A Subscription's recurring charges reuse the existing PaypalService billing
+// agreement flow (see src/modules/payments/paypal.service.ts) rather than
+// duplicating gateway integration — SubscriptionTransaction rows are written
+// alongside the Payment row that PaypalService already upserts, joined by
+// `providerSubscriptionId` (== the PayPal billing agreement id).
+//
+// GDPR: SubscriptionTransaction.rawPayload is sanitised before insert (no PII
+// keys — see BillingService) and is nulled out by the same data-deletion hook
+// that anonymises Payment rows for a deleted user.
+//
+// Multi-currency: amounts are stored as Int in minor units (see Payment
+// above); Plan.currency / Subscription/Transaction currency are ISO 4217.
+
+/// Billing interval for a recurring Plan.
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+/// Lifecycle status of a user's Subscription.
+enum SubscriptionStatus {
+  /// Checkout started (gateway billing agreement created) but not yet
+  /// confirmed by the gateway's activation webhook.
+  PENDING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+/// A purchasable subscription tier (e.g. Free, Pro, Enterprise).
+/// `paypalPlanId` maps to a pre-created PayPal billing plan id — set by an
+/// admin once the equivalent plan exists on the PayPal dashboard — and is
+/// what gets passed to PaypalService.createSubscription() at checkout.
+model Plan {
+  id           String          @id @default(uuid())
+  name         String          @unique
+  description  String?
+  /// Price in smallest currency unit (e.g. cents for USD, santim for ETB)
+  priceAmount  Int
+  /// ISO 4217 currency code
+  currency     String          @default("ETB")
+  interval     BillingInterval @default(MONTHLY)
+  /// Free-form feature list / limits, e.g. { "maxJobPosts": 5, "support": "email" }
+  features     Json
+  isActive     Boolean         @default(true)
+  /// PayPal billing plan id for recurring checkout via the existing PaypalService
+  paypalPlanId String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([isActive])
+  @@map("plans")
+}
+
+/// Links a User to a Plan with a tracked billing period and status.
+model Subscription {
+  id                 String             @id @default(uuid())
+  userId             String
+  planId             String
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  /// Gateway that owns the recurring charge for this subscription (nullable
+  /// while PENDING, before the user completes the gateway checkout redirect)
+  provider           PaymentProvider?
+  /// Provider-side recurring-billing id — the PayPal billing agreement id
+  /// for PayPal; joins to Payment.providerPaymentId for the same charge.
+  providerSubscriptionId String?        @unique
+  /// Set once the "expiring in 3 days" reminder has fired, so the reminder
+  /// cron job never re-notifies the same billing period.
+  reminderSentAt     DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         Plan                      @relation(fields: [planId], references: [id])
+  transactions SubscriptionTransaction[]
+
+  @@index([userId])
+  @@index([status, currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+/// One row per billing event on a Subscription (audit trail / transaction log).
+model SubscriptionTransaction {
+  id               String        @id @default(uuid())
+  subscriptionId   String
+  amount           Int
+  currency         String
+  status           PaymentStatus
+  /// Provider-side reference for this specific charge (e.g. PayPal sale id)
+  gatewayReference String?
+  /// Sanitised webhook payload for audit purposes (PII keys stripped)
+  rawPayload       Json?
+  createdAt        DateTime      @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, createdAt])
+  @@map("subscription_transactions")
+}
+
+/// Idempotency record for inbound billing webhooks — prevents the same
+/// gateway event from being processed twice (e.g. on gateway retry).
+model WebhookEvent {
+  id             String          @id @default(uuid())
+  /// Gateway's own event id (PayPal `id`, Stripe `id`, etc.) — unique guards
+  /// against double-processing the same webhook delivery.
+  gatewayEventId String          @unique
+  provider       PaymentProvider
+  eventType      String
+  processedAt    DateTime        @default(now())
+  payload        Json
+
+  @@index([provider, eventType])
+  @@map("webhook_events")
+}
+
 model StoredFile {
   id                         String    @id @default(uuid())
   key                        String    @unique
@@ -1019,4 +1245,44 @@ model StoredFile {
   uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
+}
+
+/// A Smart Skill Tester assessment run for a user against a job role and level.
+model SkillAssessmentSession {
+  id          String     @id @default(uuid())
+  userId      String
+  jobRole     String
+  skillLevel  SkillLevel
+  score       Int?
+  isCompleted Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions   AssessmentQuestion[]
+
+  @@index([userId, createdAt])
+  @@map("skill_assessment_sessions")
+}
+
+/// Individual multiple-choice question belonging to a SkillAssessmentSession.
+model AssessmentQuestion {
+  id              String                 @id @default(uuid())
+  sessionId       String
+  questionText    String
+  options         Json
+  correctAnswer   String
+  candidateAnswer String?
+  isCorrect       Boolean?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  session         SkillAssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("assessment_questions")
+}
+
+enum SkillLevel {
+  ENTRY
+  MID
+  SENIOR
 }
