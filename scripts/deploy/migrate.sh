@@ -19,9 +19,11 @@ IMAGES_ENV_FILE="${IMAGES_ENV_FILE:-.env.images}"
 log() { printf '[migrate] %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 
 log "applying Prisma migrations (prisma migrate deploy)"
+# Invoke the image-local Prisma CLI directly — production images strip npm/npx
+# (CVE-2026-59873 in the base image's bundled tar).
 if docker compose --env-file "$ENV_FILE_PATH" --env-file "$IMAGES_ENV_FILE" \
   -f "$COMPOSE_FILE_PATH" run --rm --no-deps backend \
-  npx prisma migrate deploy; then
+  ./node_modules/.bin/prisma migrate deploy; then
   log "migrations applied successfully"
 else
   log "ERROR: prisma migrate deploy failed"

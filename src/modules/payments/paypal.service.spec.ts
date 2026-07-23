@@ -15,6 +15,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -127,21 +128,25 @@ function buildMockConfig(extra: Record<string, string> = {}) {
 async function buildModule(configExtra: Record<string, string> = {}): Promise<{
   service: PaypalService;
   prisma: ReturnType<typeof buildMockPrisma>;
+  eventEmitter: { emit: jest.Mock };
 }> {
   const prisma = buildMockPrisma();
   const config = buildMockConfig(configExtra);
+  const eventEmitter = { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]) };
 
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       PaypalService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
+      { provide: EventEmitter2, useValue: eventEmitter },
     ],
   }).compile();
 
   return {
     service: module.get<PaypalService>(PaypalService),
     prisma,
+    eventEmitter,
   };
 }
 

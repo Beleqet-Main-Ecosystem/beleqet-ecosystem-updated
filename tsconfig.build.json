@@ -9,6 +9,7 @@
     "test",
     "prisma",
     "scripts",
+    "src/**/frontend",
     "tools"
   ]
 }
