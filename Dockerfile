@@ -1,4 +1,6 @@
 # ======================================================================# Beleqet backend — production image
+# =============================================================================
+# Beleqet backend — production image
 #
 # build → prune → run: the runner ships only production dependencies (which
 # include the prisma CLI so `prisma migrate deploy` can run as an explicit
@@ -11,15 +13,13 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 RUN apk add --no-cache openssl ffmpeg
-=======
 # Build stage
 FROM node:20-bookworm-slim AS builder
+=======
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends openssl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl ffmpeg
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
@@ -77,16 +77,37 @@ USER node
 FROM node:20-bookworm-slim
 
 
-RUN apt-get update \
-    && apt-get install --yes --no-install-recommends openssl python3 python3-pip ffmpeg \
-    && python3 -m pip install --no-cache-dir --break-system-packages faster-whisper \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openssl ffmpeg
 
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/scripts ./scripts
+COPY package.json package-lock.json ./
+COPY prisma ./prisma/
+
+RUN npm ci --omit=dev && npx prisma generate
+
+# ── Production stage ─────────────────────────────────────────────────────────
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+RUN apk add --no-cache openssl ffmpeg python3 py3-pip \
+  && rm -rf \
+    /usr/local/lib/node_modules/npm \
+    /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx \
+    /usr/local/bin/corepack \
+    /opt/yarn-v* \
+  && python3 -m pip install --no-cache-dir faster-whisper
+
+COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
+COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder --chown=node:node /app/scripts ./scripts
+
+USER node
 
 EXPOSE 4000
 
@@ -95,3 +116,4 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
 
 # Apply committed migrations (production-safe) before starting the server.
 CMD sh -c "npx prisma migrate deploy && npm run start:prod"
+CMD ["node", "dist/main"]
