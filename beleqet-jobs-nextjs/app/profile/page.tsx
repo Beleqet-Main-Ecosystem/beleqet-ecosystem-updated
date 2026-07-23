@@ -69,6 +69,7 @@ export default function ProfilePage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [slots, setSlots] = useState<any[]>([]);
 
   useEffect(() => {
     if (ready && !user) router.replace('/login');
@@ -82,6 +83,21 @@ export default function ProfilePage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!ready || !user) return;
+    loadAvailability();
+  }, [ready, user]);
+
+  if (!ready || !user) {
+    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
+  }
+
+  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+  const role = roleMeta[user.role] ?? {
+    label: user.role,
+    className: 'bg-muted/10 text-muted',
+  };
+  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
   const loadAvailability = async () => {
     const res = await authenticatedFetch(
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,

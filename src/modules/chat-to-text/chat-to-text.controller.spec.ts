@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request = require('supertest');
 import { ChatToTextController } from './chat-to-text.controller';
 import { ChatToTextService } from './chat-to-text.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { SpeechTranscriptStatus } from '@prisma/client';
 
 describe('ChatToTextController (Integration)', () => {
@@ -36,6 +37,7 @@ describe('ChatToTextController (Integration)', () => {
             createConversation: jest.fn(),
             create: jest.fn(),
             transcribeAudio: jest.fn(),
+            transcribeChunk: jest.fn(),
             findById: jest.fn(),
             findByConversation: jest.fn(),
             update: jest.fn(),
@@ -44,10 +46,24 @@ describe('ChatToTextController (Integration)', () => {
             getStatistics: jest.fn(),
           },
         },
+        {
+          provide: JwtAuthGuard,
+          useValue: {
+            canActivate: (context: any) => {
+              const request = context.switchToHttp().getRequest();
+              request.user = { userId: 'user_123' };
+              return true;
+            },
+          },
+        },
       ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.use((req: any, _res: any, next: () => void) => {
+      req.user = { userId: 'user_123' };
+      next();
+    });
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -80,7 +96,7 @@ describe('ChatToTextController (Integration)', () => {
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      expect(chatToTextService.create).toHaveBeenCalledWith(createDto);
+      expect(chatToTextService.create).toHaveBeenCalledWith(createDto, 'user_123');
     });
 
     it('should validate required fields', async () => {
@@ -124,7 +140,7 @@ describe('ChatToTextController (Integration)', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(chatToTextService.findById).toHaveBeenCalledWith('transcript_123');
+      expect(chatToTextService.findById).toHaveBeenCalledWith('transcript_123', 'user_123');
     });
   });
 });

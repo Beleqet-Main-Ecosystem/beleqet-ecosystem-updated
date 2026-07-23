@@ -1,5 +1,4 @@
-# =============================================================================
-# Beleqet backend — production image
+# ======================================================================# Beleqet backend — production image
 #
 # build → prune → run: the runner ships only production dependencies (which
 # include the prisma CLI so `prisma migrate deploy` can run as an explicit
@@ -12,6 +11,15 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 RUN apk add --no-cache openssl ffmpeg
+=======
+# Build stage
+FROM node:20-bookworm-slim AS builder
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
@@ -65,6 +73,20 @@ COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --from=builder --chown=node:node /app/prisma ./prisma
 
 USER node
+# Production stage
+FROM node:20-bookworm-slim
+
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends openssl python3 python3-pip ffmpeg \
+    && python3 -m pip install --no-cache-dir --break-system-packages faster-whisper \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 
 EXPOSE 4000
 

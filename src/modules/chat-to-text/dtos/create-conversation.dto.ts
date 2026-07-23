@@ -1,5 +1,5 @@
 
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CreateConversationDto {
   @IsOptional()
@@ -10,7 +10,4 @@ export class CreateConversationDto {
   @IsString()
   description?: string;
 
-  @IsOptional()
-  @IsUUID()
-  userId?: string;
 }
