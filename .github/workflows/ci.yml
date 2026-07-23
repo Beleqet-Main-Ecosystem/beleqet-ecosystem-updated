@@ -24,6 +24,7 @@ permissions:
 
 env:
   NODE_VERSION: '20'
+  NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
 
 jobs:
   # ── Repository, workflow, and script validation ────────────────────────────
@@ -71,7 +72,7 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
       - run: npm run prisma:generate
       - name: ESLint (non-mutating)
         run: npm run lint
@@ -118,11 +119,13 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
       - name: Create synthetic test environment
         run: bash scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
         run: npm run prisma:migrate:deploy
       - name: Jest unit tests
         run: npm test
@@ -176,11 +179,13 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
       - name: Create synthetic test environment
         run: bash scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
         run: npm run prisma:migrate:deploy
       - run: npm run build
 
@@ -216,7 +221,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
       - run: npm run lint
       - name: TypeScript validation
         run: npx tsc --noEmit
@@ -242,7 +247,7 @@ jobs:
           cache: npm
           cache-dependency-path: beleqet-jobs-nextjs/package-lock.json
 
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
       - run: npm run lint
       - name: TypeScript validation
         run: npx tsc --noEmit
@@ -291,11 +296,13 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      - run: npm ci
+      - run: npm install --legacy-peer-deps
       - name: Create synthetic test environment
         run: bash scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
         run: npm run prisma:migrate:deploy
       - run: npm run build
 

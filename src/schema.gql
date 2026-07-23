@@ -1,0 +1,244 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+"""Platform analytics dashboard summary"""
+type GqlAnalyticsSummary {
+  activeJobs: Int!
+  averageApplicationsPerJob: Float!
+  totalApplications: Int!
+  totalCompanies: Int!
+  totalJobs: Int!
+  totalUsers: Int!
+}
+
+"""Job application"""
+type GqlApplication {
+  coverLetter: String
+  createdAt: DateTime!
+  expectedSalary: Int
+  id: ID!
+  interviewSlot: DateTime
+  job: GqlJob
+  jobId: String!
+  portfolioUrl: String
+  resumeUrl: String
+  status: GqlApplicationStatus!
+  updatedAt: DateTime!
+  user: GqlUser
+  userId: String!
+}
+
+"""Paginated application results"""
+type GqlApplicationConnection {
+  applications: [GqlApplication!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+}
+
+"""Application filter parameters"""
+input GqlApplicationFilterInput {
+  jobId: String
+  limit: Int
+  page: Int
+  status: GqlApplicationStatus
+  userId: String
+}
+
+"""Application statuses"""
+enum GqlApplicationStatus {
+  INTERVIEW_SCHEDULED
+  OFFERED
+  REJECTED
+  SCREENING
+  SHORTLISTED
+  SUBMITTED
+  WITHDRAWN
+}
+
+"""Employer company profile"""
+type GqlCompany {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  industry: String
+  location: String
+  logoUrl: String
+  name: String!
+  size: String
+  userId: String
+  verified: Boolean!
+  website: String
+}
+
+"""Freelance job listing"""
+type GqlFreelanceJob {
+  """Number of bids"""
+  bidCount: Int
+  budgetMax: Int!
+  budgetMin: Int!
+  categoryId: String!
+  clientId: String!
+  createdAt: DateTime!
+  currency: String
+  deadlineDays: Int!
+  description: String!
+  featured: Boolean!
+  id: ID!
+  pricingType: String
+  skills: [String!]!
+  status: String
+  title: String!
+}
+
+"""Job listing on the platform"""
+type GqlJob {
+  applicationCount: Int
+  category: GqlJobCategory
+  categoryId: String!
+  company: GqlCompany
+  companyId: String!
+  createdAt: DateTime!
+  currency: String
+  deadline: DateTime
+  description: String!
+  experienceLevel: String
+  featured: Boolean!
+  id: ID!
+  location: String!
+  qualification: String
+  requirements: String
+  salaryMax: Int
+  salaryMin: Int
+  salaryType: String
+  status: GqlJobStatus!
+  tags: [String!]
+  title: String!
+  type: GqlJobType!
+  updatedAt: DateTime!
+  urgent: Boolean!
+  vacancies: Int
+  yearsOfExperience: String
+}
+
+"""Job category"""
+type GqlJobCategory {
+  icon: String
+  id: ID!
+  label: String!
+  slug: String!
+}
+
+"""Paginated job listing results"""
+type GqlJobConnection {
+  hasNextPage: Boolean!
+  jobs: [GqlJob!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+"""Job search and filter parameters"""
+input GqlJobFilterInput {
+  categoryId: String
+  companyId: String
+  featured: Boolean
+
+  """Items per page (max 100)"""
+  limit: Int
+  location: String
+
+  """Page number (1-indexed)"""
+  page: Int
+  salaryMax: Int
+  salaryMin: Int
+  search: String
+  status: GqlJobStatus
+  type: GqlJobType
+}
+
+"""Job listing statuses"""
+enum GqlJobStatus {
+  ARCHIVED
+  CLOSED
+  DRAFT
+  PUBLISHED
+}
+
+"""Types of employment"""
+enum GqlJobType {
+  CONTRACT
+  FULL_TIME
+  HYBRID
+  PART_TIME
+  REMOTE
+}
+
+"""Platform user (employer, job seeker, freelancer, or admin)"""
+type GqlUser {
+  avatarUrl: String
+  bio: String
+  createdAt: DateTime!
+  email: String!
+  emailVerified: Boolean!
+  firstName: String!
+  githubUrl: String
+  headline: String
+  id: ID!
+  isActive: Boolean!
+  lastName: String!
+  linkedinUrl: String
+  location: String
+  phone: String
+  portfolioUrl: String
+  role: GqlUserRole!
+  skills: [String!]
+  updatedAt: DateTime!
+}
+
+"""User roles on the platform"""
+enum GqlUserRole {
+  ADMIN
+  EMPLOYER
+  FREELANCER
+  JOB_SEEKER
+}
+
+type Query {
+  """Platform analytics dashboard data"""
+  analyticsSummary: GqlAnalyticsSummary!
+
+  """Fetch a single application by ID"""
+  application(id: String!): GqlApplication
+
+  """Fetch applications with filters and pagination"""
+  applications(filter: GqlApplicationFilterInput): GqlApplicationConnection!
+
+  """Fetch all applications for a specific job"""
+  applicationsByJob(jobId: String!): [GqlApplication!]!
+
+  """Fetch freelance jobs with bid counts"""
+  freelanceJobs(limit: Int): [GqlFreelanceJob!]!
+
+  """Fetch a user by ID"""
+  gqlUser(id: String!): GqlUser
+
+  """Fetch users with optional role filter"""
+  gqlUsers(limit: Int, role: String): [GqlUser!]!
+
+  """Fetch a single job by ID"""
+  job(id: String!): GqlJob
+
+  """Fetch jobs with filters and pagination"""
+  jobs(filter: GqlJobFilterInput): GqlJobConnection!
+
+  """Fetch all jobs for a company"""
+  jobsByCompany(companyId: String!): [GqlJob!]!
+}
