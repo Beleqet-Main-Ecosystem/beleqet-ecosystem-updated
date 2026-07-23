@@ -1251,7 +1251,6 @@ model StoredFile {
   @@map("stored_files")
 }
 
-<<<<<<< HEAD
 // ─────────────────────────────────────────────────────────────────────────────
 // Encrypted Inbox – E2EE Zero-Knowledge Architecture (Task Vault-Security-001)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1332,7 +1331,8 @@ enum GdprAction {
   DATA_EXPORT
   DATA_DELETION
   CONSENT_UPDATE
-=======
+}
+
 /// A Smart Skill Tester assessment run for a user against a job role and level.
 model SkillAssessmentSession {
   id          String     @id @default(uuid())
@@ -1371,5 +1371,4 @@ enum SkillLevel {
   ENTRY
   MID
   SENIOR
->>>>>>> upstream/main
 }
