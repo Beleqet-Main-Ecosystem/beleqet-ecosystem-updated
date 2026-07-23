@@ -18,6 +18,8 @@ export interface AccessTokenPayload {
 /** Shape attached to `req.user` for any route behind {@link JwtAuthGuard}. */
 export interface AuthenticatedRequestUser {
   readonly userId: string;
+  readonly email?: string;
+  readonly role?: string;
 }
 
 /**
@@ -37,6 +39,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   /** Passport calls this after signature + expiry verification succeeds. */
   public validate(payload: AccessTokenPayload): AuthenticatedRequestUser {
-    return { userId: payload.sub };
+    return { userId: payload.sub, email: payload.email, role: payload.role };
   }
 }
