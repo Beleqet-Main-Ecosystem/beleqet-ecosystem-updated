@@ -300,15 +300,6 @@ export class PaypalService {
   }
 
   /**
-   * Process an incoming PayPal webhook event body (already JSON-parsed).
-   *
-   * PayPal does not use a raw-body HMAC scheme like Stripe — instead it
-   * provides header-based verification. For full production hardening, pass
-   * the verification headers to the PayPal Webhook Verify API.
-   *
-   * @param body     Parsed PayPal webhook event object.
-   * @param headers  Request headers for verification (transmissionId, etc.).
-   */
    * Cancels a PayPal billing agreement so no further recurring charges
    * occur. Used by the Subscription Manager module when a user cancels —
    * the local Subscription stays ACTIVE until its already-paid-for period
