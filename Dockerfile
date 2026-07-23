@@ -7,11 +7,11 @@
 # =============================================================================
 
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:20-bullseye-slim AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache openssl ffmpeg
+RUN apt-get update && apt-get install -y openssl ffmpeg && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
@@ -24,11 +24,11 @@ RUN npm run prisma:generate
 RUN npm run build
 
 # ── Prune stage: production-only node_modules + generated Prisma client ──────
-FROM node:20-alpine AS pruner
+FROM node:20-bullseye-slim AS pruner
 
 WORKDIR /app
 
-RUN apk add --no-cache openssl ffmpeg
+RUN apt-get update && apt-get install -y openssl ffmpeg && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
@@ -36,7 +36,7 @@ COPY prisma ./prisma/
 RUN npm ci --omit=dev && npx prisma generate
 
 # ── Production stage ─────────────────────────────────────────────────────────
-FROM node:20-alpine
+FROM node:20-bullseye-slim
 
 WORKDIR /app
 
@@ -50,7 +50,7 @@ ENV NODE_ENV=production
 # Strip the base image's npm/corepack CLIs: runtime never needs them (CMD is
 # `node dist/main`; migrations use `./node_modules/.bin/prisma`), and they
 # ship a vulnerable bundled `tar` (CVE-2026-59873) that fails Trivy CRITICAL.
-RUN apk add --no-cache openssl ffmpeg \
+RUN apt-get update && apt-get install -y openssl ffmpeg && rm -rf /var/lib/apt/lists/* \
   && rm -rf \
     /usr/local/lib/node_modules/npm \
     /usr/local/lib/node_modules/corepack \

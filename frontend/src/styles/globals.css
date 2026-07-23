@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /*  Design Tokens  */
 :root {
   --bg-primary: #0a0e1a;
@@ -31,6 +35,20 @@
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 400ms ease;
+}
+
+/* Tailwind's `darkMode: 'class'` and this token layer share the same root class. */
+html:not(.dark) {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(15, 23, 42, 0.04);
+  --bg-card-hover: rgba(15, 23, 42, 0.07);
+  --border: rgba(15, 23, 42, 0.12);
+  --border-strong: rgba(15, 23, 42, 0.2);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --shadow-card: 0 8px 32px rgba(15, 23, 42, 0.12);
 }
 
 /* Reset & Base  */
@@ -135,6 +153,36 @@ body {
   align-items: center;
   gap: 12px;
 }
+.sidebar-theme-control {
+  padding: 0 16px;
+}
+.theme-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-height: 36px;
+}
+.theme-switcher-option {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 11px;
+  gap: 4px;
+  justify-content: center;
+  min-width: 0;
+  padding: 7px 4px;
+}
+.theme-switcher-option:hover,
+.theme-switcher-option.active {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
 .sidebar-user-avatar {
   width: 36px;
   height: 36px;
@@ -167,8 +215,7 @@ body {
 .page-header {
   padding: 32px 40px 24px;
   border-bottom: 1px solid var(--border);
-  background: rgba(17, 24, 39, 0.6);
-  backdrop-filter: blur(10px);
+  background: var(--bg-secondary);
   position: sticky;
   top: 0;
   z-index: 50;

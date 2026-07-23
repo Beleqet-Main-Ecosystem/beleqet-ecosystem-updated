@@ -20,6 +20,8 @@ import type { PlatformStats, StatCardData } from '@/types';
 const CURRENCIES = ['ETB', 'USD', 'EUR'];
 const POLLING_INTERVAL_MS = 10_000; // 10 seconds
 
+import { ThemeSwitcher } from '@/components/theme/theme-switcher';
+
 /**
  * Builds deterministic time-series chart data using the live aggregated total.
  * Uses a fixed growth curve so SSR and client hydration produce identical output.
@@ -92,18 +94,7 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <select
-            className="currency-select"
-            value={currency}
-            onChange={(event: ChangeEvent<HTMLSelectElement>) => setCurrency(event.target.value)}
-            title="Select currency"
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+          <ThemeSwitcher />
           <div className="polling-indicator">
             <span className="polling-dot" />
             <span>Live updates every 10s</span>

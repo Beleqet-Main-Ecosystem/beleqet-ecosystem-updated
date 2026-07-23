@@ -5,6 +5,8 @@ import { fetchAllDisputes, resolveDispute } from '@/lib/api';
 import { usePolling } from '@/hooks/usePolling';
 import type { Dispute } from '@/types';
 
+import { ThemeSwitcher } from '@/components/theme/theme-switcher';
+
 const POLLING_INTERVAL_MS = 10_000;
 
 /** Returns the correct CSS class for a dispute's badge */
@@ -88,6 +90,7 @@ export default function DisputesPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <ThemeSwitcher />
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
             {pendingCount} open · {resolvedCount} resolved
           </span>
