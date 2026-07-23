@@ -28,6 +28,7 @@ export default function Header() {
     { label: "CV maker", href: "/cv-maker" },
     { label: "Portfolio", href: "/portfolio" },
     { label: "Chat to text", href: "/chat-to-text" },
+    { label: "Portfolio", href: "/portfolio" },
     { label: "Pricing", href: "/pricing" },
     { label: "About", href: "/about" },
   ];

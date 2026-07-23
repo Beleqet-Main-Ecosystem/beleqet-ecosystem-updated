@@ -66,6 +66,7 @@ model User {
   subscriptions         Subscription[]
   promotionCampaigns    PromotionCampaign[]
   speechConversations   SpeechConversation[]
+  subscriptions         Subscription[]
 
   /// Whether the user has consented to their search history, skills, and
   /// saved jobs being used to personalize their AI job feed. Defaults to
@@ -1706,3 +1707,64 @@ model PromotionWalletTransaction {
 
 /// System-wide audit log entity tracking user/system actions, entity state changes,
 /// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+
+enum SubscriptionStatus {
+  PAST_DUE
+  EXPIRED
+
+model Plan {
+  id           String          @id @default(uuid())
+  name         String          @unique
+  description  String?
+  priceAmount  Int
+  currency     String          @default("ETB")
+  interval     BillingInterval @default(MONTHLY)
+  features     Json
+  isActive     Boolean         @default(true)
+  paypalPlanId String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([isActive])
+  @@map("plans")
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  userId                String
+  planId                String
+  status                SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart    DateTime           @default(now())
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean            @default(false)
+  provider              PaymentProvider?
+  providerSubscriptionId String?          @unique
+  reminderSentAt        DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         Plan                      @relation(fields: [planId], references: [id])
+  transactions SubscriptionTransaction[]
+
+  @@index([status, currentPeriodEnd])
+  @@map("subscriptions")
+
+model SubscriptionTransaction {
+  id               String        @id @default(uuid())
+  subscriptionId   String
+  amount           Int
+  currency         String
+  status           PaymentStatus
+  gatewayReference String?
+  rawPayload       Json?
+  createdAt        DateTime      @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, createdAt])
+  @@map("subscription_transactions")

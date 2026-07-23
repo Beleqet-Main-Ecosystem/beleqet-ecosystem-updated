@@ -33,6 +33,7 @@ const subscriptionStatusMeta: Record<Subscription['status'], { label: string; cl
     CANCELLED: { label: 'Cancelled', className: 'text-muted' },
     EXPIRED: { label: 'Expired', className: 'text-redAccent' },
   };
+const subscriptionStatusMeta: Record<Subscription['status'], { label: string; className: string }> = {
 
 const quickActionsByRole: Record<
   string,
@@ -64,6 +65,7 @@ export default function ProfilePage() {
   // early return below (React rules-of-hooks).
   const [slots, setSlots] = useState([]);
   const [editingSlot, setEditingSlot] = useState<any | null>(null);
+  const [slots, setSlots] = useState<any[]>([]);
   const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -84,8 +86,10 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (!ready || !user) return;
-    loadAvailability();
+    if (ready && user) {
+      void loadAvailability();
+      void loadSubscription();
+    }
   }, [ready, user]);
 
   if (!ready || !user) {
@@ -103,9 +107,38 @@ export default function ProfilePage() {
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
     );
     const data = await res.json();
-    console.log('Availability data:', data);
     setSlots(data);
   };
+
+  const loadSubscription = async () => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const res = await authenticatedFetch(`${base}/subscriptions/me`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setSubscription(data ?? null);
+  };
+
+  const cancelSubscription = async () => {
+    if (!subscription) return;
+
+    try {
+      setCancelling(true);
+      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+      const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to cancel subscription');
+      await loadSubscription();
+      toast.success('Your subscription will not renew after the current period ends.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel subscription.');
+    } finally {
+      setCancelling(false);
+      setCancelConfirmOpen(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteSlotId) return;
 
@@ -302,6 +335,7 @@ export default function ProfilePage() {
               <p
                 className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}
               >
+              <p className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}>
                 {subscriptionStatusMeta[subscription.status].label}
                 {subscription.status === 'ACTIVE' &&
                   (subscription.cancelAtPeriodEnd
@@ -325,6 +359,7 @@ export default function ProfilePage() {
               Upgrade anytime
             </Link>
             .
+            You&apos;re on the Free plan. <Link href="/pricing" className="font-semibold text-brandGreen">Upgrade anytime</Link>.
           </p>
         )}
       </div>
