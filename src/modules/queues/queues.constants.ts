@@ -13,6 +13,7 @@ export const QUEUE_NAMES = {
   SCHEDULED: 'scheduled',
   REFERRALS: 'referrals',
   JOB_ALERTS: 'job-alerts',
+  FRAUD: 'fraud',
   VIDEO_INTERVIEW: 'video-interview',
   FRAUD:         'fraud',
 } as const;
