@@ -73,6 +73,8 @@ err*
 beleqend_jobs.sql
 users_export.json
 scripts/
+!scripts/
+!scripts/transcribe-with-faster-whisper.py
 .agents/
 issue_pr_matches.md
 AGENTS.md
@@ -80,4 +82,3 @@ AGENTS.md
 # Local storage fallbacks
 temp-storage/
 **/temp-storage/
-

@@ -43,6 +43,10 @@ export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [slots, setSlots] = useState<any[]>([]);
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
+  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (ready && !user) router.replace('/login');
@@ -56,6 +60,11 @@ export default function ProfilePage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!ready || !user) return;
+    loadAvailability();
+  }, [ready, user]);
+
   if (!ready || !user) {
     return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
   }
@@ -66,10 +75,6 @@ export default function ProfilePage() {
     className: 'bg-muted/10 text-muted',
   };
   const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
-  const [slots, setSlots] = useState([]);
-  const [editingSlot, setEditingSlot] = useState<any | null>(null);
-  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const loadAvailability = async () => {
     const res = await authenticatedFetch(
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
@@ -110,9 +115,6 @@ export default function ProfilePage() {
     }
   };
 
-  useEffect(() => {
-    loadAvailability();
-  }, []);
   return (
     <div className="container-page py-10">
       <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">

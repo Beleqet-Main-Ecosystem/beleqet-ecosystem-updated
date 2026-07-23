@@ -30,6 +30,17 @@ export const chatToTextApi: AxiosInstance = axios.create({
   },
 });
 
+/** Adds the current user's JWT at request time, after browser storage is available. */
+chatToTextApi.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = window.localStorage.getItem('beleqet_token');
+    if (token) {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    }
+  }
+  return config;
+});
+
 interface IApiSuccessResponse<T> {
   success: boolean;
   data: T;
@@ -102,11 +113,13 @@ export async function transcribeStreamChunk(
   conversationId: string,
   language: string,
   audioBlob: Blob,
+  isFinal = false,
 ): Promise<ITranscript> {
   const formData = new FormData();
   formData.append('file', audioBlob, 'stream-chunk.webm');
   formData.append('conversationId', conversationId);
   formData.append('language', language);
+  formData.append('isFinal', String(isFinal));
 
   const { data } = await chatToTextApi.post<IApiSuccessResponse<ITranscript>>(
     '/chat-to-text/stream',
