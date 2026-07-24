@@ -29,6 +29,9 @@ function buildProcessor() {
     escrowTransaction: {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
+    freelanceJob: {
+      update: jest.fn((input) => Promise.resolve(input)),
+    },
     employerWallet: {
       findUnique: employerWalletFindUnique,
       update: employerWalletUpdate,
@@ -108,17 +111,17 @@ function buildProcessor() {
 
 describe('EscrowProcessor', () => {
   it('verifies Chapa before marking escrow funded', async () => {
-    const { processor, prisma, chapaClient, notificationsQueue } = buildProcessor();
+    const { processor, tx, chapaClient, notificationsQueue } = buildProcessor();
 
     await processor.handleWebhook({
       data: { event: 'charge.success', tx_ref: 'tx-1', reference: 'chapa-ref', status: 'success' },
     } as Job);
 
     expect(chapaClient.verifyTransaction).toHaveBeenCalledWith('tx-1');
-    expect(prisma.escrowTransaction.update).toHaveBeenCalledWith(
+    expect(tx.escrowTransaction.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FUNDED' }) }),
     );
-    expect(prisma.eventLog.create).toHaveBeenCalledWith(
+    expect(tx.eventLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ eventType: 'chapa.webhook.processed' }),
       }),
