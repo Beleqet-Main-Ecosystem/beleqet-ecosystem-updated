@@ -1,21 +1,21 @@
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ThemePreferenceResponseDto } from './dto/theme-preference-response.dto';
 import { UpdateThemePreferenceDto } from './dto/update-theme-preference.dto';
-import { PerformanceGaugeThemeService } from './performance-gauge-theme.service';
+import { UserPreferencesService } from './user-preferences.service';
 
 /** Secured API for the Performance Gauge's user-owned colour-theme setting. */
 @ApiTags('user-preferences')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('user-preferences/theme')
-export class PerformanceGaugeThemeController {
+export class UserPreferencesController {
   /**
-   * @param performanceGaugeThemeService - feature service injected by Nest
+   * @param UserPreferencesService - feature service injected by Nest
    */
-  constructor(private readonly performanceGaugeThemeService: PerformanceGaugeThemeService) {}
+  constructor(private readonly UserPreferencesService: UserPreferencesService) {}
 
   /**
    * Returns the authenticated user's theme preference.
@@ -26,7 +26,7 @@ export class PerformanceGaugeThemeController {
   @Get()
   @ApiOperation({ summary: 'Get the current user theme preference' })
   getThemePreference(@CurrentUser() user: CurrentUserPayload): Promise<ThemePreferenceResponseDto> {
-    return this.performanceGaugeThemeService.getThemePreference(user.userId);
+    return this.UserPreferencesService.getThemePreference(user.userId);
   }
 
   /**
@@ -42,6 +42,6 @@ export class PerformanceGaugeThemeController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: UpdateThemePreferenceDto,
   ): Promise<ThemePreferenceResponseDto> {
-    return this.performanceGaugeThemeService.updateThemePreference(user.userId, dto.theme);
+    return this.UserPreferencesService.updateThemePreference(user.userId, dto.theme);
   }
 }

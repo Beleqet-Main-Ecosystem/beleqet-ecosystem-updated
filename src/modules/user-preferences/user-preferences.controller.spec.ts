@@ -1,14 +1,14 @@
 import { ThemePreference } from '@prisma/client';
-import { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
-import { PerformanceGaugeThemeController } from './performance-gauge-theme.controller';
-import { PerformanceGaugeThemeService } from './performance-gauge-theme.service';
+import { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { UserPreferencesController } from './user-preferences.controller';
+import { UserPreferencesService } from './user-preferences.service';
 
-describe('PerformanceGaugeThemeController', () => {
+describe('UserPreferencesController', () => {
   const service = {
     getThemePreference: jest.fn<Promise<{ theme: ThemePreference }>, [string]>(),
     updateThemePreference: jest.fn<Promise<{ theme: ThemePreference }>, [string, ThemePreference]>(),
-  } as unknown as PerformanceGaugeThemeService;
-  const controller = new PerformanceGaugeThemeController(service);
+  } as unknown as UserPreferencesService;
+  const controller = new UserPreferencesController(service);
   const user: CurrentUserPayload = { userId: 'user-1', email: 'user@example.test', role: 'ADMIN' };
 
   beforeEach(() => jest.clearAllMocks());

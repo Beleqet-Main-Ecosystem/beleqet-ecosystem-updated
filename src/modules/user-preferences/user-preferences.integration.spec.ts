@@ -1,8 +1,8 @@
 import { ThemePreference } from '@prisma/client';
-import { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
-import { PerformanceGaugeThemeController } from './performance-gauge-theme.controller';
-import { PerformanceGaugeThemeRepository } from './performance-gauge-theme.repository';
-import { PerformanceGaugeThemeService } from './performance-gauge-theme.service';
+import { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { UserPreferencesController } from './user-preferences.controller';
+import { UserPreferencesRepository } from './user-preferences.repository';
+import { UserPreferencesService } from './user-preferences.service';
 
 describe('Performance Gauge theme persistence flow', () => {
   it('persists a theme selected by the UI payload and returns it on the next read', async () => {
@@ -15,8 +15,8 @@ describe('Performance Gauge theme persistence flow', () => {
         persistedTheme = theme;
         return { theme };
       }),
-    } as unknown as PerformanceGaugeThemeRepository;
-    const controller = new PerformanceGaugeThemeController(new PerformanceGaugeThemeService(repository));
+    } as unknown as UserPreferencesRepository;
+    const controller = new UserPreferencesController(new UserPreferencesService(repository));
     const user: CurrentUserPayload = { userId: 'user-1', email: 'user@example.test', role: 'ADMIN' };
 
     await expect(controller.updateThemePreference(user, { theme: ThemePreference.DARK })).resolves.toEqual({

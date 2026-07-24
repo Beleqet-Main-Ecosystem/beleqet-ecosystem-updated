@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { ThemePreference } from '@prisma/client';
 import { ThemePreferenceResponseDto } from './dto/theme-preference-response.dto';
-import { PerformanceGaugeThemeRepository } from './performance-gauge-theme.repository';
+import { UserPreferencesRepository } from './user-preferences.repository';
 
 /**
  * Persists the minimal, user-owned theme setting used by the performance gauge.
  * No theme-resolution data, browser details, or operating-system data is stored.
  */
 @Injectable()
-export class PerformanceGaugeThemeService {
+export class UserPreferencesService {
   /**
-   * @param performanceGaugeThemeRepository - persistence boundary for theme preferences
+   * @param UserPreferencesRepository - persistence boundary for theme preferences
    */
-  constructor(private readonly performanceGaugeThemeRepository: PerformanceGaugeThemeRepository) {}
+  constructor(private readonly UserPreferencesRepository: UserPreferencesRepository) {}
 
   /**
    * Reads the caller's saved preference, returning the non-invasive SYSTEM
@@ -22,7 +22,7 @@ export class PerformanceGaugeThemeService {
    * @returns the persisted preference or SYSTEM
    */
   async getThemePreference(userId: string): Promise<ThemePreferenceResponseDto> {
-    const preference = await this.performanceGaugeThemeRepository.findByUserId(userId);
+    const preference = await this.UserPreferencesRepository.findByUserId(userId);
 
     return { theme: preference?.theme ?? ThemePreference.SYSTEM };
   }
@@ -39,7 +39,7 @@ export class PerformanceGaugeThemeService {
     userId: string,
     theme: ThemePreference,
   ): Promise<ThemePreferenceResponseDto> {
-    const preference = await this.performanceGaugeThemeRepository.save(userId, theme);
+    const preference = await this.UserPreferencesRepository.save(userId, theme);
 
     return { theme: preference.theme };
   }

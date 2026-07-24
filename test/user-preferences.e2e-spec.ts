@@ -4,9 +4,9 @@ import { randomUUID } from 'crypto';
 import request = require('supertest');
 import { CurrentUserPayload } from '../src/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
-import { PerformanceGaugeThemeController } from '../src/modules/admin/performance-gauge-theme/performance-gauge-theme.controller';
-import { PerformanceGaugeThemeRepository } from '../src/modules/admin/performance-gauge-theme/performance-gauge-theme.repository';
-import { PerformanceGaugeThemeService } from '../src/modules/admin/performance-gauge-theme/performance-gauge-theme.service';
+import { UserPreferencesController } from '../src/modules/admin/user-preferences/user-preferences.controller';
+import { UserPreferencesRepository } from '../src/modules/admin/user-preferences/user-preferences.repository';
+import { UserPreferencesService } from '../src/modules/admin/user-preferences/user-preferences.service';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -32,8 +32,8 @@ describe('Performance Gauge theme API and PostgreSQL persistence', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [PrismaModule],
-      controllers: [PerformanceGaugeThemeController],
-      providers: [PerformanceGaugeThemeRepository, PerformanceGaugeThemeService],
+      controllers: [UserPreferencesController],
+      providers: [UserPreferencesRepository, UserPreferencesService],
     })
       .overrideGuard(JwtAuthGuard)
       .useValue(authenticatedUserGuard)

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ThemePreference } from '@prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /** Minimal persisted record required by the theme-preference service. */
 export interface PersistedThemePreference {
@@ -12,7 +12,7 @@ export interface PersistedThemePreference {
  * Keeping Prisma calls here lets the service remain focused on feature policy.
  */
 @Injectable()
-export class PerformanceGaugeThemeRepository {
+export class UserPreferencesRepository {
   /**
    * @param prisma - shared PostgreSQL access service supplied by PrismaModule
    */

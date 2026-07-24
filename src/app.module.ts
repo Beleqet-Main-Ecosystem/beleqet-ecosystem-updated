@@ -42,7 +42,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
-import { PerformanceGaugeThemeModule } from './modules/admin/performance-gauge-theme/performance-gauge-theme.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -138,7 +138,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
-    PerformanceGaugeThemeModule,
+    UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
     BillingModule,

@@ -1,12 +1,12 @@
 import { ThemePreference } from '@prisma/client';
-import { PerformanceGaugeThemeRepository } from './performance-gauge-theme.repository';
-import { PerformanceGaugeThemeService } from './performance-gauge-theme.service';
+import { UserPreferencesRepository } from './user-preferences.repository';
+import { UserPreferencesService } from './user-preferences.service';
 
-describe('PerformanceGaugeThemeService', () => {
+describe('UserPreferencesService', () => {
   const findByUserId = jest.fn<Promise<{ theme: ThemePreference } | null>, [string]>();
   const save = jest.fn<Promise<{ theme: ThemePreference }>, [string, ThemePreference]>();
-  const repository = { findByUserId, save } as unknown as PerformanceGaugeThemeRepository;
-  const service = new PerformanceGaugeThemeService(repository);
+  const repository = { findByUserId, save } as unknown as UserPreferencesRepository;
+  const service = new UserPreferencesService(repository);
 
   beforeEach(() => jest.clearAllMocks());
 
