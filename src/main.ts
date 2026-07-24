@@ -75,7 +75,12 @@ async function bootstrap() {
   }
 
   // ── Security ──────────────────────────────────────────────────────────────
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginEmbedderPolicy: nodeEnv === 'production',
+      contentSecurityPolicy: nodeEnv === 'production' ? undefined : false,
+    }),
+  );
   const allowedOrigins = configService
     .get<string>('FRONTEND_URL', 'http://localhost:3000')
     .split(',')
