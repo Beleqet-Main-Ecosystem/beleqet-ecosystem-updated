@@ -1,3 +1,4 @@
+//import { GqlThrottlerGuard } from './graphql/guards/gql-throttler.guard';
 import { CacheConfigModule } from './cache/cache.module';
 import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
@@ -57,6 +58,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
+import { GraphqlConfigModule } from './graphql/graphql.module';
 
 @Module({
   imports: [
@@ -165,11 +167,12 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     CacheConfigModule,
     FaqBotModule,
     EncryptionModule,
+    GraphqlConfigModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: ThrottlerGuard, // FIXED: Use the GraphQL-aware guard
     },
   ],
 })
