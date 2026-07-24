@@ -1,5 +1,5 @@
 // dto/update-user.dto.ts
-import { IsString, IsOptional, IsUrl, IsObject, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsUrl, IsObject, IsBoolean, IsIn } from 'class-validator';
 
 export class SaveCvDraftDto {
   @IsObject() data: Record<string, unknown>;
@@ -65,7 +65,7 @@ export class UpdateNotificationPreferenceDto {
   @IsOptional() @IsBoolean() smsEnabled?: boolean;
 
   @ApiProperty({ example: 'en', required: false })
-  @IsOptional() @IsString() language?: string;
+  @IsOptional() @IsString() @IsIn(['en', 'am']) language?: string;
 }
 
 export class CreateCompanyDto {
