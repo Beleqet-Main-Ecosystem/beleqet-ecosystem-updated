@@ -19,9 +19,11 @@ import { StepUpGuard } from '../two-factor/guards/step-up.guard';
 import { SensitiveAction } from '../two-factor/decorators/sensitive-action.decorator';
 import { EscrowService } from './escrow.service';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
 import { Request } from 'express';
 import { SkipThrottle } from '@nestjs/throttler';
+import { ChapaSignatureService } from './chapa-signature.service';
+import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
+import { ChapaWebhookPayload } from '../chapa/chapa.types';
 
 @ApiTags('escrow')
 @Controller('escrow')
@@ -29,6 +31,7 @@ export class EscrowController {
   constructor(
     private readonly svc: EscrowService,
     private readonly config: ConfigService,
+    private readonly signatures: ChapaSignatureService,
   ) {}
 
   @Post('initiate/:gigId')
@@ -46,6 +49,7 @@ export class EscrowController {
   async webhook(
     @Body() body: Record<string, unknown>,
     @Req() req: Request & { rawBody?: Buffer },
+    @Headers() headers: Record<string, string | string[] | undefined>,
     @Headers('chapa-signature') chapaSignature?: string,
     @Headers('x-chapa-signature') xChapaSignature?: string,
   ) {
@@ -53,7 +57,8 @@ export class EscrowController {
     const secret = this.config.get<string>('CHAPA_WEBHOOK_SECRET');
     const isProduction = this.config.get<string>('NODE_ENV') === 'production';
 
-    // Verify signature only for POST requests that actually contain a body/signature
+    // Verify signature for Chapa POST webhooks. GET callbacks are user redirects
+    // and are verified later through the server-to-server Chapa transaction check.
     if (req.method === 'POST') {
       if (isProduction && (!secret || !req.rawBody || !signature)) {
         throw new UnauthorizedException(
@@ -61,18 +66,13 @@ export class EscrowController {
         );
       }
 
-      if (secret && req.rawBody && signature) {
-        const hash = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
-
-        if (hash !== signature) {
-          if (isProduction) {
-            throw new UnauthorizedException('Invalid Webhook Signature');
-          } else {
-            console.warn(
-              `[escrow-webhook] Signature mismatch in dev mode. Expected: ${signature}, Got: ${hash}`,
-            );
-          }
-        }
+      if (
+        secret &&
+        req.rawBody &&
+        signature &&
+        !this.signatures.verifyWebhook(req.rawBody, headers)
+      ) {
+        throw new UnauthorizedException('Invalid Webhook Signature');
       }
     }
 
@@ -85,12 +85,12 @@ export class EscrowController {
 
     try {
       if (req.method === 'GET') {
-        await this.svc.handleWebhook(payload as never);
+        await this.svc.handleWebhook(payload as ChapaWebhookPayload);
         const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
         return { url: `${frontendUrl}/freelance/payment-success` };
       }
 
-      await this.svc.handleWebhook(payload as never);
+      await this.svc.handleWebhook(payload as ChapaWebhookPayload);
       console.log(`[escrow-webhook] Successfully added to queue for tx_ref: ${payload.tx_ref}`);
       return { success: true };
     } catch (error) {
@@ -105,5 +105,16 @@ export class EscrowController {
   @ApiBearerAuth()
   release(@Param('id') id: string, @CurrentUser() u: CurrentUserPayload) {
     return this.svc.releaseMilestone(id, u.userId);
+  }
+
+  @Post('milestones/:id/confirm')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  confirm(
+    @Param('id') id: string,
+    @CurrentUser() u: CurrentUserPayload,
+    @Body() body: ConfirmMilestoneDto,
+  ) {
+    return this.svc.confirmMilestone(id, u.userId, body);
   }
 }

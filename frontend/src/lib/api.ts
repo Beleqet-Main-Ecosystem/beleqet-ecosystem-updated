@@ -76,3 +76,46 @@ export async function createDispute(
   });
   return data;
 }
+
+export type EscrowInitiationResult = {
+  escrowId: string;
+  checkoutUrl?: string | null;
+  grossAmount: number;
+  platformFee: number;
+  netAmount: number;
+  walletAppliedAmount: number;
+  amountToPay?: number;
+};
+
+export type MilestoneConfirmationResult = {
+  success: boolean;
+  released: boolean;
+  waitingFor?: 'EMPLOYER' | 'FREELANCER';
+  alreadyReleased?: boolean;
+};
+
+export async function initiateEscrow(gigId: string): Promise<EscrowInitiationResult> {
+  const { data } = await apiClient.post<EscrowInitiationResult>(`/escrow/initiate/${gigId}`);
+  return data;
+}
+
+export async function confirmEscrowMilestone(
+  milestoneId: string,
+  note?: string,
+): Promise<MilestoneConfirmationResult> {
+  const { data } = await apiClient.post<MilestoneConfirmationResult>(
+    `/escrow/milestones/${milestoneId}/confirm`,
+    note ? { note } : {},
+  );
+  return data;
+}
+
+export async function enqueueChapaCallback(
+  payload: Record<string, unknown>,
+): Promise<{ success?: boolean; queued?: boolean; eventKey?: string }> {
+  const { data } = await apiClient.post<{ success?: boolean; queued?: boolean; eventKey?: string }>(
+    '/escrow/callback',
+    payload,
+  );
+  return data;
+}
