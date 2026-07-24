@@ -8,27 +8,39 @@ datasource db {
 }
 
 model User {
-  id                    String              @id @default(uuid())
-  email                 String              @unique
-  passwordHash          String?
-  firstName             String
-  lastName              String
-  role                  UserRole            @default(JOB_SEEKER)
-  avatarUrl             String?
-  phone                 String?
-  telegramId            String?             @unique
-  isActive              Boolean             @default(true)
-  emailVerified         Boolean             @default(false)
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  bio                   String?
-  defaultResumeUrl      String?
-  githubUrl             String?
-  headline              String?
-  linkedinUrl           String?
-  location              String?
-  portfolioUrl          String?
-  skills                String[]            @default([])
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String?
+  firstName        String
+  lastName         String
+  role             UserRole @default(JOB_SEEKER)
+  avatarUrl        String?
+  phone            String?
+  telegramId       String?  @unique
+  isActive         Boolean  @default(true)
+  emailVerified    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  bio              String?
+  defaultResumeUrl String?
+  githubUrl        String?
+  headline         String?
+  linkedinUrl      String?
+  location         String?
+  portfolioUrl     String?
+  skills           String[] @default([])
+
+  // Payment gateway integration fields
+  externalCustomerId     String? // Stripe customer ID or PayPal payer ID
+  subscriptionStatus     String? // active, cancelled, past_due, etc.
+  externalSubscriptionId String? // Stripe subscription ID or PayPal subscription ID
+
+  // GDPR consent tracking
+  gdprConsent          Boolean   @default(true)
+  gdprConsentDate      DateTime?
+  gdprConsentRevoked   Boolean   @default(false)
+  gdprConsentRevokedAt DateTime?
+
   oauthAccounts         OAuthAccount[]
   applications          Application[]
   bids                  Bid[]
@@ -76,18 +88,19 @@ model User {
 
   @@map("users")
 }
+
 model OAuthAccount {
-  id                    String   @id @default(uuid())
+  id                    String        @id @default(uuid())
   userId                String
   provider              OAuthProvider
-  providerAccountId     String            // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
-  encryptedAccessToken  String?           // AES-256-GCM ciphertext, never raw
+  providerAccountId     String // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
+  encryptedAccessToken  String? // AES-256-GCM ciphertext, never raw
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
-  linkedAt              DateTime @default(now())
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedAt              DateTime      @default(now())
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])   // prevents one social identity from attaching to 2 users
+  @@unique([provider, providerAccountId]) // prevents one social identity from attaching to 2 users
   @@index([userId])
   @@map("oauth_accounts")
 }
@@ -97,11 +110,11 @@ model OAuthAccount {
 /// (alongside User.skills and SavedJob) used to rank job recommendations.
 /// Only read when the owning user's `gdprConsent` is true.
 model SearchHistory {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
   /// Owning user. Cascade delete: if the user is deleted, their search
   /// history is deleted with them rather than left orphaned.
-  userId     String
+  userId String
 
   /// The raw search term as typed by the user (e.g. "React developer").
   searchTerm String
@@ -110,7 +123,7 @@ model SearchHistory {
   /// terms from the last 30 days as "recent" signal.
   searchedAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   /// Speeds up the AI Feed module's "recent searches for this user" query.
   @@index([userId, searchedAt])
@@ -121,6 +134,7 @@ enum OAuthProvider {
   GOOGLE
   LINKEDIN
 }
+
 model SavedJob {
   id        String   @id @default(uuid())
   userId    String
@@ -224,7 +238,6 @@ model JobCategory {
 
   @@map("job_categories")
 }
-
 
 model Job {
   id                       String        @id @default(uuid())
@@ -480,9 +493,16 @@ model WalletTransaction {
   note        String?
   milestoneId String?
   createdAt   DateTime              @default(now())
-  wallet      FreelancerWallet      @relation(fields: [walletId], references: [id])
+
+  // Webhook integration fields
+  externalTransactionId String? @unique // Stripe charge ID, PayPal order ID, etc.
+  status                String? // pending, completed, failed, refunded
+  metadata              Json? // Additional provider-specific data
+
+  wallet FreelancerWallet @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
+  @@index([externalTransactionId])
   @@map("wallet_transactions")
 }
 
@@ -647,6 +667,7 @@ model Interview {
   @@index([startTime])
   @@map("interviews")
 }
+
 model UserTwoFactor {
   id                   String       @id @default(uuid())
   userId               String       @unique
@@ -665,12 +686,12 @@ model UserTwoFactor {
 }
 
 model BackupCode {
-  id         String        @id @default(uuid())
+  id          String        @id @default(uuid())
   twoFactorId String
-  codeHash   String
-  usedAt     DateTime?
-  createdAt  DateTime      @default(now())
-  twoFactor  UserTwoFactor @relation(fields: [twoFactorId], references: [id], onDelete: Cascade)
+  codeHash    String
+  usedAt      DateTime?
+  createdAt   DateTime      @default(now())
+  twoFactor   UserTwoFactor @relation(fields: [twoFactorId], references: [id], onDelete: Cascade)
 
   @@index([twoFactorId])
   @@map("backup_codes")
@@ -1231,22 +1252,109 @@ model WebhookEvent {
 }
 
 model StoredFile {
-  id                         String    @id @default(uuid())
-  key                        String    @unique
-  filename                   String
-  mimeType                   String
-  size                       Int
-  uploadedById               String?
-  hasConsentedToProcessing   Boolean   @default(false)
-  isDeleted                  Boolean   @default(false)
-  deletedAt                  DateTime?
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
-  uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
+  id                       String    @id @default(uuid())
+  key                      String    @unique
+  filename                 String
+  mimeType                 String
+  size                     Int
+  uploadedById             String?
+  hasConsentedToProcessing Boolean   @default(false)
+  isDeleted                Boolean   @default(false)
+  deletedAt                DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  uploadedBy               User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Webhook Integration (Payment Gateway Webhooks)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Webhook delivery log for payment gateway events (Stripe, PayPal, Chapa)
+/// Provides audit trail, idempotency tracking, and retry history
+model WebhookLog {
+  id             String    @id @default(uuid())
+  /// Payment provider that sent the webhook
+  provider       String // stripe, paypal, chapa
+  /// Normalized event type
+  eventType      String // payment.success, payment.failed, etc.
+  /// Provider's unique event ID
+  externalId     String
+  /// Idempotency key to prevent duplicate processing
+  idempotencyKey String    @unique
+  /// HTTP status code returned to provider
+  statusCode     Int       @default(202)
+  /// Whether signature verification passed
+  isVerified     Boolean   @default(false)
+  /// IP address of the webhook sender
+  ipAddress      String?
+  /// User agent of the webhook sender
+  userAgent      String?
+  /// Raw webhook payload (sanitized of PII)
+  requestBody    Json
+  /// Response sent back to provider
+  responseBody   Json?
+  /// Error message if processing failed
+  error          String?
+  /// Number of retry attempts
+  retryCount     Int       @default(0)
+  /// Stop retrying after this timestamp
+  retryUntil     DateTime?
+  /// Timestamp when successfully processed
+  processedAt    DateTime?
+  /// Webhook receipt timestamp
+  createdAt      DateTime  @default(now())
+
+  @@index([provider, eventType])
+  @@index([idempotencyKey])
+  @@index([createdAt])
+  @@index([processedAt])
+  @@map("webhook_logs")
+}
+
+/// Payment transaction audit trail (supplement to Payment model)
+/// Tracks detailed payment lifecycle events from webhooks
+model PaymentTransaction {
+  id                    String   @id @default(uuid())
+  /// Provider's transaction ID (Stripe charge/payment intent, PayPal order)
+  externalTransactionId String   @unique
+  /// Provider's customer ID
+  externalCustomerId    String
+  /// Payment provider
+  provider              String // stripe, paypal, chapa
+  /// Transaction amount in smallest unit
+  amount                Int
+  /// ISO 4217 currency code
+  currency              String   @default("USD")
+  /// Transaction status
+  status                String // pending, completed, failed, refunded, disputed
+  /// Sanitized metadata
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([externalTransactionId])
+  @@index([externalCustomerId])
+  @@index([provider, status])
+  @@index([createdAt])
+  @@map("payment_transactions")
+}
+
+/// GDPR consent tracking for webhook data processing
+model GdprConsent {
+  id          String    @id @default(uuid())
+  userId      String
+  purpose     String // payment, marketing, analytics
+  version     String    @default("1.0")
+  consentedAt DateTime  @default(now())
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([purpose])
+  @@map("gdpr_consents")
 /// A Smart Skill Tester assessment run for a user against a job role and level.
 model SkillAssessmentSession {
   id          String     @id @default(uuid())
