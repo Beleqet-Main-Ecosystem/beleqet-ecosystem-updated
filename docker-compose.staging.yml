@@ -61,6 +61,8 @@ services:
       TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?TOTP_ENCRYPTION_KEY is required}
       TOTP_TEMP_SECRET: ${TOTP_TEMP_SECRET:?TOTP_TEMP_SECRET is required}
       TOTP_ISSUER: ${TOTP_ISSUER:-Beleqet}
+      # GdprGuardService refuses to construct without a 64-char hex key.
+      GDPR_ENCRYPTION_KEY: ${GDPR_ENCRYPTION_KEY:?GDPR_ENCRYPTION_KEY is required (64 hex chars)}
       # The auth module refuses to boot without the full OAuth set (see
       # src/modules/auth/config/auth.config.ts), so these are required here.
       OAUTH_TOKEN_ENCRYPTION_KEY: ${OAUTH_TOKEN_ENCRYPTION_KEY:?OAUTH_TOKEN_ENCRYPTION_KEY is required (base64, 32 bytes decoded)}
