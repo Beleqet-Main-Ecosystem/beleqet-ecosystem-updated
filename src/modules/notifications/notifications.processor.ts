@@ -136,7 +136,7 @@ export class NotificationsProcessor extends WorkerHost {
     const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN');
     if (!botToken) return;
     try {
-      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -145,9 +145,14 @@ export class NotificationsProcessor extends WorkerHost {
           parse_mode: 'Markdown',
         }),
       });
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`Telegram API ${response.status}: ${body}`);
+      }
       this.logger.debug(`Telegram → ${job.data.telegramId}`);
     } catch (e) {
       this.logger.warn(`Telegram failed: ${(e as Error).message}`);
+      throw e;
     }
   }
 
@@ -173,6 +178,7 @@ export class NotificationsProcessor extends WorkerHost {
       this.logger.debug(`Email → ${to}: ${subject}`);
     } catch (e) {
       this.logger.warn(`Email failed: ${(e as Error).message}`);
+      throw e;
     }
   }
 

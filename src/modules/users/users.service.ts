@@ -121,15 +121,11 @@ export class UsersService {
   }
 
   async getNotificationPreferences(userId: string) {
-    const pref = await this.prisma.notificationPreference.findUnique({
+    return this.prisma.notificationPreference.upsert({
       where: { userId },
+      create: { userId },
+      update: {},
     });
-    if (!pref) {
-      return this.prisma.notificationPreference.create({
-        data: { userId },
-      });
-    }
-    return pref;
   }
 
   async updateNotificationPreferences(userId: string, dto: UpdateNotificationPreferenceDto) {
