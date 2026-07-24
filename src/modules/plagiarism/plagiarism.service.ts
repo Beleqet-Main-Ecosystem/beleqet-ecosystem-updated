@@ -94,6 +94,24 @@ export class PlagiarismService {
   }
 
   /**
+   * Compares text against caller-provided platform documents using the same
+   * similarity pipeline as a full plagiarism check.
+   *
+   * This is intentionally separate from check(): fraud scans already have a
+   * scoped set of documents and should not trigger web search or save a second
+   * plagiarism-history record.
+   */
+  async findSimilarDocuments(
+    text: string,
+    documents: ComparisonDocument[],
+    threshold = this.config.threshold,
+  ): Promise<PlagiarismMatch[]> {
+    const normalizedText = this.normalization.normalize(text.trim());
+    const inputChunks = this.chunker.chunk(normalizedText);
+    return this.findMatches(inputChunks, documents, threshold);
+  }
+
+  /**
    * Compares input chunks against all documents in parallel.
    */
   private async findMatches(

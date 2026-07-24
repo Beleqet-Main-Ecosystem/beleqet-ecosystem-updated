@@ -73,6 +73,8 @@ model User {
   searchHistories       SearchHistory[]
   storedFiles           StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
+  fraudAlerts           FraudAlert[]        @relation("AlertUser")
+  resolvedFraudAlerts   FraudAlert[]        @relation("AlertResolver")
 
   @@map("users")
 }
@@ -771,6 +773,56 @@ model SalaryAnalytics {
   @@index([periodEndDate])
   @@map("salary_analytics")
 }
+model FraudRule {
+  id        String         @id @default(uuid())
+  name      String
+  ruleType  FraudRuleType
+  severity  FraudSeverity  @default(MEDIUM)
+  enabled   Boolean        @default(true)
+  config    Json?
+  i18nKey   String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  alerts    FraudAlert[]
+
+  @@index([ruleType, enabled])
+  @@map("fraud_rules")
+}
+
+model FraudAlert {
+  id             String            @id @default(uuid())
+  entityType     String
+  entityId       String
+  userId         String?
+  ruleId         String?
+  ruleType       FraudRuleType
+  severity       FraudSeverity     @default(MEDIUM)
+  score          Float             @default(0)
+  reason         String
+  evidence       Json?
+  currency       String?
+  status         FraudAlertStatus  @default(OPEN)
+  resolvedById   String?
+  resolvedAt     DateTime?
+  resolutionNote String?
+  metadata       Json?
+  legalBasis     String            @default("legitimate_interest")
+  expiryAt       DateTime?
+  deletedAt      DateTime?
+  anonymizedAt   DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  user           User?             @relation("AlertUser", fields: [userId], references: [id])
+  resolvedBy     User?             @relation("AlertResolver", fields: [resolvedById], references: [id])
+  rule           FraudRule?        @relation(fields: [ruleId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([severity, status])
+  @@index([userId, createdAt])
+  @@index([ruleType])
+  @@index([expiryAt])
+  @@map("fraud_alerts")
+}
 
 enum UserRole {
   ADMIN
@@ -1285,4 +1337,25 @@ enum SkillLevel {
   ENTRY
   MID
   SENIOR
+}
+enum FraudSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FraudAlertStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  FALSE_POSITIVE
+  CONFIRMED
+}
+
+enum FraudRuleType {
+  OFF_PLATFORM_PAYMENT
+  FAKE_PROFILE
+  PAYMENT_ANOMALY
+  DUPLICATE_LISTING
 }

@@ -13,6 +13,7 @@ export const QUEUE_NAMES = {
   SCHEDULED: 'scheduled',
   REFERRALS: 'referrals',
   JOB_ALERTS: 'job-alerts',
+  FRAUD: 'fraud',
   VIDEO_INTERVIEW: 'video-interview',
 } as const;
 
@@ -80,6 +81,17 @@ export const VIDEO_INTERVIEW_JOBS = {
 } as const;
 
 // ── Scoring thresholds ────────────────────────────────────────────────────
+
+// ── Fraud detection jobs ──────────────────────────────────────────────────
+
+export const FRAUD_JOBS = {
+  SCAN_USER: 'scan-user',
+  SCAN_MESSAGE: 'scan-message',
+  SCAN_TRANSACTION: 'scan-transaction',
+  SCAN_ESCROW_TRANSACTION: 'scan-escrow-transaction',
+  SCAN_JOB: 'scan-job',
+  SCAN_ALL: 'scan-all',
+} as const;
 
 export const SCORING = {
   /** Candidates above this threshold are automatically shortlisted */

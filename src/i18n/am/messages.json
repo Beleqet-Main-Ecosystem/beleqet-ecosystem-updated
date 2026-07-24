@@ -1,4 +1,5 @@
 {
+
   "tax": {
     "unsupportedJurisdiction": "ያልተደገፈ የግብር ክልል \"{countryCode}\". የሚደገፉት፦ ET, US።",
     "currencyMismatch": "ምንዛሬ \"{currency}\" ከግብር ክልል \"{countryCode}\" ጋር አይጣጣምም። የሚጠበቀው፦ {expectedCurrency}።",
@@ -9,5 +10,71 @@
     "invalidPayload": "ልክ ያልሆነ የክህሎት ፈተና ግብአት፦ {details}",
     "aiGenerationFailed": "የክህሎት ግምገማ ጥያቄዎችን ማመንጨት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
     "requestFailed": "የክህሎት ፈተና ጥያቄ አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+
+  },
+  "fraud": {
+    "alert": {
+      "title": {
+        "OFF_PLATFORM_PAYMENT": "ከመድረኩ ውጪ የሆነ ክፍያ ተጠልፏል",
+        "FAKE_PROFILE": "አጠራጣሪ የተጠቃሚ መገለጫ ተገኝቷል",
+        "PAYMENT_ANOMALY": "ያልተለመደ የክፍያ ሁኔታ ተገኝቷል",
+        "DUPLICATE_LISTING": "የተባዛ የሥራ ማስታወቂያ ተገኝቷል"
+      },
+      "body": {
+        "OFF_PLATFORM_PAYMENT": "አንድ ተጠቃሚ ከመድረኩ ውጪ ክፍያ ለማድረግ ሲሞክር ተገኝቷል። በቻት ውስጥ ከክፍያ ጋር የተያያዙ ቁልፍ ቃላት ወይም የእውቂያ መረጃዎች ተገኝተዋል።",
+        "FAKE_PROFILE": "የተጠቃሚ መገለጫ በተናገራቸው ችሎታዎች፣ በማረጋገጫ ሁኔታ እና በውጤት መረጃዎች መካከል አለመጣጣም ተገኝቷል።",
+        "PAYMENT_ANOMALY": "ከተለመደው የተለየ የክፍያ ሁኔታ ተገኝቷል። ይህ የገንዘብ ማጭበርበር ወይም ሌላ የፋይናንስ ማጭበርበርን ሊያመለክት ይችላል።",
+        "DUPLICATE_LISTING": "አንድ የሥራ ማስታወቂያ ከተመሳሳይ ኩባንያ ካለው ነባር ማስታወቂያ ጋር የተባዛ ሆኖ ተገኝቷል።"
+      }
+    },
+    "admin": {
+      "resolved": "የማጭበርበር ማስጠንቀቂያ ተፈትቷል",
+      "false_positive": "የማጭበርበር ማስጠንቀቂያ የተሳሳተ ሆኖ ተገኝቷል",
+      "confirmed": "የማጭበርበር ማስጠንቀቂያ ተረጋግጧል — ተጠቃሚው ሊታገድ ይችላል"
+    },
+    "rule": {
+      "disabled": "የማጭበርበር ማወቂያ ህግ ተሰናክሏል",
+      "enabled": "የማጭበርበር ማወቂያ ህግ ነቅቷል",
+      "threshold_exceeded": "የማስጠንቀቂያ ውጤት ከተወሰነው ገደብ አልፏል"
+    },
+    "severity": {
+      "LOW": "ዝቅተኛ",
+      "MEDIUM": "መካከለኛ",
+      "HIGH": "ከፍተኛ",
+      "CRITICAL": "አስቸኳይ"
+    },
+    "status": {
+      "OPEN": "ክፍት",
+      "UNDER_REVIEW": "በምርመራ ላይ",
+      "RESOLVED": "ተፈትቷል",
+      "FALSE_POSITIVE": "የተሳሳተ",
+      "CONFIRMED": "ተረጋግጧል"
+    },
+    "controller": {
+      "scan_queued_user": "የተጠቃሚ ምርመራ ተጀምሯል",
+      "scan_queued_message": "የመልእክት ምርመራ ተጀምሯል",
+      "scan_queued_transaction": "የክፍያ ምርመራ ተጀምሯል",
+      "scan_queued_escrow_transaction": "የኤስክሮ ክፍያ ምርመራ ተጀምሯል",
+      "scan_queued_job": "የሥራ ማስታወቂያ ምርመራ ተጀምሯል",
+      "scan_queued_all": "የቡድን ምርመራ ተጀምሯል"
+    },
+    "notification": {
+      "user_resolved": "የተጠቆመው እንቅስቃሴዎ በመድረኩ አስተዳደር ተረጋግጦ ተፈትቷል።",
+      "user_false_positive": "የተጠቆመው እንቅስቃሴዎ ምንም ችግር እንደሌለው ተረጋግጧል። ምንም እርምጃ አልተወሰደም።",
+      "user_confirmed": "የተጠቆመው እንቅስቃሴዎ የመድረኩን ፖሊሲ የሚጻረር ሆኖ ተረጋግጧል። መለያዎ ሊገደብ ይችላል።",
+      "prefix": "የማጭበርበር ማስጠንቀቂያ"
+    },
+    "email": {
+      "subject": "በልቀት ደህንነት፣ የማጭበርበር ማስጠንቀቂያ",
+      "body": "በበልቀት መድረክ ላይ አዲስ የማጭበርበር ማስጠንቀቂያ ተፈጥሯል። እባክዎ በአስተዳደር ዳሽቦርድ ይመልከቱት።"
+    },
+    "gdpr": {
+      "export_label": "የማጭበርበር ማስጠንቀቂያ መረጃ ወደ ውጭ መላክ",
+      "delete_label": "የማጭበርበር ማስጠንቀቂያ መረጃ መሰረዝ",
+      "retention_notice": "ይህ መዝገብ በGDPR የመረጃ ማቆያ ፖሊሲ መሰረት ለ {days} ቀናት ይቆያል።",
+      "export_audit": "የGDPR መረጃ ማውጣት ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል",
+      "delete_audit": "የGDPR መረጃ መሰረዝ ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል"
+    }
+
   }
 }

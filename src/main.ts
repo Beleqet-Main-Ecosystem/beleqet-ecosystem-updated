@@ -59,12 +59,13 @@ async function bootstrap() {
     if (adminPassword.length < 12)
       throw new Error('ADMIN_PASSWORD must contain at least 12 characters');
     const prisma = app.get(PrismaService);
+    const passwordHash = await bcrypt.hash(adminPassword, 12);
     await prisma.user.upsert({
       where: { email: adminEmail },
       update: { role: 'ADMIN', isActive: true },
       create: {
         email: adminEmail,
-        passwordHash: await bcrypt.hash(adminPassword, 12),
+        passwordHash,
         firstName: configService.get<string>('ADMIN_FIRST_NAME', 'Platform'),
         lastName: configService.get<string>('ADMIN_LAST_NAME', 'Admin'),
         role: 'ADMIN',
@@ -77,7 +78,7 @@ async function bootstrap() {
   // ── Security ──────────────────────────────────────────────────────────────
   app.use(helmet());
   const allowedOrigins = configService
-    .get<string>('FRONTEND_URL', 'http://localhost:3000')
+    .get<string>('FRONTEND_URL', 'http://localhost:4001')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
@@ -86,6 +87,8 @@ async function bootstrap() {
       if (!origin) return cb(null, true);
       if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return cb(null, true);
       if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
+      if (nodeEnv === 'development' && /^http:\/\/localhost(:\d+)?$/i.test(origin))
+        return cb(null, true);
       return cb(null, false);
     },
     credentials: true,
@@ -135,6 +138,7 @@ async function bootstrap() {
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
       .addTag('db-index-master', 'DB Index Master — query analysis & index health (admin only)')
+      .addTag('fraud-alert', 'Fraud detection & alerts')
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);

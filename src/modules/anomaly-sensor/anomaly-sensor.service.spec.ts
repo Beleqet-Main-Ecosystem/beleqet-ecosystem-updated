@@ -191,6 +191,36 @@ describe('AnomalySensorService', () => {
   });
 
   describe('handlePaymentInitiated', () => {
+    it('uses one statistical detector for payment amount analysis', () => {
+      const analysis = service.analyzePaymentAmount(1000, [100, 100, 100]);
+
+      expect(analysis.anomalous).toBe(true);
+      expect(analysis.zScore).toBeGreaterThan(2.5);
+    });
+
+    it('does not apply exchange-rate assumptions to an unknown currency', async () => {
+      (prismaService.escrowTransaction.findMany as jest.Mock).mockResolvedValue([
+        { grossAmount: 1000, currency: 'XYZ' } as any,
+        { grossAmount: 1000, currency: 'XYZ' } as any,
+        { grossAmount: 1000, currency: 'XYZ' } as any,
+      ]);
+
+      await service.handlePaymentInitiated({
+        escrowId: 'unknown-currency-payment',
+        clientId: 'client-unknown-currency',
+        grossAmount: 1000,
+        currency: 'XYZ',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(prismaService.escrowTransaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ currency: 'XYZ' }),
+        }),
+      );
+      expect(alertingService.dispatchAlert).not.toHaveBeenCalled();
+    });
+
     it('should trigger alert on Z-Score > 2.5 with same-currency history', async () => {
       // Mock history: 3 ETB transactions of amount 100
       (prismaService.escrowTransaction.findMany as jest.Mock).mockResolvedValue([

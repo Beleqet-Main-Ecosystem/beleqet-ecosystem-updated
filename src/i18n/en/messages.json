@@ -23,6 +23,7 @@
     "presignedUrlCreated": "Upload URL created successfully.",
     "assetUploaded": "Asset uploaded successfully."
   },
+
   "salary": {
     "title": "AI Salary Helper",
     "description": "AI-powered salary prediction and market analysis",
@@ -130,5 +131,71 @@
     "forbidden": "You do not have permission to access this interview session.",
     "gdpr_request_accepted": "Your data deletion request has been accepted. All interview data will be permanently removed within 30 days.",
     "invalid_video_url": "The video URL must point to an approved Beleqet storage or CDN host."
+
+  },
+  "fraud": {
+    "alert": {
+      "title": {
+        "OFF_PLATFORM_PAYMENT": "Suspicious Off-Platform Payment Detected",
+        "FAKE_PROFILE": "Potentially Fake Profile Flagged",
+        "PAYMENT_ANOMALY": "Unusual Payment Pattern Detected",
+        "DUPLICATE_LISTING": "Duplicate Job Listing Suspected"
+      },
+      "body": {
+        "OFF_PLATFORM_PAYMENT": "A user was flagged for attempting or encouraging off-platform payment. Evidence includes payment-related keywords or contact details shared in chat.",
+        "FAKE_PROFILE": "A user profile was flagged for inconsistencies between claimed skills, verification status, and scoring data.",
+        "PAYMENT_ANOMALY": "A transaction pattern was detected that deviates from normal behaviour. This may indicate money laundering, refund abuse, or other financial fraud.",
+        "DUPLICATE_LISTING": "A job listing was flagged as a potential duplicate of an existing posting from the same company."
+      }
+    },
+    "admin": {
+      "resolved": "Fraud alert resolved",
+      "false_positive": "Fraud alert marked as false positive",
+      "confirmed": "Fraud alert confirmed — user may be suspended"
+    },
+    "rule": {
+      "disabled": "Fraud detection rule has been disabled",
+      "enabled": "Fraud detection rule has been enabled",
+      "threshold_exceeded": "Alert score exceeded the configured threshold"
+    },
+    "severity": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "CRITICAL": "Critical"
+    },
+    "status": {
+      "OPEN": "Open",
+      "UNDER_REVIEW": "Under Review",
+      "RESOLVED": "Resolved",
+      "FALSE_POSITIVE": "False Positive",
+      "CONFIRMED": "Confirmed"
+    },
+    "controller": {
+      "scan_queued_user": "User scan queued",
+      "scan_queued_message": "Message scan queued",
+      "scan_queued_transaction": "Transaction scan queued",
+      "scan_queued_escrow_transaction": "Escrow transaction scan queued",
+      "scan_queued_job": "Job scan queued",
+      "scan_queued_all": "Batch scan queued"
+    },
+    "notification": {
+      "user_resolved": "Your flagged activity has been reviewed and resolved by the platform administration.",
+      "user_false_positive": "Your flagged activity has been reviewed and determined to be legitimate. No action was taken.",
+      "user_confirmed": "Your flagged activity has been confirmed as violating platform policy. Your account may be subject to restrictions.",
+      "prefix": "Fraud Alert"
+    },
+    "email": {
+      "subject": "Beleqet Security: Fraud Alert Notification",
+      "body": "A new fraud alert has been generated on the Beleqet platform. Please review it in the admin dashboard."
+    },
+    "gdpr": {
+      "export_label": "Fraud Alert Data Export",
+      "delete_label": "Fraud Alert Data Deletion",
+      "retention_notice": "This record will be retained for {days} days in accordance with GDPR data retention policy.",
+      "export_audit": "GDPR data export for fraud alerts performed",
+      "delete_audit": "GDPR data deletion for fraud alerts performed"
+    }
+
   }
 }
