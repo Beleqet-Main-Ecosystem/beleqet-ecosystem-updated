@@ -28,6 +28,8 @@ regexes = [
   '''please_change_in_production''',
   # Documented example TOTP key (docker-compose dev defaults, CI env).
   '''abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789''',
+  # Documented example GDPR AES-256 key (docker-compose / .env.example / CI).
+  '''0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef''',
   # Documented example base64 OAuth key ("TestEncryptionKey32BytesLongXYZ1").
   '''VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=''',
 ]
