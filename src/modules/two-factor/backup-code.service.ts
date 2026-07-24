@@ -8,7 +8,6 @@ const BCRYPT_SALT_ROUNDS = 10;
 
 /** Unambiguous uppercase alphanumeric alphabet (excludes O/0, I/1, L/l for readability). */
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const ALPHABET_BITS = 5; // log2(32) = 5 bits per character
 
 @Injectable()
 export class BackupCodeService {

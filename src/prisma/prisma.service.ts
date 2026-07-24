@@ -8,9 +8,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     super({
       log: [
-        { level: 'query',   emit: 'event' },
-        { level: 'error',   emit: 'stdout' },
-        { level: 'warn',    emit: 'stdout' },
+        { level: 'query', emit: 'event' },
+        { level: 'error', emit: 'stdout' },
+        { level: 'warn', emit: 'stdout' },
       ],
     });
   }

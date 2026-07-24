@@ -46,9 +46,7 @@ export class AccountRepository implements IAccountRepository {
   }
 
   /** {@inheritdoc IAccountRepository.findUserByEmail} */
-  public async findUserByEmail(
-    email: string,
-  ): Promise<UserIdentitySnapshot | null> {
+  public async findUserByEmail(email: string): Promise<UserIdentitySnapshot | null> {
     const record = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
       select: {
@@ -69,9 +67,7 @@ export class AccountRepository implements IAccountRepository {
   }
 
   /** {@inheritdoc IAccountRepository.findUserById} */
-  public async findUserById(
-    userId: string,
-  ): Promise<UserIdentitySnapshot | null> {
+  public async findUserById(userId: string): Promise<UserIdentitySnapshot | null> {
     const record = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -127,9 +123,7 @@ export class AccountRepository implements IAccountRepository {
   }
 
   /** {@inheritdoc IAccountRepository.attachOAuthAccount} */
-  public async attachOAuthAccount(
-    input: AttachOAuthAccountInput,
-  ): Promise<void> {
+  public async attachOAuthAccount(input: AttachOAuthAccountInput): Promise<void> {
     await this.prisma.oAuthAccount.create({
       data: {
         userId: input.userId,

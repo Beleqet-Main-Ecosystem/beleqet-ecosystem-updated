@@ -79,10 +79,7 @@ export class EscrowProcessor extends WorkerHost {
 
     const escrow = await this.prisma.escrowTransaction.findFirst({
       where: {
-        OR: [
-          { gatewayRef: reference },
-          { gatewayRef: tx_ref },
-        ],
+        OR: [{ gatewayRef: reference }, { gatewayRef: tx_ref }],
       },
       include: {
         freelanceJob: { include: { client: true } },
@@ -117,14 +114,14 @@ export class EscrowProcessor extends WorkerHost {
 
       if (escrow.walletAppliedAmount > 0) {
         const wallet = await this.prisma.employerWallet.findUnique({
-          where: { userId: escrow.freelanceJob.clientId }
+          where: { userId: escrow.freelanceJob.clientId },
         });
         if (wallet) {
           transactions.push(
             this.prisma.employerWallet.update({
               where: { id: wallet.id },
-              data: { lockedBalance: { decrement: escrow.walletAppliedAmount } }
-            }) as never
+              data: { lockedBalance: { decrement: escrow.walletAppliedAmount } },
+            }) as never,
           );
           transactions.push(
             this.prisma.employerWalletTransaction.create({
@@ -134,8 +131,8 @@ export class EscrowProcessor extends WorkerHost {
                 amount: escrow.walletAppliedAmount,
                 note: `Partially funded escrow for job ${escrow.freelanceJobId}`,
                 escrowId: escrow.id,
-              }
-            }) as never
+              },
+            }) as never,
           );
         }
       }
@@ -149,7 +146,7 @@ export class EscrowProcessor extends WorkerHost {
             payload: { amount: escrow.grossAmount },
             processedBy: EscrowProcessor.name,
           },
-        }) as never
+        }) as never,
       );
 
       await this.prisma.$transaction(transactions);
@@ -170,14 +167,20 @@ export class EscrowProcessor extends WorkerHost {
       });
       this.logger.warn(`[escrow-webhook] Payment failed for escrow ${escrow.id}`);
       if (escrow.walletAppliedAmount > 0) {
-        await this.releaseLockedFunds(escrow.id, escrow.freelanceJob.clientId, escrow.walletAppliedAmount);
+        await this.releaseLockedFunds(
+          escrow.id,
+          escrow.freelanceJob.clientId,
+          escrow.walletAppliedAmount,
+        );
       }
     }
   }
 
   async handleAutoRelease(job: BullJob<AutoReleasePayload>) {
     const { milestoneId, freelancerId, amount } = job.data;
-    this.logger.log(`[auto-release] Processing milestone ${milestoneId} for freelancer ${freelancerId}`);
+    this.logger.log(
+      `[auto-release] Processing milestone ${milestoneId} for freelancer ${freelancerId}`,
+    );
 
     const releaseAt = new Date(job.data.releaseAt);
     if (releaseAt > new Date()) {
@@ -235,7 +238,9 @@ export class EscrowProcessor extends WorkerHost {
       });
     }
 
-    this.logger.log(`[auto-release] ETB ${amount} moved to available for freelancer ${freelancerId}`);
+    this.logger.log(
+      `[auto-release] ETB ${amount} moved to available for freelancer ${freelancerId}`,
+    );
   }
 
   async handleWithdrawal(job: BullJob<WithdrawalPayload>) {
@@ -247,7 +252,7 @@ export class EscrowProcessor extends WorkerHost {
       const response = await fetch('https://api.chapa.co/v1/transfers', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${chapaSecret}`,
+          Authorization: `Bearer ${chapaSecret}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -262,7 +267,9 @@ export class EscrowProcessor extends WorkerHost {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Chapa withdrawal failed with HTTP status ${response.status}: ${errorText}`);
+        throw new Error(
+          `Chapa withdrawal failed with HTTP status ${response.status}: ${errorText}`,
+        );
       }
 
       const responseData = (await response.json()) as { status: string; message?: string };
@@ -282,7 +289,9 @@ export class EscrowProcessor extends WorkerHost {
 
   async handleUnlockFunds(job: BullJob<UnlockFundsPayload>) {
     const { escrowId, clientId, amount } = job.data;
-    this.logger.log(`[unlock-funds] Checking if escrow ${escrowId} needs unlocking for user ${clientId}`);
+    this.logger.log(
+      `[unlock-funds] Checking if escrow ${escrowId} needs unlocking for user ${clientId}`,
+    );
     await this.releaseLockedFunds(escrowId, clientId, amount);
   }
 
@@ -318,11 +327,16 @@ export class EscrowProcessor extends WorkerHost {
       }),
     ]);
 
-    this.logger.log(`[unlock-funds] Released ETB ${amount} back to employer ${clientId} for abandoned escrow ${escrowId}`);
+    this.logger.log(
+      `[unlock-funds] Released ETB ${amount} back to employer ${clientId} for abandoned escrow ${escrowId}`,
+    );
   }
 
   @OnWorkerEvent('failed')
   handleJobFailure(job: BullJob | undefined, error: Error) {
-    this.logger.error(`Job ${job?.id || 'unknown'} failed with error: ${error.message}`, error.stack);
+    this.logger.error(
+      `Job ${job?.id || 'unknown'} failed with error: ${error.message}`,
+      error.stack,
+    );
   }
 }

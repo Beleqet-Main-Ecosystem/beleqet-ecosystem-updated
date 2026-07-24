@@ -25,7 +25,7 @@ export class AdminStatsService {
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
     private readonly walletService: WalletService,
-  ) { }
+  ) {}
 
   /**
    * Returns the main platform metrics for the admin dashboard.
@@ -69,7 +69,10 @@ export class AdminStatsService {
     }
 
     // Retrieve translated message using i18n
-    const translatedMessage = this.i18n.t('admin-stats.DASHBOARD_TITLE', { lang, defaultValue: 'Dashboard Statistics' });
+    const translatedMessage = this.i18n.t('admin-stats.DASHBOARD_TITLE', {
+      lang,
+      defaultValue: 'Dashboard Statistics',
+    });
 
     return {
       totalUsers,

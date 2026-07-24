@@ -1,4 +1,3 @@
-import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -37,15 +36,6 @@ const mockPrismaService = {
     findMany: jest.fn(),
   },
 };
-
-@Module({
-  providers: [
-    { provide: ConfigService, useValue: mockConfigService },
-    { provide: PrismaService, useValue: mockPrismaService },
-  ],
-  exports: [ConfigService, PrismaService],
-})
-class MockGlobalDependenciesModule {}
 
 describe('UploadsModule integration', () => {
   let moduleRef: TestingModule;

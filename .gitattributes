@@ -1,0 +1,6 @@
+# Shell scripts must keep LF endings — they execute on Linux (CI runners,
+# Docker containers, the staging server) regardless of the contributor's OS.
+*.sh text eol=lf
+
+# Ensure LF line endings (cross-platform)
+* text=auto eol=lf

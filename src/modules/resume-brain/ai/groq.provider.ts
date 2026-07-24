@@ -43,21 +43,12 @@ export class GroqProvider implements AiChatProvider {
     this.model = this.config.get<string>('GROQ_MODEL', 'llama-3.1-8b-instant');
     this.client = new OpenAI({
       apiKey: this.config.get<string>('GROQ_API_KEY') ?? '',
-      baseURL: this.config.get<string>(
-        'GROQ_BASE_URL',
-        'https://api.groq.com/openai/v1',
-      ),
+      baseURL: this.config.get<string>('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
       // Bound every request so a hung upstream can never block the API
       // indefinitely; the SDK aborts and surfaces an APIConnectionTimeoutError
       // which we map to 503. Retries cover transient network/5xx/429 blips.
-      timeout: this.config.get<number>(
-        'GROQ_TIMEOUT_MS',
-        DEFAULT_REQUEST_TIMEOUT_MS,
-      ),
-      maxRetries: this.config.get<number>(
-        'GROQ_MAX_RETRIES',
-        DEFAULT_MAX_RETRIES,
-      ),
+      timeout: this.config.get<number>('GROQ_TIMEOUT_MS', DEFAULT_REQUEST_TIMEOUT_MS),
+      maxRetries: this.config.get<number>('GROQ_MAX_RETRIES', DEFAULT_MAX_RETRIES),
     });
   }
 
@@ -113,9 +104,7 @@ export class GroqProvider implements AiChatProvider {
       // Translate an OpenAI-SDK APIError (Groq is wire-compatible) into our
       // transport-agnostic error, preserving the upstream status (e.g. 429).
       const status =
-        err instanceof OpenAI.APIError && typeof err.status === 'number'
-          ? err.status
-          : 503;
+        err instanceof OpenAI.APIError && typeof err.status === 'number' ? err.status : 503;
       this.logger.warn(`Groq request failed (${status}): ${(err as Error).message}`);
       throw new AiProviderError(status, 'Groq request failed');
     }

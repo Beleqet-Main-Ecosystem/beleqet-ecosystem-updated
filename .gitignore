@@ -72,12 +72,21 @@ err*
 # Project-specific ignores
 beleqend_jobs.sql
 users_export.json
-scripts/
+# CI/CD tooling under scripts/ci and scripts/deploy is tracked;
+# everything else in scripts/ stays ignored (ad-hoc local tooling).
+scripts/*
+!scripts/ci/
+!scripts/deploy/
 .agents/
 issue_pr_matches.md
 AGENTS.md
+**/nest_readme.md
+nest_readme.md
+**/next_readme.md
+next_readme.md
 
 # Local storage fallbacks
 temp-storage/
 **/temp-storage/
 
+src/i18n/am/

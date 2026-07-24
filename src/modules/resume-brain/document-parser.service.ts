@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
 import * as path from 'path';
 import * as mammoth from 'mammoth';
 import { PDFParse } from 'pdf-parse';
@@ -37,15 +33,11 @@ export class DocumentParserService {
     let rawText: string;
     try {
       rawText =
-        kind === 'pdf'
-          ? await this.parsePdf(file.buffer)
-          : await this.parseDocx(file.buffer);
+        kind === 'pdf' ? await this.parsePdf(file.buffer) : await this.parseDocx(file.buffer);
     } catch (err) {
       // Never log file contents — only the failure reason.
       this.logger.error(
-        `Failed to extract text from ${kind} "${file.originalname}": ${
-          (err as Error).message
-        }`,
+        `Failed to extract text from ${kind} "${file.originalname}": ${(err as Error).message}`,
       );
       throw new UnprocessableEntityException(
         `Could not read the ${kind.toUpperCase()} file. ` +
@@ -61,9 +53,7 @@ export class DocumentParserService {
       );
     }
 
-    this.logger.log(
-      `Extracted ${text.length} characters from ${kind} "${file.originalname}".`,
-    );
+    this.logger.log(`Extracted ${text.length} characters from ${kind} "${file.originalname}".`);
     return text;
   }
 
@@ -81,8 +71,7 @@ export class DocumentParserService {
       return 'pdf';
     }
     if (
-      mime ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       ext === '.docx'
     ) {
       return 'docx';
