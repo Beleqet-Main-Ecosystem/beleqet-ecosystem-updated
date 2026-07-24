@@ -26,7 +26,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /** PayPal order intent — CAPTURE for immediate payment, AUTHORIZE to reserve funds. */
 export enum PaypalOrderIntent {
-  CAPTURE   = 'CAPTURE',
+  CAPTURE = 'CAPTURE',
   AUTHORIZE = 'AUTHORIZE',
 }
 
@@ -37,7 +37,7 @@ export class CreatePaypalOrderDto {
    */
   @ApiProperty({
     description: 'Payment amount (2 decimal places for most currencies)',
-    example: 25.00,
+    example: 25.0,
     minimum: 0.01,
   })
   @IsNumber({ maxDecimalPlaces: 2 })

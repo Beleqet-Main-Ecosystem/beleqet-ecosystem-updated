@@ -11,11 +11,10 @@ import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
 import { Logger, UseGuards } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { WsThrottlerGuard } from '../../common/guards/ws-throttler.guard';
 import { IsString, IsNotEmpty, IsOptional, validateOrReject } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { I18nService } from 'nestjs-i18n';
 
 /**
  * DTO for sending an E2EE-encrypted message over WebSocket.
@@ -58,7 +57,7 @@ class StartVideoCallDto {
   cors: { origin: true, credentials: true },
   namespace: '/chat'
 })
-@UseGuards(WsThrottlerGuard)
+@UseGuards(ThrottlerGuard)
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -80,10 +79,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const token = tokenString.replace('Bearer ', '').trim();
       const payload = this.jwtService.verify(token);
 
-      client.data.user = { userId: payload.sub, email: payload.email, role: payload.role };
-      this.logger.log(`[ChatGateway] Connected: ${client.id} (User: ${payload.sub})`);
+      client.data.user = payload;
+      this.logger.log(`[ChatGateway] Client connected: ${client.id} (User: ${payload.userId})`);
     } catch (err) {
-      this.logger.warn(`[ChatGateway] Unauthorized: ${client.id}`);
+      this.logger.warn(`[ChatGateway] Unauthorized connection attempt: ${client.id}`);
       client.emit('error', { message: this.i18n.t('messages.chat.unauthorized', { lang: 'en' }) });
       client.disconnect();
     }
@@ -110,8 +109,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       await validateOrReject(plainToInstance(JoinRoomDto, data));
-      // Verify the user is a participant BEFORE granting socket-room membership
-      // so they cannot receive live broadcasts for rooms they have no access to.
+      
+      // Verify the user is actually a participant BEFORE granting
+      // socket-room membership — otherwise a client could receive
+      // live broadcasts for a room it has no access to, even though
+      // the (separate) history fetch would correctly reject it.
       const history = await this.chatService.getRoomMessages(data.roomId, userId);
 
       client.join(data.roomId);

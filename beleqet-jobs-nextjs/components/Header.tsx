@@ -25,6 +25,7 @@ export default function Header() {
     { label: "Find jobs", href: "/jobs" },
     { label: "For employers", href: employerHref },
     { label: "CV maker", href: "/cv-maker" },
+    { label: "Portfolio", href: "/portfolio" },
     { label: "Pricing", href: "/pricing" },
     { label: "About", href: "/about" },
   ];

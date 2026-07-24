@@ -45,9 +45,7 @@ export interface ExtractionResult {
 export class AIExtractorService {
   private readonly logger = new Logger(AIExtractorService.name);
 
-  constructor(
-    @Inject(AI_CHAT_PROVIDER) private readonly provider: AiChatProvider,
-  ) {}
+  constructor(@Inject(AI_CHAT_PROVIDER) private readonly provider: AiChatProvider) {}
 
   /** Provider name (e.g. "groq") for logging / `modelUsed` metadata. */
   get providerName(): string {
@@ -64,9 +62,7 @@ export class AIExtractorService {
   async extract(text: string): Promise<ExtractionResult> {
     const trimmed = (text ?? '').trim();
     if (!trimmed) {
-      throw new UnprocessableEntityException(
-        'Cannot extract a profile from empty resume text.',
-      );
+      throw new UnprocessableEntityException('Cannot extract a profile from empty resume text.');
     }
 
     // Cap the prompt size — resumes are short, and this bounds token cost —
@@ -211,9 +207,7 @@ export class AIExtractorService {
 
   private strArray(value: unknown): string[] {
     if (!Array.isArray(value)) return [];
-    return value
-      .map((item) => this.str(item))
-      .filter((item) => item.length > 0);
+    return value.map((item) => this.str(item)).filter((item) => item.length > 0);
   }
 
   private educationArray(value: unknown): ExtractedEducation[] {
@@ -256,14 +250,10 @@ export class AIExtractorService {
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
-      return new ServiceUnavailableException(
-        'The resume AI service is temporarily unavailable.',
-      );
+      return new ServiceUnavailableException('The resume AI service is temporarily unavailable.');
     }
     this.logger.error(`Unexpected AI extraction error: ${(err as Error).message}`);
-    return new ServiceUnavailableException(
-      'The resume AI service is temporarily unavailable.',
-    );
+    return new ServiceUnavailableException('The resume AI service is temporarily unavailable.');
   }
 }
 

@@ -2,16 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
-import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { WsThrottlerGuard } from '../../common/guards/ws-throttler.guard';
+import { NotFoundException } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 const mockChatService = {
   getRoomMessages: jest.fn(),
   saveMessage: jest.fn(),
 };
 const mockJwtService = {
-  verify: jest.fn().mockReturnValue({ sub: 'user-test-1', email: 'test@beleqet.com' }),
+  verify: jest.fn().mockReturnValue({ userId: 'user-test-1', email: 'test@beleqet.com' }),
 };
 const mockI18nService = {
   t: jest.fn((key: string) => key),
@@ -38,16 +38,16 @@ describe('ChatGateway', () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
+      imports: [
+        ThrottlerModule.forRoot([{ ttl: 60, limit: 10 }]),
+      ],
       providers: [
         ChatGateway,
-        { provide: ChatService, useValue: mockChatService },
-        { provide: JwtService, useValue: mockJwtService },
-        { provide: I18nService, useValue: mockI18nService },
+        { provide: ChatService,  useValue: mockChatService },
+        { provide: JwtService,   useValue: mockJwtService },
+        { provide: I18nService,  useValue: mockI18nService },
       ],
-    })
-      .overrideGuard(WsThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    }).compile();
     gateway = module.get<ChatGateway>(ChatGateway);
     // Simulate a server reference
     (gateway as any).server = { to: jest.fn().mockReturnValue({ emit: jest.fn() }) };
@@ -55,6 +55,7 @@ describe('ChatGateway', () => {
   it('should be defined', () => {
     expect(gateway).toBeDefined();
   });
+
   describe('handleConnection', () => {
     it('should authenticate a client and set user data', async () => {
       const client = buildClient();

@@ -7,10 +7,11 @@
  *
  * Vitest owns lib/__tests__/**.test.ts — those are excluded from Jest.
  */
-const path = require("path");
+const path = require('path');
 
 /** @type {import('jest').Config} */
 module.exports = {
+<<<<<<< HEAD
   projects: [
     // ── 1. Pure lib/ modules (Node, no DOM) ─────────────────────────────────
     {
@@ -21,6 +22,32 @@ module.exports = {
       testMatch: ["**/*.spec.ts"],
       moduleNameMapper: {
         "^@/(.*)$": path.join(__dirname, "$1"),
+=======
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  // Portfolio's shared code physically lives at app/portfolio/portfolio
+  // (see tsconfig.json's @/portfolio/* mapping for why).
+  roots: ['<rootDir>/lib', '<rootDir>/app/portfolio/portfolio'],
+  testMatch: ['**/*.spec.ts'],
+  moduleNameMapper: {
+    // Must precede the generic @/* mapper below: Jest tries mappings in
+    // object-insertion order and stops at the first match.
+    '^@/portfolio/(.*)$': path.join(__dirname, 'app/portfolio/portfolio/$1'),
+    '^@/(.*)$': path.join(__dirname, '$1'),
+  },
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        // The app tsconfig sets noEmit; ts-jest needs to emit, so relax that
+        // and target CommonJS for the Node test runtime.
+        tsconfig: {
+          noEmit: false,
+          module: 'commonjs',
+          esModuleInterop: true,
+          isolatedModules: true,
+        },
+>>>>>>> upstream/main
       },
       transform: {
         "^.+\\.ts$": [

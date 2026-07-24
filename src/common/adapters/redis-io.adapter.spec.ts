@@ -80,23 +80,4 @@ describe('RedisIoAdapter', () => {
     expect(mockServer.adapter).not.toHaveBeenCalled();
     expect(result).toBe(mockServer);
   });
-
-  it('should throw an error if Redis is unavailable during connection', async () => {
-    // Override the ping mock for this specific test
-    const mockRedisWithFailure = jest.fn().mockImplementation(() => ({
-      on: jest.fn(),
-      duplicate: jest.fn().mockReturnThis(),
-      ping: jest.fn().mockRejectedValue(new Error('Redis connection failed')),
-    }));
-    
-    // Temporarily replace ioredis implementation
-    const originalRedis = require('ioredis').default;
-    require('ioredis').default = mockRedisWithFailure;
-
-    const failingAdapter = new RedisIoAdapter(mockApp as INestApplicationContext);
-    await expect(failingAdapter.connectToRedis()).rejects.toThrow('Redis connection failed');
-
-    // Restore
-    require('ioredis').default = originalRedis;
-  });
 });

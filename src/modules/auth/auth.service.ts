@@ -14,11 +14,15 @@ import { RegisterDto, ChangePasswordDto, ChangeEmailDto } from './dto/register.d
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
-import { passwordResetEmail, verificationEmail, loginAlertEmail, logoutAlertEmail, welcomeEmail } from '../notifications/email-templates';
+import {
+  passwordResetEmail,
+  verificationEmail,
+  loginAlertEmail,
+  logoutAlertEmail,
+  welcomeEmail,
+} from '../notifications/email-templates';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
-
-const PLATFORM_FEE_PCT = 0.10;
 
 @Injectable()
 export class AuthService {
@@ -31,7 +35,7 @@ export class AuthService {
     private readonly twoFactorService: TwoFactorService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
-  ) { }
+  ) {}
 
   async register(dto: RegisterDto) {
     const normalizedEmail = dto.email.toLowerCase().trim();
@@ -85,7 +89,10 @@ export class AuthService {
     const normalizedEmail = email.toLowerCase().trim();
     const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (!user || !user.isActive) {
-      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      this.eventEmitter.emit('auth.login.failed', {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -106,7 +113,10 @@ export class AuthService {
 
     const valid = await bcrypt.compare(password, hashToCompare);
     if (!valid) {
-      this.eventEmitter.emit('auth.login.failed', { email: normalizedEmail, timestamp: new Date().toISOString() });
+      this.eventEmitter.emit('auth.login.failed', {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -119,7 +129,10 @@ export class AuthService {
       });
     }
 
-    this.eventEmitter.emit('auth.login.success', { email: normalizedEmail, timestamp: new Date().toISOString() });
+    this.eventEmitter.emit('auth.login.success', {
+      email: normalizedEmail,
+      timestamp: new Date().toISOString(),
+    });
     return user;
   }
 
@@ -288,7 +301,9 @@ export class AuthService {
     });
 
     await this.prisma.refreshToken.deleteMany({ where: { userId: verificationToken.userId } });
-    await this.prisma.verificationToken.deleteMany({ where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' } });
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' },
+    });
     return { success: true, message: 'Password reset successfully' };
   }
 
@@ -420,7 +435,7 @@ export class AuthService {
       where: { id: userId },
       select: { id: true, email: true, firstName: true, lastName: true, role: true },
     });
-    
+
     if (!user) throw new UnauthorizedException('User not found');
     return this.issueTokens(user);
   }
@@ -455,7 +470,7 @@ export class AuthService {
 
     if (activeTokens.length >= 5) {
       const excessCount = activeTokens.length - 4; // Keep under limit
-      const tokensToRemove = activeTokens.slice(0, excessCount).map(t => t.id);
+      const tokensToRemove = activeTokens.slice(0, excessCount).map((t) => t.id);
       await this.prisma.refreshToken.deleteMany({
         where: { id: { in: tokensToRemove } },
       });

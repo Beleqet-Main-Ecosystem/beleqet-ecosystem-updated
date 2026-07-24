@@ -34,7 +34,7 @@ describe('AnomalySensorService', () => {
     service = module.get<AnomalySensorService>(AnomalySensorService);
     alertingService = module.get(AlertingService);
     prismaService = module.get(PrismaService);
-    
+
     // Suppress logger output in tests
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
@@ -54,14 +54,18 @@ describe('AnomalySensorService', () => {
     it('should trigger an alert if 6 failures happen within 5 minutes', async () => {
       const email = 'test@example.com';
       for (let i = 0; i < 6; i++) {
-        await service.handleAuthFailed({ email, ip: '127.0.0.1', timestamp: new Date().toISOString() });
+        await service.handleAuthFailed({
+          email,
+          ip: '127.0.0.1',
+          timestamp: new Date().toISOString(),
+        });
       }
 
       expect(alertingService.dispatchAlert).toHaveBeenCalledWith(
         expect.objectContaining({
           severity: 'HIGH',
           title: 'Authentication Brute Force Attempt',
-        })
+        }),
       );
       expect(prismaService.eventLog.create).toHaveBeenCalled();
     });
@@ -69,7 +73,11 @@ describe('AnomalySensorService', () => {
     it('should not trigger an alert if less than 6 failures happen', async () => {
       const email = 'test2@example.com';
       for (let i = 0; i < 5; i++) {
-        await service.handleAuthFailed({ email, ip: '127.0.0.1', timestamp: new Date().toISOString() });
+        await service.handleAuthFailed({
+          email,
+          ip: '127.0.0.1',
+          timestamp: new Date().toISOString(),
+        });
       }
 
       expect(alertingService.dispatchAlert).not.toHaveBeenCalled();
@@ -82,7 +90,11 @@ describe('AnomalySensorService', () => {
 
       // Simulate 5 failed login attempts (just under the threshold)
       for (let i = 0; i < 5; i++) {
-        await service.handleAuthFailed({ email, ip: '127.0.0.1', timestamp: new Date().toISOString() });
+        await service.handleAuthFailed({
+          email,
+          ip: '127.0.0.1',
+          timestamp: new Date().toISOString(),
+        });
       }
 
       // User successfully logs in - counter should be cleared
@@ -90,7 +102,11 @@ describe('AnomalySensorService', () => {
 
       // Now a subsequent typo should NOT trigger a brute-force alert
       // because the counter was reset on successful login
-      await service.handleAuthFailed({ email, ip: '127.0.0.1', timestamp: new Date().toISOString() });
+      await service.handleAuthFailed({
+        email,
+        ip: '127.0.0.1',
+        timestamp: new Date().toISOString(),
+      });
 
       expect(alertingService.dispatchAlert).not.toHaveBeenCalled();
     });
@@ -101,20 +117,28 @@ describe('AnomalySensorService', () => {
 
       // Attacker has 5 failures
       for (let i = 0; i < 5; i++) {
-        await service.handleAuthFailed({ email: attacker, ip: '1.2.3.4', timestamp: new Date().toISOString() });
+        await service.handleAuthFailed({
+          email: attacker,
+          ip: '1.2.3.4',
+          timestamp: new Date().toISOString(),
+        });
       }
 
       // Legitimate user logs in successfully - should only clear their own counter
       service.handleAuthSuccess({ email: legitimate, timestamp: new Date().toISOString() });
 
       // Attacker's 6th attempt should still trigger alert
-      await service.handleAuthFailed({ email: attacker, ip: '1.2.3.4', timestamp: new Date().toISOString() });
+      await service.handleAuthFailed({
+        email: attacker,
+        ip: '1.2.3.4',
+        timestamp: new Date().toISOString(),
+      });
 
       expect(alertingService.dispatchAlert).toHaveBeenCalledWith(
         expect.objectContaining({
           severity: 'HIGH',
           title: 'Authentication Brute Force Attempt',
-        })
+        }),
       );
     });
   });
@@ -147,7 +171,7 @@ describe('AnomalySensorService', () => {
   });
 
   describe('Event Loop Safety (Fix #3: Unreferenced Interval)', () => {
-    it('should create an unref\'d cleanup interval in onModuleInit', () => {
+    it("should create an unref'd cleanup interval in onModuleInit", () => {
       service.onModuleInit();
       const interval = (service as any).cleanupInterval;
       expect(interval).toBeDefined();
@@ -188,7 +212,7 @@ describe('AnomalySensorService', () => {
         expect.objectContaining({
           severity: 'CRITICAL',
           title: 'Suspicious Payment Transaction',
-        })
+        }),
       );
       expect(prismaService.eventLog.create).toHaveBeenCalled();
     });
@@ -211,7 +235,7 @@ describe('AnomalySensorService', () => {
           where: expect.objectContaining({
             currency: 'USD',
           }),
-        })
+        }),
       );
     });
 

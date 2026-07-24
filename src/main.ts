@@ -11,6 +11,9 @@ import { ErrorRecurrenceTrackerService } from './common/filters/error-recurrence
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { PrismaService } from './prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+// Import-assignment is required here: without `esModuleInterop` a default
+// import of this CommonJS module would be `undefined` at runtime.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 import session = require('express-session');
 import { RedisStore } from 'connect-redis';
 import type Redis from 'ioredis';
