@@ -31,4 +31,37 @@
 2. Branch: በ feat/ ስር የእርስዎን ስም የያዘ አዲስ ብራንች ይክፈቱ (ምሳሌ፡ feat/assigned-task-name)።
 3. Develop: የተመደቡትን ሞጁል ብቻ በንጹህ ኮድ ይስሩ።
 4. Submit: ስራዎን ሲያጠናቅቁ የ GitHub Pull Request (PR) ይክፈቱ።
-5. Quality Standard: ኮድዎ የ Global Scaling (i18n, GDPR, Multi-currency) መስፈርቶችን ማሟላት አለበት።
+34. Quality Standard: ኮድዎ የ Global Scaling (i18n, GDPR, Multi-currency) መስፈርቶችን ማሟላት አለበት።
+
+---
+
+## 🌐 GraphQL API (High-Performance Turbo Integration)
+This platform natively supports a highly optimized GraphQL API engineered to eliminate over-fetching and under-fetching.
+
+### Key Capabilities
+- **Endpoint**: `POST /api/v1/graphql`
+- **DataLoaders**: Implements aggressive query batching (N+1 eradication) for relational data like `Company` and `Category`.
+- **Global Scaling Readiness**: Inherits full i18n support, GDPR compliance, and multi-currency schemas directly from the Prisma domain layer.
+
+### Enterprise Security
+- **Query Complexity Limit**: Strict cap of `100` points per query to block malicious Denial of Service (DOS) scraping attacks.
+- **Query Depth Limit**: Blocks highly-nested cyclic queries past a depth of `5`.
+- **Authentication**: Reuses the core stateless Passport JWT strategy via `@UseGuards(GqlAuthGuard)`.
+
+### Example Client Fetch (React Query + graphql-request)
+```typescript
+import { gql } from 'graphql-request';
+
+export const GET_JOBS = gql`
+  query {
+    jobs(query: { limit: 10 }) {
+      items {
+        id
+        title
+        company { name }
+      }
+      total
+    }
+  }
+`;
+```

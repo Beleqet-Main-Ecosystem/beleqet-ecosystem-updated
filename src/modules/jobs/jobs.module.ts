@@ -4,6 +4,9 @@ import { BullModule } from '@nestjs/bullmq'; // Correct package path
 import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+import { JobsResolver } from './jobs.resolver';
+import { CompanyLoader } from '../../graphql/loaders/company.loader';
+import { CategoryLoader } from '../../graphql/loaders/category.loader';
 
 @Module({
   imports: [
@@ -11,7 +14,7 @@ import { QUEUE_NAMES } from '../queues/queues.constants';
     // Formally register the notifications queue so JobsService can inject it
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
   ],
-  providers: [JobsService],
+  providers: [JobsService, JobsResolver, CompanyLoader, CategoryLoader],
   controllers: [JobsController],
   exports: [JobsService],
 })
