@@ -34,7 +34,9 @@ import { Moon, Sun } from 'lucide-react';
  * }
  * ```
  */
-export default function ThemeToggle(): JSX.Element {
+import React from 'react';
+
+export default function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   // Avoids a hydration mismatch: theme is only known client-side.
