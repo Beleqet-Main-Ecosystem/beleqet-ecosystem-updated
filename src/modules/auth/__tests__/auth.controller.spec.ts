@@ -39,6 +39,13 @@ describe('AuthController', () => {
   const FAKE_TOKENS = {
     accessToken: 'mock-access-token',
     refreshToken: 'mock-refresh-token',
+    user: {
+      id: 'user-id-123',
+      email: 'test@beleqet.com',
+      firstName: 'Test',
+      lastName: 'User',
+      role: MOCK_ROLE,
+    },
   };
 
   const FAKE_USER = {

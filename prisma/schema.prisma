@@ -59,6 +59,7 @@ model User {
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
+  preferences           UserPreference?
   subscriptions         Subscription[]
 
   /// Whether the user has consented to their search history, skills, and
@@ -75,6 +76,27 @@ model User {
   skillAssessmentSessions SkillAssessmentSession[]
 
   @@map("users")
+}
+
+/// Theme and other small, non-identifying UI choices owned by a user.
+/// This record deliberately contains no behavioural analytics or PII.
+model UserPreference {
+  id        String          @id @default(uuid())
+  userId    String          @unique
+  theme     ThemePreference @default(SYSTEM)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+/// User-selected colour-scheme preference. `SYSTEM` delegates the resolved
+/// colour scheme to the operating system and is the privacy-preserving default.
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
 }
 model OAuthAccount {
   id                    String   @id @default(uuid())
