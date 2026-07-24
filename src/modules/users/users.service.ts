@@ -35,6 +35,32 @@ export class UsersService {
     return user;
   }
 
+  async searchUsers(query: string, currentUserId: string) {
+    if (!query || query.trim().length < 2) return [];
+    
+    // Search by firstName, lastName, or email (case-insensitive)
+    return this.prisma.user.findMany({
+      where: {
+        id: { not: currentUserId }, // Exclude self
+        OR: [
+          { firstName: { contains: query, mode: 'insensitive' } },
+          { lastName: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        avatarUrl: true,
+        role: true,
+        headline: true,
+      },
+      take: 10,
+    });
+  }
+
   async update(id: string, dto: UpdateUserDto) {
     return this.prisma.user.update({
       where: { id },

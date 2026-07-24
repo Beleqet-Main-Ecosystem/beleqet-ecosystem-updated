@@ -78,6 +78,9 @@ scripts/*
 !scripts/ci/
 !scripts/deploy/
 .agents/
+# Next.js build artifacts
+.next/
+beleqet-jobs-nextjs/.next/
 issue_pr_matches.md
 AGENTS.md
 **/nest_readme.md

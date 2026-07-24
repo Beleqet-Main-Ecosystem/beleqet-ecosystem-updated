@@ -36,17 +36,18 @@ describe('AuthController', () => {
     >
   >;
 
-  const FAKE_TOKENS = {
-    accessToken: 'mock-access-token',
-    refreshToken: 'mock-refresh-token',
-  };
-
   const FAKE_USER = {
     id: 'user-id-123',
     email: 'test@beleqet.com',
     firstName: 'Test',
     lastName: 'User',
     role: MOCK_ROLE,
+  };
+
+  const FAKE_TOKENS = {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    user: FAKE_USER,
   };
 
   beforeEach(async () => {

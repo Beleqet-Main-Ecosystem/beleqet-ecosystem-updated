@@ -1,5 +1,5 @@
 // users.controller.ts
-import { Controller, Delete, Get, Patch, Put, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Patch, Put, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
@@ -16,6 +16,11 @@ export class UsersController {
   @Get('profile')
   profile(@CurrentUser() u: CurrentUserPayload) {
     return this.svc.findById(u.userId);
+  }
+
+  @Get('search')
+  searchUsers(@Query('q') q: string, @CurrentUser() u: CurrentUserPayload) {
+    return this.svc.searchUsers(q, u.userId);
   }
 
   @Patch('profile')

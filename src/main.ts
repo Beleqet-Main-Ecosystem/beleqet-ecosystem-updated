@@ -4,6 +4,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { ErrorRecurrenceTrackerService } from './common/filters/error-recurrence-tracker.service';
@@ -21,7 +22,28 @@ import { REDIS_CLIENT } from './modules/redis/redis.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  // ── SSL/TLS (Secure Tunnel requirement) ──────────────────────────────────────
+  // Set SSL_KEY_PATH and SSL_CERT_PATH in production to enable HTTPS.
+  // In development these are optional; a reverse proxy (nginx/Caddy) handles TLS.
+  const sslKeyPath = process.env.SSL_KEY_PATH;
+  const sslCertPath = process.env.SSL_CERT_PATH;
+  const httpsOptions =
+    sslKeyPath && sslCertPath && fs.existsSync(sslKeyPath) && fs.existsSync(sslCertPath)
+      ? { key: fs.readFileSync(sslKeyPath), cert: fs.readFileSync(sslCertPath) }
+      : undefined;
+
+  if (httpsOptions) {
+    logger.log('🔒 TLS enabled — running HTTPS server');
+  } else {
+    logger.warn('⚠️  TLS not configured — use a reverse proxy (nginx/Caddy) with HTTPS in production');
+  }
+
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+    ...(httpsOptions ? { httpsOptions } : {}),
+  });
+
   const redisIoAdapter = new RedisIoAdapter(app);
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
