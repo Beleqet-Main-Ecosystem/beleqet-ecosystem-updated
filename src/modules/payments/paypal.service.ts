@@ -1,3 +1,23 @@
+/**
+ * @module PaypalService
+ * @description
+ * PayPal Checkout integration service for the Beleqet Global Digital Wallet
+ * (Task ID: Global-Payments-002).
+ *
+ * Capabilities:
+ *  ✓ createOrder        — create a PayPal Checkout order (one-time)
+ *  ✓ captureOrder       — capture an approved PayPal order
+ *  ✓ createSubscription — create a recurring PayPal billing agreement
+ *  ✓ handleWebhook      — verify PayPal webhook events and update DB
+ *
+ * GDPR compliance:
+ *  - `custom_id` on orders is set to userId (UUID), never raw PII.
+ *  - Webhook payloads are logged at debug level only (no PII in info logs).
+ *
+ * Global Scaling:
+ *  - Amount and currency forwarded as-is (ISO 4217 validated by DTO).
+ *  - returnUrl / cancelUrl are configurable per-request for i18n frontends.
+ */
 import {
   Injectable,
   Logger,
@@ -19,13 +39,20 @@ import {
   PaymentStatus,
 } from './interfaces/payment.interfaces';
 import type {
-  SubscriptionLifecycleEvent,
   SyncFromProviderEventInput,
 } from '../subscriptions/subscriptions.service';
+
+export type SubscriptionLifecycleEvent =
+  | 'ACTIVATED'
+  | 'RENEWED'
+  | 'PAYMENT_FAILED'
+  | 'CANCELLED'
+  | 'EXPIRED';
 
 /** The event name BillingService listens for to sync subscription state (see billing.service.ts). */
 export const SUBSCRIPTION_LIFECYCLE_EVENT = 'billing.subscription.lifecycle';
 
+/** PayPal SDK mode type */
 type PaypalMode = 'sandbox' | 'live';
 
 @Injectable()
@@ -63,7 +90,20 @@ export class PaypalService {
     this.logger.log(`PayPal SDK configured in ${mode} mode`);
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Create a PayPal Checkout order.
+   *
+   * Returns an `approvalUrl` that the front-end must redirect the user to
+   * for payer approval before the order can be captured.
+   *
+   * @param dto  Validated CreatePaypalOrderDto.
+   */
   async createOrder(dto: CreatePaypalOrderDto): Promise<PaypalOrderResult> {
+    // If subscriptionPlanId is provided, delegate to subscription flow
     if (dto.subscriptionPlanId) {
       const sub = await this.createSubscription(dto);
       return {
@@ -81,7 +121,9 @@ export class PaypalService {
 
     const createPaymentJson: paypal.Payment = {
       intent: (dto.intent ?? PaypalOrderIntent.CAPTURE).toLowerCase() as
-        'sale' | 'authorize' | 'order',
+        | 'sale'
+        | 'authorize'
+        | 'order',
       payer: { payment_method: 'paypal' },
       redirect_urls: {
         return_url: returnUrl,
@@ -94,7 +136,7 @@ export class PaypalService {
             currency: dto.currency.toUpperCase(),
           },
           description: dto.description ?? 'Beleqet Platform Payment',
-          custom: dto.userId,
+          custom: dto.userId, // GDPR: UUID only, no raw PII
         },
       ],
     };
@@ -115,11 +157,12 @@ export class PaypalService {
 
         const approvalLink = (payment.links ?? []).find((l) => l.rel === 'approval_url');
 
+        // Persist to DB
         await this.upsertPaymentRecord({
           userId: dto.userId,
           provider: 'PAYPAL',
           providerPaymentId: payment.id!,
-          amount: Math.round(dto.amount * 100),
+          amount: Math.round(dto.amount * 100), // store as cents
           currency: dto.currency.toUpperCase(),
           status: 'PENDING',
           description: dto.description ?? null,
@@ -137,12 +180,22 @@ export class PaypalService {
     });
   }
 
+  /**
+   * Capture an approved PayPal order (completes the payment).
+   *
+   * Should be called after the payer returns from the PayPal approval URL
+   * with `paymentId` and `PayerID` query parameters.
+   *
+   * @param dto      CapturePaypalOrderDto containing the orderId.
+   * @param payerId  The PayerID returned by PayPal in the redirect URL.
+   */
   async captureOrder(dto: CapturePaypalOrderDto, payerId: string): Promise<PaypalCaptureResult> {
     if (!payerId) {
       throw new BadRequestException('PayerID is required to capture a PayPal order.');
     }
 
     this.logger.log(`Capturing PayPal order: ${dto.orderId} payerId=${payerId}`);
+
     const executePaymentJson = { payer_id: payerId };
 
     return new Promise((resolve, reject) => {
@@ -173,6 +226,14 @@ export class PaypalService {
     });
   }
 
+  /**
+   * Create a PayPal recurring billing subscription.
+   *
+   * Uses the PayPal Billing Agreements API to set up recurring payments
+   * for subscription plans (e.g. Beleqet Premium monthly).
+   *
+   * @param dto  CreatePaypalOrderDto with subscriptionPlanId set.
+   */
   async createSubscription(dto: CreatePaypalOrderDto): Promise<PaypalSubscriptionResult> {
     if (!dto.subscriptionPlanId) {
       throw new BadRequestException('subscriptionPlanId is required for subscriptions.');
@@ -181,12 +242,17 @@ export class PaypalService {
     const returnUrl = dto.returnUrl ?? this.returnUrlBase;
     const cancelUrl = dto.cancelUrl ?? this.cancelUrlBase;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const billingAgreementAttributes: any = {
       name: dto.description ?? 'Beleqet Subscription',
       description: `Beleqet recurring payment — userId: ${dto.userId}`,
-      start_date: new Date(Date.now() + 60_000).toISOString(),
-      plan: { id: dto.subscriptionPlanId },
-      payer: { payment_method: 'paypal' },
+      start_date: new Date(Date.now() + 60_000).toISOString(), // starts in 1 min
+      plan: {
+        id: dto.subscriptionPlanId,
+      },
+      payer: {
+        payment_method: 'paypal',
+      },
       redirect_urls: {
         return_url: returnUrl,
         cancel_url: cancelUrl,
@@ -200,6 +266,7 @@ export class PaypalService {
     return new Promise((resolve, reject) => {
       paypal.billingAgreement.create(
         billingAgreementAttributes,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         async (err: any, billingAgreement: any) => {
           if (err) {
             this.logger.error(`PayPal createSubscription failed: ${JSON.stringify(err)}`);
@@ -212,9 +279,10 @@ export class PaypalService {
           }
 
           const approvalLink = (billingAgreement.links ?? []).find(
-            (l: any) => l.rel === 'approval_url',
+            (l: { rel: string; href: string }) => l.rel === 'approval_url',
           );
 
+          // Persist subscription payment record
           await this.upsertPaymentRecord({
             userId: dto.userId,
             provider: 'PAYPAL',
@@ -268,6 +336,7 @@ export class PaypalService {
     this.logger.log(`PayPal webhook received: ${body.event_type} (${body.id})`);
     this.logger.debug(`PayPal webhook headers: ${JSON.stringify(headers)}`);
 
+    // Verify webhook if webhookId is configured
     if (this.webhookId) {
       await this.verifyWebhookSignature(body, headers);
     } else {
@@ -280,6 +349,13 @@ export class PaypalService {
     return body;
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Private helpers
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Verify the PayPal webhook signature using the PayPal SDK.
+   */
   private verifyWebhookSignature(
     body: PaypalWebhookEvent,
     headers: Record<string, string>,
@@ -295,22 +371,33 @@ export class PaypalService {
     };
 
     return new Promise((resolve, reject) => {
-      (paypal.notification.webhookEvent.verify as any)(verifyData, (err: any, response: any) => {
-        if (err) {
-          this.logger.error(`PayPal webhook verification error: ${JSON.stringify(err)}`);
-          reject(new UnprocessableEntityException('PayPal webhook verification failed.'));
-          return;
-        }
-        if ((response as { verification_status: string }).verification_status !== 'SUCCESS') {
-          this.logger.warn('PayPal webhook verification returned non-SUCCESS status');
-          reject(new UnprocessableEntityException('PayPal webhook signature invalid.'));
-          return;
-        }
-        resolve();
-      });
+      // The @types/paypal-rest-sdk verify signature is (headers, body, id, cb).
+      // The actual SDK accepts a single verification-data object as first arg.
+      // We cast to any to work around the stale type definition.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (paypal.notification.webhookEvent.verify as any)(
+        verifyData,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (err: any, response: any) => {
+          if (err) {
+            this.logger.error(`PayPal webhook verification error: ${JSON.stringify(err)}`);
+            reject(new UnprocessableEntityException('PayPal webhook verification failed.'));
+            return;
+          }
+          if ((response as { verification_status: string }).verification_status !== 'SUCCESS') {
+            this.logger.warn('PayPal webhook verification returned non-SUCCESS status');
+            reject(new UnprocessableEntityException('PayPal webhook signature invalid.'));
+            return;
+          }
+          resolve();
+        },
+      );
     });
   }
 
+  /**
+   * Dispatch PayPal webhook events to update payment records.
+   */
   private async processWebhookEvent(event: PaypalWebhookEvent): Promise<void> {
     const resource = event.resource as Record<string, unknown>;
     const orderId = (resource['id'] as string | undefined) ?? '';
@@ -333,6 +420,7 @@ export class PaypalService {
           );
         }
         break;
+
       case 'PAYMENT.CAPTURE.DENIED':
       case 'PAYMENT.SALE.DENIED':
       case 'PAYMENT.SALE.REVERSED':
@@ -347,14 +435,17 @@ export class PaypalService {
           );
         }
         break;
+
       case 'PAYMENT.CAPTURE.REFUNDED':
       case 'PAYMENT.SALE.REFUNDED':
         await this.updatePaymentStatusByProviderPaymentId(orderId, 'REFUNDED');
         break;
+
       case 'BILLING.SUBSCRIPTION.ACTIVATED':
         await this.updatePaymentStatusByProviderPaymentId(orderId, 'SUCCEEDED');
         await this.emitSubscriptionLifecycleEvent(event, 'ACTIVATED', orderId, resourceAmount);
         break;
+
       case 'BILLING.SUBSCRIPTION.CANCELLED':
         await this.updatePaymentStatusByProviderPaymentId(orderId, 'CANCELLED');
         await this.emitSubscriptionLifecycleEvent(event, 'CANCELLED', orderId);
@@ -363,6 +454,7 @@ export class PaypalService {
         await this.updatePaymentStatusByProviderPaymentId(orderId, 'CANCELLED');
         await this.emitSubscriptionLifecycleEvent(event, 'EXPIRED', orderId);
         break;
+
       default:
         this.logger.debug(`Unhandled PayPal event: ${event.event_type}`);
     }
@@ -438,6 +530,7 @@ export class PaypalService {
     }
   }
 
+  /** Update payment status by providerPaymentId. */
   private async updatePaymentStatusByProviderPaymentId(
     providerPaymentId: string,
     status: PaymentStatus,
