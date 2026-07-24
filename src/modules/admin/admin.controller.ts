@@ -1,6 +1,25 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MinLength, IsArray, IsInt, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsArray,
+} from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -227,7 +246,6 @@ export class AdminController {
         subscriptions: { include: { transactions: true } },
 
         fraudAlerts: true,
-
       },
     });
 
@@ -256,8 +274,6 @@ export class AdminController {
       },
     };
   }
-
-
 
   // ────────────────────────────────────────────────────────────────────────
   //  Fraud Alert Management
@@ -389,14 +405,19 @@ export class AdminController {
 
   @Get('fraud/alerts/gdpr/export/:userId')
   @ApiOperation({ summary: 'Export fraud alert data for GDPR compliance' })
-  async exportFraudAlertData(@Param('userId') userId: string, @CurrentUser() admin: CurrentUserPayload) {
+  async exportFraudAlertData(
+    @Param('userId') userId: string,
+    @CurrentUser() admin: CurrentUserPayload,
+  ) {
     return this.fraudAlertService.gdprExport(userId, admin.userId);
   }
 
   @Delete('fraud/alerts/gdpr/delete/:userId')
   @ApiOperation({ summary: 'Soft-delete fraud alerts for GDPR right-to-erasure' })
-  async deleteFraudAlertData(@Param('userId') userId: string, @CurrentUser() admin: CurrentUserPayload) {
+  async deleteFraudAlertData(
+    @Param('userId') userId: string,
+    @CurrentUser() admin: CurrentUserPayload,
+  ) {
     return this.fraudAlertService.gdprDelete(userId, admin.userId);
   }
-
 }

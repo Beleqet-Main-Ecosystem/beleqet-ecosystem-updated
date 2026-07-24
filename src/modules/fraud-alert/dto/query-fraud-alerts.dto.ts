@@ -3,7 +3,10 @@ import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryFraudAlertsDto {
-  @ApiProperty({ required: false, enum: ['OPEN', 'UNDER_REVIEW', 'RESOLVED', 'FALSE_POSITIVE', 'CONFIRMED'] })
+  @ApiProperty({
+    required: false,
+    enum: ['OPEN', 'UNDER_REVIEW', 'RESOLVED', 'FALSE_POSITIVE', 'CONFIRMED'],
+  })
   @IsOptional()
   @IsString()
   status?: string;
@@ -13,7 +16,10 @@ export class QueryFraudAlertsDto {
   @IsString()
   severity?: string;
 
-  @ApiProperty({ required: false, enum: ['OFF_PLATFORM_PAYMENT', 'FAKE_PROFILE', 'PAYMENT_ANOMALY', 'DUPLICATE_LISTING'] })
+  @ApiProperty({
+    required: false,
+    enum: ['OFF_PLATFORM_PAYMENT', 'FAKE_PROFILE', 'PAYMENT_ANOMALY', 'DUPLICATE_LISTING'],
+  })
   @IsOptional()
   @IsString()
   ruleType?: string;

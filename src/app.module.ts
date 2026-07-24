@@ -52,7 +52,6 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
 
-
 @Module({
   imports: [
     //  Configuration (loads .env)
@@ -151,7 +150,6 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     SchedulerModule,
 
     FraudAlertModule,
-
   ],
   providers: [
     {
@@ -160,5 +158,4 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     },
   ],
 })
-
 export class AppModule {}

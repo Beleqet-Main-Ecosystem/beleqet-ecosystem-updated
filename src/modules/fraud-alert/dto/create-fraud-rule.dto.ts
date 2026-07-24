@@ -24,12 +24,17 @@ export class CreateFraudRuleDto {
   @IsBoolean()
   enabled?: boolean = true;
 
-  @ApiProperty({ required: false, description: 'JSON configuration for the rule (thresholds, regex patterns, etc.)' })
+  @ApiProperty({
+    required: false,
+    description: 'JSON configuration for the rule (thresholds, regex patterns, etc.)',
+  })
   @IsOptional()
   @IsObject()
   config?: Record<string, unknown>;
 
-  @ApiProperty({ description: 'i18n key for alert messages, e.g. fraud.alert.title.OFF_PLATFORM_PAYMENT' })
+  @ApiProperty({
+    description: 'i18n key for alert messages, e.g. fraud.alert.title.OFF_PLATFORM_PAYMENT',
+  })
   @IsString()
   i18nKey: string;
 }

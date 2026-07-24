@@ -192,10 +192,7 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
    * statistical detector. Callers are responsible for providing history from
    * a single currency; amounts must not be converted or mixed across currencies.
    */
-  analyzePaymentAmount(
-    amount: number,
-    historicalAmounts: number[],
-  ): PaymentAnomalyAnalysis {
+  analyzePaymentAmount(amount: number, historicalAmounts: number[]): PaymentAnomalyAnalysis {
     if (historicalAmounts.length < 3) {
       return {
         anomalous: false,
@@ -206,14 +203,11 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
     }
 
     const meanAmount =
-      historicalAmounts.reduce((sum, value) => sum + value, 0) /
-      historicalAmounts.length;
+      historicalAmounts.reduce((sum, value) => sum + value, 0) / historicalAmounts.length;
     const standardDeviation =
       Math.sqrt(
-        historicalAmounts.reduce(
-          (sum, value) => sum + Math.pow(value - meanAmount, 2),
-          0,
-        ) / historicalAmounts.length,
+        historicalAmounts.reduce((sum, value) => sum + Math.pow(value - meanAmount, 2), 0) /
+          historicalAmounts.length,
       ) || 1;
     const zScore = (amount - meanAmount) / standardDeviation;
 

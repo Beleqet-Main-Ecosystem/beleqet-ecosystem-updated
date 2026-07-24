@@ -115,9 +115,7 @@ describe('FraudAlertService', () => {
     });
 
     it('should flag Amharic-language off-platform payment terms', () => {
-      const result = service.detectOffPlatformPayment(
-        'እባክዎ በቀጥታ ክፈሉ ወደ ቴሌግራም ላክ',
-      );
+      const result = service.detectOffPlatformPayment('እባክዎ በቀጥታ ክፈሉ ወደ ቴሌግራም ላክ');
       expect(result.matches.length).toBeGreaterThan(0);
     });
 
@@ -130,9 +128,7 @@ describe('FraudAlertService', () => {
     });
 
     it('should detect phone numbers', () => {
-      const result = service.detectOffPlatformPayment(
-        'Call me at 0911345678 for more details',
-      );
+      const result = service.detectOffPlatformPayment('Call me at 0911345678 for more details');
       expect(result.matches).toContain('Ethiopian phone number');
       expect(result.score).toBeGreaterThan(0);
     });
@@ -180,9 +176,7 @@ describe('FraudAlertService', () => {
         skills: ['Python', 'Django', 'Flask', 'FastAPI', 'SQL', 'Docker'],
         company: { verified: true },
       };
-      const candidateScores = [
-        { overallScore: 20, skillScore: 15 },
-      ];
+      const candidateScores = [{ overallScore: 20, skillScore: 15 }];
       const result = service.detectFakeProfile(user, candidateScores);
       expect(result.flags).toContain('low_scores_high_claim');
     });
@@ -191,15 +185,18 @@ describe('FraudAlertService', () => {
   describe('scanEscrowTransactions', () => {
     it('queries escrow rows for the client and delegates amount analysis', async () => {
       const now = new Date();
-      const escrowTxs = Array(8).fill(null).map((_, i) => ({
-        id: `esc-${i}`,
-        status: 'FUNDED',
-        grossAmount: i === 0 ? 100000 : 10000,
-        currency: 'ETB',
-        gatewayResponse: i < 6 ? { status: 'failed', error: 'card_declined' } : { status: 'success' },
-        createdAt: new Date(now.getTime() - i * 60 * 60 * 1000),
-        freelanceJob: { currency: 'ETB' },
-      }));
+      const escrowTxs = Array(8)
+        .fill(null)
+        .map((_, i) => ({
+          id: `esc-${i}`,
+          status: 'FUNDED',
+          grossAmount: i === 0 ? 100000 : 10000,
+          currency: 'ETB',
+          gatewayResponse:
+            i < 6 ? { status: 'failed', error: 'card_declined' } : { status: 'success' },
+          createdAt: new Date(now.getTime() - i * 60 * 60 * 1000),
+          freelanceJob: { currency: 'ETB' },
+        }));
       mockPrismaService.escrowTransaction.findMany.mockResolvedValue(escrowTxs);
       mockAnomalySensor.analyzePaymentAmount.mockReturnValue({
         anomalous: true,
@@ -213,7 +210,9 @@ describe('FraudAlertService', () => {
         eventLog: { create: jest.fn().mockResolvedValue({ id: 'log-esc' }) },
       };
       const originalImpl = mockPrismaService.$transaction.getMockImplementation();
-      mockPrismaService.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock));
+      mockPrismaService.$transaction.mockImplementation(
+        async (cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock),
+      );
       mockPrismaService.user.findMany.mockResolvedValue([]);
 
       const alertIds = await service.scanEscrowTransactions('client-1');
@@ -295,7 +294,10 @@ describe('FraudAlertService', () => {
         }),
       );
       expect(mockTx.eventLog.create).toHaveBeenCalled();
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith('fraud.alert.resolved', expect.any(Object));
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'fraud.alert.resolved',
+        expect.any(Object),
+      );
     });
   });
 
@@ -305,7 +307,9 @@ describe('FraudAlertService', () => {
         fraudAlert: { create: jest.fn().mockResolvedValue({ id: 'alert-new', status: 'OPEN' }) },
         eventLog: { create: jest.fn().mockResolvedValue({ id: 'log-new' }) },
       };
-      mockPrismaService.$transaction.mockImplementation(async (cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock));
+      mockPrismaService.$transaction.mockImplementation(
+        async (cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock),
+      );
       mockPrismaService.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       const result = await service.createAlert({

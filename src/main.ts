@@ -87,7 +87,8 @@ async function bootstrap() {
       if (!origin) return cb(null, true);
       if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return cb(null, true);
       if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
-      if (nodeEnv === 'development' && /^http:\/\/localhost(:\d+)?$/i.test(origin)) return cb(null, true);
+      if (nodeEnv === 'development' && /^http:\/\/localhost(:\d+)?$/i.test(origin))
+        return cb(null, true);
       return cb(null, false);
     },
     credentials: true,

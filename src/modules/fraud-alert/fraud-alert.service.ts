@@ -54,10 +54,7 @@ export class FraudAlertService {
     out = out.replace(/\+\d{1,3}[\s-]?\d{6,14}/g, '+***-******');
     out = out.replace(/[A-Z]{2}\d{2}[A-Z0-9]{10,30}/g, '***IBAN***');
     out = out.replace(/(0x[a-fA-F0-9]{40}|bc1[a-zA-HJ-NP-Z0-9]{25,62})/g, '***CRYPTO***');
-    out = out.replace(
-      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,
-      '***@***.***',
-    );
+    out = out.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '***@***.***');
     return out;
   }
 
@@ -79,8 +76,16 @@ export class FraudAlertService {
       { regex: /\b09\d{8}\b/, label: 'Ethiopian phone number', weight: 30 },
       { regex: /\+\d{1,3}[\s-]?\d{6,14}/, label: 'International phone number', weight: 25 },
       { regex: /[A-Z]{2}\d{2}[A-Z0-9]{10,30}/, label: 'IBAN', weight: 35 },
-      { regex: /(0x[a-fA-F0-9]{40}|bc1[a-zA-HJ-NP-Z0-9]{25,62})/, label: 'Crypto address', weight: 40 },
-      { regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/, label: 'Email address', weight: 15 },
+      {
+        regex: /(0x[a-fA-F0-9]{40}|bc1[a-zA-HJ-NP-Z0-9]{25,62})/,
+        label: 'Crypto address',
+        weight: 40,
+      },
+      {
+        regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/,
+        label: 'Email address',
+        weight: 15,
+      },
       { regex: /\bpaypal\b/i, label: 'PayPal', weight: 20 },
       { regex: /\bwestern\s+union\b/i, label: 'Western Union', weight: 25 },
       { regex: /\btelebirr\b/i, label: 'Telebirr', weight: 20 },
@@ -89,8 +94,16 @@ export class FraudAlertService {
       { regex: /\bm[\s-]?pesa\b/i, label: 'M-Pesa', weight: 20 },
       { regex: /\bbank\s*transfer\b/i, label: 'Bank transfer', weight: 15 },
       { regex: /\bsend\s+via\s+telegram\b/i, label: 'Send via Telegram', weight: 20 },
-      { regex: /(?:በቴሌግራም|ወደ\s*ቴሌግራም)\s*ላክ|ቴሌብር|ሲቢ\s*ኢ\s*ብር|አሞሌ/, label: 'Ethiopian payment app (Amharic)', weight: 20 },
-      { regex: /በቀጥታ\s*ክፈሉ|ከመደበኛው\s*መንገድ\s*ውጪ\s*ክፍያ/, label: 'Off-platform payment (Amharic)', weight: 30 },
+      {
+        regex: /(?:በቴሌግራም|ወደ\s*ቴሌግራም)\s*ላክ|ቴሌብር|ሲቢ\s*ኢ\s*ብር|አሞሌ/,
+        label: 'Ethiopian payment app (Amharic)',
+        weight: 20,
+      },
+      {
+        regex: /በቀጥታ\s*ክፈሉ|ከመደበኛው\s*መንገድ\s*ውጪ\s*ክፍያ/,
+        label: 'Off-platform payment (Amharic)',
+        weight: 30,
+      },
     ];
 
     for (const { regex, label, weight } of patterns) {
@@ -258,13 +271,9 @@ export class FraudAlertService {
     evidence?: Record<string, unknown>,
     options?: { adminIds?: string[] },
   ): Promise<{ id: string }> {
-    const sanitizedEvidence = evidence
-      ? this.sanitizeEvidence(evidence)
-      : undefined;
+    const sanitizedEvidence = evidence ? this.sanitizeEvidence(evidence) : undefined;
 
-    const expiryAt = new Date(
-      Date.now() + DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000,
-    );
+    const expiryAt = new Date(Date.now() + DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const created = await tx.fraudAlert.create({
@@ -305,8 +314,7 @@ export class FraudAlertService {
     const notificationTitle = this.t(`fraud.alert.title.${alert.ruleType}`, {
       args: { score: alert.score },
     });
-    const notificationBody =
-      this.t(`fraud.alert.body.${alert.ruleType}`) || alert.reason;
+    const notificationBody = this.t(`fraud.alert.body.${alert.ruleType}`) || alert.reason;
 
     const adminIds =
       options?.adminIds ??
@@ -326,9 +334,7 @@ export class FraudAlertService {
           body: `${notificationBody} [Score: ${alert.score}]`,
           metadata: { alertId: result.id, severity: alert.severity },
         })
-        .catch((err: Error) =>
-          this.logger.error(`Failed to enqueue notification: ${err.message}`),
-        );
+        .catch((err: Error) => this.logger.error(`Failed to enqueue notification: ${err.message}`));
     }
 
     this.eventEmitter.emit('fraud.alert.created', {
@@ -353,9 +359,7 @@ export class FraudAlertService {
       if (typeof v === 'string') {
         out[k] = this.redactPii(v);
       } else if (Array.isArray(v)) {
-        out[k] = v.map((item) =>
-          typeof item === 'string' ? this.redactPii(item) : item,
-        );
+        out[k] = v.map((item) => (typeof item === 'string' ? this.redactPii(item) : item));
       } else {
         out[k] = v;
       }
@@ -680,18 +684,13 @@ export class FraudAlertService {
 
     const latest = escrowTxs[0];
     const currencyOf = (transaction: (typeof escrowTxs)[number]) =>
-      transaction.currency ||
-      transaction.freelanceJob?.currency ||
-      DEFAULT_CURRENCY;
+      transaction.currency || transaction.freelanceJob?.currency || DEFAULT_CURRENCY;
     const normalizedCurrency = currencyOf(latest);
     const history = escrowTxs
       .slice(1)
       .filter((transaction) => currencyOf(transaction) === normalizedCurrency)
       .map((transaction) => transaction.grossAmount);
-    const analysis = this.anomalySensor.analyzePaymentAmount(
-      latest.grossAmount,
-      history,
-    );
+    const analysis = this.anomalySensor.analyzePaymentAmount(latest.grossAmount, history);
     if (!analysis.anomalous) return alertIds;
 
     const rules = await this.prisma.fraudRule.findMany({
@@ -807,7 +806,9 @@ export class FraudAlertService {
       alertCount += ids.length;
     }
 
-    this.logger.log(`scanAll complete: ${users.length} users checked, ${alertCount} alerts generated`);
+    this.logger.log(
+      `scanAll complete: ${users.length} users checked, ${alertCount} alerts generated`,
+    );
     return alertCount;
   }
 }

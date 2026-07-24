@@ -92,7 +92,9 @@ export class FraudAlertProcessor extends WorkerHost {
   }
 
   async handleScanAll(job: Job<ScanAllPayload>): Promise<number> {
-    this.logger.log(`Starting batch scan: skip=${job.data.skip ?? 0}, take=${job.data.take ?? 100}`);
+    this.logger.log(
+      `Starting batch scan: skip=${job.data.skip ?? 0}, take=${job.data.take ?? 100}`,
+    );
     return this.fraudAlertService.scanAll(job.data);
   }
 }

@@ -53,7 +53,11 @@ export class FraudAlertController {
   @ApiOperation({ summary: 'Trigger fraud scan for escrow transactions of a client' })
   async scanEscrowTransaction(@Param('userId') userId: string) {
     const job = await this.fraudQueue.add(FRAUD_JOBS.SCAN_ESCROW_TRANSACTION, { userId });
-    return { jobId: job.id, message: this.t('fraud.controller.scan_queued_escrow_transaction'), userId };
+    return {
+      jobId: job.id,
+      message: this.t('fraud.controller.scan_queued_escrow_transaction'),
+      userId,
+    };
   }
 
   @Post('scan/job/:jobId')
