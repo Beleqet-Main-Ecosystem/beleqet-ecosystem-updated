@@ -1,0 +1,43 @@
+{
+  "escrow": {
+    "notification": {
+      "fundedTitle": "TODO: Amharic translation — Escrow funded — your gig is now live!",
+      "fundedBody": "TODO: Amharic translation — {currency} {amount} has been secured. Freelancers can now bid on your project.",
+      "revisionRequestedTitle": "TODO: Amharic translation — Revision Requested",
+      "revisionRequestedBody": "TODO: Amharic translation — Your client has requested changes on \"{milestoneTitle}\". Please review their feedback and resubmit.",
+      "cancelledTitle": "TODO: Amharic translation — Escrow cancelled — funds refunded",
+      "cancelledBody": "TODO: Amharic translation — {currency} {walletAmount} refunded to wallet{chapaSuffix}",
+      "chapaSuffix": "TODO: Amharic translation — , {currency} {chapaAmount} Chapa refund processing",
+      "adminRefundedTitle": "TODO: Amharic translation — Escrow refunded by admin",
+      "adminRefundedBody": "TODO: Amharic translation — {currency} {walletAmount} refunded to wallet{chapaSuffix}",
+      "contractCompletedTitle": "TODO: Amharic translation — Contract Completed",
+      "contractCompletedOwnerBody": "TODO: Amharic translation — You have successfully completed this contract.",
+      "contractCompletedOtherBody": "TODO: Amharic translation — Your contract has been marked as complete by the other party.",
+      "fundedViaChapaTitle": "TODO: Amharic translation — Escrow funded — your gig is now live!",
+      "fundedViaChapaBody": "TODO: Amharic translation — {currency} {amount} has been secured. Freelancers can now bid on your project.",
+      "autoReleaseTitle": "TODO: Amharic translation — ETB {amount} is now available",
+      "autoReleaseBody": "TODO: Amharic translation — Your hold period has cleared. You can now withdraw these funds.",
+      "autoReleaseTelegram": "TODO: Amharic translation — *ETB {amount} is now available in your Beleqet wallet!*\n\nYour 3-day hold has cleared. Withdraw at: {url}/freelance/wallet",
+      "contractCompletedAllApprovedTitle": "TODO: Amharic translation — Contract Completed",
+      "contractCompletedAllApprovedBody": "TODO: Amharic translation — All milestones have been approved and released. Your contract is now complete.",
+      "unlockFundsTitle": "TODO: Amharic translation — {currency} {amount} released back to your wallet",
+      "unlockFundsBody": "TODO: Amharic translation — Your escrow payment was not completed within 24h. Locked funds have been returned."
+    }
+  },
+  "disputes": {
+    "notification": {
+      "partyTypeClient": "TODO: Amharic translation — Client",
+      "partyTypeFreelancer": "TODO: Amharic translation — Freelancer",
+      "raisedForOtherTitle": "TODO: Amharic translation — Dispute raised on your contract",
+      "raisedForOtherBody": "TODO: Amharic translation — {partyType} has raised a dispute on contract #{contractId}. Reason: {reason}...",
+      "raisedForSelfTitle": "TODO: Amharic translation — Dispute submitted",
+      "raisedForSelfBody": "TODO: Amharic translation — Your dispute has been submitted. The other party has been notified. Our team will review the case.",
+      "resolvedTitle": "TODO: Amharic translation — Dispute resolved",
+      "resolvedClientBody": "TODO: Amharic translation — Your dispute on contract #{contractId} has been resolved. {resolutionDetail}",
+      "resolvedFreelancerBody": "TODO: Amharic translation — Your dispute on contract #{contractId} has been resolved. {resolutionDetail}",
+      "refundedDetail": "TODO: Amharic translation — Funds have been refunded to your wallet.",
+      "releasedDetail": "TODO: Amharic translation — Funds have been released to your wallet.",
+      "closedDetail": "TODO: Amharic translation — The case has been reviewed and closed."
+    }
+  }
+}

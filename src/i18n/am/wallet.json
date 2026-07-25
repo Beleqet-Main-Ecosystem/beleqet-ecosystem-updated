@@ -1,0 +1,7 @@
+{
+  "exchangeRateNotFound": "TODO: Amharic translation — Exchange rate for {from} to {to} not found",
+  "walletNotFound": "TODO: Amharic translation — Wallet not found",
+  "insufficientBalance": "TODO: Amharic translation — Insufficient available balance",
+  "payoutRejected": "TODO: Amharic translation — Payout rejected by payment gateway: {message}",
+  "payoutNetworkError": "TODO: Amharic translation — Could not reach payment gateway. Your balance has been restored."
+}

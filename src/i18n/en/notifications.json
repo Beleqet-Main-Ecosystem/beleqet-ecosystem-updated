@@ -1,0 +1,43 @@
+{
+  "escrow": {
+    "notification": {
+      "fundedTitle": "Escrow funded — your gig is now live!",
+      "fundedBody": "{currency} {amount} has been secured. Freelancers can now bid on your project.",
+      "revisionRequestedTitle": "Revision Requested",
+      "revisionRequestedBody": "Your client has requested changes on \"{milestoneTitle}\". Please review their feedback and resubmit.",
+      "cancelledTitle": "Escrow cancelled — funds refunded",
+      "cancelledBody": "{currency} {walletAmount} refunded to wallet{chapaSuffix}",
+      "chapaSuffix": ", {currency} {chapaAmount} Chapa refund processing",
+      "adminRefundedTitle": "Escrow refunded by admin",
+      "adminRefundedBody": "{currency} {walletAmount} refunded to wallet{chapaSuffix}",
+      "contractCompletedTitle": "Contract Completed",
+      "contractCompletedOwnerBody": "You have successfully completed this contract.",
+      "contractCompletedOtherBody": "Your contract has been marked as complete by the other party.",
+      "fundedViaChapaTitle": "Escrow funded — your gig is now live!",
+      "fundedViaChapaBody": "{currency} {amount} has been secured. Freelancers can now bid on your project.",
+      "autoReleaseTitle": "ETB {amount} is now available",
+      "autoReleaseBody": "Your hold period has cleared. You can now withdraw these funds.",
+      "autoReleaseTelegram": "*ETB {amount} is now available in your Beleqet wallet!*\n\nYour 3-day hold has cleared. Withdraw at: {url}/freelance/wallet",
+      "contractCompletedAllApprovedTitle": "Contract Completed",
+      "contractCompletedAllApprovedBody": "All milestones have been approved and released. Your contract is now complete.",
+      "unlockFundsTitle": "{currency} {amount} released back to your wallet",
+      "unlockFundsBody": "Your escrow payment was not completed within 24h. Locked funds have been returned."
+    }
+  },
+  "disputes": {
+    "notification": {
+      "partyTypeClient": "Client",
+      "partyTypeFreelancer": "Freelancer",
+      "raisedForOtherTitle": "Dispute raised on your contract",
+      "raisedForOtherBody": "{partyType} has raised a dispute on contract #{contractId}. Reason: {reason}...",
+      "raisedForSelfTitle": "Dispute submitted",
+      "raisedForSelfBody": "Your dispute has been submitted. The other party has been notified. Our team will review the case.",
+      "resolvedTitle": "Dispute resolved",
+      "resolvedClientBody": "Your dispute on contract #{contractId} has been resolved. {resolutionDetail}",
+      "resolvedFreelancerBody": "Your dispute on contract #{contractId} has been resolved. {resolutionDetail}",
+      "refundedDetail": "Funds have been refunded to your wallet.",
+      "releasedDetail": "Funds have been released to your wallet.",
+      "closedDetail": "The case has been reviewed and closed."
+    }
+  }
+}

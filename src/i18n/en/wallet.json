@@ -1,0 +1,7 @@
+{
+  "exchangeRateNotFound": "Exchange rate for {from} to {to} not found",
+  "walletNotFound": "Wallet not found",
+  "insufficientBalance": "Insufficient available balance",
+  "payoutRejected": "Payout rejected by payment gateway: {message}",
+  "payoutNetworkError": "Could not reach payment gateway. Your balance has been restored."
+}
