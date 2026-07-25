@@ -56,3 +56,50 @@ export interface StatCardData {
   icon: ReactNode;
   color: string;
 }
+
+/** Matches AuditLogRecord from audit-logging.service.ts */
+export interface AuditLog {
+  id: string;
+  eventType: string;
+  entityId: string;
+  entityType: string;
+  payload: Record<string, unknown>;
+  processedBy: string | null;
+  actorUserId: string | null;
+  ipAddress: string | null;
+  httpMethod: string | null;
+  path: string | null;
+  statusCode: number | null;
+  durationMs: number | null;
+  createdAt: string;
+  displayCurrency?: string;
+  amountInDisplayCurrency?: number | null;
+}
+
+/** Paginated audit log list response */
+export interface AuditLogListResponse {
+  data: AuditLog[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  message: string;
+  currency: string;
+}
+
+/** Query filters for the admin audit log viewer */
+export interface AuditLogQuery {
+  eventType?: string;
+  path?: string;
+  statusCode?: number | string;
+  search?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+  lang?: string;
+  currency?: string;
+  httpMethod?: string;
+}

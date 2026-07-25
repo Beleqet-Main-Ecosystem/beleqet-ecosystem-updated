@@ -1,13 +1,8 @@
 {
-  "tax": {
-    "unsupportedJurisdiction": "ያልተደገፈ የግብር ክልል \"{countryCode}\". የሚደገፉት፦ ET, US።",
-    "currencyMismatch": "ምንዛሬ \"{currency}\" ከግብር ክልል \"{countryCode}\" ጋር አይጣጣምም። የሚጠበቀው፦ {expectedCurrency}።",
-    "invalidGrossIncome": "grossIncome በትንሹ የምንዛሬ አሃድ የተገለጸ ትክክለኛ ቁጥር መሆን አለበት።",
-    "calculationFailed": "የግብር ስሌት አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
-  },
-  "skillTester": {
-    "invalidPayload": "ልክ ያልሆነ የክህሎት ፈተና ግብአት፦ {details}",
-    "aiGenerationFailed": "የክህሎት ግምገማ ጥያቄዎችን ማመንጨት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
-    "requestFailed": "የክህሎት ፈተና ጥያቄ አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+  "audit-logging": {
+    "LIST_SUCCESS": "\u12e8\u12a6\u12f2\u1275 \u1218\u12dd\u1308\u126e\u127d \u1270\u1308\u129d\u1270\u12cb\u120d",
+    "EXPORT_SUCCESS": "\u12e8\u12a6\u12f2\u1275 \u1218\u12dd\u1308\u126e\u127d \u1270\u120b\u12ad\u1270\u12cb\u120d",
+    "NOT_FOUND": "\u12e8\u12a6\u12f2\u1275 \u1218\u12dd\u1308\u1265 \u12a0\u120d\u1270\u1308\u1298\u121d",
+    "TITLE": "\u12e8\u12a6\u12f2\u1275 \u1218\u12dd\u1308\u126e\u127d"
   }
 }

@@ -6,6 +6,12 @@
     "ACTIVE_CONTRACTS": "Active Contracts",
     "COMPLETED_JOBS": "Completed Jobs"
   },
+  "audit-logging": {
+    "LIST_SUCCESS": "Audit logs retrieved",
+    "EXPORT_SUCCESS": "Audit logs exported",
+    "NOT_FOUND": "Audit log not found",
+    "TITLE": "Audit Logs"
+  },
   "dispute-manager": {
     "DISPUTE_RESOLVED": "Dispute resolved successfully",
     "DISPUTE_CREATED": "Dispute created successfully",

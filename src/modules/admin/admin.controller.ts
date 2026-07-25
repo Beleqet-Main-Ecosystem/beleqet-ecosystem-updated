@@ -20,6 +20,7 @@ import { Queue } from 'bullmq';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { adminAnnouncementEmail } from '../notifications/email-templates';
 import { ChatService } from '../chat/chat.service';
+import { AuditLoggingService } from '../audit-logging/audit-logging.service';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -70,6 +71,7 @@ export class AdminController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
+    private readonly auditLoggingService: AuditLoggingService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
   ) {}
 
@@ -235,10 +237,13 @@ export class AdminController {
       select: { enabled: true },
     });
 
+    const auditLogs = await this.auditLoggingService.findByUserForGdpr(userId);
+
     return {
       data: {
         ...user,
         twoFactor: twoFactor ? { enabled: twoFactor.enabled } : null,
+        auditLogs,
       },
     };
   }

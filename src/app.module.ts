@@ -33,6 +33,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
+import { AuditLoggingModule } from './modules/audit-logging/audit-logging.module';
 
 import { PaymentsModule } from './modules/payments/payments.module';
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
@@ -128,6 +129,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
+    AuditLoggingModule,
     DbIndexMasterModule,
     PaymentsModule,
     // ── Fixed: PerformanceWorkerModule removed from imports array ──
