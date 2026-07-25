@@ -122,10 +122,15 @@ describe('AnomalySensor Integration (e2e)', () => {
     expect(bruteForceCallsForEmail.length).toBe(0);
   });
 
-  it('should successfully receive payment.escrow.initiated and process same-currency Z-score', async () => {
+  it('does NOT handle payment.escrow.initiated (Fix: duplicate anomaly alerting)', async () => {
+    // Ownership of the payment.escrow.initiated event moved to
+    // FraudAlertService so a single FraudAlert ticket is created per anomaly
+    // instead of two disconnected systems (sensor writing EventLog + Slack
+    // and fraud module creating the ticket). This test locks in that the
+    // sensor no longer reacts to the event, preventing regression to the
+    // duplicate-alerting behaviour.
     const clientId = 'integration-client-123';
 
-    // Emit event with large amount in ETB (matches mock history currency)
     eventEmitter.emit('payment.escrow.initiated', {
       escrowId: 'new-tx',
       clientId,
@@ -136,26 +141,13 @@ describe('AnomalySensor Integration (e2e)', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Verify the Prisma query included the currency filter
-    expect(prismaService.escrowTransaction.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          currency: 'ETB',
-        }),
-      }),
-    );
+    // The sensor must not fetch escrow history for this event anymore...
+    expect(prismaService.escrowTransaction.findMany).not.toHaveBeenCalled();
 
-    // Verify it was logged
-    expect(prismaService.eventLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          eventType: 'ANOMALY_DETECTED',
-          entityId: clientId,
-          payload: expect.objectContaining({
-            type: 'PAYMENT_UNUSUAL_AMOUNT',
-          }),
-        }),
-      }),
+    // ...nor write a PAYMENT_UNUSUAL_AMOUNT anomaly log for it.
+    const paymentAnomalyCalls = (prismaService.eventLog.create as jest.Mock).mock.calls.filter(
+      (call) => call[0]?.data?.payload?.type === 'PAYMENT_UNUSUAL_AMOUNT',
     );
+    expect(paymentAnomalyCalls.length).toBe(0);
   });
 });

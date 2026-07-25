@@ -14,10 +14,12 @@
  * @module FraudAlertService
  */
 import { Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { I18nService, I18nContext } from 'nestjs-i18n';
+import { FraudRuleType, FraudSeverity } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { AnomalySensorService } from '../anomaly-sensor/anomaly-sensor.service';
@@ -262,8 +264,8 @@ export class FraudAlertService {
       entityId: string;
       userId?: string;
       ruleId?: string;
-      ruleType: string;
-      severity: string;
+      ruleType: FraudRuleType;
+      severity: FraudSeverity;
       score: number;
       reason: string;
       currency?: string;
@@ -282,8 +284,8 @@ export class FraudAlertService {
           entityId: alert.entityId,
           userId: alert.userId,
           ruleId: alert.ruleId,
-          ruleType: alert.ruleType as never,
-          severity: alert.severity as never,
+          ruleType: alert.ruleType,
+          severity: alert.severity,
           score: alert.score,
           reason: alert.reason,
           evidence: sanitizedEvidence as never,
@@ -393,7 +395,7 @@ export class FraudAlertService {
       await tx.fraudAlert.update({
         where: { id: alertId },
         data: {
-          status: status as never,
+          status,
           resolvedById: adminId,
           resolvedAt: new Date(),
           resolutionNote,
@@ -693,32 +695,113 @@ export class FraudAlertService {
     const analysis = this.anomalySensor.analyzePaymentAmount(latest.grossAmount, history);
     if (!analysis.anomalous) return alertIds;
 
+    alertIds.push(
+      ...(await this.persistEscrowAnomalyAlerts({
+        escrowId: latest.id,
+        userId,
+        grossAmount: latest.grossAmount,
+        currency: normalizedCurrency,
+        analysis,
+      })),
+    );
+
+    return alertIds;
+  }
+
+  /**
+   * Real-time handler for `payment.escrow.initiated` events.
+   *
+   * Single source of truth for payment-anomaly alert tickets: this listener
+   * applies `AnomalySensorService.analyzePaymentAmount` to the just-initiated
+   * escrow transaction and, when the Z-score exceeds the threshold, persists a
+   * `PAYMENT_ANOMALY` `FraudAlert` (plus its EventLog audit row and admin
+   * in-app notifications) via `createAlert`. This replaces the previous
+   * duplicate flow where `AnomalySensorService` independently logged to
+   * EventLog and dispatched Slack/email alerts without creating a reviewable
+   * fraud ticket, leaving the two systems disconnected on the same event.
+   *
+   * Currency isolation and the <3-history early-out are preserved so the
+   * statistical baseline semantics match `scanEscrowTransactions`.
+   *
+   * @param payload - The escrow initiation event data
+   */
+  @OnEvent('payment.escrow.initiated')
+  async handleEscrowPaymentInitiated(payload: {
+    escrowId: string;
+    clientId: string;
+    grossAmount: number;
+    currency: string;
+    timestamp: string;
+  }): Promise<void> {
+    const { escrowId, clientId, grossAmount, currency } = payload;
+
+    const history = await this.prisma.escrowTransaction.findMany({
+      where: {
+        freelanceJob: { clientId },
+        id: { not: escrowId },
+        status: { in: ['FUNDED', 'RELEASED'] },
+        currency,
+      },
+      select: { grossAmount: true },
+    });
+
+    if (history.length < 3) return;
+
+    const analysis = this.anomalySensor.analyzePaymentAmount(
+      grossAmount,
+      history.map((tx) => tx.grossAmount),
+    );
+    if (!analysis.anomalous) return;
+
+    await this.persistEscrowAnomalyAlerts({
+      escrowId,
+      userId: clientId,
+      grossAmount,
+      currency,
+      analysis,
+    });
+  }
+
+  /**
+   * Shared helper that creates `PAYMENT_ANOMALY` fraud alerts for a detected
+   * escrow anomaly. Used by both the on-demand `scanEscrowTransactions` scan
+   * and the real-time `handleEscrowPaymentInitiated` event listener so the
+   * ticket, audit log, and admin notifications are produced identically.
+   */
+  private async persistEscrowAnomalyAlerts(args: {
+    escrowId: string;
+    userId: string;
+    grossAmount: number;
+    currency: string;
+    analysis: { zScore: number; meanAmount: number };
+  }): Promise<string[]> {
     const rules = await this.prisma.fraudRule.findMany({
       where: { enabled: true, ruleType: 'PAYMENT_ANOMALY' },
     });
 
+    const alertIds: string[] = [];
     for (const rule of rules) {
       const { id } = await this.createAlert(
         {
           entityType: 'EscrowTransaction',
-          entityId: latest.id,
-          userId,
+          entityId: args.escrowId,
+          userId: args.userId,
           ruleId: rule.id,
           ruleType: 'PAYMENT_ANOMALY',
           severity: 'HIGH',
           score: 100,
-          reason: `Unusual escrow amount detected (${normalizedCurrency}); z-score ${analysis.zScore.toFixed(2)}`,
-          currency: normalizedCurrency,
+          reason: `Unusual escrow amount detected (${args.currency}); z-score ${args.analysis.zScore.toFixed(2)}`,
+          currency: args.currency,
         },
         {
-          zScore: analysis.zScore,
-          meanAmount: analysis.meanAmount,
-          currency: normalizedCurrency,
+          zScore: args.analysis.zScore,
+          meanAmount: args.analysis.meanAmount,
+          currency: args.currency,
+          grossAmount: args.grossAmount,
         },
       );
       alertIds.push(id);
     }
-
     return alertIds;
   }
 
@@ -774,20 +857,21 @@ export class FraudAlertService {
   }
 
   /**
-   * Batch scan of recent active users for fake profile signals.
+   * Batch scan of all active non-admin users for fake profile signals.
    * Designed to be run on a schedule (hourly).
    *
-   * @param options - Optional pagination constraints
+   * Iterates through the entire active-user population in fixed-size pages
+   * using cursor-based pagination, so triggering `/scan/all` in production
+   * covers every user rather than silently stopping after the first page.
+   *
+   * @param options - Optional page size and starting offset for the first page
    * @returns Count of alerts generated
    */
   async scanAll(options?: { skip?: number; take?: number }): Promise<number> {
-    const [users, rules, admins] = await Promise.all([
-      this.prisma.user.findMany({
-        where: { isActive: true, role: { not: 'ADMIN' } },
-        select: { id: true },
-        skip: options?.skip ?? 0,
-        take: options?.take ?? 100,
-      }),
+    const PAGE_SIZE = options?.take ?? 100;
+    const initialSkip = options?.skip ?? 0;
+
+    const [rules, admins] = await Promise.all([
       this.prisma.fraudRule.findMany({
         where: { enabled: true, ruleType: 'FAKE_PROFILE' },
         select: { id: true },
@@ -801,14 +885,39 @@ export class FraudAlertService {
     const adminIds = admins.map((admin) => admin.id);
 
     let alertCount = 0;
-    for (const u of users) {
-      const ids = await this.scanUser(u.id, { rules, adminIds });
-      alertCount += ids.length;
+    let scanned = 0;
+    let cursor: string | undefined;
+    let isFirstPage = true;
+
+    // Loop until a page returns fewer rows than PAGE_SIZE, which signals
+    // we have exhausted the active-user population.
+    while (true) {
+      const page = await this.prisma.user.findMany({
+        where: { isActive: true, role: { not: 'ADMIN' } },
+        select: { id: true },
+        // `skip` is only applied on the first page so an explicit starting
+        // offset can be honoured; subsequent pages use the cursor exclusively.
+        ...(isFirstPage ? { skip: initialSkip } : {}),
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        take: PAGE_SIZE,
+        orderBy: { id: 'asc' },
+      });
+
+      if (page.length === 0) break;
+
+      for (const u of page) {
+        const ids = await this.scanUser(u.id, { rules, adminIds });
+        alertCount += ids.length;
+      }
+
+      scanned += page.length;
+      cursor = page[page.length - 1].id;
+      isFirstPage = false;
+
+      if (page.length < PAGE_SIZE) break;
     }
 
-    this.logger.log(
-      `scanAll complete: ${users.length} users checked, ${alertCount} alerts generated`,
-    );
+    this.logger.log(`scanAll complete: ${scanned} users checked, ${alertCount} alerts generated`);
     return alertCount;
   }
 }

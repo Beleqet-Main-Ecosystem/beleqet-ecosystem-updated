@@ -190,99 +190,41 @@ describe('AnomalySensorService', () => {
     });
   });
 
-  describe('handlePaymentInitiated', () => {
-    it('uses one statistical detector for payment amount analysis', () => {
+  describe('analyzePaymentAmount (shared statistical detector)', () => {
+    // The real-time payment.escrow.initiated listener was moved to
+    // FraudAlertService to eliminate duplicate alerting. This service now
+    // only owns the statistical detector reused by both event-driven and
+    // on-demand scans; the unit tests below lock in the detector contract.
+
+    it('flags a payment whose Z-Score exceeds the 2.5 threshold', () => {
       const analysis = service.analyzePaymentAmount(1000, [100, 100, 100]);
 
       expect(analysis.anomalous).toBe(true);
       expect(analysis.zScore).toBeGreaterThan(2.5);
     });
 
-    it('does not apply exchange-rate assumptions to an unknown currency', async () => {
-      (prismaService.escrowTransaction.findMany as jest.Mock).mockResolvedValue([
-        { grossAmount: 1000, currency: 'XYZ' } as any,
-        { grossAmount: 1000, currency: 'XYZ' } as any,
-        { grossAmount: 1000, currency: 'XYZ' } as any,
-      ]);
+    it('returns non-anomalous when fewer than 3 historical amounts are provided', () => {
+      const analysis = service.analyzePaymentAmount(1000, [100, 200]);
 
-      await service.handlePaymentInitiated({
-        escrowId: 'unknown-currency-payment',
-        clientId: 'client-unknown-currency',
-        grossAmount: 1000,
-        currency: 'XYZ',
-        timestamp: new Date().toISOString(),
-      });
-
-      expect(prismaService.escrowTransaction.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ currency: 'XYZ' }),
-        }),
-      );
-      expect(alertingService.dispatchAlert).not.toHaveBeenCalled();
+      expect(analysis.anomalous).toBe(false);
+      expect(analysis.zScore).toBe(0);
     });
 
-    it('should trigger alert on Z-Score > 2.5 with same-currency history', async () => {
-      // Mock history: 3 ETB transactions of amount 100
-      (prismaService.escrowTransaction.findMany as jest.Mock).mockResolvedValue([
-        { grossAmount: 100, currency: 'ETB' } as any,
-        { grossAmount: 100, currency: 'ETB' } as any,
-        { grossAmount: 100, currency: 'ETB' } as any,
-      ]);
+    it('returns non-anomalous when the amount is within the historical range', () => {
+      const analysis = service.analyzePaymentAmount(110, [100, 110, 105, 95, 115]);
 
-      // A gross amount of 1000 ETB will be way above the mean of 100
-      await service.handlePaymentInitiated({
-        escrowId: 'escrow-1',
-        clientId: 'client-1',
-        grossAmount: 1000,
-        currency: 'ETB',
-        timestamp: new Date().toISOString(),
-      });
-
-      expect(alertingService.dispatchAlert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          severity: 'CRITICAL',
-          title: 'Suspicious Payment Transaction',
-        }),
-      );
-      expect(prismaService.eventLog.create).toHaveBeenCalled();
+      expect(analysis.anomalous).toBe(false);
+      expect(analysis.zScore).toBeLessThanOrEqual(2.5);
     });
 
-    it('should filter history by same currency (Fix #1: Currency Isolation)', async () => {
-      // This test verifies that the Prisma query includes the currency filter
-      (prismaService.escrowTransaction.findMany as jest.Mock).mockResolvedValue([]);
+    it('does not mix currencies implicitly — callability is currency-agnostic by contract', () => {
+      // The caller is responsible for pre-filtering history to a single
+      // currency; the detector itself never converts units. Passing a
+      // same-unit baseline must therefore yield a meaningful Z-Score.
+      const analysis = service.analyzePaymentAmount(5000, [100, 120, 110, 95, 105]);
 
-      await service.handlePaymentInitiated({
-        escrowId: 'escrow-currency-test',
-        clientId: 'client-multi',
-        grossAmount: 5000,
-        currency: 'USD',
-        timestamp: new Date().toISOString(),
-      });
-
-      // Verify the findMany was called with the currency filter
-      expect(prismaService.escrowTransaction.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            currency: 'USD',
-          }),
-        }),
-      );
-    });
-
-    it('should not trigger alert on Z-Score <= 2.5 or insufficient history', async () => {
-      (prismaService.escrowTransaction.findMany as jest.Mock).mockResolvedValue([
-        { grossAmount: 100, currency: 'ETB' } as any,
-      ]); // Only 1 past transaction - insufficient for Z-Score
-
-      await service.handlePaymentInitiated({
-        escrowId: 'escrow-2',
-        clientId: 'client-1',
-        grossAmount: 1000,
-        currency: 'ETB',
-        timestamp: new Date().toISOString(),
-      });
-
-      expect(alertingService.dispatchAlert).not.toHaveBeenCalled();
+      expect(analysis.anomalous).toBe(true);
+      expect(analysis.meanAmount).toBeGreaterThan(0);
     });
   });
 });
