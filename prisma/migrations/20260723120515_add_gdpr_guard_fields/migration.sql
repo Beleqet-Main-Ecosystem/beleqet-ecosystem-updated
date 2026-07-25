@@ -1,3 +1,7 @@
+-- NOTE: Despite the folder name, this migration only renames GIN indexes
+-- (Prisma default *_gin_idx → shorter *_idx). No GDPR columns are added here.
+-- DROP + CREATE INDEX can briefly lock busy tables — prefer a low-traffic window.
+
 -- DropIndex
 DROP INDEX "interview_evaluations_rawAiResponse_gin_idx";
 
