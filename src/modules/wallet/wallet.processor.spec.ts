@@ -3,7 +3,7 @@ import { WalletProcessor } from './wallet.processor';
 import { WALLET_JOBS } from '../queues/queues.constants';
 
 function buildProcessor(
-  note = 'Withdrawal of 10 USD via CHAPA - pending Chapa payout of ETB 1205',
+  note = 'WITHDRAWAL_PENDING - Withdrawal of 10 USD via CHAPA - pending Chapa payout of ETB 1205',
 ) {
   const withdrawal = {
     id: 'tx-001',
@@ -14,8 +14,13 @@ function buildProcessor(
   };
 
   const prisma: any = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     freelancerWallet: {
       update: jest.fn().mockResolvedValue({ id: 'wallet-user-001' }),
+    },
+    eventLog: {
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({ id: 'event-1' }),
     },
     walletTransaction: {
       findUnique: jest.fn().mockResolvedValue(withdrawal),
@@ -36,6 +41,7 @@ function buildProcessor(
       status: 'success',
       data: { reference: 'provider-ref-001' },
     }),
+    verifyTransfer: jest.fn().mockRejectedValue(new Error('transfer not found')),
   };
 
   const processor = new WalletProcessor(prisma as never, config as never, chapaClient as never);
@@ -95,23 +101,17 @@ describe('WalletProcessor withdrawals', () => {
       where: { userId: 'user-001' },
       data: { availableBalance: { increment: 1205 } },
     });
-    expect(prisma.walletTransaction.updateMany).toHaveBeenCalledWith(
+    expect(prisma.walletTransaction.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          id: 'tx-001',
-          NOT: expect.arrayContaining([
-            { note: { contains: 'Chapa transfer submitted' } },
-            { note: { contains: 'Withdrawal FAILED' } },
-          ]),
-        }),
-        data: { note: 'Withdrawal FAILED: Invalid account number' },
+        where: { id: 'tx-001' },
+        data: { note: 'WITHDRAWAL_FAILED - Withdrawal FAILED: Invalid account number' },
       }),
     );
   });
 
   it('skips duplicate jobs after the withdrawal is finalized', async () => {
     const { processor, chapaClient } = buildProcessor(
-      'Withdrawal via CHAPA - Chapa transfer submitted (provider-ref-001)',
+      'WITHDRAWAL_SUBMITTED - Withdrawal via CHAPA - Chapa transfer submitted (provider-ref-001)',
     );
 
     await processor.process(withdrawalJob);
@@ -125,7 +125,21 @@ describe('WalletProcessor withdrawals', () => {
       status: 'error',
       message: 'Invalid account number',
     });
-    prisma.walletTransaction.updateMany.mockResolvedValueOnce({ count: 0 });
+    prisma.walletTransaction.findUnique
+      .mockResolvedValueOnce({
+        id: 'tx-001',
+        walletId: 'wallet-user-001',
+        amount: 1205,
+        type: 'DEBIT_WITHDRAWAL',
+        note: 'WITHDRAWAL_PENDING - Withdrawal of 10 USD via CHAPA - pending Chapa payout of ETB 1205',
+      })
+      .mockResolvedValueOnce({
+        id: 'tx-001',
+        walletId: 'wallet-user-001',
+        amount: 1205,
+        type: 'DEBIT_WITHDRAWAL',
+        note: 'WITHDRAWAL_SUBMITTED - Withdrawal via CHAPA - Chapa transfer submitted (provider-ref-001)',
+      });
 
     await processor.process(withdrawalJob);
 
@@ -139,7 +153,21 @@ describe('WalletProcessor withdrawals', () => {
     await expect(processor.process(withdrawalJob)).rejects.toThrow('ECONNRESET');
 
     expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
-    expect(prisma.walletTransaction.update).not.toHaveBeenCalled();
+    expect(prisma.walletTransaction.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tx-001' },
+        data: expect.objectContaining({
+          note: expect.stringContaining('WITHDRAWAL_PROCESSING'),
+        }),
+      }),
+    );
+    expect(prisma.walletTransaction.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          note: expect.stringContaining('WITHDRAWAL_FAILED'),
+        }),
+      }),
+    );
   });
 
   it('retries instead of completing when Chapa credentials are missing', async () => {
@@ -153,5 +181,100 @@ describe('WalletProcessor withdrawals', () => {
     expect(chapaClient.createTransfer).not.toHaveBeenCalled();
     expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
     expect(prisma.walletTransaction.update).not.toHaveBeenCalled();
+  });
+
+  it('does not call Chapa again when another worker already claimed the withdrawal', async () => {
+    const { processor, chapaClient } = buildProcessor(
+      'WITHDRAWAL_PROCESSING - Withdrawal of 10 USD via CHAPA - pending Chapa payout of ETB 1205',
+    );
+
+    await expect(processor.process(withdrawalJob)).rejects.toThrow(
+      'already being processed; waiting for provider reconciliation',
+    );
+
+    expect(chapaClient.createTransfer).not.toHaveBeenCalled();
+    expect(chapaClient.verifyTransfer).toHaveBeenCalledWith('tx-001');
+  });
+
+  it('marks a processing withdrawal submitted when Chapa verification already succeeded', async () => {
+    const { processor, prisma, chapaClient } = buildProcessor(
+      'WITHDRAWAL_PROCESSING - Withdrawal of 10 USD via CHAPA - pending Chapa payout of ETB 1205',
+    );
+    chapaClient.verifyTransfer.mockResolvedValueOnce({
+      status: 'success',
+      data: { status: 'success', reference: 'provider-ref-001' },
+    });
+
+    await processor.process(withdrawalJob);
+
+    expect(chapaClient.createTransfer).not.toHaveBeenCalled();
+    expect(prisma.walletTransaction.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'tx-001' },
+        data: expect.objectContaining({
+          note: expect.stringContaining('WITHDRAWAL_SUBMITTED'),
+        }),
+      }),
+    );
+  });
+});
+
+describe('WalletProcessor pending releases', () => {
+  const releaseJob = {
+    id: 'release:milestone-1',
+    name: WALLET_JOBS.RELEASE_PENDING,
+    data: {
+      walletId: 'wallet-user-001',
+      userId: 'user-001',
+      amount: 900,
+      milestoneId: 'milestone-1',
+    },
+  } as Job;
+
+  it('releases pending funds inside one idempotent transaction', async () => {
+    const { processor, prisma } = buildProcessor();
+
+    await processor.process(releaseJob);
+
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+    expect(prisma.$queryRaw).toHaveBeenCalled();
+    expect(prisma.eventLog.findFirst).toHaveBeenCalledWith({
+      where: { eventType: 'wallet.pending_released', entityId: 'milestone-1' },
+    });
+    expect(prisma.freelancerWallet.update).toHaveBeenCalledWith({
+      where: { id: 'wallet-user-001' },
+      data: {
+        pendingBalance: { decrement: 900 },
+        availableBalance: { increment: 900 },
+      },
+    });
+    expect(prisma.walletTransaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'CREDIT_AVAILABLE',
+          amount: 900,
+          milestoneId: 'milestone-1',
+        }),
+      }),
+    );
+    expect(prisma.eventLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: 'wallet.pending_released',
+          entityId: 'milestone-1',
+        }),
+      }),
+    );
+  });
+
+  it('skips duplicate pending-release retries after the event marker exists', async () => {
+    const { processor, prisma } = buildProcessor();
+    prisma.eventLog.findFirst.mockResolvedValueOnce({ id: 'event-1' });
+
+    await processor.process(releaseJob);
+
+    expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
+    expect(prisma.walletTransaction.create).not.toHaveBeenCalled();
+    expect(prisma.eventLog.create).not.toHaveBeenCalled();
   });
 });

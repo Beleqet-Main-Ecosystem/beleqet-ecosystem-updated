@@ -72,4 +72,24 @@ describe('ChapaClient', () => {
       BadGatewayException,
     );
   });
+
+  it('verifies transfers by reference through the shared client', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: jest
+        .fn()
+        .mockResolvedValue(JSON.stringify({ status: 'success', data: { reference: 'tx-001' } })),
+    });
+    global.fetch = fetchMock as never;
+
+    await expect(buildClient().verifyTransfer('tx-001')).resolves.toMatchObject({
+      status: 'success',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.chapa.co/v1/transfers/verify/tx-001',
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
 });

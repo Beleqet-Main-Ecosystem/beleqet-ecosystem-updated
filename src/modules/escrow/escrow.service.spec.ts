@@ -55,7 +55,7 @@ function buildService(overrides: Record<string, unknown> = {}) {
   return { service, prisma, tx, escrowQueue };
 }
 
-function buildInitiateService() {
+function buildInitiateService(options: { existingEscrow?: Record<string, unknown> | null } = {}) {
   const freelanceJob = {
     id: 'gig-1',
     title: 'Backend escrow task',
@@ -87,8 +87,10 @@ function buildInitiateService() {
     status: 'FUNDED',
     gatewayRef: 'tx-1',
   };
+  const existingEscrow = options.existingEscrow ?? null;
 
-  const prisma = {
+  const prisma: any = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     freelanceJob: {
       findFirst: jest.fn().mockResolvedValue(freelanceJob),
       update: jest.fn().mockResolvedValue({ ...freelanceJob, status: 'FUNDED' }),
@@ -102,20 +104,28 @@ function buildInitiateService() {
       create: jest.fn().mockResolvedValue({ id: 'employer-wallet-tx-1' }),
     },
     escrowTransaction: {
-      upsert: jest.fn().mockResolvedValue(escrow),
+      findUnique: jest.fn().mockResolvedValue(existingEscrow),
+      create: jest.fn().mockResolvedValue(escrow),
+      update: jest.fn().mockResolvedValue(escrow),
     },
     eventLog: {
       create: jest.fn().mockResolvedValue({ id: 'event-1' }),
     },
-    $transaction: jest.fn(async (items: Promise<unknown>[]) => Promise.all(items)),
   };
+  prisma.$transaction = jest.fn(async (input: unknown): Promise<unknown> =>
+    typeof input === 'function'
+      ? (input as (tx: unknown) => Promise<unknown>)(prisma)
+      : Promise.all(input as Promise<unknown>[]),
+  );
   const escrowQueue = { add: jest.fn() };
   const eventEmitter = { emit: jest.fn() };
   const chapaClient = { initializePayment: jest.fn() };
 
   const service = new EscrowService(
     prisma as never,
-    { get: jest.fn() } as never,
+    {
+      get: jest.fn((key: string) => (key === 'FRONTEND_URL' ? 'http://localhost:3000' : undefined)),
+    } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
     chapaClient as never,
     escrowQueue as never,
@@ -293,5 +303,61 @@ describe('EscrowService initiate wallet funding', () => {
         source: 'employer_wallet',
       }),
     );
+  });
+
+  it('rejects re-initiation when the job already has a funded escrow', async () => {
+    const { service, prisma, escrowQueue, chapaClient } = buildInitiateService({
+      existingEscrow: {
+        id: 'escrow-1',
+        freelanceJobId: 'gig-1',
+        grossAmount: 1000,
+        platformFee: 100,
+        netAmount: 900,
+        walletAppliedAmount: 1000,
+        currency: 'ETB',
+        status: 'FUNDED',
+        gatewayRef: 'tx-1',
+      },
+    });
+
+    await expect(service.initiate('client-1', 'gig-1')).rejects.toThrow(
+      'Escrow is already funded or active for this gig.',
+    );
+
+    expect(prisma.employerWallet.updateMany).not.toHaveBeenCalled();
+    expect(prisma.escrowTransaction.create).not.toHaveBeenCalled();
+    expect(prisma.escrowTransaction.update).not.toHaveBeenCalled();
+    expect(chapaClient.initializePayment).not.toHaveBeenCalled();
+    expect(escrowQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('returns an existing pending escrow without reserving wallet funds again', async () => {
+    const { service, prisma, escrowQueue, eventEmitter, chapaClient } = buildInitiateService({
+      existingEscrow: {
+        id: 'escrow-pending',
+        freelanceJobId: 'gig-1',
+        grossAmount: 1000,
+        platformFee: 100,
+        netAmount: 900,
+        walletAppliedAmount: 400,
+        currency: 'ETB',
+        status: 'PENDING',
+        gatewayRef: 'tx-pending',
+      },
+    });
+
+    await expect(service.initiate('client-1', 'gig-1')).resolves.toMatchObject({
+      escrowId: 'escrow-pending',
+      grossAmount: 1000,
+      walletAppliedAmount: 400,
+      amountToPay: 600,
+    });
+
+    expect(prisma.employerWallet.updateMany).not.toHaveBeenCalled();
+    expect(prisma.escrowTransaction.create).not.toHaveBeenCalled();
+    expect(prisma.escrowTransaction.update).not.toHaveBeenCalled();
+    expect(chapaClient.initializePayment).not.toHaveBeenCalled();
+    expect(escrowQueue.add).not.toHaveBeenCalled();
+    expect(eventEmitter.emit).not.toHaveBeenCalled();
   });
 });

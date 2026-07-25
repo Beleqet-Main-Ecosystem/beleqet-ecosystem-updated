@@ -162,7 +162,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
           walletId: wallet.id,
           type: 'DEBIT_WITHDRAWAL',
           amount: amountInWalletCurrency,
-          note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} - pending Chapa payout of ETB ${amountInETB}`,
+          note: `WITHDRAWAL_PENDING - Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} - pending Chapa payout of ETB ${amountInETB}`,
         },
       });
       return { tx };
@@ -235,7 +235,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
       }),
       this.prisma.walletTransaction.update({
         where: { id: withdrawalTxId },
-        data: { note: `Withdrawal FAILED: ${reason}` },
+        data: { note: `WITHDRAWAL_FAILED - Withdrawal FAILED: ${reason}` },
       }),
     ]);
   }

@@ -64,6 +64,14 @@ export class ChapaClient {
     });
   }
 
+  /**
+   * Verifies a Chapa transfer by the idempotency reference we submitted. This
+   * is used to reconcile ambiguous withdrawal retries before any wallet refund.
+   */
+  async verifyTransfer(reference: string): Promise<ChapaTransferResponse> {
+    return this.get<ChapaTransferResponse>(`/transfers/verify/${encodeURIComponent(reference)}`);
+  }
+
   private async get<T>(path: string): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'GET',

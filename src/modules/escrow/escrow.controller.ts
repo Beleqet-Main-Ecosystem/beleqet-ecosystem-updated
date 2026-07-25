@@ -55,23 +55,17 @@ export class EscrowController {
   ) {
     const signature = chapaSignature || xChapaSignature;
     const secret = this.config.get<string>('CHAPA_WEBHOOK_SECRET');
-    const isProduction = this.config.get<string>('NODE_ENV') === 'production';
 
     // Verify signature for Chapa POST webhooks. GET callbacks are user redirects
     // and are verified later through the server-to-server Chapa transaction check.
     if (req.method === 'POST') {
-      if (isProduction && (!secret || !req.rawBody || !signature)) {
+      if (!secret || !req.rawBody || !signature) {
         throw new UnauthorizedException(
           'Webhook signature verification failed: missing required components',
         );
       }
 
-      if (
-        secret &&
-        req.rawBody &&
-        signature &&
-        !this.signatures.verifyWebhook(req.rawBody, headers)
-      ) {
+      if (!this.signatures.verifyWebhook(req.rawBody, headers)) {
         throw new UnauthorizedException('Invalid Webhook Signature');
       }
     }

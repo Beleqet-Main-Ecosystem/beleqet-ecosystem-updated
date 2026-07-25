@@ -46,6 +46,8 @@ export type ChapaTransferResponse = {
   message?: string;
   data?: {
     reference?: string;
+    amount?: string | number;
+    currency?: string;
     status?: string;
     [key: string]: unknown;
   };

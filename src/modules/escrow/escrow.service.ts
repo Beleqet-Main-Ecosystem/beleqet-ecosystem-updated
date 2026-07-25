@@ -21,6 +21,7 @@ import { isMilestoneFullyConfirmed } from './escrow-state';
 
 const PLATFORM_FEE_PCT = 0.1;
 const MILESTONE_HOLD_MS = 3 * 24 * 60 * 60 * 1000;
+const ESCROW_REINIT_BLOCKING_STATUSES = ['FUNDED', 'IN_REVIEW', 'RELEASED', 'DISPUTED'] as const;
 
 type MilestoneWithEscrow = Prisma.MilestoneGetPayload<{
   include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } };
@@ -60,84 +61,113 @@ export class EscrowService {
       );
     }
 
-    const employerWallet = await this.prisma.employerWallet.findUnique({
-      where: { userId: clientId },
-    });
-    const availableBalance = employerWallet?.balance || 0;
-    let amountToPay = grossAmount;
-    let walletAppliedAmount = 0;
-
-    if (availableBalance > 0) {
-      walletAppliedAmount = Math.min(availableBalance, grossAmount);
-      amountToPay = grossAmount - walletAppliedAmount;
-
-      const updateResult = await this.prisma.employerWallet.updateMany({
-        where: { userId: clientId, balance: { gte: walletAppliedAmount } },
-        data: {
-          balance: { decrement: walletAppliedAmount },
-          lockedBalance: { increment: walletAppliedAmount },
-        },
-      });
-      if (updateResult.count === 0) {
-        throw new BadRequestException('Insufficient balance or concurrent transaction');
-      }
-    }
-
     const platformFee = Math.round(grossAmount * PLATFORM_FEE_PCT);
     const netAmount = grossAmount - platformFee;
     const txRef = `tx-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    const escrow = await this.prisma.escrowTransaction.upsert({
-      where: { freelanceJobId },
-      update: {
-        grossAmount,
-        platformFee,
-        netAmount,
-        walletAppliedAmount,
-        currency: job.currency,
-        status: amountToPay === 0 ? 'FUNDED' : 'PENDING',
-        gatewayRef: txRef,
-      },
-      create: {
-        freelanceJobId,
-        grossAmount,
-        platformFee,
-        netAmount,
-        walletAppliedAmount,
-        currency: job.currency,
-        status: amountToPay === 0 ? 'FUNDED' : 'PENDING',
-        gatewayRef: txRef,
-      },
-    });
+    const funding = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.$queryRaw`SELECT id FROM "freelance_jobs" WHERE id = ${freelanceJobId} FOR UPDATE`;
 
-    if (walletAppliedAmount > 0 && amountToPay > 0) {
-      await this.escrowQueue.add(
-        ESCROW_JOBS.UNLOCK_FUNDS,
-        { escrowId: escrow.id, clientId, amount: walletAppliedAmount },
-        { delay: 24 * 60 * 60 * 1000 },
-      );
-    }
+      const existingEscrow = await tx.escrowTransaction.findUnique({
+        where: { freelanceJobId },
+      });
+      if (existingEscrow) {
+        if (
+          ESCROW_REINIT_BLOCKING_STATUSES.includes(
+            existingEscrow.status as (typeof ESCROW_REINIT_BLOCKING_STATUSES)[number],
+          )
+        ) {
+          throw new ConflictException('Escrow is already funded or active for this gig.');
+        }
 
-    if (amountToPay === 0) {
-      await this.prisma.$transaction([
-        this.prisma.employerWalletTransaction.create({
+        if (existingEscrow.status === 'PENDING') {
+          return {
+            escrow: existingEscrow,
+            amountToPay: Math.max(
+              0,
+              existingEscrow.grossAmount - existingEscrow.walletAppliedAmount,
+            ),
+            walletAppliedAmount: existingEscrow.walletAppliedAmount,
+            platformFee: existingEscrow.platformFee,
+            netAmount: existingEscrow.netAmount,
+            existingPending: true,
+            fundedFromWallet: false,
+          };
+        }
+      }
+
+      const employerWallet = await tx.employerWallet.findUnique({
+        where: { userId: clientId },
+      });
+      const availableBalance = employerWallet?.balance || 0;
+      let amountToPay = grossAmount;
+      let walletAppliedAmount = 0;
+
+      if (availableBalance > 0) {
+        walletAppliedAmount = Math.min(availableBalance, grossAmount);
+        amountToPay = grossAmount - walletAppliedAmount;
+
+        const updateResult = await tx.employerWallet.updateMany({
+          where: { userId: clientId, balance: { gte: walletAppliedAmount } },
           data: {
-            walletId: employerWallet!.id,
+            balance: { decrement: walletAppliedAmount },
+            lockedBalance: { increment: walletAppliedAmount },
+          },
+        });
+        if (updateResult.count === 0) {
+          throw new BadRequestException('Insufficient balance or concurrent transaction');
+        }
+      }
+
+      const escrowData = {
+        grossAmount,
+        platformFee,
+        netAmount,
+        walletAppliedAmount,
+        currency: job.currency,
+        status: amountToPay === 0 ? ('FUNDED' as const) : ('PENDING' as const),
+        gatewayRef: txRef,
+      };
+
+      const escrow =
+        existingEscrow?.status === 'REFUNDED'
+          ? await tx.escrowTransaction.update({
+              where: { id: existingEscrow.id },
+              data: escrowData,
+            })
+          : await tx.escrowTransaction.create({
+              data: {
+                freelanceJobId,
+                ...escrowData,
+              },
+            });
+
+      if (amountToPay === 0) {
+        if (!employerWallet) {
+          throw new BadRequestException('Employer wallet is required for wallet funding.');
+        }
+
+        await tx.employerWalletTransaction.create({
+          data: {
+            walletId: employerWallet.id,
             type: 'DEBIT_WITHDRAWAL',
             amount: walletAppliedAmount,
             note: `Fully funded escrow for job ${freelanceJobId}`,
             escrowId: escrow.id,
           },
-        }),
-        this.prisma.employerWallet.update({
+        });
+
+        await tx.employerWallet.update({
           where: { userId: clientId },
           data: { lockedBalance: { decrement: walletAppliedAmount } },
-        }),
-        this.prisma.freelanceJob.update({
+        });
+
+        await tx.freelanceJob.update({
           where: { id: freelanceJobId },
           data: { status: 'FUNDED' },
-        }),
-        this.prisma.eventLog.create({
+        });
+
+        await tx.eventLog.create({
           data: {
             eventType: 'escrow.funded',
             entityId: escrow.id,
@@ -145,13 +175,51 @@ export class EscrowService {
             payload: { amount: grossAmount, walletAppliedAmount, source: 'employer_wallet' },
             processedBy: EscrowService.name,
           },
-        }),
-      ]);
+        });
+      }
 
+      return {
+        escrow,
+        amountToPay,
+        walletAppliedAmount,
+        platformFee,
+        netAmount,
+        existingPending: false,
+        fundedFromWallet: amountToPay === 0,
+      };
+    });
+
+    const { escrow, amountToPay, walletAppliedAmount, existingPending, fundedFromWallet } = funding;
+
+    if (existingPending) {
+      const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const checkoutUrl =
+        amountToPay > 0 ? `${frontendUrl}/freelance/pay?escrow=${escrow.id}` : null;
+      this.logger.debug(`Escrow ${escrow.id} is already pending; returning existing funding state`);
+      return {
+        escrowId: escrow.id,
+        checkoutUrl,
+        grossAmount: escrow.grossAmount,
+        platformFee: funding.platformFee,
+        netAmount: funding.netAmount,
+        walletAppliedAmount,
+        amountToPay,
+      };
+    }
+
+    if (walletAppliedAmount > 0 && amountToPay > 0) {
+      await this.escrowQueue.add(
+        ESCROW_JOBS.UNLOCK_FUNDS,
+        { escrowId: escrow.id, clientId, amount: walletAppliedAmount },
+        { delay: 24 * 60 * 60 * 1000, jobId: `unlock-funds:${escrow.id}` },
+      );
+    }
+
+    if (fundedFromWallet) {
       this.eventEmitter.emit('payment.escrow.funded', {
         escrowId: escrow.id,
         clientId,
-        grossAmount,
+        grossAmount: escrow.grossAmount,
         currency: job.currency,
         source: 'employer_wallet',
         timestamp: new Date().toISOString(),
@@ -160,15 +228,16 @@ export class EscrowService {
       return {
         escrowId: escrow.id,
         checkoutUrl: null,
-        grossAmount,
-        platformFee,
-        netAmount,
+        grossAmount: escrow.grossAmount,
+        platformFee: funding.platformFee,
+        netAmount: funding.netAmount,
         walletAppliedAmount,
         amountToPay,
       };
     }
 
-    let checkoutUrl = `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${escrow.id}`;
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    let checkoutUrl = `${frontendUrl}/freelance/pay?escrow=${escrow.id}`;
     if (this.config.get<string>('CHAPA_SECRET_KEY')) {
       try {
         const data = await this.chapaClient.initializePayment({
@@ -194,7 +263,7 @@ export class EscrowService {
     this.eventEmitter.emit('payment.escrow.initiated', {
       escrowId: escrow.id,
       clientId,
-      grossAmount,
+      grossAmount: escrow.grossAmount,
       currency: job.currency,
       timestamp: new Date().toISOString(),
     });
@@ -202,9 +271,9 @@ export class EscrowService {
     return {
       escrowId: escrow.id,
       checkoutUrl,
-      grossAmount,
-      platformFee,
-      netAmount,
+      grossAmount: escrow.grossAmount,
+      platformFee: funding.platformFee,
+      netAmount: funding.netAmount,
       walletAppliedAmount,
       amountToPay,
     };
