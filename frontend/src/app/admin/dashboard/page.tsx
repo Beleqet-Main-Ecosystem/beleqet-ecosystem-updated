@@ -94,6 +94,18 @@ export default function AdminDashboardPage() {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <select
+            className="currency-select"
+            value={currency}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setCurrency(e.target.value)}
+            aria-label="Currency"
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
           <ThemeSwitcher />
           <div className="polling-indicator">
             <span className="polling-dot" />

@@ -4,7 +4,7 @@ import { ThemePreferenceResponseDto } from './dto/theme-preference-response.dto'
 import { UserPreferencesRepository } from './user-preferences.repository';
 
 /**
- * Persists the minimal, user-owned theme setting used by the performance gauge.
+ * Persists the minimal, user-owned global theme preference setting.
  * No theme-resolution data, browser details, or operating-system data is stored.
  */
 @Injectable()
@@ -12,7 +12,7 @@ export class UserPreferencesService {
   /**
    * @param UserPreferencesRepository - persistence boundary for theme preferences
    */
-  constructor(private readonly UserPreferencesRepository: UserPreferencesRepository) {}
+  constructor(private readonly userPreferencesRepository: UserPreferencesRepository) {}
 
   /**
    * Reads the caller's saved preference, returning the non-invasive SYSTEM
@@ -22,7 +22,7 @@ export class UserPreferencesService {
    * @returns the persisted preference or SYSTEM
    */
   async getThemePreference(userId: string): Promise<ThemePreferenceResponseDto> {
-    const preference = await this.UserPreferencesRepository.findByUserId(userId);
+    const preference = await this.userPreferencesRepository.findByUserId(userId);
 
     return { theme: preference?.theme ?? ThemePreference.SYSTEM };
   }
@@ -39,8 +39,8 @@ export class UserPreferencesService {
     userId: string,
     theme: ThemePreference,
   ): Promise<ThemePreferenceResponseDto> {
-    const preference = await this.UserPreferencesRepository.save(userId, theme);
+    const updated = await this.userPreferencesRepository.save(userId, theme);
 
-    return { theme: preference.theme };
+    return { theme: updated.theme };
   }
 }

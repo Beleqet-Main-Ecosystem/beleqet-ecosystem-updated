@@ -8,7 +8,7 @@ export interface PersistedThemePreference {
 }
 
 /**
- * Encapsulates persistence concerns for the Performance Gauge theme setting.
+ * Encapsulates persistence concerns for the user's global theme setting.
  * Keeping Prisma calls here lets the service remain focused on feature policy.
  */
 @Injectable()

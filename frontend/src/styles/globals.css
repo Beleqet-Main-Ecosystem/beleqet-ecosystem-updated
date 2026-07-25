@@ -1,9 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /*  Design Tokens  */
 :root {
   --bg-primary: #0a0e1a;
@@ -37,7 +33,7 @@
   --transition-slow: 400ms ease;
 }
 
-/* Tailwind's `darkMode: 'class'` and this token layer share the same root class. */
+/* Light mode overrides for design tokens */
 html:not(.dark) {
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
@@ -690,3 +686,37 @@ textarea {
     transform: scale(0.85);
   }
 }
+
+/* Theme Switcher */
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+}
+.theme-switcher-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.theme-switcher-option:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+.theme-switcher-option.active {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+

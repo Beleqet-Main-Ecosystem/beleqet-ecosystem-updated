@@ -4,7 +4,7 @@ import { UserPreferencesController } from './user-preferences.controller';
 import { UserPreferencesRepository } from './user-preferences.repository';
 import { UserPreferencesService } from './user-preferences.service';
 
-describe('Performance Gauge theme persistence flow', () => {
+describe('User Preferences theme persistence flow', () => {
   it('persists a theme selected by the UI payload and returns it on the next read', async () => {
     let persistedTheme: ThemePreference | null = null;
     const repository = {

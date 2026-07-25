@@ -6,7 +6,7 @@ import { ThemePreferenceResponseDto } from './dto/theme-preference-response.dto'
 import { UpdateThemePreferenceDto } from './dto/update-theme-preference.dto';
 import { UserPreferencesService } from './user-preferences.service';
 
-/** Secured API for the Performance Gauge's user-owned colour-theme setting. */
+/** Secured API for the user's global theme preference setting. */
 @ApiTags('user-preferences')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -15,7 +15,7 @@ export class UserPreferencesController {
   /**
    * @param UserPreferencesService - feature service injected by Nest
    */
-  constructor(private readonly UserPreferencesService: UserPreferencesService) {}
+  constructor(private readonly userPreferencesService: UserPreferencesService) {}
 
   /**
    * Returns the authenticated user's theme preference.
@@ -26,7 +26,7 @@ export class UserPreferencesController {
   @Get()
   @ApiOperation({ summary: 'Get the current user theme preference' })
   getThemePreference(@CurrentUser() user: CurrentUserPayload): Promise<ThemePreferenceResponseDto> {
-    return this.UserPreferencesService.getThemePreference(user.userId);
+    return this.userPreferencesService.getThemePreference(user.userId);
   }
 
   /**
@@ -42,6 +42,6 @@ export class UserPreferencesController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: UpdateThemePreferenceDto,
   ): Promise<ThemePreferenceResponseDto> {
-    return this.UserPreferencesService.updateThemePreference(user.userId, dto.theme);
+    return this.userPreferencesService.updateThemePreference(user.userId, dto.theme);
   }
 }
