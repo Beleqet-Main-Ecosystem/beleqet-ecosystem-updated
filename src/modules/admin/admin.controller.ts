@@ -15,10 +15,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
-import { adminAnnouncementEmail } from '../notifications/email-templates';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ChatService } from '../chat/chat.service';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
@@ -72,7 +69,7 @@ export class AdminController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
-    @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   @Get('users')
@@ -123,47 +120,12 @@ export class AdminController {
 
   @Post('notifications/broadcast')
   async broadcast(@Body() dto: BroadcastDto) {
-    let users;
-    if (dto.userIds && dto.userIds.length > 0) {
-      users = await this.prisma.user.findMany({
-        where: { id: { in: dto.userIds }, isActive: true },
-        select: { id: true, email: true, firstName: true },
-      });
-    } else {
-      users = await this.prisma.user.findMany({
-        where: { isActive: true, ...(dto.role && { role: dto.role }) },
-        select: { id: true, email: true, firstName: true },
-      });
-    }
-
-    if (users.length === 0) {
-      return { delivered: 0 };
-    }
-
-    const result = await this.prisma.notification.createMany({
-      data: users.map((user: any) => ({
-        userId: user.id,
-        channel: 'IN_APP',
-        type: 'ADMIN_ANNOUNCEMENT',
-        title: dto.title,
-        body: dto.body,
-      })),
-    });
-
-    // Enqueue emails
-    for (const u of users) {
-      adminAnnouncementEmail(u.firstName, dto.title, dto.body)
-        .then((email) =>
-          this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
-            to: u.email,
-            subject: dto.title,
-            ...email,
-          }),
-        )
-        .catch(() => {});
-    }
-
-    return { delivered: result.count };
+    const delivered = await this.notificationsService.sendSystemAlert(
+      'ADMIN_ANNOUNCEMENT',
+      dto.body,
+      { userIds: dto.userIds, role: dto.role },
+    );
+    return { delivered };
   }
 
   @Get('escrow/disputes')

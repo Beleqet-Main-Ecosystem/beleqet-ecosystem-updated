@@ -10,6 +10,8 @@ import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { NOTIFICATION_TYPES } from '@common/constants/notification-types';
+import { escapeTelegramMarkdown } from '../../common/utils/telegram-escape';
+import { adminAnnouncementEmail } from './email-templates';
 
 @Injectable()
 export class NotificationsService {
@@ -106,7 +108,7 @@ export class NotificationsService {
       timeZone: timezone,
     });
 
-    const [candidateBody, employerBody] = await Promise.all([
+    const [candidateBody, employerBody] = (await Promise.all([
       this.i18n.translate('interview.notification.candidateScheduledBody', {
         lang: candidateLang,
         args: {
@@ -125,7 +127,7 @@ export class NotificationsService {
           timezone: timezone,
         },
       }),
-    ]);
+    ])) as [string, string];
 
     const metadata = {
       interviewId,
@@ -164,7 +166,7 @@ export class NotificationsService {
       jobsToQueue.push(
         this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
           telegramId: candidate.telegramId,
-          message: candidateBody,
+          message: escapeTelegramMarkdown(candidateBody),
         }),
       );
     }
@@ -216,7 +218,7 @@ export class NotificationsService {
       jobsToQueue.push(
         this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
           telegramId: employer.telegramId,
-          message: employerBody,
+          message: escapeTelegramMarkdown(employerBody),
         }),
       );
     }
@@ -308,9 +310,90 @@ export class NotificationsService {
       user?.telegramId
         ? this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
             telegramId: user.telegramId,
-            message: body,
+            message: escapeTelegramMarkdown(body),
           })
         : Promise.resolve(),
     ]);
+  }
+
+  /**
+   * Sends a system alert (admin announcement) to all matching users,
+   * respecting each user's notification preferences.
+   *
+   * Reuses the same preference-checking and fan-out logic used by
+   * interview and subscription notifications.
+   *
+   * @param alertType  Notification type identifier (e.g. ADMIN_ANNOUNCEMENT).
+   * @param message    The alert body text.
+   * @param metadata   Optional metadata attached to in-app notifications.
+   * @returns The number of users who received the alert.
+   */
+  async sendSystemAlert(
+    alertType: string,
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<number> {
+    const users = await this.prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        telegramId: true,
+        notificationPreference: true,
+      },
+    });
+
+    if (users.length === 0) return 0;
+
+    const title = message.length > 60 ? message.substring(0, 57) + '...' : message;
+    const jobsToQueue: Promise<unknown>[] = [];
+
+    for (const user of users) {
+      const pref = user.notificationPreference ?? {
+        inAppEnabled: true,
+        emailEnabled: true,
+        telegramEnabled: true,
+        pushEnabled: false,
+        smsEnabled: false,
+        language: 'en',
+      };
+
+      if (pref.inAppEnabled) {
+        jobsToQueue.push(
+          this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
+            userId: user.id,
+            type: alertType,
+            title,
+            body: message,
+            metadata,
+          }),
+        );
+      }
+
+      if (pref.emailEnabled && user.email) {
+        jobsToQueue.push(
+          adminAnnouncementEmail(user.firstName, title, message).then((email) =>
+            this.notificationQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+              to: user.email,
+              subject: title,
+              ...email,
+            }),
+          ),
+        );
+      }
+
+      if (pref.telegramEnabled && user.telegramId) {
+        jobsToQueue.push(
+          this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
+            telegramId: user.telegramId,
+            message: escapeTelegramMarkdown(message),
+          }),
+        );
+      }
+    }
+
+    await Promise.all(jobsToQueue);
+    return users.length;
   }
 }
