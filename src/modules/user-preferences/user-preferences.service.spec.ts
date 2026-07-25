@@ -13,14 +13,18 @@ describe('UserPreferencesService', () => {
   it('returns SYSTEM without creating a preference for a new user', async () => {
     findByUserId.mockResolvedValue(null);
 
-    await expect(service.getThemePreference('user-1')).resolves.toEqual({ theme: ThemePreference.SYSTEM });
+    await expect(service.getThemePreference('user-1')).resolves.toEqual({
+      theme: ThemePreference.SYSTEM,
+    });
     expect(findByUserId).toHaveBeenCalledWith('user-1');
   });
 
   it('returns the persisted preference', async () => {
     findByUserId.mockResolvedValue({ theme: ThemePreference.DARK });
 
-    await expect(service.getThemePreference('user-1')).resolves.toEqual({ theme: ThemePreference.DARK });
+    await expect(service.getThemePreference('user-1')).resolves.toEqual({
+      theme: ThemePreference.DARK,
+    });
   });
 
   it('upserts a validated preference for the authenticated user', async () => {

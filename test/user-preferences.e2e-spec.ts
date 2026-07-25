@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
-import request = require('supertest');
+import * as request from 'supertest';
 import { CurrentUserPayload } from '../src/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { UserPreferencesController } from '../src/modules/user-preferences/user-preferences.controller';

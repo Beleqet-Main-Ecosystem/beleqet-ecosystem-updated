@@ -9,19 +9,29 @@ describe('Performance Gauge theme persistence flow', () => {
     let persistedTheme: ThemePreference | null = null;
     const repository = {
       findByUserId: jest.fn(async (): Promise<{ theme: ThemePreference } | null> =>
-          persistedTheme ? { theme: persistedTheme } : null,
+        persistedTheme ? { theme: persistedTheme } : null,
       ),
-      save: jest.fn(async (_userId: string, theme: ThemePreference): Promise<{ theme: ThemePreference }> => {
-        persistedTheme = theme;
-        return { theme };
-      }),
+      save: jest.fn(
+        async (_userId: string, theme: ThemePreference): Promise<{ theme: ThemePreference }> => {
+          persistedTheme = theme;
+          return { theme };
+        },
+      ),
     } as unknown as UserPreferencesRepository;
     const controller = new UserPreferencesController(new UserPreferencesService(repository));
-    const user: CurrentUserPayload = { userId: 'user-1', email: 'user@example.test', role: 'ADMIN' };
+    const user: CurrentUserPayload = {
+      userId: 'user-1',
+      email: 'user@example.test',
+      role: 'ADMIN',
+    };
 
-    await expect(controller.updateThemePreference(user, { theme: ThemePreference.DARK })).resolves.toEqual({
+    await expect(
+      controller.updateThemePreference(user, { theme: ThemePreference.DARK }),
+    ).resolves.toEqual({
       theme: ThemePreference.DARK,
     });
-    await expect(controller.getThemePreference(user)).resolves.toEqual({ theme: ThemePreference.DARK });
+    await expect(controller.getThemePreference(user)).resolves.toEqual({
+      theme: ThemePreference.DARK,
+    });
   });
 });
