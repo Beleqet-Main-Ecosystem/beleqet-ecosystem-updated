@@ -4,7 +4,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 describe('CompanyLoader', () => {
   let loader: CompanyLoader;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     company: {
@@ -14,15 +13,11 @@ describe('CompanyLoader', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        CompanyLoader,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [CompanyLoader, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     // Loaders with Scope.REQUEST must be resolved using module.resolve
     loader = await module.resolve<CompanyLoader>(CompanyLoader);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
@@ -40,17 +35,17 @@ describe('CompanyLoader', () => {
     const result = await Promise.all([
       loader.batchLoad.load('1'),
       loader.batchLoad.load('2'),
-      loader.batchLoad.load('1'), 
+      loader.batchLoad.load('1'),
     ]);
 
     // The entire point of DataLoader: the database should only be hit EXACTLY ONCE.
     expect(mockPrisma.company.findMany).toHaveBeenCalledTimes(1);
-    
+
     // It should aggressively batch the unique IDs.
     expect(mockPrisma.company.findMany).toHaveBeenCalledWith({
       where: { id: { in: ['1', '2'] } },
     });
-    
+
     // It should map the results back perfectly to the original callers.
     expect(result).toEqual([
       { id: '1', name: 'Company One' },

@@ -10,7 +10,7 @@ export class CompanyLoader {
     const companies = await this.prisma.company.findMany({
       where: { id: { in: ids } },
     });
-    const map = new Map(companies.map(c => [c.id, c]));
-    return ids.map(id => map.get(id) || null);
+    const map = new Map(companies.map((c) => [c.id, c]));
+    return ids.map((id) => map.get(id) || null);
   });
 }

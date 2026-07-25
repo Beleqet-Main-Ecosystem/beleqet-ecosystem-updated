@@ -18,10 +18,7 @@ export class ComplexityPlugin implements ApolloServerPlugin {
           operationName: request.operationName,
           query: document,
           variables: request.variables,
-          estimators: [
-            fieldExtensionsEstimator(),
-            simpleEstimator({ defaultComplexity: 1 }),
-          ],
+          estimators: [fieldExtensionsEstimator(), simpleEstimator({ defaultComplexity: 1 })],
         });
         const maxComplexity = 100;
         if (complexity > maxComplexity) {

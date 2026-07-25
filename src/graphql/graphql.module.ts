@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
-const depthLimit = require('graphql-depth-limit');
+import * as depthLimit from 'graphql-depth-limit';
 import { ComplexityPlugin } from './plugins/complexity.plugin';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 
@@ -18,7 +18,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
       introspection: true,
       validationRules: [depthLimit(5)], // Protect against deeply nested queries
       context: ({ req, res }: { req: any; res: any }) => ({ req, res }), // Pass request object down for auth guards
-      formatError: (formattedError, error: any) => {
+      formatError: (formattedError, _error: any) => {
         // Global error formatting
         return formattedError;
       },
