@@ -1,9 +1,8 @@
-//import { GqlThrottlerGuard } from './graphql/guards/gql-throttler.guard';
 import { CacheConfigModule } from './cache/cache.module';
 import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
@@ -33,7 +32,7 @@ import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
 import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
-import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
+import { InterviewPlannerModule } from './modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
@@ -51,6 +50,8 @@ import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.mod
 import { HealthModule } from './modules/health/health.module';
 import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
+import { GqlThrottlerGuard } from './graphql/guards/gql-throttler.guard';
+import { GraphqlConfigModule } from './graphql/graphql.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -58,32 +59,24 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
-import { GraphqlConfigModule } from './graphql/graphql.module';
 
 @Module({
   imports: [
-    //  Configuration (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
       load: [configuration],
     }),
-
-    //  Rate limiting
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 10 },
       { name: 'medium', ttl: 10_000, limit: 50 },
       { name: 'long', ttl: 60_000, limit: 200 },
     ]),
-
-    //  Event bus (in-process events between modules)
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.',
       maxListeners: 20,
     }),
-
-    //  BullMQ (Redis-backed job queues)
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -101,8 +94,6 @@ import { GraphqlConfigModule } from './graphql/graphql.module';
         },
       }),
     }),
-
-    //  Internationalization (i18n)
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
@@ -115,11 +106,7 @@ import { GraphqlConfigModule } from './graphql/graphql.module';
         new HeaderResolver(['x-custom-lang']),
       ],
     }),
-
-    // — GDPR Guard module ——————————————————————————————————————————
     GdprGuardModule,
-
-    // — Feature modules ——————————————————————————————————————————
     PrismaModule,
     QueuesModule,
     RedisModule,
@@ -141,6 +128,7 @@ import { GraphqlConfigModule } from './graphql/graphql.module';
     ContactModule,
     VideoInterviewModule,
     PlagiarismModule,
+    FaqBotModule,
     InterviewPlannerModule,
     AnomalySensorModule,
     AdminStatsModule,
@@ -165,14 +153,13 @@ import { GraphqlConfigModule } from './graphql/graphql.module';
     RbacModule,
     AuditLogModule,
     CacheConfigModule,
-    FaqBotModule,
     EncryptionModule,
     GraphqlConfigModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard, // FIXED: Use the GraphQL-aware guard
+      useClass: GqlThrottlerGuard,
     },
   ],
 })
