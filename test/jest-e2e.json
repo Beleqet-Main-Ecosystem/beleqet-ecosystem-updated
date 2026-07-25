@@ -1,15 +1,14 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts", "tsx"],
-  "rootDir": "../src",
-  "testRegex": ".*integration\\.spec\\.ts$",
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": "(integration\\.spec|e2e-spec)\\.ts$",
   "transform": {
-    "^.+\\.(t|j)sx?$": "ts-jest"
+    "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^@common/(.*)$": "<rootDir>/common/$1",
-    "^@modules/(.*)$": "<rootDir>/modules/$1",
-    "^@prisma-client$": "<rootDir>/prisma/prisma.service"
-  },
-  "testEnvironment": "node",
-  "testTimeout": 30000
+    "^@common/(.*)$": "<rootDir>/src/common/$1",
+    "^@modules/(.*)$": "<rootDir>/src/modules/$1",
+    "^@prisma-client$": "<rootDir>/src/prisma/prisma.service"
+  }
 }
