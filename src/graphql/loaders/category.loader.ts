@@ -10,7 +10,7 @@ export class CategoryLoader {
     const categories = await this.prisma.jobCategory.findMany({
       where: { id: { in: ids } },
     });
-    const map = new Map(categories.map(c => [c.id, c]));
-    return ids.map(id => map.get(id) || null);
+    const map = new Map(categories.map((c) => [c.id, c]));
+    return ids.map((id) => map.get(id) || null);
   });
 }

@@ -5,6 +5,7 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)sx?$": "ts-jest"
+<<<<<<< HEAD
   },
   "transformIgnorePatterns": [
     "/node_modules/(?!@scure|otplib)/"
@@ -13,5 +14,7 @@
     "^@common/(.*)$": "<rootDir>/src/common/$1",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@prisma-client$": "<rootDir>/src/prisma/prisma.service"
+=======
+>>>>>>> c47ff25 (fix(ci): resolve prettier and formatting errors)
   }
 }

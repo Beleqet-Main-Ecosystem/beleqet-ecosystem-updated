@@ -49,11 +49,11 @@ describe('JobsResolver', () => {
         limit: 10,
         totalPages: 1,
       };
-      
+
       mockJobsService.findAll.mockResolvedValue(mockResult);
 
       const result = await resolver.jobs({});
-      
+
       expect(result).toEqual(mockResult);
       expect(service.findAll).toHaveBeenCalledWith({});
     });
@@ -62,23 +62,23 @@ describe('JobsResolver', () => {
   describe('job query', () => {
     it('should successfully return a single job by ID', async () => {
       const mockJob = { id: '123', title: 'Senior Developer' };
-      
+
       mockJobsService.findOne.mockResolvedValue(mockJob);
 
       const result = await resolver.job('123');
-      
+
       expect(result).toEqual(mockJob);
       expect(service.findOne).toHaveBeenCalledWith('123');
     });
   });
-  
+
   describe('Field Resolvers', () => {
     it('should resolve company dynamically using DataLoader', async () => {
       const mockJob = { id: '1', companyId: 'comp-1' };
       mockCompanyLoader.batchLoad.load.mockResolvedValue({ id: 'comp-1', name: 'Tech Corp' });
-      
+
       const result = await resolver.company(mockJob);
-      
+
       expect(result).toEqual({ id: 'comp-1', name: 'Tech Corp' });
       expect(mockCompanyLoader.batchLoad.load).toHaveBeenCalledWith('comp-1');
     });

@@ -27,10 +27,7 @@ export class JobsResolver {
 
   @Mutation(() => JobTypeGraphQL)
   @UseGuards(GqlAuthGuard)
-  async createJob(
-    @Args('input') input: CreateJobInput,
-    @Context() ctx: any,
-  ) {
+  async createJob(@Args('input') input: CreateJobInput, @Context() ctx: any) {
     const userId = ctx.req.user.id;
     return this.jobsService.create(userId, input as any);
   }

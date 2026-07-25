@@ -12,11 +12,11 @@ describe('GraphQL API (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     // We must apply the same global prefix that main.ts applies, because our
     // GraphqlConfigModule explicitly binds to '/api/v1/graphql'
     app.setGlobalPrefix('api/v1');
-    
+
     await app.init();
   });
 
@@ -37,7 +37,7 @@ describe('GraphQL API (e2e)', () => {
         }
       }
     `;
-    
+
     return request(app.getHttpServer())
       .post('/api/v1/graphql')
       .send({ query })
@@ -72,7 +72,7 @@ describe('GraphQL API (e2e)', () => {
         }
       }
     `;
-    
+
     return request(app.getHttpServer())
       .post('/api/v1/graphql')
       .send({ query: overlyNestedQuery })
