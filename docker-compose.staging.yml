@@ -131,7 +131,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 60s
 
   jobs-frontend:
     image: ${JOBS_IMAGE:?JOBS_IMAGE is required (set by the deploy script)}
