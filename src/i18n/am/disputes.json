@@ -1,0 +1,12 @@
+{
+  "contractNotFound": "TODO: Amharic translation — Contract not found or you are not a party to it",
+  "alreadyExists": "TODO: Amharic translation — A dispute already exists for this contract",
+  "invalidContractStatus": "TODO: Amharic translation — Dispute can only be raised on active contracts",
+  "contractNotFoundGeneric": "TODO: Amharic translation — Contract not found",
+  "noDisputeFound": "TODO: Amharic translation — No dispute found for this contract",
+  "disputeNotFound": "TODO: Amharic translation — Dispute not found",
+  "alreadyResolved": "TODO: Amharic translation — Dispute is already resolved",
+  "noEscrowForContract": "TODO: Amharic translation — No escrow found for this contract",
+  "escrowNotDisputed": "TODO: Amharic translation — Escrow is in {status} status, must be DISPUTED",
+  "invalidPartialPercentage": "TODO: Amharic translation — partialPercentage must be between 1 and 99 for PARTIAL_RELEASE"
+}
