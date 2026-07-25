@@ -41,6 +41,11 @@ export type Job = {
   featured?: boolean;
   description?: string;
   tags?: string[];
+//new fields for salary and currency
+  salaryMin?: number;
+  salaryMax?: number;
+  currency?: string;
+  relevanceScore?: number;
 };
 
 export type Category = {
@@ -115,6 +120,28 @@ export async function fetchCategories(): Promise<Category[]> {
   try {
     const { data } = await api.get("/jobs/categories");
     return z.array(rawCategorySchema).parse(data).map(toCategory);
+  } catch {
+    return [];
+  }
+}
+
+const planSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullish(),
+  priceAmount: z.number(),
+  currency: z.string(),
+  interval: z.enum(["MONTHLY", "YEARLY"]),
+  features: z.record(z.string(), z.unknown()).nullish(),
+  isActive: z.boolean(),
+});
+
+export type Plan = z.infer<typeof planSchema>;
+
+export async function fetchPlans(): Promise<Plan[]> {
+  try {
+    const { data } = await api.get("/plans");
+    return z.array(planSchema).parse(data);
   } catch {
     return [];
   }

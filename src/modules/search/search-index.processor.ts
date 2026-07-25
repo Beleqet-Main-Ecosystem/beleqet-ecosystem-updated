@@ -1,6 +1,6 @@
-import { Processor, Process } from '@nestjs/bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, Injectable } from '@nestjs/common';
-import { Job as BullJob } from 'bull';
+import { Job } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../queues/queues.constants';
 
@@ -24,13 +24,18 @@ interface IndexJobPayload {
  */
 @Injectable()
 @Processor(QUEUE_NAMES.SEARCH_INDEX)
-export class SearchIndexProcessor {
+export class SearchIndexProcessor extends WorkerHost {
   private readonly logger = new Logger(SearchIndexProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {
+    super(); // Required when extending WorkerHost in NestJS BullMQ
+  }
 
-  @Process('index-job')
-  async indexJob(job: BullJob<IndexJobPayload>) {
+  /**
+   * Core processing method for handling incoming BullMQ jobs.
+   * All tasks routed to this queue pass through this central pipeline.
+   */
+  async process(job: Job<IndexJobPayload>): Promise<any> {
     const { action, entityType, entityId } = job.data;
 
     if (action === 'delete') {

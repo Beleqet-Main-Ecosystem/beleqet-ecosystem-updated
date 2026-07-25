@@ -25,6 +25,7 @@ export default function Header() {
     { label: t("findJobs"),     href: "/jobs" },
     { label: t("forEmployers"), href: employerHref },
     { label: t("cvMaker"),      href: "/cv-maker" },
+    { label: t("portfolio"),    href: "/portfolio" },
     { label: t("pricing"),      href: "/pricing" },
     { label: t("about"),        href: "/about" },
   ];

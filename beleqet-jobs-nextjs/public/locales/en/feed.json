@@ -1,0 +1,11 @@
+{
+  "title": "Your Personalized Job Feed",
+  "subtitle": "Based on your searches, skills, and saved jobs.",
+  "managePrivacy": "Manage privacy settings",
+  "refresh": "Refresh recommendations",
+  "refreshing": "Refreshing…",
+  "loading": "Loading recommendations…",
+  "noJobs": "No matching jobs found yet.",
+  "loginPrompt": "Please log in to see your personalized job feed.",
+  "login": "log in"
+}

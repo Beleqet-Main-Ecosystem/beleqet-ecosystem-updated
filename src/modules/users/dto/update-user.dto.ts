@@ -9,43 +9,72 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateUserDto {
   @ApiProperty({ example: 'John', required: false })
-  @IsOptional() @IsString() firstName?: string;
+  @IsOptional()
+  @IsString()
+  firstName?: string;
 
   @ApiProperty({ example: 'Doe', required: false })
-  @IsOptional() @IsString() lastName?: string;
+  @IsOptional()
+  @IsString()
+  lastName?: string;
 
   @ApiProperty({ example: '0912345678', required: false })
-  @IsOptional() @IsString() phone?: string;
+  @IsOptional()
+  @IsString()
+  phone?: string;
 
   @ApiProperty({ example: 'https://example.com/avatar.png', required: false })
-  @IsOptional() @IsUrl() avatarUrl?: string;
+  @IsOptional()
+  @IsUrl()
+  avatarUrl?: string;
 
   @ApiProperty({ example: '123456789', required: false })
-  @IsOptional() @IsString() telegramId?: string;
+  @IsOptional()
+  @IsString()
+  telegramId?: string;
 
   @ApiProperty({ example: 'Senior Frontend Developer', required: false })
-  @IsOptional() @IsString() headline?: string;
+  @IsOptional()
+  @IsString()
+  headline?: string;
 
-  @ApiProperty({ example: 'A passionate developer with 5 years of experience in React.', required: false })
-  @IsOptional() @IsString() bio?: string;
+  @ApiProperty({
+    example: 'A passionate developer with 5 years of experience in React.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  bio?: string;
 
   @ApiProperty({ example: 'Addis Ababa, Ethiopia', required: false })
-  @IsOptional() @IsString() location?: string;
+  @IsOptional()
+  @IsString()
+  location?: string;
 
   @ApiProperty({ example: 'https://drive.google.com/resume.pdf', required: false })
-  @IsOptional() @IsUrl() defaultResumeUrl?: string;
+  @IsOptional()
+  @IsUrl()
+  defaultResumeUrl?: string;
 
   @ApiProperty({ example: 'https://myportfolio.com', required: false })
-  @IsOptional() @IsUrl() portfolioUrl?: string;
+  @IsOptional()
+  @IsUrl()
+  portfolioUrl?: string;
 
   @ApiProperty({ example: 'https://github.com/johndoe', required: false })
-  @IsOptional() @IsUrl() githubUrl?: string;
+  @IsOptional()
+  @IsUrl()
+  githubUrl?: string;
 
   @ApiProperty({ example: 'https://linkedin.com/in/johndoe', required: false })
-  @IsOptional() @IsUrl() linkedinUrl?: string;
+  @IsOptional()
+  @IsUrl()
+  linkedinUrl?: string;
 
   @ApiProperty({ example: ['React', 'Node.js', 'TypeScript'], required: false })
-  @IsOptional() @IsString({ each: true }) skills?: string[];
+  @IsOptional()
+  @IsString({ each: true })
+  skills?: string[];
 }
 
 export class CreateCompanyDto {

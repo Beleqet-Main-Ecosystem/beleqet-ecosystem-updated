@@ -5,11 +5,7 @@
  * The filter depends on HttpAdapterHost and ErrorRecurrenceTrackerService.
  * Both are provided as mocks so no HTTP server or database is required.
  */
-import {
-  HttpException,
-  HttpStatus,
-  ArgumentsHost,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, ArgumentsHost } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { AllExceptionsFilter, ERROR_CODES, ErrorResponse } from './all-exceptions.filter';
 import { ErrorRecurrenceTrackerService } from './error-recurrence-tracker.service';
@@ -19,11 +15,11 @@ import { ErrorRecurrenceTrackerService } from './error-recurrence-tracker.servic
 // ─────────────────────────────────────────────────────────────────────────────
 
 function buildMockHost(url = '/api/v1/jobs', method = 'GET'): ArgumentsHost {
-  const mockRequest  = { url, method };
+  const mockRequest = { url, method };
   const mockResponse = {};
 
   const mockHttpContext = {
-    getRequest:  () => mockRequest,
+    getRequest: () => mockRequest,
     getResponse: () => mockResponse,
   };
 
@@ -37,7 +33,7 @@ function buildMockHost(url = '/api/v1/jobs', method = 'GET'): ArgumentsHost {
 // ─────────────────────────────────────────────────────────────────────────────
 function prismaError(code: string, msg = `Prisma error ${code}`) {
   const err = new Error(msg) as Error & { code: string; clientVersion: string };
-  err.code          = code;
+  err.code = code;
   err.clientVersion = '5.0.0';
   return err;
 }
@@ -124,10 +120,7 @@ describe('AllExceptionsFilter', () => {
     it('joins array validation messages with semicolons', () => {
       const host = buildMockHost();
       const resp = { message: ['email must be an email', 'password too short'] };
-      filter.catch(
-        new HttpException(resp, HttpStatus.BAD_REQUEST),
-        host,
-      );
+      filter.catch(new HttpException(resp, HttpStatus.BAD_REQUEST), host);
 
       const [, body] = mockReply.mock.calls[0] as [unknown, ErrorResponse, number];
       expect(body.message).toContain('email must be an email');

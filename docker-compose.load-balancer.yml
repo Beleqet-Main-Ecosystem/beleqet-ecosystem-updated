@@ -1,0 +1,105 @@
+# Overlay compose file — run with:
+#   docker compose -f docker-compose.yml -f docker-compose.load-balancer.yml up -d
+#
+# Traffic enters on host port 8080 (Nginx) and is distributed across backend-1 / backend-2.
+# Standalone `backend` (host :4000) is disabled in LB mode to avoid port conflicts.
+
+services:
+  backend:
+    profiles:
+      - standalone
+
+  db:
+    networks:
+      - default
+      - beleqet-net
+
+  redis:
+    networks:
+      - default
+      - beleqet-net
+
+  backend-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beleqet-backend-1
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - FRONTEND_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_ACCESS_SECRET=docker_default_secret_please_change_in_production
+      - JWT_ACCESS_EXPIRES=15m
+      - JWT_REFRESH_EXPIRES=30d
+      - BULL_BOARD_USERNAME=admin
+      - BULL_BOARD_PASSWORD=admin
+      - OPENAI_API_KEY=dummy_key_for_testing
+    depends_on:
+      - db
+      - redis
+    networks:
+      - beleqet-net
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4000/api/docs']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  backend-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beleqet-backend-2
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - FRONTEND_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_ACCESS_SECRET=docker_default_secret_please_change_in_production
+      - JWT_ACCESS_EXPIRES=15m
+      - JWT_REFRESH_EXPIRES=30d
+      - BULL_BOARD_USERNAME=admin
+      - BULL_BOARD_PASSWORD=admin
+      - OPENAI_API_KEY=dummy_key_for_testing
+    depends_on:
+      - db
+      - redis
+    networks:
+      - beleqet-net
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4000/api/docs']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  nginx-lb:
+    image: nginx:1.25-alpine
+    container_name: beleqet-nginx-lb
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    volumes:
+      - ./infrastructure/nginx/load-balancer.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend-1
+      - backend-2
+    networks:
+      - beleqet-net
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1/lb-health']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+networks:
+  beleqet-net:
+    driver: bridge

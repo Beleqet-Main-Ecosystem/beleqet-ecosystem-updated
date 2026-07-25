@@ -15,6 +15,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -30,13 +31,16 @@ import { PrismaService } from '../../prisma/prisma.service';
 // ─────────────────────────────────────────────────────────────────────────────
 
 jest.mock('paypal-rest-sdk', () => ({
-  configure:        jest.fn(),
-  payment:          { create: jest.fn(), execute: jest.fn() },
+  configure: jest.fn(),
+  payment: { create: jest.fn(), execute: jest.fn() },
   billingAgreement: { create: jest.fn() },
-  notification:     { webhookEvent: { verify: jest.fn() } },
+  notification: { webhookEvent: { verify: jest.fn() } },
 }));
 
 import * as paypal from 'paypal-rest-sdk';
+
+/** Node-style callback shape used by every mocked paypal-rest-sdk method. */
+type PaypalCallback = (err: unknown, response?: unknown) => void;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixture helpers
@@ -47,8 +51,11 @@ function makePaypalPayment(id = 'PAY-test-001') {
     id,
     state: 'created',
     links: [
-      { rel: 'approval_url', href: `https://sandbox.paypal.com/cgi-bin/webscr?cmd=_express-checkout&token=${id}` },
-      { rel: 'self',         href: `https://api.sandbox.paypal.com/v1/payments/payment/${id}` },
+      {
+        rel: 'approval_url',
+        href: `https://sandbox.paypal.com/cgi-bin/webscr?cmd=_express-checkout&token=${id}`,
+      },
+      { rel: 'self', href: `https://api.sandbox.paypal.com/v1/payments/payment/${id}` },
     ],
   };
 }
@@ -58,9 +65,7 @@ function makePaypalExecuted(state = 'approved') {
     state,
     transactions: [
       {
-        related_resources: [
-          { sale: { id: 'SALE-test-001', state: 'completed' } },
-        ],
+        related_resources: [{ sale: { id: 'SALE-test-001', state: 'completed' } }],
       },
     ],
   };
@@ -70,7 +75,7 @@ function makePaypalBillingAgreement(id = 'I-TEST-001') {
   return {
     id,
     state: 'Pending',
-    name:  'Beleqet Subscription',
+    name: 'Beleqet Subscription',
     links: [
       { rel: 'approval_url', href: `https://sandbox.paypal.com/agreements/approvalSession/${id}` },
     ],
@@ -79,12 +84,12 @@ function makePaypalBillingAgreement(id = 'I-TEST-001') {
 
 function makeWebhookEvent(eventType: string, resourceId = 'PAY-evt-001') {
   return {
-    id:            `WH-${eventType.replace(/\./g, '-')}`,
-    event_type:    eventType,
+    id: `WH-${eventType.replace(/\./g, '-')}`,
+    event_type: eventType,
     resource_type: 'payment',
-    summary:       `${eventType} event`,
-    resource:      { id: resourceId },
-    create_time:   new Date().toISOString(),
+    summary: `${eventType} event`,
+    resource: { id: resourceId },
+    create_time: new Date().toISOString(),
   };
 }
 
@@ -95,7 +100,7 @@ function makeWebhookEvent(eventType: string, resourceId = 'PAY-evt-001') {
 function buildMockPrisma() {
   return {
     payment: {
-      upsert:     jest.fn().mockResolvedValue({}),
+      upsert: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
   } as unknown as PrismaService;
@@ -103,12 +108,12 @@ function buildMockPrisma() {
 
 function buildMockConfig(extra: Record<string, string> = {}) {
   const defaults: Record<string, string> = {
-    PAYPAL_CLIENT_ID:      'paypal_client_id_mock',
-    PAYPAL_CLIENT_SECRET:  'paypal_client_secret_mock',
-    PAYPAL_MODE:           'sandbox',
-    PAYPAL_WEBHOOK_ID:     '',
-    PAYPAL_RETURN_URL:     'https://beleqet.com/payment/success',
-    PAYPAL_CANCEL_URL:     'https://beleqet.com/payment/cancel',
+    PAYPAL_CLIENT_ID: 'paypal_client_id_mock',
+    PAYPAL_CLIENT_SECRET: 'paypal_client_secret_mock',
+    PAYPAL_MODE: 'sandbox',
+    PAYPAL_WEBHOOK_ID: '',
+    PAYPAL_RETURN_URL: 'https://beleqet.com/payment/success',
+    PAYPAL_CANCEL_URL: 'https://beleqet.com/payment/cancel',
     ...extra,
   };
   return {
@@ -122,22 +127,26 @@ function buildMockConfig(extra: Record<string, string> = {}) {
 
 async function buildModule(configExtra: Record<string, string> = {}): Promise<{
   service: PaypalService;
-  prisma:  ReturnType<typeof buildMockPrisma>;
+  prisma: ReturnType<typeof buildMockPrisma>;
+  eventEmitter: { emit: jest.Mock };
 }> {
-  const prisma  = buildMockPrisma();
-  const config  = buildMockConfig(configExtra);
+  const prisma = buildMockPrisma();
+  const config = buildMockConfig(configExtra);
+  const eventEmitter = { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]) };
 
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       PaypalService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
+      { provide: EventEmitter2, useValue: eventEmitter },
     ],
   }).compile();
 
   return {
     service: module.get<PaypalService>(PaypalService),
     prisma,
+    eventEmitter,
   };
 }
 
@@ -147,12 +156,12 @@ async function buildModule(configExtra: Record<string, string> = {}): Promise<{
 
 describe('PaypalService', () => {
   let service: PaypalService;
-  let prisma:  ReturnType<typeof buildMockPrisma>;
+  let prisma: ReturnType<typeof buildMockPrisma>;
 
   beforeEach(async () => {
     const ctx = await buildModule();
-    service   = ctx.service;
-    prisma    = ctx.prisma;
+    service = ctx.service;
+    prisma = ctx.prisma;
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -165,8 +174,8 @@ describe('PaypalService', () => {
       await buildModule();
       expect(paypal.configure).toHaveBeenCalledWith(
         expect.objectContaining({
-          mode:          'sandbox',
-          client_id:     'paypal_client_id_mock',
+          mode: 'sandbox',
+          client_id: 'paypal_client_id_mock',
           client_secret: 'paypal_client_secret_mock',
         }),
       );
@@ -178,12 +187,14 @@ describe('PaypalService', () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe('createOrder', () => {
     it('creates a PayPal order and returns an approval URL', async () => {
-      (paypal.payment.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) => cb(null, makePaypalPayment()),
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+        cb(null, makePaypalPayment()),
       );
 
       const result = await service.createOrder({
-        amount: 25.00, currency: 'USD', userId: 'user-uuid-001',
+        amount: 25.0,
+        currency: 'USD',
+        userId: 'user-uuid-001',
       });
 
       expect(result.id).toBe('PAY-test-001');
@@ -193,18 +204,18 @@ describe('PaypalService', () => {
     });
 
     it('stores the amount in cents in the DB', async () => {
-      (paypal.payment.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) => cb(null, makePaypalPayment()),
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+        cb(null, makePaypalPayment()),
       );
 
-      await service.createOrder({ amount: 25.00, currency: 'USD', userId: 'u' });
+      await service.createOrder({ amount: 25.0, currency: 'USD', userId: 'u' });
 
       expect(prisma.payment.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({
-            amount:   2500, // 25.00 * 100
+            amount: 2500, // 25.00 * 100
             currency: 'USD',
-            status:   'PENDING',
+            status: 'PENDING',
             provider: 'PAYPAL',
           }),
         }),
@@ -214,7 +225,7 @@ describe('PaypalService', () => {
     it('uses userId as the custom field (GDPR — no raw PII)', async () => {
       let capturedData: any;
       (paypal.payment.create as jest.Mock).mockImplementation(
-        (data: unknown, cb: Function) => {
+        (data: unknown, cb: PaypalCallback) => {
           capturedData = data;
           cb(null, makePaypalPayment());
         },
@@ -228,16 +239,16 @@ describe('PaypalService', () => {
     it('uses provided returnUrl and cancelUrl when supplied', async () => {
       let capturedData: any;
       (paypal.payment.create as jest.Mock).mockImplementation(
-        (data: unknown, cb: Function) => {
+        (data: unknown, cb: PaypalCallback) => {
           capturedData = data;
           cb(null, makePaypalPayment());
         },
       );
 
       await service.createOrder({
-        amount:    10,
-        currency:  'USD',
-        userId:    'u',
+        amount: 10,
+        currency: 'USD',
+        userId: 'u',
         returnUrl: 'https://custom-return.com',
         cancelUrl: 'https://custom-cancel.com',
       });
@@ -249,7 +260,7 @@ describe('PaypalService', () => {
     it('falls back to config return/cancel URLs when not provided in DTO', async () => {
       let capturedData: any;
       (paypal.payment.create as jest.Mock).mockImplementation(
-        (data: unknown, cb: Function) => {
+        (data: unknown, cb: PaypalCallback) => {
           capturedData = data;
           cb(null, makePaypalPayment());
         },
@@ -262,13 +273,13 @@ describe('PaypalService', () => {
 
     it('delegates to createSubscription when subscriptionPlanId is provided', async () => {
       (paypal.billingAgreement.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) => cb(null, makePaypalBillingAgreement()),
+        (_d: unknown, cb: PaypalCallback) => cb(null, makePaypalBillingAgreement()),
       );
 
       const result = await service.createOrder({
-        amount:             9.99,
-        currency:           'USD',
-        userId:             'user-sub',
+        amount: 9.99,
+        currency: 'USD',
+        userId: 'user-sub',
         subscriptionPlanId: 'plan-monthly-001',
       });
 
@@ -277,9 +288,8 @@ describe('PaypalService', () => {
     });
 
     it('throws InternalServerErrorException when PayPal SDK returns an error', async () => {
-      (paypal.payment.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) =>
-          cb({ name: 'INTERNAL_SERVICE_ERROR', message: 'PayPal error' }, null),
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+        cb({ name: 'INTERNAL_SERVICE_ERROR', message: 'PayPal error' }, null),
       );
 
       await expect(
@@ -289,8 +299,8 @@ describe('PaypalService', () => {
 
     it('returns null approvalUrl when no approval_url link is found', async () => {
       const paymentWithoutLink = { id: 'PAY-no-link', state: 'created', links: [] };
-      (paypal.payment.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) => cb(null, paymentWithoutLink),
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+        cb(null, paymentWithoutLink),
       );
 
       const result = await service.createOrder({ amount: 10, currency: 'USD', userId: 'u' });
@@ -305,7 +315,7 @@ describe('PaypalService', () => {
   describe('captureOrder', () => {
     it('captures an approved order and returns success result', async () => {
       (paypal.payment.execute as jest.Mock).mockImplementation(
-        (_id: string, _d: unknown, cb: Function) => cb(null, makePaypalExecuted()),
+        (_id: string, _d: unknown, cb: PaypalCallback) => cb(null, makePaypalExecuted()),
       );
 
       const result = await service.captureOrder({ orderId: 'PAY-test-001' }, 'PAYERID-ABC');
@@ -318,7 +328,7 @@ describe('PaypalService', () => {
 
     it('updates DB status to SUCCEEDED after successful capture', async () => {
       (paypal.payment.execute as jest.Mock).mockImplementation(
-        (_id: string, _d: unknown, cb: Function) => cb(null, makePaypalExecuted()),
+        (_id: string, _d: unknown, cb: PaypalCallback) => cb(null, makePaypalExecuted()),
       );
 
       await service.captureOrder({ orderId: 'PAY-test-001' }, 'PAYERID-ABC');
@@ -326,15 +336,14 @@ describe('PaypalService', () => {
       expect(prisma.payment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ providerPaymentId: 'PAY-test-001' }),
-          data:  expect.objectContaining({ status: 'SUCCEEDED' }),
+          data: expect.objectContaining({ status: 'SUCCEEDED' }),
         }),
       );
     });
 
     it('updates DB status to FAILED if capture state is not approved', async () => {
       (paypal.payment.execute as jest.Mock).mockImplementation(
-        (_id: string, _d: unknown, cb: Function) =>
-          cb(null, makePaypalExecuted('failed')),
+        (_id: string, _d: unknown, cb: PaypalCallback) => cb(null, makePaypalExecuted('failed')),
       );
 
       await service.captureOrder({ orderId: 'PAY-test-001' }, 'PAYERID-ABC');
@@ -347,14 +356,14 @@ describe('PaypalService', () => {
     });
 
     it('throws BadRequestException when payerId is empty string', async () => {
-      await expect(
-        service.captureOrder({ orderId: 'PAY-test-001' }, ''),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.captureOrder({ orderId: 'PAY-test-001' }, '')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws InternalServerErrorException when PayPal execute fails', async () => {
       (paypal.payment.execute as jest.Mock).mockImplementation(
-        (_id: string, _d: unknown, cb: Function) =>
+        (_id: string, _d: unknown, cb: PaypalCallback) =>
           cb({ name: 'PAYMENT_ALREADY_DONE', message: 'Already captured' }, null),
       );
 
@@ -366,7 +375,7 @@ describe('PaypalService', () => {
     it('returns null captureId when transactions have no sale resource', async () => {
       const noSale = { state: 'approved', transactions: [{ related_resources: [] }] };
       (paypal.payment.execute as jest.Mock).mockImplementation(
-        (_id: string, _d: unknown, cb: Function) => cb(null, noSale),
+        (_id: string, _d: unknown, cb: PaypalCallback) => cb(null, noSale),
       );
 
       const result = await service.captureOrder({ orderId: 'PAY-test-001' }, 'PAYERID-ABC');
@@ -381,13 +390,13 @@ describe('PaypalService', () => {
   describe('createSubscription', () => {
     it('creates a billing agreement and returns the approval URL', async () => {
       (paypal.billingAgreement.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) => cb(null, makePaypalBillingAgreement()),
+        (_d: unknown, cb: PaypalCallback) => cb(null, makePaypalBillingAgreement()),
       );
 
       const result = await service.createSubscription({
-        amount:             9.99,
-        currency:           'USD',
-        userId:             'user-sub-001',
+        amount: 9.99,
+        currency: 'USD',
+        userId: 'user-sub-001',
         subscriptionPlanId: 'plan-beleqet-premium',
       });
 
@@ -399,20 +408,20 @@ describe('PaypalService', () => {
 
     it('persists the subscription as a PENDING payment record', async () => {
       (paypal.billingAgreement.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) => cb(null, makePaypalBillingAgreement()),
+        (_d: unknown, cb: PaypalCallback) => cb(null, makePaypalBillingAgreement()),
       );
 
       await service.createSubscription({
-        amount:             9.99,
-        currency:           'USD',
-        userId:             'user-sub-001',
+        amount: 9.99,
+        currency: 'USD',
+        userId: 'user-sub-001',
         subscriptionPlanId: 'plan-beleqet-premium',
       });
 
       expect(prisma.payment.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({
-            status:   'PENDING',
+            status: 'PENDING',
             provider: 'PAYPAL',
           }),
         }),
@@ -422,20 +431,25 @@ describe('PaypalService', () => {
     it('throws BadRequestException when subscriptionPlanId is missing', async () => {
       await expect(
         service.createSubscription({
-          amount: 9.99, currency: 'USD', userId: 'u',
+          amount: 9.99,
+          currency: 'USD',
+          userId: 'u',
         } as any),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('throws InternalServerErrorException when billingAgreement.create fails', async () => {
       (paypal.billingAgreement.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) =>
+        (_d: unknown, cb: PaypalCallback) =>
           cb({ name: 'INVALID_PLAN_ID', message: 'Plan not found' }, null),
       );
 
       await expect(
         service.createSubscription({
-          amount: 9.99, currency: 'USD', userId: 'u', subscriptionPlanId: 'bad-plan',
+          amount: 9.99,
+          currency: 'USD',
+          userId: 'u',
+          subscriptionPlanId: 'bad-plan',
         }),
       ).rejects.toThrow(InternalServerErrorException);
     });
@@ -443,11 +457,14 @@ describe('PaypalService', () => {
     it('returns null approvalUrl when billing agreement has no approval link', async () => {
       const noLink = { id: 'I-NO-LINK', state: 'Pending', links: [] };
       (paypal.billingAgreement.create as jest.Mock).mockImplementation(
-        (_d: unknown, cb: Function) => cb(null, noLink),
+        (_d: unknown, cb: PaypalCallback) => cb(null, noLink),
       );
 
       const result = await service.createSubscription({
-        amount: 9.99, currency: 'USD', userId: 'u', subscriptionPlanId: 'plan-x',
+        amount: 9.99,
+        currency: 'USD',
+        userId: 'u',
+        subscriptionPlanId: 'plan-x',
       });
 
       expect(result.approvalUrl).toBeNull();
@@ -526,7 +543,8 @@ describe('PaypalService', () => {
 
     it('handles unrecognised event types without throwing', async () => {
       const result = await service.handleWebhook(
-        makeWebhookEvent('CUSTOMER.DISPUTE.CREATED') as any, {},
+        makeWebhookEvent('CUSTOMER.DISPUTE.CREATED') as any,
+        {},
       );
       expect(result.event_type).toBe('CUSTOMER.DISPUTE.CREATED');
       expect(prisma.payment.updateMany).not.toHaveBeenCalled();
@@ -543,15 +561,15 @@ describe('PaypalService', () => {
       const { service: svc } = await buildModule({ PAYPAL_WEBHOOK_ID: 'wh-123-abc' });
 
       (paypal.notification.webhookEvent as any).verify = jest.fn(
-        (_data: unknown, cb: Function) => cb(null, { verification_status: 'SUCCESS' }),
+        (_data: unknown, cb: PaypalCallback) => cb(null, { verification_status: 'SUCCESS' }),
       );
 
       await svc.handleWebhook(makeWebhookEvent('PAYMENT.SALE.COMPLETED') as any, {
-        'paypal-transmission-id':   'tx-001',
+        'paypal-transmission-id': 'tx-001',
         'paypal-transmission-time': new Date().toISOString(),
-        'paypal-cert-url':          'https://api.paypal.com/cert',
-        'paypal-auth-algo':         'SHA256withRSA',
-        'paypal-transmission-sig':  'sig-base64',
+        'paypal-cert-url': 'https://api.paypal.com/cert',
+        'paypal-auth-algo': 'SHA256withRSA',
+        'paypal-transmission-sig': 'sig-base64',
       });
 
       expect((paypal.notification.webhookEvent as any).verify).toHaveBeenCalled();
@@ -561,7 +579,7 @@ describe('PaypalService', () => {
       const { service: svc } = await buildModule({ PAYPAL_WEBHOOK_ID: 'wh-123-abc' });
 
       (paypal.notification.webhookEvent as any).verify = jest.fn(
-        (_data: unknown, cb: Function) => cb(null, { verification_status: 'FAILURE' }),
+        (_data: unknown, cb: PaypalCallback) => cb(null, { verification_status: 'FAILURE' }),
       );
 
       await expect(
@@ -573,7 +591,7 @@ describe('PaypalService', () => {
       const { service: svc } = await buildModule({ PAYPAL_WEBHOOK_ID: 'wh-123-abc' });
 
       (paypal.notification.webhookEvent as any).verify = jest.fn(
-        (_data: unknown, cb: Function) => cb(new Error('SDK error'), null),
+        (_data: unknown, cb: PaypalCallback) => cb(new Error('SDK error'), null),
       );
 
       await expect(

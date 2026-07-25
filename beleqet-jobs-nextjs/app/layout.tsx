@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
+import { Toaster } from "sonner";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,6 +9,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
 import CookieBanner from "@/components/CookieBanner";
+import QueryProvider from "@/components/QueryProvider";
 import ChatWidget from "@/components/ChatWidget";
 import { WebSiteSchema } from "@/lib/seo/schemas";
 import { homePageMetadata } from "@/lib/seo/generate-metadata";
@@ -32,20 +34,21 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <head />
       <body className="font-sans antialiased bg-[var(--color-bg)] text-[var(--color-text)]">
-        {/*
-         * NextIntlClientProvider makes the message catalogue and locale
-         * available to all `useTranslations` / `useLocale` client hooks.
-         */}
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider>
             <CurrencyProvider>
               <AuthProvider>
-                <WebSiteSchema />
-                <Header />
-                <main>{children}</main>
-                <Footer />
-                <ChatWidget />
-                <CookieBanner />
+                <QueryProvider>
+                  <WebSiteSchema />
+                  <Header />
+                  <main>
+                    {children}
+                    <Toaster position="top-right" richColors />
+                  </main>
+                  <Footer />
+                  <ChatWidget />
+                  <CookieBanner />
+                </QueryProvider>
               </AuthProvider>
             </CurrencyProvider>
           </ThemeProvider>

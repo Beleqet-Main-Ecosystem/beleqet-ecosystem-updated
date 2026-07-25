@@ -12,8 +12,8 @@ describe('ErrorRecurrenceTrackerService', () => {
   let tracker: ErrorRecurrenceTrackerService;
 
   /** Small window + low threshold for fast tests */
-  const WINDOW_MS  = 10_000; // 10 s
-  const THRESHOLD  = 3;
+  const WINDOW_MS = 10_000; // 10 s
+  const THRESHOLD = 3;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -45,8 +45,8 @@ describe('ErrorRecurrenceTrackerService', () => {
     });
 
     it('separates hits by error code', () => {
-      tracker.track(ERROR_CODES.NOT_FOUND,     '/a', 'not found');
-      tracker.track(ERROR_CODES.UNAUTHORIZED,  '/b', 'unauthorized');
+      tracker.track(ERROR_CODES.NOT_FOUND, '/a', 'not found');
+      tracker.track(ERROR_CODES.UNAUTHORIZED, '/b', 'unauthorized');
 
       expect(tracker.getByCode(ERROR_CODES.NOT_FOUND)!.hitCount).toBe(1);
       expect(tracker.getByCode(ERROR_CODES.UNAUTHORIZED)!.hitCount).toBe(1);
@@ -153,7 +153,7 @@ describe('ErrorRecurrenceTrackerService', () => {
       tracker.track(ERROR_CODES.UNAUTHORIZED, '/login', 'new hit');
 
       const snaps = tracker.getSnapshot();
-      const snap  = snaps.find((s) => s.errorCode === ERROR_CODES.UNAUTHORIZED);
+      const snap = snaps.find((s) => s.errorCode === ERROR_CODES.UNAUTHORIZED);
       expect(snap?.hitCount).toBe(1);
     });
 

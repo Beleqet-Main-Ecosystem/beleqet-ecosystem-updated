@@ -25,12 +25,16 @@ import { OpenAiKycProvider } from './providers/openai-kyc-provider.service';
         openAiProvider: OpenAiKycProvider,
       ) => {
         const apiKey = config.get<string>('OPENAI_API_KEY');
-        const isProduction = config.get<string>('NODE_ENV') === 'production' || process.env.NODE_ENV === 'production';
-        const isApiKeyMissingOrDummy = !apiKey || apiKey === 'dummy_key_for_testing' || apiKey === 'sk-...';
+        const isProduction =
+          config.get<string>('NODE_ENV') === 'production' || process.env.NODE_ENV === 'production';
+        const isApiKeyMissingOrDummy =
+          !apiKey || apiKey === 'dummy_key_for_testing' || apiKey === 'sk-...';
 
         if (isApiKeyMissingOrDummy) {
           if (isProduction) {
-            throw new Error('OPENAI_API_KEY is missing or set to a dummy value in production environment.');
+            throw new Error(
+              'OPENAI_API_KEY is missing or set to a dummy value in production environment.',
+            );
           }
           return mockProvider;
         }

@@ -1,7 +1,7 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BellRing, MessageSquare, Trash2, UserPlus, Users } from "lucide-react";
+import { BellRing, CreditCard, MessageSquare, Receipt, Trash2, UserPlus, Users } from "lucide-react";
 import { authenticatedFetch } from "@/lib/auth";
 import { useAuth } from "@/components/AuthProvider";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -26,6 +26,24 @@ type Contact = {
   status: string;
   createdAt: string;
 };
+type Plan = {
+  id: string;
+  name: string;
+  description: string | null;
+  priceAmount: number;
+  currency: string;
+  interval: "MONTHLY" | "YEARLY";
+  isActive: boolean;
+};
+type AdminSubscription = {
+  id: string;
+  status: "PENDING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  plan: { name: string };
+  user: { firstName: string; lastName: string; email: string };
+};
+const subscriptionStatuses = ["ACTIVE", "PENDING", "PAST_DUE", "CANCELLED", "EXPIRED"] as const;
 
 export default function AdminPage() {
   const { user, ready } = useAuth();
@@ -38,18 +56,31 @@ export default function AdminPage() {
   const [targetType, setTargetType] = useState<"all" | "role" | "specific">("all");
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
+  const [subStatusFilter, setSubStatusFilter] = useState<string>("");
   const load = useCallback(async () => {
-    const [u, c] = await Promise.all([
+    const [u, c, p] = await Promise.all([
       authenticatedFetch(`${API_URL}/admin/users`),
       authenticatedFetch(`${API_URL}/admin/contacts`),
+      authenticatedFetch(`${API_URL}/plans?includeInactive=true`),
     ]);
     if (u.ok) setUsers(await u.json());
     if (c.ok) setContacts(await c.json());
+    if (p.ok) setPlans(await p.json());
+  }, []);
+  const loadSubscriptions = useCallback(async (status: string) => {
+    const query = status ? `?status=${status}` : "";
+    const res = await authenticatedFetch(`${API_URL}/subscriptions${query}`);
+    if (res.ok) setSubscriptions(await res.json());
   }, []);
   useEffect(() => {
     if (ready && user?.role !== "ADMIN") router.replace("/");
     if (user?.role === "ADMIN") load();
   }, [ready, user, router, load]);
+  useEffect(() => {
+    if (user?.role === "ADMIN" && tab === "subscriptions") loadSubscriptions(subStatusFilter);
+  }, [user, tab, subStatusFilter, loadSubscriptions]);
   if (!ready || user?.role !== "ADMIN")
     return (
       <div className="container-page py-24 text-center text-muted">
@@ -93,6 +124,51 @@ export default function AdminPage() {
     setNotice(data.reason || (response.ok ? "User deleted." : data.message));
     setDeleteUserId(null);
     await load();
+  }
+  async function createPlan(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const priceMajor = parseFloat(String(formData.get("priceAmount") ?? "0"));
+    let features: Record<string, unknown> = {};
+    try {
+      features = JSON.parse(String(formData.get("features") || "{}"));
+    } catch {
+      setNotice("Features must be valid JSON, e.g. {\"maxJobPosts\": 5}");
+      return;
+    }
+    const response = await authenticatedFetch(`${API_URL}/plans`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: formData.get("name"),
+        description: formData.get("description") || undefined,
+        priceAmount: Math.round(priceMajor * 100),
+        currency: formData.get("currency"),
+        interval: formData.get("interval"),
+        features,
+      }),
+    });
+    const data = await response.json();
+    setNotice(
+      response.ok
+        ? "Plan created."
+        : Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message,
+    );
+    if (response.ok) {
+      form.reset();
+      load();
+    }
+  }
+  async function togglePlanActive(plan: Plan) {
+    const response = await authenticatedFetch(`${API_URL}/plans/${plan.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !plan.isActive }),
+    });
+    if (response.ok) load();
   }
   async function updateContact(id: string, status: string) {
     const response = await authenticatedFetch(
@@ -173,6 +249,20 @@ export default function AdminPage() {
             icon={BellRing}
           >
             Notify
+          </Tab>
+          <Tab
+            active={tab === "plans"}
+            onClick={() => setTab("plans")}
+            icon={CreditCard}
+          >
+            Plans
+          </Tab>
+          <Tab
+            active={tab === "subscriptions"}
+            onClick={() => setTab("subscriptions")}
+            icon={Receipt}
+          >
+            Subscriptions
           </Tab>
         </div>
         {notice && (
@@ -438,6 +528,141 @@ export default function AdminPage() {
             </form>
           );
         })()}
+        {tab === "plans" && (
+          <div className="space-y-6">
+            <form
+              onSubmit={createPlan}
+              className="grid gap-3 rounded-2xl bg-white p-5 md:grid-cols-6"
+            >
+              <input name="name" required minLength={2} placeholder="Plan name" className="control" />
+              <input
+                name="description"
+                placeholder="Description (optional)"
+                className="control md:col-span-2"
+              />
+              <input
+                name="priceAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                placeholder="Price (e.g. 999.00)"
+                className="control"
+              />
+              <select name="currency" defaultValue="ETB" className="control">
+                <option value="ETB">ETB</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+              <select name="interval" defaultValue="MONTHLY" className="control">
+                <option value="MONTHLY">Monthly</option>
+                <option value="YEARLY">Yearly</option>
+              </select>
+              <input
+                name="features"
+                placeholder='Features JSON, e.g. {"maxJobPosts": 5}'
+                defaultValue="{}"
+                className="control md:col-span-5"
+              />
+              <button className="flex items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold text-white">
+                <CreditCard className="h-4 w-4" /> Add plan
+              </button>
+            </form>
+            <div className="overflow-x-auto rounded-2xl bg-white">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr className="bg-primary/5 text-xs uppercase text-muted">
+                    <th className="p-4">Plan</th>
+                    <th>Price</th>
+                    <th>Interval</th>
+                    <th>Status</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {plans.map((plan) => (
+                    <tr key={plan.id} className="border-t border-border">
+                      <td className="p-4">
+                        <b>{plan.name}</b>
+                        {plan.description && <p className="text-xs text-muted">{plan.description}</p>}
+                      </td>
+                      <td>
+                        {plan.priceAmount === 0
+                          ? "Free"
+                          : `${plan.currency} ${(plan.priceAmount / 100).toFixed(2)}`}
+                      </td>
+                      <td>{plan.interval === "YEARLY" ? "Yearly" : "Monthly"}</td>
+                      <td>
+                        <button
+                          onClick={() => togglePlanActive(plan)}
+                          className={plan.isActive ? "text-brandGreen" : "text-redAccent"}
+                        >
+                          {plan.isActive ? "Active" : "Inactive"}
+                        </button>
+                      </td>
+                      <td />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+        {tab === "subscriptions" && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-bold uppercase text-muted">Filter by status</label>
+              <select
+                value={subStatusFilter}
+                onChange={(e) => setSubStatusFilter(e.target.value)}
+                className="control"
+              >
+                <option value="">All</option>
+                {subscriptionStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="overflow-x-auto rounded-2xl bg-white">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead>
+                  <tr className="bg-primary/5 text-xs uppercase text-muted">
+                    <th className="p-4">User</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Period end</th>
+                    <th>Auto-renew</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscriptions.map((sub) => (
+                    <tr key={sub.id} className="border-t border-border">
+                      <td className="p-4">
+                        <b>
+                          {sub.user.firstName} {sub.user.lastName}
+                        </b>
+                        <p className="text-xs text-muted">{sub.user.email}</p>
+                      </td>
+                      <td>{sub.plan.name}</td>
+                      <td>{sub.status}</td>
+                      <td>{new Date(sub.currentPeriodEnd).toLocaleDateString()}</td>
+                      <td>{sub.cancelAtPeriodEnd ? "No" : "Yes"}</td>
+                    </tr>
+                  ))}
+                  {subscriptions.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-6 text-center text-muted">
+                        No subscriptions match this filter.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
       <ConfirmDialog
         open={Boolean(deleteUserId)}

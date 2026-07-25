@@ -53,7 +53,7 @@ body {
 }
 
 .hero-grid::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   opacity: 0.38;
@@ -68,7 +68,7 @@ body {
   header,
   footer,
   button,
-  [role="dialog"] {
+  [role='dialog'] {
     display: none !important;
   }
   body {

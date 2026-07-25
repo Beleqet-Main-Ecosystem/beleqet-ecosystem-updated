@@ -5,6 +5,6 @@ import { PrismaModule } from '../../prisma/prisma.module';
 @Module({
   imports: [PrismaModule],
   providers: [TelegramService],
-  exports: [TelegramService]
+  exports: [TelegramService],
 })
 export class TelegramModule {}

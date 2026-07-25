@@ -1,0 +1,31 @@
+{
+  "availability": {
+    "invalidRange": "The end time must be later than the start time.",
+    "overlap": "This availability overlaps with one of your existing availability slots. Please edit or remove the existing slot before adding a new one.",
+    "employerUnavailable": "You are not available during the selected time.",
+    "candidateUnavailable": "The candidate is not available during the selected time.",
+    "shortDuration": "The available time is too short for the interview duration.",
+    "forbidden": "You do not have permission to create or modify availability slots.",
+    "notFound": "The specified availability slot could not be found.",
+    "deleted": "The availability slot has been successfully deleted.",
+    "created": "The availability slot has been successfully created.",
+    "updated": "The availability slot has been successfully updated."
+  },
+
+  "interview": {
+    "applicationNotFound": "The selected job application could not be found.",
+    "alreadyScheduled": "An interview has already been scheduled for this application.",
+    "candidateBusy": "The candidate already has another interview scheduled during the selected time.",
+    "employerBusy": "You already have another interview scheduled during the selected time.",
+    "candidateUnavailable": "The candidate is not available during the selected time.",
+    "employerUnavailable": "You are not available during the selected time.",
+    "forbidden": "You do not have permission to schedule this interview.",
+    "noAvailableSlot": "No suitable interview time could be found based on both participants' availability."
+  },
+
+  "notification": {
+    "scheduledTitle": "Interview Scheduled",
+    "candidateScheduledBody": "Your interview for {jobTitle} has been scheduled.\n\nDate: {startTime}\nEnds: {endTime}\nTimezone: {timezone}\n\nPlease be available at the scheduled time.",
+    "employerScheduledBody": "Your interview with the candidate for {jobTitle} has been successfully scheduled.\n\nDate: {startTime}\nEnds: {endTime}\nTimezone: {timezone}\n\nThe candidate has been notified."
+  }
+}

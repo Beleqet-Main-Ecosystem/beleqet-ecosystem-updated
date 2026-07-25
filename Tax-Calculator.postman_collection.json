@@ -1,0 +1,811 @@
+{
+  "info": {
+    "_postman_id": "4b46437c-2cc7-4c35-b5f3-4c6ea826e06b",
+    "name": "Beleqet API - The Vault Tax Calculator",
+    "description": "Postman collection for The Vault Tax Calculator.\n\nThe endpoint accepts annual gross income as an integer in the currency's smallest unit:\n- ETB: Santim (120,000.00 ETB = 12,000,000 Santim)\n- USD: cents ($50,000.00 = 5,000,000 cents)\n\nSupported jurisdictions: ET and US.\n\nThe requests in this collection cover successful calculations, boundary values, localization, and validation failures.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Successful Calculations",
+      "description": "Valid tax calculation requests for supported jurisdictions.",
+      "item": [
+        {
+          "name": "Calculate Ethiopia Tax - 120,000 ETB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns the expected ET calculation\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome).to.eql(12000000);",
+                  "  pm.expect(json.taxAmount).to.eql(2454000);",
+                  "  pm.expect(json.netIncome).to.eql(9546000);",
+                  "  pm.expect(json.currency).to.eql(\"ETB\");",
+                  "  pm.expect(json.countryCode).to.eql(\"ET\");",
+                  "  pm.expect(json.effectiveTaxRate).to.eql(0.2045);",
+                  "});",
+                  "",
+                  "pm.test(\"Gross minus tax equals net\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome - json.taxAmount).to.eql(json.netIncome);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "en",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 12000000,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"ET\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            },
+            "description": "Calculates progressive Ethiopian tax for 120,000.00 ETB annual gross income. The request sends 12,000,000 Santim."
+          },
+          "response": []
+        },
+        {
+          "name": "Calculate United States Tax - $50,000",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns the expected US calculation\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome).to.eql(5000000);",
+                  "  pm.expect(json.taxAmount).to.eql(400950);",
+                  "  pm.expect(json.netIncome).to.eql(4599050);",
+                  "  pm.expect(json.currency).to.eql(\"USD\");",
+                  "  pm.expect(json.countryCode).to.eql(\"US\");",
+                  "  pm.expect(json.effectiveTaxRate).to.eql(0.08019);",
+                  "});",
+                  "",
+                  "pm.test(\"Gross minus tax equals net\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome - json.taxAmount).to.eql(json.netIncome);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "en",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 5000000,\n  \"currency\": \"USD\",\n  \"countryCode\": \"US\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            },
+            "description": "Calculates progressive US federal tax for $50,000.00 annual gross income. The request sends 5,000,000 cents."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Boundary and Edge Cases",
+      "description": "Requests covering zero income and progressive bracket boundaries.",
+      "item": [
+        {
+          "name": "Zero Income - ET",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All monetary results are zero\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome).to.eql(0);",
+                  "  pm.expect(json.taxAmount).to.eql(0);",
+                  "  pm.expect(json.netIncome).to.eql(0);",
+                  "  pm.expect(json.effectiveTaxRate).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 0,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"ET\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ethiopia Exempt-Band Ceiling - 7,200 ETB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Income at exempt ceiling has zero tax\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome).to.eql(720000);",
+                  "  pm.expect(json.taxAmount).to.eql(0);",
+                  "  pm.expect(json.netIncome).to.eql(720000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 720000,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"ET\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            },
+            "description": "7,200.00 ETB annual gross equals 720,000 Santim and is the ceiling of the 0% band."
+          },
+          "response": []
+        },
+        {
+          "name": "Ethiopia Top-Band Entry - 130,801 ETB",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Income above 130,800 ETB enters 35% band\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome).to.eql(13080100);",
+                  "  pm.expect(json.taxAmount).to.eql(2778035);",
+                  "  pm.expect(json.netIncome).to.eql(10302065);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 13080100,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"ET\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "United States First-Bracket Ceiling - $11,925",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Income at or below standard deduction has zero tax\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.grossIncome).to.eql(1192500);",
+                  "  pm.expect(json.taxAmount).to.eql(0);",
+                  "  pm.expect(json.netIncome).to.eql(1192500);",
+                  "  pm.expect(json.effectiveTaxRate).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 1192500,\n  \"currency\": \"USD\",\n  \"countryCode\": \"US\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Validation and Error Responses",
+      "description": "Requests expected to return HTTP 400 responses.",
+      "item": [
+        {
+          "name": "Unsupported Jurisdiction - English",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns structured jurisdiction error\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.errorCode).to.eql(\"ERR_TAX_UNSUPPORTED_JURISDICTION\");",
+                  "  pm.expect(json.countryCode).to.eql(\"XX\");",
+                  "  pm.expect(json.message).to.be.a(\"string\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "en",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 1000000,\n  \"currency\": \"USD\",\n  \"countryCode\": \"XX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unsupported Jurisdiction - Amharic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns structured localized error\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.errorCode).to.eql(\"ERR_TAX_UNSUPPORTED_JURISDICTION\");",
+                  "  pm.expect(json.message).to.be.a(\"string\");",
+                  "  pm.expect(json.message.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "am",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 1000000,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"XX\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Negative Gross Income",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns validation messages\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.message).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": -100,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"ET\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Decimal Gross Income Instead of Smallest-Unit Integer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Rejects non-integer gross income\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.message).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 120000.50,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"ET\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            },
+            "description": "The API requires smallest-unit integers. A human value of 120,000.50 ETB must be sent as 12,000,050 Santim."
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Currency",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Rejects unsupported currency enum\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.message).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 1000000,\n  \"currency\": \"EUR\",\n  \"countryCode\": \"US\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Lowercase Country Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Rejects lowercase ISO code\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.message).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grossIncome\": 1000000,\n  \"currency\": \"ETB\",\n  \"countryCode\": \"et\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns validation messages\", function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.message).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:4000/api/v1/tax-calculator/calculate",
+              "host": [
+                "localhost:4000"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tax-calculator",
+                "calculate"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "pm.request.headers.upsert({",
+          "  key: \"Accept\",",
+          "  value: \"application/json\"",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "pm.test(\"Response is JSON\", function () {",
+          "  pm.response.to.be.json;",
+          "});",
+          "",
+          "pm.test(\"Response time is below 2 seconds\", function () {",
+          "  pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    }
+  ]
+}

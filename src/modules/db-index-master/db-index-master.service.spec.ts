@@ -87,10 +87,7 @@ describe('DbIndexMasterService', () => {
     prisma = { $queryRaw: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DbIndexMasterService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [DbIndexMasterService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = module.get<DbIndexMasterService>(DbIndexMasterService);
@@ -105,9 +102,7 @@ describe('DbIndexMasterService', () => {
     it('returns a parsed ExplainResult for a valid SELECT', async () => {
       prisma.$queryRaw.mockResolvedValueOnce(mockExplainSeqScan);
 
-      const result = await service.explainQuery(
-        "SELECT id FROM jobs WHERE status = 'PUBLISHED'",
-      );
+      const result = await service.explainQuery("SELECT id FROM jobs WHERE status = 'PUBLISHED'");
 
       expect(result).toHaveProperty('sql');
       expect(result).toHaveProperty('plan');
@@ -116,9 +111,7 @@ describe('DbIndexMasterService', () => {
       expect(result.summary.usesSeqScan).toBe(true);
       expect(result.summary.usesIndexScan).toBe(false);
       expect(result.summary.warnings).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining('Sequential scan detected'),
-        ]),
+        expect.arrayContaining([expect.stringContaining('Sequential scan detected')]),
       );
     });
 
@@ -145,7 +138,7 @@ describe('DbIndexMasterService', () => {
       prisma.$queryRaw.mockResolvedValueOnce(mockExplainIndexScan);
 
       const result = await service.explainQuery(
-        'SELECT id FROM jobs WHERE created_at > NOW() - INTERVAL \'7 days\'',
+        "SELECT id FROM jobs WHERE created_at > NOW() - INTERVAL '7 days'",
       );
 
       expect(result.summary.indexSuggestion).toContain('BRIN');
@@ -163,28 +156,24 @@ describe('DbIndexMasterService', () => {
     });
 
     it('throws BadRequestException for DROP statement', async () => {
-      await expect(
-        service.explainQuery('DROP TABLE users'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.explainQuery('DROP TABLE users')).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadRequestException for CREATE statement', async () => {
-      await expect(
-        service.explainQuery('CREATE INDEX foo ON users(email)'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.explainQuery('CREATE INDEX foo ON users(email)')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException for TRUNCATE', async () => {
-      await expect(
-        service.explainQuery('TRUNCATE TABLE jobs'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.explainQuery('TRUNCATE TABLE jobs')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('throws BadRequestException when SQL exceeds 4000 chars', async () => {
       const longSql = 'SELECT ' + 'a,'.repeat(3000);
-      await expect(service.explainQuery(longSql)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.explainQuery(longSql)).rejects.toThrow(BadRequestException);
     });
 
     it('throws BadRequestException for empty SQL', async () => {
@@ -194,9 +183,7 @@ describe('DbIndexMasterService', () => {
     it('throws InternalServerErrorException when Prisma throws', async () => {
       prisma.$queryRaw.mockRejectedValueOnce(new Error('DB connection lost'));
 
-      await expect(
-        service.explainQuery('SELECT 1'),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.explainQuery('SELECT 1')).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -268,7 +255,7 @@ describe('DbIndexMasterService', () => {
       // unusedIndexes → listIndexes → heavySeqScan
       prisma.$queryRaw
         .mockResolvedValueOnce([mockIndexRow, mockUsedIndexRow]) // unusedIndexes (listIndexes call)
-        .mockResolvedValueOnce([mockSeqScanRow])                 // heavySeqScanTables
+        .mockResolvedValueOnce([mockSeqScanRow]) // heavySeqScanTables
         .mockResolvedValueOnce([mockIndexRow, mockUsedIndexRow]); // listIndexes (separate call in fullReport)
 
       const report = await service.fullReport();

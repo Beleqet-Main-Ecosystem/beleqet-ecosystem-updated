@@ -21,9 +21,9 @@ describe('ChatGateway', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ChatGateway,
-        { provide: ChatService,  useValue: mockChatService },
-        { provide: JwtService,   useValue: mockJwtService },
-        { provide: I18nService,  useValue: mockI18nService },
+        { provide: ChatService, useValue: mockChatService },
+        { provide: JwtService, useValue: mockJwtService },
+        { provide: I18nService, useValue: mockI18nService },
       ],
     }).compile();
     gateway = module.get<ChatGateway>(ChatGateway);

@@ -1,0 +1,31 @@
+{
+  "availability": {
+    "invalidRange": "የመጨረሻ ሰዓት ከመጀመሪያ ሰዓት በኋላ መሆን አለበት።",
+    "overlap": "ይህ የተገኝነት ሰዓት ቀደም ሲል ካስመዘገቡት የተገኝነት ሰዓት ጋር ይጋጫል። እባክዎ ነባሩን ያስተካክሉ ወይም ያስወግዱት።",
+    "employerUnavailable": "በተመረጠው ጊዜ አይገኙም።",
+    "candidateUnavailable": "እጩው በተመረጠው ጊዜ አይገኝም።",
+    "shortDuration": "ያለው የተገኝነት ጊዜ ለቃለ መጠይቁ የሚያስፈልገውን ጊዜ አያሟላም።",
+    "forbidden": "የተገኝነት ሰዓት ለመፍጠር ወይም ለመሻሻል ፍቃድ የለዎትም።",
+    "notFound": "የተገኝነት ሰዓት አልተገኘም።",
+    "deleted": "የተገኝነት �ሰዓት በተሳካ ሁኔታ ተሰርዟል።",
+    "created": "የተገኝነት ሰዓት በተሳካ ሁኔታ ተ�ፍጠረዋል።",
+    "updated": "የተገኝነት ሰዓት በተሳካ ሁኔታ ተሻሽሏል።"
+  },
+
+  "interview": {
+    "applicationNotFound": "የተመረጠው የሥራ ማመልከቻ አልተገኘም።",
+    "alreadyScheduled": "ለዚህ ማመልከቻ ቃለ መጠይቅ አስቀድሞ ተይዟል።",
+    "candidateBusy": "እጩው በተመረጠው ጊዜ ሌላ ቃለ መጠይቅ ተይዞለታል።",
+    "employerBusy": "በተመረጠው ጊዜ ሌላ ቃለ መጠይቅ ተይዞልዎታል።",
+    "candidateUnavailable": "እጩው በተመረጠው ጊዜ አይገኝም።",
+    "employerUnavailable": "በተመረጠው ጊዜ አይገኙም።",
+    "forbidden": "ይህን ቃለ መጠይቅ ለማስያዝ ፍቃድ የለዎትም።",
+    "noAvailableSlot": "በሁለቱም ወገኖች የተገኝነት ሰዓት መሰረት ተስማሚ የቃለ መጠይቅ ጊዜ አልተገኘም።"
+  },
+
+  "notification": {
+    "scheduledTitle": "ቃለ መጠይቅ ተይዟል",
+    "candidateScheduledBody": "ለ{jobTitle} ሥራ የቃለ መጠይቅዎ ተይዟል።\n\nቀን፦ {startTime}\nየሚያበቃበት ሰዓት፦ {endTime}\nየሰዓት ክልል፦ {timezone}\n\nእባክዎ በተያዘው ጊዜ ዝግጁ ይሁኑ።",
+    "employerScheduledBody": "ለ{jobTitle} ሥራ ከእጩው ጋር የሚደረገው ቃለ መጠይቅ በተሳካ ሁኔታ ተይዟል።\n\nቀን፦ {startTime}\nየሚያበቃበት ሰዓት፦ {endTime}\nየሰዓት ክልል፦ {timezone}\n\nለእጩውም ማሳወቂያ ተልኳል።"
+  }
+}
