@@ -54,6 +54,7 @@ services:
       - STRIPE_SECRET_KEY=dummy
       - STRIPE_WEBHOOK_SECRET=dummy
       - BILLING_WEBHOOK_SECRET=dummy
+      - UNSUBSCRIBE_SECRET=docker_default_unsubscribe_secret_please_change_in_production
     depends_on:
       - db
       - redis

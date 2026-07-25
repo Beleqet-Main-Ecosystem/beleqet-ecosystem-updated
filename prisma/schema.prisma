@@ -82,6 +82,7 @@ model User {
   skillAssessmentSessions SkillAssessmentSession[]
   rbacRoles               Role[]              @relation("UserRoles")
 
+  email_logs      EmailLog[]
   @@map("users")
 }
 
@@ -1637,3 +1638,63 @@ model PromotionWalletTransaction {
 
 /// System-wide audit log entity tracking user/system actions, entity state changes,
 /// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+
+// ─────────────────────────────────────────────────────────
+// Email Automation & Service — Prisma models
+// ─────────────────────────────────────────────────────────
+
+/// Type of automated email being sent
+enum EmailType {
+  WELCOME
+  PASSWORD_RESET
+  PAYMENT_RECEIPT
+  NEWSLETTER
+
+/// Lifecycle status of a queued/sent email
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+
+/// Persistent record of every email dispatch attempt.
+/// Used by the Admin Dashboard (Email Logs & Status Viewer)
+/// and by the retry/monitoring logic in the queue processor.
+model EmailLog {
+  id            String      @id @default(uuid())
+  recipient     String
+  type          EmailType
+  status        EmailStatus @default(PENDING)
+  subject       String
+  locale        String      @default("en") // i18n: "en", "am", etc.
+  templateName  String
+  metadata      Json?       // template variables, kept for audit/debug
+  errorMessage  String?
+  provider      String?     // e.g. "smtp", "sendgrid", "ses"
+  providerMsgId String?     // external message id, for delivery tracking
+  attempts      Int         @default(0)
+  sentAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // GDPR: link to user is optional and nullable-on-delete so that
+  // deleting a user (right to erasure) doesn't cascade-delete audit logs;
+  // instead the FK is nulled and `recipient` stays as a hashed/anonymized value.
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([type])
+  @@index([recipient])
+  @@index([createdAt])
+  @@map("email_logs")
+
+/// Suppression list checked before every NEWSLETTER send (GDPR / CAN-SPAM
+/// compliance). A recipient here is never sent marketing email again,
+/// regardless of what other services request it.
+model EmailSuppression {
+  id        String   @id @default(uuid())
+  recipient String   @unique
+  reason    String   // "unsubscribed" | "gdpr_erasure" | "bounced"
+
+  @@map("email_suppressions")
