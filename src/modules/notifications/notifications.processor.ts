@@ -85,16 +85,24 @@ export class NotificationsProcessor extends WorkerHost {
   async process(job: NotificationJob): Promise<void> {
     switch (job.name) {
       case NOTIFICATION_JOBS.SEND_IN_APP:
-        await this.sendInApp(job as BullMQJob<InAppPayload, void, typeof NOTIFICATION_JOBS.SEND_IN_APP>);
+        await this.sendInApp(
+          job as BullMQJob<InAppPayload, void, typeof NOTIFICATION_JOBS.SEND_IN_APP>,
+        );
         break;
       case NOTIFICATION_JOBS.SEND_TELEGRAM:
-        await this.sendTelegram(job as BullMQJob<TelegramPayload, void, typeof NOTIFICATION_JOBS.SEND_TELEGRAM>);
+        await this.sendTelegram(
+          job as BullMQJob<TelegramPayload, void, typeof NOTIFICATION_JOBS.SEND_TELEGRAM>,
+        );
         break;
       case NOTIFICATION_JOBS.SEND_EMAIL:
-        await this.sendEmail(job as BullMQJob<EmailPayload, void, typeof NOTIFICATION_JOBS.SEND_EMAIL>);
+        await this.sendEmail(
+          job as BullMQJob<EmailPayload, void, typeof NOTIFICATION_JOBS.SEND_EMAIL>,
+        );
         break;
       case NOTIFICATION_JOBS.SEND_PUSH:
-        await this.sendPush(job as BullMQJob<PushPayload, void, typeof NOTIFICATION_JOBS.SEND_PUSH>);
+        await this.sendPush(
+          job as BullMQJob<PushPayload, void, typeof NOTIFICATION_JOBS.SEND_PUSH>,
+        );
         break;
       case NOTIFICATION_JOBS.SEND_SMS:
         await this.sendSms(job as BullMQJob<SmsPayload, void, typeof NOTIFICATION_JOBS.SEND_SMS>);

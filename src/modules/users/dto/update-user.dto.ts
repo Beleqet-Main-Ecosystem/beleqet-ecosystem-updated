@@ -79,22 +79,35 @@ export class UpdateUserDto {
 
 export class UpdateNotificationPreferenceDto {
   @ApiProperty({ example: true, required: false })
-  @IsOptional() @IsBoolean() emailEnabled?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  emailEnabled?: boolean;
 
   @ApiProperty({ example: true, required: false })
-  @IsOptional() @IsBoolean() telegramEnabled?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  telegramEnabled?: boolean;
 
   @ApiProperty({ example: true, required: false })
-  @IsOptional() @IsBoolean() inAppEnabled?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  inAppEnabled?: boolean;
 
   @ApiProperty({ example: false, required: false })
-  @IsOptional() @IsBoolean() pushEnabled?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  pushEnabled?: boolean;
 
   @ApiProperty({ example: false, required: false })
-  @IsOptional() @IsBoolean() smsEnabled?: boolean;
+  @IsOptional()
+  @IsBoolean()
+  smsEnabled?: boolean;
 
   @ApiProperty({ example: 'en', required: false })
-  @IsOptional() @IsString() @IsIn(['en', 'am']) language?: string;
+  @IsOptional()
+  @IsString()
+  @IsIn(['en', 'am'])
+  language?: string;
 }
 
 export class CreateCompanyDto {

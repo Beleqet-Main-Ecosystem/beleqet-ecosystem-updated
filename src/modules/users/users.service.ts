@@ -1,7 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UpdateUserDto, CreateCompanyDto, UpdateNotificationPreferenceDto } from './dto/update-user.dto';
+import {
+  UpdateUserDto,
+  CreateCompanyDto,
+  UpdateNotificationPreferenceDto,
+} from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {

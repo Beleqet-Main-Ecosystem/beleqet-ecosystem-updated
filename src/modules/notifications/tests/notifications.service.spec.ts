@@ -343,7 +343,10 @@ describe('NotificationsService', () => {
     it('should enqueue in-app, email, and Telegram for each active user', async () => {
       prismaMock.user.findMany.mockResolvedValue(activeUsers);
 
-      const count = await service.sendSystemAlert('ADMIN_ANNOUNCEMENT', 'System maintenance tonight');
+      const count = await service.sendSystemAlert(
+        'ADMIN_ANNOUNCEMENT',
+        'System maintenance tonight',
+      );
 
       expect(count).toBe(2);
       expect(queueMock.add).toHaveBeenCalled();

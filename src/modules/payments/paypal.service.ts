@@ -81,7 +81,9 @@ export class PaypalService {
 
     const createPaymentJson: paypal.Payment = {
       intent: (dto.intent ?? PaypalOrderIntent.CAPTURE).toLowerCase() as
-        'sale' | 'authorize' | 'order',
+        | 'sale'
+        | 'authorize'
+        | 'order',
       payer: { payment_method: 'paypal' },
       redirect_urls: {
         return_url: returnUrl,
