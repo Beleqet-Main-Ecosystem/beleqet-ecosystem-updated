@@ -4,9 +4,9 @@ import { randomUUID } from 'crypto';
 import request = require('supertest');
 import { CurrentUserPayload } from '../src/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
-import { UserPreferencesController } from '../src/modules/admin/user-preferences/user-preferences.controller';
-import { UserPreferencesRepository } from '../src/modules/admin/user-preferences/user-preferences.repository';
-import { UserPreferencesService } from '../src/modules/admin/user-preferences/user-preferences.service';
+import { UserPreferencesController } from '../src/modules/user-preferences/user-preferences.controller';
+import { UserPreferencesRepository } from '../src/modules/user-preferences/user-preferences.repository';
+import { UserPreferencesService } from '../src/modules/user-preferences/user-preferences.service';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -41,7 +41,9 @@ describe('Performance Gauge theme API and PostgreSQL persistence', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    );
     await app.init();
     prisma = moduleFixture.get(PrismaService);
     user = await prisma.user.create({
@@ -66,7 +68,9 @@ describe('Performance Gauge theme API and PostgreSQL persistence', () => {
       .expect(200)
       .expect({ theme: 'DARK' });
 
-    await expect(prisma.userPreference.findUnique({ where: { userId: user.id } })).resolves.toMatchObject({
+    await expect(
+      prisma.userPreference.findUnique({ where: { userId: user.id } }),
+    ).resolves.toMatchObject({
       theme: 'DARK',
     });
 
