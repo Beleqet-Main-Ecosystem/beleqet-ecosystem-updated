@@ -7,7 +7,7 @@
 # =============================================================================
 
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine3.21 AS builder
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ COPY . .
 RUN npm run build
 
 # ── Prune stage: production-only node_modules + generated Prisma client ──────
-FROM node:20-alpine AS pruner
+FROM node:22-alpine3.21 AS pruner
 
 WORKDIR /app
 
@@ -36,7 +36,7 @@ COPY prisma ./prisma/
 RUN npm ci --omit=dev && npx prisma generate
 
 # ── Production stage ─────────────────────────────────────────────────────────
-FROM node:20-alpine
+FROM node:22-alpine3.21
 
 WORKDIR /app
 
