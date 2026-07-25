@@ -43,6 +43,7 @@ describe('GraphQL API (e2e)', () => {
       .send({ query })
       .expect(200)
       .expect((res) => {
+        if (res.body.errors) console.error(JSON.stringify(res.body.errors, null, 2));
         expect(res.body.data).toBeDefined();
         expect(res.body.data.jobs).toBeDefined();
         expect(Array.isArray(res.body.data.jobs.items)).toBeTruthy();
@@ -78,7 +79,7 @@ describe('GraphQL API (e2e)', () => {
       .send({ query: overlyNestedQuery })
       .expect(400) // GraphQL depth-limit correctly blocks it
       .expect((res) => {
-        expect(res.body.errors[0].message).toContain('exceeds maximum depth of 5');
+        expect(res.body.errors[0].message).toContain('exceeds maximum operation depth of 5');
       });
   });
 });

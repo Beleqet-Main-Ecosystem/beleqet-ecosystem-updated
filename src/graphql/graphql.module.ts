@@ -14,7 +14,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
       sortSchema: true,
       path: '/api/v1/graphql', // Explicitly bind to the global prefix route
       playground: false, // Disable legacy playground
-      plugins: [ApolloServerPluginLandingPageLocalDefault()], // Enable modern Apollo Sandbox
+      plugins: [ApolloServerPluginLandingPageLocalDefault() as any], // Enable modern Apollo Sandbox
       introspection: true,
       validationRules: [depthLimit(5)], // Protect against deeply nested queries
       context: ({ req, res }: { req: any; res: any }) => ({ req, res }), // Pass request object down for auth guards

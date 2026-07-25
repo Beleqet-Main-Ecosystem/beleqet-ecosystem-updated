@@ -6,15 +6,24 @@
   "transform": {
     "^.+\\.(t|j)sx?$": "ts-jest"
 <<<<<<< HEAD
+<<<<<<< HEAD
   },
   "transformIgnorePatterns": [
     "/node_modules/(?!@scure|otplib)/"
+=======
+  },
+  "transformIgnorePatterns": [
+    "/node_modules/(?!(@scure|otplib|@otplib|@noble)/)"
+>>>>>>> 5da82d4 (fix(ci): fix throttler guard crashing on graphql requests)
   ],
   "moduleNameMapper": {
     "^@common/(.*)$": "<rootDir>/src/common/$1",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@prisma-client$": "<rootDir>/src/prisma/prisma.service"
+<<<<<<< HEAD
 =======
 >>>>>>> c47ff25 (fix(ci): resolve prettier and formatting errors)
+=======
+>>>>>>> 5da82d4 (fix(ci): fix throttler guard crashing on graphql requests)
   }
 }
