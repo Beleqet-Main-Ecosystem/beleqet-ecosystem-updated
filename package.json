@@ -32,6 +32,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1075.0",
     "@aws-sdk/s3-request-presigner": "^3.1075.0",
+    "@nestjs-modules/mailer": "^2.3.7",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^10.4.1",
     "@nestjs/config": "^3.2.3",
@@ -51,12 +52,13 @@
     "@socket.io/redis-adapter": "^8.3.0",
     "@xenova/transformers": "^2.17.2",
     "bcryptjs": "^2.4.3",
-    "bullmq": "^5.13.2",
+    "bullmq": "^5.81.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "connect-redis": "^9.0.0",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "handlebars": "^4.7.9",
     "helmet": "^7.1.0",
     "ioredis": "^5.4.1",
     "mammoth": "^1.12.0",
@@ -146,5 +148,15 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "allowScripts": {
+    "@nestjs/core@10.4.22": true,
+    "@prisma/client@5.22.0": true,
+    "prisma@5.22.0": true,
+    "sharp@0.32.6": true,
+    "sharp@0.35.3": true,
+    "esbuild@0.25.12": true,
+    "msgpackr-extract@3.0.4": true,
+    "@prisma/engines@5.22.0": true
   }
 }

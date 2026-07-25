@@ -54,6 +54,7 @@ services:
       - STRIPE_SECRET_KEY=dummy
       - STRIPE_WEBHOOK_SECRET=dummy
       - BILLING_WEBHOOK_SECRET=dummy
+      - UNSUBSCRIBE_SECRET=docker_default_unsubscribe_secret_please_change_in_production
     depends_on:
       - db
       - redis
@@ -67,7 +68,7 @@ services:
     container_name: beleqet-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
     depends_on:
@@ -82,7 +83,7 @@ services:
     container_name: beleqet-jobs-frontend
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - '3001:3001'
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
     depends_on:
