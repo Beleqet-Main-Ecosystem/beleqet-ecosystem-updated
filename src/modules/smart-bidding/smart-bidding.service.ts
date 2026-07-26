@@ -77,8 +77,7 @@ export class SmartBiddingService {
       estimatedTimelineDays: job.deadlineDays,
       explanationEn:
         'Calculation based on platform historical category averages and freelance job parameters.',
-      explanationAm:
-        'ስሌቱ የተከናወነው በታሪካዊ የዘርፍ አማካዮች እና በፍሪላንስ ስራው መለኪያዎች ላይ በመመስረት ነው።',
+      explanationAm: 'ስሌቱ የተከናወነው በታሪካዊ የዘርፍ አማካዮች እና በፍሪላንስ ስራው መለኪያዎች ላይ በመመስረት ነው።',
       aiModelUsed: 'none (fallback heuristic)',
       isAiProcessed: false,
     });

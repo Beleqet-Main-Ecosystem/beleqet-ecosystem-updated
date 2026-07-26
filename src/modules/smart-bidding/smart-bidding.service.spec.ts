@@ -204,9 +204,9 @@ describe('SmartBiddingService', () => {
       expect(prismaMock.contract.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            currency: mockJob.currency,         // direct field on Contract
+            currency: mockJob.currency, // direct field on Contract
             freelanceJob: expect.objectContaining({
-              categoryId: mockJob.categoryId,   // category still via relation
+              categoryId: mockJob.categoryId, // category still via relation
             }),
           }),
         }),
@@ -320,7 +320,7 @@ describe('SmartBiddingService', () => {
     it('should cache a heuristic fallback with a short 300s TTL', async () => {
       // All cache misses; lock acquired (NX returns OK)
       redisMock.get.mockResolvedValue(null);
-      redisMock.set.mockImplementation((...args: any[]) => {
+      redisMock.set.mockImplementation((..._args: any[]) => {
         // Return OK for both NX lock set and the complexity cache set
         return Promise.resolve('OK');
       });
