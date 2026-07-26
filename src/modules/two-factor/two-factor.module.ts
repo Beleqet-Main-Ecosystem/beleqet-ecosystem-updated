@@ -11,6 +11,7 @@ import { EncryptionService } from './encryption.service';
 import { BackupCodeService } from './backup-code.service';
 import { TwoFactorProcessor } from './two-factor.processor';
 import { StepUpGuard } from './guards/step-up.guard';
+import { EncryptionModule } from '../../common/encryption/encryption.module';
 
 @Global()
 @Module({
@@ -18,6 +19,7 @@ import { StepUpGuard } from './guards/step-up.guard';
     forwardRef(() => AuthModule),
     RedisModule,
     QueuesModule,
+    EncryptionModule,
     // ── Register the Feature Queue Name for BullMQ ─────────────────────
     BullModule.registerQueue({
       name: 'two-factor',
@@ -33,11 +35,11 @@ import { StepUpGuard } from './guards/step-up.guard';
   controllers: [TwoFactorController],
   providers: [
     TwoFactorService,
-    EncryptionService,
+    // EncryptionService,
     BackupCodeService,
     TwoFactorProcessor,
     StepUpGuard,
   ],
   exports: [TwoFactorService, EncryptionService, StepUpGuard, JwtModule, BullModule],
 })
-export class TwoFactorModule {}
+export class TwoFactorModule { }

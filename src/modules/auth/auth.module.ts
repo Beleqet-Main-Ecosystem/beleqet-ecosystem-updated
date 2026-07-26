@@ -29,6 +29,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './auth.controller';
 import { AuthExceptionFilter } from './filters/auth-exception.filter';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
+import { EncryptionService } from '../../common/encryption/encryption.service';
 
 @Module({
   imports: [
@@ -58,11 +59,11 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
       inject: [AUTH_ENV_CONFIG],
     },
     AuthService,
-    TokenEncryptionService,
+    EncryptionService,
     AccountRepository,
     {
       provide: TOKEN_CIPHER,
-      useExisting: TokenEncryptionService,
+      useExisting: EncryptionService,
     },
     {
       provide: ACCOUNT_REPOSITORY,

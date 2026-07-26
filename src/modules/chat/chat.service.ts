@@ -64,17 +64,32 @@ export class ChatService {
     }
     const encryptedContent = this.encryptionService.encrypt(content);
 
-    return this.prisma.message.create({
+    const savedMessage = await this.prisma.message.create({
       data: {
         roomId,
         senderId,
         content: encryptedContent,
-        metadata
+        metadata,
       },
       include: {
-        sender: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true } }
-      }
+        sender: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+            role: true,
+          },
+        },
+      },
     });
+
+    // Never broadcast ciphertext.
+    // Database stays encrypted.
+    return {
+      ...savedMessage,
+      content,
+    };
   }
 
   /**
@@ -129,3 +144,4 @@ export class ChatService {
     });
   }
 }
+
