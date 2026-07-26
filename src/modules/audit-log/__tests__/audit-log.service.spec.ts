@@ -4,7 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 describe('AuditLogService', () => {
   let service: AuditLogService;
-  let prismaService: any;
+  let prismaService: PrismaService;
 
   const mockPrismaService = {
     auditLog: {
@@ -46,12 +46,14 @@ describe('AuditLogService', () => {
         newState: { id: 'usr-123', email: 'john.doe@example.com', phone: '+1234567890' },
       };
 
-      mockPrismaService.auditLog.create.mockImplementation(({ data }) => Promise.resolve({ id: 'log-1', ...data }));
+      mockPrismaService.auditLog.create.mockImplementation(({ data }) =>
+        Promise.resolve({ id: 'log-1', ...data }),
+      );
 
       const result = await service.createLog(inputDto);
 
       expect(prismaService.auditLog.create).toHaveBeenCalledTimes(1);
-      const callArg = prismaService.auditLog.create.mock.calls[0][0].data;
+      const callArg = (prismaService.auditLog.create as jest.Mock).mock.calls[0][0].data;
 
       // Sensitive password must be redacted
       expect(callArg.previousState.password).toBe('[REDACTED]');
@@ -69,11 +71,13 @@ describe('AuditLogService', () => {
         newState: { title: 'Developer', salaryMin: 50000, salaryMax: 90000, currency: 'ETB' },
       };
 
-      mockPrismaService.auditLog.create.mockImplementation(({ data }) => Promise.resolve({ id: 'log-2', ...data }));
+      mockPrismaService.auditLog.create.mockImplementation(({ data }) =>
+        Promise.resolve({ id: 'log-2', ...data }),
+      );
 
       await service.createLog(financialDto);
 
-      const callArg = prismaService.auditLog.create.mock.calls[0][0].data;
+      const callArg = (prismaService.auditLog.create as jest.Mock).mock.calls[0][0].data;
       expect(callArg.newState.currency).toBe('ETB');
       expect(callArg.newState._currencyComplianceWarning).toBeUndefined();
     });
@@ -86,11 +90,13 @@ describe('AuditLogService', () => {
         newState: { title: 'Developer', salaryMin: 50000, salaryMax: 90000 },
       };
 
-      mockPrismaService.auditLog.create.mockImplementation(({ data }) => Promise.resolve({ id: 'log-3', ...data }));
+      mockPrismaService.auditLog.create.mockImplementation(({ data }) =>
+        Promise.resolve({ id: 'log-3', ...data }),
+      );
 
       await service.createLog(invalidFinancialDto);
 
-      const callArg = prismaService.auditLog.create.mock.calls[0][0].data;
+      const callArg = (prismaService.auditLog.create as jest.Mock).mock.calls[0][0].data;
       expect(callArg.newState._currencyComplianceWarning).toBeDefined();
     });
   });

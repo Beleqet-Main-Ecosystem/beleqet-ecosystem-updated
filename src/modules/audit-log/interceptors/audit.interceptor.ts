@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -25,12 +19,14 @@ export class AuditInterceptor implements NestInterceptor {
     private readonly auditLogService: AuditLogService,
   ) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== 'http') {
       return next.handle();
     }
 
-    const request = context.switchToHttp().getRequest<Request & { user?: { id?: string; sub?: string } }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: { id?: string; sub?: string } }>();
     const { method, url, body, headers } = request;
 
     // Check for custom @AuditAction decorator metadata
@@ -40,7 +36,9 @@ export class AuditInterceptor implements NestInterceptor {
     );
 
     const action = auditMetadata ? auditMetadata.action : `${method} ${url.split('?')[0]}`;
-    const entity = auditMetadata ? auditMetadata.entity : (url.split('/')[3] || 'System').toUpperCase();
+    const entity = auditMetadata
+      ? auditMetadata.entity
+      : (url.split('/')[3] || 'System').toUpperCase();
 
     const userId = request.user?.id || request.user?.sub || null;
     const ipAddress = (headers['x-forwarded-for'] as string) || request.ip || '127.0.0.1';
@@ -51,7 +49,7 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap({
-        next: (responseData: any) => {
+        next: (responseData: unknown) => {
           // Asynchronously record audit log without blocking HTTP response
           this.auditLogService
             .createLog({
@@ -59,8 +57,12 @@ export class AuditInterceptor implements NestInterceptor {
               action,
               entity,
               entityId,
-              previousState: body && typeof body === 'object' ? body : undefined,
-              newState: responseData && typeof responseData === 'object' ? responseData : undefined,
+              previousState:
+                body && typeof body === 'object' ? (body as Record<string, unknown>) : undefined,
+              newState:
+                responseData && typeof responseData === 'object'
+                  ? (responseData as Record<string, unknown>)
+                  : undefined,
               ipAddress,
               userAgent,
             })
