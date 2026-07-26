@@ -1,9 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { ResumeValidatorService } from './resume-validator.service';
-import {
-  EMPTY_EXTRACTED_RESUME,
-  ExtractedResume,
-} from './dto/extracted-resume.dto';
+import { EMPTY_EXTRACTED_RESUME, ExtractedResume } from './dto/extracted-resume.dto';
 
 const validResume = (over: Partial<ExtractedResume> = {}): ExtractedResume => ({
   ...EMPTY_EXTRACTED_RESUME,
@@ -35,15 +32,13 @@ describe('ResumeValidatorService', () => {
   });
 
   it('rejects an empty / non-resume result with 400 (the "hello world" case)', () => {
-    expect(() => service.validate({ ...EMPTY_EXTRACTED_RESUME })).toThrow(
-      BadRequestException,
-    );
+    expect(() => service.validate({ ...EMPTY_EXTRACTED_RESUME })).toThrow(BadRequestException);
   });
 
   it('rejects a malformed email with 400', () => {
-    expect(() =>
-      service.validate(validResume({ email: 'not-an-email' })),
-    ).toThrow(BadRequestException);
+    expect(() => service.validate(validResume({ email: 'not-an-email' }))).toThrow(
+      BadRequestException,
+    );
   });
 
   it('includes field-level messages in the 400 body', () => {
@@ -60,9 +55,9 @@ describe('ResumeValidatorService', () => {
   });
 
   it('rejects an over-long field with 400', () => {
-    expect(() =>
-      service.validate(validResume({ summary: 'x'.repeat(5001) })),
-    ).toThrow(BadRequestException);
+    expect(() => service.validate(validResume({ summary: 'x'.repeat(5001) }))).toThrow(
+      BadRequestException,
+    );
   });
 
   it('validates nested experience entries', () => {

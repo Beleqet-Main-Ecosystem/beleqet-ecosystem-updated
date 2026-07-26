@@ -4,7 +4,7 @@ import { NgramService } from './ngram.service';
 describe('NgramService', () => {
   let module: TestingModule;
   let service: NgramService;
- 
+
   beforeEach(async () => {
     module = await Test.createTestingModule({
       providers: [NgramService],
@@ -12,7 +12,7 @@ describe('NgramService', () => {
 
     service = module.get<NgramService>(NgramService);
   });
- 
+
   afterEach(async () => {
     await module?.close();
   });

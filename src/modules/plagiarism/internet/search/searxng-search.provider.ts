@@ -15,7 +15,10 @@ export class SearxngSearchProvider implements ISearchProvider {
   /**
    * Searches via a self-hosted SearXNG instance.
    */
-  async search(query: string, maxResults: number): Promise<{ title: string; url: string; snippet?: string }[]> {
+  async search(
+    query: string,
+    maxResults: number,
+  ): Promise<{ title: string; url: string; snippet?: string }[]> {
     if (!this.config.searxngUrl) {
       this.logger.warn('SEARXNG_URL not configured — skipping SearXNG search');
       return [];

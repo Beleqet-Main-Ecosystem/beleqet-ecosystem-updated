@@ -24,7 +24,10 @@ export class WebSearchService {
   /**
    * Executes a web search using the configured provider with fallback.
    */
-  async search(query: string, maxResults?: number): Promise<{ title: string; url: string; snippet?: string }[]> {
+  async search(
+    query: string,
+    maxResults?: number,
+  ): Promise<{ title: string; url: string; snippet?: string }[]> {
     const limit = maxResults ?? this.config.maxWebResults;
     const provider = this.resolveProvider();
 

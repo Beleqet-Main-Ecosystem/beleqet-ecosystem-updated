@@ -36,8 +36,8 @@ export class HistoryService {
       take: limit,
     });
 
-    return records.map((record: { payload: unknown }) =>
-      record.payload as unknown as PlagiarismCheckResult,
+    return records.map(
+      (record: { payload: unknown }) => record.payload as unknown as PlagiarismCheckResult,
     );
   }
 

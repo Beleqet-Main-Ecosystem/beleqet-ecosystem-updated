@@ -48,9 +48,7 @@ export class ProfileMapperService {
     if (bio) out.bio = bio;
     if (location) out.location = location;
 
-    const skills = (resume.skills ?? [])
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    const skills = (resume.skills ?? []).map((s) => s.trim()).filter((s) => s.length > 0);
     if (skills.length > 0) out.skills = skills;
 
     return out;

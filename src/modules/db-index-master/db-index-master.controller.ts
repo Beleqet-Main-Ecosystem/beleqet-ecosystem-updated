@@ -13,22 +13,8 @@
  *   GET  /tables/seq-scans  — Tables with heavy sequential scans
  *   GET  /report            — Full health report with suggestions
  */
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  UseGuards,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-} from '@nestjs/swagger';
+import { Controller, Get, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { DbIndexMasterService } from './db-index-master.service';
 import { ExplainQueryDto } from './dto/explain-query.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';

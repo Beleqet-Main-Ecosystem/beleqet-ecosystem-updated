@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { AlgorithmScores, ComparisonResult, MatchedPhrase, SimilarityWeights } from '../types/plagiarism.types';
+import {
+  AlgorithmScores,
+  ComparisonResult,
+  MatchedPhrase,
+  SimilarityWeights,
+} from '../types/plagiarism.types';
 import { roundScore } from '../utils/math.utils';
 import { PlagiarismConfig } from '../utils/plagiarism.config';
 import { CosineService } from './cosine.service';
@@ -17,7 +22,10 @@ export class ScoreAggregatorService {
   /**
    * Computes weighted aggregate score from individual algorithm scores.
    */
-  aggregate(scores: AlgorithmScores, weights: SimilarityWeights = this.config.similarityWeights): number {
+  aggregate(
+    scores: AlgorithmScores,
+    weights: SimilarityWeights = this.config.similarityWeights,
+  ): number {
     const weighted =
       scores.jaccard * weights.jaccard +
       scores.cosine * weights.cosine +

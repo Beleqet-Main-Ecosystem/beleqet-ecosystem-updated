@@ -39,9 +39,7 @@ export class TwoFactorService {
     this.issuer = config.get<string>('TOTP_ISSUER', 'Beleqet');
     const ts = config.get<string>('TOTP_TEMP_SECRET');
     if (!ts) {
-      throw new Error(
-        'TOTP_TEMP_SECRET is required. Set it in your environment variables.',
-      );
+      throw new Error('TOTP_TEMP_SECRET is required. Set it in your environment variables.');
     }
     this.tempSecret = ts;
   }
@@ -222,7 +220,12 @@ export class TwoFactorService {
    *  On success, returns a short-lived step-up JWT with a `2fa_verified_at` claim.
    *  If an action scope was requested in the challenge, it is carried into the
    *  verified token so that StepUpGuard can enforce action-level authorization. */
-  async verifyStepUp(userId: string, code: string, action?: string, resourceId?: string): Promise<string> {
+  async verifyStepUp(
+    userId: string,
+    code: string,
+    action?: string,
+    resourceId?: string,
+  ): Promise<string> {
     const record = await this.prisma.userTwoFactor.findUnique({
       where: { userId },
     });
@@ -257,9 +260,10 @@ export class TwoFactorService {
     if (action) tokenClaims.action = action;
     if (resourceId) tokenClaims.resourceId = resourceId;
 
-    const stepUpToken = this.jwt.sign(tokenClaims,
-      { secret: this.tempSecret, expiresIn: STEP_UP_VERIFIED_EXPIRY },
-    );
+    const stepUpToken = this.jwt.sign(tokenClaims, {
+      secret: this.tempSecret,
+      expiresIn: STEP_UP_VERIFIED_EXPIRY,
+    });
 
     return stepUpToken;
   }
@@ -289,7 +293,9 @@ export class TwoFactorService {
       data: { usedAt: new Date() },
     });
 
-    const remaining = record.backupCodes.filter((bc) => bc.id !== matchingCode.id && !bc.usedAt).length;
+    const remaining = record.backupCodes.filter(
+      (bc) => bc.id !== matchingCode.id && !bc.usedAt,
+    ).length;
     return remaining;
   }
 

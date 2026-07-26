@@ -288,6 +288,60 @@ async function main() {
   );
   console.log('✅ Demo jobs created');
 
+  // ── Subscription Plans ─────────────────────────────────────────────────────
+  await Promise.all([
+    prisma.plan.upsert({
+      where: { name: 'Free' },
+      update: {},
+      create: {
+        name: 'Free',
+        description: 'Get started with the basics — no cost, no card required.',
+        priceAmount: 0,
+        currency: 'ETB',
+        interval: 'MONTHLY',
+        features: { maxJobPosts: 1, maxFreelanceBids: 3, support: 'community' },
+        isActive: true,
+      },
+    }),
+    prisma.plan.upsert({
+      where: { name: 'Pro' },
+      update: {},
+      create: {
+        name: 'Pro',
+        description: 'For active job seekers and freelancers who want priority visibility.',
+        priceAmount: 99900,
+        currency: 'ETB',
+        interval: 'MONTHLY',
+        features: { maxJobPosts: 10, maxFreelanceBids: 50, support: 'email', featuredListing: true },
+        isActive: true,
+        // Set to a real PayPal billing plan id (created on the PayPal dashboard)
+        // before this plan is checkout-able — see PlansController PATCH /plans/:id.
+        paypalPlanId: null,
+      },
+    }),
+    prisma.plan.upsert({
+      where: { name: 'Enterprise' },
+      update: {},
+      create: {
+        name: 'Enterprise',
+        description: 'For companies hiring at scale, with dedicated support.',
+        priceAmount: 499900,
+        currency: 'ETB',
+        interval: 'MONTHLY',
+        features: {
+          maxJobPosts: -1,
+          maxFreelanceBids: -1,
+          support: 'dedicated',
+          featuredListing: true,
+          apiAccess: true,
+        },
+        isActive: true,
+        paypalPlanId: null,
+      },
+    }),
+  ]);
+  console.log('✅ Subscription plans created (Free/Pro/Enterprise)');
+
   console.log('\n🎉 Database seeded successfully with Production Categories!');
 }
 

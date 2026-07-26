@@ -1,10 +1,4 @@
-import {
-  HttpException,
-  HttpStatus,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.module';
@@ -51,9 +45,7 @@ export class AiBudgetService {
     try {
       [requests, tokens] = await this.readCounters(userId);
     } catch (err) {
-      this.logger.warn(
-        `AI budget check skipped (Redis unavailable): ${(err as Error).message}`,
-      );
+      this.logger.warn(`AI budget check skipped (Redis unavailable): ${(err as Error).message}`);
       return; // fail-open
     }
 
@@ -95,9 +87,7 @@ export class AiBudgetService {
         await this.incrementWithWindow(this.tokenKey(userId), tokens, window);
       }
     } catch (err) {
-      this.logger.warn(
-        `Failed to record AI usage for user ${userId}: ${(err as Error).message}`,
-      );
+      this.logger.warn(`Failed to record AI usage for user ${userId}: ${(err as Error).message}`);
     }
   }
 
@@ -107,11 +97,7 @@ export class AiBudgetService {
    * (fresh key, or a leftover from a previous crash between incr and expire),
    * the TTL is applied so the daily window always resets.
    */
-  private async incrementWithWindow(
-    key: string,
-    by: number,
-    window: number,
-  ): Promise<void> {
+  private async incrementWithWindow(key: string, by: number, window: number): Promise<void> {
     const pipeline = this.redis.pipeline();
     if (by === 1) {
       pipeline.incr(key);
@@ -135,10 +121,7 @@ export class AiBudgetService {
   // ── Internals ───────────────────────────────────────────────────────────────
 
   private async readCounters(userId: string): Promise<[number, number]> {
-    const [req, tok] = await this.redis.mget(
-      this.requestKey(userId),
-      this.tokenKey(userId),
-    );
+    const [req, tok] = await this.redis.mget(this.requestKey(userId), this.tokenKey(userId));
     return [this.toCount(req), this.toCount(tok)];
   }
 
@@ -149,14 +132,8 @@ export class AiBudgetService {
 
   private limits(): { requestBudget: number; tokenBudget: number } {
     return {
-      requestBudget: this.config.get<number>(
-        'RESUME_AI_DAILY_REQUEST_BUDGET',
-        50,
-      ),
-      tokenBudget: this.config.get<number>(
-        'RESUME_AI_DAILY_TOKEN_BUDGET',
-        100_000,
-      ),
+      requestBudget: this.config.get<number>('RESUME_AI_DAILY_REQUEST_BUDGET', 50),
+      tokenBudget: this.config.get<number>('RESUME_AI_DAILY_TOKEN_BUDGET', 100_000),
     };
   }
 

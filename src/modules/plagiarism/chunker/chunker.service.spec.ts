@@ -6,7 +6,7 @@ import { PlagiarismConfig } from '../utils/plagiarism.config';
 describe('ChunkerService', () => {
   let module: TestingModule;
   let chunker: ChunkerService;
- 
+
   beforeEach(async () => {
     module = await Test.createTestingModule({
       providers: [
@@ -15,23 +15,26 @@ describe('ChunkerService', () => {
         { provide: ConfigService, useValue: { get: jest.fn() } },
       ],
     }).compile();
- 
+
     chunker = module.get<ChunkerService>(ChunkerService);
   });
- 
+
   afterEach(async () => {
     await module?.close();
   });
 
   it('splits text into paragraphs', () => {
-    const text = 'First paragraph with enough content here.\n\nSecond paragraph with different content.';
+    const text =
+      'First paragraph with enough content here.\n\nSecond paragraph with different content.';
     const chunks = chunker.chunk(text);
     expect(chunks.length).toBe(2);
     expect(chunks[0].type).toBe('paragraph');
   });
 
   it('splits large paragraphs into sentences', () => {
-    const longSentence = 'This is a sentence that forms part of a very large paragraph. '.repeat(20);
+    const longSentence = 'This is a sentence that forms part of a very large paragraph. '.repeat(
+      20,
+    );
     const chunks = chunker.chunk(longSentence);
     expect(chunks.length).toBeGreaterThan(1);
     expect(chunks.some((c) => c.type === 'sentence')).toBe(true);

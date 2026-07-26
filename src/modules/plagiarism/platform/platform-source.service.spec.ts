@@ -7,9 +7,13 @@ import { PrismaService } from '../../../prisma/prisma.service';
 describe('PlatformSourceService', () => {
   let module: TestingModule;
   let service: PlatformSourceService;
- 
+
   const mockPrisma = {
-    job: { findMany: jest.fn().mockResolvedValue([{ id: 'j1', title: 'Dev', description: 'Code', requirements: 'TS' }]) },
+    job: {
+      findMany: jest
+        .fn()
+        .mockResolvedValue([{ id: 'j1', title: 'Dev', description: 'Code', requirements: 'TS' }]),
+    },
     freelanceJob: { findMany: jest.fn().mockResolvedValue([]) },
     application: { findMany: jest.fn().mockResolvedValue([]) },
     bid: { findMany: jest.fn().mockResolvedValue([]) },
@@ -27,10 +31,10 @@ describe('PlatformSourceService', () => {
         { provide: PrismaService, useValue: mockPrisma },
       ],
     }).compile();
- 
+
     service = module.get<PlatformSourceService>(PlatformSourceService);
   });
- 
+
   afterEach(async () => {
     await module?.close();
   });

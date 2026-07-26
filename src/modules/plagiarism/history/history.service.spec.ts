@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { HistoryService } from './history.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -17,15 +16,12 @@ describe('HistoryService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     moduleRef = await Test.createTestingModule({
-      providers: [
-        HistoryService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [HistoryService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
- 
+
     historyService = moduleRef.get<HistoryService>(HistoryService);
   });
- 
+
   afterEach(async () => {
     await moduleRef?.close();
   });

@@ -46,7 +46,8 @@ export class CheckPlagiarismDto {
   excludeEntityId?: string;
 
   @ApiPropertyOptional({
-    description: 'Public URLs to compare against (optional legacy support; web search is automatic)',
+    description:
+      'Public URLs to compare against (optional legacy support; web search is automatic)',
     type: [String],
   })
   @IsOptional()

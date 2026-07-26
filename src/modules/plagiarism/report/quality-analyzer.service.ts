@@ -8,9 +8,23 @@ const MIN_WORDS_COMPLETE = 50;
 
 /** Professional vocabulary indicators. */
 const PROFESSIONAL_TERMS = new Set([
-  'experience', 'professional', 'skills', 'responsible', 'develop', 'manage',
-  'implement', 'deliver', 'collaborate', 'leadership', 'strategy', 'analysis',
-  'requirements', 'qualifications', 'proficient', 'expertise', 'demonstrated',
+  'experience',
+  'professional',
+  'skills',
+  'responsible',
+  'develop',
+  'manage',
+  'implement',
+  'deliver',
+  'collaborate',
+  'leadership',
+  'strategy',
+  'analysis',
+  'requirements',
+  'qualifications',
+  'proficient',
+  'expertise',
+  'demonstrated',
 ]);
 
 /**

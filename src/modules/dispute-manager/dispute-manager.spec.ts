@@ -10,7 +10,6 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 describe('DisputeManagerService', () => {
   let service: DisputeManagerService;
   let prismaService: jest.Mocked<PrismaService>;
-  let i18nService: jest.Mocked<I18nService>;
 
   beforeEach(async () => {
     const prismaMock = {
@@ -40,7 +39,6 @@ describe('DisputeManagerService', () => {
 
     service = module.get<DisputeManagerService>(DisputeManagerService);
     prismaService = module.get(PrismaService);
-    i18nService = module.get(I18nService);
   });
 
   it('should be defined', () => {
@@ -52,7 +50,7 @@ describe('DisputeManagerService', () => {
       (prismaService.contract.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        service.createDispute('user-id', { contractId: 'c-id', reason: 'r', evidenceUrls: [] })
+        service.createDispute('user-id', { contractId: 'c-id', reason: 'r', evidenceUrls: [] }),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -64,7 +62,11 @@ describe('DisputeManagerService', () => {
       });
 
       await expect(
-        service.createDispute('unauthorized-user', { contractId: 'c-id', reason: 'r', evidenceUrls: [] })
+        service.createDispute('unauthorized-user', {
+          contractId: 'c-id',
+          reason: 'r',
+          evidenceUrls: [],
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 

@@ -6,5 +6,16 @@
     "IMMUTABLE_VIOLATION_ATTEMPT": "የማይለወጥ የኦዲት መዝገብን ለመቀየር የተደረገ ሙከራ ታግዷል።",
     "FILTER_NO_RESULTS": "ከአሁኑ ማጣሪያዎችዎ ጋር የሚዛመድ የኦዲት መዝገብ የለም።",
     "EXPORT_SUCCESS": "የኦዲት መዝገብ ወደ ውጪ መላክ በተሳካ ሁኔታ ተጠናቅቋል።"
+  },
+  "tax": {
+    "unsupportedJurisdiction": "ያልተደገፈ የግብር ክልል \"{countryCode}\". የሚደገፉት፦ ET, US።",
+    "currencyMismatch": "ምንዛሬ \"{currency}\" ከግብር ክልል \"{countryCode}\" ጋር አይጣጣምም። የሚጠበቀው፦ {expectedCurrency}።",
+    "invalidGrossIncome": "grossIncome በትንሹ የምንዛሬ አሃድ የተገለጸ ትክክለኛ ቁጥር መሆን አለበት።",
+    "calculationFailed": "የግብር ስሌት አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
+  },
+  "skillTester": {
+    "invalidPayload": "ልክ ያልሆነ የክህሎት ፈተና ግብአት፦ {details}",
+    "aiGenerationFailed": "የክህሎት ግምገማ ጥያቄዎችን ማመንጨት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+    "requestFailed": "የክህሎት ፈተና ጥያቄ አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
   }
 }

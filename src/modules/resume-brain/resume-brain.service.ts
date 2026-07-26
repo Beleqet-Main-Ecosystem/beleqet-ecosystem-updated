@@ -5,18 +5,12 @@ import {
   Logger,
 } from '@nestjs/common';
 import * as path from 'path';
-import {
-  ALLOWED_EXTENSIONS,
-  ALLOWED_MIME_TYPES,
-} from './resume-brain.constants';
+import { ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES } from './resume-brain.constants';
 import { DocumentParserService } from './document-parser.service';
 import { AIExtractorService } from './ai-extractor.service';
 import { AiBudgetService } from './ai-budget.service';
 import { ResumeValidatorService } from './resume-validator.service';
-import {
-  ProfileMapperService,
-  UserProfileUpdate,
-} from './profile-mapper.service';
+import { ProfileMapperService, UserProfileUpdate } from './profile-mapper.service';
 import { ExtractedResume } from './dto/extracted-resume.dto';
 
 /**
@@ -132,10 +126,7 @@ export class ResumeBrainService {
    * a `400`. The returned `profile` is a validated {@link ExtractedResume},
    * ready for the frontend autofill and (via the Phase 6 mapper) UserService.
    */
-  async extractProfile(
-    file?: UploadedResumeFile,
-    userId?: string,
-  ): Promise<ExtractedResumeResult> {
+  async extractProfile(file?: UploadedResumeFile, userId?: string): Promise<ExtractedResumeResult> {
     const { text, ...metadata } = await this.parseResume(file);
 
     // Cost guard: reject (429) before spending on the paid provider if the user
@@ -191,20 +182,13 @@ export class ResumeBrainService {
       );
     }
 
-    if (
-      ext === '.pdf' &&
-      buffer.toString('ascii', 0, 4) !== '%PDF'
-    ) {
-      throw new UnsupportedMediaTypeException(
-        'File content does not match the PDF format.',
-      );
+    if (ext === '.pdf' && buffer.toString('ascii', 0, 4) !== '%PDF') {
+      throw new UnsupportedMediaTypeException('File content does not match the PDF format.');
     }
 
     // .docx is a ZIP container — every one starts with the "PK" local-file header.
     if (ext === '.docx' && buffer.toString('ascii', 0, 2) !== 'PK') {
-      throw new UnsupportedMediaTypeException(
-        'File content does not match the DOCX format.',
-      );
+      throw new UnsupportedMediaTypeException('File content does not match the DOCX format.');
     }
   }
 }

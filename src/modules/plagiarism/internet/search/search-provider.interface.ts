@@ -8,5 +8,8 @@ export interface ISearchProvider {
   /**
    * Executes a web search and returns result URLs with titles.
    */
-  search(query: string, maxResults: number): Promise<{ title: string; url: string; snippet?: string }[]>;
+  search(
+    query: string,
+    maxResults: number,
+  ): Promise<{ title: string; url: string; snippet?: string }[]>;
 }

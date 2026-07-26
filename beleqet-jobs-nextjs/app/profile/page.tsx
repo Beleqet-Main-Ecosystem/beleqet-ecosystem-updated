@@ -17,6 +17,22 @@ type Profile = {
   skills?: string[] | null;
 };
 
+type Subscription = {
+  id: string;
+  status: 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED';
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  plan: { name: string; priceAmount: number; currency: string };
+};
+
+const subscriptionStatusMeta: Record<Subscription['status'], { label: string; className: string }> = {
+  PENDING: { label: 'Pending approval', className: 'text-muted' },
+  ACTIVE: { label: 'Active', className: 'text-brandGreen' },
+  PAST_DUE: { label: 'Payment failed', className: 'text-redAccent' },
+  CANCELLED: { label: 'Cancelled', className: 'text-muted' },
+  EXPIRED: { label: 'Expired', className: 'text-redAccent' },
+};
+
 const quickActionsByRole: Record<
   string,
   { label: string; href: string; icon: typeof Briefcase }[]
@@ -43,6 +59,15 @@ export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  // All hooks must be registered unconditionally, before the loading-state
+  // early return below (React rules-of-hooks).
+  const [slots, setSlots] = useState([]);
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
+  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (ready && !user) router.replace('/login');
@@ -56,20 +81,6 @@ export default function ProfilePage() {
       .catch(() => {});
   }, []);
 
-  if (!ready || !user) {
-    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
-  }
-
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
-  const role = roleMeta[user.role] ?? {
-    label: user.role,
-    className: 'bg-muted/10 text-muted',
-  };
-  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
-  const [slots, setSlots] = useState([]);
-  const [editingSlot, setEditingSlot] = useState<any | null>(null);
-  const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const loadAvailability = async () => {
     const res = await authenticatedFetch(
       `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
@@ -111,8 +122,56 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    loadAvailability();
-  }, []);
+    // Availability only loads for an authenticated user — matches the
+    // original behavior where this effect sat below the auth guard.
+    if (ready && user) loadAvailability();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, user]);
+
+  const loadSubscription = async () => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const res = await authenticatedFetch(`${base}/subscriptions/me`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setSubscription(data ?? null);
+  };
+
+  useEffect(() => {
+    if (ready && user) loadSubscription();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, user]);
+
+  const cancelSubscription = async () => {
+    if (!subscription) return;
+    try {
+      setCancelling(true);
+      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+      const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to cancel subscription');
+      await loadSubscription();
+      toast.success('Your subscription will not renew after the current period ends.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to cancel subscription.');
+    } finally {
+      setCancelling(false);
+      setCancelConfirmOpen(false);
+    }
+  };
+
+  if (!ready || !user) {
+    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
+  }
+
+  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+  const role = roleMeta[user.role] ?? {
+    label: user.role,
+    className: 'bg-muted/10 text-muted',
+  };
+  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
+
   return (
     <div className="container-page py-10">
       <div className="overflow-hidden rounded-3xl border border-border bg-white shadow-card">
@@ -212,6 +271,46 @@ export default function ProfilePage() {
       <div className="mt-8 rounded-2xl border border-border bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
           <div>
+            <h2 className="text-sm font-semibold text-ink">Subscription</h2>
+            <p className="text-sm text-muted">Your current plan and billing status.</p>
+          </div>
+          <Link href="/pricing" className="text-sm font-semibold text-brandGreen">
+            View plans
+          </Link>
+        </div>
+        {subscription ? (
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-pageBg p-4">
+            <div>
+              <p className="font-semibold text-ink">{subscription.plan.name}</p>
+              <p
+                className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}
+              >
+                {subscriptionStatusMeta[subscription.status].label}
+                {subscription.status === 'ACTIVE' &&
+                  (subscription.cancelAtPeriodEnd
+                    ? ` — ends ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`
+                    : ` — renews ${new Date(subscription.currentPeriodEnd).toLocaleDateString()}`)}
+              </p>
+            </div>
+            {subscription.status === 'ACTIVE' && !subscription.cancelAtPeriodEnd && (
+              <button
+                onClick={() => setCancelConfirmOpen(true)}
+                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-redAccent hover:bg-redAccent/10"
+              >
+                Cancel subscription
+              </button>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            You&apos;re on the Free plan. <Link href="/pricing" className="font-semibold text-brandGreen">Upgrade anytime</Link>.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-border bg-white p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
             <h2 className="text-sm font-semibold text-ink">Your Interview Availability</h2>
             <p className="text-sm text-muted">
               Add and update your available interview time slots.
@@ -236,6 +335,15 @@ export default function ProfilePage() {
         confirmLabel={deleting ? 'Deleting...' : 'Delete Slot'}
         destructive
         onConfirm={handleDelete}
+      />
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        onOpenChange={(open) => !open && setCancelConfirmOpen(false)}
+        title="Cancel your subscription?"
+        description="You'll keep access until the end of the period you already paid for. It won't renew after that."
+        confirmLabel={cancelling ? 'Cancelling...' : 'Cancel subscription'}
+        destructive
+        onConfirm={cancelSubscription}
       />
     </div>
   );

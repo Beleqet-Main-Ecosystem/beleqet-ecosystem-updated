@@ -28,14 +28,14 @@ export class InternetSourceService {
       this.logger.debug('Web search disabled — skipping internet sources');
       return [];
     }
- 
+
     const query = this.keywordExtractor.extractQuery(inputText);
     this.logger.debug(`Web search query: "${query}"`);
- 
+
     const searchResults = await this.webSearch.search(query);
     this.logger.debug(`Web search returned ${searchResults.length} results`);
     const urls = searchResults.map((r) => r.url);
- 
+
     return this.loadFromUrls(urls, searchResults);
   }
 
@@ -84,7 +84,7 @@ export class InternetSourceService {
     const resolvedAddresses = await this.validateFetchUrl(parsedUrl);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.fetchTimeoutMs);
- 
+
     try {
       const html = await this.fetchHtmlByIp(parsedUrl, resolvedAddresses[0], controller.signal);
       return this.stripHtml(html);
@@ -92,7 +92,7 @@ export class InternetSourceService {
       clearTimeout(timeout);
     }
   }
- 
+
   private async fetchHtmlByIp(parsedUrl: URL, ip: string, signal: AbortSignal): Promise<string> {
     const isHttps = parsedUrl.protocol === 'https:';
     const httpModule = isHttps ? await import('https') : await import('http');
@@ -133,7 +133,7 @@ export class InternetSourceService {
       request.end();
     });
   }
- 
+
   /**
    * Removes scripts, styles, and HTML tags from raw page content.
    */
@@ -151,38 +151,43 @@ export class InternetSourceService {
       .replace(/\s+/g, ' ')
       .trim();
   }
- 
+
   private async validateFetchUrl(parsedUrl: URL): Promise<string[]> {
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       throw new Error('Only http:// and https:// URLs are allowed for internet sources');
     }
- 
+
     const hostname = parsedUrl.hostname.toLowerCase();
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0') {
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '::1' ||
+      hostname === '0.0.0.0'
+    ) {
       throw new Error('URL points to a local or private host');
     }
- 
+
     const addresses = await lookup(hostname, { all: true });
     if (addresses.length === 0) {
       throw new Error('Unable to resolve URL hostname');
     }
- 
+
     const resolvedAddresses = addresses.map((address) => address.address);
     for (const address of resolvedAddresses) {
       if (this.isPrivateIp(address)) {
         throw new Error('URL resolves to a private or local IP address');
       }
     }
- 
+
     return resolvedAddresses;
   }
- 
+
   private isPrivateIp(ip: string): boolean {
     if (ip === '::1' || ip === '0.0.0.0') return true;
     if (ip.startsWith('::ffff:')) {
       ip = ip.substring(7);
     }
-  
+
     const version = isIP(ip);
     if (version === 4) {
       const [octet1, octet2] = ip.split('.').map(Number);
@@ -194,14 +199,14 @@ export class InternetSourceService {
         octet1 === 127
       );
     }
-  
+
     if (version === 6) {
       return ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80') || ip === '::1';
     }
-  
+
     return false;
   }
- 
+
   /**
    * Builds a readable label from a URL path.
    */

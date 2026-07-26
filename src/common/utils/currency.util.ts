@@ -46,7 +46,9 @@ export class CurrencyUtil {
    */
   static add(a: number, b: number): number {
     if (!Number.isInteger(a) || !Number.isInteger(b)) {
-      throw new Error('Addition inputs must be safe integers representing the smallest currency units.');
+      throw new Error(
+        'Addition inputs must be safe integers representing the smallest currency units.',
+      );
     }
     return a + b;
   }
@@ -62,7 +64,9 @@ export class CurrencyUtil {
    */
   static subtract(a: number, b: number): number {
     if (!Number.isInteger(a) || !Number.isInteger(b)) {
-      throw new Error('Subtraction inputs must be safe integers representing the smallest currency units.');
+      throw new Error(
+        'Subtraction inputs must be safe integers representing the smallest currency units.',
+      );
     }
     return a - b;
   }

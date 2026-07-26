@@ -1,0 +1,281 @@
+name: Deploy Staging
+
+# Automatically deploys the exact tested commit to the staging server after CI
+# succeeds for a push to main (i.e. after a pull request merges). Pull-request
+# events can NEVER reach this workflow: the only triggers are workflow_run
+# (which always executes this file from the default branch) and manual
+# dispatch. The guard logic mirrors tools/ci/deployment-policy.ts, which is
+# unit-tested in CI.
+#
+# Manual dispatch supports dry_run=true from any branch (validates and plans,
+# contacts no server); a real manual deploy is restricted to main.
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate deployment without changing staging
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# One staging deployment at a time; never cancel one mid-flight.
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Deployment guard
+    runs-on: ubuntu-latest
+    # Mirror of evaluateDeployment(): only a successful, push-triggered CI run
+    # on main — or an explicit manual dispatch — may proceed.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      dry_run: ${{ steps.resolve.outputs.dry_run }}
+    steps:
+      - name: Resolve target SHA and mode
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+          DISPATCH_REF: ${{ github.ref }}
+          DRY_RUN_INPUT: ${{ inputs.dry_run }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            sha="$RUN_SHA"
+            dry_run="false"
+          else
+            sha="$DISPATCH_SHA"
+            dry_run="$DRY_RUN_INPUT"
+            if [ "$dry_run" != "true" ] && [ "$DISPATCH_REF" != "refs/heads/main" ]; then
+              echo "::error::Real manual deployments are restricted to main (got $DISPATCH_REF)"
+              exit 1
+            fi
+          fi
+          if ! echo "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Target SHA is missing or not a full 40-character commit SHA"
+            exit 1
+          fi
+          {
+            echo "sha=$sha"
+            echo "dry_run=$dry_run"
+          } >> "$GITHUB_OUTPUT"
+          echo "Deploy target: $sha (dry_run=$dry_run)"
+
+  deploy:
+    name: Deploy to staging
+    needs: guard
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          # Deploy the exact tested commit's compose file and scripts.
+          ref: ${{ needs.guard.outputs.sha }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - name: Detect staging credentials
+        id: creds
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+          STAGING_DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+        run: |
+          if [ -n "$STAGING_HOST" ] && [ -n "$STAGING_USER" ] && \
+             [ -n "$STAGING_SSH_PRIVATE_KEY" ] && [ -n "$STAGING_KNOWN_HOSTS" ] && \
+             [ -n "$STAGING_DEPLOY_PATH" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Staging credentials are configured"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Staging credentials are NOT fully configured"
+            for name in STAGING_HOST STAGING_USER STAGING_SSH_PRIVATE_KEY \
+                        STAGING_KNOWN_HOSTS STAGING_DEPLOY_PATH; do
+              eval "value=\${$name:-}"
+              if [ -z "$value" ]; then echo "  missing secret: $name"; fi
+            done
+          fi
+
+      - name: Fail fast — real deployment requires credentials
+        if: needs.guard.outputs.dry_run == 'false' && steps.creds.outputs.available == 'false'
+        run: |
+          echo "::error::Cannot deploy: staging secrets are not configured in the 'staging' environment. See docs/STAGING_RUNBOOK.md for the required secret names."
+          exit 1
+
+      - name: Validate staging configuration (no values printed)
+        if: steps.creds.outputs.available == 'true'
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_PORT: ${{ secrets.STAGING_PORT }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+          STAGING_BACKEND_HEALTH_URL: ${{ secrets.STAGING_BACKEND_HEALTH_URL }}
+          STAGING_ADMIN_HEALTH_URL: ${{ secrets.STAGING_ADMIN_HEALTH_URL }}
+          STAGING_JOBS_HEALTH_URL: ${{ secrets.STAGING_JOBS_HEALTH_URL }}
+          STAGING_GHCR_USERNAME: ${{ secrets.STAGING_GHCR_USERNAME }}
+          STAGING_GHCR_TOKEN: ${{ secrets.STAGING_GHCR_TOKEN }}
+        run: npx ts-node --transpile-only tools/ci/environment-validator.ts staging-deploy
+
+      - name: Compute image namespace
+        id: meta
+        run: echo "namespace=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify SHA-tagged images (build in dry-run, manifest check otherwise)
+        env:
+          TARGET_SHA: ${{ needs.guard.outputs.sha }}
+          NAMESPACE: ${{ steps.meta.outputs.namespace }}
+          DRY_RUN: ${{ needs.guard.outputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            # Dry run: prove the images BUILD at this SHA without any registry
+            # or server contact.
+            docker build -t "$NAMESPACE/beleqet-backend:$TARGET_SHA" .
+            docker build -t "$NAMESPACE/beleqet-admin-frontend:$TARGET_SHA" frontend
+            docker build -t "$NAMESPACE/beleqet-jobs-frontend:$TARGET_SHA" beleqet-jobs-nextjs
+          else
+            # Real deploy: the CI run for this SHA already pushed the images;
+            # verify their manifests exist before touching the server.
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+              -u "${{ github.actor }}" --password-stdin
+            for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
+              docker manifest inspect "$NAMESPACE/$svc:$TARGET_SHA" > /dev/null
+            done
+          fi
+
+      - name: Dry-run deployment plan
+        if: needs.guard.outputs.dry_run == 'true'
+        env:
+          TARGET_SHA: ${{ needs.guard.outputs.sha }}
+          NAMESPACE: ${{ steps.meta.outputs.namespace }}
+          CREDS_AVAILABLE: ${{ steps.creds.outputs.available }}
+        run: |
+          {
+            echo "## Staging deployment plan (dry run)"
+            echo ""
+            echo "- Target SHA: \`$TARGET_SHA\`"
+            echo "- Images (built locally, not pushed):"
+            echo "  - \`$NAMESPACE/beleqet-backend:$TARGET_SHA\`"
+            echo "  - \`$NAMESPACE/beleqet-admin-frontend:$TARGET_SHA\`"
+            echo "  - \`$NAMESPACE/beleqet-jobs-frontend:$TARGET_SHA\`"
+            echo "- Staging credentials configured: $CREDS_AVAILABLE"
+            echo "- Sequence on a real run: pull images → backup DB →"
+            echo "  prisma migrate deploy → compose up → health checks →"
+            echo "  record SHA (rollback to previous SHA on failure)"
+            echo "- No server was contacted; no migrations were applied."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Dry run complete — staging was not modified."
+
+      # ── Real deployment path ────────────────────────────────────────────────
+      - name: Configure SSH (strict host-key checking)
+        if: needs.guard.outputs.dry_run == 'false'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/staging_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/staging_key ~/.ssh/known_hosts
+
+      - name: Copy deployment artifacts to staging
+        if: needs.guard.outputs.dry_run == 'false'
+        env:
+          HOST: ${{ secrets.STAGING_HOST }}
+          PORT: ${{ secrets.STAGING_PORT }}
+          USER: ${{ secrets.STAGING_USER }}
+          DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+        run: |
+          scp -i ~/.ssh/staging_key -o StrictHostKeyChecking=yes -P "${PORT:-22}" \
+            docker-compose.staging.yml \
+            "$USER@$HOST:$DEPLOY_PATH/docker-compose.staging.yml"
+          ssh -i ~/.ssh/staging_key -o StrictHostKeyChecking=yes -p "${PORT:-22}" \
+            "$USER@$HOST" "mkdir -p '$DEPLOY_PATH/scripts/deploy'"
+          scp -i ~/.ssh/staging_key -o StrictHostKeyChecking=yes -P "${PORT:-22}" \
+            scripts/deploy/deploy-staging.sh scripts/deploy/migrate.sh \
+            scripts/deploy/health-check.sh scripts/deploy/rollback.sh \
+            "$USER@$HOST:$DEPLOY_PATH/scripts/deploy/"
+
+      - name: Run remote deployment
+        if: needs.guard.outputs.dry_run == 'false'
+        env:
+          HOST: ${{ secrets.STAGING_HOST }}
+          PORT: ${{ secrets.STAGING_PORT }}
+          USER: ${{ secrets.STAGING_USER }}
+          DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+          TARGET_SHA: ${{ needs.guard.outputs.sha }}
+        run: |
+          ssh -i ~/.ssh/staging_key -o StrictHostKeyChecking=yes -p "${PORT:-22}" \
+            "$USER@$HOST" \
+            "cd '$DEPLOY_PATH' && bash scripts/deploy/deploy-staging.sh '$TARGET_SHA'"
+
+      - name: Verify staging health from the runner
+        if: needs.guard.outputs.dry_run == 'false'
+        env:
+          BACKEND_URL: ${{ secrets.STAGING_BACKEND_HEALTH_URL }}
+          ADMIN_URL: ${{ secrets.STAGING_ADMIN_HEALTH_URL }}
+          JOBS_URL: ${{ secrets.STAGING_JOBS_HEALTH_URL }}
+        run: |
+          npx ts-node --transpile-only tools/ci/health-check.ts "$BACKEND_URL" 20 5000 3000
+          npx ts-node --transpile-only tools/ci/health-check.ts "$ADMIN_URL" 20 5000 3000
+          npx ts-node --transpile-only tools/ci/health-check.ts "$JOBS_URL" 20 5000 3000
+
+      - name: Update staging alias tags (after verified success)
+        if: needs.guard.outputs.dry_run == 'false'
+        env:
+          TARGET_SHA: ${{ needs.guard.outputs.sha }}
+          NAMESPACE: ${{ steps.meta.outputs.namespace }}
+        run: |
+          for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
+            docker buildx imagetools create \
+              -t "$NAMESPACE/$svc:staging" "$NAMESPACE/$svc:$TARGET_SHA"
+          done
+
+      - name: Write deployment summary
+        if: needs.guard.outputs.dry_run == 'false' && always()
+        env:
+          TARGET_SHA: ${{ needs.guard.outputs.sha }}
+          OUTCOME: ${{ job.status }}
+        run: |
+          {
+            echo "## Staging deployment"
+            echo ""
+            echo "- Commit: \`$TARGET_SHA\`"
+            echo "- Completed (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "- Job status at summary time: $OUTCOME"
+            echo "- Migrations: prisma migrate deploy (single controlled step)"
+            echo "- Rollback: containers revert to the last recorded healthy SHA"
+            echo "  on health-check failure; the database is never auto-rolled-back."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -39,9 +39,7 @@ const AUTH_TAG_LENGTH_BYTES = 16;
  */
 @Injectable()
 export class TokenEncryptionService implements ITokenCipher {
-  constructor(
-    @Inject(TOKEN_ENCRYPTION_KEY) private readonly key: Buffer,
-  ) {
+  constructor(@Inject(TOKEN_ENCRYPTION_KEY) private readonly key: Buffer) {
     if (this.key.length !== 32) {
       // Defensive re-check: the factory provider should already guarantee
       // this via loadAuthEnvConfig, but a service handling encryption
@@ -57,10 +55,7 @@ export class TokenEncryptionService implements ITokenCipher {
     const iv = randomBytes(IV_LENGTH_BYTES);
     const cipher = createCipheriv(ALGORITHM, this.key, iv);
 
-    const ciphertext = Buffer.concat([
-      cipher.update(plaintext, 'utf8'),
-      cipher.final(),
-    ]);
+    const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const authTag = cipher.getAuthTag();
 
     return Buffer.concat([iv, authTag, ciphertext]).toString('base64');
@@ -75,10 +70,7 @@ export class TokenEncryptionService implements ITokenCipher {
     }
 
     const iv = payload.subarray(0, IV_LENGTH_BYTES);
-    const authTag = payload.subarray(
-      IV_LENGTH_BYTES,
-      IV_LENGTH_BYTES + AUTH_TAG_LENGTH_BYTES,
-    );
+    const authTag = payload.subarray(IV_LENGTH_BYTES, IV_LENGTH_BYTES + AUTH_TAG_LENGTH_BYTES);
     const encrypted = payload.subarray(IV_LENGTH_BYTES + AUTH_TAG_LENGTH_BYTES);
 
     const decipher = createDecipheriv(ALGORITHM, this.key, iv);
@@ -86,10 +78,7 @@ export class TokenEncryptionService implements ITokenCipher {
 
     // decipher.final() throws if authentication fails (tampering or
     // wrong key) — this propagates as a plain Error to the caller.
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
     return decrypted.toString('utf8');
   }

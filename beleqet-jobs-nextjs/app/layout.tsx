@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,7 +9,6 @@ import ChatWidget from "@/components/ChatWidget";
 import { WebSiteSchema } from "@/lib/seo/schemas";
 import { getSeoConfig } from "@/lib/seo/config";
 import { homePageMetadata } from "@/lib/seo/generate-metadata";
-import { Toaster } from "sonner";
 
 export const metadata: Metadata = homePageMetadata();
 

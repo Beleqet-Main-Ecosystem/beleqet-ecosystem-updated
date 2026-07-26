@@ -39,8 +39,7 @@ import { AiProviderError } from './ai-chat-provider.interface';
 /** Minimal ConfigService stub driven by a plain map. */
 function configWith(values: Record<string, unknown>) {
   return {
-    get: <T>(key: string, fallback?: T): T =>
-      (values[key] as T) ?? (fallback as T),
+    get: <T>(key: string, fallback?: T): T => (values[key] as T) ?? (fallback as T),
   } as any;
 }
 
@@ -92,9 +91,7 @@ describe('GroqProvider', () => {
       usage: { prompt_tokens: 120, completion_tokens: 30, total_tokens: 150 },
     });
     const provider = new GroqProvider(configWith({ GROQ_API_KEY: 'gsk_test' }));
-    await expect(
-      provider.complete(OK_MESSAGES, { json: true }),
-    ).resolves.toEqual({
+    await expect(provider.complete(OK_MESSAGES, { json: true })).resolves.toEqual({
       content: '{"firstName":"Abebe"}',
       usage: { promptTokens: 120, completionTokens: 30, totalTokens: 150 },
     });

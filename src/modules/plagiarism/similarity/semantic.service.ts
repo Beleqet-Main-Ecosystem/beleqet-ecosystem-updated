@@ -27,7 +27,9 @@ export class SemanticService implements ISimilarityAlgorithm, OnModuleInit {
    */
   onModuleInit(): void {
     void this.ensureModel().catch((err) => {
-      this.logger.warn(`Semantic model preload skipped: ${err instanceof Error ? err.message : err}`);
+      this.logger.warn(
+        `Semantic model preload skipped: ${err instanceof Error ? err.message : err}`,
+      );
     });
   }
 
@@ -64,7 +66,10 @@ export class SemanticService implements ISimilarityAlgorithm, OnModuleInit {
 
     this.initPromise = (async () => {
       const { pipeline } = await import('@xenova/transformers');
-      this.extractor = (await pipeline('feature-extraction', MODEL_ID)) as FeatureExtractionPipeline;
+      this.extractor = (await pipeline(
+        'feature-extraction',
+        MODEL_ID,
+      )) as FeatureExtractionPipeline;
       this.logger.log(`Semantic model loaded: ${MODEL_ID}`);
     })();
 
