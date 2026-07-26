@@ -7,7 +7,7 @@ import { AuditService } from '../audit.service';
 import { AUDIT_LOG_KEY } from '../decorators/audit-log.decorator';
 
 const mockAuditService = {
-  log: jest.fn(),
+  log: jest.fn().mockResolvedValue(undefined),
 };
 
 function buildContext(user?: { userId: string; role: string }): ExecutionContext {

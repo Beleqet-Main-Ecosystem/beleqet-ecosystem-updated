@@ -52,7 +52,7 @@ export class AuditService implements IAuditLogger {
     currency: string,
     extra: Record<string, unknown> = {},
   ): Promise<void> {
-    await this.log(eventType, entityId, { amount, currency, ...extra }, 'Payment');
+    await this.log(eventType, entityId, { ...extra, amount, currency }, 'Payment');
   }
 
   /**
@@ -75,7 +75,7 @@ export class AuditService implements IAuditLogger {
     const limit = Math.min(Number(query.limit) || 25, 100);
 
     const where: Prisma.EventLogWhereInput = {};
-    if (query.eventType) where.eventType = { contains: query.eventType, mode: 'insensitive' };
+    if (query.eventType) where.eventType = query.eventType;
     if (query.entityType) where.entityType = query.entityType;
     if (query.entityId) where.entityId = query.entityId;
     if (query.dateFrom || query.dateTo) {
