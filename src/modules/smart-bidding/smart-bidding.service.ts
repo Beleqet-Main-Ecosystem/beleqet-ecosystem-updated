@@ -15,6 +15,19 @@ interface JobComplexityResult {
   isAiProcessed: boolean;
 }
 
+/** TTL for a successfully AI-processed complexity result (24 hours) */
+const COMPLEXITY_AI_TTL_SECONDS = 86400;
+
+/** Short TTL for a heuristic fallback result — allows recovery once OpenAI is healthy (5 minutes) */
+const COMPLEXITY_FALLBACK_TTL_SECONDS = 300;
+
+/** TTL for the in-flight lock that prevents a cache stampede on OpenAI (30 seconds) */
+const COMPLEXITY_LOCK_TTL_SECONDS = 30;
+
+/** How long to poll the cache while waiting for an in-flight OpenAI request to complete (ms) */
+const LOCK_POLL_INTERVAL_MS = 500;
+const LOCK_POLL_MAX_ATTEMPTS = 6; // 6 × 500ms = 3 seconds max wait
+
 @Injectable()
 export class SmartBiddingService {
   private openai: OpenAI | null = null;
@@ -33,11 +46,21 @@ export class SmartBiddingService {
   /**
    * Evaluates job complexity using OpenAI and caches the result strictly per Job ID.
    * Shared across all freelancers checking predictions for the same job.
+   *
+   * Fix 3 — Cache Stampede Prevention:
+   *   Uses a Redis NX lock so only ONE process calls OpenAI for a given job.
+   *   Concurrent callers poll the cache briefly and fall back to heuristics if
+   *   the result never arrives within the polling window.
+   *
+   * Fix 4 — Fallback TTL:
+   *   AI results are cached for 24 h; heuristic fallbacks are cached for only
+   *   5 minutes so the system recovers automatically once OpenAI is healthy.
    */
   private async getJobComplexity(job: any): Promise<JobComplexityResult> {
     const complexityCacheKey = `smart-bidding:complexity:job:${job.id}`;
+    const lockKey = `smart-bidding:complexity:lock:${job.id}`;
 
-    // 1. Try reading cached job complexity
+    // 1. Try reading cached job complexity first (happy path — no locking needed)
     try {
       const cachedComplexity = await this.redis.get(complexityCacheKey);
       if (cachedComplexity) {
@@ -47,16 +70,62 @@ export class SmartBiddingService {
       console.error('Failed to read job complexity from Redis:', (err as Error).message);
     }
 
-    // Default Fallbacks
-    let complexityFactor = 1.0;
-    let estimatedTimelineDays = job.deadlineDays;
-    let explanationEn =
-      'Calculation based on platform historical category averages and freelance job parameters.';
-    let explanationAm = 'ስሌቱ የተከናወነው በታሪካዊ የዘርፍ አማካዮች እና በፍሪላንስ ስራው መለኪያዎች ላይ በመመስረት ነው።';
-    let aiModelUsed = 'none (fallback heuristic)';
-    let isAiProcessed = false;
+    // Default fallback values used when OpenAI is unavailable or when waiting
+    // for another in-flight request to complete.
+    const buildFallback = (): JobComplexityResult => ({
+      complexityFactor: 1.0,
+      estimatedTimelineDays: job.deadlineDays,
+      explanationEn:
+        'Calculation based on platform historical category averages and freelance job parameters.',
+      explanationAm:
+        'ስሌቱ የተከናወነው በታሪካዊ የዘርፍ አማካዮች እና በፍሪላንስ ስራው መለኪያዎች ላይ በመመስረት ነው።',
+      aiModelUsed: 'none (fallback heuristic)',
+      isAiProcessed: false,
+    });
 
-    // 2. Call OpenAI if API Key exists
+    // 2. Fix 3 — Attempt to acquire the in-flight lock (SET NX EX).
+    //    Only the process that wins the lock will call OpenAI.
+    let lockAcquired = false;
+    try {
+      const lockResult = await this.redis.set(
+        lockKey,
+        '1',
+        'EX',
+        COMPLEXITY_LOCK_TTL_SECONDS,
+        'NX',
+      );
+      lockAcquired = lockResult === 'OK';
+    } catch (err) {
+      console.error('Failed to acquire OpenAI lock from Redis:', (err as Error).message);
+      // If Redis itself is down, proceed without the lock to keep the service alive.
+      lockAcquired = true;
+    }
+
+    if (!lockAcquired) {
+      // Another process is already calling OpenAI. Poll the cache key for up to
+      // LOCK_POLL_MAX_ATTEMPTS × LOCK_POLL_INTERVAL_MS milliseconds, then give up
+      // and return a heuristic fallback for this request only.
+      for (let i = 0; i < LOCK_POLL_MAX_ATTEMPTS; i++) {
+        await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_INTERVAL_MS));
+        try {
+          const polled = await this.redis.get(complexityCacheKey);
+          if (polled) {
+            return JSON.parse(polled) as JobComplexityResult;
+          }
+        } catch {
+          // Redis error during poll — stop polling and fall through to heuristic.
+          break;
+        }
+      }
+      // Polling timed out — return a non-cached heuristic so the caller still
+      // gets a response. We deliberately do NOT cache this to avoid overwriting
+      // the in-flight result.
+      return buildFallback();
+    }
+
+    // 3. We hold the lock — call OpenAI if an API key is configured.
+    let result: JobComplexityResult = buildFallback();
+
     if (this.openai) {
       try {
         const systemPrompt = `You are an expert project estimator for a freelance software and digital services platform.
@@ -94,37 +163,47 @@ Client Specified Deadline: ${job.deadlineDays} days`;
         const content = response.choices[0]?.message?.content;
         if (content) {
           const parsed = JSON.parse(content);
-          if (typeof parsed.complexityFactor === 'number') {
-            complexityFactor = parsed.complexityFactor;
-          }
-          if (typeof parsed.estimatedTimelineDays === 'number') {
-            estimatedTimelineDays = parsed.estimatedTimelineDays;
-          }
-          if (parsed.explanationEn) explanationEn = parsed.explanationEn;
-          if (parsed.explanationAm) explanationAm = parsed.explanationAm;
-
-          aiModelUsed = 'gpt-4o-mini';
-          isAiProcessed = true;
+          const aiResult: JobComplexityResult = {
+            complexityFactor:
+              typeof parsed.complexityFactor === 'number'
+                ? parsed.complexityFactor
+                : result.complexityFactor,
+            estimatedTimelineDays:
+              typeof parsed.estimatedTimelineDays === 'number'
+                ? parsed.estimatedTimelineDays
+                : result.estimatedTimelineDays,
+            explanationEn: parsed.explanationEn || result.explanationEn,
+            explanationAm: parsed.explanationAm || result.explanationAm,
+            aiModelUsed: 'gpt-4o-mini',
+            isAiProcessed: true,
+          };
+          result = aiResult;
         }
       } catch (err) {
         console.error('OpenAI prediction parsing failed, falling back:', (err as Error).message);
+        // result remains the heuristic fallback built above
       }
     }
 
-    const result: JobComplexityResult = {
-      complexityFactor,
-      estimatedTimelineDays,
-      explanationEn,
-      explanationAm,
-      aiModelUsed,
-      isAiProcessed,
-    };
+    // 4. Fix 4 — Cache with TTL that reflects result quality:
+    //    - AI result  → 24 h (COMPLEXITY_AI_TTL_SECONDS)
+    //    - Fallback   → 5 min (COMPLEXITY_FALLBACK_TTL_SECONDS) so the system
+    //      automatically recovers on the next request once OpenAI is healthy.
+    const cacheTtl = result.isAiProcessed
+      ? COMPLEXITY_AI_TTL_SECONDS
+      : COMPLEXITY_FALLBACK_TTL_SECONDS;
 
-    // 3. Cache complexity result for 24 hours (86400s)
     try {
-      await this.redis.set(complexityCacheKey, JSON.stringify(result), 'EX', 86400);
+      await this.redis.set(complexityCacheKey, JSON.stringify(result), 'EX', cacheTtl);
     } catch (err) {
       console.error('Failed to write job complexity to Redis:', (err as Error).message);
+    }
+
+    // Release the lock early so other waiters can read from cache immediately.
+    try {
+      await this.redis.del(lockKey);
+    } catch {
+      // Non-fatal — lock will expire on its own via the TTL.
     }
 
     return result;
@@ -155,7 +234,13 @@ Client Specified Deadline: ${job.deadlineDays} days`;
       throw new NotFoundException(`Freelance job with ID ${jobId} not found`);
     }
 
-    // 3. Compute Market baseline filtered strictly by category AND currency
+    // 3. Compute Market baseline filtered strictly by category AND currency.
+    //
+    //    Fix 2 — Data Aggregation Mismatch:
+    //    Contract has its own native `currency` field which can diverge from the
+    //    parent job's currency when terms are negotiated.  We now filter directly
+    //    on `contract.currency` to ensure we only average contracts in the same
+    //    currency, preventing meaningless cross-currency averages (e.g. USD + ETB).
     let marketBaseline = (job.budgetMin + job.budgetMax) / 2;
     let hasHistoricalData = false;
 
@@ -163,8 +248,8 @@ Client Specified Deadline: ${job.deadlineDays} days`;
       where: {
         freelanceJob: {
           categoryId: job.categoryId,
-          currency: job.currency,
         },
+        currency: job.currency, // Filter on Contract's own currency field
         status: 'COMPLETED',
       },
       take: 10,
@@ -176,11 +261,13 @@ Client Specified Deadline: ${job.deadlineDays} days`;
       marketBaseline = sum / completedContracts.length;
       hasHistoricalData = true;
     } else {
+      // Bids don't have their own currency field so filtering via the parent job
+      // relation is still the correct approach here.
       const acceptedBids = await this.prisma.bid.findMany({
         where: {
           freelanceJob: {
             categoryId: job.categoryId,
-            currency: job.currency, // 👈 Currency matching added
+            currency: job.currency,
           },
           status: 'ACCEPTED',
         },
@@ -233,7 +320,7 @@ Client Specified Deadline: ${job.deadlineDays} days`;
       }
     }
 
-    // 5. Fetch Cached / AI-Generated Job Complexity
+    // 5. Fetch Cached / AI-Generated Job Complexity (stampede-safe)
     const {
       complexityFactor,
       estimatedTimelineDays,
