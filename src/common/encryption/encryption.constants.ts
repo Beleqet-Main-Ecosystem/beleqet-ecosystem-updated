@@ -1,0 +1,1 @@
+export const ENCRYPTION_KEY = 'ENCRYPTION_KEY';
