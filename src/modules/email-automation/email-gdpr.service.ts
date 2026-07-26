@@ -9,8 +9,7 @@ const RETENTION_DAYS = 365;
 @Injectable()
 export class EmailGdprService {
   private readonly logger = new Logger(EmailGdprService.name);
-  private readonly unsubscribeSecret =
-    process.env.UNSUBSCRIBE_SECRET ?? 'change-me-in-env';
+  private readonly unsubscribeSecret = process.env.UNSUBSCRIBE_SECRET ?? 'change-me-in-env';
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -20,16 +19,12 @@ export class EmailGdprService {
    * NEWSLETTER template as {{unsubscribeUrl}}.
    */
   buildUnsubscribeUrl(recipient: string, baseUrl: string): string {
-    const token = createHmac('sha256', this.unsubscribeSecret)
-      .update(recipient)
-      .digest('hex');
+    const token = createHmac('sha256', this.unsubscribeSecret).update(recipient).digest('hex');
     return `${baseUrl}/email/unsubscribe?recipient=${encodeURIComponent(recipient)}&token=${token}`;
   }
 
   verifyUnsubscribeToken(recipient: string, token: string): boolean {
-    const expected = createHmac('sha256', this.unsubscribeSecret)
-      .update(recipient)
-      .digest('hex');
+    const expected = createHmac('sha256', this.unsubscribeSecret).update(recipient).digest('hex');
     return expected === token;
   }
 
