@@ -1338,3 +1338,24 @@ enum SkillLevel {
   MID
   SENIOR
 }
+
+/// System-wide audit log entity tracking user/system actions, entity state changes,
+/// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String?  @map("user_id")
+  action        String
+  entity        String
+  entityId      String?  @map("entity_id")
+  previousState Json?    @map("previous_state")
+  newState      Json?    @map("new_state")
+  ipAddress     String?  @map("ip_address")
+  userAgent     String?  @map("user_agent")
+  timestamp     DateTime @default(now())
+
+  @@index([userId, timestamp])
+  @@index([action])
+  @@index([entity])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
