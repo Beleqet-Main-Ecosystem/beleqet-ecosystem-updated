@@ -113,10 +113,7 @@ export class EmailService {
     }
 
     if (dto.type === EmailType.NEWSLETTER) {
-      variables.unsubscribeUrl = this.gdprService.buildUnsubscribeUrl(
-        dto.recipient,
-        APP_BASE_URL,
-      );
+      variables.unsubscribeUrl = this.gdprService.buildUnsubscribeUrl(dto.recipient, APP_BASE_URL);
     }
 
     return variables;
@@ -143,12 +140,13 @@ export class EmailService {
     const where: Prisma.EmailLogWhereInput = {
       status: query.status,
       type: query.type,
-      recipient: query.recipient
-        ? { contains: query.recipient, mode: 'insensitive' }
-        : undefined,
+      recipient: query.recipient ? { contains: query.recipient, mode: 'insensitive' } : undefined,
       createdAt:
         query.from || query.to
-          ? { gte: query.from ? new Date(query.from) : undefined, lte: query.to ? new Date(query.to) : undefined }
+          ? {
+              gte: query.from ? new Date(query.from) : undefined,
+              lte: query.to ? new Date(query.to) : undefined,
+            }
           : undefined,
     };
 
