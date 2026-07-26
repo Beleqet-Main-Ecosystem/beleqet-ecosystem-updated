@@ -82,7 +82,11 @@ export function scrubPii<T>(data: T): T {
 
     if (SENSITIVE_KEYS.has(lowerKey)) {
       scrubbed[key] = '[REDACTED]';
-    } else if (lowerKey.includes('password') || lowerKey.includes('secret') || lowerKey.includes('token')) {
+    } else if (
+      lowerKey.includes('password') ||
+      lowerKey.includes('secret') ||
+      lowerKey.includes('token')
+    ) {
       scrubbed[key] = '[REDACTED]';
     } else if (lowerKey === 'email' && typeof value === 'string') {
       scrubbed[key] = maskEmail(value);

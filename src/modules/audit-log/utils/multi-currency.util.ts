@@ -56,7 +56,11 @@ export function isValidIsoCurrency(currency: unknown): boolean {
  * @returns Result object with status and formatted details
  * @security Multi-Currency Standard: Enforces ISO currency tracking on financial events.
  */
-export function validateMultiCurrencyPayload(payload: unknown): { isValid: boolean; detectedCurrency?: string; error?: string } {
+export function validateMultiCurrencyPayload(payload: unknown): {
+  isValid: boolean;
+  detectedCurrency?: string;
+  error?: string;
+} {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return { isValid: true };
   }

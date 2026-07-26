@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation, Locale } from '../../../lib/i18n';
 
+/**
+ * Data structure representing a individual system audit log record.
+ */
 interface AuditLogRecord {
   id: string;
   userId: string | null;
@@ -16,6 +19,9 @@ interface AuditLogRecord {
   timestamp: string;
 }
 
+/**
+ * Admin Dashboard Page for inspecting, searching, and filtering System Audit Logs.
+ */
 export default function AuditLogsAdminPage() {
   const { t, locale, changeLanguage } = useTranslation();
 
@@ -128,7 +134,7 @@ export default function AuditLogsAdminPage() {
         {/* Header Navigation & i18n Selector */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white flex items-[#38bdf8] items-center gap-2" id="audit-log-header">
+            <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2" id="audit-log-header">
               🛡️ {t('auditLog.title')}
             </h1>
             <p className="text-slate-400 text-sm mt-1">{t('auditLog.subtitle')}</p>
@@ -145,7 +151,7 @@ export default function AuditLogsAdminPage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              English
+              {t('auditLog.langEn')}
             </button>
             <button
               id="lang-switch-am"
@@ -156,7 +162,7 @@ export default function AuditLogsAdminPage() {
                   : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
-              አማርኛ
+              {t('auditLog.langAm')}
             </button>
           </div>
         </header>
@@ -288,7 +294,7 @@ export default function AuditLogsAdminPage() {
                         {new Date(log.timestamp).toLocaleString()}
                       </td>
                       <td className="py-3 px-4 font-medium text-slate-200">
-                        {log.userId || <span className="text-slate-500 italic">System</span>}
+                        {log.userId || <span className="text-slate-500 italic">{t('auditLog.systemUser')}</span>}
                       </td>
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
@@ -385,7 +391,7 @@ export default function AuditLogsAdminPage() {
                   {t('auditLog.modal.previousState')}
                 </h3>
                 <pre className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-emerald-400 overflow-x-auto">
-                  {JSON.stringify(activeModal.log.previousState ?? { note: 'No previous state snapshot' }, null, 2)}
+                  {JSON.stringify(activeModal.log.previousState ?? { note: t('auditLog.modal.noPreviousState') }, null, 2)}
                 </pre>
               </div>
 
@@ -394,7 +400,7 @@ export default function AuditLogsAdminPage() {
                   {t('auditLog.modal.newState')}
                 </h3>
                 <pre className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-sky-400 overflow-x-auto">
-                  {JSON.stringify(activeModal.log.newState ?? { note: 'No new state snapshot' }, null, 2)}
+                  {JSON.stringify(activeModal.log.newState ?? { note: t('auditLog.modal.noNewState') }, null, 2)}
                 </pre>
               </div>
             </div>

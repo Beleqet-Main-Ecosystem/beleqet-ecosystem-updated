@@ -89,10 +89,18 @@
       "actions": "Actions"
     },
     "viewPayloads": "View Payloads",
+    "noLogs": "No audit logs found matching the filter criteria.",
+    "loading": "Loading audit logs...",
+    "language": "Language",
+    "langEn": "English",
+    "langAm": "አማርኛ",
+    "systemUser": "System",
     "modal": {
       "title": "Audit Log Payload Details",
       "previousState": "Previous State (Pre-mutation)",
       "newState": "New State (Post-mutation)",
+      "noPreviousState": "No previous state snapshot",
+      "noNewState": "No new state snapshot",
       "close": "Close"
     },
     "pagination": {
@@ -101,9 +109,6 @@
       "previous": "Previous",
       "next": "Next",
       "totalRecords": "Total Records"
-    },
-    "noLogs": "No audit logs found matching the filter criteria.",
-    "loading": "Loading audit logs...",
-    "language": "Language"
+    }
   }
 }

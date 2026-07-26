@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { AuditLog, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAuditLogDto } from './dto/create-audit-log.dto';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
@@ -7,7 +8,7 @@ import { scrubPii } from './utils/pii-scrubber.util';
 import { validateMultiCurrencyPayload } from './utils/multi-currency.util';
 
 export interface PaginatedAuditLogsResponse {
-  data: any[];
+  data: AuditLog[];
   total: number;
   page: number;
   limit: number;
@@ -30,11 +31,15 @@ export class AuditLogService {
    * @returns Created AuditLog record
    * @security GDPR & Multi-Currency compliance enforced prior to persistence.
    */
-  async createLog(dto: CreateAuditLogDto): Promise<any> {
+  async createLog(dto: CreateAuditLogDto): Promise<AuditLog> {
     try {
       // 1. GDPR PII Scrubbing
-      const scrubbedPrevious = dto.previousState ? (scrubPii(dto.previousState) as any) : undefined;
-      let scrubbedNew = dto.newState ? (scrubPii(dto.newState) as any) : undefined;
+      const scrubbedPrevious = dto.previousState
+        ? (scrubPii(dto.previousState) as Prisma.InputJsonObject)
+        : undefined;
+      let scrubbedNew = dto.newState
+        ? (scrubPii(dto.newState) as Prisma.InputJsonObject)
+        : undefined;
 
       // 2. Multi-Currency Compliance Check
       if (dto.newState) {
@@ -62,7 +67,10 @@ export class AuditLogService {
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to record audit log entry for action ${dto.action}: ${(error as Error).message}`, (error as Error).stack);
+      this.logger.error(
+        `Failed to record audit log entry for action ${dto.action}: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
       throw error;
     }
   }
@@ -109,7 +117,7 @@ export class AuditLogService {
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
 
     if (query.userId) {
       where.userId = query.userId;
@@ -161,7 +169,9 @@ export class AuditLogService {
    * @returns Count of deleted audit log rows
    * @security GDPR Compliance: Automatically purges historical logs past retention window.
    */
-  async purgeExpiredLogs(days?: number): Promise<{ count: number; retentionDays: number; cutoffDate: Date }> {
+  async purgeExpiredLogs(
+    days?: number,
+  ): Promise<{ count: number; retentionDays: number; cutoffDate: Date }> {
     const retentionDays = days || parseInt(process.env.AUDIT_LOG_RETENTION_DAYS || '90', 10);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
@@ -174,7 +184,9 @@ export class AuditLogService {
       },
     });
 
-    this.logger.log(`Purged ${result.count} audit logs older than ${retentionDays} days (cutoff: ${cutoffDate.toISOString()})`);
+    this.logger.log(
+      `Purged ${result.count} audit logs older than ${retentionDays} days (cutoff: ${cutoffDate.toISOString()})`,
+    );
 
     return {
       count: result.count,

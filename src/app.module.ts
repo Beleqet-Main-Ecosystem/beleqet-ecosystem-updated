@@ -159,4 +159,4 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

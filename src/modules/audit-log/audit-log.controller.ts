@@ -1,4 +1,4 @@
-import { Controller, Get, Delete, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AuditLogService } from './audit-log.service';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
@@ -46,7 +46,12 @@ export class AuditLogController {
   @Delete('retention')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Trigger GDPR audit log retention cleanup' })
-  @ApiQuery({ name: 'days', required: false, type: Number, description: 'Retention window in days' })
+  @ApiQuery({
+    name: 'days',
+    required: false,
+    type: Number,
+    description: 'Retention window in days',
+  })
   @ApiResponse({ status: 200, description: 'Audit log retention cleanup completed' })
   async triggerRetentionCleanup(@Query('days') days?: number) {
     return this.auditLogService.purgeExpiredLogs(days ? Number(days) : undefined);
