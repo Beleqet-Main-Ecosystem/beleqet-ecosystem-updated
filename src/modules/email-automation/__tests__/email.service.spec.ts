@@ -70,7 +70,7 @@ describe('EmailService', () => {
         { emailLogId: 'log-1' },
         expect.objectContaining({ attempts: 3 }),
       );
-      expect(result.id).toBe('log-1');
+      expect(result?.id).toBe('log-1');
     });
 
     it('falls back to the default subject when no override is provided', async () => {
@@ -148,11 +148,7 @@ describe('EmailService', () => {
         where: { id: 'log-1' },
         data: { status: EmailStatus.QUEUED },
       });
-      expect(queue.add).toHaveBeenCalledWith(
-        'send',
-        { emailLogId: 'log-1' },
-        expect.any(Object),
-      );
+      expect(queue.add).toHaveBeenCalledWith('send', { emailLogId: 'log-1' }, expect.any(Object));
       expect(result.status).toBe(EmailStatus.QUEUED);
     });
   });

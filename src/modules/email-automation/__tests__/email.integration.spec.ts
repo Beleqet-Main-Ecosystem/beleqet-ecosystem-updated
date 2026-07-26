@@ -83,14 +83,14 @@ describe('Email module (integration: Postgres + Redis + BullMQ)', () => {
       variables: { name: 'Integration Test' },
     });
 
-    expect(log.status).toBe(EmailStatus.QUEUED);
+    expect(log?.status).toBe(EmailStatus.QUEUED);
 
     // Poll for the worker (running inside the real BullMQ queue) to finish.
-    let updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+    let updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log?.id } });
     const deadline = Date.now() + 15_000;
     while (updated.status === EmailStatus.QUEUED && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 250));
-      updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+      updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log?.id } });
     }
 
     expect(updated.status).toBe(EmailStatus.SENT);
@@ -108,24 +108,24 @@ describe('Email module (integration: Postgres + Redis + BullMQ)', () => {
       type: EmailType.PASSWORD_RESET,
     });
 
-    let updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+    let updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log?.id } });
     const deadline = Date.now() + 15_000;
     while (updated.attempts === 0 && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 250));
-      updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+      updated = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log?.id } });
     }
 
     expect(updated.status).toBe(EmailStatus.FAILED);
     expect(updated.errorMessage).toContain('Simulated SMTP outage');
 
     mailer.sendMail.mockResolvedValueOnce({ messageId: 'retry-msg' });
-    await emailService.resend(log.id);
+    await emailService.resend(log!.id);
 
-    let retried = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+    let retried = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log?.id } });
     const retryDeadline = Date.now() + 15_000;
     while (retried.status !== EmailStatus.SENT && Date.now() < retryDeadline) {
       await new Promise((r) => setTimeout(r, 250));
-      retried = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log.id } });
+      retried = await prismaClient.emailLog.findUniqueOrThrow({ where: { id: log?.id } });
     }
 
     expect(retried.status).toBe(EmailStatus.SENT);
