@@ -47,6 +47,7 @@ import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { EmailModule } from '@modules/email-automation/email.module';
 
 @Module({
   imports: [
@@ -143,6 +144,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
+    EmailModule,
   ],
   providers: [
     {
