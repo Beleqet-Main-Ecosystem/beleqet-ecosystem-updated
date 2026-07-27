@@ -4,7 +4,7 @@
 # Aligned with main branch standards + CI compatibility fixes.
 # =============================================================================
 
-# ── Stage 1: Build ───────────────────────────────────────────────────────────
+# ── Build stage ──────────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS builder
 
 WORKDIR /app
