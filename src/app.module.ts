@@ -36,7 +36,6 @@ import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 
 import { PaymentsModule } from './modules/payments/payments.module';
-// ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
@@ -44,6 +43,7 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -134,7 +134,6 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
-    // ── Fixed: PerformanceWorkerModule removed from imports array ──
     TwoFactorModule,
     KycModule,
     AiFeedModule,
@@ -143,6 +142,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
+    UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
     BillingModule,
