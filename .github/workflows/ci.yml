@@ -363,6 +363,7 @@ jobs:
           SESSION_SECRET=ci_smoke_session_secret_synthetic
           TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
           TOTP_TEMP_SECRET=ci_smoke_totp_temp_secret_synthetic
+          GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=
           GOOGLE_CLIENT_ID=ci_smoke_google_client_id
           GOOGLE_CLIENT_SECRET=ci_smoke_google_client_secret

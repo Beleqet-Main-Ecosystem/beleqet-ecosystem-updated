@@ -25,6 +25,7 @@ const FULL_ENV = [
   'SESSION_SECRET=synthetic_session',
   'TOTP_ENCRYPTION_KEY=synthetic_totp',
   'TOTP_TEMP_SECRET=synthetic_totp_temp',
+  'GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   'OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=',
   'GOOGLE_CLIENT_ID=synthetic_google_client_id',
   'GOOGLE_CLIENT_SECRET=synthetic_google_client_secret',

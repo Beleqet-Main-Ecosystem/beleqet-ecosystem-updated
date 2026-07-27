@@ -26,6 +26,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
 import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
@@ -73,7 +74,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
       maxListeners: 20,
     }),
 
-    // ── Unified BullMQ (Redis-backed job queues) ───────────────────────────
+    //  BullMQ (Redis-backed job queues)
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -106,7 +107,10 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
       ],
     }),
 
-    //  Feature modules
+    // — GDPR Guard module ——————————————————————————————————————————
+    GdprGuardModule,
+
+    // — Feature modules ——————————————————————————————————————————
     PrismaModule,
     QueuesModule,
     RedisModule,
