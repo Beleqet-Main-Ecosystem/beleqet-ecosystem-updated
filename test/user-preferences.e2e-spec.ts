@@ -16,7 +16,7 @@ interface TestUser {
 }
 
 /** Exercises the secured HTTP API against the actual configured PostgreSQL database. */
-describe('Performance Gauge theme API and PostgreSQL persistence', () => {
+describe('User Preferences theme API and PostgreSQL persistence', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let user: TestUser;
