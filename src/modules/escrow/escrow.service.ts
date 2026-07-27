@@ -230,14 +230,13 @@ export class EscrowService {
 
     try {
       const contractCurrency = milestone.contract.currency || 'ETB';
-      const grossAmountInETB = this.walletSvc.convertCurrency(
-        milestone.amount,
-        contractCurrency,
-        'ETB',
-      );
-      const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
-      const netAmountInETB = grossAmountInETB - platformFee;
+      const grossAmountInETB = this.walletSvc.convertCurrency(milestone.amount, contractCurrency, 'ETB');
+      
+      // Deduct platform fee (10%) so freelancer receives net amount
+      const platformFeeInETB = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
+      const netAmountInETB = grossAmountInETB - platformFeeInETB;
 
+      // Add net amount to wallet pending balance (3-day hold)
       await this.prisma.freelancerWallet.upsert({
         where: { userId: milestone.contract.freelancerId },
         update: { pendingBalance: { increment: netAmountInETB } },
