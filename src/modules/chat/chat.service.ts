@@ -3,8 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 /** Structured metadata attached to non-plain-text chat messages */
 export type MessageMetadata =
-  | { type: 'file'; url: string; name: string }
-  | { type: 'video_call'; link: string };
+  { type: 'file'; url: string; name: string } | { type: 'video_call'; link: string };
 
 @Injectable()
 export class ChatService {

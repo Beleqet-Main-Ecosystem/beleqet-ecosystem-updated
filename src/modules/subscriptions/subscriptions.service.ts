@@ -30,11 +30,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 /** Normalised lifecycle events a gateway webhook can report for a subscription. */
 export type SubscriptionLifecycleEvent =
-  | 'ACTIVATED'
-  | 'RENEWED'
-  | 'PAYMENT_FAILED'
-  | 'CANCELLED'
-  | 'EXPIRED';
+  'ACTIVATED' | 'RENEWED' | 'PAYMENT_FAILED' | 'CANCELLED' | 'EXPIRED';
 
 export interface SyncFromProviderEventInput {
   /** Gateway's own event id — used for webhook idempotency (WebhookEvent.gatewayEventId). */
