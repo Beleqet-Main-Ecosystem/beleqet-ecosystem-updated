@@ -31,15 +31,7 @@ export class JobsResolver {
 
   /**
    * Create a new job listing.
-   *
-   * Security:
-   *  - GqlAuthGuard  → rejects unauthenticated requests (401)
-   *  - GqlRolesGuard → rejects any role other than EMPLOYER or ADMIN (403)
-   *
-   * The user ID is extracted with @GqlCurrentUser() which reads
-   * `req.user.userId` — the property name set by JwtStrategy.  The previous
-   * implementation read `ctx.req.user.id` (undefined), causing every call to
-   * fail with ForbiddenException even for valid employers.
+   * FIX: Added Roles restriction and corrected userId extraction logic.
    */
   @Mutation(() => JobTypeGraphQL)
   @UseGuards(GqlAuthGuard, GqlRolesGuard)
@@ -48,12 +40,14 @@ export class JobsResolver {
     @Args('input') input: CreateJobInput,
     @GqlCurrentUser() user: CurrentUserPayload,
   ) {
+    // Platform JwtStrategy uses .userId, not .id
     const userId = user?.userId;
 
     if (!userId) {
-      throw new ForbiddenException('User ID not found in session context');
+      throw new ForbiddenException('Authentication context missing userId. Please re-authenticate.');
     }
 
+    // Pass the correctly mapped userId to the service
     return this.jobsService.create(userId, input as any);
   }
 
