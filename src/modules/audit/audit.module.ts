@@ -13,11 +13,7 @@ import { AUDIT_LOGGER } from '../../common/interfaces/audit-logger.interface';
 @Module({
   imports: [PrismaModule],
   controllers: [AuditController],
-  providers: [
-    AuditService,
-    AuditInterceptor,
-    { provide: AUDIT_LOGGER, useExisting: AuditService },
-  ],
+  providers: [AuditService, AuditInterceptor, { provide: AUDIT_LOGGER, useExisting: AuditService }],
   exports: [AuditService, AuditInterceptor, AUDIT_LOGGER],
 })
 export class AuditModule {}

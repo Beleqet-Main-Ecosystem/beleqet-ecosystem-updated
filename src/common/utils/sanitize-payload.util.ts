@@ -26,25 +26,17 @@ const SENSITIVE_KEYS = [
   'cvv',
 ] as const;
 
-export function sanitizePayload(
-  payload: Record<string, unknown>,
-): Record<string, unknown> {
+export function sanitizePayload(payload: Record<string, unknown>): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(payload)) {
-    const isSensitiveKey = SENSITIVE_KEYS.some((k) =>
-      key.toLowerCase().includes(k.toLowerCase()),
-    );
+    const isSensitiveKey = SENSITIVE_KEYS.some((k) => key.toLowerCase().includes(k.toLowerCase()));
 
     if (isSensitiveKey) {
       clean[key] = '[REDACTED]';
     } else if (typeof value === 'string') {
       clean[key] = GdprUtil.maskPII(value);
-    } else if (
-      value !== null &&
-      typeof value === 'object' &&
-      !Array.isArray(value)
-    ) {
+    } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       clean[key] = sanitizePayload(value as Record<string, unknown>);
     } else {
       clean[key] = value;

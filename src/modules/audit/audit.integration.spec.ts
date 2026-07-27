@@ -48,7 +48,9 @@ describe('Audit Trail (integration)', () => {
       }),
       count: jest.fn().mockImplementation(({ where }: { where?: { entityType?: string } }) => {
         if (where?.entityType) {
-          return Promise.resolve(seededLogs.filter((l) => l.entityType === where.entityType).length);
+          return Promise.resolve(
+            seededLogs.filter((l) => l.entityType === where.entityType).length,
+          );
         }
         return Promise.resolve(seededLogs.length);
       }),

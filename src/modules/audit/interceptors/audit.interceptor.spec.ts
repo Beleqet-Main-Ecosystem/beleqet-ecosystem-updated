@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
-import { of } from 'rxjs';
+import { of, Observable } from 'rxjs';
 import { AuditInterceptor } from './audit.interceptor';
 import { AuditService } from '../audit.service';
-import { AUDIT_LOG_KEY } from '../decorators/audit-log.decorator';
 
 const mockAuditService = {
   log: jest.fn().mockResolvedValue(undefined),
@@ -87,9 +86,10 @@ describe('AuditInterceptor', () => {
     jest.spyOn(reflector, 'get').mockReturnValue('USER_LOGIN');
     const context = buildContext({ userId: 'user-1', role: 'ADMIN' });
     const throwingHandler: CallHandler = {
-      handle: () => new (require('rxjs').Observable)((subscriber: any) => {
-        subscriber.error(new Error('boom'));
-      }),
+      handle: () =>
+        new Observable((subscriber) => {
+          subscriber.error(new Error('boom'));
+        }),
     };
 
     interceptor.intercept(context, throwingHandler).subscribe({
