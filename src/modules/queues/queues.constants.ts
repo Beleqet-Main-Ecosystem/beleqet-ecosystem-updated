@@ -62,6 +62,7 @@ export const ESCROW_JOBS = {
   PROCESS_WEBHOOK: 'process-payment-webhook',
   AUTO_RELEASE: 'auto-release-milestone', // 14-day auto-approval
   UNLOCK_FUNDS: 'unlock-escrow-funds',
+  CANCEL_CHAPA_PAYMENT: 'cancel-chapa-payment',
 } as const;
 
 // ── Two-Factor Authentication jobs ────────────────────────────────────────

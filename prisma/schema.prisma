@@ -419,10 +419,12 @@ model Milestone {
   amount       Int
   deadline     DateTime
   status       MilestoneStatus @default(PENDING)
-  approvedAt   DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deliverables Deliverable[]
+  approvedAt    DateTime?
+  revisionNotes String?
+  revisionCount Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deliverables  Deliverable[]
   contract     Contract        @relation(fields: [contractId], references: [id])
 
   @@map("milestones")
