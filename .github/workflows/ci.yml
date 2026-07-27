@@ -307,8 +307,15 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright tests
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Run Playwright notification tests (Next.js app)
         run: npx playwright test --config frontend/playwright.config.ts --trace retain-on-failure
+
+      - name: Run Playwright step-up-flow tests (Vite harness)
+        run: npx playwright test --config frontend/playwright.harness.config.ts --trace retain-on-failure
 
       - name: Upload Playwright report and traces on failure
         if: failure()
