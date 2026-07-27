@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Job, Queue } from 'bullmq';
+import { Job, Queue as _Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 

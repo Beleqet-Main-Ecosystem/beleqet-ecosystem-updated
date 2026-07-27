@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   NotFoundException,
   BadRequestException,
-  InternalServerErrorException,
+  InternalServerErrorException as _InternalServerErrorException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { I18nService } from 'nestjs-i18n';

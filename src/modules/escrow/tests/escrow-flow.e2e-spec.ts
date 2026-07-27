@@ -11,11 +11,9 @@ import {
   createTestEmployerWallet,
   createTestFreelancerWallet,
   createTestGig,
-  createTestBid,
   createTestContract,
   createTestMilestone,
   createTestEscrow,
-  trackEscrow,
   cleanupAll,
 } from '../../../../test/test-setup';
 
@@ -113,7 +111,7 @@ describe('Escrow Flow (e2e)', () => {
     let lowBalanceEmployer: any;
     let lowBalanceToken: string;
     let partialGig: any;
-    let partialContract: any;
+    let _partialContract: any;
 
     beforeAll(async () => {
       lowBalanceEmployer = await createTestUser({
@@ -125,7 +123,7 @@ describe('Escrow Flow (e2e)', () => {
       await createTestEmployerWallet(lowBalanceEmployer.id, 3000);
 
       partialGig = await createTestGig(lowBalanceEmployer.id, { status: 'OPEN', budgetMax: 10000 });
-      partialContract = await createTestContract(
+      _partialContract = await createTestContract(
         partialGig.id,
         lowBalanceEmployer.id,
         freelancer.id,
@@ -395,12 +393,12 @@ describe('Escrow Flow (e2e)', () => {
 
   describe('POST /escrow/admin/:id/force-release', () => {
     let forceReleaseGig: any;
-    let forceReleaseContract: any;
+    let _forceReleaseContract: any;
     let forceReleaseEscrow: any;
 
     beforeAll(async () => {
       forceReleaseGig = await createTestGig(employer.id, { status: 'FUNDED', budgetMax: 12000 });
-      forceReleaseContract = await createTestContract(
+      _forceReleaseContract = await createTestContract(
         forceReleaseGig.id,
         employer.id,
         freelancer.id,
@@ -508,7 +506,7 @@ describe('Escrow Flow (e2e)', () => {
       const walletBefore = await prisma.employerWallet.findUnique({
         where: { userId: employer.id },
       });
-      const lockedBefore = walletBefore!.lockedBalance;
+      const _lockedBefore = walletBefore!.lockedBalance;
 
       const res = await request(app.getHttpServer())
         .delete(`/api/v1/escrow/${cancellableEscrow.id}/cancel`)
@@ -536,7 +534,7 @@ describe('Escrow Flow (e2e)', () => {
     let completeGig: any;
     let completeContract: any;
     let completeEscrow: any;
-    let completeMilestone: any;
+    let _completeMilestone: any;
 
     beforeAll(async () => {
       completeGig = await createTestGig(employer.id, { status: 'FUNDED', budgetMax: 7000 });
@@ -548,7 +546,7 @@ describe('Escrow Flow (e2e)', () => {
         status: 'FUNDED',
         walletAppliedAmount: 7000,
       });
-      completeMilestone = await createTestMilestone(completeContract.id, {
+      _completeMilestone = await createTestMilestone(completeContract.id, {
         amount: 7000,
         status: 'APPROVED',
       });

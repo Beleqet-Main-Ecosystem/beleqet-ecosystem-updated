@@ -294,7 +294,7 @@ export class EscrowProcessor extends WorkerHost {
         }
       }
 
-      const wallet = await this.prisma.$transaction(async (tx) => {
+      const _wallet = await this.prisma.$transaction(async (tx) => {
         const currentWallet = await tx.freelancerWallet.findUnique({
           where: { userId: freelancerId },
         });
