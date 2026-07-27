@@ -100,7 +100,7 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
   private pruneStaleAuthFailures() {
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     for (const [email, times] of this.authFailures.entries()) {
-      const recent = times.filter(t => t > fiveMinutesAgo);
+      const recent = times.filter((t) => t > fiveMinutesAgo);
       if (recent.length === 0) {
         this.authFailures.delete(email);
       } else {
@@ -134,7 +134,10 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
     failures.push(now);
 
     // Evict oldest entry if at capacity and this is a new email
-    if (!this.authFailures.has(email) && this.authFailures.size >= AnomalySensorService.MAX_TRACKED_EMAILS) {
+    if (
+      !this.authFailures.has(email) &&
+      this.authFailures.size >= AnomalySensorService.MAX_TRACKED_EMAILS
+    ) {
       const oldestKey = this.authFailures.keys().next().value;
       if (oldestKey) this.authFailures.delete(oldestKey);
     }
@@ -217,9 +220,7 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
     const amounts = history.map((tx) => tx.grossAmount);
     const mean = amounts.reduce((a, b) => a + b, 0) / amounts.length;
     const stdDev =
-      Math.sqrt(
-        amounts.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / amounts.length,
-      ) || 1; // Prevent division by zero when all amounts are identical
+      Math.sqrt(amounts.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / amounts.length) || 1; // Prevent division by zero when all amounts are identical
 
     const zScore = (grossAmount - mean) / stdDev;
 

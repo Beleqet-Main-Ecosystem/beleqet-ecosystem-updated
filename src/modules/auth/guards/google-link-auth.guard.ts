@@ -14,9 +14,7 @@ import { Request } from 'express';
  */
 @Injectable()
 export class GoogleLinkAuthGuard extends AuthGuard('google') {
-  public getAuthenticateOptions(
-    context: ExecutionContext,
-  ): { state: string } {
+  public getAuthenticateOptions(context: ExecutionContext): { state: string } {
     const request = context.switchToHttp().getRequest<Request>();
     const token = request.query.token;
 
@@ -24,7 +22,9 @@ export class GoogleLinkAuthGuard extends AuthGuard('google') {
       // A proper HttpException (not a plain Error) so Nest's built-in
       // handling — and our AuthExceptionFilter, which only @Catch()es
       // AuthDomainError — doesn't swallow this into an opaque 500.
-      throw new BadRequestException('Missing required "token" query parameter for link confirmation.');
+      throw new BadRequestException(
+        'Missing required "token" query parameter for link confirmation.',
+      );
     }
 
     return { state: `link:${token}` };

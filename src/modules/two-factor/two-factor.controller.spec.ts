@@ -11,7 +11,9 @@ import { REDIS_CLIENT } from '../redis/redis.module';
 
 jest.mock('otplib', () => ({
   generateSecret: jest.fn().mockReturnValue('JBSWY3DPEHPK3PXP'),
-  generateURI: jest.fn().mockReturnValue('otpauth://totp/Test:user@test.com?secret=JBSWY3DPEHPK3PXP&issuer=Test'),
+  generateURI: jest
+    .fn()
+    .mockReturnValue('otpauth://totp/Test:user@test.com?secret=JBSWY3DPEHPK3PXP&issuer=Test'),
   generate: jest.fn().mockResolvedValue('123456'),
   verify: jest.fn().mockImplementation(({ secret, token }: { secret: string; token: string }) => {
     return Promise.resolve({ valid: token === '123456', delta: token === '123456' ? 0 : -1 });
@@ -21,7 +23,12 @@ jest.mock('otplib', () => ({
 const _mockPrisma: Record<string, any> = {
   user: { findUnique: jest.fn() },
   userTwoFactor: { findUnique: jest.fn(), upsert: jest.fn(), update: jest.fn(), delete: jest.fn() },
-  backupCode: { findMany: jest.fn(), createMany: jest.fn(), update: jest.fn(), deleteMany: jest.fn() },
+  backupCode: {
+    findMany: jest.fn(),
+    createMany: jest.fn(),
+    update: jest.fn(),
+    deleteMany: jest.fn(),
+  },
   eventLog: { create: jest.fn() },
   $transaction: jest.fn((cb: (p: any) => any) => cb(_mockPrisma)),
 };
@@ -48,7 +55,13 @@ const mockAuthService = {
   issueTokens: jest.fn().mockResolvedValue({
     accessToken: 'test-access-token',
     refreshToken: 'test-refresh-token',
-    user: { id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'JOB_SEEKER' },
+    user: {
+      id: 'user-1',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'JOB_SEEKER',
+    },
   }),
 };
 
@@ -134,7 +147,11 @@ describe('TwoFactorController', () => {
       secret: encrypted.ciphertext,
     });
     mockPrisma.user.findUnique.mockResolvedValue({
-      id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'JOB_SEEKER'
+      id: 'user-1',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'JOB_SEEKER',
     });
     mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_login' });
 
@@ -144,21 +161,26 @@ describe('TwoFactorController', () => {
   });
 
   it('should throw on verify with invalid token', async () => {
-    mockJwt.verify.mockImplementation(() => { throw new Error('invalid'); });
-    await expect(controller.verify({ tempToken: 'bad-token', code: '123456' }))
-      .rejects.toThrow('Invalid or expired verification token');
+    mockJwt.verify.mockImplementation(() => {
+      throw new Error('invalid');
+    });
+    await expect(controller.verify({ tempToken: 'bad-token', code: '123456' })).rejects.toThrow(
+      'Invalid or expired verification token',
+    );
   });
 
   it('should throw on verify with wrong purpose', async () => {
     mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: 'wrong_purpose' });
-    await expect(controller.verify({ tempToken: 'token', code: '123456' }))
-      .rejects.toThrow('Invalid token purpose');
+    await expect(controller.verify({ tempToken: 'token', code: '123456' })).rejects.toThrow(
+      'Invalid token purpose',
+    );
   });
 
   it('should throw on verify with invalid code', async () => {
     mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_login' });
-    await expect(controller.verify({ tempToken: 'token', code: '000000' }))
-      .rejects.toThrow('Invalid code');
+    await expect(controller.verify({ tempToken: 'token', code: '000000' })).rejects.toThrow(
+      'Invalid code',
+    );
   });
 
   it('should request an action-scoped challenge', async () => {
@@ -196,8 +218,9 @@ describe('TwoFactorController', () => {
 
   it('should throw on step-up with wrong purpose', async () => {
     mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_login' });
-    await expect(controller.stepUp({ stepUpToken: 'wrong-purpose-token', code: '123456' }))
-      .rejects.toThrow('Invalid token purpose');
+    await expect(
+      controller.stepUp({ stepUpToken: 'wrong-purpose-token', code: '123456' }),
+    ).rejects.toThrow('Invalid token purpose');
   });
 
   it('should throw on step-up with action mismatch', async () => {
@@ -207,17 +230,22 @@ describe('TwoFactorController', () => {
       action: 'milestone_release',
       resourceId: 'milestone-1',
     });
-    await expect(controller.stepUp({
-      stepUpToken: 'scoped-token',
-      code: '123456',
-      action: 'wallet_withdraw',
-    })).rejects.toThrow('Challenge token scoped to action "milestone_release"');
+    await expect(
+      controller.stepUp({
+        stepUpToken: 'scoped-token',
+        code: '123456',
+        action: 'wallet_withdraw',
+      }),
+    ).rejects.toThrow('Challenge token scoped to action "milestone_release"');
   });
 
   it('should throw on step-up with invalid token', async () => {
-    mockJwt.verify.mockImplementation(() => { throw new Error('invalid'); });
-    await expect(controller.stepUp({ stepUpToken: 'bad-token', code: '123456' }))
-      .rejects.toThrow('Invalid or expired step-up token');
+    mockJwt.verify.mockImplementation(() => {
+      throw new Error('invalid');
+    });
+    await expect(controller.stepUp({ stepUpToken: 'bad-token', code: '123456' })).rejects.toThrow(
+      'Invalid or expired step-up token',
+    );
   });
 
   it('should complete login via backup code', async () => {
@@ -228,13 +256,15 @@ describe('TwoFactorController', () => {
     mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
       enabled: true,
       id: 'tf-1',
-      backupCodes: [
-        { id: 'bc-1', codeHash: hashedCodes[0], usedAt: null },
-      ],
+      backupCodes: [{ id: 'bc-1', codeHash: hashedCodes[0], usedAt: null }],
     });
     mockPrisma.backupCode.update.mockResolvedValue({});
     mockPrisma.user.findUnique.mockResolvedValue({
-      id: 'user-1', email: 'test@example.com', firstName: 'Test', lastName: 'User', role: 'JOB_SEEKER'
+      id: 'user-1',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'JOB_SEEKER',
     });
 
     const result = await controller.backupCode({ tempToken: 'token', backupCode: plainCodes[0] });
@@ -265,10 +295,12 @@ describe('TwoFactorController', () => {
 
   it('should reject regenerate backup codes with wrong purpose', async () => {
     mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_login' });
-    await expect(controller.regenerateBackupCodes(
-      { userId: 'user-1', email: 'test@example.com', role: 'JOB_SEEKER' },
-      { stepUpToken: 'wrong-token', code: '123456' },
-    )).rejects.toThrow('Invalid token purpose');
+    await expect(
+      controller.regenerateBackupCodes(
+        { userId: 'user-1', email: 'test@example.com', role: 'JOB_SEEKER' },
+        { stepUpToken: 'wrong-token', code: '123456' },
+      ),
+    ).rejects.toThrow('Invalid token purpose');
   });
 
   it('should disable 2FA', async () => {

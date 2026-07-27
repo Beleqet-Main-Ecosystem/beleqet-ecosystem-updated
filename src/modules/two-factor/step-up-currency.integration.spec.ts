@@ -22,7 +22,13 @@ function buildMockPrisma(walletBalance = 10_000, walletCurrency = 'ETB') {
     transactions: [],
   };
 
-  const txRecord = { id: 'tx-001', walletId: walletRecord.id, amount: 0, type: 'DEBIT_WITHDRAWAL', note: '' };
+  const txRecord = {
+    id: 'tx-001',
+    walletId: walletRecord.id,
+    amount: 0,
+    type: 'DEBIT_WITHDRAWAL',
+    note: '',
+  };
 
   return {
     freelancerWallet: {
@@ -38,7 +44,7 @@ function buildMockPrisma(walletBalance = 10_000, walletCurrency = 'ETB') {
     $transaction: jest.fn().mockImplementation(async (cbOrArray: unknown) => {
       if (typeof cbOrArray === 'function') {
         const stubPrisma = {
-          freelancerWallet: { 
+          freelancerWallet: {
             update: jest.fn().mockResolvedValue(walletRecord),
             updateMany: jest.fn().mockResolvedValue({ count: 1 }),
           },

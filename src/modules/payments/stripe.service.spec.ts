@@ -33,7 +33,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 jest.mock('stripe', () => {
   const mockPaymentIntents = {
-    create:  jest.fn(),
+    create: jest.fn(),
     confirm: jest.fn(),
   };
   const mockRefunds = { create: jest.fn() };
@@ -41,20 +41,29 @@ jest.mock('stripe', () => {
 
   const MockStripe = jest.fn().mockImplementation(() => ({
     paymentIntents: mockPaymentIntents,
-    refunds:        mockRefunds,
-    webhooks:       mockWebhooks,
+    refunds: mockRefunds,
+    webhooks: mockWebhooks,
   }));
 
   (MockStripe as any).errors = {
     StripeCardError: class extends Error {
       code = 'card_declined';
-      constructor(msg: string) { super(msg); this.name = 'StripeCardError'; }
+      constructor(msg: string) {
+        super(msg);
+        this.name = 'StripeCardError';
+      }
     },
     StripeInvalidRequestError: class extends Error {
-      constructor(msg: string) { super(msg); this.name = 'StripeInvalidRequestError'; }
+      constructor(msg: string) {
+        super(msg);
+        this.name = 'StripeInvalidRequestError';
+      }
     },
     StripeError: class extends Error {
-      constructor(msg: string) { super(msg); this.name = 'StripeError'; }
+      constructor(msg: string) {
+        super(msg);
+        this.name = 'StripeError';
+      }
     },
   };
 
@@ -65,38 +74,36 @@ jest.mock('stripe', () => {
 // Fixture helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function makeIntent(
-  override: Partial<Stripe.PaymentIntent> = {},
-): Stripe.PaymentIntent {
+function makeIntent(override: Partial<Stripe.PaymentIntent> = {}): Stripe.PaymentIntent {
   return {
-    id:            'pi_test_001',
+    id: 'pi_test_001',
     client_secret: 'pi_secret_test_001',
-    status:        'requires_payment_method',
-    amount:        5000,
-    currency:      'usd',
-    created:       1_700_000_000,
+    status: 'requires_payment_method',
+    amount: 5000,
+    currency: 'usd',
+    created: 1_700_000_000,
     ...override,
   } as Stripe.PaymentIntent;
 }
 
 function makeRefund(override: Partial<Stripe.Refund> = {}): Stripe.Refund {
   return {
-    id:             're_test_001',
-    status:         'succeeded',
-    amount:         5000,
-    currency:       'usd',
+    id: 're_test_001',
+    status: 'succeeded',
+    amount: 5000,
+    currency: 'usd',
     payment_intent: 'pi_test_001',
-    created:        1_700_000_001,
+    created: 1_700_000_001,
     ...override,
   } as unknown as Stripe.Refund;
 }
 
 function makeWebhookEvent(type: string, data: Record<string, unknown> = {}): Stripe.Event {
   return {
-    id:       `evt_${type.replace(/\./g, '_')}`,
+    id: `evt_${type.replace(/\./g, '_')}`,
     type,
-    data:     { object: { id: 'pi_test_001', ...data } },
-    created:  1_700_000_000,
+    data: { object: { id: 'pi_test_001', ...data } },
+    created: 1_700_000_000,
     livemode: false,
   } as unknown as Stripe.Event;
 }
@@ -108,7 +115,7 @@ function makeWebhookEvent(type: string, data: Record<string, unknown> = {}): Str
 function buildMockPrisma() {
   return {
     payment: {
-      upsert:     jest.fn().mockResolvedValue({}),
+      upsert: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
   } as unknown as PrismaService;
@@ -116,7 +123,7 @@ function buildMockPrisma() {
 
 function buildMockConfig(extra: Record<string, string> = {}) {
   const defaults: Record<string, string> = {
-    STRIPE_SECRET_KEY:     'sk_test_mock_key',
+    STRIPE_SECRET_KEY: 'sk_test_mock_key',
     STRIPE_WEBHOOK_SECRET: 'whsec_mock_secret',
     ...extra,
   };
@@ -133,15 +140,13 @@ function buildMockConfig(extra: Record<string, string> = {}) {
 // Test module builder
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function buildModule(
-  configExtra: Record<string, string> = {},
-): Promise<{
+async function buildModule(configExtra: Record<string, string> = {}): Promise<{
   service: StripeService;
-  prisma:  ReturnType<typeof buildMockPrisma>;
-  stripe:  Stripe;
+  prisma: ReturnType<typeof buildMockPrisma>;
+  stripe: Stripe;
 }> {
-  const prisma  = buildMockPrisma();
-  const config  = buildMockConfig(configExtra);
+  const prisma = buildMockPrisma();
+  const config = buildMockConfig(configExtra);
 
   const module: TestingModule = await Test.createTestingModule({
     providers: [
@@ -153,7 +158,7 @@ async function buildModule(
 
   const service = module.get<StripeService>(StripeService);
   // Access the private stripe instance via type-cast
-  const stripe  = (service as unknown as { stripe: Stripe }).stripe;
+  const stripe = (service as unknown as { stripe: Stripe }).stripe;
 
   return { service, prisma, stripe };
 }
@@ -164,14 +169,14 @@ async function buildModule(
 
 describe('StripeService', () => {
   let service: StripeService;
-  let prisma:  ReturnType<typeof buildMockPrisma>;
-  let stripe:  Stripe;
+  let prisma: ReturnType<typeof buildMockPrisma>;
+  let stripe: Stripe;
 
   beforeEach(async () => {
     const ctx = await buildModule();
-    service   = ctx.service;
-    prisma    = ctx.prisma;
-    stripe    = ctx.stripe;
+    service = ctx.service;
+    prisma = ctx.prisma;
+    stripe = ctx.stripe;
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -184,9 +189,9 @@ describe('StripeService', () => {
       (stripe.paymentIntents.create as jest.Mock).mockResolvedValue(makeIntent());
 
       const result = await service.createPaymentIntent({
-        amount:   5000,
+        amount: 5000,
         currency: 'USD',
-        userId:   'user-uuid-001',
+        userId: 'user-uuid-001',
       });
 
       expect(result.id).toBe('pi_test_001');
@@ -200,17 +205,19 @@ describe('StripeService', () => {
       (stripe.paymentIntents.create as jest.Mock).mockResolvedValue(makeIntent());
 
       await service.createPaymentIntent({
-        amount: 5000, currency: 'USD', userId: 'user-uuid-001',
+        amount: 5000,
+        currency: 'USD',
+        userId: 'user-uuid-001',
       });
 
       expect(prisma.payment.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({
-            userId:            'user-uuid-001',
-            provider:          'STRIPE',
+            userId: 'user-uuid-001',
+            provider: 'STRIPE',
             providerPaymentId: 'pi_test_001',
-            currency:          'USD',
-            status:            'PENDING',
+            currency: 'USD',
+            status: 'PENDING',
           }),
         }),
       );
@@ -222,9 +229,9 @@ describe('StripeService', () => {
       );
 
       await service.createPaymentIntent({
-        amount:      2000,
-        currency:    'USD',
-        userId:      'user-uuid-002',
+        amount: 2000,
+        currency: 'USD',
+        userId: 'user-uuid-002',
         description: 'Beleqet job escrow',
       });
 
@@ -237,13 +244,13 @@ describe('StripeService', () => {
       (stripe.paymentIntents.create as jest.Mock).mockResolvedValue(makeIntent());
 
       await service.createPaymentIntent({
-        amount:   1000,
+        amount: 1000,
         currency: 'USD',
-        userId:   'user-uuid-003',
+        userId: 'user-uuid-003',
         metadata: {
-          email:  'john@example.com',     // must be stripped
-          phone:  '+251911111111',         // must be stripped
-          jobId:  'job-uuid-abc',          // must be kept
+          email: 'john@example.com', // must be stripped
+          phone: '+251911111111', // must be stripped
+          jobId: 'job-uuid-abc', // must be kept
         } as any,
       });
 
@@ -256,7 +263,9 @@ describe('StripeService', () => {
     it('throws BadRequestException for an invalid currency code', async () => {
       await expect(
         service.createPaymentIntent({
-          amount: 100, currency: 'XX', userId: 'user-uuid-004',
+          amount: 100,
+          currency: 'XX',
+          userId: 'user-uuid-004',
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -289,9 +298,7 @@ describe('StripeService', () => {
     });
 
     it('throws InternalServerErrorException on an unexpected error', async () => {
-      (stripe.paymentIntents.create as jest.Mock).mockRejectedValue(
-        new Error('network timeout'),
-      );
+      (stripe.paymentIntents.create as jest.Mock).mockRejectedValue(new Error('network timeout'));
 
       await expect(
         service.createPaymentIntent({ amount: 100, currency: 'USD', userId: 'u' }),
@@ -304,7 +311,9 @@ describe('StripeService', () => {
       );
 
       const result = await service.createPaymentIntent({
-        amount: 5000, currency: 'ETB', userId: 'user-uuid-eth',
+        amount: 5000,
+        currency: 'ETB',
+        userId: 'user-uuid-eth',
       });
 
       expect(result.currency).toBe('ETB');
@@ -314,7 +323,9 @@ describe('StripeService', () => {
       (stripe.paymentIntents.create as jest.Mock).mockResolvedValue(makeIntent());
 
       await service.createPaymentIntent({
-        amount: 100, currency: 'EUR', userId: 'u',
+        amount: 100,
+        currency: 'EUR',
+        userId: 'u',
       });
 
       expect(stripe.paymentIntents.create).toHaveBeenCalledWith(
@@ -371,19 +382,17 @@ describe('StripeService', () => {
         new (Stripe as any).errors.StripeCardError('Your card was declined.'),
       );
 
-      await expect(
-        service.confirmPayment('pi_fail', 'pm_bad'),
-      ).rejects.toThrow(UnprocessableEntityException);
+      await expect(service.confirmPayment('pi_fail', 'pm_bad')).rejects.toThrow(
+        UnprocessableEntityException,
+      );
     });
 
     it('throws InternalServerErrorException on network error during confirm', async () => {
-      (stripe.paymentIntents.confirm as jest.Mock).mockRejectedValue(
-        new Error('ECONNRESET'),
-      );
+      (stripe.paymentIntents.confirm as jest.Mock).mockRejectedValue(new Error('ECONNRESET'));
 
-      await expect(
-        service.confirmPayment('pi_test_001', 'pm_card_visa'),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.confirmPayment('pi_test_001', 'pm_card_visa')).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -404,13 +413,11 @@ describe('StripeService', () => {
     });
 
     it('issues a partial refund with the specified amount', async () => {
-      (stripe.refunds.create as jest.Mock).mockResolvedValue(
-        makeRefund({ amount: 2000 }),
-      );
+      (stripe.refunds.create as jest.Mock).mockResolvedValue(makeRefund({ amount: 2000 }));
 
       const result = await service.refund({
         paymentIntentId: 'pi_test_001',
-        amount:          2000,
+        amount: 2000,
       });
 
       expect(result.amount).toBe(2000);
@@ -429,9 +436,7 @@ describe('StripeService', () => {
     });
 
     it('updates DB status to PARTIALLY_REFUNDED for a partial refund', async () => {
-      (stripe.refunds.create as jest.Mock).mockResolvedValue(
-        makeRefund({ amount: 1000 }),
-      );
+      (stripe.refunds.create as jest.Mock).mockResolvedValue(makeRefund({ amount: 1000 }));
 
       await service.refund({ paymentIntentId: 'pi_test_001', amount: 1000 });
 
@@ -457,9 +462,9 @@ describe('StripeService', () => {
         new (Stripe as any).errors.StripeError('server_error'),
       );
 
-      await expect(
-        service.refund({ paymentIntentId: 'pi_test_001' }),
-      ).rejects.toThrow(InternalServerErrorException);
+      await expect(service.refund({ paymentIntentId: 'pi_test_001' })).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -471,10 +476,7 @@ describe('StripeService', () => {
       const event = makeWebhookEvent('payment_intent.succeeded');
       (stripe.webhooks.constructEvent as jest.Mock).mockReturnValue(event);
 
-      const result = await service.handleWebhook(
-        Buffer.from('{}'),
-        't=1,v1=sig',
-      );
+      const result = await service.handleWebhook(Buffer.from('{}'), 't=1,v1=sig');
 
       expect(result.type).toBe('payment_intent.succeeded');
       expect(prisma.payment.updateMany).toHaveBeenCalledWith(
@@ -521,7 +523,7 @@ describe('StripeService', () => {
       expect(prisma.payment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ providerPaymentId: 'pi_test_refund' }),
-          data:  expect.objectContaining({ status: 'REFUNDED' }),
+          data: expect.objectContaining({ status: 'REFUNDED' }),
         }),
       );
     });
@@ -540,9 +542,9 @@ describe('StripeService', () => {
         throw new Error('Invalid signature');
       });
 
-      await expect(
-        service.handleWebhook(Buffer.from('{}'), 'bad_signature'),
-      ).rejects.toThrow(UnprocessableEntityException);
+      await expect(service.handleWebhook(Buffer.from('{}'), 'bad_signature')).rejects.toThrow(
+        UnprocessableEntityException,
+      );
     });
 
     it('returns the event id and livemode flag in the response', async () => {

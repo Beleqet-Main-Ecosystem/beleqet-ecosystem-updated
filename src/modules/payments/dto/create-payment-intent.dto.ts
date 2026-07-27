@@ -22,12 +22,12 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /** Allowed Stripe payment method types. Extend as needed. */
 export enum StripePaymentMethod {
-  CARD       = 'card',
+  CARD = 'card',
   SEPA_DEBIT = 'sepa_debit',
-  KLARNA     = 'klarna',
-  IDEAL      = 'ideal',
-  AFTERPAY   = 'afterpay_clearpay',
-  PAYPAL     = 'paypal',
+  KLARNA = 'klarna',
+  IDEAL = 'ideal',
+  AFTERPAY = 'afterpay_clearpay',
+  PAYPAL = 'paypal',
 }
 
 export class CreatePaymentIntentDto {

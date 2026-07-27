@@ -30,11 +30,7 @@ import { AIExtractorService } from './ai-extractor.service';
 import { AiBudgetService } from './ai-budget.service';
 import { ResumeValidatorService } from './resume-validator.service';
 import { ProfileMapperService } from './profile-mapper.service';
-import {
-  AI_CHAT_PROVIDER,
-  AiChatProvider,
-  AiCompletion,
-} from './ai/ai-chat-provider.interface';
+import { AI_CHAT_PROVIDER, AiChatProvider, AiCompletion } from './ai/ai-chat-provider.interface';
 import { UsersService } from '../users/users.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -60,9 +56,7 @@ const AI_JSON = JSON.stringify({
   skills: ['TypeScript', 'Node.js', 'NestJS', 'React'],
   languages: ['Amharic', 'English'],
   certifications: [],
-  education: [
-    { school: 'Addis Ababa University', qualification: 'BSc', year: '2016' },
-  ],
+  education: [{ school: 'Addis Ababa University', qualification: 'BSc', year: '2016' }],
   experience: [
     {
       role: 'Lead Engineer',
@@ -235,9 +229,7 @@ describe('Resume Brain ↔ UsersService integration (Phase 9)', () => {
       ),
     );
 
-    await expect(resumeBrain.extractProfile(pdfFile())).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(resumeBrain.extractProfile(pdfFile())).rejects.toBeInstanceOf(BadRequestException);
     // The validator stopped the pipeline before any DB write.
     expect(userUpdate).not.toHaveBeenCalled();
   });

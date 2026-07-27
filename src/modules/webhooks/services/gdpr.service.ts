@@ -228,7 +228,7 @@ export class GDPRService {
       for (const [key, value] of Object.entries(obj)) {
         const lowerKey = key.toLowerCase();
 
-        if (sensitiveFields.some(field => lowerKey.includes(field))) {
+        if (sensitiveFields.some((field) => lowerKey.includes(field))) {
           if (typeof value === 'string') {
             obj[key] = `***${value.slice(-4)}***`;
           } else {
@@ -297,10 +297,12 @@ export class GDPRService {
           where: { id: rec.id },
           data: {
             externalCustomerId: `DELETED-${rec.id}`,
-            metadata: JSON.parse(JSON.stringify({
-              ...((rec as any).metadata || {}),
-              deletedAt: currentDate.toISOString(),
-            })),
+            metadata: JSON.parse(
+              JSON.stringify({
+                ...((rec as any).metadata || {}),
+                deletedAt: currentDate.toISOString(),
+              }),
+            ),
           },
         });
       } catch (error) {

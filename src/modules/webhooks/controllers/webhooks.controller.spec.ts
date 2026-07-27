@@ -4,7 +4,11 @@ import { WebhooksController } from './webhooks.controller';
 import { WebhookVerifierService } from '../services/webhook-verifier.service';
 import { WebhookRetryService } from '../services/webhook-retry.service';
 import { WebhookProcessorService } from '../services/webhook-processor.service';
-import { PaymentProvider, WebhookEventType, WebhookVerificationResult } from '../types/webhook.types';
+import {
+  PaymentProvider,
+  WebhookEventType,
+  WebhookVerificationResult,
+} from '../types/webhook.types';
 import { Request } from 'express';
 
 describe('WebhooksController', () => {
@@ -137,7 +141,15 @@ describe('WebhooksController', () => {
       );
 
       await expect(
-        controller.handlePayPal(payload, 'tx_123', '2024-01-01T00:00:00Z', 'url', 'sig', '', mockRequest),
+        controller.handlePayPal(
+          payload,
+          'tx_123',
+          '2024-01-01T00:00:00Z',
+          'url',
+          'sig',
+          '',
+          mockRequest,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -196,19 +208,19 @@ describe('WebhooksController', () => {
   describe('getRetryHistory', () => {
     it('should return retry history for a webhook', async () => {
       const mockHistory = [
-        { 
-          id: 'log_1', 
-          statusCode: 500, 
-          error: 'Database timeout', 
+        {
+          id: 'log_1',
+          statusCode: 500,
+          error: 'Database timeout',
           retryCount: 1,
           retryUntil: new Date('2024-01-01T12:00:00Z'),
           processedAt: null,
           createdAt: new Date('2024-01-01T10:00:00Z'),
         },
-        { 
-          id: 'log_2', 
-          statusCode: 200, 
-          error: null, 
+        {
+          id: 'log_2',
+          statusCode: 200,
+          error: null,
           retryCount: 2,
           retryUntil: null,
           processedAt: new Date('2024-01-01T10:05:00Z'),

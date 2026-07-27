@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Inject, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+  Inject,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { KycProvider } from './providers/kyc-provider.interface';
@@ -36,7 +43,9 @@ export class KycService {
     faceScanFile: KycUploadFile | null | undefined,
   ) {
     if (!documentFile || !faceScanFile) {
-      throw new BadRequestException('Both identification document and live face scan files are required.');
+      throw new BadRequestException(
+        'Both identification document and live face scan files are required.',
+      );
     }
 
     // Verify existing KYC status to prevent double-submissions

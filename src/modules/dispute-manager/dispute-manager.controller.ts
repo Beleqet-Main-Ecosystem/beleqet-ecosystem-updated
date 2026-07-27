@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards, ValidationPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+  ValidationPipe,
+} from '@nestjs/common';
 import { DisputeManagerService } from './dispute-manager.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
@@ -13,7 +22,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 @Controller('dispute')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DisputeManagerController {
-  constructor(private readonly disputeManagerService: DisputeManagerService) { }
+  constructor(private readonly disputeManagerService: DisputeManagerService) {}
 
   /**
    * Creates a new dispute for a contract.

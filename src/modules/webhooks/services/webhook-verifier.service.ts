@@ -58,8 +58,8 @@ export class WebhookVerifierService {
 
     // Stripe signature format: t=timestamp,v1=signature
     const parts = signature.split(',');
-    const timestampPart = parts.find(p => p.startsWith('t='))?.slice(2);
-    const signaturePart = parts.find(p => p.startsWith('v1='))?.slice(3);
+    const timestampPart = parts.find((p) => p.startsWith('t='))?.slice(2);
+    const signaturePart = parts.find((p) => p.startsWith('v1='))?.slice(3);
 
     if (!timestampPart || !signaturePart) {
       throw new BadRequestException('Invalid Stripe signature format');

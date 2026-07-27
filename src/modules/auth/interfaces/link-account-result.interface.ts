@@ -42,7 +42,4 @@ export interface PendingConfirmationOutcome {
  * keeps the pending-confirmation path — which is an expected, common
  * outcome, not an exceptional one — out of try/catch control flow.
  */
-export type OAuthSignInOutcome =
-  | LoginOutcome
-  | SignupOutcome
-  | PendingConfirmationOutcome;
+export type OAuthSignInOutcome = LoginOutcome | SignupOutcome | PendingConfirmationOutcome;

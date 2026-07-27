@@ -12,11 +12,15 @@ module.exports = {
   ],
   root: true,
   env: { node: true, jest: true },
-  ignorePatterns: ['.eslintrc.js'],
+  ignorePatterns: ['.eslintrc.js', 'dist', 'node_modules', 'coverage', 'beleqet-jobs-nextjs', 'frontend'],
   rules: {
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-require-imports': 'warn',
+    '@typescript-eslint/ban-types': 'off',
+    '@typescript-eslint/no-unsafe-function-type': 'off',
   },
 };

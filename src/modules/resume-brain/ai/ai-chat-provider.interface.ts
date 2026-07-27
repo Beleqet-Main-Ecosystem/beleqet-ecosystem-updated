@@ -55,10 +55,7 @@ export interface AiChatProvider {
    * response, and MUST always populate {@link AiCompletion.usage} (zeros when
    * the provider does not report it).
    */
-  complete(
-    messages: AiChatMessage[],
-    options?: AiCompletionOptions,
-  ): Promise<AiCompletion>;
+  complete(messages: AiChatMessage[], options?: AiCompletionOptions): Promise<AiCompletion>;
 }
 
 /**

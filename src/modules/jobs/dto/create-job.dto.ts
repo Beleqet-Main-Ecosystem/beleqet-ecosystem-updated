@@ -1,4 +1,12 @@
-import { IsString, IsEnum, IsOptional, IsInt, IsBoolean, IsDateString, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsDateString,
+  IsArray,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 // Local enum — mirrors Prisma JobType without requiring generated client
@@ -29,7 +37,11 @@ export class CreateJobDto {
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() featured?: boolean;
 
   // New extended fields
-  @ApiProperty({ required: false, type: [String] }) @IsOptional() @IsArray() @IsString({ each: true }) tags?: string[];
+  @ApiProperty({ required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() filled?: boolean;
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() urgent?: boolean;
   @ApiProperty({ required: false }) @IsOptional() @IsString() jobSite?: string;
@@ -46,7 +58,10 @@ export class CreateJobDto {
   @ApiProperty({ required: false }) @IsOptional() @IsString() contactPhone?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsString() companyName?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsString() companyLogo?: string;
-  @ApiProperty({ required: false, enum: JobStatus }) @IsOptional() @IsEnum(JobStatus) status?: JobStatus;
+  @ApiProperty({ required: false, enum: JobStatus })
+  @IsOptional()
+  @IsEnum(JobStatus)
+  status?: JobStatus;
   @ApiProperty({ required: false }) @IsOptional() @IsString() currency?: string;
 }
 

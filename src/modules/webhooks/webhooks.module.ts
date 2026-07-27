@@ -16,7 +16,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 
 /**
  * Webhook module for handling payment provider integrations
- * 
+ *
  * Features:
  * - Multi-provider support: Stripe, PayPal, Chapa
  * - Signature verification for each provider
@@ -25,7 +25,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
  * - GDPR compliance and data minimization
  * - Multi-currency and i18n support
  * - Comprehensive logging and monitoring
- * 
+ *
  * @example
  * // Import in app.module.ts
  * @Module({
@@ -35,11 +35,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 @Module({
   imports: [
     PrismaModule,
-    BullModule.registerQueue(
-      { name: 'webhooks' },
-      { name: 'notifications' },
-      { name: 'wallet' },
-    ),
+    BullModule.registerQueue({ name: 'webhooks' }, { name: 'notifications' }, { name: 'wallet' }),
   ],
   controllers: [WebhooksController],
   providers: [

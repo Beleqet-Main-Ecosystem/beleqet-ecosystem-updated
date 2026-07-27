@@ -30,14 +30,16 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const telegramId = String(ctx.from.id);
       await ctx.reply(
         `Welcome to Beleqet! Your Telegram ID is: ${telegramId}.\n\n` +
-        `To receive instant notifications for your gigs, please copy this ID and save it in your Beleqet Profile Settings.`
+          `To receive instant notifications for your gigs, please copy this ID and save it in your Beleqet Profile Settings.`,
       );
       this.logger.log(`Telegram /start triggered by ${telegramId}`);
     });
 
     // Handle generic text
     this.bot.on('text', (ctx) => {
-      ctx.reply('I am an automated notification bot for Beleqet. Please use the main website to interact with gigs!');
+      ctx.reply(
+        'I am an automated notification bot for Beleqet. Please use the main website to interact with gigs!',
+      );
     });
 
     try {

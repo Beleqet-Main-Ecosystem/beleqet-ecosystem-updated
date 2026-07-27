@@ -41,43 +41,43 @@ import {
 } from '@nestjs/common';
 import Stripe from 'stripe';
 
-import { StripeService }  from './stripe.service';
-import { PaypalService }  from './paypal.service';
-import { PrismaService }  from '../../prisma/prisma.service';
+import { StripeService } from './stripe.service';
+import { PaypalService } from './paypal.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock Stripe SDK
 // ─────────────────────────────────────────────────────────────────────────────
 
 const mockStripePaymentIntent = {
-  id:            'pi_test_123',
+  id: 'pi_test_123',
   client_secret: 'pi_test_123_secret_abc',
-  status:        'requires_payment_method' as Stripe.PaymentIntent.Status,
-  amount:        1500,
-  currency:      'usd',
-  created:       Math.floor(Date.now() / 1000),
+  status: 'requires_payment_method' as Stripe.PaymentIntent.Status,
+  amount: 1500,
+  currency: 'usd',
+  created: Math.floor(Date.now() / 1000),
 };
 
 const mockStripeRefund = {
-  id:               're_test_456',
-  status:           'succeeded',
-  amount:           1500,
-  currency:         'usd',
-  payment_intent:   'pi_test_123',
-  created:          Math.floor(Date.now() / 1000),
+  id: 're_test_456',
+  status: 'succeeded',
+  amount: 1500,
+  currency: 'usd',
+  payment_intent: 'pi_test_123',
+  created: Math.floor(Date.now() / 1000),
 };
 
 const mockStripeEvent: Partial<Stripe.Event> = {
-  id:       'evt_test_789',
-  type:     'payment_intent.succeeded',
-  created:  Math.floor(Date.now() / 1000),
+  id: 'evt_test_789',
+  type: 'payment_intent.succeeded',
+  created: Math.floor(Date.now() / 1000),
   livemode: false,
-  data:     { object: mockStripePaymentIntent as unknown as Stripe.PaymentIntent },
+  data: { object: mockStripePaymentIntent as unknown as Stripe.PaymentIntent },
 };
 
 jest.mock('stripe', () => {
   const mockPaymentIntents = {
-    create:  jest.fn(),
+    create: jest.fn(),
     confirm: jest.fn(),
   };
   const mockRefunds = {
@@ -89,15 +89,30 @@ jest.mock('stripe', () => {
 
   const MockStripe = jest.fn().mockImplementation(() => ({
     paymentIntents: mockPaymentIntents,
-    refunds:        mockRefunds,
-    webhooks:       mockWebhooks,
+    refunds: mockRefunds,
+    webhooks: mockWebhooks,
   }));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (MockStripe as any).errors = {
-    StripeCardError:           class StripeCardError extends Error { constructor(msg: string) { super(msg); this.name = 'StripeCardError'; } },
-    StripeInvalidRequestError: class StripeInvalidRequestError extends Error { constructor(msg: string) { super(msg); this.name = 'StripeInvalidRequestError'; } },
-    StripeError:               class StripeError extends Error { constructor(msg: string) { super(msg); this.name = 'StripeError'; } },
+    StripeCardError: class StripeCardError extends Error {
+      constructor(msg: string) {
+        super(msg);
+        this.name = 'StripeCardError';
+      }
+    },
+    StripeInvalidRequestError: class StripeInvalidRequestError extends Error {
+      constructor(msg: string) {
+        super(msg);
+        this.name = 'StripeInvalidRequestError';
+      }
+    },
+    StripeError: class StripeError extends Error {
+      constructor(msg: string) {
+        super(msg);
+        this.name = 'StripeError';
+      }
+    },
   };
 
   return { __esModule: true, default: MockStripe };
@@ -108,22 +123,18 @@ jest.mock('stripe', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const mockPaypalPayment = {
-  id:    'PAY-test-abc123',
+  id: 'PAY-test-abc123',
   state: 'created',
-  links: [
-    { rel: 'approval_url', href: 'https://sandbox.paypal.com/cgi-bin/webscr?token=test' },
-  ],
+  links: [{ rel: 'approval_url', href: 'https://sandbox.paypal.com/cgi-bin/webscr?token=test' }],
 };
 
 const mockPaypalExecuted = {
   state: 'approved',
-  transactions: [
-    { related_resources: [{ sale: { id: 'SALE-test-xyz' } }] },
-  ],
+  transactions: [{ related_resources: [{ sale: { id: 'SALE-test-xyz' } }] }],
 };
 
 const mockBillingAgreement = {
-  id:    'I-TESTSUBSCRIPTION',
+  id: 'I-TESTSUBSCRIPTION',
   state: 'Pending',
   links: [
     { rel: 'approval_url', href: 'https://sandbox.paypal.com/agreements/approve?token=test' },
@@ -133,7 +144,7 @@ const mockBillingAgreement = {
 jest.mock('paypal-rest-sdk', () => ({
   configure: jest.fn(),
   payment: {
-    create:  jest.fn(),
+    create: jest.fn(),
     execute: jest.fn(),
   },
   billingAgreement: {
@@ -155,7 +166,7 @@ import * as paypal from 'paypal-rest-sdk';
 function buildMockPrisma() {
   return {
     payment: {
-      upsert:     jest.fn().mockResolvedValue({}),
+      upsert: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
   } as unknown as PrismaService;
@@ -163,14 +174,14 @@ function buildMockPrisma() {
 
 function buildMockConfig(overrides: Record<string, string> = {}) {
   const defaults: Record<string, string> = {
-    STRIPE_SECRET_KEY:       'sk_test_mock_key',
-    STRIPE_WEBHOOK_SECRET:   'whsec_mock_secret',
-    PAYPAL_CLIENT_ID:        'paypal_client_id_mock',
-    PAYPAL_CLIENT_SECRET:    'paypal_client_secret_mock',
-    PAYPAL_MODE:             'sandbox',
-    PAYPAL_WEBHOOK_ID:       '',
-    PAYPAL_RETURN_URL:       'https://beleqet.com/payment/success',
-    PAYPAL_CANCEL_URL:       'https://beleqet.com/payment/cancel',
+    STRIPE_SECRET_KEY: 'sk_test_mock_key',
+    STRIPE_WEBHOOK_SECRET: 'whsec_mock_secret',
+    PAYPAL_CLIENT_ID: 'paypal_client_id_mock',
+    PAYPAL_CLIENT_SECRET: 'paypal_client_secret_mock',
+    PAYPAL_MODE: 'sandbox',
+    PAYPAL_WEBHOOK_ID: '',
+    PAYPAL_RETURN_URL: 'https://beleqet.com/payment/success',
+    PAYPAL_CANCEL_URL: 'https://beleqet.com/payment/cancel',
     ...overrides,
   };
   return {
@@ -197,12 +208,12 @@ describe('StripeService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StripeService,
-        { provide: ConfigService,  useValue: buildMockConfig() },
-        { provide: PrismaService,  useValue: prisma },
+        { provide: ConfigService, useValue: buildMockConfig() },
+        { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
 
-    service       = module.get<StripeService>(StripeService);
+    service = module.get<StripeService>(StripeService);
     stripeInstance = (service as unknown as { stripe: Stripe }).stripe;
   });
 
@@ -217,9 +228,9 @@ describe('StripeService', () => {
       );
 
       const result = await service.createPaymentIntent({
-        amount:   1500,
+        amount: 1500,
         currency: 'USD',
-        userId:   'user-uuid-001',
+        userId: 'user-uuid-001',
       });
 
       expect(result.id).toBe('pi_test_123');
@@ -233,9 +244,9 @@ describe('StripeService', () => {
     it('throws BadRequestException for non-alphabetic currency code', async () => {
       await expect(
         service.createPaymentIntent({
-          amount:   100,
-          currency: '12X',  // invalid: contains digits
-          userId:   'user-uuid-001',
+          amount: 100,
+          currency: '12X', // invalid: contains digits
+          userId: 'user-uuid-001',
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -243,9 +254,11 @@ describe('StripeService', () => {
     });
 
     it('throws UnprocessableEntityException on Stripe card error', async () => {
-      const cardErr = new (Stripe as unknown as {
-        errors: { StripeCardError: new (m: string) => Error };
-      }).errors.StripeCardError('Your card was declined.');
+      const cardErr = new (
+        Stripe as unknown as {
+          errors: { StripeCardError: new (m: string) => Error };
+        }
+      ).errors.StripeCardError('Your card was declined.');
       (stripeInstance.paymentIntents.create as jest.Mock).mockRejectedValue(cardErr);
 
       await expect(
@@ -254,9 +267,11 @@ describe('StripeService', () => {
     });
 
     it('throws InternalServerErrorException on generic Stripe error', async () => {
-      const stripeErr = new (Stripe as unknown as {
-        errors: { StripeError: new (m: string) => Error };
-      }).errors.StripeError('Stripe internal failure');
+      const stripeErr = new (
+        Stripe as unknown as {
+          errors: { StripeError: new (m: string) => Error };
+        }
+      ).errors.StripeError('Stripe internal failure');
       (stripeInstance.paymentIntents.create as jest.Mock).mockRejectedValue(stripeErr);
 
       await expect(
@@ -270,13 +285,13 @@ describe('StripeService', () => {
       );
 
       await service.createPaymentIntent({
-        amount:   500,
+        amount: 500,
         currency: 'EUR',
-        userId:   'user-uuid-002',
+        userId: 'user-uuid-002',
         metadata: {
-          email:  'user@example.com', // PII — must be stripped
-          jobId:  'job-abc123',       // safe
-          planTier: 'premium',        // safe
+          email: 'user@example.com', // PII — must be stripped
+          jobId: 'job-abc123', // safe
+          planTier: 'premium', // safe
         },
       });
 
@@ -299,10 +314,9 @@ describe('StripeService', () => {
       const result = await service.confirmPayment('pi_test_123', 'pm_test_card');
 
       expect(result.status).toBe('succeeded');
-      expect(stripeInstance.paymentIntents.confirm).toHaveBeenCalledWith(
-        'pi_test_123',
-        { payment_method: 'pm_test_card' },
-      );
+      expect(stripeInstance.paymentIntents.confirm).toHaveBeenCalledWith('pi_test_123', {
+        payment_method: 'pm_test_card',
+      });
       expect(prisma.payment.updateMany).toHaveBeenCalledTimes(1);
     });
   });
@@ -347,14 +361,9 @@ describe('StripeService', () => {
 
   describe('handleWebhook', () => {
     it('returns parsed event on valid signature', async () => {
-      (stripeInstance.webhooks.constructEvent as jest.Mock).mockReturnValue(
-        mockStripeEvent,
-      );
+      (stripeInstance.webhooks.constructEvent as jest.Mock).mockReturnValue(mockStripeEvent);
 
-      const result = await service.handleWebhook(
-        Buffer.from('raw-body'),
-        't=123,v1=abc',
-      );
+      const result = await service.handleWebhook(Buffer.from('raw-body'), 't=123,v1=abc');
 
       expect(result.id).toBe('evt_test_789');
       expect(result.type).toBe('payment_intent.succeeded');
@@ -365,9 +374,9 @@ describe('StripeService', () => {
         throw new Error('No signatures found matching the expected signature for payload');
       });
 
-      await expect(
-        service.handleWebhook(Buffer.from('bad'), 'bad-sig'),
-      ).rejects.toBeInstanceOf(UnprocessableEntityException);
+      await expect(service.handleWebhook(Buffer.from('bad'), 'bad-sig')).rejects.toBeInstanceOf(
+        UnprocessableEntityException,
+      );
     });
   });
 
@@ -404,8 +413,8 @@ describe('PaypalService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaypalService,
-        { provide: ConfigService,  useValue: buildMockConfig() },
-        { provide: PrismaService,  useValue: prisma },
+        { provide: ConfigService, useValue: buildMockConfig() },
+        { provide: PrismaService, useValue: prisma },
       ],
     }).compile();
 
@@ -424,9 +433,9 @@ describe('PaypalService', () => {
       );
 
       const result = await service.createOrder({
-        amount:   25.0,
+        amount: 25.0,
         currency: 'USD',
-        userId:   'user-uuid-001',
+        userId: 'user-uuid-001',
       });
 
       expect(result.id).toBe('PAY-test-abc123');
@@ -453,9 +462,9 @@ describe('PaypalService', () => {
       );
 
       const result = await service.createOrder({
-        amount:             10,
-        currency:           'USD',
-        userId:             'user-uuid-001',
+        amount: 10,
+        currency: 'USD',
+        userId: 'user-uuid-001',
         subscriptionPlanId: 'P-PLAN123',
       });
 
@@ -474,10 +483,7 @@ describe('PaypalService', () => {
           cb(null, mockPaypalExecuted),
       );
 
-      const result = await service.captureOrder(
-        { orderId: 'PAY-test-abc123' },
-        'PAYER-ID-XYZ',
-      );
+      const result = await service.captureOrder({ orderId: 'PAY-test-abc123' }, 'PAYER-ID-XYZ');
 
       expect(result.orderId).toBe('PAY-test-abc123');
       expect(result.status).toBe('approved');
@@ -486,9 +492,9 @@ describe('PaypalService', () => {
     });
 
     it('throws BadRequestException when payerId is empty', async () => {
-      await expect(
-        service.captureOrder({ orderId: 'PAY-test-abc123' }, ''),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.captureOrder({ orderId: 'PAY-test-abc123' }, '')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
 
       expect(paypal.payment.execute).not.toHaveBeenCalled();
     });
@@ -504,9 +510,9 @@ describe('PaypalService', () => {
       );
 
       const result = await service.createSubscription({
-        amount:             9.99,
-        currency:           'USD',
-        userId:             'user-uuid-001',
+        amount: 9.99,
+        currency: 'USD',
+        userId: 'user-uuid-001',
         subscriptionPlanId: 'P-PLAN123',
       });
 
@@ -518,9 +524,9 @@ describe('PaypalService', () => {
     it('throws BadRequestException when subscriptionPlanId is missing', async () => {
       await expect(
         service.createSubscription({
-          amount:   9.99,
+          amount: 9.99,
           currency: 'USD',
-          userId:   'user-uuid-001',
+          userId: 'user-uuid-001',
           // subscriptionPlanId intentionally omitted
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
@@ -534,12 +540,12 @@ describe('PaypalService', () => {
   describe('handleWebhook', () => {
     it('processes PAYMENT.CAPTURE.COMPLETED and updates DB to SUCCEEDED', async () => {
       const event = {
-        id:            'WH-test-001',
-        event_type:    'PAYMENT.CAPTURE.COMPLETED',
+        id: 'WH-test-001',
+        event_type: 'PAYMENT.CAPTURE.COMPLETED',
         resource_type: 'capture',
-        summary:       'Payment completed for ORDER-123',
-        resource:      { id: 'PAY-test-abc123' },
-        create_time:   new Date().toISOString(),
+        summary: 'Payment completed for ORDER-123',
+        resource: { id: 'PAY-test-abc123' },
+        create_time: new Date().toISOString(),
       };
 
       await service.handleWebhook(event, {});
@@ -547,19 +553,19 @@ describe('PaypalService', () => {
       expect(prisma.payment.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { providerPaymentId: 'PAY-test-abc123' },
-          data:  expect.objectContaining({ status: 'SUCCEEDED' }),
+          data: expect.objectContaining({ status: 'SUCCEEDED' }),
         }),
       );
     });
 
     it('processes BILLING.SUBSCRIPTION.CANCELLED and updates DB to CANCELLED', async () => {
       const event = {
-        id:            'WH-test-002',
-        event_type:    'BILLING.SUBSCRIPTION.CANCELLED',
+        id: 'WH-test-002',
+        event_type: 'BILLING.SUBSCRIPTION.CANCELLED',
         resource_type: 'subscription',
-        summary:       'Subscription cancelled',
-        resource:      { id: 'I-TESTSUBSCRIPTION' },
-        create_time:   new Date().toISOString(),
+        summary: 'Subscription cancelled',
+        resource: { id: 'I-TESTSUBSCRIPTION' },
+        create_time: new Date().toISOString(),
       };
 
       await service.handleWebhook(event, {});
@@ -573,12 +579,12 @@ describe('PaypalService', () => {
 
     it('does not throw on unhandled event types', async () => {
       const event = {
-        id:            'WH-test-003',
-        event_type:    'SOME.UNKNOWN.EVENT',
+        id: 'WH-test-003',
+        event_type: 'SOME.UNKNOWN.EVENT',
         resource_type: 'unknown',
-        summary:       '',
-        resource:      {},
-        create_time:   new Date().toISOString(),
+        summary: '',
+        resource: {},
+        create_time: new Date().toISOString(),
       };
 
       await expect(service.handleWebhook(event, {})).resolves.not.toThrow();
