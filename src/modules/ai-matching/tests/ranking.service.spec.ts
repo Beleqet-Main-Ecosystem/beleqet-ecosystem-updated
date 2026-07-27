@@ -1,5 +1,5 @@
 import type { ScoringConfig } from '../config/scoring.config';
-import type { ScoredCandidate, ScoreWeights } from '../interfaces/score.interface';
+import type { ScoredCandidate } from '../interfaces/score.interface';
 import { RankingService } from '../services/ranking.service';
 
 describe('RankingService', () => {

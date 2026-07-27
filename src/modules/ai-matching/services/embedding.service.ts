@@ -3,7 +3,7 @@ import type { EmbeddingProvider } from '../interfaces/embedding-provider.interfa
 import type { EmbeddingResult, EmbeddingRequest } from '../interfaces/embedding.interface';
 import type { Job } from '../interfaces/job.interface';
 import type { EmbeddingConfig } from '../config/embedding.config';
-import { normalizeText, normalizeTextArray } from '../utils/text-normalizer.util';
+import { normalizeText } from '../utils/text-normalizer.util';
 import { EMBEDDING_PROVIDER } from './embedding-provider.token';
 
 @Injectable()

@@ -2,10 +2,8 @@ import type { LlmProvider } from '../services/llm-provider.token';
 import type { JobSummary } from '../interfaces/job.interface';
 import type { LlmCandidateProfile } from '../interfaces/llm-candidate-profile.interface';
 import type { LlmResponse } from '../interfaces/llm-response.interface';
-import type { PromptTemplate } from '../prompts/prompt-template.interface';
 import { LlmEvaluationService } from '../services/llm-evaluation.service';
 import { PromptService } from '../services/prompt.service';
-import { LLM_PROVIDER } from '../services/llm-provider.token';
 
 describe('LlmEvaluationService', () => {
   let service: LlmEvaluationService;

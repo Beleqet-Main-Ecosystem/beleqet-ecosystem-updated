@@ -1,4 +1,4 @@
-import type { Job } from './job.interface';
+import type { Job as _Job } from './job.interface';
 import type { EmbeddingResult, EmbeddingRequest } from './embedding.interface';
 
 /**

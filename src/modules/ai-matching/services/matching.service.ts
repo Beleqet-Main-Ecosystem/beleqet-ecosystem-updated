@@ -7,7 +7,7 @@ import type { LlmCandidateProfile } from '../interfaces/llm-candidate-profile.in
 import type { VectorSearchHit, VectorSearchResult } from '../interfaces/vector-search.interface';
 import type {
   EvaluationBatchResult,
-  EvaluationResult,
+  EvaluationResult as _EvaluationResult,
   EvaluationDecision,
 } from '../interfaces/evaluation.interface';
 import type { ScoredCandidate, LlmScore } from '../interfaces/score.interface';
@@ -72,7 +72,7 @@ export class MatchingService {
     const locale = options?.locale ?? job.locale ?? 'en';
     const llmEnabled = true;
 
-    const pipelineStart = Date.now();
+    const _pipelineStart = Date.now();
 
     try {
       const rows = await this.prisma.$queryRawUnsafe<Array<{ count: number }>>(

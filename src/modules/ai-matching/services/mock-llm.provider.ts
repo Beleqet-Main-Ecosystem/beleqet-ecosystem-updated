@@ -11,7 +11,7 @@ const DECISIONS = ['STRONG_MATCH', 'POTENTIAL_MATCH', 'WEAK_MATCH', 'NOT_A_MATCH
  */
 @Injectable()
 export class MockLLMProvider implements LlmProvider {
-  async evaluate(prompt: PromptTemplate): Promise<LlmResponse> {
+  async evaluate(_prompt: PromptTemplate): Promise<LlmResponse> {
     await new Promise((r) => setTimeout(r, 50 + Math.random() * 100));
 
     const decisionIndex = Math.floor(Math.random() * 4);
@@ -36,7 +36,7 @@ export class MockLLMProvider implements LlmProvider {
     };
   }
 
-  async generate(prompt: PromptTemplate): Promise<string> {
+  async generate(_prompt: PromptTemplate): Promise<string> {
     await new Promise((r) => setTimeout(r, 50 + Math.random() * 100));
 
     const mockResponse = {

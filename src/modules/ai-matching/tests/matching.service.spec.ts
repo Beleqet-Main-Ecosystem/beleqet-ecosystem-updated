@@ -1,12 +1,9 @@
-import type { Job, JobSummary } from '../interfaces/job.interface';
-import type { Candidate } from '../interfaces/candidate.interface';
+import type { Job } from '../interfaces/job.interface';
 import type { VectorSearchResult, VectorSearchHit } from '../interfaces/vector-search.interface';
 import type { EvaluationBatchResult, EvaluationResult } from '../interfaces/evaluation.interface';
-import type { ScoredCandidate } from '../interfaces/score.interface';
-import type { RankedCandidate, MatchResult } from '../interfaces/match-result.interface';
+import type { RankedCandidate } from '../interfaces/match-result.interface';
 import type { LlmCandidateProfile } from '../interfaces/llm-candidate-profile.interface';
 import type { EmbeddingResult } from '../interfaces/embedding.interface';
-import type { ScoreWeights } from '../interfaces/score.interface';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { EmbeddingQueueService } from '../services/embedding-queue.service';
 import { MetricsService } from '../services/metrics.service';

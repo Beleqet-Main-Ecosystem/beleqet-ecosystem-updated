@@ -3,7 +3,7 @@ import type { EmbeddingResult, Embedding } from '../interfaces/embedding.interfa
 import type { Job } from '../interfaces/job.interface';
 import type { EmbeddingConfig } from '../config/embedding.config';
 import { EmbeddingService } from '../services/embedding.service';
-import { EMBEDDING_PROVIDER } from '../services/embedding-provider.token';
+import { EMBEDDING_PROVIDER as _EMBEDDING_PROVIDER } from '../services/embedding-provider.token';
 
 describe('EmbeddingService', () => {
   let service: EmbeddingService;

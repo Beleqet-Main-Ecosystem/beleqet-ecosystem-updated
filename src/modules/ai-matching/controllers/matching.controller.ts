@@ -14,7 +14,7 @@ import { MatchingService } from '../services/matching.service';
 import { MatchRequestDto } from '../dto/match-request.dto';
 import { MatchResponseDto } from '../dto/match-response.dto';
 import { RankedCandidateResponseDto } from '../dto/ranked-candidate-response.dto';
-import type { Job, JobSummary } from '../interfaces/job.interface';
+import type { Job, JobSummary as _JobSummary } from '../interfaces/job.interface';
 import type { MatchResult } from '../interfaces/match-result.interface';
 
 /**
