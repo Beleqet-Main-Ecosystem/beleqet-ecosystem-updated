@@ -46,35 +46,35 @@ export class CacheService {
       return this.pendingFetches.get(fullKey) as Promise<T>;
     }
 
-    // ✅ Declare variable outside the async function
-    let fetchPromise: Promise<T>;
-
-    fetchPromise = (async () => {
-      try {
-        const cached = await this.cacheManager.get<T>(fullKey);
-        if (cached !== undefined) {
-          if (this.debug) {
-            this.logger.debug(`Cache hit for key: ${fullKey}`);
-          }
-          return cached;
-        }
-
+    // Create the fetch promise – no inner finally, we'll attach .finally() on the promise itself
+    const fetchPromise = (async () => {
+      const cached = await this.cacheManager.get<T>(fullKey);
+      if (cached !== undefined) {
         if (this.debug) {
-          this.logger.debug(`Cache miss for key: ${fullKey}, fetching fresh data`);
+          this.logger.debug(`Cache hit for key: ${fullKey}`);
         }
-
-        const data = await fetchFn();
-        await this.cacheManager.set(fullKey, data, ttlSeconds);
-        return data;
-      } finally {
-        // ✅ Now fetchPromise is defined
-        if (this.pendingFetches.get(fullKey) === fetchPromise) {
-          this.pendingFetches.delete(fullKey);
-        }
+        return cached;
       }
+
+      if (this.debug) {
+        this.logger.debug(`Cache miss for key: ${fullKey}, fetching fresh data`);
+      }
+
+      const data = await fetchFn();
+      await this.cacheManager.set(fullKey, data, ttlSeconds);
+      return data;
     })();
 
+    // Clean up pending entry after the promise settles (success or error)
+    fetchPromise.finally(() => {
+      if (this.pendingFetches.get(fullKey) === fetchPromise) {
+        this.pendingFetches.delete(fullKey);
+      }
+    });
+
+    // Store the pending promise so concurrent calls can coalesce
     this.pendingFetches.set(fullKey, fetchPromise);
+
     return fetchPromise;
   }
 
