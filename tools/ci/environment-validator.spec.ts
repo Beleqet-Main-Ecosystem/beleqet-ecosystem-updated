@@ -22,7 +22,7 @@ function validStagingEnv(): Record<string, string> {
 
 function validCiTestEnv(): Record<string, string> {
   return {
-    DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5433/beleqet_test',
+    DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/beleqet_test',
     REDIS_HOST: '127.0.0.1',
     REDIS_PORT: '6379',
     JWT_ACCESS_SECRET: 'ci_test_jwt_secret',
