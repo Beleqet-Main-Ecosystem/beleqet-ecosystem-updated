@@ -193,19 +193,20 @@ test.describe('Notification Settings page', () => {
 });
 
 test.describe('Admin broadcast creates notification visible to user', () => {
-  let admin: User | null;
+  let adminAvailable = false;
   let regularUser: User;
 
-  test.beforeEach(async () => {
-    admin = await loginAsAdmin();
+  test.beforeAll(async () => {
+    const admin = await loginAsAdmin();
+    adminAvailable = admin !== null;
     regularUser = await registerUser(randomEmail(), 'Password123!');
   });
 
   test('Notification created by admin broadcast appears in user bell', async ({ page }) => {
-    if (!admin) {
-      test.skip();
-      return;
-    }
+    test.skip(!adminAvailable, 'Admin user not available in test environment');
+
+    const admin = (await loginAsAdmin())!;
+
 
     // Broadcast a notification to all users
     await createNotification(admin.accessToken, 'Test Broadcast', 'This is a test notification from admin');
