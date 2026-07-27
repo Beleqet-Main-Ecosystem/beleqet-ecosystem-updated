@@ -3,9 +3,11 @@ import { EscrowService } from './escrow.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { WalletService } from '../wallet/wallet.service';
-import { getQueueToken } from '@nestjs/bull';
+import { getQueueToken } from '@nestjs/bullmq';
 import { QUEUE_NAMES, ESCROW_JOBS } from '../queues/queues.constants';
 import { NotFoundException } from '@nestjs/common';
+
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('EscrowService', () => {
   let service: EscrowService;
@@ -43,6 +45,7 @@ describe('EscrowService', () => {
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: WalletService, useValue: walletService },
         { provide: getQueueToken(QUEUE_NAMES.ESCROW), useValue: escrowQueue },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();
 
