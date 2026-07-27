@@ -92,7 +92,7 @@ describe('Disputes ↔ Escrow Integration', () => {
 
   describe('createDispute', () => {
     it('should create dispute, set contract DISPUTED, set escrow DISPUTED, log event, notify', async () => {
-      const { employer, freelancer, gig, contract, escrow } = await setupFundedEscrow();
+      const { employer, freelancer, _gig, contract, escrow } = await setupFundedEscrow();
 
       const result = await disputesService.createDispute(freelancer.id, {
         contractId: contract.id,
@@ -141,7 +141,7 @@ describe('Disputes ↔ Escrow Integration', () => {
     it('should reject duplicate dispute on same contract', async () => {
       const { employer, freelancer, contract } = await setupFundedEscrow();
 
-      const dispute = await createAndTrackDispute(contract.id, freelancer.id);
+      const _dispute = await createAndTrackDispute(contract.id, freelancer.id);
 
       await expect(
         disputesService.createDispute(employer.id, {
@@ -166,7 +166,7 @@ describe('Disputes ↔ Escrow Integration', () => {
 
   describe('resolveDispute — RELEASE_TO_FREELANCER', () => {
     it('should release full net amount to freelancer, set escrow RELEASED, complete contract', async () => {
-      const { employer, freelancer, admin, contract, escrow } = await setupFundedEscrow();
+      const { _employer, freelancer, admin, contract, escrow } = await setupFundedEscrow();
       const dispute = await createAndTrackDispute(contract.id, freelancer.id);
 
       const walletBefore = await prisma.freelancerWallet.findUnique({
@@ -295,7 +295,7 @@ describe('Disputes ↔ Escrow Integration', () => {
 
   describe('resolveDispute — PARTIAL_RELEASE', () => {
     it('should release partialPercentage to freelancer, refund rest to client', async () => {
-      const { employer, freelancer, admin, contract, escrow } = await setupFundedEscrow();
+      const { _employer, freelancer, admin, contract, escrow } = await setupFundedEscrow();
       const dispute = await createAndTrackDispute(contract.id, freelancer.id);
 
       const partialPct = 30;
@@ -347,7 +347,7 @@ describe('Disputes ↔ Escrow Integration', () => {
     });
 
     it('should reject if already resolved', async () => {
-      const { employer, freelancer, admin, contract } = await setupFundedEscrow();
+      const { _employer, freelancer, admin, contract } = await setupFundedEscrow();
       const dispute = await createAndTrackDispute(contract.id, freelancer.id);
 
       await disputesService.resolveDispute(
@@ -368,7 +368,7 @@ describe('Disputes ↔ Escrow Integration', () => {
     });
 
     it('should reject if escrow is not DISPUTED', async () => {
-      const { employer, freelancer, admin, contract, escrow } = await setupFundedEscrow();
+      const { _employer, freelancer, admin, contract, escrow } = await setupFundedEscrow();
       const dispute = await createAndTrackDispute(contract.id, freelancer.id);
       await prisma.escrowTransaction.update({
         where: { id: escrow.id },
@@ -404,7 +404,7 @@ describe('Disputes ↔ Escrow Integration', () => {
 
   describe('transactional invariants', () => {
     it('should create event log entries for dispute lifecycle', async () => {
-      const { employer, freelancer, admin, contract } = await setupFundedEscrow();
+      const { _employer, freelancer, admin, contract } = await setupFundedEscrow();
       const dispute = await createAndTrackDispute(contract.id, freelancer.id);
 
       const raisedEvent = await prisma.eventLog.findFirst({
@@ -427,7 +427,7 @@ describe('Disputes ↔ Escrow Integration', () => {
     });
 
     it('should not credit freelancer when REFUND_TO_CLIENT', async () => {
-      const { employer, freelancer, admin, contract } = await setupFundedEscrow();
+      const { _employer, freelancer, admin, contract } = await setupFundedEscrow();
       const dispute = await createAndTrackDispute(contract.id, freelancer.id);
 
       const walletBefore = await prisma.freelancerWallet.findUnique({

@@ -227,7 +227,7 @@ describe('Disputes Flow (e2e)', () => {
   });
 
   describe('POST /disputes — evidenceUrls optional', () => {
-    async function setupFreshContract(role: 'EMPLOYER' | 'FREELANCER' = 'EMPLOYER') {
+    async function setupFreshContract(_role: 'EMPLOYER' | 'FREELANCER' = 'EMPLOYER') {
       const gig = await createTestGig(employer.id, { status: 'OPEN', budgetMax: 10000 });
       await createTestEscrow(gig.id, {
         grossAmount: 10000,

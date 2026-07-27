@@ -52,7 +52,7 @@ describe('DisputesController', () => {
 
   describe('getMyDisputes', () => {
     it('should return user disputes', async () => {
-      const mockUser = { userId: 'user-1' };
+      const _mockUser = { userId: 'user-1' };
       const expectedDisputes = [
         {
           id: 'dispute-1',
@@ -75,7 +75,7 @@ describe('DisputesController', () => {
 
   describe('getByContract', () => {
     it('should return dispute by contract', async () => {
-      const mockUser = { userId: 'user-1' };
+      const _mockUser = { userId: 'user-1' };
       const expectedDispute = {
         id: 'dispute-1',
         contractId: 'contract-1',

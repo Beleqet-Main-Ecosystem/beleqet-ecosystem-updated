@@ -67,8 +67,8 @@ export class DisputesService {
     }
 
     const isClient = contract.clientId === userId;
-    const otherPartyId = isClient ? contract.freelancerId : contract.clientId;
-    const otherParty = isClient ? contract.freelancer : contract.client;
+    const _otherPartyId = isClient ? contract.freelancerId : contract.clientId;
+    const _otherParty = isClient ? contract.freelancer : contract.client;
 
     const dispute = await this.prisma.$transaction(async (tx) => {
       const dispute = await tx.dispute.create({
@@ -300,7 +300,7 @@ export class DisputesService {
 
     let chapaRefundAmount = 0;
 
-    const resolved = await this.prisma.$transaction(async (tx) => {
+    const _resolved = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.dispute.update({
         where: { id: disputeId },
         data: {
@@ -440,8 +440,8 @@ export class DisputesService {
       );
     }
 
-    const clientName = dispute.contract.client?.firstName || 'Client';
-    const freelancerName = dispute.contract.freelancer?.firstName || 'Freelancer';
+    const _clientName = dispute.contract.client?.firstName || 'Client';
+    const _freelancerName = dispute.contract.freelancer?.firstName || 'Freelancer';
 
     const clientRefundTypes = ['REFUND_TO_CLIENT', 'SPLIT_50_50', 'PARTIAL_RELEASE'];
     const freelancerReleaseTypes = ['RELEASE_TO_FREELANCER', 'SPLIT_50_50', 'PARTIAL_RELEASE'];
