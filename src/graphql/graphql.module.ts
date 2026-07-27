@@ -10,7 +10,7 @@ import { ComplexityPlugin } from './plugins/complexity.plugin';
 // Use /tmp (always writable) in production, and the conventional src/ path in
 // development so the file is generated alongside the source for IDE tooling.
 const schemaPath =
-  process.env.NODE_ENV === 'production'
+  process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
     ? '/tmp/schema.gql'
     : join(process.cwd(), 'src/graphql/schema.gql');
 
