@@ -526,6 +526,21 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
           where: { id: 'tx-001' },
           data: expect.objectContaining({ note: expect.stringContaining('Withdrawal FAILED') }),
         }),
+
+  // ── 13. Chapa network failure → rollback ─────────────────────────────────
+  describe('Scenario 13 – Chapa network failure → InternalServerErrorException + rollback', () => {
+    it('throws InternalServerErrorException on fetch network error', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+
+      const dto: WithdrawDto = {
+        amount: 300,
+        method: 'TELEBIRR',
+        accountRef: '0911111111',
+        currency: 'ETB',
+      };
+
+      await expect(walletService.withdraw('user-001', dto)).rejects.toThrow(
+        InternalServerErrorException,
       );
     });
   });

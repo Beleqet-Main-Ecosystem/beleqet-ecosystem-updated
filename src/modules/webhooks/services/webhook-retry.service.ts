@@ -56,9 +56,7 @@ export class WebhookRetryService {
     });
 
     if (existing && existing.processedAt) {
-      this.logger.debug(
-        `Webhook already processed (idempotent): ${provider} - ${idempotencyKey}`,
-      );
+      this.logger.debug(`Webhook already processed (idempotent): ${provider} - ${idempotencyKey}`);
       return existing.id;
     }
 
@@ -132,11 +130,7 @@ export class WebhookRetryService {
    * @param error - Error message
    * @param retryCount - Current retry count
    */
-  async markAsFailed(
-    webhookId: string,
-    error: string,
-    retryCount: number = 0,
-  ): Promise<void> {
+  async markAsFailed(webhookId: string, error: string, retryCount: number = 0): Promise<void> {
     const config = this.defaultRetryConfig;
     const nextRetryDelay = this.calculateBackoffDelay(retryCount, config);
     const retryUntil = new Date(Date.now() + nextRetryDelay);

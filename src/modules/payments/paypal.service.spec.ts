@@ -188,6 +188,7 @@ describe('PaypalService', () => {
   describe('createOrder', () => {
     it('creates a PayPal order and returns an approval URL', async () => {
       (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: Function) =>
         cb(null, makePaypalPayment()),
       );
 
@@ -205,6 +206,7 @@ describe('PaypalService', () => {
 
     it('stores the amount in cents in the DB', async () => {
       (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: Function) =>
         cb(null, makePaypalPayment()),
       );
 
@@ -230,6 +232,8 @@ describe('PaypalService', () => {
           cb(null, makePaypalPayment());
         },
       );
+      (paypal.payment.create as jest.Mock).mockImplementation((data: unknown, cb: Function) => {
+      });
 
       await service.createOrder({ amount: 10, currency: 'USD', userId: 'my-uuid-gdpr' });
 
@@ -244,6 +248,8 @@ describe('PaypalService', () => {
           cb(null, makePaypalPayment());
         },
       );
+      (paypal.payment.create as jest.Mock).mockImplementation((data: unknown, cb: Function) => {
+      });
 
       await service.createOrder({
         amount: 10,
@@ -265,6 +271,8 @@ describe('PaypalService', () => {
           cb(null, makePaypalPayment());
         },
       );
+      (paypal.payment.create as jest.Mock).mockImplementation((data: unknown, cb: Function) => {
+      });
 
       await service.createOrder({ amount: 10, currency: 'USD', userId: 'u' });
 
@@ -289,6 +297,7 @@ describe('PaypalService', () => {
 
     it('throws InternalServerErrorException when PayPal SDK returns an error', async () => {
       (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: Function) =>
         cb({ name: 'INTERNAL_SERVICE_ERROR', message: 'PayPal error' }, null),
       );
 
@@ -300,6 +309,7 @@ describe('PaypalService', () => {
     it('returns null approvalUrl when no approval_url link is found', async () => {
       const paymentWithoutLink = { id: 'PAY-no-link', state: 'created', links: [] };
       (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: PaypalCallback) =>
+      (paypal.payment.create as jest.Mock).mockImplementation((_d: unknown, cb: Function) =>
         cb(null, paymentWithoutLink),
       );
 
@@ -344,6 +354,7 @@ describe('PaypalService', () => {
     it('updates DB status to FAILED if capture state is not approved', async () => {
       (paypal.payment.execute as jest.Mock).mockImplementation(
         (_id: string, _d: unknown, cb: PaypalCallback) => cb(null, makePaypalExecuted('failed')),
+        (_id: string, _d: unknown, cb: Function) => cb(null, makePaypalExecuted('failed')),
       );
 
       await service.captureOrder({ orderId: 'PAY-test-001' }, 'PAYERID-ABC');
@@ -562,6 +573,8 @@ describe('PaypalService', () => {
 
       (paypal.notification.webhookEvent as any).verify = jest.fn(
         (_data: unknown, cb: PaypalCallback) => cb(null, { verification_status: 'SUCCESS' }),
+      (paypal.notification.webhookEvent as any).verify = jest.fn((_data: unknown, cb: Function) =>
+        cb(null, { verification_status: 'SUCCESS' }),
       );
 
       await svc.handleWebhook(makeWebhookEvent('PAYMENT.SALE.COMPLETED') as any, {
@@ -580,6 +593,8 @@ describe('PaypalService', () => {
 
       (paypal.notification.webhookEvent as any).verify = jest.fn(
         (_data: unknown, cb: PaypalCallback) => cb(null, { verification_status: 'FAILURE' }),
+      (paypal.notification.webhookEvent as any).verify = jest.fn((_data: unknown, cb: Function) =>
+        cb(null, { verification_status: 'FAILURE' }),
       );
 
       await expect(
@@ -592,6 +607,8 @@ describe('PaypalService', () => {
 
       (paypal.notification.webhookEvent as any).verify = jest.fn(
         (_data: unknown, cb: PaypalCallback) => cb(new Error('SDK error'), null),
+      (paypal.notification.webhookEvent as any).verify = jest.fn((_data: unknown, cb: Function) =>
+        cb(new Error('SDK error'), null),
       );
 
       await expect(

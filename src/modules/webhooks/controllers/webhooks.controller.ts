@@ -88,9 +88,7 @@ export class WebhooksController {
     const rawBody: Buffer = req.rawBody || Buffer.from('');
     const ipAddress = (req.ip || req.socket.remoteAddress || '').toString();
 
-    this.logger.debug(
-      `[Stripe] Webhook received - IP: ${ipAddress}, User-Agent: ${_userAgent}`,
-    );
+    this.logger.debug(`[Stripe] Webhook received - IP: ${ipAddress}, User-Agent: ${_userAgent}`);
 
     try {
       // Verify signature
@@ -239,9 +237,7 @@ export class WebhooksController {
   ) {
     const ipAddress = (req.ip || req.socket.remoteAddress || '').toString();
 
-    this.logger.debug(
-      `[Chapa] Webhook received - IP: ${ipAddress}, Event: ${payload.event}`,
-    );
+    this.logger.debug(`[Chapa] Webhook received - IP: ${ipAddress}, Event: ${payload.event}`);
 
     try {
       // Verify signature

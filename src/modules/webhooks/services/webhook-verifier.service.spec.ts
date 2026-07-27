@@ -74,10 +74,7 @@ describe('WebhookVerifierService', () => {
       const oldTimestamp = Math.floor(Date.now() / 1000) - 400; // 400 seconds old (exceeds 5 min window)
       const body = Buffer.from(JSON.stringify({ id: 'evt_123' }));
       const signedContent = `${oldTimestamp}.${body.toString()}`;
-      const signature = crypto
-        .createHmac('sha256', secret)
-        .update(signedContent)
-        .digest('hex');
+      const signature = crypto.createHmac('sha256', secret).update(signedContent).digest('hex');
       const stripeSignature = `t=${oldTimestamp},v1=${signature}`;
 
       configService.get.mockReturnValue(secret);
@@ -96,7 +93,9 @@ describe('WebhookVerifierService', () => {
       const transmissionTime = '2024-01-01T00:00:00Z';
       const payload = { id: 'WH_123', event_type: 'PAYMENT.CAPTURE.COMPLETED' };
       const payloadHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-      const verificationString = [transmissionId, transmissionTime, webhookId, payloadHash].join('|');
+      const verificationString = [transmissionId, transmissionTime, webhookId, payloadHash].join(
+        '|',
+      );
       const expectedSignature = crypto
         .createHmac('sha256', secret)
         .update(verificationString)
@@ -161,19 +160,16 @@ describe('WebhookVerifierService', () => {
       configService.get.mockReturnValue('chapa_secret_123');
 
       await expect(
-        service.verifyChapa(
-          { event: 'charge.success' },
-          'invalid_signature',
-        ),
+        service.verifyChapa({ event: 'charge.success' }, 'invalid_signature'),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw error if Chapa secret is not configured', async () => {
       configService.get.mockReturnValue(undefined);
 
-      await expect(
-        service.verifyChapa({ event: 'charge.success' }, 'sig'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.verifyChapa({ event: 'charge.success' }, 'sig')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

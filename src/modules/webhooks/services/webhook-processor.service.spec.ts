@@ -96,15 +96,15 @@ describe('WebhookProcessorService', () => {
         payload: {
           id: 'evt_123',
           type: 'charge.succeeded',
-          data: { 
-            object: { 
-              id: 'ch_123', 
-              amount: 2000, 
+          data: {
+            object: {
+              id: 'ch_123',
+              amount: 2000,
               currency: 'usd',
               customer: 'cus_123',
               status: 'succeeded',
               created: Math.floor(Date.now() / 1000),
-            } 
+            },
           },
         },
         timestamp: new Date(),
@@ -132,10 +132,7 @@ describe('WebhookProcessorService', () => {
       expect(prismaService.paymentTransaction.create).toHaveBeenCalled();
       expect(prismaService.walletTransaction.findFirst).toHaveBeenCalled();
       expect(mockQueue.add).toHaveBeenCalled();
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        'webhook.processed',
-        expect.any(Object),
-      );
+      expect(eventEmitter.emit).toHaveBeenCalledWith('webhook.processed', expect.any(Object));
     });
 
     it('should handle payment failed event', async () => {
@@ -143,18 +140,18 @@ describe('WebhookProcessorService', () => {
         isValid: true,
         provider: PaymentProvider.STRIPE,
         eventType: WebhookEventType.PAYMENT_FAILED,
-        payload: { 
+        payload: {
           id: 'evt_456',
           type: 'charge.failed',
-          data: { 
-            object: { 
-              id: 'ch_456', 
-              amount: 2000, 
-              currency: 'usd', 
+          data: {
+            object: {
+              id: 'ch_456',
+              amount: 2000,
+              currency: 'usd',
               customer: 'cus_456',
               status: 'failed',
               created: Math.floor(Date.now() / 1000),
-            } 
+            },
           },
         },
         timestamp: new Date(),
@@ -182,19 +179,19 @@ describe('WebhookProcessorService', () => {
         isValid: true,
         provider: PaymentProvider.STRIPE,
         eventType: WebhookEventType.PAYMENT_REFUNDED,
-        payload: { 
+        payload: {
           id: 'evt_789',
           type: 'charge.refunded',
-          data: { 
-            object: { 
-              id: 'ch_789', 
-              amount: 5000, 
-              currency: 'usd', 
+          data: {
+            object: {
+              id: 'ch_789',
+              amount: 5000,
+              currency: 'usd',
               customer: 'cus_789',
               refunded: true,
               status: 'refunded',
               created: Math.floor(Date.now() / 1000),
-            } 
+            },
           },
         },
         timestamp: new Date(),

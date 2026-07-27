@@ -4,7 +4,11 @@
  */
 
 import * as crypto from 'crypto';
-import { PaymentProvider, WebhookEventType, WebhookVerificationResult } from './types/webhook.types';
+import {
+  PaymentProvider,
+  WebhookEventType,
+  WebhookVerificationResult,
+} from './types/webhook.types';
 
 /**
  * Generate a valid Stripe signature for testing
@@ -18,11 +22,7 @@ import { PaymentProvider, WebhookEventType, WebhookVerificationResult } from './
  * const signature = generateStripeSignature(JSON.stringify(payload), 'secret', Math.floor(Date.now() / 1000));
  * // Returns: "t=1234567890,v1=abc123..."
  */
-export function generateStripeSignature(
-  body: string,
-  secret: string,
-  timestamp: number,
-): string {
+export function generateStripeSignature(body: string, secret: string, timestamp: number): string {
   const signedContent = `${timestamp}.${body}`;
   const signature = crypto.createHmac('sha256', secret).update(signedContent).digest('hex');
   return `t=${timestamp},v1=${signature}`;
@@ -78,10 +78,7 @@ export function generateChapaSignature(payload: Record<string, any>, secret: str
  * @example
  * const payload = createStripePayload('charge.succeeded', { amount: 2000 });
  */
-export function createStripePayload(
-  type: string,
-  data?: Record<string, any>,
-): Record<string, any> {
+export function createStripePayload(type: string, data?: Record<string, any>): Record<string, any> {
   return {
     id: `evt_${generateId()}`,
     object: 'event',
@@ -268,7 +265,8 @@ export function createMockUser(overrides?: Record<string, any>) {
  * // Returns: "txn_abc123def456"
  */
 export function generateId(prefix = ''): string {
-  const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const id =
+    Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   return prefix ? `${prefix}_${id}` : id;
 }
 

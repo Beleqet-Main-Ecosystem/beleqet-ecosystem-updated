@@ -32,16 +32,16 @@ export class I18nService {
   };
 
   private readonly timezoneMap: Record<string, string> = {
-    'US': 'America/New_York',
-    'UK': 'Europe/London',
-    'FR': 'Europe/Paris',
-    'DE': 'Europe/Berlin',
-    'ET': 'Africa/Addis_Ababa',
-    'NG': 'Africa/Lagos',
-    'JP': 'Asia/Tokyo',
-    'CN': 'Asia/Shanghai',
-    'IN': 'Asia/Kolkata',
-    'AU': 'Australia/Sydney',
+    US: 'America/New_York',
+    UK: 'Europe/London',
+    FR: 'Europe/Paris',
+    DE: 'Europe/Berlin',
+    ET: 'Africa/Addis_Ababa',
+    NG: 'Africa/Lagos',
+    JP: 'Asia/Tokyo',
+    CN: 'Asia/Shanghai',
+    IN: 'Asia/Kolkata',
+    AU: 'Australia/Sydney',
   };
 
   private readonly messages: Record<string, Record<string, string>> = {
@@ -69,7 +69,7 @@ export class I18nService {
       'payment.success': 'Paiement réussi! Votre compte a été crédité.',
       'payment.failed': 'Le traitement du paiement a échoué. Veuillez réessayer.',
       'payment.refunded': 'Votre paiement a été remboursé avec succès.',
-      'payment.disputed': 'Votre paiement est en cours d\'examen en cas de litige.',
+      'payment.disputed': "Votre paiement est en cours d'examen en cas de litige.",
       'subscription.created': 'Votre abonnement est maintenant actif.',
       'subscription.cancelled': 'Votre abonnement a été annulé.',
     },
@@ -123,9 +123,10 @@ export class I18nService {
     replacements?: Record<string, string | number>,
   ): string {
     const normalizedLocale = this.isSupportedLocale(locale) ? locale : 'en';
-    const message = this.messages[normalizedLocale]?.[messageKey] || 
-                   this.messages['en'][messageKey] || 
-                   messageKey;
+    const message =
+      this.messages[normalizedLocale]?.[messageKey] ||
+      this.messages['en'][messageKey] ||
+      messageKey;
 
     if (!replacements) {
       return message;

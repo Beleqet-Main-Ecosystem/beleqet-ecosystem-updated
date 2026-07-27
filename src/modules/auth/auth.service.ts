@@ -39,6 +39,7 @@ export interface AuthenticatedSessionResponse {
   refreshToken: string;
   user: AuthenticatedUserResponse;
 }
+const PLATFORM_FEE_PCT = 0.1;
 
 @Injectable()
 export class AuthService {

@@ -120,7 +120,7 @@ export class WebhookProcessorService {
       data: {
         status: 'completed',
         metadata: {
-          ...(transaction.metadata as any || {}),
+          ...((transaction.metadata as any) || {}),
           externalProvider: event.provider,
           externalId: event.externalTransactionId,
           completedAt: event.timestamp.toISOString(),
@@ -195,7 +195,7 @@ export class WebhookProcessorService {
       data: {
         status: 'failed',
         metadata: {
-          ...(transaction.metadata as any || {}),
+          ...((transaction.metadata as any) || {}),
           failedAt: event.timestamp.toISOString(),
           failureReason: event.metadata?.reason || 'Payment declined',
         } as any,
@@ -273,7 +273,7 @@ export class WebhookProcessorService {
       data: {
         status: 'refunded',
         metadata: {
-          ...(transaction.metadata as any || {}),
+          ...((transaction.metadata as any) || {}),
           refundedAt: event.timestamp.toISOString(),
         } as any,
       },
@@ -304,7 +304,9 @@ export class WebhookProcessorService {
     event: NormalizedWebhookEvent,
     verification: WebhookVerificationResult,
   ): Promise<void> {
-    this.logger.warn(`[${event.provider}] Payment dispute initiated: ${event.externalTransactionId}`);
+    this.logger.warn(
+      `[${event.provider}] Payment dispute initiated: ${event.externalTransactionId}`,
+    );
 
     const transaction = await this.prisma.walletTransaction.findFirst({
       where: {
@@ -323,7 +325,7 @@ export class WebhookProcessorService {
       data: {
         status: 'disputed',
         metadata: {
-          ...(transaction.metadata as any || {}),
+          ...((transaction.metadata as any) || {}),
           disputedAt: event.timestamp.toISOString(),
           disputeReason: event.metadata?.reason || 'Payment disputed',
           disputeProvider: event.provider,
@@ -379,7 +381,7 @@ export class WebhookProcessorService {
       subscriptionStatus: 'active',
       externalSubscriptionId: event.externalTransactionId,
     };
-    
+
     await this.prisma.user.update({
       where: { id: foundUser.id },
       data: userUpdateFields,
@@ -407,9 +409,7 @@ export class WebhookProcessorService {
     event: NormalizedWebhookEvent,
     verification: WebhookVerificationResult,
   ): Promise<void> {
-    this.logger.debug(
-      `[${event.provider}] Subscription cancelled: ${event.externalTransactionId}`,
-    );
+    this.logger.debug(`[${event.provider}] Subscription cancelled: ${event.externalTransactionId}`);
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -469,7 +469,7 @@ export class WebhookProcessorService {
    */
   private normalizeStripeEvent(payload: any): NormalizedWebhookEvent {
     const chargeObject = payload.data.object;
-    
+
     // Map Stripe event types to normalized event types
     const eventTypeMap: Record<string, WebhookEventType> = {
       'charge.succeeded': WebhookEventType.PAYMENT_SUCCESS,
@@ -481,10 +481,10 @@ export class WebhookProcessorService {
       'customer.subscription.deleted': WebhookEventType.SUBSCRIPTION_CANCELLED,
       'invoice.paid': WebhookEventType.INVOICE_PAID,
     };
-    
+
     return {
       provider: PaymentProvider.STRIPE,
-      eventType: eventTypeMap[payload.type] || payload.type as WebhookEventType,
+      eventType: eventTypeMap[payload.type] || (payload.type as WebhookEventType),
       externalTransactionId: chargeObject.id,
       externalCustomerId: chargeObject.customer || '',
       amount: (chargeObject.amount || 0) / 100, // Stripe uses cents
@@ -502,7 +502,7 @@ export class WebhookProcessorService {
    */
   private normalizePayPalEvent(payload: any): NormalizedWebhookEvent {
     const resource = payload.resource;
-    
+
     // Map PayPal event types to normalized event types
     const eventTypeMap: Record<string, WebhookEventType> = {
       'PAYMENT.CAPTURE.COMPLETED': WebhookEventType.PAYMENT_SUCCESS,
@@ -514,10 +514,10 @@ export class WebhookProcessorService {
       'BILLING.SUBSCRIPTION.CANCELLED': WebhookEventType.SUBSCRIPTION_CANCELLED,
       'INVOICING.INVOICE.PAID': WebhookEventType.INVOICE_PAID,
     };
-    
+
     return {
       provider: PaymentProvider.PAYPAL,
-      eventType: eventTypeMap[payload.event_type] || payload.event_type as WebhookEventType,
+      eventType: eventTypeMap[payload.event_type] || (payload.event_type as WebhookEventType),
       externalTransactionId: resource.id,
       externalCustomerId: resource.payer?.email_address || '',
       amount: parseFloat(resource.amount_with_breakdown?.gross_amount?.value || 0),
@@ -535,7 +535,7 @@ export class WebhookProcessorService {
    */
   private normalizeChapaEvent(payload: any): NormalizedWebhookEvent {
     const data = payload.data;
-    
+
     // Map Chapa event types to normalized event types
     const eventTypeMap: Record<string, WebhookEventType> = {
       'charge.success': WebhookEventType.PAYMENT_SUCCESS,
@@ -544,10 +544,10 @@ export class WebhookProcessorService {
       'charge.refund': WebhookEventType.PAYMENT_REFUNDED,
       'charge.dispute': WebhookEventType.PAYMENT_DISPUTED,
     };
-    
+
     return {
       provider: PaymentProvider.CHAPA,
-      eventType: eventTypeMap[payload.event] || payload.event as WebhookEventType,
+      eventType: eventTypeMap[payload.event] || (payload.event as WebhookEventType),
       externalTransactionId: data.reference || data.tx_ref || '',
       externalCustomerId: data.email || '',
       amount: data.amount || 0,
@@ -570,27 +570,31 @@ export class WebhookProcessorService {
     // GDPR compliance: ensure data minimization
     const gdprCompliance = await this.gdprService.getComplianceMetadata(event.externalCustomerId);
 
-    await this.prisma.paymentTransaction.create({
-      data: {
-        externalTransactionId: event.externalTransactionId,
-        externalCustomerId: event.externalCustomerId,
-        provider: provider,
-        amount: event.amount,
-        currency: event.currency,
-        status: event.status,
-        metadata: JSON.parse(JSON.stringify({
-          ...event.metadata,
-          gdprCompliance,
-        })),
-      },
-    }).catch(err => {
-      if (err.code === 'P2002') {
-        // Duplicate key - idempotency check passed
-        this.logger.debug(`Duplicate webhook detected: ${event.externalTransactionId}`);
-      } else {
-        throw err;
-      }
-    });
+    await this.prisma.paymentTransaction
+      .create({
+        data: {
+          externalTransactionId: event.externalTransactionId,
+          externalCustomerId: event.externalCustomerId,
+          provider: provider,
+          amount: event.amount,
+          currency: event.currency,
+          status: event.status,
+          metadata: JSON.parse(
+            JSON.stringify({
+              ...event.metadata,
+              gdprCompliance,
+            }),
+          ),
+        },
+      })
+      .catch((err) => {
+        if (err.code === 'P2002') {
+          // Duplicate key - idempotency check passed
+          this.logger.debug(`Duplicate webhook detected: ${event.externalTransactionId}`);
+        } else {
+          throw err;
+        }
+      });
   }
 
   /**
@@ -624,7 +628,7 @@ export class WebhookProcessorService {
     const staticRates: Record<string, Record<string, number>> = {
       USD: { EUR: 0.92, GBP: 0.79, ETB: 130, NGN: 1550 },
       EUR: { USD: 1.09, GBP: 0.86, ETB: 142, NGN: 1685 },
-      ETB: { USD: 0.0077, EUR: 0.0070, GBP: 0.0061, NGN: 11.9 },
+      ETB: { USD: 0.0077, EUR: 0.007, GBP: 0.0061, NGN: 11.9 },
       NGN: { USD: 0.00064, EUR: 0.00059, GBP: 0.00051, ETB: 0.084 },
     };
 

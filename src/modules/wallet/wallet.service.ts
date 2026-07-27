@@ -53,6 +53,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
     @Optional()
     @InjectQueue(QUEUE_NAMES.WALLET)
     private readonly walletQueue?: Queue,
+    private readonly config: ConfigService,
   ) {}
 
   async onModuleInit() {
@@ -163,6 +164,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
           type: 'DEBIT_WITHDRAWAL',
           amount: amountInWalletCurrency,
           note: `WITHDRAWAL_PENDING - Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} - pending Chapa payout of ETB ${amountInETB}`,
+          note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending`,
         },
       });
       return { tx };
@@ -239,4 +241,34 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
       }),
     ]);
   }
+    const chapaSecret = this.config.get<string>('CHAPA_SECRET_KEY');
+    if (chapaSecret) {
+        const response = await fetch('https://api.chapa.co/v1/transfers', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${chapaSecret}`,
+            'Content-Type': 'application/json',
+          body: JSON.stringify({
+            account_name: 'Freelancer',
+            account_number: dto.accountRef,
+            amount: dto.amount.toString(),
+            currency: 'ETB',
+            reference: tx.id,
+            bank_code: dto.method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
+        });
+
+        const data = (await response.json()) as { status: string; message?: string };
+        if (data.status !== 'success') {
+          this.logger.warn(
+            `Chapa payout rejected: ${data.message}. Rolling back balance for user ${userId}`,
+              where: { id: tx.id },
+              data: { note: `Withdrawal via ${dto.method} — FAILED: ${data.message}` },
+            `Payout rejected by payment gateway: ${data.message}`,
+        if (err instanceof InternalServerErrorException) throw err;
+        this.logger.error(`Failed to reach Chapa payout: ${(err as Error).message}. Rolling back.`);
+            where: { id: tx.id },
+            data: { note: `Withdrawal via ${dto.method} — FAILED: network error` },
+          'Could not reach payment gateway. Your balance has been restored.',
+
+      note: 'Payout processing — typically 1-2 business days',
 }

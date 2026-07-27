@@ -84,6 +84,12 @@ export class EscrowProcessor extends WorkerHost {
     const escrow = await this.prisma.escrowTransaction.findFirst({
       where: { OR: [{ gatewayRef: txRef }, { gatewayRef: reference }] },
       include: { freelanceJob: { include: { client: true } } },
+      where: {
+        OR: [{ gatewayRef: reference }, { gatewayRef: tx_ref }],
+      },
+      include: {
+        freelanceJob: { include: { client: true } },
+      },
     });
 
     if (!escrow) {
@@ -130,6 +136,12 @@ export class EscrowProcessor extends WorkerHost {
         await tx.freelanceJob.update({
           where: { id: escrow.freelanceJobId },
           data: { status: 'FUNDED' },
+        }),
+      ];
+
+      if (escrow.walletAppliedAmount > 0) {
+        const wallet = await this.prisma.employerWallet.findUnique({
+          where: { userId: escrow.freelanceJob.clientId },
         });
 
         if (escrow.walletAppliedAmount > 0) {
@@ -142,6 +154,10 @@ export class EscrowProcessor extends WorkerHost {
               data: { lockedBalance: { decrement: escrow.walletAppliedAmount } },
             });
             await tx.employerWalletTransaction.create({
+            }) as never,
+          );
+          transactions.push(
+            this.prisma.employerWalletTransaction.create({
               data: {
                 walletId: wallet.id,
                 type: 'DEBIT_WITHDRAWAL',
@@ -151,6 +167,8 @@ export class EscrowProcessor extends WorkerHost {
               },
             });
           }
+            }) as never,
+          );
         }
 
         await tx.eventLog.create({
@@ -162,6 +180,8 @@ export class EscrowProcessor extends WorkerHost {
             processedBy: EscrowProcessor.name,
           },
         });
+        }) as never,
+      );
 
         await tx.eventLog.create({
           data: {
@@ -205,6 +225,8 @@ export class EscrowProcessor extends WorkerHost {
         escrow.freelanceJob.clientId,
         escrow.walletAppliedAmount,
       );
+      this.logger.log(`[escrow-webhook] Escrow ${escrow.id} funded — gig published`);
+    } else {
     }
   }
 
@@ -294,6 +316,50 @@ export class EscrowProcessor extends WorkerHost {
     this.logger.log(
       `[auto-release] ETB ${amount} moved to available for freelancer ${freelancerId}`,
     );
+  }
+
+  async handleWithdrawal(job: BullJob<WithdrawalPayload>) {
+    const { userId, amount, method } = job.data;
+    this.logger.log(`[withdrawal] Processing ETB ${amount} via ${method} for user ${userId}`);
+
+    const chapaSecret = this.config.get<string>('CHAPA_SECRET_KEY');
+    if (chapaSecret) {
+      const response = await fetch('https://api.chapa.co/v1/transfers', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${chapaSecret}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          account_name: 'Freelancer',
+          account_number: job.data.accountRef,
+          amount: amount.toString(),
+          currency: 'ETB',
+          reference: `withdrawal-${job.id}`,
+          bank_code: method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Chapa withdrawal failed with HTTP status ${response.status}: ${errorText}`,
+        );
+      }
+
+      const responseData = (await response.json()) as { status: string; message?: string };
+      if (responseData.status !== 'success') {
+        throw new Error(`Chapa withdrawal rejected: ${JSON.stringify(responseData)}`);
+      }
+    }
+
+    await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
+      userId,
+      type: 'wallet.withdrawal_processing',
+      title: `Withdrawal of ETB ${amount.toLocaleString()} is processing`,
+      body: `Your ${method} withdrawal is being processed. Funds typically arrive within 1–2 business days.`,
+      metadata: { amount, method },
+    });
   }
 
   async handleUnlockFunds(job: BullJob<UnlockFundsPayload>) {
