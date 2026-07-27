@@ -30,6 +30,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -223,6 +224,10 @@ async function buildCtx(walletBalance = 10_000, configExtra: Record<string, stri
       WalletService,
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
+      {
+        provide: EventEmitter2,
+        useValue: { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]) },
+      },
     ],
   }).compile();
 

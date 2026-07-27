@@ -1,0 +1,8 @@
+{
+  "notification": {
+    "expiringSoonTitle": "የደንበኝነት ምዝገባዎ በቅርቡ ያበቃል",
+    "expiringSoonBody": "የ{planName} ደንበኝነት ምዝገባዎ በ{expiresAt} ያበቃል። ያለምንም እንቅፋት አገልግሎቱን ለመቀጠል አሁን ያድሱ።",
+    "expiredTitle": "የደንበኝነት ምዝገባዎ አብቅቷል",
+    "expiredBody": "የ{planName} ደንበኝነት ምዝገባዎ አብቅቷል። ወደ ተከፈለ አገልግሎት ለመመለስ እንደገና ይመዝገቡ።"
+  }
+}

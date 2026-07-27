@@ -24,8 +24,6 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 
-const PLATFORM_FEE_PCT = 0.1;
-
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);

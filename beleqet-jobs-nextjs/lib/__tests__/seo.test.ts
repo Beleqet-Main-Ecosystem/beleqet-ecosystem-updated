@@ -59,7 +59,7 @@ describe("getSeoConfig()", () => {
   });
 
   it("does not contain legacy titleSuffix property", () => {
-    const cfg = getSeoConfig() as Record<string, unknown>;
+    const cfg = getSeoConfig() as unknown as Record<string, unknown>;
     expect(cfg.titleSuffix).toBeUndefined();
   });
 });

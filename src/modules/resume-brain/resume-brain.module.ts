@@ -22,5 +22,6 @@ import { GroqProvider } from './ai/groq.provider';
     { provide: AI_CHAT_PROVIDER, useClass: GroqProvider },
   ],
   controllers: [ResumeBrainController],
+  exports: [AI_CHAT_PROVIDER],
 })
 export class ResumeBrainModule {}

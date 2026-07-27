@@ -41,5 +41,30 @@
     "passwordLabel": "Password",
     "verifying": "Verifying session...",
     "authorizeButton": "Verify and Authorize"
+  },
+  "taxCalculator": {
+    "badge": "The Vault",
+    "title": "Freelancer Tax Calculator",
+    "subtitle": "Estimate progressive income tax for Ethiopia and the United States. Enter annual gross income in major currency units — calculations run in cents or Santim on the server.",
+    "formTitle": "Income details",
+    "annualNote": "Annual freelancer income",
+    "grossIncomeLabel": "Gross income",
+    "grossIncomeHint": "Enter a decimal amount (e.g. 120000.00). Converted to smallest units before calculation.",
+    "countryLabel": "Tax jurisdiction",
+    "currencyLabel": "Currency",
+    "countryET": "Ethiopia (ET)",
+    "countryUS": "United States (US)",
+    "calculateButton": "Calculate tax",
+    "calculating": "Calculating…",
+    "resultsTitle": "Estimate",
+    "resultsEmpty": "Enter your income and run a calculation to see gross, tax, net, and effective rate.",
+    "grossIncome": "Gross income",
+    "taxAmount": "Estimated tax",
+    "netIncome": "Net income",
+    "effectiveRate": "Effective rate",
+    "smallestUnits": "Smallest units",
+    "units": "units",
+    "errorGeneric": "Tax calculation failed. Please try again.",
+    "errorInvalidAmount": "Enter a valid non-negative income amount."
   }
 }

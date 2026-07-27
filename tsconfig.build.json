@@ -8,6 +8,8 @@
     "**/*spec.ts",
     "test",
     "prisma",
-    "scripts"
+    "scripts",
+    "src/**/frontend",
+    "tools"
   ]
 }

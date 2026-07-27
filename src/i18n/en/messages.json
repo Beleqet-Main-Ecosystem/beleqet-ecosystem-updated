@@ -22,5 +22,113 @@
   "uploads": {
     "presignedUrlCreated": "Upload URL created successfully.",
     "assetUploaded": "Asset uploaded successfully."
+  },
+  "salary": {
+    "title": "AI Salary Helper",
+    "description": "AI-powered salary prediction and market analysis",
+    "prediction": {
+      "title": "Salary Prediction",
+      "description": "Get AI-powered salary predictions based on market data",
+      "request": {
+        "jobTitle": "Job Title",
+        "jobTitleDescription": "The position or job role to predict salary for",
+        "location": "Location",
+        "locationDescription": "Geographic location (e.g., Addis Ababa, Dire Dawa)",
+        "industry": "Industry",
+        "industryDescription": "Industry sector (e.g., Technology, Finance, Healthcare)",
+        "experienceLevel": "Experience Level",
+        "experienceLevelDescription": "JUNIOR, MID, SENIOR, LEAD, or PRINCIPAL",
+        "currency": "Currency",
+        "currencyDescription": "Currency code (default: ETB)"
+      },
+      "response": {
+        "minSalary": "Minimum Salary",
+        "maxSalary": "Maximum Salary",
+        "averageSalary": "Average Salary",
+        "medianSalary": "Median Salary",
+        "dataPointsCount": "Data Points",
+        "confidenceScore": "Confidence Score",
+        "standardDeviation": "Standard Deviation"
+      }
+    },
+    "statistics": {
+      "title": "Salary Statistics",
+      "description": "Market statistics and trends for a location",
+      "salaryGrowthRate": "Salary Growth Rate",
+      "period": "Reporting Period",
+      "location": "Location",
+      "industry": "Industry"
+    },
+    "history": {
+      "title": "Salary History",
+      "description": "Historical salary trends over time",
+      "noDataFound": "No historical data found"
+    },
+    "batch": {
+      "title": "Batch Prediction",
+      "description": "Predict salaries for multiple positions at once",
+      "maxLimit": "Maximum 50 predictions per batch",
+      "successCount": "Successful Predictions",
+      "failureCount": "Failed Predictions"
+    },
+    "errors": {
+      "jobTitleRequired": "Job title is required",
+      "locationRequired": "Location is required",
+      "experienceLevelRequired": "Experience level is required",
+      "invalidLocation": "Invalid or unsupported location",
+      "noDataFound": "No salary data found for the specified criteria",
+      "batchSizeExceeded": "Batch size exceeds maximum limit of 50 predictions",
+      "invalidExperienceLevel": "Invalid experience level. Must be JUNIOR, MID, SENIOR, LEAD, or PRINCIPAL"
+    },
+    "success": {
+      "predictionCreated": "Salary prediction created successfully",
+      "batchProcessed": "Batch predictions processed successfully",
+      "statisticsRetrieved": "Salary statistics retrieved successfully"
+    },
+    "experienceLevels": {
+      "JUNIOR": "Junior (0-2 years)",
+      "MID": "Mid-level (2-5 years)",
+      "SENIOR": "Senior (5-10 years)",
+      "LEAD": "Lead (10+ years)",
+      "PRINCIPAL": "Principal/Executive (15+ years)"
+    },
+    "industries": {
+      "Technology": "Technology / Software",
+      "Finance": "Finance / Banking",
+      "Healthcare": "Healthcare / Medical",
+      "Education": "Education",
+      "Retail": "Retail / Commerce",
+      "Manufacturing": "Manufacturing",
+      "Telecommunications": "Telecommunications",
+      "Consulting": "Management Consulting"
+    }
+  },
+  "tax": {
+    "unsupportedJurisdiction": "Unsupported tax jurisdiction \"{countryCode}\". Supported: ET, US.",
+    "currencyMismatch": "Currency \"{currency}\" does not match jurisdiction \"{countryCode}\". Expected {expectedCurrency}.",
+    "invalidGrossIncome": "grossIncome must be a finite number in smallest currency units.",
+    "calculationFailed": "Tax calculation failed. Please try again."
+  },
+  "skillTester": {
+    "invalidPayload": "Invalid skill tester payload: {details}",
+    "aiGenerationFailed": "Failed to generate skill assessment questions. Please try again.",
+    "requestFailed": "Skill tester request failed. Please try again."
+  },
+  "video_interview": {
+    "not_found": "Video interview session not found.",
+    "already_exists": "A video interview session already exists for this application.",
+    "application_not_found": "Application not found or you do not have access.",
+    "expired": "This video interview session has expired. Please contact the employer to request a new one.",
+    "gdpr_deleted": "This interview data has been permanently deleted in accordance with our data retention policy.",
+    "processing_failed": "Video processing failed. Please re-upload your response or contact support.",
+    "transcription_failed": "Transcription service encountered an error. Your response has been saved \u2014 we will retry automatically.",
+    "evaluation_failed": "AI evaluation could not be completed at this time. Our team has been notified.",
+    "service_unavailable": "The video processing service is temporarily unavailable due to repeated errors. Please try again in a few minutes.",
+    "upload_required": "A video file URL is required to submit this response.",
+    "invalid_question_index": "Invalid question index. Please ensure you are responding to a valid interview question.",
+    "evaluation_pending": "Interview evaluation is still in progress. Please check back shortly.",
+    "forbidden": "You do not have permission to access this interview session.",
+    "gdpr_request_accepted": "Your data deletion request has been accepted. All interview data will be permanently removed within 30 days.",
+    "invalid_video_url": "The video URL must point to an approved Beleqet storage or CDN host."
   }
 }

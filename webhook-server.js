@@ -3,10 +3,16 @@ const crypto = require('crypto');
 const app = express();
 const port = 4000;
 
-const CHAPA_SECRET = 'CHASECK_TEST-EGMHJJxUf6NY3GNYgDgJwSF7pIwANKN5';
-// NOTE: Set your webhook secret here. If you haven't set one in Chapa yet, 
-// you must set it in your Chapa Dashboard -> Settings -> Webhooks, and paste it here.
-const WEBHOOK_SECRET = 'CVD18HIsGTJEyd7rDDdg1qDWcouvBNYvHdRQyoUW8SA';
+// Credentials come from the environment — never hard-code keys in source.
+// Set CHAPA_SECRET_KEY and CHAPA_WEBHOOK_SECRET in your local .env / shell
+// (webhook secret: Chapa Dashboard -> Settings -> Webhooks).
+const CHAPA_SECRET = process.env.CHAPA_SECRET_KEY;
+const WEBHOOK_SECRET = process.env.CHAPA_WEBHOOK_SECRET;
+
+if (!CHAPA_SECRET || !WEBHOOK_SECRET) {
+  console.error('Missing CHAPA_SECRET_KEY and/or CHAPA_WEBHOOK_SECRET environment variables.');
+  process.exit(1);
+}
 
 // We use raw body to properly compute the HMAC hash
 app.use(express.json({

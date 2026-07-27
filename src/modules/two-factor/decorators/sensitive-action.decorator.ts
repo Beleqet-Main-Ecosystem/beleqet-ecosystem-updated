@@ -1,4 +1,4 @@
-import { SetMetadata, CustomDecorator } from '@nestjs/common';
+import { SetMetadata } from '@nestjs/common';
 
 export const SENSITIVE_ACTION_KEY = 'sensitive_action';
 export const ACTION_TYPE_KEY = 'action_type';

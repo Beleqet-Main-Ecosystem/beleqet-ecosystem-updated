@@ -9,6 +9,7 @@
     "target": "ES2021",
     "jsx": "react-jsx",
     "sourceMap": true,
+    "ignoreDeprecations": "6.0",
     "outDir": "./dist",
     "baseUrl": "./",
     "typeRoots": ["./node_modules/@types", "./src/types"],
@@ -31,6 +32,7 @@
     "dist",
     "coverage",
     "beleqet-jobs-nextjs",
-    "frontend"
+    "frontend",
+    "src/**/frontend"
   ]
 }
