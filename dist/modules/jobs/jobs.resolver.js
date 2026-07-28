@@ -39,7 +39,7 @@ let JobsResolver = class JobsResolver {
     async createJob(input, user) {
         const userId = user?.userId;
         if (!userId) {
-            throw new common_1.ForbiddenException('User ID not found in session context. Please re-login.');
+            throw new common_1.ForbiddenException('User ID not found in session context');
         }
         return this.jobsService.create(userId, input);
     }
