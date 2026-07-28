@@ -392,9 +392,9 @@ export declare class AdminController {
                     createdAt: Date;
                     currency: string;
                     amount: number;
+                    subscriptionId: string;
                     gatewayReference: string | null;
                     rawPayload: import("@prisma/client/runtime/library").JsonValue | null;
-                    subscriptionId: string;
                 }[];
             } & {
                 id: string;
