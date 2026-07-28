@@ -48,31 +48,17 @@ export class SmartBiddingController {
     @Param('freelancerId') freelancerId: string,
     @CurrentUser() user: CurrentUserPayload,
   ): Promise<PredictBidResponseDto> {
-    // Fix 1 — Broken Employer RBAC:
-    // Allow access to ADMINs, the freelancer themselves, OR the employer who
-    // posted the job.  A plain `user.userId === freelancerId` check was locking
-    // out employers who have a legitimate need to analyze bid predictions for
-    // applicants on their own job postings.
+    // Fix 1 — Broken Employer RBAC (+ Data Exfiltration hardening):
+    // Admins and the freelancer themselves are always allowed. Employers are
+    // only allowed if BOTH (a) they own the job, AND (b) the target
+    // freelancer has an actual Bid on that job — otherwise an employer could
+    // create a throwaway job and enumerate arbitrary freelancerIds to leak
+    // private metrics platform-wide.
     const isAdmin = user.role === 'ADMIN';
     const isFreelancer = user.userId === freelancerId;
 
     if (!isAdmin && !isFreelancer) {
-      // Fetch just the clientId — lean select to keep the DB call cheap.
-      const job = await this.prisma.freelanceJob.findUnique({
-        where: { id: jobId },
-        select: { clientId: true },
-      });
-
-      if (!job) {
-        throw new NotFoundException(`Freelance job with ID ${jobId} not found`);
-      }
-
-      const isJobOwner = job.clientId === user.userId;
-      if (!isJobOwner) {
-        throw new ForbiddenException(
-          'You are not authorized to view bid predictions for other freelancers.',
-        );
-      }
+      await this.assertEmployerCanViewFreelancer(jobId, freelancerId, user.userId);
     }
 
     return this.svc.predictBid(jobId, freelancerId);
@@ -86,5 +72,46 @@ export class SmartBiddingController {
   })
   predictGeneric(@Param('jobId') jobId: string): Promise<PredictBidResponseDto> {
     return this.svc.predictBid(jobId);
+  }
+
+  /**
+   * Verifies an employer is allowed to view predictions for a specific
+   * freelancer on a specific job. Two conditions must BOTH hold:
+   *   1. The employer owns the job (job.clientId === employerId).
+   *   2. The freelancer has an actual Bid on that job — proving a genuine
+   *      relationship exists, not just an arbitrary freelancerId guess.
+   *
+   * Both failure cases throw the same generic ForbiddenException so the
+   * response itself doesn't leak *why* access was denied.
+   */
+  private async assertEmployerCanViewFreelancer(
+    jobId: string,
+    freelancerId: string,
+    employerId: string,
+  ): Promise<void> {
+    const job = await this.prisma.freelanceJob.findUnique({
+      where: { id: jobId },
+      select: { clientId: true },
+    });
+
+    if (!job) {
+      throw new NotFoundException(`Freelance job with ID ${jobId} not found`);
+    }
+
+    const isJobOwner = job.clientId === employerId;
+    const bidExists = isJobOwner
+      ? await this.prisma.bid.findUnique({
+          where: {
+            freelanceJobId_freelancerId: { freelanceJobId: jobId, freelancerId },
+          },
+          select: { id: true },
+        })
+      : null;
+
+    if (!isJobOwner || !bidExists) {
+      throw new ForbiddenException(
+        'You are not authorized to view bid predictions for other freelancers.',
+      );
+    }
   }
 }
