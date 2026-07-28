@@ -8,9 +8,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 import { APP_GUARD } from '@nestjs/core';
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { GraphQLModule } from '@nestjs/graphql';
 
+// ── Feature Modules ──────────────────────────────────────────────────────────
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -49,10 +48,14 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
-import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
-import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
+
+// ── GraphQL & Security Layer ────────────────────────────────────────────────
 import { GqlThrottlerGuard } from './graphql/guards/gql-throttler.guard';
 import { GraphqlConfigModule } from './graphql/graphql.module';
+
+// ── Platform Extensions (Merged from main) ──────────────────────────────────
+import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
@@ -63,6 +66,7 @@ import { EncryptionModule } from './common/encryption/encryption.module';
 
 @Module({
   imports: [
+    // 1. Configuration & System Core
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
@@ -70,25 +74,39 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     }),
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 10 },
+      { name: 'medium', ttl: 10_000, limit: 50 },
+      { name: 'long', ttl: 60_000, limit: 200 },
     ]),
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.',
+      maxListeners: 20,
     }),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: {
-          host: config.get('REDIS_HOST', 'localhost'),
-          port: config.get('REDIS_PORT', 6379),
+          host: config.get<string>('REDIS_HOST', 'localhost'),
+          port: config.get<number>('REDIS_PORT', 6379),
+          password: config.get<string>('REDIS_PASSWORD'),
+          tls: config.get<string>('REDIS_TLS') === 'true' ? {} : undefined,
         },
       }),
     }),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
-      loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
-      resolvers: [{ use: QueryResolver, options: ['lang'] }, AcceptLanguageResolver],
+      loaderOptions: {
+        path: path.join(__dirname, '/i18n/'),
+        watch: true,
+      },
+      resolvers: [
+        { use: QueryResolver, options: ['lang'] },
+        AcceptLanguageResolver,
+        new HeaderResolver(['x-custom-lang']),
+      ],
     }),
+
+    // 2. Platform Feature Modules
     GdprGuardModule,
     PrismaModule,
     QueuesModule,
@@ -127,10 +145,13 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
+
+    // 3. GraphQL Turbo Module
+    GraphqlConfigModule,
+
+    // 4. Billing, RBAC & Extended Systems (Incoming from Main)
     SmartBiddingModule,
     UserPreferencesModule,
-    GraphqlConfigModule,   // Verified correct
-    UserPreferencesModule, // Verified correct
     PlansModule,
     SubscriptionsModule,
     BillingModule,
@@ -139,12 +160,11 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     AuditLogModule,
     CacheConfigModule,
     EncryptionModule,
-    GraphqlConfigModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: GqlThrottlerGuard,
+      useClass: GqlThrottlerGuard, // Using the GraphQL-aware guard
     },
   ],
 })

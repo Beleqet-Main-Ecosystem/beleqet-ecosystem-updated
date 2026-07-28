@@ -11,7 +11,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { GqlCurrentUser } from '../../common/decorators/gql-current-user.decorator';
 import { CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 
-// ── DataLoaders (Turbo Mode - N+1 Prevention) ────────────────────────────────
+// ── DataLoaders (Turbo Mode) ────────────────────────────────────────────────
 import { CompanyLoader } from '../../graphql/loaders/company.loader';
 import { CategoryLoader } from '../../graphql/loaders/category.loader';
 
@@ -23,19 +23,11 @@ export class JobsResolver {
     private readonly categoryLoader: CategoryLoader,
   ) {}
 
-  /**
-   * Fetches a paginated list of jobs.
-   */
   @Query(() => PaginatedJobsType, { name: 'jobs' })
-  async jobs(
-    @Args('query', { type: () => QueryJobsInput, nullable: true }) query: QueryJobsInput,
-  ) {
+  async jobs(@Args('query', { type: () => QueryJobsInput, nullable: true }) query: QueryJobsInput) {
     return this.jobsService.findAll(query || {});
   }
 
-  /**
-   * Fetches a single job by ID.
-   */
   @Query(() => JobTypeGraphQL, { name: 'job' })
   async job(@Args('id') id: string) {
     return this.jobsService.findOne(id);
@@ -43,10 +35,7 @@ export class JobsResolver {
 
   /**
    * Create a new job listing.
-   *
-   * FIXES APPLIED:
-   * 1. Authorization: Added GqlRolesGuard and @Roles to restrict access to EMPLOYER/ADMIN.
-   * 2. Logic: Correctly extracts user.userId (matches JwtStrategy) instead of .id.
+   * Logic hardening: Added GqlRolesGuard and mapped userId correctly.
    */
   @Mutation(() => JobTypeGraphQL)
   @UseGuards(GqlAuthGuard, GqlRolesGuard)
@@ -55,23 +44,16 @@ export class JobsResolver {
     @Args('input') input: CreateJobInput,
     @GqlCurrentUser() user: CurrentUserPayload,
   ) {
-    // The JwtStrategy payload uses the key 'userId'
+    // FIX: Extracts .userId (from JwtStrategy) instead of undefined .id
     const userId = user?.userId;
 
     if (!userId) {
-      throw new ForbiddenException(
-        'User identification failed. Authentication context missing userId.',
-      );
+      throw new ForbiddenException('User ID not found in session context. Please re-login.');
     }
 
-    // Delegate to the service, passing the validated userId
     return this.jobsService.create(userId, input as any);
   }
 
-  /**
-   * Field Resolver: company
-   * Prevents N+1 by batching requests via CompanyLoader.
-   */
   @ResolveField(() => CompanyType, { nullable: true })
   async company(@Parent() job: any) {
     if (job.company) return job.company;
@@ -79,10 +61,6 @@ export class JobsResolver {
     return this.companyLoader.batchLoad.load(job.companyId);
   }
 
-  /**
-   * Field Resolver: category
-   * Prevents N+1 by batching requests via CategoryLoader.
-   */
   @ResolveField(() => JobCategoryType, { nullable: true })
   async category(@Parent() job: any) {
     if (job.category) return job.category;
