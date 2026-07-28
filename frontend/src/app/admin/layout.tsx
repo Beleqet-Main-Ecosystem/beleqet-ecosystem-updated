@@ -96,6 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <LogOut size={18} />
           </button>
         </div>
+
       </aside>
 
       {/*  Main content  */}

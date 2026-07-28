@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AUTH_ENV_CONFIG, AuthEnvConfig } from '../config/auth.config';
@@ -11,13 +11,15 @@ import { AUTH_ENV_CONFIG, AuthEnvConfig } from '../config/auth.config';
  */
 export interface AccessTokenPayload {
   readonly sub: string;
-  readonly email?: string;
-  readonly role?: string;
+  readonly email: string;
+  readonly role: string;
 }
 
 /** Shape attached to `req.user` for any route behind {@link JwtAuthGuard}. */
 export interface AuthenticatedRequestUser {
   readonly userId: string;
+  readonly email: string;
+  readonly role: string;
 }
 
 /**
@@ -37,6 +39,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   /** Passport calls this after signature + expiry verification succeeds. */
   public validate(payload: AccessTokenPayload): AuthenticatedRequestUser {
-    return { userId: payload.sub };
+    if (!payload.sub || !payload.email || !payload.role) {
+      throw new UnauthorizedException('Access token is missing required claims.');
+    }
+
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: payload.role,
+    };
   }
 }
