@@ -1,14 +1,14 @@
 -- DropIndex
-DROP INDEX "interview_evaluations_rawAiResponse_gin_idx";
+DROP INDEX IF EXISTS "interview_evaluations_rawAiResponse_gin_idx";
 
 -- DropIndex
-DROP INDEX "interview_evaluations_scores_gin_idx";
+DROP INDEX IF EXISTS "interview_evaluations_scores_gin_idx";
 
 -- DropIndex
-DROP INDEX "video_interviews_metadata_gin_idx";
+DROP INDEX IF EXISTS "video_interviews_metadata_gin_idx";
 
 -- DropIndex
-DROP INDEX "video_responses_rawWhisperResponse_gin_idx";
+DROP INDEX IF EXISTS "video_responses_rawWhisperResponse_gin_idx";
 
 -- CreateTable
 CREATE TABLE "salary_predictions" (
