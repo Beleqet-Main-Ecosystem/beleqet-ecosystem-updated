@@ -4,6 +4,26 @@
  */
 import apiClient from './apiClient';
 import type { AuthResponse, Dispute, PlatformStats } from '@/types';
+import type { ThemePreference } from '@/components/theme/theme-preference';
+
+/** API response shape for the minimal persisted user theme setting. */
+export interface ThemePreferenceResponse {
+  theme: ThemePreference;
+}
+
+/** Fetches the current authenticated user's persisted theme preference. */
+export async function getThemePreference(): Promise<ThemePreferenceResponse> {
+  const { data } = await apiClient.get<ThemePreferenceResponse>('/user-preferences/theme');
+  return data;
+}
+
+/** Persists the selected theme for the current authenticated user. */
+export async function updateThemePreference(
+  theme: ThemePreference,
+): Promise<ThemePreferenceResponse> {
+  const { data } = await apiClient.patch<ThemePreferenceResponse>('/user-preferences/theme', { theme });
+  return data;
+}
 
 /** Logs in a user and stores the JWT token in localStorage */
 export async function login(email: string, password: string): Promise<AuthResponse> {
