@@ -10,8 +10,15 @@ import { GdprUtil } from '../interfaces/gdpr.interface';
  *     `GdprUtil.maskPII` utility, which masks emails/phone numbers that
  *     might appear inside free-text fields (e.g. a dispute reason).
  *
- * Recurses one level into nested plain objects, which covers the common
- * `{ before, after }` shape used for data-modification audit events.
+ * Recurses into nested plain objects (covering the common `{ before, after }`
+ * data-modification shape) AND into arrays, sanitizing each element in turn —
+ * so an array of objects (e.g. `[{ password: 'secret' }]`) is not passed
+ * through untouched.
+ *
+ * `Date` instances are passed through as-is rather than recursed into:
+ * `typeof date === 'object'` is true, but `Object.entries(date)` is always
+ * empty (a Date's value lives in an internal slot, not enumerable own
+ * properties), so recursing into one would silently collapse it to `{}`.
  */
 const SENSITIVE_KEYS = [
   'password',
@@ -26,21 +33,34 @@ const SENSITIVE_KEYS = [
   'cvv',
 ] as const;
 
+/** Sanitizes a single value: string, Date, array, nested object, or primitive. */
+function sanitizeValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return GdprUtil.maskPII(value);
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeValue(item));
+  }
+
+  if (value !== null && typeof value === 'object') {
+    return sanitizePayload(value as Record<string, unknown>);
+  }
+
+  return value;
+}
+
 export function sanitizePayload(payload: Record<string, unknown>): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(payload)) {
     const isSensitiveKey = SENSITIVE_KEYS.some((k) => key.toLowerCase().includes(k.toLowerCase()));
 
-    if (isSensitiveKey) {
-      clean[key] = '[REDACTED]';
-    } else if (typeof value === 'string') {
-      clean[key] = GdprUtil.maskPII(value);
-    } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      clean[key] = sanitizePayload(value as Record<string, unknown>);
-    } else {
-      clean[key] = value;
-    }
+    clean[key] = isSensitiveKey ? '[REDACTED]' : sanitizeValue(value);
   }
 
   return clean;
