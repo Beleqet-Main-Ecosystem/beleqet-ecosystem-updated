@@ -63,17 +63,9 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            config_1.ConfigModule.forRoot({
-                isGlobal: true,
-                envFilePath: ['.env.local', '.env'],
-            }),
-            throttler_1.ThrottlerModule.forRoot([
-                { name: 'short', ttl: 1_000, limit: 10 },
-            ]),
-            event_emitter_1.EventEmitterModule.forRoot({
-                wildcard: true,
-                delimiter: '.',
-            }),
+            config_1.ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env.local', '.env'] }),
+            throttler_1.ThrottlerModule.forRoot([{ name: 'short', ttl: 1_000, limit: 10 }]),
+            event_emitter_1.EventEmitterModule.forRoot({ wildcard: true, delimiter: '.' }),
             bullmq_1.BullModule.forRootAsync({
                 inject: [config_1.ConfigService],
                 useFactory: (config) => ({
