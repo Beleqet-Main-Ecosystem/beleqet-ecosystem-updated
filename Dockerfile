@@ -4,22 +4,16 @@
 
 # ── Stage 1: Build ───────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS builder
-
 WORKDIR /app
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 
 # Install build dependencies + gcompat/libstdc++ for Prisma engine
 RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
-
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
-
 RUN npm ci
-
 COPY . .
-
-# Generate Prisma client and build NestJS source
 RUN npx prisma generate
 COPY . .
 RUN npm run build
@@ -27,25 +21,19 @@ RUN npm run build
 # ── Stage 2: Prune ───────────────────────────────────────────────────────────
 # ── Stage 2: Prune (Production dependencies only) ────────────────────────────
 FROM node:22-alpine3.21 AS pruner
-
 WORKDIR /app
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 
 # Install libraries needed to generate production Prisma engine
 RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
-
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
-
-# Install only production dependencies
 RUN npm ci --omit=dev && npx prisma generate
 
-# ── Stage 3: Final Runner (Hardened Image) ──────────────────────────────────
+# Stage 3: Runner
 FROM node:22-alpine3.21
-
 WORKDIR /app
-
 ENV NODE_ENV=production
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat wget ca-certificates \
@@ -63,15 +51,11 @@ RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat \
     /usr/local/bin/corepack \
     /opt/yarn-v*
 
-# Copy production artifacts from previous stages
-COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
-COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/dist ./dist
-COPY --from=builder --chown=node:node /app/prisma ./prisma
-
-# Use non-privileged user for security
+COPY --from=pruner /app/package.json ./
+COPY --from=pruner /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 USER node
-
 EXPOSE 4000
 HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=15 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
