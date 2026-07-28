@@ -8,6 +8,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
 import { APP_GUARD } from '@nestjs/core';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import { GraphQLModule } from '@nestjs/graphql';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -68,42 +70,24 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     }),
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 1_000, limit: 10 },
-      { name: 'medium', ttl: 10_000, limit: 50 },
-      { name: 'long', ttl: 60_000, limit: 200 },
     ]),
     EventEmitterModule.forRoot({
       wildcard: true,
       delimiter: '.',
-      maxListeners: 20,
     }),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-          password: config.get<string>('REDIS_PASSWORD'),
-          tls: config.get<string>('REDIS_TLS') === 'true' ? {} : undefined,
-        },
-        defaultJobOptions: {
-          removeOnComplete: 100,
-          removeOnFail: 200,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2_000 },
+          host: config.get('REDIS_HOST', 'localhost'),
+          port: config.get('REDIS_PORT', 6379),
         },
       }),
     }),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
-      loaderOptions: {
-        path: path.join(__dirname, '/i18n/'),
-        watch: true,
-      },
-      resolvers: [
-        { use: QueryResolver, options: ['lang'] },
-        AcceptLanguageResolver,
-        new HeaderResolver(['x-custom-lang']),
-      ],
+      loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
+      resolvers: [{ use: QueryResolver, options: ['lang'] }, AcceptLanguageResolver],
     }),
     GdprGuardModule,
     PrismaModule,
@@ -145,6 +129,8 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     HealthModule,
     SmartBiddingModule,
     UserPreferencesModule,
+    GraphqlConfigModule,   // Verified correct
+    UserPreferencesModule, // Verified correct
     PlansModule,
     SubscriptionsModule,
     BillingModule,

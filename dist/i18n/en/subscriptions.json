@@ -1,0 +1,8 @@
+{
+  "notification": {
+    "expiringSoonTitle": "Your subscription is expiring soon",
+    "expiringSoonBody": "Your {planName} subscription will expire on {expiresAt}. Renew now to keep uninterrupted access.",
+    "expiredTitle": "Your subscription has expired",
+    "expiredBody": "Your {planName} subscription has expired. Subscribe again to restore access to paid features."
+  }
+}
