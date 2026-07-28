@@ -117,3 +117,11 @@ export interface NotificationPreference {
   createdAt: string;
   updatedAt: string;
 }
+
+/** User-selected colour-scheme preference. `SYSTEM` delegates to the OS. */
+export type ThemePreference = 'LIGHT' | 'DARK' | 'SYSTEM';
+
+/** API response shape for the persisted user theme setting. */
+export interface ThemePreferenceResponse {
+  theme: ThemePreference;
+}

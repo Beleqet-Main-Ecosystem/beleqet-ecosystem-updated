@@ -18,8 +18,8 @@ export interface AccessTokenPayload {
 /** Shape attached to `req.user` for any route behind {@link JwtAuthGuard}. */
 export interface AuthenticatedRequestUser {
   readonly userId: string;
-  readonly email?: string;
-  readonly role?: string;
+  readonly email: string;
+  readonly role: string;
 }
 
 /**
@@ -39,10 +39,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   /** Passport calls this after signature + expiry verification succeeds. */
   public validate(payload: AccessTokenPayload): AuthenticatedRequestUser {
-    if (!payload.sub) {
+    if (!payload.sub || !payload.email || !payload.role) {
       throw new UnauthorizedException('Access token is missing required claims.');
     }
 
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: payload.role,
+    };
   }
 }

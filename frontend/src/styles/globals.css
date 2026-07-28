@@ -1058,3 +1058,37 @@ textarea {
   color: white;
   border-color: transparent;
 }
+
+/* ── Theme Switcher ──────────────────────────────────────────────────────────── */
+
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+}
+.theme-switcher-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.theme-switcher-option:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+.theme-switcher-option.active {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}

@@ -3,13 +3,18 @@
  * All backend communication is handled here - not inside components (DRY principle).
  */
 import apiClient from './apiClient';
-import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, Notification, NotificationPreference } from '@/types';
-import type { ThemePreference } from '@/components/theme/theme-preference';
-
-/** API response shape for the minimal persisted user theme setting. */
-export interface ThemePreferenceResponse {
-  theme: ThemePreference;
-}
+import type {
+  AuthResponse,
+  Dispute,
+  PlatformStats,
+  AuditLog,
+  AuditLogPage,
+  AuditLogFilters,
+  Notification,
+  NotificationPreference,
+  ThemePreference,
+  ThemePreferenceResponse,
+} from '@/types';
 
 /** Fetches the current authenticated user's persisted theme preference. */
 export async function getThemePreference(): Promise<ThemePreferenceResponse> {
@@ -175,5 +180,21 @@ export async function updateNotificationPreferences(
   prefs: Partial<Pick<NotificationPreference, 'emailEnabled' | 'telegramEnabled' | 'inAppEnabled' | 'pushEnabled' | 'smsEnabled' | 'language'>>,
 ): Promise<NotificationPreference> {
   const { data } = await apiClient.patch<NotificationPreference>('/users/notification-preferences', prefs);
+  return data;
+}
+
+// ── Theme Preference ──────────────────────────────────────────────────────────
+
+/** Fetches the current authenticated user's persisted theme preference. */
+export async function getThemePreference(): Promise<ThemePreferenceResponse> {
+  const { data } = await apiClient.get<ThemePreferenceResponse>('/user-preferences/theme');
+  return data;
+}
+
+/** Persists the selected theme for the current authenticated user. */
+export async function updateThemePreference(
+  theme: ThemePreference,
+): Promise<ThemePreferenceResponse> {
+  const { data } = await apiClient.patch<ThemePreferenceResponse>('/user-preferences/theme', { theme });
   return data;
 }
