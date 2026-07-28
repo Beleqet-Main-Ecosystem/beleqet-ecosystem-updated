@@ -22,7 +22,9 @@ class NodemailerTransporter implements IMailableTransporter {
         secure: this.configService.get<string>('SMTP_SECURE') === 'true',
         auth: {
           user,
-          pass: this.configService.get<string>('SMTP_PASS') || this.configService.get<string>('SMTP_PASSWORD'),
+          pass:
+            this.configService.get<string>('SMTP_PASS') ||
+            this.configService.get<string>('SMTP_PASSWORD'),
         },
       });
       this.logger.log('SMTP transporter initialized');
@@ -36,7 +38,8 @@ class NodemailerTransporter implements IMailableTransporter {
       this.logger.log(`[DRY-RUN] Would send email to ${to}: ${subject}`);
       return true;
     }
-    const from = this.configService.get<string>('EMAIL_FROM') || this.configService.get<string>('SMTP_FROM');
+    const from =
+      this.configService.get<string>('EMAIL_FROM') || this.configService.get<string>('SMTP_FROM');
     await this.transporter.sendMail({ from, to, subject, html: htmlBody });
     return true;
   }

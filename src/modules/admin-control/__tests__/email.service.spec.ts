@@ -3,7 +3,7 @@ import {
   EmailUserContext,
   IMailableTransporter,
   ISecurityAuditLogger,
-  GDPRConsentViolationException
+  GDPRConsentViolationException,
 } from '../email/email.types';
 
 /**
@@ -50,7 +50,7 @@ describe('EmailService', () => {
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
         'abebe@example.com',
         'Welcome to Beleqet, Abebe!',
-        'Hello Abebe, welcome to the Beleqet ecosystem. Explore opportunities today!'
+        'Hello Abebe, welcome to the Beleqet ecosystem. Explore opportunities today!',
       );
     });
 
@@ -61,7 +61,7 @@ describe('EmailService', () => {
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
         'abebe@example.com',
         'እንኳን ወደ በልቀት በደህና መጡ፣ Abebe!',
-        'ሰላም Abebe፣ እንኳን ወደ በልቀት ስነ-ምህዳር በደህና መጡ። ዛሬውኑ እድሎችን ያስሱ!'
+        'ሰላም Abebe፣ እንኳን ወደ በልቀት ስነ-ምህዳር በደህና መጡ። ዛሬውኑ እድሎችን ያስሱ!',
       );
     });
   });
@@ -74,14 +74,14 @@ describe('EmailService', () => {
         emailService.sendAutomatedEmail(user, {
           templateType: 'NEWSLETTER',
           tokens: { newsletterContent: 'New Features!' },
-        })
+        }),
       ).rejects.toThrow(GDPRConsentViolationException);
 
       expect(mockTransporter.sendMail).not.toHaveBeenCalled();
       expect(mockSecurityLogger.logSecurityBreach).toHaveBeenCalledWith(
         'user_123',
         'UNAUTHORIZED_MARKETING_DISPATCH',
-        expect.stringContaining('Unauthorized attempt to send NEWSLETTER')
+        expect.stringContaining('Unauthorized attempt to send NEWSLETTER'),
       );
     });
 
@@ -92,7 +92,7 @@ describe('EmailService', () => {
         emailService.sendAutomatedEmail(user, {
           templateType: 'PASSWORD_RESET',
           tokens: { resetUrl: 'http://reset.link' },
-        })
+        }),
       ).resolves.toBe(true);
 
       expect(mockTransporter.sendMail).toHaveBeenCalledTimes(1);
@@ -112,7 +112,7 @@ describe('EmailService', () => {
       expect(mockTransporter.sendMail).toHaveBeenCalledWith(
         'abebe@example.com',
         'Your Beleqet Payment Receipt - TX-999',
-        expect.stringContaining('$1,234.50')
+        expect.stringContaining('$1,234.50'),
       );
     });
 
@@ -141,7 +141,7 @@ describe('EmailService', () => {
 
       const startTime = Date.now();
       await expect(
-        emailService.sendAutomatedEmail(user, { templateType: 'WELCOME' })
+        emailService.sendAutomatedEmail(user, { templateType: 'WELCOME' }),
       ).resolves.toBe(true);
       const endTime = Date.now();
 
@@ -156,7 +156,7 @@ describe('EmailService', () => {
       const user = getBaseUser();
 
       await expect(
-        emailService.sendAutomatedEmail(user, { templateType: 'WELCOME' })
+        emailService.sendAutomatedEmail(user, { templateType: 'WELCOME' }),
       ).rejects.toThrow('SMTP Crash');
 
       // Expected to retry 3 times before failing

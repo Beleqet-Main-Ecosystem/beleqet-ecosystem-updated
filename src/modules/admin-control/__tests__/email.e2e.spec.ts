@@ -3,7 +3,7 @@ import {
   EmailUserContext,
   IMailableTransporter,
   ISecurityAuditLogger,
-  GDPRConsentViolationException
+  GDPRConsentViolationException,
 } from '../email/email.types';
 
 /**
@@ -46,7 +46,7 @@ describe('E2E: Complete User Lifecycle Email Automation Pipeline', () => {
     expect(mockTransporter.sendMail).toHaveBeenCalledWith(
       testUser.email,
       'እንኳን ወደ በልቀት በደህና መጡ፣ Chala!',
-      'ሰላም Chala፣ እንኳን ወደ በልቀት ስነ-ምህዳር በደህና መጡ። ዛሬውኑ እድሎችን ያስሱ!'
+      'ሰላም Chala፣ እንኳን ወደ በልቀት ስነ-ምህዳር በደህና መጡ። ዛሬውኑ እድሎችን ያስሱ!',
     );
   });
 
@@ -69,7 +69,7 @@ describe('E2E: Complete User Lifecycle Email Automation Pipeline', () => {
       emailService.sendAutomatedEmail(testUser, {
         templateType: 'NEWSLETTER',
         tokens: { newsletterContent: 'E2E Weekly Highlights' },
-      })
+      }),
     ).rejects.toThrow(GDPRConsentViolationException);
 
     expect(mockTransporter.sendMail).not.toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe('E2E: Complete User Lifecycle Email Automation Pipeline', () => {
     expect(mockTransporter.sendMail).toHaveBeenCalledWith(
       testUser.email,
       'የበልቀት የይለፍ ቃልዎን ይቀይሩ',
-      'ሰላም Chala፣ የይለፍ ቃልዎን ለመቀየር እባክዎ እዚህ ይጫኑ፡ https://beleqet.com/reset/xyz'
+      'ሰላም Chala፣ የይለፍ ቃልዎን ለመቀየር እባክዎ እዚህ ይጫኑ፡ https://beleqet.com/reset/xyz',
     );
   });
 });

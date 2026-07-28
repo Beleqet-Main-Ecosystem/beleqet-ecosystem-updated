@@ -38,7 +38,11 @@ export class EmailService {
    * Verifies the template compilation system and transport configuration.
    * @returns An object indicating the health status of the module.
    */
-  public async checkHealth(): Promise<{ status: string; templatesLoaded: boolean; transporterReady: boolean }> {
+  public async checkHealth(): Promise<{
+    status: string;
+    templatesLoaded: boolean;
+    transporterReady: boolean;
+  }> {
     return {
       status: 'ok',
       templatesLoaded: Object.keys(this.dictionaries).length > 0,
@@ -54,12 +58,22 @@ export class EmailService {
    * @returns A boolean representing successful network dispatch.
    * @throws GDPRConsentViolationException if a marketing email targets an opted-out user.
    */
-  public async sendAutomatedEmail(user: EmailUserContext, payload: EmailTemplatePayload): Promise<boolean> {
+  public async sendAutomatedEmail(
+    user: EmailUserContext,
+    payload: EmailTemplatePayload,
+  ): Promise<boolean> {
     try {
       // 1. GDPR Privacy Shield Evaluation
-      if (payload.templateType === 'NEWSLETTER' && user.marketingProfile.hasConsentedToMarketing === false) {
+      if (
+        payload.templateType === 'NEWSLETTER' &&
+        user.marketingProfile.hasConsentedToMarketing === false
+      ) {
         const breachDetails = `Unauthorized attempt to send NEWSLETTER to user [${user.id}] without marketing consent.`;
-        this.securityLogger.logSecurityBreach(user.id, 'UNAUTHORIZED_MARKETING_DISPATCH', breachDetails);
+        this.securityLogger.logSecurityBreach(
+          user.id,
+          'UNAUTHORIZED_MARKETING_DISPATCH',
+          breachDetails,
+        );
         throw new GDPRConsentViolationException(breachDetails);
       }
 
@@ -74,7 +88,7 @@ export class EmailService {
       }
 
       // 3. Native Multi-Currency Formatting Engine
-      let processedTokens = { ...payload.tokens };
+      const processedTokens = { ...payload.tokens };
       if (processedTokens.amount !== undefined) {
         processedTokens.formattedAmount = new Intl.NumberFormat(localeKey, {
           style: 'currency',
@@ -102,7 +116,9 @@ export class EmailService {
       while (attempts < maxRetries) {
         try {
           const result = await this.transporter.sendMail(user.email, subject, body);
-          this.logger.log(`Successfully dispatched [${payload.templateType}] to [${maskedEmail}] on attempt ${attempts + 1}`);
+          this.logger.log(
+            `Successfully dispatched [${payload.templateType}] to [${maskedEmail}] on attempt ${attempts + 1}`,
+          );
           return result;
         } catch (transportError) {
           attempts++;
@@ -115,13 +131,14 @@ export class EmailService {
       }
 
       throw lastError;
-
     } catch (error) {
       if (error instanceof GDPRConsentViolationException) {
         this.logger.error(`Security Block Trace: ${error.message}`);
         throw error; // Re-throw to fail the terminal trace
       }
-      this.logger.error(`Failed to send email to [${this.maskEmail(user.email)}]: ${(error as Error).message}`);
+      this.logger.error(
+        `Failed to send email to [${this.maskEmail(user.email)}]: ${(error as Error).message}`,
+      );
       throw error;
     }
   }
@@ -135,9 +152,11 @@ export class EmailService {
    * @returns The fully interpolated string ready for dispatch.
    */
   private compileAndInterpolate(template: string, tokens: DynamicTokens): string {
-    return template.replace(/\{(\w+)\}/g, (_match, key) => {
-      return tokens[key] !== undefined && tokens[key] !== null ? String(tokens[key]) : '';
-    }).replace(/\s+,/g, ',');
+    return template
+      .replace(/\{(\w+)\}/g, (_match, key) => {
+        return tokens[key] !== undefined && tokens[key] !== null ? String(tokens[key]) : '';
+      })
+      .replace(/\s+,/g, ',');
   }
 
   /**
@@ -146,7 +165,8 @@ export class EmailService {
   private maskEmail(email: string): string {
     if (!email || !email.includes('@')) return '***@***';
     const [local, domain] = email.split('@');
-    const maskedLocal = local.length > 2 ? `${local[0]}***${local[local.length - 1]}` : `${local[0]}***`;
+    const maskedLocal =
+      local.length > 2 ? `${local[0]}***${local[local.length - 1]}` : `${local[0]}***`;
     return `${maskedLocal}@${domain}`;
   }
 }
