@@ -13,11 +13,11 @@ function randomEmail(): string {
   return `test_${Date.now()}_${Math.random().toString(36).slice(2, 6)}@test.com`;
 }
 
-async function registerUser(email: string, password: string): Promise<User> {
+async function registerUser(email: string, password: string, role: string): Promise<User> {
   const res = await fetch(`${API}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, firstName: 'Notify', lastName: 'Tester' }),
+    body: JSON.stringify({ email, password, firstName: 'Notify', lastName: 'Tester', role }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(`Register failed: ${data.message}`);
@@ -37,38 +37,13 @@ async function createNotification(accessToken: string, title: string, body: stri
   }
 }
 
-async function loginAsAdmin(): Promise<User | null> {
-  try {
-    const res = await fetch(`${API}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@beleqet.com', password: 'Admin123!' }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return { id: data.user?.id, email: 'admin@beleqet.com', password: 'Admin123!', accessToken: data.accessToken || data.access_token };
-  } catch {
-    return null;
-  }
-}
-
-async function loginAsUser(user: User): Promise<void> {
-  const res = await fetch(`${API}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: user.email, password: user.password }),
-  });
-  const data = await res.json();
-  user.accessToken = data.accessToken || data.access_token;
-}
-
 // ── Tests ──────────────────────────────────────────────────────────
 
 test.describe('Notification Bell dropdown', () => {
   let user: User;
 
   test.beforeEach(async ({ page }) => {
-    user = await registerUser(randomEmail(), 'Password123!');
+    user = await registerUser(randomEmail(), 'Password123!', 'ADMIN');
     await page.goto('/login');
     await page.fill('input[type="email"]', user.email);
     await page.fill('input[type="password"]', 'Password123!');
@@ -111,7 +86,7 @@ test.describe('Notifications full page', () => {
   let user: User;
 
   test.beforeEach(async ({ page }) => {
-    user = await registerUser(randomEmail(), 'Password123!');
+    user = await registerUser(randomEmail(), 'Password123!', 'ADMIN');
     await page.goto('/login');
     await page.fill('input[type="email"]', user.email);
     await page.fill('input[type="password"]', 'Password123!');
@@ -141,7 +116,7 @@ test.describe('Notification Settings page', () => {
   let user: User;
 
   test.beforeEach(async ({ page }) => {
-    user = await registerUser(randomEmail(), 'Password123!');
+    user = await registerUser(randomEmail(), 'Password123!', 'ADMIN');
     await page.goto('/login');
     await page.fill('input[type="email"]', user.email);
     await page.fill('input[type="password"]', 'Password123!');
@@ -193,21 +168,15 @@ test.describe('Notification Settings page', () => {
 });
 
 test.describe('Admin broadcast creates notification visible to user', () => {
-  let adminAvailable = false;
+  let admin: User;
   let regularUser: User;
-
+  
   test.beforeAll(async () => {
-    const admin = await loginAsAdmin();
-    adminAvailable = admin !== null;
-    regularUser = await registerUser(randomEmail(), 'Password123!');
+    admin = await registerUser(randomEmail(), 'Password123!', 'ADMIN');
+    regularUser = await registerUser(randomEmail(), 'Password123!', 'JOB_SEEKER');
   });
 
   test('Notification created by admin broadcast appears in user bell', async ({ page }) => {
-    test.skip(!adminAvailable, 'Admin user not available in test environment');
-
-    const admin = (await loginAsAdmin())!;
-
-
     // Broadcast a notification to all users
     await createNotification(admin.accessToken, 'Test Broadcast', 'This is a test notification from admin');
 
