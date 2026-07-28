@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max, IsISO8601 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -30,14 +30,14 @@ export class QueryAuditLogDto {
    * Filter logs starting from this date ISO string.
    */
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   startDate?: string;
 
   /**
    * Filter logs up to this date ISO string.
    */
   @IsOptional()
-  @IsString()
+  @IsISO8601()
   endDate?: string;
 
   /**

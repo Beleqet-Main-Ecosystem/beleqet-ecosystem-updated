@@ -1,5 +1,8 @@
-import { Controller, Get, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Delete, Query, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { AuditLogService } from './audit-log.service';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 
@@ -8,6 +11,8 @@ import { QueryAuditLogDto } from './dto/query-audit-log.dto';
  */
 @ApiTags('Audit Logs')
 @Controller('api/v1/audit-logs')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
