@@ -1,6 +1,6 @@
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "library"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -730,37 +730,30 @@ model BackupCode {
   @@map("backup_codes")
 }
 
-// SalaryPrediction Model - Stores AI-powered salary predictions
-// Tracks average market values for job positions based on industry, location, and experience level
 model SalaryPrediction {
   id                  String    @id @default(uuid())
   jobTitle            String
   jobCategoryId       String?
   industry            String?
   location            String
-  experienceLevel     String?   // JUNIOR, MID, SENIOR, LEAD, etc.
+  experienceLevel     String?
   currency            String    @default("ETB")
   
-  // Salary ranges calculated from market data
   minSalary           Int
   maxSalary           Int
-  averageSalary       Int       // Mean of all salary data points
-  medianSalary        Int       // Median salary from dataset
+  averageSalary       Int
+  medianSalary        Int
   
-  // Statistical data
-  dataPointsCount     Int       @default(0)    // Number of job postings used in calculation
+  dataPointsCount     Int       @default(0)
   standardDeviation   Float     @default(0)
-  confidenceScore     Float     @default(0.5)  // 0.0 - 1.0, higher = more reliable
+  confidenceScore     Float     @default(0.5)
   
-  // Version tracking for updates
   version             Int       @default(1)
   lastUpdatedAt       DateTime  @updatedAt
   createdAt           DateTime  @default(now())
   
-  // For GDPR compliance
   isAnonymized        Boolean   @default(true)
   
-  // For optimization
   @@index([jobTitle, location, experienceLevel])
   @@index([jobCategoryId, location])
   @@index([location, industry])
@@ -768,8 +761,6 @@ model SalaryPrediction {
   @@map("salary_predictions")
 }
 
-// SalaryHistory Model - Audit trail for salary predictions
-// Maintains historical records of salary trends over time
 model SalaryHistory {
   id                String   @id @default(uuid())
   jobTitle          String
@@ -779,18 +770,15 @@ model SalaryHistory {
   experienceLevel   String?
   currency          String   @default("ETB")
   
-  // Historical snapshot
   minSalary         Int
   maxSalary         Int
   averageSalary     Int
   medianSalary      Int
   dataPointsCount   Int
   
-  // Metadata
   recordedAt        DateTime @default(now())
   version           Int      @default(1)
   
-  // For GDPR compliance
   isAnonymized      Boolean  @default(true)
   
   @@index([jobTitle, location])
@@ -798,24 +786,19 @@ model SalaryHistory {
   @@map("salary_history")
 }
 
-// SalaryAnalytics Model - Pre-computed analytics for performance
-// Stores aggregated data for quick dashboard queries
 model SalaryAnalytics {
   id                  String    @id @default(uuid())
   
-  // Aggregation scope
   location            String
   industry            String?
   jobCategoryId       String?
   currency            String    @default("ETB")
   
-  // Statistics
   averageSalary       Int
   medianSalary        Int
-  salaryGrowthRate    Float     @default(0)      // Month-over-month percentage
-  topJobTitles        String[]  @default([])     // Top 5 job titles by frequency
+  salaryGrowthRate    Float     @default(0)
+  topJobTitles        String[]  @default([])
   
-  // Reporting period
   periodStartDate     DateTime
   periodEndDate       DateTime
   
@@ -911,8 +894,6 @@ enum NotificationChannel {
   EMAIL
 }
 
-// ── AI Video Interview ─────────────────────────────────────────────────────
-
 enum VideoInterviewStatus {
   PENDING
   IN_PROGRESS
@@ -922,19 +903,14 @@ enum VideoInterviewStatus {
   EXPIRED
 }
 
-/// AI video interview session linked to a job application.
-/// metadata (JSONB) holds question config; GIN index enables fast JSONB queries.
-/// GDPR: gdprDeleteAt drives scheduled hard-delete of all PII + video files.
 model VideoInterview {
   id            String               @id @default(uuid())
   applicationId String               @unique
   userId        String
   status        VideoInterviewStatus @default(PENDING)
-  /// JSONB: { questions: [{id, text, durationSec}], locale, jobTitle }
   metadata      Json
   scheduledAt   DateTime?
   expiresAt     DateTime?
-  /// GDPR retention window — hard-delete after this date (default 90 days)
   gdprDeleteAt  DateTime?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
@@ -950,17 +926,12 @@ model VideoInterview {
   @@map("video_interviews")
 }
 
-/// One row per question response within a VideoInterview.
-/// rawWhisperResponse (JSONB) stores the full Whisper API payload;
-/// GIN index allows querying by language/word-level timestamps.
 model VideoResponse {
   id                   String   @id @default(uuid())
   videoInterviewId     String
   questionIndex        Int
-  /// S3 presigned URL — files auto-deleted after gdprDeleteAt
   videoUrl             String?
   transcript           String?
-  /// Full Whisper response: { text, segments, language, duration }
   rawWhisperResponse   Json?
   processingDurationMs Int?
   language             String   @default("en")
@@ -968,6 +939,10 @@ model VideoResponse {
   processingStatus     String   @default("PENDING")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+  language             String         @default("en")
+  processingStatus     String         @default("PENDING")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
@@ -977,20 +952,14 @@ model VideoResponse {
   @@map("video_responses")
 }
 
-/// AI evaluation result for a completed interview.
-/// scores (JSONB) holds per-question and trait scores for flexible querying.
-/// rawAiResponse stores the full Ollama/OpenAI output for audit purposes.
 model InterviewEvaluation {
   id               String   @id @default(uuid())
   videoInterviewId String   @unique
   overallScore     Float
-  /// JSONB: { perQuestion: [{idx, score, feedback}], traits: {communication, clarity} }
   scores           Json
   reasoning        String?
-  /// Raw model output for audit trail
   rawAiResponse    Json?
-  modelUsed        String   @default("llama3")
-  /// GDPR: matches parent VideoInterview.gdprDeleteAt
+  modelUsed        String         @default("llama3")
   gdprDeleteAt     DateTime
   evaluatedAt      DateTime @default(now())
 
@@ -1014,9 +983,7 @@ model Referral {
   referredId  String?
   code        String         @unique
   status      ReferralStatus @default(PENDING)
-  /// Bonus amount in minor units (e.g. cents / santim)
   bonusAmount Int            @default(0)
-  /// ISO 4217 currency code (e.g. ETB, USD, EUR) — multi-currency support
   currency    String         @default("ETB")
   expiresAt   DateTime
   redeemedAt  DateTime?
@@ -1031,17 +998,13 @@ model Referral {
   @@map("referrals")
 }
 
-// ── Job Alerts ─────────────────────────────────────────────────────────────
-
 model JobAlert {
   id         String    @id @default(uuid())
   userId     String
   keywords   String[]
   location   String?
   jobType    JobType?
-  /// Minimum salary in minor units — multi-currency support
   minSalary  Int?
-  /// ISO 4217 currency code
   currency   String    @default("ETB")
   isActive   Boolean   @default(true)
   lastSentAt DateTime?
@@ -1061,52 +1024,25 @@ enum ReferralStatus {
   CANCELLED
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Global Payment Gateway (Task Global-Payments-001 & 002)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Stores every payment transaction (Stripe or PayPal) initiated via the
-// Beleqet platform.
-//
-// GDPR notes:
-//  - No raw PII stored here (no card numbers, email, name).
-//  - userId is a UUID reference to the users table.
-//  - metadata is sanitised before insert (PII keys stripped in services).
-//
-// Multi-currency: `currency` is ISO 4217. `amount` is in smallest unit
-// (cents/fils/pence) for Stripe; stored as-is for PayPal (decimal × 100).
 model Payment {
   id                String          @id @default(uuid())
-  /// UUID of the Beleqet user who initiated this payment
   userId            String
-  /// Payment provider: STRIPE or PAYPAL
   provider          PaymentProvider
-  /// Provider-side payment / order ID (pi_… for Stripe, alphanumeric for PayPal)
   providerPaymentId String          @unique
-  /// Amount in smallest currency unit (e.g. cents for USD)
   amount            Int
-  /// ISO 4217 currency code (e.g. USD, EUR, ETB)
   currency          String          @default("USD")
-  /// Current lifecycle status
   status            PaymentStatus   @default(PENDING)
-  /// Human-readable description (stripped of PII before storage)
   description       String?
-  /// Sanitised key-value metadata (no PII keys)
   metadata          Json?
-  /// Timestamp when this payment was refunded (null if not refunded)
   refundedAt        DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Index for looking up all payments by a user (dashboard, history)
   @@index([userId, createdAt])
-  /// Index for admin filtering by status + provider
   @@index([status, provider])
-  /// Index for webhook event processing by providerPaymentId
   @@index([providerPaymentId])
-  /// Index for currency-based reporting (multi-currency analytics)
   @@index([currency, status])
   @@map("payments")
 }
@@ -1156,35 +1092,12 @@ enum KycStatus {
   REJECTED
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Subscription Manager (Task: Admin & Control — Subscription Manager)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Plan catalog + per-user Subscription lifecycle + billing ledger, layered on
-// top of the existing Global Payment Gateway (Payment/PaymentProvider above).
-// A Subscription's recurring charges reuse the existing PaypalService billing
-// agreement flow (see src/modules/payments/paypal.service.ts) rather than
-// duplicating gateway integration — SubscriptionTransaction rows are written
-// alongside the Payment row that PaypalService already upserts, joined by
-// `providerSubscriptionId` (== the PayPal billing agreement id).
-//
-// GDPR: SubscriptionTransaction.rawPayload is sanitised before insert (no PII
-// keys — see BillingService) and is nulled out by the same data-deletion hook
-// that anonymises Payment rows for a deleted user.
-//
-// Multi-currency: amounts are stored as Int in minor units (see Payment
-// above); Plan.currency / Subscription/Transaction currency are ISO 4217.
-
-/// Billing interval for a recurring Plan.
 enum BillingInterval {
   MONTHLY
   YEARLY
 }
 
-/// Lifecycle status of a user's Subscription.
 enum SubscriptionStatus {
-  /// Checkout started (gateway billing agreement created) but not yet
-  /// confirmed by the gateway's activation webhook.
   PENDING
   ACTIVE
   PAST_DUE
@@ -1192,23 +1105,15 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-/// A purchasable subscription tier (e.g. Free, Pro, Enterprise).
-/// `paypalPlanId` maps to a pre-created PayPal billing plan id — set by an
-/// admin once the equivalent plan exists on the PayPal dashboard — and is
-/// what gets passed to PaypalService.createSubscription() at checkout.
 model Plan {
   id           String          @id @default(uuid())
   name         String          @unique
   description  String?
-  /// Price in smallest currency unit (e.g. cents for USD, santim for ETB)
   priceAmount  Int
-  /// ISO 4217 currency code
   currency     String          @default("ETB")
   interval     BillingInterval @default(MONTHLY)
-  /// Free-form feature list / limits, e.g. { "maxJobPosts": 5, "support": "email" }
   features     Json
   isActive     Boolean         @default(true)
-  /// PayPal billing plan id for recurring checkout via the existing PaypalService
   paypalPlanId String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -1219,26 +1124,19 @@ model Plan {
   @@map("plans")
 }
 
-/// Links a User to a Plan with a tracked billing period and status.
 model Subscription {
-  id                 String             @id @default(uuid())
-  userId             String
-  planId             String
-  status             SubscriptionStatus @default(ACTIVE)
-  currentPeriodStart DateTime           @default(now())
-  currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean            @default(false)
-  /// Gateway that owns the recurring charge for this subscription (nullable
-  /// while PENDING, before the user completes the gateway checkout redirect)
-  provider           PaymentProvider?
-  /// Provider-side recurring-billing id — the PayPal billing agreement id
-  /// for PayPal; joins to Payment.providerPaymentId for the same charge.
-  providerSubscriptionId String?        @unique
-  /// Set once the "expiring in 3 days" reminder has fired, so the reminder
-  /// cron job never re-notifies the same billing period.
-  reminderSentAt     DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                     String             @id @default(uuid())
+  userId                 String
+  planId                 String
+  status                 SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart     DateTime           @default(now())
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean            @default(false)
+  provider               PaymentProvider?
+  providerSubscriptionId String?            @unique
+  reminderSentAt         DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan         Plan                      @relation(fields: [planId], references: [id])
@@ -1249,16 +1147,13 @@ model Subscription {
   @@map("subscriptions")
 }
 
-/// One row per billing event on a Subscription (audit trail / transaction log).
 model SubscriptionTransaction {
   id               String        @id @default(uuid())
   subscriptionId   String
   amount           Int
   currency         String
   status           PaymentStatus
-  /// Provider-side reference for this specific charge (e.g. PayPal sale id)
   gatewayReference String?
-  /// Sanitised webhook payload for audit purposes (PII keys stripped)
   rawPayload       Json?
   createdAt        DateTime      @default(now())
 
@@ -1268,12 +1163,8 @@ model SubscriptionTransaction {
   @@map("subscription_transactions")
 }
 
-/// Idempotency record for inbound billing webhooks — prevents the same
-/// gateway event from being processed twice (e.g. on gateway retry).
 model WebhookEvent {
   id             String          @id @default(uuid())
-  /// Gateway's own event id (PayPal `id`, Stripe `id`, etc.) — unique guards
-  /// against double-processing the same webhook delivery.
   gatewayEventId String          @unique
   provider       PaymentProvider
   eventType      String
@@ -1301,7 +1192,6 @@ model StoredFile {
   @@map("stored_files")
 }
 
-/// A Smart Skill Tester assessment run for a user against a job role and level.
 model SkillAssessmentSession {
   id          String     @id @default(uuid())
   userId      String
@@ -1318,7 +1208,6 @@ model SkillAssessmentSession {
   @@map("skill_assessment_sessions")
 }
 
-/// Individual multiple-choice question belonging to a SkillAssessmentSession.
 model AssessmentQuestion {
   id              String                 @id @default(uuid())
   sessionId       String
@@ -1400,3 +1289,4 @@ enum FaqBotMessageRole {
 
 /// System-wide audit log entity tracking user/system actions, entity state changes,
 /// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+
