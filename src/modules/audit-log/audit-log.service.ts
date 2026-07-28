@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { AuditLog, Prisma } from '@prisma/client';
+import { EventLog, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAuditLogDto } from './dto/create-audit-log.dto';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
@@ -8,7 +8,7 @@ import { scrubPii } from './utils/pii-scrubber.util';
 import { validateMultiCurrencyPayload } from './utils/multi-currency.util';
 
 export interface PaginatedAuditLogsResponse {
-  data: AuditLog[];
+  data: EventLog[];
   total: number;
   page: number;
   limit: number;
@@ -28,10 +28,10 @@ export class AuditLogService {
    * Persists a new audit log record after applying GDPR PII scrubbing and multi-currency validations.
    *
    * @param dto - Audit log data transfer object
-   * @returns Created AuditLog record
+   * @returns Created EventLog record
    * @security GDPR & Multi-Currency compliance enforced prior to persistence.
    */
-  async createLog(dto: CreateAuditLogDto): Promise<AuditLog> {
+  async createLog(dto: CreateAuditLogDto): Promise<EventLog> {
     try {
       // 1. GDPR PII Scrubbing
       const scrubbedPrevious = dto.previousState
@@ -54,16 +54,20 @@ export class AuditLogService {
         }
       }
 
-      return await this.prisma.auditLog.create({
+      const payload = {
+        previousState: scrubbedPrevious ?? undefined,
+        newState: scrubbedNew ?? undefined,
+        ipAddress: dto.ipAddress || null,
+        userAgent: dto.userAgent || null,
+      };
+
+      return await this.prisma.eventLog.create({
         data: {
-          userId: dto.userId || null,
-          action: dto.action,
-          entity: dto.entity,
-          entityId: dto.entityId || null,
-          previousState: scrubbedPrevious ?? undefined,
-          newState: scrubbedNew ?? undefined,
-          ipAddress: dto.ipAddress || null,
-          userAgent: dto.userAgent || null,
+          eventType: dto.action,
+          entityType: dto.entity,
+          entityId: dto.entityId || 'SYSTEM',
+          processedBy: dto.userId || null,
+          payload: payload as Prisma.InputJsonObject,
         },
       });
     } catch (error) {
@@ -87,12 +91,12 @@ export class AuditLogService {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
-      this.prisma.auditLog.findMany({
+      this.prisma.eventLog.findMany({
         skip,
         take: limit,
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.auditLog.count(),
+      this.prisma.eventLog.count(),
     ]);
 
     const totalPages = Math.ceil(total / limit) || 1;
@@ -117,38 +121,38 @@ export class AuditLogService {
     const limit = Number(query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.AuditLogWhereInput = {};
+    const where: Prisma.EventLogWhereInput = {};
 
     if (query.userId) {
-      where.userId = query.userId;
+      where.processedBy = query.userId;
     }
 
     if (query.action) {
-      where.action = { contains: query.action, mode: 'insensitive' };
+      where.eventType = { contains: query.action, mode: 'insensitive' };
     }
 
     if (query.entity) {
-      where.entity = { contains: query.entity, mode: 'insensitive' };
+      where.entityType = { contains: query.entity, mode: 'insensitive' };
     }
 
     if (query.startDate || query.endDate) {
-      where.timestamp = {};
+      where.createdAt = {};
       if (query.startDate) {
-        where.timestamp.gte = new Date(query.startDate);
+        where.createdAt.gte = new Date(query.startDate);
       }
       if (query.endDate) {
-        where.timestamp.lte = new Date(query.endDate);
+        where.createdAt.lte = new Date(query.endDate);
       }
     }
 
     const [data, total] = await Promise.all([
-      this.prisma.auditLog.findMany({
+      this.prisma.eventLog.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.auditLog.count({ where }),
+      this.prisma.eventLog.count({ where }),
     ]);
 
     const totalPages = Math.ceil(total / limit) || 1;
@@ -176,9 +180,9 @@ export class AuditLogService {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
-    const result = await this.prisma.auditLog.deleteMany({
+    const result = await this.prisma.eventLog.deleteMany({
       where: {
-        timestamp: {
+        createdAt: {
           lt: cutoffDate,
         },
       },

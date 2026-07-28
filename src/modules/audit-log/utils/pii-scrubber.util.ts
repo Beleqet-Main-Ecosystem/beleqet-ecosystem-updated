@@ -71,6 +71,10 @@ export function scrubPii<T>(data: T): T {
     return data;
   }
 
+  if (data instanceof Date || data instanceof Buffer || data instanceof RegExp) {
+    return data;
+  }
+
   if (Array.isArray(data)) {
     return data.map((item) => scrubPii(item)) as unknown as T;
   }

@@ -3,11 +3,13 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AuditLogModule } from '../audit-log.module';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 
 describe('AuditLogController (Integration)', () => {
   let app: INestApplication;
   const mockPrismaService = {
-    auditLog: {
+    eventLog: {
       findMany: jest.fn(),
       count: jest.fn(),
       deleteMany: jest.fn(),
@@ -20,6 +22,10 @@ describe('AuditLogController (Integration)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrismaService)
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -37,11 +43,11 @@ describe('AuditLogController (Integration)', () => {
 
   it('GET /api/v1/audit-logs should return paginated logs', async () => {
     const sampleLogs = [
-      { id: 'log-1', action: 'CREATE', entity: 'Job', timestamp: new Date() },
-      { id: 'log-2', action: 'UPDATE', entity: 'User', timestamp: new Date() },
+      { id: 'log-1', eventType: 'CREATE', entityType: 'Job', createdAt: new Date() },
+      { id: 'log-2', eventType: 'UPDATE', entityType: 'User', createdAt: new Date() },
     ];
-    mockPrismaService.auditLog.findMany.mockResolvedValue(sampleLogs);
-    mockPrismaService.auditLog.count.mockResolvedValue(2);
+    mockPrismaService.eventLog.findMany.mockResolvedValue(sampleLogs);
+    mockPrismaService.eventLog.count.mockResolvedValue(2);
 
     const response = await request(app.getHttpServer())
       .get('/api/v1/audit-logs?page=1&limit=10')
@@ -54,21 +60,21 @@ describe('AuditLogController (Integration)', () => {
   });
 
   it('GET /api/v1/audit-logs/search should filter by parameters', async () => {
-    mockPrismaService.auditLog.findMany.mockResolvedValue([
-      { id: 'log-1', userId: 'usr-77', action: 'CREATE_JOB', entity: 'JOB' },
+    mockPrismaService.eventLog.findMany.mockResolvedValue([
+      { id: 'log-1', processedBy: 'usr-77', eventType: 'CREATE_JOB', entityType: 'JOB' },
     ]);
-    mockPrismaService.auditLog.count.mockResolvedValue(1);
+    mockPrismaService.eventLog.count.mockResolvedValue(1);
 
     const response = await request(app.getHttpServer())
       .get('/api/v1/audit-logs/search?userId=usr-77&action=CREATE_JOB&entity=JOB')
       .expect(200);
 
     expect(response.body.data).toHaveLength(1);
-    expect(response.body.data[0].userId).toBe('usr-77');
+    expect(response.body.data[0].processedBy).toBe('usr-77');
   });
 
   it('DELETE /api/v1/audit-logs/retention should trigger data retention cleanup', async () => {
-    mockPrismaService.auditLog.deleteMany.mockResolvedValue({ count: 5 });
+    mockPrismaService.eventLog.deleteMany.mockResolvedValue({ count: 5 });
 
     const response = await request(app.getHttpServer())
       .delete('/api/v1/audit-logs/retention?days=60')
