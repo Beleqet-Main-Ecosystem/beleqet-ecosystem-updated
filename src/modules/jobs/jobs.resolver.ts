@@ -44,7 +44,9 @@ export class JobsResolver {
     const userId = user?.userId;
 
     if (!userId) {
-      throw new ForbiddenException('Authentication context missing userId. Please re-authenticate.');
+      throw new ForbiddenException(
+        'Authentication context missing userId. Please re-authenticate.',
+      );
     }
 
     // Pass the correctly mapped userId to the service
