@@ -10,53 +10,52 @@ export declare class JobsResolver {
     constructor(jobsService: JobsService, companyLoader: CompanyLoader, categoryLoader: CategoryLoader);
     jobs(query: QueryJobsInput): Promise<{
         items: ({
-            company: {
-                name: string;
-                description: string | null;
+            category: {
                 id: string;
+                slug: string;
+                label: string;
+                icon: string | null;
+            };
+            company: {
+                id: string;
+                description: string | null;
                 location: string | null;
                 createdAt: Date;
-                userId: string;
                 updatedAt: Date;
-                linkedinUrl: string | null;
+                name: string;
                 logoUrl: string | null;
                 website: string | null;
                 industry: string | null;
                 size: string | null;
-                twitterUrl: string | null;
-                facebookUrl: string | null;
-                coverImageUrl: string | null;
-                benefits: string[];
-                foundedYear: number | null;
                 verified: boolean;
+                userId: string;
+                benefits: string[];
+                coverImageUrl: string | null;
+                facebookUrl: string | null;
+                foundedYear: number | null;
+                linkedinUrl: string | null;
+                twitterUrl: string | null;
             };
             _count: {
                 applications: number;
             };
-            category: {
-                label: string;
-                id: string;
-                slug: string;
-                icon: string | null;
-            };
         } & {
-            type: import(".prisma/client").$Enums.JobType;
-            description: string;
-            title: string;
             id: string;
-            status: import(".prisma/client").$Enums.JobStatus;
-            location: string;
-            createdAt: Date;
-            updatedAt: Date;
-            tags: string[];
+            title: string;
+            description: string;
             requirements: string | null;
+            location: string;
+            type: import(".prisma/client").$Enums.JobType;
             categoryId: string;
             salaryMin: number | null;
             salaryMax: number | null;
             currency: string;
             deadline: Date | null;
+            status: import(".prisma/client").$Enums.JobStatus;
             featured: boolean;
             companyId: string;
+            createdAt: Date;
+            updatedAt: Date;
             applyEmail: string | null;
             applyType: string | null;
             applyUrl: string | null;
@@ -71,6 +70,7 @@ export declare class JobsResolver {
             qualification: string | null;
             salaryType: string | null;
             interviewDurationMinutes: number;
+            tags: string[];
             urgent: boolean;
             vacancies: number | null;
             yearsOfExperience: string | null;
@@ -81,53 +81,52 @@ export declare class JobsResolver {
         totalPages: number;
     }>;
     job(id: string): Promise<{
-        company: {
-            name: string;
-            description: string | null;
+        category: {
             id: string;
+            slug: string;
+            label: string;
+            icon: string | null;
+        };
+        company: {
+            id: string;
+            description: string | null;
             location: string | null;
             createdAt: Date;
-            userId: string;
             updatedAt: Date;
-            linkedinUrl: string | null;
+            name: string;
             logoUrl: string | null;
             website: string | null;
             industry: string | null;
             size: string | null;
-            twitterUrl: string | null;
-            facebookUrl: string | null;
-            coverImageUrl: string | null;
-            benefits: string[];
-            foundedYear: number | null;
             verified: boolean;
+            userId: string;
+            benefits: string[];
+            coverImageUrl: string | null;
+            facebookUrl: string | null;
+            foundedYear: number | null;
+            linkedinUrl: string | null;
+            twitterUrl: string | null;
         };
         _count: {
             applications: number;
         };
-        category: {
-            label: string;
-            id: string;
-            slug: string;
-            icon: string | null;
-        };
     } & {
-        type: import(".prisma/client").$Enums.JobType;
-        description: string;
-        title: string;
         id: string;
-        status: import(".prisma/client").$Enums.JobStatus;
-        location: string;
-        createdAt: Date;
-        updatedAt: Date;
-        tags: string[];
+        title: string;
+        description: string;
         requirements: string | null;
+        location: string;
+        type: import(".prisma/client").$Enums.JobType;
         categoryId: string;
         salaryMin: number | null;
         salaryMax: number | null;
         currency: string;
         deadline: Date | null;
+        status: import(".prisma/client").$Enums.JobStatus;
         featured: boolean;
         companyId: string;
+        createdAt: Date;
+        updatedAt: Date;
         applyEmail: string | null;
         applyType: string | null;
         applyUrl: string | null;
@@ -142,55 +141,55 @@ export declare class JobsResolver {
         qualification: string | null;
         salaryType: string | null;
         interviewDurationMinutes: number;
+        tags: string[];
         urgent: boolean;
         vacancies: number | null;
         yearsOfExperience: string | null;
     }>;
     createJob(input: CreateJobInput, user: CurrentUserPayload): Promise<{
-        company: {
-            name: string;
-            description: string | null;
+        category: {
             id: string;
+            slug: string;
+            label: string;
+            icon: string | null;
+        };
+        company: {
+            id: string;
+            description: string | null;
             location: string | null;
             createdAt: Date;
-            userId: string;
             updatedAt: Date;
-            linkedinUrl: string | null;
+            name: string;
             logoUrl: string | null;
             website: string | null;
             industry: string | null;
             size: string | null;
-            twitterUrl: string | null;
-            facebookUrl: string | null;
-            coverImageUrl: string | null;
-            benefits: string[];
-            foundedYear: number | null;
             verified: boolean;
-        };
-        category: {
-            label: string;
-            id: string;
-            slug: string;
-            icon: string | null;
+            userId: string;
+            benefits: string[];
+            coverImageUrl: string | null;
+            facebookUrl: string | null;
+            foundedYear: number | null;
+            linkedinUrl: string | null;
+            twitterUrl: string | null;
         };
     } & {
-        type: import(".prisma/client").$Enums.JobType;
-        description: string;
-        title: string;
         id: string;
-        status: import(".prisma/client").$Enums.JobStatus;
-        location: string;
-        createdAt: Date;
-        updatedAt: Date;
-        tags: string[];
+        title: string;
+        description: string;
         requirements: string | null;
+        location: string;
+        type: import(".prisma/client").$Enums.JobType;
         categoryId: string;
         salaryMin: number | null;
         salaryMax: number | null;
         currency: string;
         deadline: Date | null;
+        status: import(".prisma/client").$Enums.JobStatus;
         featured: boolean;
         companyId: string;
+        createdAt: Date;
+        updatedAt: Date;
         applyEmail: string | null;
         applyType: string | null;
         applyUrl: string | null;
@@ -205,6 +204,7 @@ export declare class JobsResolver {
         qualification: string | null;
         salaryType: string | null;
         interviewDurationMinutes: number;
+        tags: string[];
         urgent: boolean;
         vacancies: number | null;
         yearsOfExperience: string | null;

@@ -1,11 +1,5 @@
 # =============================================================================
 # Beleqet Backend — Multi-Stage Production Image
-<<<<<<< HEAD
-=======
-#
-# build → prune → run: the runner ships only production dependencies.
-# This version includes the Alpine 3.21 compatibility fix and security hardening.
->>>>>>> 91eb983 (fix: resolve security review comments, CI regressions, and prisma alpine compatibility)
 # =============================================================================
 
 # ── Stage 1: Build ───────────────────────────────────────────────────────────
