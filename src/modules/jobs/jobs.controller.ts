@@ -16,6 +16,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { JobsService } from './jobs.service';
 import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -31,6 +32,7 @@ export class JobsController {
   @Get('my')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
   @ApiBearerAuth()
   myJobs(@CurrentUser() user: CurrentUserPayload) {
     return this.svc.findByCompany(user.userId);
@@ -50,6 +52,7 @@ export class JobsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a job listing (employer only)' })
   create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateJobDto) {
@@ -59,6 +62,7 @@ export class JobsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
   @ApiBearerAuth()
   update(
     @Param('id') id: string,
@@ -71,6 +75,7 @@ export class JobsController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
   @ApiBearerAuth()
   remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.svc.remove(id, user.userId);

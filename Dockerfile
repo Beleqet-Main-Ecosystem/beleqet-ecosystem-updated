@@ -17,10 +17,10 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
 RUN npm ci
+RUN npm run prisma:generate
 
 COPY . .
 
-RUN npm run prisma:generate
 RUN npm run build
 
 # ── Prune stage: production-only node_modules + generated Prisma client ──────

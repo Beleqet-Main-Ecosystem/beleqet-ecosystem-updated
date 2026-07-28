@@ -3,6 +3,9 @@ import { KycController, SubmitKycDto, RejectKycDto, KycUploadFile } from './kyc.
 import { KycService } from './kyc.service';
 import { KycDocumentType, KycStatus } from '@prisma/client';
 import { BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { Reflector } from '@nestjs/core';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 const mockKycService = {
   submitVerification: jest.fn(),
@@ -12,14 +15,27 @@ const mockKycService = {
   rejectVerification: jest.fn(),
 };
 
+const mockPrismaService = {
+  user: {
+    findUnique: jest.fn(),
+  },
+};
+
 describe('KycController', () => {
   let controller: KycController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KycController],
-      providers: [{ provide: KycService, useValue: mockKycService }],
-    }).compile();
+      providers: [
+        { provide: KycService, useValue: mockKycService },
+        { provide: PrismaService, useValue: mockPrismaService },
+        Reflector,
+      ],
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<KycController>(KycController);
     jest.clearAllMocks();

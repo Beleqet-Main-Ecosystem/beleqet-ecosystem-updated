@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - main
+      - feature/vault-user-gatekeeper
 
   workflow_dispatch:
 
