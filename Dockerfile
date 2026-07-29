@@ -13,16 +13,9 @@ RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 RUN npm ci
-<<<<<<< HEAD
 COPY . .
 RUN npx prisma generate
 COPY . .
-=======
-RUN npm run prisma:generate
-
-COPY . .
-
->>>>>>> 9961b0e (Resolve CI failures, remove binary gitignore and dist, fix conflict markers)
 RUN npm run build
 
 # ── Stage 2: Prune ───────────────────────────────────────────────────────────
@@ -39,7 +32,7 @@ COPY prisma ./prisma/
 RUN npm ci --omit=dev && npx prisma generate
 
 # Stage 3: Runner
-FROM node:22-alpine3.21
+FROM node:22-slim
 WORKDIR /app
 ENV NODE_ENV=production
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
