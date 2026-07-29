@@ -49,7 +49,7 @@ export class WebhookVerifierService {
   async verifyStripe(
     rawBody: Buffer,
     signature: string,
-    timestamp: number,
+    _timestamp: number,
   ): Promise<WebhookVerificationResult> {
     const secret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!secret) {
@@ -121,7 +121,7 @@ export class WebhookVerifierService {
     signature: string,
     transmissionId: string,
     transmissionTime: string,
-    certUrl: string,
+    _certUrl: string,
   ): Promise<WebhookVerificationResult> {
     const webhookId = this.configService.get<string>('PAYPAL_WEBHOOK_ID');
     if (!webhookId) {

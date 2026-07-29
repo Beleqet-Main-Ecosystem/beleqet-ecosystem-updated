@@ -11,8 +11,8 @@ import { PaymentProvider, WebhookEventType } from '../types/webhook.types';
 describe('WebhookProcessorService', () => {
   let service: WebhookProcessorService;
   let prismaService: jest.Mocked<PrismaService>;
-  let i18nService: jest.Mocked<I18nService>;
-  let gdprService: jest.Mocked<GDPRService>;
+  let _i18nService: jest.Mocked<I18nService>;
+  let _gdprService: jest.Mocked<GDPRService>;
   let mockQueue: jest.Mocked<Queue>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
 
@@ -82,8 +82,8 @@ describe('WebhookProcessorService', () => {
 
     service = module.get<WebhookProcessorService>(WebhookProcessorService);
     prismaService = module.get<PrismaService>(PrismaService) as any;
-    i18nService = module.get(I18nService) as jest.Mocked<I18nService>;
-    gdprService = module.get(GDPRService) as jest.Mocked<GDPRService>;
+    _i18nService = module.get(I18nService) as jest.Mocked<I18nService>;
+    _gdprService = module.get(GDPRService) as jest.Mocked<GDPRService>;
     eventEmitter = module.get(EventEmitter2) as jest.Mocked<EventEmitter2>;
   });
 

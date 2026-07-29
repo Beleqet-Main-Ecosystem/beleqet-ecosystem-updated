@@ -9,6 +9,7 @@
     "target": "ES2021",
     "jsx": "react-jsx",
     "sourceMap": true,
+    "ignoreDeprecations": "5.0",
     "outDir": "./dist",
     "baseUrl": "./",
     "typeRoots": ["./node_modules/@types", "./src/types"],

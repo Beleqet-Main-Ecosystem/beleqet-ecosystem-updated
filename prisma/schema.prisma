@@ -83,6 +83,7 @@ model User {
   /// true; when false, the AI Feed module falls back to a generic,
   /// non-personalized feed and reads none of that data (GDPR compliance).
   gdprConsent Boolean @default(true)
+  aiFeedConsent Boolean @default(true)
 
   /// Back-relation required by Prisma for the one-to-many relationship
   /// declared on SearchHistory.user below. Not queried directly from the
@@ -1739,3 +1740,44 @@ model GdprConsent {
 
   @@index([purpose])
   @@map("gdpr_consents")
+}
+
+/// A Smart Skill Tester assessment run for a user against a job role and level.
+model SkillAssessmentSession {
+  id          String               @id @default(uuid())
+  userId      String
+  jobRole     String
+  skillLevel  SkillLevel
+  score       Int?
+  isCompleted Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions   AssessmentQuestion[]
+
+  @@index([userId, createdAt])
+  @@map("skill_assessment_sessions")
+}
+
+/// Individual multiple-choice question belonging to a SkillAssessmentSession.
+model AssessmentQuestion {
+  id              String                 @id @default(uuid())
+  sessionId       String
+  questionText    String
+  options         Json
+  correctAnswer   String
+  candidateAnswer String?
+  isCorrect       Boolean?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  session         SkillAssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("assessment_questions")
+}
+
+enum SkillLevel {
+  ENTRY
+  MID
+  SENIOR
+}

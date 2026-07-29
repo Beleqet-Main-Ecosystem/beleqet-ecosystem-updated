@@ -5,7 +5,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue, Job } from 'bullmq';
+import { Queue, Job as _Job } from 'bullmq';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { RetryConfig, PaymentProvider, WebhookEventType } from '../types/webhook.types';
 

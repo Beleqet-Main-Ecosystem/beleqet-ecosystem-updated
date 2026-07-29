@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpStatus as _HttpStatus } from '@nestjs/common';
 import { WebhooksController } from './webhooks.controller';
 import { WebhookVerifierService } from '../services/webhook-verifier.service';
 import { WebhookRetryService } from '../services/webhook-retry.service';
@@ -9,7 +9,7 @@ import {
   WebhookEventType,
   WebhookVerificationResult,
 } from '../types/webhook.types';
-import { Request } from 'express';
+import { Request as _Request } from 'express';
 
 describe('WebhooksController', () => {
   let controller: WebhooksController;

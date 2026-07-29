@@ -4,7 +4,7 @@ import { I18nService } from './i18n.service';
 
 describe('I18nService', () => {
   let service: I18nService;
-  let configService: jest.Mocked<ConfigService>;
+  let _configService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,7 +20,7 @@ describe('I18nService', () => {
     }).compile();
 
     service = module.get<I18nService>(I18nService);
-    configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
+    _configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
   });
 
   describe('getLocalizationContext', () => {
@@ -163,7 +163,7 @@ describe('I18nService', () => {
         { code: 'NGN', symbol: '₦' },
       ];
 
-      currencies.forEach(({ code, symbol }) => {
+      currencies.forEach(({ code, symbol: _symbol }) => {
         const formatted = service.formatCurrency(100, code, 'en');
         expect(formatted).toBeDefined();
       });

@@ -25,6 +25,6 @@ declare module 'passport-openidconnect' {
   }
 
   export class Strategy extends PassportStrategy {
-    constructor(options: StrategyOptions, verify: Function);
+    constructor(options: StrategyOptions, verify: (...args: any[]) => void);
   }
 }
