@@ -170,10 +170,10 @@ test.describe('Notification Settings page', () => {
 test.describe('Admin broadcast creates notification visible to user', () => {
   let admin: User;
   let regularUser: User;
-  
+
   test.beforeAll(async () => {
     admin = await registerUser(randomEmail(), 'Password123!', 'ADMIN');
-    regularUser = await registerUser(randomEmail(), 'Password123!', 'JOB_SEEKER');
+    regularUser = await registerUser(randomEmail(), 'Password123!', 'ADMIN');
   });
 
   test('Notification created by admin broadcast appears in user bell', async ({ page }) => {
