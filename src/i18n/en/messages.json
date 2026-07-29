@@ -1,4 +1,12 @@
 {
+  "audit": {
+    "ACCESS_DENIED": "You do not have permission to view the audit trail.",
+    "INVALID_DATE_RANGE": "The date range provided is invalid.",
+    "LOG_ENTRY_CREATED": "A new audit log entry was recorded.",
+    "IMMUTABLE_VIOLATION_ATTEMPT": "An attempt to modify an immutable audit log entry was blocked.",
+    "FILTER_NO_RESULTS": "No audit log entries match your current filters.",
+    "EXPORT_SUCCESS": "Audit log export completed successfully."
+  },
   "admin-stats": {
     "DASHBOARD_TITLE": "Dashboard Statistics",
     "TOTAL_USERS": "Total Active Users",

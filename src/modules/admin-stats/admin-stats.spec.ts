@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { I18nService } from 'nestjs-i18n';
 import { AdminStatsController } from './admin-stats.controller';
 import { WalletService } from '../wallet/wallet.service';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 /**
  * Unit tests for the Admin Stats Module
@@ -40,7 +41,10 @@ describe('AdminStats Module', () => {
         { provide: I18nService, useValue: i18nMock },
         { provide: WalletService, useValue: walletMock },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     service = module.get<AdminStatsService>(AdminStatsService);
     controller = module.get<AdminStatsController>(AdminStatsController);

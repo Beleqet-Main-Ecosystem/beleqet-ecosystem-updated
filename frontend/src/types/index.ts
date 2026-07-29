@@ -56,3 +56,65 @@ export interface StatCardData {
   icon: ReactNode;
   color: string;
 }
+
+/** A single immutable audit trail entry (mirrors the backend's `events_log` / EventLog model). */
+export interface AuditLog {
+  id: string;
+  eventType: string;
+  entityId: string;
+  entityType: string;
+  payload: Record<string, unknown>;
+  processedBy: string | null;
+  createdAt: string;
+}
+
+/** Paginated response shape returned by GET /audit-logs. */
+export interface AuditLogPage {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/** Filters accepted by GET /audit-logs. */
+export interface AuditLogFilters {
+  eventType?: string;
+  entityType?: string;
+  entityId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}
+
+/** A single immutable audit trail entry (mirrors the backend's `events_log` / EventLog model). */
+export interface AuditLog {
+  id: string;
+  eventType: string;
+  entityId: string;
+  entityType: string;
+  payload: Record<string, unknown>;
+  processedBy: string | null;
+  createdAt: string;
+}
+
+/** Paginated response shape returned by GET /audit-logs. */
+export interface AuditLogPage {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/** Filters accepted by GET /audit-logs. */
+export interface AuditLogFilters {
+  eventType?: string;
+  entityType?: string;
+  entityId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}

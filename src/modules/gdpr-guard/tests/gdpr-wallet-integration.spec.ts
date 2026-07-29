@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PrismaModule } from '../../../prisma/prisma.module';
 import { GdprGuardService } from '../gdpr-guard.service';
 import { GdprGuardModule } from '../gdpr-guard.module';
+import { RedisModule } from '../../redis/redis.module';
 
 describe('GDPR Guard & Wallet Integration Test', () => {
   let app: INestApplication;
@@ -22,7 +23,12 @@ describe('GDPR Guard & Wallet Integration Test', () => {
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, GdprGuardModule],
+      imports: [
+        ConfigModule.forRoot({ isGlobal: true }),
+        PrismaModule,
+        RedisModule,
+        GdprGuardModule,
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
