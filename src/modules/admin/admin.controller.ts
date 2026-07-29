@@ -63,7 +63,6 @@ const safeUserSelect = {
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
-@RequirePermissions('manage:users')
 @Controller('admin')
 export class AdminController {
   constructor(
@@ -72,12 +71,14 @@ export class AdminController {
     private readonly notificationsService: NotificationsService,
   ) {}
 
+  @RequirePermissions('manage:users')
   @Get('users')
   @ApiOperation({ summary: 'List all users' })
   getUsers() {
     return this.prisma.user.findMany({ select: safeUserSelect, orderBy: { createdAt: 'desc' } });
   }
 
+  @RequirePermissions('manage:users')
   @Post('users')
   @ApiOperation({ summary: 'Create a user' })
   async createUser(@Body() dto: CreateUserDto) {
@@ -93,12 +94,14 @@ export class AdminController {
     });
   }
 
+  @RequirePermissions('manage:users')
   @Patch('users/:id')
   @ApiOperation({ summary: 'Update a user' })
   updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.prisma.user.update({ where: { id }, data: dto, select: safeUserSelect });
   }
 
+  @RequirePermissions('manage:users')
   @Delete('users/:id')
   @ApiOperation({ summary: 'Delete a user without dependent records' })
   async deleteUser(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
