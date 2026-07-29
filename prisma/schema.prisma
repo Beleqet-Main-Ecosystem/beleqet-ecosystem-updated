@@ -60,7 +60,6 @@ model User {
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
-  preferences           UserPreference?
   subscriptions         Subscription[]
 
   /// Whether the user has consented to their search history, skills, and
