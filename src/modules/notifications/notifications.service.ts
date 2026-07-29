@@ -334,7 +334,7 @@ export class NotificationsService {
     metadata?: Record<string, unknown>,
   ): Promise<number> {
     const users = await this.prisma.user.findMany({
-      where: { isActive: true, role: 'ADMIN' },
+      where: { isActive: true },
       select: {
         id: true,
         email: true,
