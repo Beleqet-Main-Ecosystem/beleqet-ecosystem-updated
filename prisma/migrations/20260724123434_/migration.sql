@@ -97,14 +97,26 @@ CREATE INDEX "salary_analytics_location_industry_idx" ON "salary_analytics"("loc
 -- CreateIndex
 CREATE INDEX "salary_analytics_periodEndDate_idx" ON "salary_analytics"("periodEndDate");
 
+-- DropIndex
+DROP INDEX IF EXISTS "interview_evaluations_scores_idx";
+
 -- CreateIndex
 CREATE INDEX "interview_evaluations_scores_idx" ON "interview_evaluations" USING GIN ("scores");
+
+-- DropIndex
+DROP INDEX IF EXISTS "interview_evaluations_rawAiResponse_idx";
 
 -- CreateIndex
 CREATE INDEX "interview_evaluations_rawAiResponse_idx" ON "interview_evaluations" USING GIN ("rawAiResponse");
 
+-- DropIndex
+DROP INDEX IF EXISTS "video_interviews_metadata_idx";
+
 -- CreateIndex
 CREATE INDEX "video_interviews_metadata_idx" ON "video_interviews" USING GIN ("metadata");
+
+-- DropIndex
+DROP INDEX IF EXISTS "video_responses_rawWhisperResponse_idx";
 
 -- CreateIndex
 CREATE INDEX "video_responses_rawWhisperResponse_idx" ON "video_responses" USING GIN ("rawWhisperResponse");
