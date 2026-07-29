@@ -117,7 +117,12 @@ describe('AuditLogService', () => {
 
   describe('searchLogs', () => {
     it('should filter logs by userId and action', async () => {
-      mockPrismaService.eventLog.findMany.mockResolvedValue([{ id: 'log-1', processedBy: 'usr-123' }]);
+      mockPrismaService.eventLog.findMany.mockResolvedValue([
+        {
+          id: 'log-1',
+          processedBy: 'usr-123',
+        },
+      ]);
       mockPrismaService.eventLog.count.mockResolvedValue(1);
 
       const response = await service.searchLogs({ userId: 'usr-123', action: 'CREATE' });
