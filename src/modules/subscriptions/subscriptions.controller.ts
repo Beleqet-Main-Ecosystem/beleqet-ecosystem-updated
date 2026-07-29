@@ -29,6 +29,7 @@ import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current
 import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionsCheckoutService } from './subscriptions-checkout.service';
 import { CheckoutDto } from './dto/checkout.dto';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Subscriptions')
 @ApiBearerAuth()
@@ -75,6 +76,7 @@ export class SubscriptionsController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:billing')
   @ApiOperation({ summary: 'List all subscriptions (Admin only)' })
   @ApiQuery({ name: 'status', required: false, enum: SubscriptionStatus })
   @ApiResponse({ status: 200, description: 'List of subscriptions' })
