@@ -20,8 +20,9 @@ import {
 import { TOKEN_CIPHER } from './interfaces/token-cipher.interface';
 import { EMAIL_SENDER } from './interfaces/email-sender.interface';
 import { MailService } from '../../mail/mail.service';
-import { AUDIT_LOGGER } from './interfaces/audit-logger.interface';
-import { PrismaAuditLogger } from './services/prisma-audit-logger.service';
+import { AUDIT_LOGGER } from '../../common/interfaces/audit-logger.interface';
+import { AuditModule } from '../audit/audit.module';
+import { AuditService } from '../audit/audit.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -42,6 +43,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
       inject: [ConfigService],
     }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    AuditModule,
     forwardRef(() => TwoFactorModule),
   ],
   controllers: [AuthController],
@@ -67,10 +69,9 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
       useExisting: AccountRepository,
     },
     AccountLinkingService,
-    PrismaAuditLogger,
     {
       provide: AUDIT_LOGGER,
-      useExisting: PrismaAuditLogger,
+      useExisting: AuditService,
     },
     {
       provide: EMAIL_SENDER,

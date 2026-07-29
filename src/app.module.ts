@@ -38,6 +38,7 @@ import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.
 import { PaymentsModule } from './modules/payments/payments.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
@@ -137,6 +138,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
     PaymentsModule,
     TwoFactorModule,
     KycModule,
+    AuditModule,
     AiFeedModule,
     ResumeBrainModule,
     SmartSkillTesterModule,

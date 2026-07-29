@@ -4,7 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Role, User } from '@prisma/client';
 import { I18nService } from 'nestjs-i18n';
-import { AUDIT_LOGGER } from '../auth/interfaces/audit-logger.interface';
+import { AUDIT_LOGGER } from '../../common/interfaces/audit-logger.interface';
 import { REDIS_CLIENT } from '../redis/redis.module';
 
 describe('RbacService', () => {
