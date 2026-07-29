@@ -363,8 +363,10 @@ Client Specified Deadline: ${job.deadlineDays} days`;
     };
 
     // 7. Store Full Prediction in Cache for 1 hour (3600s)
+    const predictionCacheTtl = isAiProcessed ? 3600 : COMPLEXITY_FALLBACK_TTL_SECONDS;
+
     try {
-      await this.redis.set(cacheKey, JSON.stringify(predictionResult), 'EX', 3600);
+      await this.redis.set(cacheKey, JSON.stringify(predictionResult), 'EX', predictionCacheTtl);
     } catch (err) {
       console.error('Failed to write to Redis cache:', (err as Error).message);
     }
