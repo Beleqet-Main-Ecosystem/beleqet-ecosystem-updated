@@ -426,7 +426,7 @@ model Contract {
   completedAt    DateTime?
   updatedAt      DateTime       @updatedAt
   client         User           @relation("ContractClient", fields: [clientId], references: [id])
-  freelanceJob   FreelanceJob   @relation(fields: [freelanceJobId], references: [id])
+ freelanceJob   FreelanceJob   @relation(fields: [freelanceJobId], references: [id])
   freelancer     User           @relation("ContractFreelancer", fields: [freelancerId], references: [id])
   dispute        Dispute?
   milestones     Milestone[]
