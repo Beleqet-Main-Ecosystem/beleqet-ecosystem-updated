@@ -22,34 +22,27 @@ const step_up_guard_1 = require("../two-factor/guards/step-up.guard");
 const sensitive_action_decorator_1 = require("../two-factor/decorators/sensitive-action.decorator");
 const escrow_service_1 = require("./escrow.service");
 const config_1 = require("@nestjs/config");
-const crypto = require("crypto");
 const throttler_1 = require("@nestjs/throttler");
+const chapa_signature_service_1 = require("./chapa-signature.service");
+const confirm_milestone_dto_1 = require("./dto/confirm-milestone.dto");
 let EscrowController = class EscrowController {
-    constructor(svc, config) {
+    constructor(svc, config, signatures) {
         this.svc = svc;
         this.config = config;
+        this.signatures = signatures;
     }
     initiate(gigId, u) {
         return this.svc.initiate(u.userId, gigId);
     }
-    async webhook(body, req, chapaSignature, xChapaSignature) {
+    async webhook(body, req, headers, chapaSignature, xChapaSignature) {
         const signature = chapaSignature || xChapaSignature;
         const secret = this.config.get('CHAPA_WEBHOOK_SECRET');
-        const isProduction = this.config.get('NODE_ENV') === 'production';
         if (req.method === 'POST') {
-            if (isProduction && (!secret || !req.rawBody || !signature)) {
+            if (!secret || !req.rawBody || !signature) {
                 throw new common_1.UnauthorizedException('Webhook signature verification failed: missing required components');
             }
-            if (secret && req.rawBody && signature) {
-                const hash = crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
-                if (hash !== signature) {
-                    if (isProduction) {
-                        throw new common_1.UnauthorizedException('Invalid Webhook Signature');
-                    }
-                    else {
-                        console.warn(`[escrow-webhook] Signature mismatch in dev mode. Expected: ${signature}, Got: ${hash}`);
-                    }
-                }
+            if (!this.signatures.verifyWebhook(req.rawBody, headers)) {
+                throw new common_1.UnauthorizedException('Invalid Webhook Signature');
             }
         }
         const payload = {
@@ -75,13 +68,16 @@ let EscrowController = class EscrowController {
     release(id, u) {
         return this.svc.releaseMilestone(id, u.userId);
     }
+    confirm(id, u, body) {
+        return this.svc.confirmMilestone(id, u.userId, body);
+    }
 };
 exports.EscrowController = EscrowController;
 __decorate([
     (0, common_1.Post)('initiate/:gigId'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
-    openapi.ApiResponse({ status: 201, type: Object }),
+    openapi.ApiResponse({ status: 201 }),
     __param(0, (0, common_1.Param)('gigId')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
@@ -96,10 +92,11 @@ __decorate([
     openapi.ApiResponse({ status: common_1.HttpStatus.OK, type: Object }),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Req)()),
-    __param(2, (0, common_1.Headers)('chapa-signature')),
-    __param(3, (0, common_1.Headers)('x-chapa-signature')),
+    __param(2, (0, common_1.Headers)()),
+    __param(3, (0, common_1.Headers)('chapa-signature')),
+    __param(4, (0, common_1.Headers)('x-chapa-signature')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object, String, String]),
+    __metadata("design:paramtypes", [Object, Object, Object, String, String]),
     __metadata("design:returntype", Promise)
 ], EscrowController.prototype, "webhook", null);
 __decorate([
@@ -107,17 +104,30 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, step_up_guard_1.StepUpGuard),
     (0, sensitive_action_decorator_1.SensitiveAction)('milestone_release'),
     (0, swagger_1.ApiBearerAuth)(),
-    openapi.ApiResponse({ status: 201 }),
+    openapi.ApiResponse({ status: 201, type: Object }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], EscrowController.prototype, "release", null);
+__decorate([
+    (0, common_1.Post)('milestones/:id/confirm'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, swagger_1.ApiBearerAuth)(),
+    openapi.ApiResponse({ status: 201, type: Object }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, confirm_milestone_dto_1.ConfirmMilestoneDto]),
+    __metadata("design:returntype", void 0)
+], EscrowController.prototype, "confirm", null);
 exports.EscrowController = EscrowController = __decorate([
     (0, swagger_1.ApiTags)('escrow'),
     (0, common_1.Controller)('escrow'),
     __metadata("design:paramtypes", [escrow_service_1.EscrowService,
-        config_1.ConfigService])
+        config_1.ConfigService,
+        chapa_signature_service_1.ChapaSignatureService])
 ], EscrowController);
 //# sourceMappingURL=escrow.controller.js.map

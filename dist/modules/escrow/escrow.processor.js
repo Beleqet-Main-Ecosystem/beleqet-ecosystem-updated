@@ -21,12 +21,14 @@ const bullmq_3 = require("@nestjs/bullmq");
 const config_1 = require("@nestjs/config");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const queues_constants_1 = require("../queues/queues.constants");
+const chapa_client_1 = require("../chapa/chapa.client");
 const EscrowJobs = queues_constants_1.ESCROW_JOBS;
 let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor extends bullmq_1.WorkerHost {
-    constructor(prisma, config, notificationsQueue, escrowQueue) {
+    constructor(prisma, config, chapaClient, notificationsQueue, escrowQueue) {
         super();
         this.prisma = prisma;
         this.config = config;
+        this.chapaClient = chapaClient;
         this.notificationsQueue = notificationsQueue;
         this.escrowQueue = escrowQueue;
         this.logger = new common_1.Logger(EscrowProcessor_1.name);
@@ -39,9 +41,6 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor extends bullmq_1
             case EscrowJobs.AUTO_RELEASE:
                 await this.handleAutoRelease(job);
                 break;
-            case EscrowJobs.PROCESS_WITHDRAWAL || 'process-withdrawal':
-                await this.handleWithdrawal(job);
-                break;
             case EscrowJobs.UNLOCK_FUNDS:
                 await this.handleUnlockFunds(job);
                 break;
@@ -50,87 +49,122 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor extends bullmq_1
         }
     }
     async handleWebhook(job) {
-        const { reference, status, tx_ref } = job.data;
-        this.logger.log(`[escrow-webhook] ref=${reference} status=${status}`);
+        const txRef = String(job.data.tx_ref ?? job.data.trx_ref ?? job.data.reference ?? '');
+        const reference = String(job.data.reference ?? txRef);
+        const status = String(job.data.status ?? '');
+        const eventName = String(job.data.event ?? job.data.type ?? 'payment');
+        const eventKey = `${eventName}:${txRef}:${reference}:${status || 'no-status'}`;
+        this.logger.log(`[escrow-webhook] txRef=${txRef} reference=${reference} status=${status}`);
+        const alreadyProcessed = await this.prisma.eventLog.findFirst({
+            where: { eventType: 'chapa.webhook.processed', entityId: eventKey },
+        });
+        if (alreadyProcessed) {
+            this.logger.debug(`[escrow-webhook] Duplicate event skipped: ${eventKey}`);
+            return;
+        }
         const escrow = await this.prisma.escrowTransaction.findFirst({
-            where: {
-                OR: [{ gatewayRef: reference }, { gatewayRef: tx_ref }],
-            },
-            include: {
-                freelanceJob: { include: { client: true } },
-            },
+            where: { OR: [{ gatewayRef: txRef }, { gatewayRef: reference }] },
+            include: { freelanceJob: { include: { client: true } } },
         });
         if (!escrow) {
-            this.logger.warn(`[escrow-webhook] No escrow found for ref=${reference}`);
+            this.logger.warn(`[escrow-webhook] No escrow found for txRef=${txRef || reference}`);
             return;
         }
         if (escrow.status === 'FUNDED') {
+            await this.markWebhookProcessed(eventKey, escrow.id, job.data);
             this.logger.debug(`[escrow-webhook] Already funded, skipping`);
             return;
         }
-        if (status === 'success' || status === 'SUCCESS') {
-            const transactions = [
-                this.prisma.escrowTransaction.update({
-                    where: { id: escrow.id },
+        const isSuccessful = eventName === 'charge.success' || status.toLowerCase() === 'success';
+        if (isSuccessful) {
+            const providerTxRef = escrow.gatewayRef ?? txRef;
+            const verified = await this.chapaClient.verifyTransaction(providerTxRef);
+            const verifiedData = verified.data;
+            const expectedChapaAmount = escrow.grossAmount - escrow.walletAppliedAmount;
+            if (verifiedData?.status !== 'success' ||
+                verifiedData.tx_ref !== providerTxRef ||
+                verifiedData.currency !== escrow.currency ||
+                !this.amountMatches(verifiedData.amount, expectedChapaAmount)) {
+                throw new Error(`Chapa verification mismatch for escrow ${escrow.id}`);
+            }
+            const funded = await this.prisma.$transaction(async (tx) => {
+                const claim = await tx.escrowTransaction.updateMany({
+                    where: { id: escrow.id, status: { notIn: ['FUNDED', 'REFUNDED'] } },
                     data: {
                         status: 'FUNDED',
                         fundedAt: new Date(),
-                        gatewayResponse: job.data,
+                        gatewayResponse: verified,
                     },
-                }),
-                this.prisma.freelanceJob.update({
+                });
+                if (claim.count === 0) {
+                    return false;
+                }
+                await tx.freelanceJob.update({
                     where: { id: escrow.freelanceJobId },
                     data: { status: 'FUNDED' },
-                }),
-            ];
-            if (escrow.walletAppliedAmount > 0) {
-                const wallet = await this.prisma.employerWallet.findUnique({
-                    where: { userId: escrow.freelanceJob.clientId },
                 });
-                if (wallet) {
-                    transactions.push(this.prisma.employerWallet.update({
-                        where: { id: wallet.id },
-                        data: { lockedBalance: { decrement: escrow.walletAppliedAmount } },
-                    }));
-                    transactions.push(this.prisma.employerWalletTransaction.create({
-                        data: {
-                            walletId: wallet.id,
-                            type: 'DEBIT_WITHDRAWAL',
-                            amount: escrow.walletAppliedAmount,
-                            note: `Partially funded escrow for job ${escrow.freelanceJobId}`,
-                            escrowId: escrow.id,
-                        },
-                    }));
+                if (escrow.walletAppliedAmount > 0) {
+                    const wallet = await tx.employerWallet.findUnique({
+                        where: { userId: escrow.freelanceJob.clientId },
+                    });
+                    if (wallet) {
+                        await tx.employerWallet.update({
+                            where: { id: wallet.id },
+                            data: { lockedBalance: { decrement: escrow.walletAppliedAmount } },
+                        });
+                        await tx.employerWalletTransaction.create({
+                            data: {
+                                walletId: wallet.id,
+                                type: 'DEBIT_WITHDRAWAL',
+                                amount: escrow.walletAppliedAmount,
+                                note: `Partially funded escrow for job ${escrow.freelanceJobId}`,
+                                escrowId: escrow.id,
+                            },
+                        });
+                    }
                 }
+                await tx.eventLog.create({
+                    data: {
+                        eventType: 'escrow.funded',
+                        entityId: escrow.id,
+                        entityType: 'EscrowTransaction',
+                        payload: { amount: escrow.grossAmount, txRef: providerTxRef },
+                        processedBy: EscrowProcessor_1.name,
+                    },
+                });
+                await tx.eventLog.create({
+                    data: {
+                        eventType: 'chapa.webhook.processed',
+                        entityId: eventKey,
+                        entityType: 'EscrowTransaction',
+                        payload: { escrowId: escrow.id, ...job.data },
+                        processedBy: EscrowProcessor_1.name,
+                    },
+                });
+                return true;
+            });
+            if (!funded) {
+                this.logger.debug(`[escrow-webhook] Webhook lost race, already processed: ${eventKey}`);
+                return;
             }
-            transactions.push(this.prisma.eventLog.create({
-                data: {
-                    eventType: 'escrow.funded',
-                    entityId: escrow.id,
-                    entityType: 'EscrowTransaction',
-                    payload: { amount: escrow.grossAmount },
-                    processedBy: EscrowProcessor_1.name,
-                },
-            }));
-            await this.prisma.$transaction(transactions);
             await this.notificationsQueue.add(queues_constants_1.NOTIFICATION_JOBS.SEND_IN_APP, {
                 userId: escrow.freelanceJob.clientId,
                 type: 'escrow.funded',
-                title: '✅ Escrow funded — your gig is now live!',
-                body: `ETB ${escrow.grossAmount.toLocaleString()} has been secured. Freelancers can now bid on your project.`,
+                title: 'Escrow funded - your gig is now live',
+                body: `${escrow.currency} ${escrow.grossAmount.toLocaleString()} has been secured.`,
                 metadata: { escrowId: escrow.id, freelanceJobId: escrow.freelanceJobId },
             });
-            this.logger.log(`[escrow-webhook] Escrow ${escrow.id} funded — gig published`);
+            this.logger.log(`[escrow-webhook] Escrow ${escrow.id} funded after Chapa verification`);
+            return;
         }
-        else {
-            await this.prisma.escrowTransaction.update({
-                where: { id: escrow.id },
-                data: { gatewayResponse: job.data },
-            });
-            this.logger.warn(`[escrow-webhook] Payment failed for escrow ${escrow.id}`);
-            if (escrow.walletAppliedAmount > 0) {
-                await this.releaseLockedFunds(escrow.id, escrow.freelanceJob.clientId, escrow.walletAppliedAmount);
-            }
+        await this.prisma.escrowTransaction.update({
+            where: { id: escrow.id },
+            data: { gatewayResponse: job.data },
+        });
+        await this.markWebhookProcessed(eventKey, escrow.id, job.data);
+        this.logger.warn(`[escrow-webhook] Payment failed for escrow ${escrow.id}`);
+        if (escrow.walletAppliedAmount > 0) {
+            await this.releaseLockedFunds(escrow.id, escrow.freelanceJob.clientId, escrow.walletAppliedAmount);
         }
     }
     async handleAutoRelease(job) {
@@ -139,43 +173,60 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor extends bullmq_1
         const releaseAt = new Date(job.data.releaseAt);
         if (releaseAt > new Date()) {
             const delayMs = releaseAt.getTime() - Date.now();
-            await this.escrowQueue.add(EscrowJobs.AUTO_RELEASE, job.data, { delay: delayMs });
+            await this.escrowQueue.add(EscrowJobs.AUTO_RELEASE, job.data, {
+                delay: delayMs,
+                jobId: `auto-release:${milestoneId}`,
+            });
             return;
         }
-        const wallet = await this.prisma.freelancerWallet.upsert({
-            where: { userId: freelancerId },
-            update: {
-                pendingBalance: { decrement: amount },
-                availableBalance: { increment: amount },
-            },
-            create: {
-                userId: freelancerId,
-                pendingBalance: 0,
-                availableBalance: amount,
-            },
+        const credited = await this.prisma.$transaction(async (tx) => {
+            await tx.$queryRaw `SELECT id FROM "milestones" WHERE id = ${milestoneId} FOR UPDATE`;
+            const alreadyCredited = await tx.eventLog.findFirst({
+                where: { eventType: 'wallet.credited', entityId: milestoneId },
+            });
+            if (alreadyCredited) {
+                return false;
+            }
+            const wallet = await tx.freelancerWallet.upsert({
+                where: { userId: freelancerId },
+                update: {
+                    pendingBalance: { decrement: amount },
+                    availableBalance: { increment: amount },
+                },
+                create: {
+                    userId: freelancerId,
+                    pendingBalance: 0,
+                    availableBalance: amount,
+                },
+            });
+            await tx.walletTransaction.create({
+                data: {
+                    walletId: wallet.id,
+                    type: 'CREDIT_AVAILABLE',
+                    amount,
+                    note: 'Milestone payout cleared - 3-day hold complete',
+                    milestoneId,
+                },
+            });
+            await tx.eventLog.create({
+                data: {
+                    eventType: 'wallet.credited',
+                    entityId: milestoneId,
+                    entityType: 'Milestone',
+                    payload: { milestoneId, freelancerId, amount },
+                    processedBy: EscrowProcessor_1.name,
+                },
+            });
+            return true;
         });
-        await this.prisma.walletTransaction.create({
-            data: {
-                walletId: wallet.id,
-                type: 'CREDIT_AVAILABLE',
-                amount,
-                note: `Milestone payout cleared — 3-day hold complete`,
-                milestoneId,
-            },
-        });
-        await this.prisma.eventLog.create({
-            data: {
-                eventType: 'wallet.credited',
-                entityId: milestoneId,
-                entityType: 'Milestone',
-                payload: { milestoneId, freelancerId, amount },
-                processedBy: EscrowProcessor_1.name,
-            },
-        });
+        if (!credited) {
+            this.logger.debug(`[auto-release] Milestone ${milestoneId} already credited; skipping`);
+            return;
+        }
         await this.notificationsQueue.add(queues_constants_1.NOTIFICATION_JOBS.SEND_IN_APP, {
             userId: freelancerId,
             type: 'wallet.credited',
-            title: `💰 ETB ${amount.toLocaleString()} is now available`,
+            title: `ETB ${amount.toLocaleString()} is now available`,
             body: 'Your hold period has cleared. You can now withdraw these funds.',
             metadata: { milestoneId, amount },
         });
@@ -183,47 +234,10 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor extends bullmq_1
         if (user?.telegramId) {
             await this.notificationsQueue.add(queues_constants_1.NOTIFICATION_JOBS.SEND_TELEGRAM, {
                 telegramId: user.telegramId,
-                message: `💰 *ETB ${amount.toLocaleString()} is now available in your Beleqet wallet!*\n\nYour 3-day hold has cleared. Withdraw at: ${this.config.get('FRONTEND_URL')}/freelance/wallet`,
+                message: `ETB ${amount.toLocaleString()} is now available in your Beleqet wallet. Withdraw at: ${this.config.get('FRONTEND_URL')}/freelance/wallet`,
             });
         }
         this.logger.log(`[auto-release] ETB ${amount} moved to available for freelancer ${freelancerId}`);
-    }
-    async handleWithdrawal(job) {
-        const { userId, amount, method } = job.data;
-        this.logger.log(`[withdrawal] Processing ETB ${amount} via ${method} for user ${userId}`);
-        const chapaSecret = this.config.get('CHAPA_SECRET_KEY');
-        if (chapaSecret) {
-            const response = await fetch('https://api.chapa.co/v1/transfers', {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${chapaSecret}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    account_name: 'Freelancer',
-                    account_number: job.data.accountRef,
-                    amount: amount.toString(),
-                    currency: 'ETB',
-                    reference: `withdrawal-${job.id}`,
-                    bank_code: method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
-                }),
-            });
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Chapa withdrawal failed with HTTP status ${response.status}: ${errorText}`);
-            }
-            const responseData = (await response.json());
-            if (responseData.status !== 'success') {
-                throw new Error(`Chapa withdrawal rejected: ${JSON.stringify(responseData)}`);
-            }
-        }
-        await this.notificationsQueue.add(queues_constants_1.NOTIFICATION_JOBS.SEND_IN_APP, {
-            userId,
-            type: 'wallet.withdrawal_processing',
-            title: `Withdrawal of ETB ${amount.toLocaleString()} is processing`,
-            body: `Your ${method} withdrawal is being processed. Funds typically arrive within 1–2 business days.`,
-            metadata: { amount, method },
-        });
     }
     async handleUnlockFunds(job) {
         const { escrowId, clientId, amount } = job.data;
@@ -231,26 +245,25 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor extends bullmq_1
         await this.releaseLockedFunds(escrowId, clientId, amount);
     }
     async releaseLockedFunds(escrowId, clientId, amount) {
-        const escrow = await this.prisma.escrowTransaction.findUnique({ where: { id: escrowId } });
-        if (!escrow || escrow.status === 'FUNDED' || escrow.status === 'REFUNDED') {
-            return;
-        }
-        const wallet = await this.prisma.employerWallet.findUnique({ where: { userId: clientId } });
-        if (!wallet)
-            return;
-        await this.prisma.$transaction([
-            this.prisma.escrowTransaction.update({
-                where: { id: escrowId },
+        const released = await this.prisma.$transaction(async (tx) => {
+            const wallet = await tx.employerWallet.findUnique({ where: { userId: clientId } });
+            if (!wallet)
+                return false;
+            const refundClaim = await tx.escrowTransaction.updateMany({
+                where: { id: escrowId, status: { notIn: ['FUNDED', 'REFUNDED'] } },
                 data: { status: 'REFUNDED' },
-            }),
-            this.prisma.employerWallet.update({
+            });
+            if (refundClaim.count === 0) {
+                return false;
+            }
+            await tx.employerWallet.update({
                 where: { id: wallet.id },
                 data: {
                     lockedBalance: { decrement: amount },
                     balance: { increment: amount },
                 },
-            }),
-            this.prisma.employerWalletTransaction.create({
+            });
+            await tx.employerWalletTransaction.create({
                 data: {
                     walletId: wallet.id,
                     type: 'CREDIT_AVAILABLE',
@@ -258,9 +271,30 @@ let EscrowProcessor = EscrowProcessor_1 = class EscrowProcessor extends bullmq_1
                     note: `Refund for failed/abandoned escrow ${escrowId}`,
                     escrowId,
                 },
-            }),
-        ]);
+            });
+            return true;
+        });
+        if (!released)
+            return;
         this.logger.log(`[unlock-funds] Released ETB ${amount} back to employer ${clientId} for abandoned escrow ${escrowId}`);
+    }
+    processedEventLog(eventKey, escrowId, payload) {
+        return this.prisma.eventLog.create({
+            data: {
+                eventType: 'chapa.webhook.processed',
+                entityId: eventKey,
+                entityType: 'EscrowTransaction',
+                payload: { escrowId, ...payload },
+                processedBy: EscrowProcessor_1.name,
+            },
+        });
+    }
+    async markWebhookProcessed(eventKey, escrowId, payload) {
+        await this.processedEventLog(eventKey, escrowId, payload);
+    }
+    amountMatches(providerAmount, expectedAmount) {
+        const normalized = Number(providerAmount);
+        return Number.isFinite(normalized) && Math.abs(normalized - expectedAmount) < 0.01;
     }
     handleJobFailure(job, error) {
         this.logger.error(`Job ${job?.id || 'unknown'} failed with error: ${error.message}`, error.stack);
@@ -276,10 +310,11 @@ __decorate([
 exports.EscrowProcessor = EscrowProcessor = EscrowProcessor_1 = __decorate([
     (0, common_1.Injectable)(),
     (0, bullmq_1.Processor)(queues_constants_1.QUEUE_NAMES.ESCROW),
-    __param(2, (0, bullmq_3.InjectQueue)(queues_constants_1.QUEUE_NAMES.NOTIFICATIONS)),
-    __param(3, (0, bullmq_3.InjectQueue)(queues_constants_1.QUEUE_NAMES.ESCROW)),
+    __param(3, (0, bullmq_3.InjectQueue)(queues_constants_1.QUEUE_NAMES.NOTIFICATIONS)),
+    __param(4, (0, bullmq_3.InjectQueue)(queues_constants_1.QUEUE_NAMES.ESCROW)),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         config_1.ConfigService,
+        chapa_client_1.ChapaClient,
         bullmq_2.Queue,
         bullmq_2.Queue])
 ], EscrowProcessor);

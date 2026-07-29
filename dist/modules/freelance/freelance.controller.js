@@ -167,7 +167,7 @@ __decorate([
     (0, common_1.Patch)('milestones/:id/approve'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
-    openapi.ApiResponse({ status: 200 }),
+    openapi.ApiResponse({ status: 200, type: Object }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),

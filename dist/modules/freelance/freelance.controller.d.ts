@@ -308,6 +308,8 @@ export declare class FreelanceController {
             deadline: Date;
             amount: number;
             approvedAt: Date | null;
+            employerApprovedAt: Date | null;
+            freelancerApprovedAt: Date | null;
             contractId: string;
         })[];
     } & {
@@ -332,9 +334,21 @@ export declare class FreelanceController {
         deadline: Date;
         amount: number;
         approvedAt: Date | null;
+        employerApprovedAt: Date | null;
+        freelancerApprovedAt: Date | null;
         contractId: string;
     }>;
     approveMilestone(id: string, u: CurrentUserPayload): Promise<{
         success: boolean;
+        released: boolean;
+        alreadyReleased: boolean;
+    } | {
+        success: boolean;
+        released: boolean;
+        alreadyReleased?: undefined;
+    } | {
+        success: boolean;
+        released: boolean;
+        waitingFor: string;
     }>;
 }

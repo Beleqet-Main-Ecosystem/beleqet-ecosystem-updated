@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SCORING = exports.VIDEO_INTERVIEW_JOBS = exports.TWO_FACTOR_JOBS = exports.ESCROW_JOBS = exports.ANALYTICS_JOBS = exports.NOTIFICATION_JOBS = exports.APPLICATION_JOBS = exports.JOB_ALERT_JOBS = exports.REFERRAL_JOBS = exports.QUEUE_NAMES = void 0;
+exports.SCORING = exports.VIDEO_INTERVIEW_JOBS = exports.TWO_FACTOR_JOBS = exports.WALLET_JOBS = exports.ESCROW_JOBS = exports.ANALYTICS_JOBS = exports.NOTIFICATION_JOBS = exports.APPLICATION_JOBS = exports.JOB_ALERT_JOBS = exports.REFERRAL_JOBS = exports.QUEUE_NAMES = void 0;
 exports.QUEUE_NAMES = {
     APPLICATION: 'application-processing',
     NOTIFICATIONS: 'notifications',
@@ -42,6 +42,10 @@ exports.ESCROW_JOBS = {
     PROCESS_WEBHOOK: 'process-payment-webhook',
     AUTO_RELEASE: 'auto-release-milestone',
     UNLOCK_FUNDS: 'unlock-escrow-funds',
+};
+exports.WALLET_JOBS = {
+    RELEASE_PENDING: 'release-pending',
+    PROCESS_WITHDRAWAL: 'process-withdrawal',
 };
 exports.TWO_FACTOR_JOBS = {
     CLEANUP_EXPIRED_ENROLLMENT: 'cleanup-expired-enrollment',
