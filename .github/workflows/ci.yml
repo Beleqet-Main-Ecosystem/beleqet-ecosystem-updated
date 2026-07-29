@@ -335,6 +335,17 @@ jobs:
         id: meta
         run: echo "namespace=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
+      - name: Ensure frontend lockfiles contain swc deps
+        run: |
+          set -e
+          cd frontend
+          npm ci
+          npm i --package-lock-only
+          cd ../beleqet-jobs-nextjs
+          npm ci
+          npm i --package-lock-only
+          cd ..
+
       - name: Build backend image
         run: >-
           docker build -t "${{ steps.meta.outputs.namespace }}/beleqet-backend:${{ github.sha }}" .
@@ -407,39 +418,14 @@ jobs:
         run: |
           source .env.staging
           source .env.images
-          echo "--- Starting backend standalone for 15s to capture boot errors ---"
-          docker run --rm -d \
-            --name backend-boot-test \
-            --network host \
-            -e NODE_ENV=production \
-            -e PORT=4000 \
-            -e DATABASE_URL="postgresql://${STAGING_DB_USER}:${STAGING_DB_PASSWORD}@127.0.0.1:5432/${STAGING_DB_NAME}" \
-            -e REDIS_HOST=127.0.0.1 -e REDIS_PORT=6379 -e REDIS_PASSWORD="" -e REDIS_TLS=false \
-            -e JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET}" \
-            -e SESSION_SECRET="${SESSION_SECRET}" \
-            -e TOTP_ENCRYPTION_KEY="${TOTP_ENCRYPTION_KEY}" \
-            -e TOTP_TEMP_SECRET="${TOTP_TEMP_SECRET}" \
-            -e OAUTH_TOKEN_ENCRYPTION_KEY="${OAUTH_TOKEN_ENCRYPTION_KEY}" \
-            -e GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
-            -e GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET}" \
-            -e GOOGLE_CALLBACK_URL="${GOOGLE_CALLBACK_URL}" \
-            -e LINKEDIN_CLIENT_ID="${LINKEDIN_CLIENT_ID}" \
-            -e LINKEDIN_CLIENT_SECRET="${LINKEDIN_CLIENT_SECRET}" \
-            -e LINKEDIN_CALLBACK_URL="${LINKEDIN_CALLBACK_URL}" \
-            -e SMTP_HOST="${SMTP_HOST}" -e SMTP_PORT="${SMTP_PORT}" \
-            -e SMTP_USER="${SMTP_USER}" -e SMTP_PASSWORD="${SMTP_PASSWORD}" \
-            -e SMTP_FROM_ADDRESS="${SMTP_FROM_ADDRESS}" \
-            -e STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}" \
-            -e STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}" \
-            -e PAYPAL_CLIENT_ID="${PAYPAL_CLIENT_ID}" \
-            -e PAYPAL_CLIENT_SECRET="${PAYPAL_CLIENT_SECRET}" \
-            -e FRONTEND_URL="${STAGING_FRONTEND_URLS}" \
-            -e APP_BASE_URL="${STAGING_APP_BASE_URL}" \
-            "${BACKEND_IMAGE}"
-          sleep 15
-          echo "--- Backend boot logs ---"
-          docker logs backend-boot-test 2>&1 || true
-          docker stop backend-boot-test 2>/dev/null || true
+          echo "--- Start backend via compose (same network as db/redis) ---"
+          docker compose --env-file .env.staging --env-file .env.images \
+            -f docker-compose.staging.yml up -d backend
+          echo "Waiting up to 30s for backend to start and register logs..."
+          sleep 30
+          echo "--- Backend boot logs (last 200 lines) ---"
+          docker compose --env-file .env.staging --env-file .env.images \
+            -f docker-compose.staging.yml logs --tail 200 backend || true
 
       - name: Start full stack and verify every container becomes healthy
         run: |
