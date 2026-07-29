@@ -25,15 +25,16 @@ async function registerUser(email: string, password: string, role: string): Prom
 }
 
 async function createNotification(accessToken: string, title: string, body: string): Promise<void> {
+  console.log('=== E2E createNotification: POST /admin/notifications/broadcast');
   const res = await fetch(`${API}/admin/notifications/broadcast`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ title, body }),
   });
+  const text = await res.text();
+  console.log(`=== E2E createNotification response: ${res.status} ${text}`);
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    // Non-admin users can't broadcast; seed via the DB or ignore
-    console.warn('Broadcast failed (expected for non-admin):', data.message);
+    console.warn('Broadcast failed:', text);
   }
 }
 

@@ -122,12 +122,14 @@ export class AdminController {
   }
 
   @Post('notifications/broadcast')
-  async broadcast(@Body() dto: BroadcastDto) {
+  async broadcast(@Body() dto: BroadcastDto, @CurrentUser() user: CurrentUserPayload) {
+    console.log('=== DEBUG broadcast controller invoked, user:', JSON.stringify(user));
     const delivered = await this.notificationsService.sendSystemAlert(
       'ADMIN_ANNOUNCEMENT',
       dto.body,
       { title: dto.title, userIds: dto.userIds, role: dto.role },
     );
+    console.log('=== DEBUG broadcast result:', { delivered });
     return { delivered };
   }
 

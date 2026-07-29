@@ -156,6 +156,7 @@ export async function enqueueChapaCallback(
 /** Fetch current user's notifications (latest 50, descending) */
 export async function fetchNotifications(): Promise<Notification[]> {
   const { data } = await apiClient.get<Notification[]>('/users/notifications');
+  console.log('=== FRONTEND fetchNotifications response:', JSON.stringify(data));
   return data;
 }
 
