@@ -35,7 +35,11 @@ class NodemailerTransporter implements IMailableTransporter {
 
   async sendMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
     if (!this.transporter) {
-      this.logger.log(`[DRY-RUN] Would send email to ${to}: ${subject}`);
+      const maskedTo =
+        to && typeof to === 'string' && to.includes('@')
+          ? `${to[0]}***${to.slice(to.indexOf('@') - 1)}`
+          : '***';
+      this.logger.log(`[DRY-RUN] Would send email to ${maskedTo}: ${subject}`);
       return true;
     }
     const from =

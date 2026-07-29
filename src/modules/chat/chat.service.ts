@@ -11,16 +11,6 @@ export class ChatService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Verify whether a user is a participant of a given chat room.
-   * Returns the participant record if found, null otherwise.
-   */
-  async verifyMembership(roomId: string, userId: string) {
-    return this.prisma.chatParticipant.findUnique({
-      where: { roomId_userId: { roomId, userId } },
-    });
-  }
-
   /** Create or fetch a chat room between two users (e.g. for a freelance contract) */
   async createOrGetRoom(userId1: string, userId2: string, contractId?: string) {
     if (contractId) {
