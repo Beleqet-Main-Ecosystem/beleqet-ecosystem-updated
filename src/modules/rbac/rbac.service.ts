@@ -4,7 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { CreatePermissionDto } from './dto/create-permission.dto';
-import { AUDIT_LOGGER, IAuditLogger } from '../auth/interfaces/audit-logger.interface';
+import { AUDIT_LOGGER, IAuditLogger } from '../../common/interfaces/audit-logger.interface';
 import { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../redis/redis.module';
 

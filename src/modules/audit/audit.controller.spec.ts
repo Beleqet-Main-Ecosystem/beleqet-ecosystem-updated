@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditController } from './audit.controller';
 import { AuditService } from './audit.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 const mockAuditService = {
   findAll: jest.fn(),
@@ -13,7 +15,12 @@ describe('AuditController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuditController],
       providers: [{ provide: AuditService, useValue: mockAuditService }],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AuditController>(AuditController);
     jest.clearAllMocks();
