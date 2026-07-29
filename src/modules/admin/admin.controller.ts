@@ -123,7 +123,7 @@ export class AdminController {
     const delivered = await this.notificationsService.sendSystemAlert(
       'ADMIN_ANNOUNCEMENT',
       dto.body,
-      { userIds: dto.userIds, role: dto.role },
+      { title: dto.title, userIds: dto.userIds, role: dto.role },
     );
     return { delivered };
   }

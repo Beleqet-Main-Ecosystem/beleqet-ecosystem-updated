@@ -334,7 +334,7 @@ export class NotificationsService {
     metadata?: Record<string, unknown>,
   ): Promise<number> {
     const users = await this.prisma.user.findMany({
-      where: { isActive: true },
+      where: { isActive: true, role: 'ADMIN' },
       select: {
         id: true,
         email: true,
@@ -346,7 +346,7 @@ export class NotificationsService {
 
     if (users.length === 0) return 0;
 
-    const title = message.length > 60 ? message.substring(0, 57) + '...' : message;
+    const title = (metadata?.title as string) ?? (message.length > 60 ? message.substring(0, 57) + '...' : message);
     const jobsToQueue: Promise<unknown>[] = [];
 
     for (const user of users) {
