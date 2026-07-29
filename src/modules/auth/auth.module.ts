@@ -90,6 +90,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
     TokenEncryptionService,
     JwtModule,
     forwardRef(() => TwoFactorModule),
+    AUDIT_LOGGER,
   ],
 })
 export class AuthModule {}

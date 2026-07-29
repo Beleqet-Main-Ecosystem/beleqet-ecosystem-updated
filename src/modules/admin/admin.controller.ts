@@ -20,6 +20,7 @@ import { Queue } from 'bullmq';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { adminAnnouncementEmail } from '../notifications/email-templates';
 import { ChatService } from '../chat/chat.service';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -65,6 +66,7 @@ const safeUserSelect = {
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
+@RequirePermissions('manage:users')
 @Controller('admin')
 export class AdminController {
   constructor(

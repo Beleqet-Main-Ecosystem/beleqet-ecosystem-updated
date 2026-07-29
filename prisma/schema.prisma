@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
@@ -74,8 +75,32 @@ model User {
   searchHistories         SearchHistory[]
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
+  rbacRoles             Role[]              @relation("UserRoles")
 
   @@map("users")
+}
+model Permission {
+  id          String   @id @default(uuid())
+  action      String   @unique
+  description String?
+  roles       Role[]   @relation("RolePermissions")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("permissions")
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  isSystem    Boolean      @default(false)
+  permissions Permission[] @relation("RolePermissions")
+  users       User[]       @relation("UserRoles")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("roles")
 }
 
 /// Theme and other small, non-identifying UI choices owned by a user.
@@ -98,6 +123,7 @@ enum ThemePreference {
   DARK
   SYSTEM
 }
+
 model OAuthAccount {
   id                    String        @id @default(uuid())
   userId                String

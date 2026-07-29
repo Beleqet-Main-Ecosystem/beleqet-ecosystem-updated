@@ -18,6 +18,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { KycDocumentType } from '@prisma/client';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 /**
  * Interface representing uploaded KYC files.
@@ -158,6 +159,7 @@ export class KycController {
   @Get('admin/pending')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:kyc')
   @ApiOperation({ summary: 'List all pending KYC submissions (Admin only)' })
   async getPending() {
     return this.kycService.getPendingVerifications();
@@ -173,6 +175,7 @@ export class KycController {
   @Post('admin/approve/:id')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:kyc')
   @ApiOperation({ summary: 'Approve a pending KYC submission (Admin only)' })
   async approve(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
     return this.kycService.approveVerification(id, admin.userId);
@@ -189,6 +192,7 @@ export class KycController {
   @Post('admin/reject/:id')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:kyc')
   @ApiOperation({ summary: 'Reject a pending KYC submission (Admin only)' })
   async reject(
     @Param('id') id: string,
