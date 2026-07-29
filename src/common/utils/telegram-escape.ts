@@ -19,5 +19,5 @@
  */
 export function escapeTelegramMarkdown(text: string): string {
   if (!text) return text;
-  return text.replace(/([_*`\[])/g, '\\$1');
+  return text.replace(/([[\]_*`])/g, '\\$1');
 }
