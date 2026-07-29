@@ -7,6 +7,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { I18nService } from 'nestjs-i18n';
 
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { NOTIFICATION_TYPES } from '@common/constants/notification-types';
@@ -346,7 +347,9 @@ export class NotificationsService {
 
     if (users.length === 0) return 0;
 
-    const title = (metadata?.title as string) ?? (message.length > 60 ? message.substring(0, 57) + '...' : message);
+    const title =
+      (metadata?.title as string) ??
+      (message.length > 60 ? message.substring(0, 57) + '...' : message);
     const jobsToQueue: Promise<unknown>[] = [];
 
     for (const user of users) {
@@ -361,12 +364,15 @@ export class NotificationsService {
 
       if (pref.inAppEnabled) {
         jobsToQueue.push(
-          this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
-            userId: user.id,
-            type: alertType,
-            title,
-            body: message,
-            metadata,
+          this.prisma.notification.create({
+            data: {
+              userId: user.id,
+              type: alertType,
+              title,
+              body: message,
+              channel: 'IN_APP',
+              metadata: metadata ? (metadata as unknown as Prisma.InputJsonValue) : undefined,
+            },
           }),
         );
       }

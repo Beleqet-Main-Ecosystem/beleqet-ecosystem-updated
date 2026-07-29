@@ -20,6 +20,9 @@ describe('NotificationsService', () => {
       findUnique: jest.fn(),
       findMany: jest.fn(),
     },
+    notification: {
+      create: jest.fn(),
+    },
   };
 
   const i18nMock = {
@@ -349,11 +352,9 @@ describe('NotificationsService', () => {
       );
 
       expect(count).toBe(2);
+      expect(prismaMock.notification.create).toHaveBeenCalledTimes(2);
       expect(queueMock.add).toHaveBeenCalled();
 
-      const inAppJobs = queueMock.add.mock.calls.filter(
-        (c) => c[0] === NOTIFICATION_JOBS.SEND_IN_APP,
-      );
       const emailJobs = queueMock.add.mock.calls.filter(
         (c) => c[0] === NOTIFICATION_JOBS.SEND_EMAIL,
       );
@@ -361,7 +362,6 @@ describe('NotificationsService', () => {
         (c) => c[0] === NOTIFICATION_JOBS.SEND_TELEGRAM,
       );
 
-      expect(inAppJobs.length).toBe(2);
       expect(emailJobs.length).toBe(2);
       expect(telegramJobs.length).toBe(2);
     });
@@ -401,10 +401,7 @@ describe('NotificationsService', () => {
       const count = await service.sendSystemAlert('ADMIN_ANNOUNCEMENT', 'Hello world');
 
       expect(count).toBe(1);
-      const inAppJobs = queueMock.add.mock.calls.filter(
-        (c) => c[0] === NOTIFICATION_JOBS.SEND_IN_APP,
-      );
-      expect(inAppJobs.length).toBe(1);
+      expect(prismaMock.notification.create).toHaveBeenCalledTimes(1);
     });
 
     it('should escape Markdown characters in Telegram payloads', async () => {

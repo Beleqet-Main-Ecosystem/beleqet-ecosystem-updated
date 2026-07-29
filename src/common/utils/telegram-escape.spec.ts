@@ -13,8 +13,8 @@ describe('escapeTelegramMarkdown', () => {
     expect(escapeTelegramMarkdown('use `npm install`')).toBe('use \\`npm install\\`');
   });
 
-  it('should escape open brackets', () => {
-    expect(escapeTelegramMarkdown('click [here](url)')).toBe('click \\[here](url)');
+  it('should escape open and close brackets', () => {
+    expect(escapeTelegramMarkdown('click [here](url)')).toBe('click \\[here\\](url)');
   });
 
   it('should return empty string as-is', () => {
