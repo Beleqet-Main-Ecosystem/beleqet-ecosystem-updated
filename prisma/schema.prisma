@@ -78,7 +78,10 @@ model User {
   /// saved jobs being used to personalize their AI job feed. Defaults to
   /// true; when false, the AI Feed module falls back to a generic,
   /// non-personalized feed and reads none of that data (GDPR compliance).
+
   aiFeedConsent Boolean @default(true)
+
+  gdprConsent Boolean @default(true)
 
   /// Back-relation required by Prisma for the one-to-many relationship
   /// declared on SearchHistory.user below. Not queried directly from the
@@ -447,18 +450,20 @@ model Contract {
 }
 
 model Milestone {
-  id           String          @id @default(uuid())
-  contractId   String
-  title        String
-  description  String?
-  amount       Int
-  deadline     DateTime
-  status       MilestoneStatus @default(PENDING)
-  approvedAt   DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deliverables Deliverable[]
-  contract     Contract        @relation(fields: [contractId], references: [id])
+  id                   String          @id @default(uuid())
+  contractId           String
+  title                String
+  description          String?
+  amount               Int
+  deadline             DateTime
+  status               MilestoneStatus @default(PENDING)
+  approvedAt           DateTime?
+  employerApprovedAt   DateTime?
+  freelancerApprovedAt DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  deliverables         Deliverable[]
+  contract             Contract        @relation(fields: [contractId], references: [id])
 
   @@map("milestones")
 }
@@ -597,6 +602,7 @@ model EventLog {
   createdAt   DateTime @default(now())
 
   @@index([eventType, entityId])
+  @@index([eventType, entityId, createdAt])
   @@map("events_log")
 }
 
