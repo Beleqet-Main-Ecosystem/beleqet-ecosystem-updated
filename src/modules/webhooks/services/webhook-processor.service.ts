@@ -13,7 +13,7 @@ import {
   PaymentProvider,
   NormalizedWebhookEvent,
   WebhookVerificationResult,
-  PaymentTransactionMetadata,
+  PaymentTransactionMetadata as _PaymentTransactionMetadata,
 } from '../types/webhook.types';
 import { I18nService } from '../services/i18n.service';
 import { GDPRService } from '../services/gdpr.service';
@@ -93,7 +93,7 @@ export class WebhookProcessorService {
    */
   private async handlePaymentSuccess(
     event: NormalizedWebhookEvent,
-    verification: WebhookVerificationResult,
+    _verification: WebhookVerificationResult,
   ): Promise<void> {
     this.logger.debug(
       `[${event.provider}] Processing payment success: ${event.externalTransactionId}`,
@@ -169,7 +169,7 @@ export class WebhookProcessorService {
    */
   private async handlePaymentFailed(
     event: NormalizedWebhookEvent,
-    verification: WebhookVerificationResult,
+    _verification: WebhookVerificationResult,
   ): Promise<void> {
     this.logger.debug(
       `[${event.provider}] Processing payment failed: ${event.externalTransactionId}`,
@@ -225,7 +225,7 @@ export class WebhookProcessorService {
    */
   private async handlePaymentRefunded(
     event: NormalizedWebhookEvent,
-    verification: WebhookVerificationResult,
+    _verification: WebhookVerificationResult,
   ): Promise<void> {
     this.logger.debug(
       `[${event.provider}] Processing payment refund: ${event.externalTransactionId}`,
@@ -302,7 +302,7 @@ export class WebhookProcessorService {
    */
   private async handlePaymentDisputed(
     event: NormalizedWebhookEvent,
-    verification: WebhookVerificationResult,
+    _verification: WebhookVerificationResult,
   ): Promise<void> {
     this.logger.warn(
       `[${event.provider}] Payment dispute initiated: ${event.externalTransactionId}`,
@@ -358,7 +358,7 @@ export class WebhookProcessorService {
    */
   private async handleSubscriptionCreated(
     event: NormalizedWebhookEvent,
-    verification: WebhookVerificationResult,
+    _verification: WebhookVerificationResult,
   ): Promise<void> {
     this.logger.debug(`[${event.provider}] Subscription created: ${event.externalTransactionId}`);
 
@@ -407,7 +407,7 @@ export class WebhookProcessorService {
    */
   private async handleSubscriptionCancelled(
     event: NormalizedWebhookEvent,
-    verification: WebhookVerificationResult,
+    _verification: WebhookVerificationResult,
   ): Promise<void> {
     this.logger.debug(`[${event.provider}] Subscription cancelled: ${event.externalTransactionId}`);
 

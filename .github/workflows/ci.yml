@@ -33,6 +33,9 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Lint GitHub Actions workflows (actionlint)
         run: >-
           docker run --rm -v "$PWD:/repo" --workdir /repo
@@ -471,24 +474,43 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       # Gate: unresolved CRITICAL findings in production dependencies fail CI.
       # HIGH/moderate findings are reported in the logs for tracking (see
       # docs/CI_CD_AUDIT.md) without blocking unrelated changes.
       - name: Backend production dependency audit
         run: |
+          npm ci
           npm audit --omit=dev || true
           npm audit --omit=dev --audit-level=critical
+
+      - name: Setup Node.js for admin frontend
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Admin frontend production dependency audit
         working-directory: frontend
         run: |
+          npm ci
           npm audit --omit=dev || true
           npm audit --omit=dev --audit-level=critical
+
+      - name: Setup Node.js for jobs frontend
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: beleqet-jobs-nextjs/package-lock.json
 
       - name: Jobs frontend production dependency audit
         working-directory: beleqet-jobs-nextjs
         run: |
+          npm ci
           npm audit --omit=dev || true
           npm audit --omit=dev --audit-level=critical
 

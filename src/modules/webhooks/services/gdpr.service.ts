@@ -25,7 +25,7 @@ export class GDPRService {
    * @param externalCustomerId - External customer ID
    * @returns GDPR metadata
    */
-  async getComplianceMetadata(externalCustomerId: string): Promise<GDPRMetadata> {
+  async getComplianceMetadata(_externalCustomerId: string): Promise<GDPRMetadata> {
     return {
       dataProcessingAgreement: true,
       consentObtained: true,
