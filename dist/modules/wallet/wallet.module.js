@@ -14,12 +14,13 @@ const two_factor_module_1 = require("../two-factor/two-factor.module");
 const wallet_service_1 = require("./wallet.service");
 const wallet_controller_1 = require("./wallet.controller");
 const wallet_processor_1 = require("./wallet.processor");
+const chapa_module_1 = require("../chapa/chapa.module");
 let WalletModule = class WalletModule {
 };
 exports.WalletModule = WalletModule;
 exports.WalletModule = WalletModule = __decorate([
     (0, common_1.Module)({
-        imports: [bullmq_1.BullModule.registerQueue({ name: queues_constants_1.QUEUE_NAMES.WALLET }), two_factor_module_1.TwoFactorModule],
+        imports: [bullmq_1.BullModule.registerQueue({ name: queues_constants_1.QUEUE_NAMES.WALLET }), two_factor_module_1.TwoFactorModule, chapa_module_1.ChapaModule],
         providers: [wallet_service_1.WalletService, wallet_processor_1.WalletProcessor],
         controllers: [wallet_controller_1.WalletController],
         exports: [wallet_service_1.WalletService],

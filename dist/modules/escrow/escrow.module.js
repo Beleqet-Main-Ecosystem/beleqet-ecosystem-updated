@@ -15,6 +15,8 @@ const escrow_service_1 = require("./escrow.service");
 const escrow_controller_1 = require("./escrow.controller");
 const escrow_processor_1 = require("./escrow.processor");
 const wallet_module_1 = require("../wallet/wallet.module");
+const chapa_signature_service_1 = require("./chapa-signature.service");
+const chapa_module_1 = require("../chapa/chapa.module");
 let EscrowModule = class EscrowModule {
 };
 exports.EscrowModule = EscrowModule;
@@ -24,10 +26,11 @@ exports.EscrowModule = EscrowModule = __decorate([
             bullmq_1.BullModule.registerQueue({ name: queues_constants_1.QUEUE_NAMES.ESCROW }, { name: queues_constants_1.QUEUE_NAMES.NOTIFICATIONS }),
             wallet_module_1.WalletModule,
             two_factor_module_1.TwoFactorModule,
+            chapa_module_1.ChapaModule,
         ],
-        providers: [escrow_service_1.EscrowService, escrow_processor_1.EscrowProcessor],
+        providers: [escrow_service_1.EscrowService, escrow_processor_1.EscrowProcessor, chapa_signature_service_1.ChapaSignatureService],
         controllers: [escrow_controller_1.EscrowController],
-        exports: [escrow_service_1.EscrowService],
+        exports: [escrow_service_1.EscrowService, chapa_signature_service_1.ChapaSignatureService],
     })
 ], EscrowModule);
 //# sourceMappingURL=escrow.module.js.map

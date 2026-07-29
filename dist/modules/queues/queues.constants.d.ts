@@ -40,6 +40,10 @@ export declare const ESCROW_JOBS: {
     readonly AUTO_RELEASE: "auto-release-milestone";
     readonly UNLOCK_FUNDS: "unlock-escrow-funds";
 };
+export declare const WALLET_JOBS: {
+    readonly RELEASE_PENDING: "release-pending";
+    readonly PROCESS_WITHDRAWAL: "process-withdrawal";
+};
 export declare const TWO_FACTOR_JOBS: {
     readonly CLEANUP_EXPIRED_ENROLLMENT: "cleanup-expired-enrollment";
 };

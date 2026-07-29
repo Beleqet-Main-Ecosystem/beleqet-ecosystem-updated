@@ -42,7 +42,9 @@ export declare class WalletController {
     withdraw(u: CurrentUserPayload, dto: WithdrawDto): Promise<{
         success: boolean;
         amount: number;
+        amountInETB: number;
         method: "CHAPA" | "TELEBIRR" | "CBE_BIRR";
+        status: string;
         note: string;
     }>;
 }

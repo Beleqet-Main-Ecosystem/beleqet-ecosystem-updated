@@ -1,6 +1,6 @@
 import { OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ConfigService } from '@nestjs/config';
 export declare class WithdrawDto {
     amount: number;
     method: 'CHAPA' | 'TELEBIRR' | 'CBE_BIRR';
@@ -9,11 +9,11 @@ export declare class WithdrawDto {
 }
 export declare class WalletService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma;
-    private readonly config;
+    private readonly walletQueue?;
     private readonly logger;
     private fetchInterval?;
     private exchangeRates;
-    constructor(prisma: PrismaService, config: ConfigService);
+    constructor(prisma: PrismaService, walletQueue?: Queue | undefined);
     onModuleInit(): Promise<void>;
     onModuleDestroy(): void;
     private fetchLiveRates;
@@ -57,7 +57,10 @@ export declare class WalletService implements OnModuleInit, OnModuleDestroy {
     withdraw(userId: string, dto: WithdrawDto): Promise<{
         success: boolean;
         amount: number;
+        amountInETB: number;
         method: "CHAPA" | "TELEBIRR" | "CBE_BIRR";
+        status: string;
         note: string;
     }>;
+    private restoreFailedWithdrawal;
 }

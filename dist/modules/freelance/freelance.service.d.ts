@@ -329,6 +329,8 @@ export declare class FreelanceService {
             deadline: Date;
             amount: number;
             approvedAt: Date | null;
+            employerApprovedAt: Date | null;
+            freelancerApprovedAt: Date | null;
             contractId: string;
         })[];
     } & {
@@ -353,6 +355,8 @@ export declare class FreelanceService {
         deadline: Date;
         amount: number;
         approvedAt: Date | null;
+        employerApprovedAt: Date | null;
+        freelancerApprovedAt: Date | null;
         contractId: string;
     }>;
 }

@@ -2,21 +2,16 @@ import { CurrentUserPayload } from '../../common/decorators/current-user.decorat
 import { EscrowService } from './escrow.service';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
+import { ChapaSignatureService } from './chapa-signature.service';
+import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
 export declare class EscrowController {
     private readonly svc;
     private readonly config;
-    constructor(svc: EscrowService, config: ConfigService);
+    private readonly signatures;
+    constructor(svc: EscrowService, config: ConfigService, signatures: ChapaSignatureService);
     initiate(gigId: string, u: CurrentUserPayload): Promise<{
         escrowId: string;
-        checkoutUrl: null;
-        grossAmount: number;
-        platformFee: number;
-        netAmount: number;
-        walletAppliedAmount: number;
-        amountToPay?: undefined;
-    } | {
-        escrowId: string;
-        checkoutUrl: string;
+        checkoutUrl: string | null;
         grossAmount: number;
         platformFee: number;
         netAmount: number;
@@ -25,7 +20,7 @@ export declare class EscrowController {
     }>;
     webhook(body: Record<string, unknown>, req: Request & {
         rawBody?: Buffer;
-    }, chapaSignature?: string, xChapaSignature?: string): Promise<{
+    }, headers: Record<string, string | string[] | undefined>, chapaSignature?: string, xChapaSignature?: string): Promise<{
         url: string;
         success?: undefined;
     } | {
@@ -34,5 +29,28 @@ export declare class EscrowController {
     }>;
     release(id: string, u: CurrentUserPayload): Promise<{
         success: boolean;
+        released: boolean;
+        alreadyReleased: boolean;
+    } | {
+        success: boolean;
+        released: boolean;
+        alreadyReleased?: undefined;
+    } | {
+        success: boolean;
+        released: boolean;
+        waitingFor: string;
+    }>;
+    confirm(id: string, u: CurrentUserPayload, body: ConfirmMilestoneDto): Promise<{
+        success: boolean;
+        released: boolean;
+        alreadyReleased: boolean;
+    } | {
+        success: boolean;
+        released: boolean;
+        alreadyReleased?: undefined;
+    } | {
+        success: boolean;
+        released: boolean;
+        waitingFor: string;
     }>;
 }
