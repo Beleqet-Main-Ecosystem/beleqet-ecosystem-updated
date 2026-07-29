@@ -13,9 +13,16 @@ RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 RUN npm ci
+<<<<<<< HEAD
 COPY . .
 RUN npx prisma generate
 COPY . .
+=======
+RUN npm run prisma:generate
+
+COPY . .
+
+>>>>>>> 9961b0e (Resolve CI failures, remove binary gitignore and dist, fix conflict markers)
 RUN npm run build
 
 # ── Stage 2: Prune ───────────────────────────────────────────────────────────

@@ -33,7 +33,7 @@ export class JobsResolver {
 
   @Mutation(() => JobTypeGraphQL)
   @UseGuards(GqlAuthGuard, GqlRolesGuard) // Fix: Added Guards
-  @Roles('EMPLOYER', 'ADMIN')            // Fix: Restricted access
+  @Roles('EMPLOYER', 'ADMIN') // Fix: Restricted access
   async createJob(
     @Args('input') input: CreateJobInput,
     @GqlCurrentUser() user: CurrentUserPayload,
