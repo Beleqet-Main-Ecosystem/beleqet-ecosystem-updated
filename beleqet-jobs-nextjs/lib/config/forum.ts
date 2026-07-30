@@ -1,0 +1,17 @@
+export const FORUM_CONFIG = {
+  CACHE: {
+    REVALIDATE_SECONDS: 30,
+  },
+  PAGINATION: {
+    DEFAULT_LIMIT: 20,
+    MAX_LIMIT: 100,
+  },
+  VALIDATION: {
+    MIN_TITLE_LENGTH: 5,
+    MAX_TITLE_LENGTH: 200,
+    MIN_CONTENT_LENGTH: 20,
+    MAX_CONTENT_LENGTH: 10000,
+    MAX_TAGS: 10,
+    MAX_TAG_LENGTH: 30,
+  },
+} as const;

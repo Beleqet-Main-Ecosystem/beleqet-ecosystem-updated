@@ -20,6 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { createThread } from "@/lib/forum-api";
+import { FORUM_CONFIG } from "@/lib/config/forum";
 
 const TIPS = [
   { icon: Heart, text: "Be respectful and constructive in your tone" },
@@ -63,7 +64,7 @@ export default function NewThreadPage() {
 
   const addTag = (raw: string) => {
     const t = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
-    if (t && !tags.includes(t) && tags.length < 10) {
+    if (t && !tags.includes(t) && tags.length < FORUM_CONFIG.VALIDATION.MAX_TAGS) {
       setTags([...tags, t]);
     }
     setTagInput("");
@@ -195,12 +196,12 @@ export default function NewThreadPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    maxLength={200}
+                    maxLength={FORUM_CONFIG.VALIDATION.MAX_TITLE_LENGTH}
                     className="w-full rounded-xl border border-border bg-pageBg/50 px-4 py-3 text-base font-medium text-primary placeholder:text-muted/40 outline-none transition-all duration-200 focus:border-brandGreen/40 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,101,59,0.08)]"
                     placeholder="e.g. How do I get started with NestJS?"
                     autoFocus
                   />
-                  <ProgressBar current={title.length} max={200} />
+                  <ProgressBar current={title.length} max={FORUM_CONFIG.VALIDATION.MAX_TITLE_LENGTH} />
                 </div>
               </div>
 
@@ -222,12 +223,12 @@ export default function NewThreadPage() {
                     id="content"
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    maxLength={10000}
+                    maxLength={FORUM_CONFIG.VALIDATION.MAX_CONTENT_LENGTH}
                     rows={10}
                     className="w-full min-h-[200px] resize-y rounded-xl border border-border bg-pageBg/50 px-4 py-3 text-sm leading-relaxed text-ink placeholder:text-muted/40 outline-none transition-all duration-200 focus:border-brandGreen/40 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,101,59,0.08)]"
                     placeholder="Share your thoughts, questions, or advice..."
                   />
-                  <ProgressBar current={content.length} max={10000} />
+                  <ProgressBar current={content.length} max={FORUM_CONFIG.VALIDATION.MAX_CONTENT_LENGTH} />
                 </div>
               </div>
 
@@ -238,7 +239,7 @@ export default function NewThreadPage() {
                     <Hash className="h-4 w-4" />
                   </div>
                   <span className="text-sm font-bold text-primary">
-                    Tags <span className="font-normal text-muted">({tags.length}/10)</span>
+                    Tags <span className="font-normal text-muted">({tags.length}/{FORUM_CONFIG.VALIDATION.MAX_TAGS})</span>
                   </span>
                 </div>
                 <div className="p-5 sm:p-6 pt-4 sm:pt-5">
@@ -269,10 +270,10 @@ export default function NewThreadPage() {
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={handleTagKey}
                       onBlur={() => tagInput && addTag(tagInput)}
-                      maxLength={30}
-                      disabled={tags.length >= 10}
+                      maxLength={FORUM_CONFIG.VALIDATION.MAX_TAG_LENGTH}
+                      disabled={tags.length >= FORUM_CONFIG.VALIDATION.MAX_TAGS}
                       className="flex-1 bg-transparent px-1 py-2.5 text-sm text-ink placeholder:text-muted/40 outline-none disabled:opacity-40"
-                      placeholder={tags.length >= 10 ? "Max 10 tags reached" : "Type and press Enter"}
+                      placeholder={tags.length >= FORUM_CONFIG.VALIDATION.MAX_TAGS ? "Max 10 tags reached" : "Type and press Enter"}
                     />
                   </div>
                   <p className="mt-1.5 text-[11px] text-muted">

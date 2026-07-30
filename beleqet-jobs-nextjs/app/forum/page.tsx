@@ -3,8 +3,9 @@ import { MessageSquare, Plus, Sparkles, TrendingUp, ArrowRight } from "lucide-re
 import Link from "next/link";
 import ThreadCard from "@/components/forum/ThreadCard";
 import { getThreads } from "@/lib/forum-api";
+import { FORUM_CONFIG } from "@/lib/config/forum";
 
-export const revalidate = 30;
+export const revalidate = FORUM_CONFIG.CACHE.REVALIDATE_SECONDS;
 
 interface Props {
   searchParams: { [key: string]: string | undefined };
@@ -15,7 +16,7 @@ async function ThreadList({ searchParams }: Props) {
   try {
     data = await getThreads({
       page: searchParams.page ? Number(searchParams.page) : 1,
-      limit: 20,
+      limit: FORUM_CONFIG.PAGINATION.DEFAULT_LIMIT,
       sort: searchParams.sort,
       search: searchParams.search,
       tag: searchParams.tag,

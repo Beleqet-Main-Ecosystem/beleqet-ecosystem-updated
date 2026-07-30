@@ -5,8 +5,9 @@ import { cookies } from "next/headers";
 import ReplySection from "@/components/forum/ReplySection";
 import { getThread } from "@/lib/forum-api";
 import { timeAgo } from "@/lib/utils/time";
+import { FORUM_CONFIG } from "@/lib/config/forum";
 
-export const revalidate = 30;
+export const revalidate = FORUM_CONFIG.CACHE.REVALIDATE_SECONDS;
 
 interface Props {
   params: { threadId: string };
