@@ -1062,7 +1062,7 @@ model ForumThread {
   title           String
   content         String
   tags            String[]     @default([])
-  userId          String?
+  userId          String
   userDisplayName String       @default("Deleted User")
   isAnonymous     Boolean      @default(false)
   upvoteCount     Int          @default(0)
@@ -1071,7 +1071,7 @@ model ForumThread {
   isLocked        Boolean      @default(false)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
-  user            User          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   replies         ForumReply[]
   upvotes         ForumUpvote[]
 
@@ -1086,7 +1086,7 @@ model ForumReply {
   content         String
   threadId        String
   parentReplyId   String?
-  userId          String?
+  userId          String
   userDisplayName String       @default("Deleted User")
   isAnonymous     Boolean      @default(false)
   upvoteCount     Int          @default(0)
@@ -1095,7 +1095,7 @@ model ForumReply {
   thread          ForumThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
   parentReply     ForumReply?  @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: SetNull)
   childReplies    ForumReply[] @relation("ReplyToReply")
-  user            User         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   upvotes         ForumUpvote[]
 
   @@index([threadId, createdAt])

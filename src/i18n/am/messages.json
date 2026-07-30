@@ -10,7 +10,9 @@
       "replyMinLength": "ምላሽ ባዶ መሆን የለበትም",
       "replyMaxLength": "ምላሽ ከ5,000 ፊደላት መብለጥ የለበትም",
       "parentReplyId": "የወላጅ ምላሽ መለያ",
-      "isAnonymous": "ስም አልባ ለመለጠፍ"
+      "isAnonymous": "ስም አልባ ለመለጠፍ",
+      "tagsMax": "ቢበዛ 10 መለያዎች ይፈቀዳሉ",
+      "tagMaxLength": "እያንዳንዱ መለያ ከ30 ፊደላት መብለጥ የለበትም"
     },
     "error": {
       "threadNotFound": "የፎረም ርዕስ አልተገኘም",

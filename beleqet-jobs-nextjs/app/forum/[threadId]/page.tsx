@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ArrowUp, Lock, ArrowLeft, Sparkles, MessageSquare, Flag } from "lucide-react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import ReplySection from "@/components/forum/ReplySection";
 import { getThread } from "@/lib/forum-api";
 
@@ -8,6 +9,11 @@ export const revalidate = 30;
 
 interface Props {
   params: { threadId: string };
+}
+
+function getAuthToken(): string | undefined {
+  const cookieStore = cookies();
+  return cookieStore.get("token")?.value;
 }
 
 function timeAgo(iso: string): string {
@@ -26,6 +32,8 @@ export default async function ThreadDetailPage({ params }: Props) {
   } catch {
     notFound();
   }
+
+  const token = getAuthToken();
 
   return (
     <div className="min-h-screen bg-[#f7f5ef]">
@@ -121,7 +129,7 @@ export default async function ThreadDetailPage({ params }: Props) {
               </Link>
             )}
           </div>
-          <ReplySection replies={thread.replies ?? []} />
+          <ReplySection replies={thread.replies ?? []} token={token} />
         </section>
       </section>
     </div>

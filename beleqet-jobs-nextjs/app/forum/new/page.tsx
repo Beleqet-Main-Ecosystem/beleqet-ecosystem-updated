@@ -104,8 +104,9 @@ export default function NewThreadPage() {
         token,
       );
       router.push(`/forum/${thread.id}`);
-    } catch (err: any) {
-      setError(err.message ?? "Failed to create thread.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create thread.";
+      setError(message);
     } finally {
       setSubmitting(false);
     }

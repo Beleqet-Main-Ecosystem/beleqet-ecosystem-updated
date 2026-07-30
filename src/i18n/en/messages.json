@@ -10,7 +10,9 @@
       "replyMinLength": "Reply must not be empty",
       "replyMaxLength": "Reply must not exceed 5,000 characters",
       "parentReplyId": "Parent reply ID",
-      "isAnonymous": "Post anonymously"
+      "isAnonymous": "Post anonymously",
+      "tagsMax": "Maximum 10 tags allowed",
+      "tagMaxLength": "Each tag must not exceed 30 characters"
     },
     "error": {
       "threadNotFound": "Forum thread not found",

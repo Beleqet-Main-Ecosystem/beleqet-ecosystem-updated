@@ -62,13 +62,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
+        - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     container_name: beleqet2-frontend
     restart: unless-stopped
     ports:
       - '3000:3000'
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
+      - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     depends_on:
       - backend
 
@@ -77,13 +77,13 @@ services:
       context: ./beleqet-jobs-nextjs
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
+        - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     container_name: beleqet2-jobs-frontend
     restart: unless-stopped
     ports:
       - '3001:3001'
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4002/api/v1
+      - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     depends_on:
       - backend
 

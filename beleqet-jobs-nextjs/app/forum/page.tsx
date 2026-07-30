@@ -14,7 +14,7 @@ async function ThreadList({ searchParams }: Props) {
   let data;
   try {
     data = await getThreads({
-      page: 1,
+      page: searchParams.page ? Number(searchParams.page) : 1,
       limit: 20,
       sort: searchParams.sort,
       search: searchParams.search,
