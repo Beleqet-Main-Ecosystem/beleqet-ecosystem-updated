@@ -2,11 +2,13 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Body,
   Param,
   Query,
   UseGuards,
   ParseUUIDPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -80,5 +82,15 @@ export class ForumController {
     @Param('id', ParseUUIDPipe) replyId: string,
   ) {
     return this.forumService.upvoteReply(user.userId, replyId);
+  }
+
+  @Delete('my-data')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'GDPR erasure — anonymize all forum data for the current user' })
+  async eraseMyData(@CurrentUser() user: CurrentUserPayload) {
+    await this.forumService.anonymizeUserData(user.userId);
+    return { message: 'Your forum data has been anonymized.' };
   }
 }
