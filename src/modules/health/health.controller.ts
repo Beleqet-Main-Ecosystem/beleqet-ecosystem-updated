@@ -1,18 +1,18 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler'; 
 import type { Response } from 'express';
 import { HealthService } from './health.service';
 import type { LivenessResult } from './health.service';
 
 /**
- * Public, unauthenticated health endpoints used by container HEALTHCHECKs,
- * the CI smoke tests, and the staging deployment gates.
- *
- * `GET /api/v1/health`        — liveness: the process serves HTTP.
- * `GET /api/v1/health/ready`  — readiness: DB and Redis round-trips succeed
- *                               (HTTP 200 when ready, 503 when degraded).
+ * Public health endpoints used by container HEALTHCHECKs and CI smoke tests.
+ * 
+ * @SkipThrottle() ensures that rapid infrastructure probes from GitHub Actions
+ * do not trigger the global GraphQL/API rate limiter.
  */
 @ApiTags('health')
+@SkipThrottle() 
 @Controller('health')
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
