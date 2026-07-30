@@ -1,18 +1,12 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { SkipThrottle } from '@nestjs/throttler'; 
+import { SkipThrottle } from '@nestjs/throttler'; // Import this
 import type { Response } from 'express';
 import { HealthService } from './health.service';
 import type { LivenessResult } from './health.service';
 
-/**
- * Public health endpoints used by container HEALTHCHECKs and CI smoke tests.
- * 
- * @SkipThrottle() ensures that rapid infrastructure probes from GitHub Actions
- * do not trigger the global GraphQL/API rate limiter.
- */
 @ApiTags('health')
-@SkipThrottle() 
+@SkipThrottle() // FIX: Ensures CI infrastructure probes are never blocked by the rate limiter
 @Controller('health')
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}

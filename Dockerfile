@@ -7,6 +7,12 @@ FROM node:22-alpine3.21 AS builder
 WORKDIR /app
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
+
+# Install build dependencies + wget for healthcheck logic
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl ffmpeg libstdc++6 libgomp1 wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 RUN npm ci && npx prisma generate
@@ -31,6 +37,11 @@ ENV NODE_ENV=production
 # 2. STRIP VULNERABLE CLIs to pass Trivy CRITICAL scans
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat wget ca-certificates \
+# FIX: Added 'wget' and 'ca-certificates' to ensure healthchecks work on Debian slim
+# Also strip vulnerable npm/corepack/yarn CLIs to pass Trivy CRITICAL scans
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl ffmpeg libstdc++6 libgomp1 wget ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
   && rm -rf \
     /usr/local/lib/node_modules/npm \
     /usr/local/lib/node_modules/corepack \
@@ -40,6 +51,7 @@ RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     /opt/yarn-v*
 
 COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
+COPY --from=pruner --chown=node:node /app/package.json ./
 COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --from=builder --chown=node:node /app/prisma ./prisma
@@ -49,6 +61,10 @@ EXPOSE 4000
 
 # Smoke test verify liveness; increased start-period for AI model loading
 HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=15 \
+# HEALTHCHECK FIX: 
+# - Uses wget (now installed)
+# - start-period increased to 180s to allow AI models to load fully before CI times out
+HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=10 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
 
 # Apply committed migrations (production-safe) before starting the server.
