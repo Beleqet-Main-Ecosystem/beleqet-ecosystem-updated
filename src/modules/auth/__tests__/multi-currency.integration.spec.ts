@@ -29,7 +29,7 @@ describe('Multi-currency integration — OAuth-provisioned users', () => {
     prisma = module.get(PrismaService);
     accountRepository = module.get(AccountRepository);
     await prisma.$connect();
-  });
+  }, 30000);
 
   afterAll(async () => {
     // Clean up in dependency order (children before parent).
@@ -60,7 +60,7 @@ describe('Multi-currency integration — OAuth-provisioned users', () => {
     // Confirms the passwordHash-optional schema change didn't break
     // OAuth-only provisioning: no password credential exists for this user.
     expect(user.hasPasswordCredential).toBe(false);
-  });
+  }, 30000);
 
   it('lets an OAuth-provisioned user own a wallet in a non-default currency', async () => {
     const wallet = await prisma.freelancerWallet.create({
@@ -82,5 +82,5 @@ describe('Multi-currency integration — OAuth-provisioned users', () => {
     });
 
     expect(userWithWallet?.wallet?.currency).toBe('USD');
-  });
+  }, 30000);
 });

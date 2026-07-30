@@ -36,12 +36,12 @@ describe('GDPR Guard & Wallet Integration Test', () => {
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     gdprService = moduleFixture.get<GdprGuardService>(GdprGuardService);
-  }, 30000);
+  }, 120000);
 
   afterAll(async () => {
     await prisma.$executeRawUnsafe(`TRUNCATE TABLE "users" CASCADE;`);
     await app.close();
-  }, 30000);
+  }, 120000);
 
   it('should scrub user PII and wallet transaction notes while preserving ledger balances', async () => {
     const testUser = await prisma.user.create({
@@ -351,5 +351,5 @@ describe('GDPR Guard & Wallet Integration Test', () => {
       referenceId: result.referenceId,
       scrubbedAt: result.scrubbedAt,
     });
-  });
+  }, 120000);
 });

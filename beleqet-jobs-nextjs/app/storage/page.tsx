@@ -83,6 +83,7 @@ export default function StorageDashboard(): React.ReactElement {
     } else {
       setFiles([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   /**

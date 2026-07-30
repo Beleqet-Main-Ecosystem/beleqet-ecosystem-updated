@@ -60,6 +60,7 @@ model User {
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
+  userPublicKey         UserPublicKey?
   preferences           UserPreference?
   subscriptions         Subscription[]
 
@@ -911,7 +912,7 @@ enum NotificationChannel {
   EMAIL
 }
 
-// ── AI Video Interview ─────────────────────────────────────────────────────
+// ΓöÇΓöÇ AI Video Interview ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 enum VideoInterviewStatus {
   PENDING
@@ -934,7 +935,7 @@ model VideoInterview {
   metadata      Json
   scheduledAt   DateTime?
   expiresAt     DateTime?
-  /// GDPR retention window — hard-delete after this date (default 90 days)
+  /// GDPR retention window ΓÇö hard-delete after this date (default 90 days)
   gdprDeleteAt  DateTime?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
@@ -957,7 +958,7 @@ model VideoResponse {
   id                   String   @id @default(uuid())
   videoInterviewId     String
   questionIndex        Int
-  /// S3 presigned URL — files auto-deleted after gdprDeleteAt
+  /// S3 presigned URL ΓÇö files auto-deleted after gdprDeleteAt
   videoUrl             String?
   transcript           String?
   /// Full Whisper response: { text, segments, language, duration }
@@ -1016,7 +1017,7 @@ model Referral {
   status      ReferralStatus @default(PENDING)
   /// Bonus amount in minor units (e.g. cents / santim)
   bonusAmount Int            @default(0)
-  /// ISO 4217 currency code (e.g. ETB, USD, EUR) — multi-currency support
+  /// ISO 4217 currency code (e.g. ETB, USD, EUR) ΓÇö multi-currency support
   currency    String         @default("ETB")
   expiresAt   DateTime
   redeemedAt  DateTime?
@@ -1031,7 +1032,7 @@ model Referral {
   @@map("referrals")
 }
 
-// ── Job Alerts ─────────────────────────────────────────────────────────────
+// ΓöÇΓöÇ Job Alerts ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 model JobAlert {
   id         String    @id @default(uuid())
@@ -1039,7 +1040,7 @@ model JobAlert {
   keywords   String[]
   location   String?
   jobType    JobType?
-  /// Minimum salary in minor units — multi-currency support
+  /// Minimum salary in minor units ΓÇö multi-currency support
   minSalary  Int?
   /// ISO 4217 currency code
   currency   String    @default("ETB")
@@ -1061,9 +1062,9 @@ enum ReferralStatus {
   CANCELLED
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Global Payment Gateway (Task Global-Payments-001 & 002)
-// ─────────────────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 //
 // Stores every payment transaction (Stripe or PayPal) initiated via the
 // Beleqet platform.
@@ -1074,14 +1075,14 @@ enum ReferralStatus {
 //  - metadata is sanitised before insert (PII keys stripped in services).
 //
 // Multi-currency: `currency` is ISO 4217. `amount` is in smallest unit
-// (cents/fils/pence) for Stripe; stored as-is for PayPal (decimal × 100).
+// (cents/fils/pence) for Stripe; stored as-is for PayPal (decimal ├ù 100).
 model Payment {
   id                String          @id @default(uuid())
   /// UUID of the Beleqet user who initiated this payment
   userId            String
   /// Payment provider: STRIPE or PAYPAL
   provider          PaymentProvider
-  /// Provider-side payment / order ID (pi_… for Stripe, alphanumeric for PayPal)
+  /// Provider-side payment / order ID (pi_ΓÇª for Stripe, alphanumeric for PayPal)
   providerPaymentId String          @unique
   /// Amount in smallest currency unit (e.g. cents for USD)
   amount            Int
@@ -1156,20 +1157,20 @@ enum KycStatus {
   REJECTED
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Subscription Manager (Task: Admin & Control — Subscription Manager)
-// ─────────────────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// Subscription Manager (Task: Admin & Control ΓÇö Subscription Manager)
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 //
 // Plan catalog + per-user Subscription lifecycle + billing ledger, layered on
 // top of the existing Global Payment Gateway (Payment/PaymentProvider above).
 // A Subscription's recurring charges reuse the existing PaypalService billing
 // agreement flow (see src/modules/payments/paypal.service.ts) rather than
-// duplicating gateway integration — SubscriptionTransaction rows are written
+// duplicating gateway integration ΓÇö SubscriptionTransaction rows are written
 // alongside the Payment row that PaypalService already upserts, joined by
 // `providerSubscriptionId` (== the PayPal billing agreement id).
 //
 // GDPR: SubscriptionTransaction.rawPayload is sanitised before insert (no PII
-// keys — see BillingService) and is nulled out by the same data-deletion hook
+// keys ΓÇö see BillingService) and is nulled out by the same data-deletion hook
 // that anonymises Payment rows for a deleted user.
 //
 // Multi-currency: amounts are stored as Int in minor units (see Payment
@@ -1193,8 +1194,8 @@ enum SubscriptionStatus {
 }
 
 /// A purchasable subscription tier (e.g. Free, Pro, Enterprise).
-/// `paypalPlanId` maps to a pre-created PayPal billing plan id — set by an
-/// admin once the equivalent plan exists on the PayPal dashboard — and is
+/// `paypalPlanId` maps to a pre-created PayPal billing plan id ΓÇö set by an
+/// admin once the equivalent plan exists on the PayPal dashboard ΓÇö and is
 /// what gets passed to PaypalService.createSubscription() at checkout.
 model Plan {
   id           String          @id @default(uuid())
@@ -1231,7 +1232,7 @@ model Subscription {
   /// Gateway that owns the recurring charge for this subscription (nullable
   /// while PENDING, before the user completes the gateway checkout redirect)
   provider           PaymentProvider?
-  /// Provider-side recurring-billing id — the PayPal billing agreement id
+  /// Provider-side recurring-billing id ΓÇö the PayPal billing agreement id
   /// for PayPal; joins to Payment.providerPaymentId for the same charge.
   providerSubscriptionId String?        @unique
   /// Set once the "expiring in 3 days" reminder has fired, so the reminder
@@ -1268,11 +1269,11 @@ model SubscriptionTransaction {
   @@map("subscription_transactions")
 }
 
-/// Idempotency record for inbound billing webhooks — prevents the same
+/// Idempotency record for inbound billing webhooks ΓÇö prevents the same
 /// gateway event from being processed twice (e.g. on gateway retry).
 model WebhookEvent {
   id             String          @id @default(uuid())
-  /// Gateway's own event id (PayPal `id`, Stripe `id`, etc.) — unique guards
+  /// Gateway's own event id (PayPal `id`, Stripe `id`, etc.) ΓÇö unique guards
   /// against double-processing the same webhook delivery.
   gatewayEventId String          @unique
   provider       PaymentProvider
@@ -1343,3 +1344,14 @@ enum SkillLevel {
 
 /// System-wide audit log entity tracking user/system actions, entity state changes,
 /// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+
+model UserPublicKey {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  publicKey String   // Base64 encoded public key
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_public_keys")
+}

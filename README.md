@@ -32,3 +32,6 @@
 3. Develop: የተመደቡትን ሞጁል ብቻ በንጹህ ኮድ ይስሩ።
 4. Submit: ስራዎን ሲያጠናቅቁ የ GitHub Pull Request (PR) ይክፈቱ።
 5. Quality Standard: ኮድዎ የ Global Scaling (i18n, GDPR, Multi-currency) መስፈርቶችን ማሟላት አለበት።
+
+<!-- PR ready: added tiny change to enable PR creation -->
+<!-- PR preparation: branch updated after merging main, ready for pull request creation -->

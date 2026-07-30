@@ -197,6 +197,20 @@ If critical issues arise post-deployment:
 
 ---
 
+## 8.5 Secure Tunnel (E2EE Chat Module)
+
+| # | Check | Status |
+|---|-------|--------|
+| 8.5.1 | DB Migration applied (`20260709073300_add_user_public_keys`) | ☐ |
+| 8.5.2 | SSL/TLS certificates configured (via `SSL_KEY_PATH`/`SSL_CERT_PATH` or reverse proxy) | ☐ |
+| 8.5.3 | WebSocket origin config verified (`WS_ALLOWED_ORIGINS` / CORS origin whitelist) | ☐ |
+| 8.5.4 | JWT auth handshake flow verified over secure WebSockets (WSS) | ☐ |
+| 8.5.5 | Chat UI localization (Amharic & English translations) verified | ☐ |
+| 8.5.6 | Web Crypto key generation, exchange, & message decryption verified | ☐ |
+| 8.5.7 | GDPR notice regarding local private key storage displayed to users | ☐ |
+
+---
+
 ## 9. Sign-Off
 
 | Role | Name | Signature | Date |
@@ -206,3 +220,4 @@ If critical issues arise post-deployment:
 | DevOps | | | |
 
 > **Deployment is blocked until all ☐ items above are checked ✅ and all sign-offs are obtained.**
+
