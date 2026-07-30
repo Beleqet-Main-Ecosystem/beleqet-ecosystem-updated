@@ -103,7 +103,7 @@ export default function AvailabilityCard({ slots, onRefresh, onEdit, onDelete }:
         {slots?.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
             <p className="text-slate-500 font-medium">
-              You haven't set any available interview times yet.
+              You haven&apos;t set any available interview times yet.
             </p>
             <p className="text-sm text-slate-400 mt-1">
               Add your available time so our platform can schedule interviews easily.

@@ -1,35 +1,60 @@
-# ── Build stage ────────────────────────────────────────────────────────────
+# =============================================================================
+# Beleqet admin frontend — production image (Next.js 14)
+# Reproducible: installs from the lockfile with `npm ci` in every stage.
+# =============================================================================
+
+# ── Build stage ──────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies first (cached layer)
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy source and build
 COPY . .
 
-# NEXT_PUBLIC_ vars must be available at build time for Next.js static generation
+# NEXT_PUBLIC_ vars must be present at build time for Next.js static generation
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 
-# ── Production stage ────────────────────────────────────────────────────────
+# ── Prune stage: production-only dependencies ────────────────────────────────
+FROM node:20-alpine AS pruner
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+# ── Production stage ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy built assets from builder
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.js ./next.config.js
+# Strip base-image npm/corepack — runtime starts Next via `node`, and the
+# bundled `tar` (CVE-2026-59873) fails the Trivy CRITICAL image gate.
+RUN rm -rf \
+  /usr/local/lib/node_modules/npm \
+  /usr/local/lib/node_modules/corepack \
+  /usr/local/bin/npm \
+  /usr/local/bin/npx \
+  /usr/local/bin/corepack \
+  /opt/yarn-v*
+
+COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
+COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/.next ./.next
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/next.config.js ./next.config.js
+
+USER node
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
+  CMD wget -qO- http://127.0.0.1:3000/ || exit 1
+
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3000"]

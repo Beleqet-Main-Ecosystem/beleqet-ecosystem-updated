@@ -18,6 +18,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { KycDocumentType } from '@prisma/client';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 /**
  * Interface representing uploaded KYC files.
@@ -33,7 +34,9 @@ export interface KycUploadFile {
  */
 export class SubmitKycDto {
   /** The type of uploaded ID card or passport */
-  @IsEnum(KycDocumentType, { message: 'documentType must be PASSPORT, NATIONAL_ID, or DRIVERS_LICENSE' })
+  @IsEnum(KycDocumentType, {
+    message: 'documentType must be PASSPORT, NATIONAL_ID, or DRIVERS_LICENSE',
+  })
   @IsNotEmpty()
   documentType: KycDocumentType;
 }
@@ -107,10 +110,15 @@ export class KycController {
     const faceScanFile = files?.faceScan?.[0];
 
     if (!documentFile || !faceScanFile) {
-      throw new BadRequestException('Both identification document and live face scan files must be uploaded.');
+      throw new BadRequestException(
+        'Both identification document and live face scan files must be uploaded.',
+      );
     }
 
-    if (documentFile.buffer.length > 5 * 1024 * 1024 || faceScanFile.buffer.length > 5 * 1024 * 1024) {
+    if (
+      documentFile.buffer.length > 5 * 1024 * 1024 ||
+      faceScanFile.buffer.length > 5 * 1024 * 1024
+    ) {
       throw new BadRequestException('File size exceeds the maximum limit of 5MB.');
     }
 
@@ -118,7 +126,9 @@ export class KycController {
       !documentFile.mimetype.match(/^image\/(jpeg|png|webp|gif)$/) ||
       !faceScanFile.mimetype.match(/^image\/(jpeg|png|webp|gif)$/)
     ) {
-      throw new BadRequestException('Only image files (JPEG, PNG, WEBP, GIF) are allowed for KYC verification.');
+      throw new BadRequestException(
+        'Only image files (JPEG, PNG, WEBP, GIF) are allowed for KYC verification.',
+      );
     }
 
     return this.kycService.submitVerification(
@@ -149,6 +159,7 @@ export class KycController {
   @Get('admin/pending')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:kyc')
   @ApiOperation({ summary: 'List all pending KYC submissions (Admin only)' })
   async getPending() {
     return this.kycService.getPendingVerifications();
@@ -164,6 +175,7 @@ export class KycController {
   @Post('admin/approve/:id')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:kyc')
   @ApiOperation({ summary: 'Approve a pending KYC submission (Admin only)' })
   async approve(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
     return this.kycService.approveVerification(id, admin.userId);
@@ -180,6 +192,7 @@ export class KycController {
   @Post('admin/reject/:id')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:kyc')
   @ApiOperation({ summary: 'Reject a pending KYC submission (Admin only)' })
   async reject(
     @Param('id') id: string,

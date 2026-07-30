@@ -32,10 +32,7 @@ describe('AIExtractorService', () => {
   beforeEach(async () => {
     provider = new FakeProvider();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AIExtractorService,
-        { provide: AI_CHAT_PROVIDER, useValue: provider },
-      ],
+      providers: [AIExtractorService, { provide: AI_CHAT_PROVIDER, useValue: provider }],
     }).compile();
     service = module.get(AIExtractorService);
   });
@@ -149,9 +146,7 @@ describe('AIExtractorService', () => {
 
     const userMessage = provider.lastMessages.find((m) => m.role === 'user');
     expect(userMessage).toBeDefined();
-    expect(userMessage!.content.toLowerCase()).not.toContain(
-      'ignore previous instructions',
-    );
+    expect(userMessage!.content.toLowerCase()).not.toContain('ignore previous instructions');
     expect(userMessage!.content).not.toMatch(/^\s*system\s*:/im);
     expect(userMessage!.content).not.toMatch(/^\s*assistant\s*:/im);
     // The real content survives — only the injection markers are removed.
@@ -159,9 +154,7 @@ describe('AIExtractorService', () => {
   });
 
   it('rejects empty resume text with 422', async () => {
-    await expect(service.extract('   ')).rejects.toBeInstanceOf(
-      UnprocessableEntityException,
-    );
+    await expect(service.extract('   ')).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
   it('returns an empty profile when the AI output is unparseable (validator rejects later)', async () => {

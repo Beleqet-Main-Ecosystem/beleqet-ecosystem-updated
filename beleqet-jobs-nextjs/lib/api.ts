@@ -124,3 +124,25 @@ export async function fetchCategories(): Promise<Category[]> {
     return [];
   }
 }
+
+const planSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullish(),
+  priceAmount: z.number(),
+  currency: z.string(),
+  interval: z.enum(["MONTHLY", "YEARLY"]),
+  features: z.record(z.string(), z.unknown()).nullish(),
+  isActive: z.boolean(),
+});
+
+export type Plan = z.infer<typeof planSchema>;
+
+export async function fetchPlans(): Promise<Plan[]> {
+  try {
+    const { data } = await api.get("/plans");
+    return z.array(planSchema).parse(data);
+  } catch {
+    return [];
+  }
+}

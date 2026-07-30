@@ -1,7 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+  Optional,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { IsEnum, IsInt, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ConfigService } from '@nestjs/config';
+import { QUEUE_NAMES, WALLET_JOBS } from '../queues/queues.constants';
 
 export class WithdrawDto {
   @IsInt()
@@ -9,7 +20,9 @@ export class WithdrawDto {
   @Max(1_000_000, { message: 'Maximum single withdrawal is ETB 1,000,000' })
   amount!: number;
 
-  @IsEnum(['CHAPA', 'TELEBIRR', 'CBE_BIRR'], { message: 'method must be CHAPA, TELEBIRR, or CBE_BIRR' })
+  @IsEnum(['CHAPA', 'TELEBIRR', 'CBE_BIRR'], {
+    message: 'method must be CHAPA, TELEBIRR, or CBE_BIRR',
+  })
   method!: 'CHAPA' | 'TELEBIRR' | 'CBE_BIRR';
 
   @IsString()
@@ -37,8 +50,10 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
-  ) { }
+    @Optional()
+    @InjectQueue(QUEUE_NAMES.WALLET)
+    private readonly walletQueue?: Queue,
+  ) {}
 
   async onModuleInit() {
     if (process.env.NODE_ENV === 'test') {
@@ -120,9 +135,15 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
     if (!wallet) throw new NotFoundException('Wallet not found');
 
     const withdrawCurrency = dto.currency || 'ETB';
-    const amountInWalletCurrency = this.convertCurrency(dto.amount, withdrawCurrency, wallet.currency);
+    const amountInWalletCurrency = this.convertCurrency(
+      dto.amount,
+      withdrawCurrency,
+      wallet.currency,
+    );
+    const amountInETB = this.convertCurrency(dto.amount, withdrawCurrency, 'ETB');
 
-    if (wallet.availableBalance < amountInWalletCurrency) throw new BadRequestException('Insufficient available balance');
+    if (wallet.availableBalance < amountInWalletCurrency)
+      throw new BadRequestException('Insufficient available balance');
 
     const { tx } = await this.prisma.$transaction(async (prisma: any) => {
       const updateResult = await prisma.freelancerWallet.updateMany({
@@ -135,64 +156,87 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
       if (updateResult.count === 0) {
         throw new BadRequestException('Insufficient available balance');
       }
-      
+
       const tx = await prisma.walletTransaction.create({
-        data: { walletId: wallet.id, type: 'DEBIT_WITHDRAWAL', amount: amountInWalletCurrency, note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending` },
+        data: {
+          walletId: wallet.id,
+          type: 'DEBIT_WITHDRAWAL',
+          amount: amountInWalletCurrency,
+          note: `WITHDRAWAL_PENDING - Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} - pending Chapa payout of ETB ${amountInETB}`,
+        },
       });
       return { tx };
     });
 
-    const chapaSecret = this.config.get<string>('CHAPA_SECRET_KEY');
-    if (chapaSecret) {
-      try {
-        const response = await fetch('https://api.chapa.co/v1/transfers', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${chapaSecret}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            account_name: 'Freelancer',
-            account_number: dto.accountRef,
-            amount: dto.amount.toString(),
-            currency: 'ETB',
-            reference: tx.id,
-            bank_code: dto.method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
-          }),
-        });
-
-        const data = await response.json() as { status: string; message?: string };
-        if (data.status !== 'success') {
-          this.logger.warn(`Chapa payout rejected: ${data.message}. Rolling back balance for user ${userId}`);
-          await this.prisma.$transaction([
-            this.prisma.freelancerWallet.update({
-              where: { userId },
-              data: { availableBalance: { increment: amountInWalletCurrency } },
-            }),
-            this.prisma.walletTransaction.update({
-              where: { id: tx.id },
-              data: { note: `Withdrawal via ${dto.method} — FAILED: ${data.message}` },
-            }),
-          ]);
-          throw new InternalServerErrorException(`Payout rejected by payment gateway: ${data.message}`);
-        }
-      } catch (err) {
-        if (err instanceof InternalServerErrorException) throw err;
-        this.logger.error(`Failed to reach Chapa payout: ${(err as Error).message}. Rolling back.`);
-        await this.prisma.$transaction([
-          this.prisma.freelancerWallet.update({
-            where: { userId },
-            data: { availableBalance: { increment: amountInWalletCurrency } },
-          }),
-          this.prisma.walletTransaction.update({
-            where: { id: tx.id },
-            data: { note: `Withdrawal via ${dto.method} — FAILED: network error` },
-          }),
-        ]);
-        throw new InternalServerErrorException('Could not reach payment gateway. Your balance has been restored.');
-      }
+    if (!this.walletQueue) {
+      await this.restoreFailedWithdrawal(
+        userId,
+        tx.id,
+        amountInWalletCurrency,
+        'withdrawal queue unavailable',
+      );
+      throw new InternalServerErrorException('Withdrawal queue is unavailable.');
     }
 
-    return { success: true, amount: dto.amount, method: dto.method, note: 'Payout processing — typically 1-2 business days' };
+    try {
+      await this.walletQueue.add(
+        WALLET_JOBS.PROCESS_WITHDRAWAL,
+        {
+          withdrawalTxId: tx.id,
+          userId,
+          walletId: wallet.id,
+          requestedAmount: dto.amount,
+          requestedCurrency: withdrawCurrency,
+          walletAmount: amountInWalletCurrency,
+          payoutAmount: amountInETB,
+          payoutCurrency: 'ETB',
+          method: dto.method,
+          accountRef: dto.accountRef,
+        },
+        {
+          jobId: `wallet-withdrawal:${tx.id}`,
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 30_000 },
+        },
+      );
+    } catch (err) {
+      this.logger.error(`Failed to enqueue Chapa payout: ${(err as Error).message}. Rolling back.`);
+      await this.restoreFailedWithdrawal(
+        userId,
+        tx.id,
+        amountInWalletCurrency,
+        'withdrawal queue unavailable',
+      );
+      throw new InternalServerErrorException(
+        'Could not queue payout. Your balance has been restored.',
+      );
+    }
+
+    return {
+      success: true,
+      amount: dto.amount,
+      amountInETB,
+      method: dto.method,
+      status: 'PENDING',
+      note: 'Payout queued - typically 1-2 business days',
+    };
+  }
+
+  private async restoreFailedWithdrawal(
+    userId: string,
+    withdrawalTxId: string,
+    amountInWalletCurrency: number,
+    reason: string,
+  ) {
+    await this.prisma.$transaction([
+      this.prisma.freelancerWallet.update({
+        where: { userId },
+        data: { availableBalance: { increment: amountInWalletCurrency } },
+      }),
+      this.prisma.walletTransaction.update({
+        where: { id: withdrawalTxId },
+        data: { note: `WITHDRAWAL_FAILED - Withdrawal FAILED: ${reason}` },
+      }),
+    ]);
   }
 }

@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { I18nService } from 'nestjs-i18n';
 import { AdminStatsController } from './admin-stats.controller';
 import { WalletService } from '../wallet/wallet.service';
+import { RolesGuard } from '../../common/guards/roles.guard';
 
 /**
  * Unit tests for the Admin Stats Module
@@ -12,8 +13,6 @@ describe('AdminStats Module', () => {
   let service: AdminStatsService;
   let controller: AdminStatsController;
   let prismaService: jest.Mocked<PrismaService>;
-  let i18nService: jest.Mocked<I18nService>;
-  let walletService: jest.Mocked<WalletService>;
 
   beforeEach(async () => {
     const prismaMock = {
@@ -42,12 +41,14 @@ describe('AdminStats Module', () => {
         { provide: I18nService, useValue: i18nMock },
         { provide: WalletService, useValue: walletMock },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     service = module.get<AdminStatsService>(AdminStatsService);
     controller = module.get<AdminStatsController>(AdminStatsController);
     prismaService = module.get(PrismaService);
-    i18nService = module.get(I18nService);
   });
 
   it('should be defined', () => {

@@ -4,6 +4,7 @@ import { StatsQueryDto } from './dto/stats-query.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 /**
  * Handles admin statistics routes.
@@ -11,13 +12,14 @@ import { Roles } from '../../common/decorators/roles.decorator';
 @Controller('admin-stats')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AdminStatsController {
-  constructor(private readonly adminStatsService: AdminStatsService) { }
+  constructor(private readonly adminStatsService: AdminStatsService) {}
 
   /**
    * Returns the dashboard statistics for admin users.
    */
   @Get('dashboard')
   @Roles('ADMIN')
+  @RequirePermissions('view:stats')
   async getDashboard(
     @Query(new ValidationPipe({ transform: true })) query: StatsQueryDto,
   ): Promise<PlatformStats> {

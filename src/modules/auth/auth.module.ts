@@ -1,8 +1,9 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
-import { BullModule } from '@nestjs/bullmq'; 
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { QueuesModule } from '../queues/queues.module';
 import { QUEUE_NAMES } from '../queues/queues.constants';
@@ -19,8 +20,9 @@ import {
 import { TOKEN_CIPHER } from './interfaces/token-cipher.interface';
 import { EMAIL_SENDER } from './interfaces/email-sender.interface';
 import { MailService } from '../../mail/mail.service';
-import { AUDIT_LOGGER } from './interfaces/audit-logger.interface';
-import { PrismaAuditLogger } from './services/prisma-audit-logger.service';
+import { AUDIT_LOGGER } from '../../common/interfaces/audit-logger.interface';
+import { AuditModule } from '../audit/audit.module';
+import { AuditService } from '../audit/audit.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -28,25 +30,27 @@ import { AuthController } from './auth.controller';
 import { AuthExceptionFilter } from './filters/auth-exception.filter';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
 
-/**
- * Synchronously loaded Auth environment configuration.
- */
-const authEnvConfig = loadAuthEnvConfig();
-
 @Module({
   imports: [
     PrismaModule,
     QueuesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({ secret: authEnvConfig.jwtAccessSecret }),
+    JwtModule.registerAsync({
+      useFactory: (_configService: ConfigService) => {
+        const authConfig = loadAuthEnvConfig();
+        return { secret: authConfig.jwtAccessSecret };
+      },
+      inject: [ConfigService],
+    }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    AuditModule,
     forwardRef(() => TwoFactorModule),
   ],
   controllers: [AuthController],
   providers: [
     {
       provide: AUTH_ENV_CONFIG,
-      useValue: authEnvConfig,
+      useFactory: () => loadAuthEnvConfig(),
     },
     {
       provide: TOKEN_ENCRYPTION_KEY,
@@ -65,10 +69,9 @@ const authEnvConfig = loadAuthEnvConfig();
       useExisting: AccountRepository,
     },
     AccountLinkingService,
-    PrismaAuditLogger,
     {
       provide: AUDIT_LOGGER,
-      useExisting: PrismaAuditLogger,
+      useExisting: AuditService,
     },
     {
       provide: EMAIL_SENDER,
@@ -88,6 +91,7 @@ const authEnvConfig = loadAuthEnvConfig();
     TokenEncryptionService,
     JwtModule,
     forwardRef(() => TwoFactorModule),
+    AUDIT_LOGGER,
   ],
 })
 export class AuthModule {}

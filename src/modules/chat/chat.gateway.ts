@@ -1,11 +1,11 @@
-import { 
-  WebSocketGateway, 
-  SubscribeMessage, 
-  MessageBody, 
-  ConnectedSocket, 
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
   WebSocketServer,
   OnGatewayConnection,
-  OnGatewayDisconnect
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
@@ -15,12 +15,12 @@ import { I18nService } from 'nestjs-i18n';
 
 @WebSocketGateway({
   cors: { origin: true, credentials: true },
-  namespace: '/chat'
+  namespace: '/chat',
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
-  
+
   private readonly logger = new Logger(ChatGateway.name);
 
   constructor(
@@ -34,10 +34,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Expect token in handshake auth: { token: "Bearer eyJ..." }
       const tokenString = client.handshake.auth?.token || client.handshake.headers?.authorization;
       if (!tokenString) throw new Error('No token provided');
-      
+
       const token = tokenString.replace('Bearer ', '').trim();
       const payload = this.jwtService.verify(token);
-      
+
       client.data.user = payload;
       this.logger.log(`[ChatGateway] Client connected: ${client.id} (User: ${payload.userId})`);
     } catch (err) {
@@ -52,13 +52,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('join_room')
-  async handleJoinRoom(
-    @MessageBody() data: { roomId: string },
-    @ConnectedSocket() client: Socket
-  ) {
+  async handleJoinRoom(@MessageBody() data: { roomId: string }, @ConnectedSocket() client: Socket) {
     const userId = client.data.user?.userId;
     if (!userId || !data.roomId) {
-      client.emit('error', { message: this.i18n.t('messages.chat.roomIdRequired', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.roomIdRequired', { lang: 'en' }),
+      });
       return;
     }
 
@@ -74,18 +73,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('room_history', history);
     } catch (err) {
       this.logger.error(`Error joining room: ${(err as Error).message}`);
-      client.emit('error', { message: this.i18n.t('messages.chat.joinRoomFailed', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.joinRoomFailed', { lang: 'en' }),
+      });
     }
   }
 
   @SubscribeMessage('send_message')
   async handleMessage(
     @MessageBody() data: { roomId: string; content: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.user?.userId;
     if (!userId || !data.roomId || !data.content) {
-      client.emit('error', { message: this.i18n.t('messages.chat.messageContentRequired', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.messageContentRequired', { lang: 'en' }),
+      });
       return;
     }
 
@@ -95,50 +98,71 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(data.roomId).emit('new_message', savedMsg);
     } catch (err) {
       this.logger.error(`Error sending message: ${(err as Error).message}`);
-      client.emit('error', { message: this.i18n.t('messages.chat.sendMessageFailed', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.sendMessageFailed', { lang: 'en' }),
+      });
     }
   }
 
   @SubscribeMessage('share_file')
   async handleShareFile(
     @MessageBody() data: { roomId: string; fileUrl: string; fileName: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.user?.userId;
     if (!userId || !data.roomId || !data.fileUrl) {
-      client.emit('error', { message: this.i18n.t('messages.chat.fileUrlRequired', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.fileUrlRequired', { lang: 'en' }),
+      });
       return;
     }
 
     try {
       const content = `Shared a file: ${data.fileName}`;
-      const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, { type: 'file', url: data.fileUrl, name: data.fileName });
+      const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, {
+        type: 'file',
+        url: data.fileUrl,
+        name: data.fileName,
+      });
       this.server.to(data.roomId).emit('new_message', savedMsg);
     } catch (err) {
       this.logger.error(`Error sharing file: ${(err as Error).message}`);
-      client.emit('error', { message: this.i18n.t('messages.chat.shareFileFailed', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.shareFileFailed', { lang: 'en' }),
+      });
     }
   }
 
   @SubscribeMessage('start_video_call')
   async handleStartVideoCall(
     @MessageBody() data: { roomId: string; callLink: string },
-    @ConnectedSocket() client: Socket
+    @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.user?.userId;
     if (!userId || !data.roomId || !data.callLink) {
-      client.emit('error', { message: this.i18n.t('messages.chat.callLinkRequired', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.callLinkRequired', { lang: 'en' }),
+      });
       return;
     }
 
     try {
       const content = `Started a video call. Click to join.`;
-      const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, { type: 'video_call', link: data.callLink });
+      const savedMsg = await this.chatService.saveMessage(data.roomId, userId, content, {
+        type: 'video_call',
+        link: data.callLink,
+      });
       this.server.to(data.roomId).emit('new_message', savedMsg);
-      this.server.to(data.roomId).emit('incoming_video_call', { roomId: data.roomId, link: data.callLink, callerId: userId });
+      this.server.to(data.roomId).emit('incoming_video_call', {
+        roomId: data.roomId,
+        link: data.callLink,
+        callerId: userId,
+      });
     } catch (err) {
       this.logger.error(`Error starting video call: ${(err as Error).message}`);
-      client.emit('error', { message: this.i18n.t('messages.chat.startVideoCallFailed', { lang: 'en' }) });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.startVideoCallFailed', { lang: 'en' }),
+      });
     }
   }
 }

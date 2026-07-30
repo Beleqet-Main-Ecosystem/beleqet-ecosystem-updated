@@ -22,9 +22,7 @@ export class EncryptionService {
   constructor(config: ConfigService) {
     const raw = config.get<string>('TOTP_ENCRYPTION_KEY');
     if (!raw) {
-      throw new Error(
-        'TOTP_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32',
-      );
+      throw new Error('TOTP_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32');
     }
     const normalized = raw.length === 64 ? raw : raw.slice(0, 64);
     this.key = Buffer.from(normalized, 'hex');
@@ -40,10 +38,7 @@ export class EncryptionService {
   encrypt(plaintext: string): { ciphertext: string; keyVersion: string } {
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, this.key, iv);
-    const encrypted = Buffer.concat([
-      cipher.update(plaintext, 'utf8'),
-      cipher.final(),
-    ]);
+    const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const authTag = cipher.getAuthTag();
     const payload = Buffer.concat([iv, authTag, encrypted]);
     return { ciphertext: payload.toString('base64'), keyVersion: KEY_VERSION };
@@ -59,10 +54,7 @@ export class EncryptionService {
     const encrypted = payload.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
     const decipher = crypto.createDecipheriv(ALGORITHM, this.key, iv);
     decipher.setAuthTag(authTag);
-    const decrypted = Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     return decrypted.toString('utf8');
   }
 }

@@ -38,7 +38,9 @@ export class BackupCodeDto {
 }
 
 export class StepUpDto {
-  @ApiProperty({ description: 'Step-up challenge token from sensitive action guard or challenge endpoint' })
+  @ApiProperty({
+    description: 'Step-up challenge token from sensitive action guard or challenge endpoint',
+  })
   @IsString()
   @IsNotEmpty()
   stepUpToken: string;
@@ -48,19 +50,27 @@ export class StepUpDto {
   @Length(6, 6)
   code: string;
 
-  @ApiProperty({ description: 'Optional action type for scoped challenge verification', required: false })
+  @ApiProperty({
+    description: 'Optional action type for scoped challenge verification',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   action?: string;
 
-  @ApiProperty({ description: 'Optional resource ID for scoped challenge verification', required: false })
+  @ApiProperty({
+    description: 'Optional resource ID for scoped challenge verification',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   resourceId?: string;
 }
 
 export class ChallengeDto {
-  @ApiProperty({ description: 'Action type to scope the challenge (e.g. wallet_withdraw, milestone_release)' })
+  @ApiProperty({
+    description: 'Action type to scope the challenge (e.g. wallet_withdraw, milestone_release)',
+  })
   @IsString()
   @IsNotEmpty()
   action: string;

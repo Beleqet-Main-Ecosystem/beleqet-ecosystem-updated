@@ -1,6 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MinLength, IsArray } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+  IsArray,
+} from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -12,6 +20,7 @@ import { Queue } from 'bullmq';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { adminAnnouncementEmail } from '../notifications/email-templates';
 import { ChatService } from '../chat/chat.service';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -57,6 +66,7 @@ const safeUserSelect = {
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
+@RequirePermissions('manage:users')
 @Controller('admin')
 export class AdminController {
   constructor(
@@ -148,7 +158,7 @@ export class AdminController {
             to: u.email,
             subject: dto.title,
             ...email,
-          })
+          }),
         )
         .catch(() => {});
     }
@@ -191,14 +201,14 @@ export class AdminController {
 
     let chatHistory: any[] = [];
     const chatRoom = await this.prisma.chatRoom.findUnique({
-      where: { contractId: dispute.contractId }
+      where: { contractId: dispute.contractId },
     });
 
     if (chatRoom) {
       chatHistory = await this.prisma.message.findMany({
         where: { roomId: chatRoom.id },
         orderBy: { createdAt: 'asc' },
-        include: { sender: { select: safeUserSelect } }
+        include: { sender: { select: safeUserSelect } },
       });
     }
 
@@ -218,6 +228,7 @@ export class AdminController {
         contractsAsClient: true,
         contractsAsFreelancer: true,
         kycVerification: true,
+        subscriptions: { include: { transactions: true } },
       },
     });
 

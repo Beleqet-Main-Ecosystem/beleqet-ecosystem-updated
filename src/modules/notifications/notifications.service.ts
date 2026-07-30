@@ -151,4 +151,74 @@ export class NotificationsService {
         : Promise.resolve(),
     ]);
   }
+
+  /** Notifies a user that their subscription will expire within a few days. */
+  async sendSubscriptionExpiringSoon(
+    userId: string,
+    planName: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    const title = await this.i18n.translate('subscriptions.notification.expiringSoonTitle');
+    const body = await this.i18n.translate('subscriptions.notification.expiringSoonBody', {
+      args: { planName, expiresAt: expiresAt.toLocaleDateString('en-US') },
+    });
+    await this.dispatchNotification(
+      userId,
+      NOTIFICATION_TYPES.SUBSCRIPTION_EXPIRING_SOON,
+      title,
+      body,
+      {
+        planName,
+        expiresAt: expiresAt.toISOString(),
+      },
+    );
+  }
+
+  /** Notifies a user that their subscription has just expired. */
+  async sendSubscriptionExpired(userId: string, planName: string): Promise<void> {
+    const title = await this.i18n.translate('subscriptions.notification.expiredTitle');
+    const body = await this.i18n.translate('subscriptions.notification.expiredBody', {
+      args: { planName },
+    });
+    await this.dispatchNotification(userId, NOTIFICATION_TYPES.SUBSCRIPTION_EXPIRED, title, body, {
+      planName,
+    });
+  }
+
+  /** Shared fan-out (in-app + email + Telegram) used by the subscription notifications above. */
+  private async dispatchNotification(
+    userId: string,
+    type: string,
+    title: string,
+    body: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, telegramId: true },
+    });
+
+    await Promise.all([
+      this.notificationQueue.add(NOTIFICATION_JOBS.SEND_IN_APP, {
+        userId,
+        type,
+        title,
+        body,
+        metadata,
+      }),
+      user?.email
+        ? this.notificationQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+            to: user.email,
+            subject: title,
+            html: `<p>${body}</p>`,
+          })
+        : Promise.resolve(),
+      user?.telegramId
+        ? this.notificationQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
+            telegramId: user.telegramId,
+            message: body,
+          })
+        : Promise.resolve(),
+    ]);
+  }
 }

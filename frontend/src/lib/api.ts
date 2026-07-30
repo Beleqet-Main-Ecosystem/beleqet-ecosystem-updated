@@ -3,7 +3,27 @@
  * All backend communication is handled here - not inside components (DRY principle).
  */
 import apiClient from './apiClient';
-import type { AuthResponse, Dispute, PlatformStats } from '@/types';
+import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters } from '@/types';
+import type { ThemePreference } from '@/components/theme/theme-preference';
+
+/** API response shape for the minimal persisted user theme setting. */
+export interface ThemePreferenceResponse {
+  theme: ThemePreference;
+}
+
+/** Fetches the current authenticated user's persisted theme preference. */
+export async function getThemePreference(): Promise<ThemePreferenceResponse> {
+  const { data } = await apiClient.get<ThemePreferenceResponse>('/user-preferences/theme');
+  return data;
+}
+
+/** Persists the selected theme for the current authenticated user. */
+export async function updateThemePreference(
+  theme: ThemePreference,
+): Promise<ThemePreferenceResponse> {
+  const { data } = await apiClient.patch<ThemePreferenceResponse>('/user-preferences/theme', { theme });
+  return data;
+}
 
 /** Logs in a user and stores the JWT token in localStorage */
 export async function login(email: string, password: string): Promise<AuthResponse> {
@@ -74,5 +94,54 @@ export async function createDispute(
     reason,
     evidenceUrls,
   });
+  return data;
+}
+
+/** Fetches a paginated, filterable slice of the audit trail (Admin-only). */
+export async function fetchAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogPage> {
+  const { data } = await apiClient.get<AuditLogPage>('/audit-logs', { params: filters });
+  return data;
+}
+
+export type EscrowInitiationResult = {
+  escrowId: string;
+  checkoutUrl?: string | null;
+  grossAmount: number;
+  platformFee: number;
+  netAmount: number;
+  walletAppliedAmount: number;
+  amountToPay?: number;
+};
+
+export type MilestoneConfirmationResult = {
+  success: boolean;
+  released: boolean;
+  waitingFor?: 'EMPLOYER' | 'FREELANCER';
+  alreadyReleased?: boolean;
+};
+
+export async function initiateEscrow(gigId: string): Promise<EscrowInitiationResult> {
+  const { data } = await apiClient.post<EscrowInitiationResult>(`/escrow/initiate/${gigId}`);
+  return data;
+}
+
+export async function confirmEscrowMilestone(
+  milestoneId: string,
+  note?: string,
+): Promise<MilestoneConfirmationResult> {
+  const { data } = await apiClient.post<MilestoneConfirmationResult>(
+    `/escrow/milestones/${milestoneId}/confirm`,
+    note ? { note } : {},
+  );
+  return data;
+}
+
+export async function enqueueChapaCallback(
+  payload: Record<string, unknown>,
+): Promise<{ success?: boolean; queued?: boolean; eventKey?: string }> {
+  const { data } = await apiClient.post<{ success?: boolean; queued?: boolean; eventKey?: string }>(
+    '/escrow/callback',
+    payload,
+  );
   return data;
 }

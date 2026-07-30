@@ -84,8 +84,7 @@ describe('ResumeBrainService', () => {
     it('accepts a .docx file', () => {
       const file = makeFile({
         originalname: 'cv.docx',
-        mimetype:
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         buffer: DOCX_BYTES,
       });
       expect(service.describeUpload(file).filename).toBe('cv.docx');
@@ -97,9 +96,7 @@ describe('ResumeBrainService', () => {
         mimetype: 'application/msword',
         buffer: Buffer.from('\xd0\xcf\x11\xe0 legacy doc'),
       });
-      expect(() => service.describeUpload(file)).toThrow(
-        UnsupportedMediaTypeException,
-      );
+      expect(() => service.describeUpload(file)).toThrow(UnsupportedMediaTypeException);
     });
 
     it('rejects a spoofed MIME type when the extension is not allowed', () => {
@@ -108,9 +105,7 @@ describe('ResumeBrainService', () => {
         originalname: 'malware.exe',
         mimetype: 'application/pdf',
       });
-      expect(() => service.describeUpload(file)).toThrow(
-        UnsupportedMediaTypeException,
-      );
+      expect(() => service.describeUpload(file)).toThrow(UnsupportedMediaTypeException);
     });
 
     it('rejects a spoofed extension when the MIME type is not allowed', () => {
@@ -119,9 +114,7 @@ describe('ResumeBrainService', () => {
         originalname: 'malware.pdf',
         mimetype: 'application/x-msdownload',
       });
-      expect(() => service.describeUpload(file)).toThrow(
-        UnsupportedMediaTypeException,
-      );
+      expect(() => service.describeUpload(file)).toThrow(UnsupportedMediaTypeException);
     });
 
     it('throws 400 when no file is provided', () => {
@@ -130,36 +123,27 @@ describe('ResumeBrainService', () => {
 
     it('throws 415 for an unsupported type (image/png)', () => {
       const file = makeFile({ originalname: 'image.png', mimetype: 'image/png' });
-      expect(() => service.describeUpload(file)).toThrow(
-        UnsupportedMediaTypeException,
-      );
+      expect(() => service.describeUpload(file)).toThrow(UnsupportedMediaTypeException);
     });
 
     it('throws 415 when a .pdf name carries non-PDF content (magic-number mismatch)', () => {
       const file = makeFile({ buffer: Buffer.from('this is not a pdf at all') });
-      expect(() => service.describeUpload(file)).toThrow(
-        UnsupportedMediaTypeException,
-      );
+      expect(() => service.describeUpload(file)).toThrow(UnsupportedMediaTypeException);
     });
 
     it('throws 415 when a .docx name carries non-ZIP content', () => {
       const file = makeFile({
         originalname: 'cv.docx',
-        mimetype:
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         buffer: Buffer.from('not a zip file'),
       });
-      expect(() => service.describeUpload(file)).toThrow(
-        UnsupportedMediaTypeException,
-      );
+      expect(() => service.describeUpload(file)).toThrow(UnsupportedMediaTypeException);
     });
 
     it('throws 415 when the file is too small to carry a valid header', () => {
       // A <4-byte buffer used to skip the magic-number check entirely.
       const file = makeFile({ buffer: Buffer.from('%P') });
-      expect(() => service.describeUpload(file)).toThrow(
-        UnsupportedMediaTypeException,
-      );
+      expect(() => service.describeUpload(file)).toThrow(UnsupportedMediaTypeException);
     });
   });
 
@@ -180,16 +164,12 @@ describe('ResumeBrainService', () => {
     it('rejects with 415 before parsing when the type is unsupported', async () => {
       const file = makeFile({ originalname: 'image.png', mimetype: 'image/png' });
 
-      await expect(service.parseResume(file)).rejects.toThrow(
-        UnsupportedMediaTypeException,
-      );
+      await expect(service.parseResume(file)).rejects.toThrow(UnsupportedMediaTypeException);
       expect(parser.extractText).not.toHaveBeenCalled();
     });
 
     it('rejects with 400 when no file is provided', async () => {
-      await expect(service.parseResume(undefined)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.parseResume(undefined)).rejects.toThrow(BadRequestException);
       expect(parser.extractText).not.toHaveBeenCalled();
     });
 
@@ -198,9 +178,7 @@ describe('ResumeBrainService', () => {
         new UnprocessableEntityException('No readable text found in the document.'),
       );
 
-      await expect(service.parseResume(makeFile())).rejects.toThrow(
-        UnprocessableEntityException,
-      );
+      await expect(service.parseResume(makeFile())).rejects.toThrow(UnprocessableEntityException);
     });
   });
 
@@ -248,9 +226,9 @@ describe('ResumeBrainService', () => {
         new HttpException('Daily limit reached', HttpStatus.TOO_MANY_REQUESTS),
       );
 
-      await expect(
-        service.extractProfile(makeFile(), 'user-1'),
-      ).rejects.toMatchObject({ status: HttpStatus.TOO_MANY_REQUESTS });
+      await expect(service.extractProfile(makeFile(), 'user-1')).rejects.toMatchObject({
+        status: HttpStatus.TOO_MANY_REQUESTS,
+      });
       expect(aiExtractor.extract).not.toHaveBeenCalled();
       expect(budget.recordUsage).not.toHaveBeenCalled();
     });

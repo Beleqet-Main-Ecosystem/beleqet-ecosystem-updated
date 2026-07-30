@@ -1,0 +1,7 @@
+{
+  "roleExists": "Role with name {name} already exists.",
+  "permissionExists": "Permission with action {action} already exists.",
+  "roleNotFound": "Role not found.",
+  "permissionNotFound": "Permission not found.",
+  "userNotFound": "User not found."
+}

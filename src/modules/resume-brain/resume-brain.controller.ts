@@ -1,25 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-} from '@nestjs/common';
+import { Controller, Get, Post, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiConsumes,
-  ApiBody,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import {
-  CurrentUser,
-  CurrentUserPayload,
-} from '../../common/decorators/current-user.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { ResumeBrainService, UploadedResumeFile } from './resume-brain.service';
 import { MAX_FILE_SIZE_BYTES } from './resume-brain.constants';
 
@@ -67,8 +51,7 @@ export class ResumeBrainController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 parses / minute
   @ApiBearerAuth()
   @ApiOperation({
-    summary:
-      'Upload a resume (PDF/DOCX, max 5MB) and extract its plain text (no AI yet)',
+    summary: 'Upload a resume (PDF/DOCX, max 5MB) and extract its plain text (no AI yet)',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -77,9 +60,7 @@ export class ResumeBrainController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }),
-  )
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }))
   parse(@UploadedFile() file: UploadedResumeFile) {
     return this.resumeBrainService.parseResume(file);
   }
@@ -103,13 +84,8 @@ export class ResumeBrainController {
       properties: { file: { type: 'string', format: 'binary' } },
     },
   })
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }),
-  )
-  extract(
-    @UploadedFile() file: UploadedResumeFile,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }))
+  extract(@UploadedFile() file: UploadedResumeFile, @CurrentUser() user: CurrentUserPayload) {
     return this.resumeBrainService.extractProfile(file, user?.userId);
   }
 }
