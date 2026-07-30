@@ -36,7 +36,11 @@ interface NotificationItemProps {
   compact?: boolean;
 }
 
-export default function NotificationItem({ notification, onMarkRead, compact = false }: NotificationItemProps) {
+export default function NotificationItem({
+  notification,
+  onMarkRead,
+  compact = false,
+}: NotificationItemProps) {
   const config = TYPE_CONFIG[notification.type] ?? DEFAULT_CONFIG;
 
   function handleClick() {

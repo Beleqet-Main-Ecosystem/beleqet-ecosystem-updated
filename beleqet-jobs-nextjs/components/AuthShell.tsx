@@ -1,11 +1,11 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ShieldCheck, BellRing, Send } from "lucide-react";
+import Image from 'next/image';
+import Link from 'next/link';
+import { ShieldCheck, BellRing, Send } from 'lucide-react';
 
 const highlights = [
-  { icon: ShieldCheck, text: "100% verified job listings" },
-  { icon: BellRing, text: "Real-time alerts on new roles" },
-  { icon: Send, text: "Instant Telegram notifications" },
+  { icon: ShieldCheck, text: '100% verified job listings' },
+  { icon: BellRing, text: 'Real-time alerts on new roles' },
+  { icon: Send, text: 'Instant Telegram notifications' },
 ];
 
 export default function AuthShell({
@@ -36,7 +36,8 @@ export default function AuthShell({
               Find your next opportunity, faster.
             </h2>
             <p className="mt-4 text-white/70 max-w-sm text-sm leading-relaxed">
-              Join thousands of job seekers and employers across Ethiopia on the Beleqet Vacancy Platform.
+              Join thousands of job seekers and employers across Ethiopia on the Beleqet Vacancy
+              Platform.
             </p>
             <ul className="mt-8 space-y-3">
               {highlights.map(({ icon: Icon, text }) => (
@@ -49,7 +50,9 @@ export default function AuthShell({
               ))}
             </ul>
           </div>
-          <p className="text-xs text-white/50">© {new Date().getFullYear()} Beleqet Jobs. All rights reserved.</p>
+          <p className="text-xs text-white/50">
+            © {new Date().getFullYear()} Beleqet Jobs. All rights reserved.
+          </p>
         </div>
       </div>
 

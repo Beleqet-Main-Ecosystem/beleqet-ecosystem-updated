@@ -1,10 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { Settings, Save, CheckCircle2 } from 'lucide-react';
-import {
-  fetchNotificationPreferences,
-  updateNotificationPreferences,
-} from '@/lib/api';
+import { fetchNotificationPreferences, updateNotificationPreferences } from '@/lib/api';
 import type { NotificationPreference } from '@/types';
 
 const LANGUAGES = [
@@ -36,7 +33,12 @@ export default function NotificationSettingsPage() {
     load();
   }, [load]);
 
-  function toggle(key: keyof Pick<NotificationPreference, 'emailEnabled' | 'telegramEnabled' | 'inAppEnabled' | 'pushEnabled' | 'smsEnabled'>) {
+  function toggle(
+    key: keyof Pick<
+      NotificationPreference,
+      'emailEnabled' | 'telegramEnabled' | 'inAppEnabled' | 'pushEnabled' | 'smsEnabled'
+    >,
+  ) {
     if (!prefs) return;
     setPrefs({ ...prefs, [key]: !prefs[key] });
   }
@@ -89,11 +91,31 @@ export default function NotificationSettingsPage() {
   }
 
   const channels = [
-    { key: 'inAppEnabled' as const, label: 'In-App Notifications', desc: 'Show notifications inside the app' },
-    { key: 'emailEnabled' as const, label: 'Email Notifications', desc: 'Receive notifications via email' },
-    { key: 'telegramEnabled' as const, label: 'Telegram Notifications', desc: 'Receive notifications via Telegram bot' },
-    { key: 'pushEnabled' as const, label: 'Push Notifications', desc: 'Receive browser push notifications' },
-    { key: 'smsEnabled' as const, label: 'SMS Notifications', desc: 'Receive notifications via SMS' },
+    {
+      key: 'inAppEnabled' as const,
+      label: 'In-App Notifications',
+      desc: 'Show notifications inside the app',
+    },
+    {
+      key: 'emailEnabled' as const,
+      label: 'Email Notifications',
+      desc: 'Receive notifications via email',
+    },
+    {
+      key: 'telegramEnabled' as const,
+      label: 'Telegram Notifications',
+      desc: 'Receive notifications via Telegram bot',
+    },
+    {
+      key: 'pushEnabled' as const,
+      label: 'Push Notifications',
+      desc: 'Receive browser push notifications',
+    },
+    {
+      key: 'smsEnabled' as const,
+      label: 'SMS Notifications',
+      desc: 'Receive notifications via SMS',
+    },
   ];
 
   return (
@@ -110,11 +132,17 @@ export default function NotificationSettingsPage() {
           disabled={saving}
         >
           {saving ? (
-            <><div className="spinner" style={{ width: 14, height: 14 }} /> Saving…</>
+            <>
+              <div className="spinner" style={{ width: 14, height: 14 }} /> Saving…
+            </>
           ) : saved ? (
-            <><CheckCircle2 size={16} /> Saved</>
+            <>
+              <CheckCircle2 size={16} /> Saved
+            </>
           ) : (
-            <><Save size={16} /> Save changes</>
+            <>
+              <Save size={16} /> Save changes
+            </>
           )}
         </button>
       </div>

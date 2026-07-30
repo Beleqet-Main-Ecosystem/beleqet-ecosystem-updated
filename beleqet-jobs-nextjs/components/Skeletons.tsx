@@ -37,7 +37,10 @@ export function CategoryGridSkeleton() {
       <div className="h-6 w-56 rounded bg-pageBg mb-6 animate-pulse" />
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white px-3 py-5 animate-pulse">
+          <div
+            key={i}
+            className="flex flex-col items-center gap-2 rounded-xl border border-border bg-white px-3 py-5 animate-pulse"
+          >
             <div className="h-9 w-9 rounded-lg bg-pageBg" />
             <div className="h-3 w-16 rounded bg-pageBg" />
             <div className="h-2.5 w-10 rounded bg-pageBg" />

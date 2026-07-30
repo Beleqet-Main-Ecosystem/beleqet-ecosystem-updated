@@ -1,41 +1,35 @@
-"use client";
+'use client';
 
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { usePortfolioBuilder } from "../hooks/usePortfolioBuilder";
-import { usePortfolioTranslations } from "../hooks/usePortfolioTranslations";
-import { BuilderToolbar } from "../components/BuilderToolbar";
-import { IndustrySelector } from "../components/IndustrySelector";
-import { LanguageSwitcher } from "../components/LanguageSwitcher";
-import { PortfolioAuthModal } from "../components/PortfolioAuthModal";
-import { PortfolioSidebar } from "../components/PortfolioSidebar";
-import { TemplateSelector } from "../components/TemplateSelector";
-import { SectionEditor } from "./SectionEditor";
-import { PreviewPanel } from "../preview/PreviewPanel";
-import type { PortfolioSectionId, TemplateId } from "../types";
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { usePortfolioBuilder } from '../hooks/usePortfolioBuilder';
+import { usePortfolioTranslations } from '../hooks/usePortfolioTranslations';
+import { BuilderToolbar } from '../components/BuilderToolbar';
+import { IndustrySelector } from '../components/IndustrySelector';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { PortfolioAuthModal } from '../components/PortfolioAuthModal';
+import { PortfolioSidebar } from '../components/PortfolioSidebar';
+import { TemplateSelector } from '../components/TemplateSelector';
+import { SectionEditor } from './SectionEditor';
+import { PreviewPanel } from '../preview/PreviewPanel';
+import type { PortfolioSectionId, TemplateId } from '../types';
 
-const VALID_TEMPLATES: TemplateId[] = [
-  "modern",
-  "minimal",
-  "professional",
-  "creative",
-];
+const VALID_TEMPLATES: TemplateId[] = ['modern', 'minimal', 'professional', 'creative'];
 
 /**
  * Main portfolio builder shell — split editor + live preview.
  */
 export default function PortfolioBuilderClient() {
   const searchParams = useSearchParams();
-  const templateParam = searchParams.get("template");
+  const templateParam = searchParams.get('template');
   const initialTemplate = VALID_TEMPLATES.includes(templateParam as TemplateId)
     ? (templateParam as TemplateId)
     : undefined;
 
   const builder = usePortfolioBuilder(initialTemplate);
   const { t, locale, setLocale } = usePortfolioTranslations();
-  const [activeSection, setActiveSection] =
-    useState<PortfolioSectionId>("profile");
+  const [activeSection, setActiveSection] = useState<PortfolioSectionId>('profile');
 
   useEffect(() => {
     if (initialTemplate && builder.loaded) {
@@ -43,24 +37,18 @@ export default function PortfolioBuilderClient() {
     }
   }, [initialTemplate, builder.loaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handlePersist(
-    action: "save" | "export" | "publish",
-  ) {
+  async function handlePersist(action: 'save' | 'export' | 'publish') {
     const ok = await builder.persist(action);
     if (ok) {
-      toast.success(
-        action === "publish" ? t("published") : t("saved"),
-      );
+      toast.success(action === 'publish' ? t('published') : t('saved'));
     } else if (builder.user) {
-      toast.error("Could not save portfolio. Try again.");
+      toast.error('Could not save portfolio. Try again.');
     }
   }
 
   if (!builder.loaded) {
     return (
-      <div className="container-page py-16 text-center text-ink/60">
-        Loading portfolio builder…
-      </div>
+      <div className="container-page py-16 text-center text-ink/60">Loading portfolio builder…</div>
     );
   }
 
@@ -70,8 +58,8 @@ export default function PortfolioBuilderClient() {
         <p className="text-xs font-extrabold uppercase tracking-[.16em] text-brandGreen">
           Master Profile
         </p>
-        <h1 className="text-hero text-primary">{t("builderTitle")}</h1>
-        <p className="max-w-2xl text-sm text-ink/70">{t("builderSubtitle")}</p>
+        <h1 className="text-hero text-primary">{t('builderTitle')}</h1>
+        <p className="max-w-2xl text-sm text-ink/70">{t('builderSubtitle')}</p>
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -80,7 +68,7 @@ export default function PortfolioBuilderClient() {
           selected={builder.data.industries}
           locale={locale}
           onToggle={builder.toggleIndustry}
-          label={t("selectIndustries")}
+          label={t('selectIndustries')}
         />
       </div>
 
@@ -130,7 +118,7 @@ export default function PortfolioBuilderClient() {
       <PortfolioAuthModal
         open={builder.authModalOpen}
         onClose={() => builder.setAuthModalOpen(false)}
-        message={t("authRequired")}
+        message={t('authRequired')}
       />
     </div>
   );

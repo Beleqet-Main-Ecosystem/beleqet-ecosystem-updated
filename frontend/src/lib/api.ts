@@ -26,7 +26,9 @@ export async function getThemePreference(): Promise<ThemePreferenceResponse> {
 export async function updateThemePreference(
   theme: ThemePreference,
 ): Promise<ThemePreferenceResponse> {
-  const { data } = await apiClient.patch<ThemePreferenceResponse>('/user-preferences/theme', { theme });
+  const { data } = await apiClient.patch<ThemePreferenceResponse>('/user-preferences/theme', {
+    theme,
+  });
   return data;
 }
 
@@ -178,9 +180,21 @@ export async function fetchNotificationPreferences(): Promise<NotificationPrefer
 
 /** Update current user's notification preferences */
 export async function updateNotificationPreferences(
-  prefs: Partial<Pick<NotificationPreference, 'emailEnabled' | 'telegramEnabled' | 'inAppEnabled' | 'pushEnabled' | 'smsEnabled' | 'language'>>,
+  prefs: Partial<
+    Pick<
+      NotificationPreference,
+      | 'emailEnabled'
+      | 'telegramEnabled'
+      | 'inAppEnabled'
+      | 'pushEnabled'
+      | 'smsEnabled'
+      | 'language'
+    >
+  >,
 ): Promise<NotificationPreference> {
-  const { data } = await apiClient.patch<NotificationPreference>('/users/notification-preferences', prefs);
+  const { data } = await apiClient.patch<NotificationPreference>(
+    '/users/notification-preferences',
+    prefs,
+  );
   return data;
 }
-

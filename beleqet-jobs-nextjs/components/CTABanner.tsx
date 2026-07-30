@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { ArrowRight, Send } from "lucide-react";
+import Link from 'next/link';
+import { ArrowRight, Send } from 'lucide-react';
 
 export default function CTABanner() {
   return (
@@ -17,8 +17,8 @@ export default function CTABanner() {
               should find you, too.
             </h2>
             <p className="mt-4 max-w-xl text-sm leading-6 text-primary/65">
-              Join our Telegram community for curated job alerts, career
-              resources, and updates delivered directly to you.
+              Join our Telegram community for curated job alerts, career resources, and updates
+              delivered directly to you.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

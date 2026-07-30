@@ -41,7 +41,9 @@ export default function NotificationsPage() {
           <div className="notif-empty-state">
             <Bell size={48} strokeWidth={1.5} />
             <h3>No notifications</h3>
-            <p>You&apos;ll see notifications about your applications, interviews, and payments here.</p>
+            <p>
+              You&apos;ll see notifications about your applications, interviews, and payments here.
+            </p>
           </div>
         ) : (
           <div className="notif-list">

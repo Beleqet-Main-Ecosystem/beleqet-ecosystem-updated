@@ -3,7 +3,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { logout } from '@/lib/api';
-import { ShieldCheck, LogOut, LayoutDashboard, Gavel, ScrollText, Bell, Settings } from 'lucide-react';
+import {
+  ShieldCheck,
+  LogOut,
+  LayoutDashboard,
+  Gavel,
+  ScrollText,
+  Bell,
+  Settings,
+} from 'lucide-react';
 import { NotificationBell } from '@/components/Notifications';
 
 interface User {
@@ -69,7 +77,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/disputes', label: 'Dispute Manager', icon: <Gavel size={18} /> },
     { href: '/admin/audit-logs', label: 'Audit Trail', icon: <ScrollText size={18} /> },
     { href: '/admin/notifications', label: 'Notifications', icon: <Bell size={18} /> },
-    { href: '/admin/settings/notifications', label: 'Notification Settings', icon: <Settings size={18} /> },
+    {
+      href: '/admin/settings/notifications',
+      label: 'Notification Settings',
+      icon: <Settings size={18} />,
+    },
   ];
 
   return (
@@ -108,7 +120,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <LogOut size={18} />
           </button>
         </div>
-
       </aside>
 
       {/*  Main content  */}

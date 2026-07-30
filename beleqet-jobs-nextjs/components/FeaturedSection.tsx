@@ -1,5 +1,5 @@
-import FeaturedJobs from "./FeaturedJobs";
-import { fetchJobs } from "@/lib/api";
+import FeaturedJobs from './FeaturedJobs';
+import { fetchJobs } from '@/lib/api';
 
 export default async function FeaturedSection() {
   const jobs = await fetchJobs();

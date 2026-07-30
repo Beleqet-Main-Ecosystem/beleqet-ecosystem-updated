@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import {
   Award,
   Briefcase,
@@ -15,9 +15,9 @@ import {
   Trash2,
   UploadCloud,
   UserRound,
-} from "lucide-react";
-import { useAuth } from "@/components/AuthProvider";
-import { authenticatedFetch } from "@/lib/auth";
+} from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { authenticatedFetch } from '@/lib/auth';
 import {
   buildProfilePayload,
   emptyCv,
@@ -27,31 +27,30 @@ import {
   type Education,
   type Experience,
   type ExtractedProfile,
-} from "@/lib/resume-brain/mapping";
+} from '@/lib/resume-brain/mapping';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 const inputClass =
-  "mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10";
+  'mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10';
 
 export default function CvMakerPage() {
   const { user, ready } = useAuth();
   const [cv, setCv] = useState<CvData>(emptyCv);
-  const [uploadedFile, setUploadedFile] = useState("");
+  const [uploadedFile, setUploadedFile] = useState('');
   const [saved, setSaved] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState("");
-  const [uploadError, setUploadError] = useState("");
+  const [aiError, setAiError] = useState('');
+  const [uploadError, setUploadError] = useState('');
   // Phase 7 — resume autofill state.
   const [extracting, setExtracting] = useState(false);
-  const [extractNotice, setExtractNotice] = useState("");
+  const [extractNotice, setExtractNotice] = useState('');
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
   // Phase 8 — explicit "Save to profile" (DB write) state, kept separate from
   // the CV-draft save so the two intents don't share feedback.
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
-  const [profileError, setProfileError] = useState("");
+  const [profileError, setProfileError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -69,7 +68,7 @@ export default function CvMakerPage() {
           /* Offline / backend down — fall back to whatever is on screen. */
         });
     } else {
-      const draft = localStorage.getItem("beleqet_cv_draft");
+      const draft = localStorage.getItem('beleqet_cv_draft');
       if (draft)
         try {
           setCv(JSON.parse(draft));
@@ -96,18 +95,14 @@ export default function CvMakerPage() {
   }
   function updateExperience(id: number, key: keyof Experience, value: string) {
     field(
-      "experience",
-      cv.experience.map((item) =>
-        item.id === id ? { ...item, [key]: value } : item,
-      ),
+      'experience',
+      cv.experience.map((item) => (item.id === id ? { ...item, [key]: value } : item)),
     );
   }
   function updateEducation(id: number, key: keyof Education, value: string) {
     field(
-      "education",
-      cv.education.map((item) =>
-        item.id === id ? { ...item, [key]: value } : item,
-      ),
+      'education',
+      cv.education.map((item) => (item.id === id ? { ...item, [key]: value } : item)),
     );
   }
   // "Save draft" — persists the full CV blob only (experience, education,
@@ -115,13 +110,13 @@ export default function CvMakerPage() {
   async function saveDraft() {
     if (user) {
       const response = await authenticatedFetch(`${API_URL}/users/cv-draft`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: cv }),
       });
       setSaved(response.ok);
     } else {
-      localStorage.setItem("beleqet_cv_draft", JSON.stringify(cv));
+      localStorage.setItem('beleqet_cv_draft', JSON.stringify(cv));
       setSaved(true);
     }
   }
@@ -130,28 +125,28 @@ export default function CvMakerPage() {
   // the real User record through the EXISTING profile endpoint. This is the DB
   // write the task requires: Resume Brain only prepares data; UsersService writes.
   async function saveToProfile() {
-    setProfileError("");
+    setProfileError('');
     setProfileSaved(false);
     if (!user) {
-      setProfileError("Please log in to save your details to your profile.");
+      setProfileError('Please log in to save your details to your profile.');
       return;
     }
     const payload = buildProfilePayload(cv);
     if (Object.keys(payload).length === 0) {
-      setProfileError("Nothing to save yet — add your name, title, or skills first.");
+      setProfileError('Nothing to save yet — add your name, title, or skills first.');
       return;
     }
     setSavingProfile(true);
     try {
       const response = await authenticatedFetch(`${API_URL}/users/profile`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("save failed");
+      if (!response.ok) throw new Error('save failed');
       setProfileSaved(true);
     } catch {
-      setProfileError("Could not save to your profile. Please try again.");
+      setProfileError('Could not save to your profile. Please try again.');
     } finally {
       setSavingProfile(false);
     }
@@ -159,11 +154,11 @@ export default function CvMakerPage() {
 
   async function generateSummary() {
     setAiLoading(true);
-    setAiError("");
+    setAiError('');
     try {
-      const response = await fetch("/api/cv-assist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/cv-assist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: cv.fullName,
           title: cv.title,
@@ -176,16 +171,11 @@ export default function CvMakerPage() {
         }),
       });
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Could not generate a summary.");
-      field("summary", data.summary);
+      if (!response.ok) throw new Error(data.error || 'Could not generate a summary.');
+      field('summary', data.summary);
       setSaved(false);
     } catch (error) {
-      setAiError(
-        error instanceof Error
-          ? error.message
-          : "Could not generate a summary.",
-      );
+      setAiError(error instanceof Error ? error.message : 'Could not generate a summary.');
     } finally {
       setAiLoading(false);
     }
@@ -195,43 +185,41 @@ export default function CvMakerPage() {
   async function upload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadError("");
-    setExtractNotice("");
+    setUploadError('');
+    setExtractNotice('');
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError("Please choose a file smaller than 5 MB.");
-      e.target.value = "";
+      setUploadError('Please choose a file smaller than 5 MB.');
+      e.target.value = '';
       return;
     }
     setUploadedFile(file.name);
 
     if (!user) {
-      setUploadError("Please log in to autofill your CV from a resume.");
-      e.target.value = "";
+      setUploadError('Please log in to autofill your CV from a resume.');
+      e.target.value = '';
       return;
     }
 
     setExtracting(true);
     try {
       const form = new FormData();
-      form.append("file", file);
+      form.append('file', file);
       // No Content-Type header — the browser sets the multipart boundary.
-      const response = await authenticatedFetch(
-        `${API_URL}/resume-brain/extract`,
-        { method: "POST", body: form },
-      );
+      const response = await authenticatedFetch(`${API_URL}/resume-brain/extract`, {
+        method: 'POST',
+        body: form,
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(extractErrorMessage(response.status, data));
       applyExtractedProfile(data.profile as ExtractedProfile);
       setExtractNotice(
-        "We filled in what we found from your resume. Please review every field before saving.",
+        'We filled in what we found from your resume. Please review every field before saving.',
       );
     } catch (error) {
-      setUploadError(
-        error instanceof Error ? error.message : "Could not read that resume.",
-      );
+      setUploadError(error instanceof Error ? error.message : 'Could not read that resume.');
     } finally {
       setExtracting(false);
-      e.target.value = "";
+      e.target.value = '';
     }
   }
 
@@ -264,8 +252,8 @@ export default function CvMakerPage() {
               gets you noticed.
             </h1>
             <p className="mt-5 max-w-xl text-sm leading-6 text-white/60">
-              Complete each section, preview your CV instantly, save your draft,
-              and export a clean PDF—no payment required.
+              Complete each section, preview your CV instantly, save your draft, and export a clean
+              PDF—no payment required.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -273,12 +261,8 @@ export default function CvMakerPage() {
               onClick={saveDraft}
               className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-bold hover:bg-white/10"
             >
-              {saved ? (
-                <Check className="h-4 w-4 text-[#d8ff3e]" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              {saved ? "Draft saved" : "Save draft"}
+              {saved ? <Check className="h-4 w-4 text-[#d8ff3e]" /> : <Save className="h-4 w-4" />}
+              {saved ? 'Draft saved' : 'Save draft'}
             </button>
             <button
               onClick={saveToProfile}
@@ -292,11 +276,7 @@ export default function CvMakerPage() {
               ) : (
                 <UserRound className="h-4 w-4" />
               )}
-              {savingProfile
-                ? "Saving…"
-                : profileSaved
-                  ? "Saved to profile"
-                  : "Save to profile"}
+              {savingProfile ? 'Saving…' : profileSaved ? 'Saved to profile' : 'Save to profile'}
             </button>
             <button
               onClick={() => window.print()}
@@ -347,7 +327,7 @@ export default function CvMakerPage() {
               ) : (
                 <>
                   <FileText className="h-6 w-6 text-brandGreen" />
-                  {uploadedFile || "Choose PDF or DOCX (max 5 MB)"}
+                  {uploadedFile || 'Choose PDF or DOCX (max 5 MB)'}
                 </>
               )}
             </button>
@@ -358,7 +338,10 @@ export default function CvMakerPage() {
               </p>
             )}
             {uploadError && (
-              <p role="alert" className="mt-3 rounded-xl bg-redAccent/10 px-4 py-3 text-sm font-semibold text-redAccent">
+              <p
+                role="alert"
+                className="mt-3 rounded-xl bg-redAccent/10 px-4 py-3 text-sm font-semibold text-redAccent"
+              >
                 {uploadError}
               </p>
             )}
@@ -374,43 +357,43 @@ export default function CvMakerPage() {
                 label="Full name"
                 placeholder="e.g. Henok Mekonnen"
                 value={cv.fullName}
-                onChange={(v) => field("fullName", v)}
-                highlighted={aiFields.has("fullName")}
+                onChange={(v) => field('fullName', v)}
+                highlighted={aiFields.has('fullName')}
               />
               <Input
                 label="Professional title"
                 placeholder="e.g. Senior Product Designer"
                 value={cv.title}
-                onChange={(v) => field("title", v)}
-                highlighted={aiFields.has("title")}
+                onChange={(v) => field('title', v)}
+                highlighted={aiFields.has('title')}
               />
               <Input
                 label="Email"
                 type="email"
                 placeholder="you@example.com"
                 value={cv.email}
-                onChange={(v) => field("email", v)}
-                highlighted={aiFields.has("email")}
+                onChange={(v) => field('email', v)}
+                highlighted={aiFields.has('email')}
               />
               <Input
                 label="Phone"
                 placeholder="e.g. +251 911 234 567"
                 value={cv.phone}
-                onChange={(v) => field("phone", v)}
-                highlighted={aiFields.has("phone")}
+                onChange={(v) => field('phone', v)}
+                highlighted={aiFields.has('phone')}
               />
               <Input
                 label="Location"
                 placeholder="e.g. Addis Ababa, Ethiopia"
                 value={cv.location}
-                onChange={(v) => field("location", v)}
-                highlighted={aiFields.has("location")}
+                onChange={(v) => field('location', v)}
+                highlighted={aiFields.has('location')}
               />
               <Input
                 label="Portfolio or LinkedIn"
                 placeholder="e.g. linkedin.com/in/your-name"
                 value={cv.website}
-                onChange={(v) => field("website", v)}
+                onChange={(v) => field('website', v)}
               />
             </div>
           </Section>
@@ -419,16 +402,14 @@ export default function CvMakerPage() {
             icon={FileText}
             title="Professional summary"
             subtitle="Write it yourself or let Groq create a focused draft from your details."
-            highlighted={aiFields.has("summary")}
+            highlighted={aiFields.has('summary')}
           >
             <textarea
               rows={5}
               value={cv.summary}
-              onChange={(e) => field("summary", e.target.value)}
+              onChange={(e) => field('summary', e.target.value)}
               className={`${inputClass} ${
-                aiFields.has("summary")
-                  ? "border-brandGreen ring-2 ring-brandGreen/20"
-                  : ""
+                aiFields.has('summary') ? 'border-brandGreen ring-2 ring-brandGreen/20' : ''
               }`}
               placeholder="Results-driven professional with experience in…"
             />
@@ -439,14 +420,10 @@ export default function CvMakerPage() {
                 disabled={aiLoading}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-white transition hover:bg-brandGreen disabled:cursor-wait disabled:opacity-60"
               >
-                <Sparkles className="h-4 w-4" />{" "}
-                {aiLoading ? "Writing summary…" : "Write with Groq AI"}
+                <Sparkles className="h-4 w-4" />{' '}
+                {aiLoading ? 'Writing summary…' : 'Write with Groq AI'}
               </button>
-              {aiError && (
-                <p className="text-xs font-semibold text-redAccent">
-                  {aiError}
-                </p>
-              )}
+              {aiError && <p className="text-xs font-semibold text-redAccent">{aiError}</p>}
             </div>
           </Section>
 
@@ -454,7 +431,7 @@ export default function CvMakerPage() {
             icon={Briefcase}
             title="Work experience"
             subtitle="Start with your most recent role."
-            highlighted={aiFields.has("experience")}
+            highlighted={aiFields.has('experience')}
           >
             <div className="space-y-5">
               {cv.experience.map((item, index) => (
@@ -470,7 +447,7 @@ export default function CvMakerPage() {
                       <button
                         onClick={() =>
                           field(
-                            "experience",
+                            'experience',
                             cv.experience.filter((x) => x.id !== item.id),
                           )
                         }
@@ -485,25 +462,25 @@ export default function CvMakerPage() {
                       label="Job title"
                       placeholder="e.g. Marketing Manager"
                       value={item.role}
-                      onChange={(v) => updateExperience(item.id, "role", v)}
+                      onChange={(v) => updateExperience(item.id, 'role', v)}
                     />
                     <Input
                       label="Company"
                       placeholder="e.g. Acme Ethiopia"
                       value={item.company}
-                      onChange={(v) => updateExperience(item.id, "company", v)}
+                      onChange={(v) => updateExperience(item.id, 'company', v)}
                     />
                     <Input
                       label="Start date"
                       placeholder="e.g. Jan 2022"
                       value={item.start}
-                      onChange={(v) => updateExperience(item.id, "start", v)}
+                      onChange={(v) => updateExperience(item.id, 'start', v)}
                     />
                     <Input
                       label="End date"
                       placeholder="e.g. Present"
                       value={item.end}
-                      onChange={(v) => updateExperience(item.id, "end", v)}
+                      onChange={(v) => updateExperience(item.id, 'end', v)}
                     />
                   </div>
                   <label className="mt-4 block text-xs font-bold text-ink">
@@ -511,9 +488,7 @@ export default function CvMakerPage() {
                     <textarea
                       rows={3}
                       value={item.description}
-                      onChange={(e) =>
-                        updateExperience(item.id, "description", e.target.value)
-                      }
+                      onChange={(e) => updateExperience(item.id, 'description', e.target.value)}
                       className={inputClass}
                       placeholder="Describe your impact using specific results and achievements…"
                     />
@@ -524,15 +499,15 @@ export default function CvMakerPage() {
             <AddButton
               label="Add experience"
               onClick={() =>
-                field("experience", [
+                field('experience', [
                   ...cv.experience,
                   {
                     id: Date.now(),
-                    role: "",
-                    company: "",
-                    start: "",
-                    end: "",
-                    description: "",
+                    role: '',
+                    company: '',
+                    start: '',
+                    end: '',
+                    description: '',
                   },
                 ])
               }
@@ -543,7 +518,7 @@ export default function CvMakerPage() {
             icon={GraduationCap}
             title="Education"
             subtitle="Add degrees, certificates, or relevant training."
-            highlighted={aiFields.has("education")}
+            highlighted={aiFields.has('education')}
           >
             <div className="space-y-4">
               {cv.education.map((item, index) => (
@@ -555,27 +530,25 @@ export default function CvMakerPage() {
                     label="School"
                     placeholder="e.g. Addis Ababa University"
                     value={item.school}
-                    onChange={(v) => updateEducation(item.id, "school", v)}
+                    onChange={(v) => updateEducation(item.id, 'school', v)}
                   />
                   <Input
                     label="Qualification"
                     placeholder="e.g. BSc in Computer Science"
                     value={item.qualification}
-                    onChange={(v) =>
-                      updateEducation(item.id, "qualification", v)
-                    }
+                    onChange={(v) => updateEducation(item.id, 'qualification', v)}
                   />
                   <Input
                     label="Year"
                     placeholder="e.g. 2024"
                     value={item.year}
-                    onChange={(v) => updateEducation(item.id, "year", v)}
+                    onChange={(v) => updateEducation(item.id, 'year', v)}
                   />
                   {cv.education.length > 1 && (
                     <button
                       onClick={() =>
                         field(
-                          "education",
+                          'education',
                           cv.education.filter((x) => x.id !== item.id),
                         )
                       }
@@ -590,9 +563,9 @@ export default function CvMakerPage() {
             <AddButton
               label="Add education"
               onClick={() =>
-                field("education", [
+                field('education', [
                   ...cv.education,
-                  { id: Date.now(), school: "", qualification: "", year: "" },
+                  { id: Date.now(), school: '', qualification: '', year: '' },
                 ])
               }
             />
@@ -603,16 +576,14 @@ export default function CvMakerPage() {
               icon={Award}
               title="Skills"
               subtitle="Separate skills with commas."
-              highlighted={aiFields.has("skills")}
+              highlighted={aiFields.has('skills')}
             >
               <textarea
                 rows={4}
                 value={cv.skills}
-                onChange={(e) => field("skills", e.target.value)}
+                onChange={(e) => field('skills', e.target.value)}
                 className={`${inputClass} ${
-                  aiFields.has("skills")
-                    ? "border-brandGreen ring-2 ring-brandGreen/20"
-                    : ""
+                  aiFields.has('skills') ? 'border-brandGreen ring-2 ring-brandGreen/20' : ''
                 }`}
                 placeholder="Project management, Excel, Figma"
               />
@@ -621,16 +592,14 @@ export default function CvMakerPage() {
               icon={Languages}
               title="Languages"
               subtitle="Include proficiency where useful."
-              highlighted={aiFields.has("languages")}
+              highlighted={aiFields.has('languages')}
             >
               <textarea
                 rows={4}
                 value={cv.languages}
-                onChange={(e) => field("languages", e.target.value)}
+                onChange={(e) => field('languages', e.target.value)}
                 className={`${inputClass} ${
-                  aiFields.has("languages")
-                    ? "border-brandGreen ring-2 ring-brandGreen/20"
-                    : ""
+                  aiFields.has('languages') ? 'border-brandGreen ring-2 ring-brandGreen/20' : ''
                 }`}
                 placeholder="Amharic — Native, English — Fluent"
               />
@@ -681,7 +650,7 @@ function Input({
   label,
   value,
   onChange,
-  type = "text",
+  type = 'text',
   placeholder,
   highlighted = false,
 }: {
@@ -704,7 +673,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={`${inputClass} ${
-          highlighted ? "border-brandGreen ring-2 ring-brandGreen/20" : ""
+          highlighted ? 'border-brandGreen ring-2 ring-brandGreen/20' : ''
         }`}
       />
     </label>
@@ -731,23 +700,19 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
 
 function CvPreview({ cv }: { cv: CvData }) {
   const skills = cv.skills
-    .split(",")
+    .split(',')
     .map((x) => x.trim())
     .filter(Boolean);
   return (
     <div className="min-h-[760px] overflow-hidden bg-white shadow-[0_20px_60px_rgba(4,22,3,.12)] print:min-h-0 print:shadow-none">
       <div className="bg-primary px-8 py-9 text-white">
-        <p className="text-3xl font-black tracking-tight">
-          {cv.fullName || "Your Name"}
-        </p>
-        <p className="mt-1 text-sm font-bold text-[#d8ff3e]">
-          {cv.title || "Professional title"}
-        </p>
+        <p className="text-3xl font-black tracking-tight">{cv.fullName || 'Your Name'}</p>
+        <p className="mt-1 text-sm font-bold text-[#d8ff3e]">{cv.title || 'Professional title'}</p>
         <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-white/65">
           {[
-            cv.email || "email@example.com",
-            cv.phone || "+251 900 000 000",
-            cv.location || "Addis Ababa, Ethiopia",
+            cv.email || 'email@example.com',
+            cv.phone || '+251 900 000 000',
+            cv.location || 'Addis Ababa, Ethiopia',
             cv.website,
           ]
             .filter(Boolean)
@@ -770,16 +735,12 @@ function CvPreview({ cv }: { cv: CvData }) {
                 <div key={x.id} className="mb-4">
                   <div className="flex justify-between gap-4">
                     <div>
-                      <p className="text-sm font-extrabold">
-                        {x.role || "Role"}
-                      </p>
-                      <p className="text-xs font-semibold text-brandGreen">
-                        {x.company}
-                      </p>
+                      <p className="text-sm font-extrabold">{x.role || 'Role'}</p>
+                      <p className="text-xs font-semibold text-brandGreen">{x.company}</p>
                     </div>
                     <p className="text-[10px] text-muted">
                       {x.start}
-                      {x.start && x.end && " – "}
+                      {x.start && x.end && ' – '}
                       {x.end}
                     </p>
                   </div>
@@ -834,13 +795,7 @@ function CvPreview({ cv }: { cv: CvData }) {
     </div>
   );
 }
-function PreviewSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function PreviewSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
       <h3 className="mb-3 border-b-2 border-[#d8ff3e] pb-1 text-[11px] font-black uppercase tracking-[.18em]">

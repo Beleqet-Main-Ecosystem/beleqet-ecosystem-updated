@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { X } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { X } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type PortfolioAuthModalProps = {
   open: boolean;
@@ -17,11 +17,11 @@ type PortfolioAuthModalProps = {
 export function PortfolioAuthModal({
   open,
   onClose,
-  message = "Sign in to save, export, or publish your portfolio.",
+  message = 'Sign in to save, export, or publish your portfolio.',
 }: PortfolioAuthModalProps) {
   if (!open) return null;
 
-  const next = encodeURIComponent("/portfolio");
+  const next = encodeURIComponent('/portfolio');
 
   return (
     <div
@@ -33,10 +33,7 @@ export function PortfolioAuthModal({
       <div className="w-full max-w-md rounded-2xl border border-primary/10 bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h2
-              id="portfolio-auth-title"
-              className="text-lg font-extrabold text-primary"
-            >
+            <h2 id="portfolio-auth-title" className="text-lg font-extrabold text-primary">
               Sign in required
             </h2>
             <p className="mt-1 text-sm text-ink/70">{message}</p>
@@ -53,18 +50,15 @@ export function PortfolioAuthModal({
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link
             href={`/login?next=${next}`}
-            className={cn(
-              buttonVariants(),
-              "flex-1 justify-center rounded-xl py-2.5",
-            )}
+            className={cn(buttonVariants(), 'flex-1 justify-center rounded-xl py-2.5')}
           >
             Sign in
           </Link>
           <Link
             href={`/register?next=${next}`}
             className={cn(
-              buttonVariants({ variant: "outline" }),
-              "flex-1 justify-center rounded-xl py-2.5",
+              buttonVariants({ variant: 'outline' }),
+              'flex-1 justify-center rounded-xl py-2.5',
             )}
           >
             Create account

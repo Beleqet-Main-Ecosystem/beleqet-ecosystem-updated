@@ -28,19 +28,16 @@ export default function RbacGuard({ children, requiredPermissions, fallback }: R
     const mockUserRoles: UserRole[] = [
       {
         name: 'ADMIN',
-        permissions: [
-          { action: 'manage:roles' },
-          { action: 'manage:users' }
-        ]
-      }
+        permissions: [{ action: 'manage:roles' }, { action: 'manage:users' }],
+      },
     ];
 
     const userPermissions = new Set<string>();
-    mockUserRoles.forEach(role => {
-      role.permissions.forEach(permission => userPermissions.add(permission.action));
+    mockUserRoles.forEach((role) => {
+      role.permissions.forEach((permission) => userPermissions.add(permission.action));
     });
 
-    const isAuthorized = requiredPermissions.every(permission => userPermissions.has(permission));
+    const isAuthorized = requiredPermissions.every((permission) => userPermissions.has(permission));
     setHasAccess(isAuthorized);
 
     if (!isAuthorized && fallback === undefined) {
@@ -49,7 +46,11 @@ export default function RbacGuard({ children, requiredPermissions, fallback }: R
   }, [requiredPermissions, router, fallback]);
 
   if (hasAccess === null) {
-    return <div className="flex justify-center items-center h-32"><div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div></div>;
+    return (
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
   }
 
   if (!hasAccess) {

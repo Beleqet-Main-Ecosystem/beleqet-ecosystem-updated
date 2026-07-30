@@ -1,10 +1,9 @@
-"use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, CheckCheck } from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+'use client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bell, CheckCheck } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 type Item = {
   id: string;
   title: string;
@@ -29,28 +28,24 @@ export default function NotificationBell() {
   }, [load]);
   useEffect(() => {
     const close = (event: MouseEvent) => {
-      if (ref.current && !ref.current.contains(event.target as Node))
-        setOpen(false);
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
   }, []);
   if (!user) return null;
   const unread = items.filter((item) => !item.read).length;
   async function read(item: Item) {
     if (!item.read) {
-      await authenticatedFetch(
-        `${API_URL}/users/notifications/${item.id}/read`,
-        { method: "PATCH" },
-      );
-      setItems((old) =>
-        old.map((n) => (n.id === item.id ? { ...n, read: true } : n)),
-      );
+      await authenticatedFetch(`${API_URL}/users/notifications/${item.id}/read`, {
+        method: 'PATCH',
+      });
+      setItems((old) => old.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
     }
   }
   async function readAll() {
     await authenticatedFetch(`${API_URL}/users/notifications/read-all`, {
-      method: "PATCH",
+      method: 'PATCH',
     });
     setItems((old) => old.map((n) => ({ ...n, read: true })));
   }
@@ -67,7 +62,7 @@ export default function NotificationBell() {
         <Bell className="h-4 w-4" />
         {unread > 0 && (
           <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-redAccent px-1 text-[10px] font-bold leading-5 text-white">
-            {unread > 9 ? "9+" : unread}
+            {unread > 9 ? '9+' : unread}
           </span>
         )}
       </button>
@@ -90,21 +85,17 @@ export default function NotificationBell() {
                 <button
                   key={item.id}
                   onClick={() => read(item)}
-                  className={`block w-full border-b border-border p-4 text-left hover:bg-pageBg ${item.read ? "opacity-60" : "bg-brandGreen/[.04]"}`}
+                  className={`block w-full border-b border-border p-4 text-left hover:bg-pageBg ${item.read ? 'opacity-60' : 'bg-brandGreen/[.04]'}`}
                 >
                   <p className="text-sm font-bold text-primary">{item.title}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted">
-                    {item.body}
-                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted">{item.body}</p>
                   <p className="mt-2 text-[10px] text-muted">
                     {new Date(item.createdAt).toLocaleString()}
                   </p>
                 </button>
               ))
             ) : (
-              <p className="p-8 text-center text-sm text-muted">
-                No notifications yet.
-              </p>
+              <p className="p-8 text-center text-sm text-muted">No notifications yet.</p>
             )}
           </div>
         </div>

@@ -1,5 +1,5 @@
-import CategoryGrid from "./CategoryGrid";
-import { fetchCategories } from "@/lib/api";
+import CategoryGrid from './CategoryGrid';
+import { fetchCategories } from '@/lib/api';
 
 export default async function CategorySection() {
   const categories = await fetchCategories();

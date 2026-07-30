@@ -1,4 +1,4 @@
-import FeedClient from "./FeedClient";
+import FeedClient from './FeedClient';
 
 /**
  * `/feed` route shell.
@@ -10,9 +10,7 @@ import FeedClient from "./FeedClient";
 export default function FeedPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-[#00653B] mb-6">
-        Your Personalized Job Feed
-      </h1>
+      <h1 className="text-3xl font-bold text-[#00653B] mb-6">Your Personalized Job Feed</h1>
       <FeedClient />
     </div>
   );

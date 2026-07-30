@@ -22,7 +22,12 @@ export default function NotificationBell() {
 
   const previewItems = notifications.slice(0, 8);
   if (open) {
-    console.log('=== FRONTEND NotificationBell open, notifications:', JSON.stringify(notifications), 'previewItems:', JSON.stringify(previewItems));
+    console.log(
+      '=== FRONTEND NotificationBell open, notifications:',
+      JSON.stringify(notifications),
+      'previewItems:',
+      JSON.stringify(previewItems),
+    );
   }
 
   return (

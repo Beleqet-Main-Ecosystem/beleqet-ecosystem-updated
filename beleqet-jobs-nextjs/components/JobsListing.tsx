@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Search, MapPin, SlidersHorizontal, X } from "lucide-react";
-import type { Job, Category } from "@/lib/api";
-import JobCard from "@/components/JobCard";
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Search, MapPin, SlidersHorizontal, X } from 'lucide-react';
+import type { Job, Category } from '@/lib/api';
+import JobCard from '@/components/JobCard';
 
-const jobTypes = ["Full Time", "Part Time", "Remote", "Hybrid", "Contract"];
+const jobTypes = ['Full Time', 'Part Time', 'Remote', 'Hybrid', 'Contract'];
 
 export default function JobsListing({
   initialJobs,
@@ -17,10 +17,10 @@ export default function JobsListing({
 }) {
   const searchParams = useSearchParams();
 
-  const [query, setQuery] = useState(searchParams.get("q") ?? "");
-  const [location, setLocation] = useState(searchParams.get("loc") ?? "");
-  const [category, setCategory] = useState(searchParams.get("category") ?? "");
-  const [type, setType] = useState<string>("");
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
+  const [location, setLocation] = useState(searchParams.get('loc') ?? '');
+  const [category, setCategory] = useState(searchParams.get('category') ?? '');
+  const [type, setType] = useState<string>('');
 
   const filtered = useMemo(() => {
     return initialJobs.filter((job) => {
@@ -28,7 +28,8 @@ export default function JobsListing({
         !query ||
         job.title.toLowerCase().includes(query.toLowerCase()) ||
         job.company.toLowerCase().includes(query.toLowerCase());
-      const matchesLocation = !location || job.location.toLowerCase().includes(location.toLowerCase());
+      const matchesLocation =
+        !location || job.location.toLowerCase().includes(location.toLowerCase());
       const matchesCategory = !category || job.category === category;
       const matchesType = !type || job.type === type;
       return matchesQuery && matchesLocation && matchesCategory && matchesType;
@@ -39,10 +40,10 @@ export default function JobsListing({
   const hasFilters = Boolean(query || location || category || type);
 
   function clearAll() {
-    setQuery("");
-    setLocation("");
-    setCategory("");
-    setType("");
+    setQuery('');
+    setLocation('');
+    setCategory('');
+    setType('');
   }
 
   return (
@@ -50,7 +51,8 @@ export default function JobsListing({
       <div className="mb-6">
         <h1 className="text-pageH1">Search verified jobs from trusted employers.</h1>
         <p className="text-muted text-sm mt-2">
-          <span className="font-semibold text-ink">{filtered.length}</span> job{filtered.length === 1 ? "" : "s"} found
+          <span className="font-semibold text-ink">{filtered.length}</span> job
+          {filtered.length === 1 ? '' : 's'} found
         </p>
       </div>
 
@@ -87,11 +89,16 @@ export default function JobsListing({
 
       {hasFilters && (
         <div className="flex flex-wrap items-center gap-2 mb-8">
-          {query && <FilterChip label={`“${query}”`} onClear={() => setQuery("")} />}
-          {location && <FilterChip label={location} onClear={() => setLocation("")} />}
-          {category && <FilterChip label={categoryLabel ?? category} onClear={() => setCategory("")} />}
-          {type && <FilterChip label={type} onClear={() => setType("")} />}
-          <button onClick={clearAll} className="text-xs font-semibold text-brandGreen hover:underline ml-1">
+          {query && <FilterChip label={`“${query}”`} onClear={() => setQuery('')} />}
+          {location && <FilterChip label={location} onClear={() => setLocation('')} />}
+          {category && (
+            <FilterChip label={categoryLabel ?? category} onClear={() => setCategory('')} />
+          )}
+          {type && <FilterChip label={type} onClear={() => setType('')} />}
+          <button
+            onClick={clearAll}
+            className="text-xs font-semibold text-brandGreen hover:underline ml-1"
+          >
             Clear all
           </button>
         </div>
@@ -104,11 +111,15 @@ export default function JobsListing({
               <SlidersHorizontal className="h-4 w-4" /> Category
             </h3>
             <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
-              <FilterButton active={category === ""} onClick={() => setCategory("")}>
+              <FilterButton active={category === ''} onClick={() => setCategory('')}>
                 All Categories
               </FilterButton>
               {categories.map((cat) => (
-                <FilterButton key={cat.id} active={category === cat.id} onClick={() => setCategory(cat.id)}>
+                <FilterButton
+                  key={cat.id}
+                  active={category === cat.id}
+                  onClick={() => setCategory(cat.id)}
+                >
                   <span className="flex w-full items-center justify-between">
                     <span>{cat.label}</span>
                     {cat.count ? <span className="text-xs text-muted">{cat.count}</span> : null}
@@ -121,7 +132,7 @@ export default function JobsListing({
           <div className="rounded-xl border border-border bg-white p-5">
             <h3 className="text-sm font-semibold text-ink mb-4">Job Type</h3>
             <div className="space-y-1">
-              <FilterButton active={type === ""} onClick={() => setType("")}>
+              <FilterButton active={type === ''} onClick={() => setType('')}>
                 All Types
               </FilterButton>
               {jobTypes.map((t) => (
@@ -137,7 +148,9 @@ export default function JobsListing({
           {filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-white p-12 text-center">
               <p className="text-ink font-semibold">No jobs match your filters</p>
-              <p className="text-sm text-muted mt-1">Try adjusting your search or clearing filters.</p>
+              <p className="text-sm text-muted mt-1">
+                Try adjusting your search or clearing filters.
+              </p>
               {hasFilters && (
                 <button
                   onClick={clearAll}
@@ -173,7 +186,7 @@ function FilterButton({
     <button
       onClick={onClick}
       className={`block w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
-        active ? "bg-brandGreen/10 text-brandGreen font-semibold" : "text-muted hover:bg-pageBg"
+        active ? 'bg-brandGreen/10 text-brandGreen font-semibold' : 'text-muted hover:bg-pageBg'
       }`}
     >
       {children}
@@ -185,7 +198,11 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-brandGreen/10 text-brandGreen text-xs font-medium pl-3 pr-2 py-1.5">
       {label}
-      <button onClick={onClear} aria-label={`Remove ${label} filter`} className="hover:text-darkGreen">
+      <button
+        onClick={onClear}
+        aria-label={`Remove ${label} filter`}
+        className="hover:text-darkGreen"
+      >
         <X className="h-3.5 w-3.5" />
       </button>
     </span>

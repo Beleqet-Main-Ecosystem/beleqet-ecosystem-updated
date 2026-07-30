@@ -1,12 +1,8 @@
-"use client";
+'use client';
 
-import {
-  INDUSTRY_LABELS,
-  INDUSTRY_TAXONOMY,
-  type IndustryTag,
-} from "../constants/industries";
-import type { LanguageCode } from "../types";
-import { cn } from "@/lib/utils";
+import { INDUSTRY_LABELS, INDUSTRY_TAXONOMY, type IndustryTag } from '../constants/industries';
+import type { LanguageCode } from '../types';
+import { cn } from '@/lib/utils';
 
 type IndustrySelectorProps = {
   selected: string[];
@@ -22,7 +18,7 @@ export function IndustrySelector({
   selected,
   locale,
   onToggle,
-  label = "Industries",
+  label = 'Industries',
 }: IndustrySelectorProps) {
   return (
     <fieldset>
@@ -37,10 +33,10 @@ export function IndustrySelector({
               type="button"
               onClick={() => onToggle(tag)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                'rounded-full border px-3 py-1.5 text-xs font-semibold transition',
                 active
-                  ? "border-brandGreen bg-brandGreen/15 text-darkGreen"
-                  : "border-primary/10 bg-white text-ink/70 hover:border-primary/20",
+                  ? 'border-brandGreen bg-brandGreen/15 text-darkGreen'
+                  : 'border-primary/10 bg-white text-ink/70 hover:border-primary/20',
               )}
               aria-pressed={active}
             >
