@@ -56,6 +56,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { EncryptionModule } from './common/encryption/encryption.module';
 
 @Module({
   imports: [
@@ -163,6 +164,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     AuditLogModule,
     CacheConfigModule,
     FaqBotModule,
+    EncryptionModule,
   ],
   providers: [
     {

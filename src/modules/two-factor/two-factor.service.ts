@@ -9,7 +9,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import { EncryptionService } from './encryption.service';
+import { EncryptionService } from '../../common/encryption/encryption.service';
 import { BackupCodeService } from './backup-code.service';
 import { generateSecret, generateURI, verify } from 'otplib';
 import { REDIS_CLIENT } from '../redis/redis.module';
@@ -95,6 +95,7 @@ export class TwoFactorService {
     if (!user) throw new BadRequestException('User not found');
 
     const encrypted = this.encryption.encrypt(secret);
+    
     const enrollmentToken = this.jwt.sign(
       { sub: userId, purpose: '2fa_enrollment' },
       { secret: this.tempSecret, expiresIn: ENROLLMENT_TOKEN_EXPIRY },
@@ -103,19 +104,21 @@ export class TwoFactorService {
     await this.prisma.userTwoFactor.upsert({
       where: { userId },
       update: {
-        secret: encrypted.ciphertext,
-        encryptionKeyVersion: encrypted.keyVersion,
+        secret: encrypted,
         enabled: false,
         enrollmentToken,
-        enrollmentExpiresAt: new Date(Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000),
+        enrollmentExpiresAt: new Date(
+          Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000,
+        ),
       },
       create: {
         userId,
-        secret: encrypted.ciphertext,
-        encryptionKeyVersion: encrypted.keyVersion,
+        secret: encrypted,
         enabled: false,
         enrollmentToken,
-        enrollmentExpiresAt: new Date(Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000),
+        enrollmentExpiresAt: new Date(
+          Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000,
+        ),
       },
     });
 
