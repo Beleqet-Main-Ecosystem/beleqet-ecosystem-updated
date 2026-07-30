@@ -20,8 +20,9 @@ import { AccountRepository } from './repositories/account.repository';
 import { TOKEN_CIPHER } from './interfaces/token-cipher.interface';
 import { EMAIL_SENDER } from './interfaces/email-sender.interface';
 import { MailService } from '../../mail/mail.service';
-import { AUDIT_LOGGER } from './interfaces/audit-logger.interface';
-import { PrismaAuditLogger } from './services/prisma-audit-logger.service';
+import { AUDIT_LOGGER } from '../../common/interfaces/audit-logger.interface';
+import { AuditModule } from '../audit/audit.module';
+import { AuditService } from '../audit/audit.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -47,6 +48,7 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
       }),
     }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    AuditModule,
     forwardRef(() => TwoFactorModule),
     EncryptionModule,
   ],
@@ -72,10 +74,9 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
       useExisting: AccountRepository,
     },
     AccountLinkingService,
-    PrismaAuditLogger,
     {
       provide: AUDIT_LOGGER,
-      useExisting: PrismaAuditLogger,
+      useExisting: AuditService,
     },
     {
       provide: EMAIL_SENDER,
@@ -95,6 +96,7 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
     // TokenEncryptionService,
     JwtModule,
     forwardRef(() => TwoFactorModule),
+    AUDIT_LOGGER,
   ],
 })
 export class AuthModule { }

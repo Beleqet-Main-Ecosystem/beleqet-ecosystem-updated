@@ -24,6 +24,22 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 
+/** Safe account fields that may be returned after successful authentication. */
+export interface AuthenticatedUserResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
+/** Token pair and safe account summary returned by successful authentication. */
+export interface AuthenticatedSessionResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthenticatedUserResponse;
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -450,7 +466,7 @@ export class AuthService {
     firstName: string;
     lastName: string;
     role: string;
-  }) {
+  }): Promise<AuthenticatedSessionResponse> {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     const accessToken = this.jwt.sign(payload, {
@@ -487,6 +503,13 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: refreshTokenStr,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
     };
   }
 }

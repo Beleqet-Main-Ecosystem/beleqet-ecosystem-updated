@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 /**
  * Handles dispute-related API routes.
@@ -29,6 +30,7 @@ export class DisputeManagerController {
    */
   @Post()
   @Roles('FREELANCER', 'EMPLOYER')
+  @RequirePermissions('manage:disputes')
   async create(
     @CurrentUser() user: CurrentUserPayload,
     @Body(new ValidationPipe({ transform: true })) createDisputeDto: CreateDisputeDto,
@@ -41,6 +43,7 @@ export class DisputeManagerController {
    */
   @Get()
   @Roles('ADMIN')
+  @RequirePermissions('manage:disputes')
   async findAll() {
     return this.disputeManagerService.getAllDisputes();
   }
@@ -50,6 +53,7 @@ export class DisputeManagerController {
    */
   @Patch(':id/resolve')
   @Roles('ADMIN')
+  @RequirePermissions('manage:disputes')
   async resolve(
     @Param('id') id: string,
     @Body(new ValidationPipe({ transform: true })) resolveDto: ResolveDisputeDto,

@@ -24,6 +24,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
 import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
@@ -35,19 +36,21 @@ import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 
 import { PaymentsModule } from './modules/payments/payments.module';
-// ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 // import { EncryptionModule } from './common/encryption/encryption.module';
+import { RbacModule } from './modules/rbac/rbac.module';
 
 @Module({
   imports: [
@@ -71,7 +74,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
       maxListeners: 20,
     }),
 
-    // ── Unified BullMQ (Redis-backed job queues) ───────────────────────────
+    //  BullMQ (Redis-backed job queues)
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -104,7 +107,10 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
       ],
     }),
 
-    //  Feature modules
+    // — GDPR Guard module ——————————————————————————————————————————
+    GdprGuardModule,
+
+    // — Feature modules ——————————————————————————————————————————
     PrismaModule,
     QueuesModule,
     RedisModule,
@@ -131,19 +137,21 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
-    // ── Fixed: PerformanceWorkerModule removed from imports array ──
     TwoFactorModule,
     KycModule,
+    AuditModule,
     AiFeedModule,
     ResumeBrainModule,
     SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
+    UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
+    RbacModule,
   ],
   providers: [
     {
