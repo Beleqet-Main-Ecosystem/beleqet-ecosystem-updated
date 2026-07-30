@@ -351,6 +351,20 @@ describe('NotificationsService', () => {
         'System maintenance tonight',
       );
 
+      expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+        where: {
+          isActive: true,
+          role: 'ADMIN',
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          telegramId: true,
+          notificationPreference: true,
+        },
+      });
+
       expect(count).toBe(2);
       expect(prismaMock.notification.create).toHaveBeenCalledTimes(2);
       expect(queueMock.add).toHaveBeenCalled();
