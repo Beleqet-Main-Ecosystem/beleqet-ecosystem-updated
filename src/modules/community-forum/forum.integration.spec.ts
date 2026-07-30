@@ -4,7 +4,15 @@ import { CommunityForumModule } from './forum.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 
+const tx = {
+  forumThread: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+  forumReply: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+  forumUpvote: { create: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
+};
+
 const mockPrisma = {
+  $transaction: jest.fn((cb: (t: any) => any) => cb(tx)),
+  user: { findUnique: jest.fn() },
   forumThread: {
     create: jest.fn(),
     findUnique: jest.fn(),
@@ -47,6 +55,10 @@ describe('Community Forum (integration)', () => {
     jest.clearAllMocks();
   });
 
+  beforeEach(() => {
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ firstName: 'Test', lastName: 'User' });
+  });
+
   describe('Thread lifecycle', () => {
     it('should create and then retrieve a thread', async () => {
       const mockThread = {
@@ -71,7 +83,7 @@ describe('Community Forum (integration)', () => {
       (prisma.forumThread.findMany as jest.Mock).mockResolvedValue([{ ...mockThread, _count: { replies: 0 } }]);
       (prisma.forumThread.count as jest.Mock).mockResolvedValue(1);
 
-      const created = await service.createThread('user-1', 'Test User', {
+      const created = await service.createThread('user-1', {
         title: mockThread.title,
         content: mockThread.content,
         tags: mockThread.tags,
@@ -83,28 +95,28 @@ describe('Community Forum (integration)', () => {
     });
 
     it('should create a reply and update reply count', async () => {
-      (prisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', isLocked: false });
-      (prisma.forumReply.create as jest.Mock).mockResolvedValue({
+      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', isLocked: false });
+      (tx.forumReply.create as jest.Mock).mockResolvedValue({
         id: 'r1',
         content: 'Test reply',
         threadId: 't1',
         userDisplayName: 'Test User',
       });
-      (prisma.forumThread.update as jest.Mock).mockResolvedValue({});
+      (tx.forumThread.update as jest.Mock).mockResolvedValue({});
 
-      const reply = await service.createReply('user-1', 'Test User', 't1', { content: 'Test reply' });
+      const reply = await service.createReply('user-1', 't1', { content: 'Test reply' });
       expect(reply.content).toBe('Test reply');
-      expect(prisma.forumThread.update).toHaveBeenCalledWith({
+      expect(tx.forumThread.update).toHaveBeenCalledWith({
         where: { id: 't1' },
         data: { replyCount: { increment: 1 } },
       });
     });
 
     it('should toggle upvote on a thread', async () => {
-      (prisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', upvoteCount: 0 });
-      (prisma.forumUpvote.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.forumUpvote.create as jest.Mock).mockResolvedValue({});
-      (prisma.forumThread.update as jest.Mock).mockResolvedValue({});
+      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', upvoteCount: 0 });
+      (tx.forumUpvote.findUnique as jest.Mock).mockResolvedValue(null);
+      (tx.forumUpvote.create as jest.Mock).mockResolvedValue({});
+      (tx.forumThread.update as jest.Mock).mockResolvedValue({});
 
       const result = await service.upvoteThread('user-1', 't1');
       expect(result.upvoted).toBe(true);
@@ -112,10 +124,10 @@ describe('Community Forum (integration)', () => {
     });
 
     it('should toggle downvote (remove upvote) on a thread', async () => {
-      (prisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', upvoteCount: 1 });
-      (prisma.forumUpvote.findUnique as jest.Mock).mockResolvedValue({ id: 'uv-1' });
-      (prisma.forumUpvote.delete as jest.Mock).mockResolvedValue({});
-      (prisma.forumThread.update as jest.Mock).mockResolvedValue({});
+      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', upvoteCount: 1 });
+      (tx.forumUpvote.findUnique as jest.Mock).mockResolvedValue({ id: 'uv-1' });
+      (tx.forumUpvote.delete as jest.Mock).mockResolvedValue({});
+      (tx.forumThread.update as jest.Mock).mockResolvedValue({});
 
       const result = await service.upvoteThread('user-1', 't1');
       expect(result.upvoted).toBe(false);

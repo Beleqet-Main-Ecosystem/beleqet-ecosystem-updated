@@ -19,7 +19,17 @@ export class ForumService {
     private readonly i18n: I18nService,
   ) {}
 
-  async createThread(userId: string, userDisplayName: string, dto: CreateThreadDto) {
+  private async resolveDisplayName(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+    if (!user) return 'Unknown User';
+    return `${user.firstName} ${user.lastName}`.trim() || 'Unknown User';
+  }
+
+  async createThread(userId: string, dto: CreateThreadDto) {
+    const userDisplayName = await this.resolveDisplayName(userId);
     const displayName = dto.isAnonymous ? 'Deleted User' : userDisplayName;
     const thread = await this.prisma.forumThread.create({
       data: {
@@ -103,7 +113,7 @@ export class ForumService {
     return { ...data, user: data.isAnonymous ? null : data.user, replyCount: _count.replies };
   }
 
-  async createReply(userId: string, userDisplayName: string, threadId: string, dto: CreateReplyDto, lang = 'en') {
+  async createReply(userId: string, threadId: string, dto: CreateReplyDto, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
     if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
     if (thread.isLocked) throw new ForbiddenException(await this.i18n.t('forum.error.threadLocked', { lang }));
@@ -115,7 +125,7 @@ export class ForumService {
       }
     }
 
-    const displayName = dto.isAnonymous ? 'Deleted User' : userDisplayName;
+    const userDisplayName = dto.isAnonymous ? 'Deleted User' : await this.resolveDisplayName(userId);
 
     return this.prisma.$transaction(async (tx) => {
       const reply = await tx.forumReply.create({
@@ -124,7 +134,7 @@ export class ForumService {
           threadId,
           parentReplyId: dto.parentReplyId ?? null,
           userId,
-          userDisplayName: displayName,
+          userDisplayName: userDisplayName,
           isAnonymous: dto.isAnonymous ?? false,
         },
         include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },

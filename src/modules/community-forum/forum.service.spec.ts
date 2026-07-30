@@ -1,12 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { ForumService } from './forum.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { CreateReplyDto } from './dto/create-reply.dto';
 import { ForumQueryDto, ForumSortOrder } from './dto/forum-query.dto';
 
+const mockI18n = { t: jest.fn(() => 'translated') };
+
+const tx = {
+  forumThread: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+  forumReply: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+  forumUpvote: { create: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
+};
+
 const mockPrisma = {
+  $transaction: jest.fn((cb: (t: any) => any) => cb(tx)),
+  user: { findUnique: jest.fn() },
   forumThread: {
     create: jest.fn(),
     findUnique: jest.fn(),
@@ -34,10 +45,12 @@ describe('ForumService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.user.findUnique.mockResolvedValue({ firstName: 'John', lastName: 'Doe' });
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ForumService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: I18nService, useValue: mockI18n },
       ],
     }).compile();
 
@@ -60,7 +73,7 @@ describe('ForumService', () => {
       const expected = { id: 'thread-1', ...dto, userId: 'user-1', userDisplayName: 'John Doe' };
       mockPrisma.forumThread.create.mockResolvedValue(expected);
 
-      const result = await service.createThread('user-1', 'John Doe', dto);
+      const result = await service.createThread('user-1', dto);
       expect(result).toEqual(expected);
       expect(mockPrisma.forumThread.create).toHaveBeenCalledWith({
         data: {
@@ -79,7 +92,7 @@ describe('ForumService', () => {
       const anonDto = { ...dto, isAnonymous: true };
       mockPrisma.forumThread.create.mockResolvedValue({ ...anonDto, userDisplayName: 'Deleted User' });
 
-      const result = await service.createThread('user-1', 'John Doe', anonDto);
+      const result = await service.createThread('user-1', anonDto);
       expect(result.userDisplayName).toBe('Deleted User');
     });
   });
@@ -151,12 +164,12 @@ describe('ForumService', () => {
 
     it('should create a reply and increment replyCount', async () => {
       mockPrisma.forumThread.findUnique.mockResolvedValue({ id: 't1', isLocked: false });
-      mockPrisma.forumReply.create.mockResolvedValue({ id: 'r1', content: dto.content, threadId: 't1' });
-      mockPrisma.forumThread.update.mockResolvedValue({});
+      tx.forumReply.create.mockResolvedValue({ id: 'r1', content: dto.content, threadId: 't1' });
+      tx.forumThread.update.mockResolvedValue({});
 
-      const result = await service.createReply('user-1', 'John Doe', 't1', dto);
+      const result = await service.createReply('user-1', 't1', dto);
       expect(result.id).toBe('r1');
-      expect(mockPrisma.forumThread.update).toHaveBeenCalledWith({
+      expect(tx.forumThread.update).toHaveBeenCalledWith({
         where: { id: 't1' },
         data: { replyCount: { increment: 1 } },
       });
@@ -164,19 +177,19 @@ describe('ForumService', () => {
 
     it('should throw NotFoundException if thread missing', async () => {
       mockPrisma.forumThread.findUnique.mockResolvedValue(null);
-      await expect(service.createReply('user-1', 'John', 't1', dto)).rejects.toThrow(NotFoundException);
+      await expect(service.createReply('user-1', 't1', dto)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException if thread is locked', async () => {
       mockPrisma.forumThread.findUnique.mockResolvedValue({ id: 't1', isLocked: true });
-      await expect(service.createReply('user-1', 'John', 't1', dto)).rejects.toThrow(ForbiddenException);
+      await expect(service.createReply('user-1', 't1', dto)).rejects.toThrow(ForbiddenException);
     });
 
     it('should validate parent reply existence', async () => {
       mockPrisma.forumThread.findUnique.mockResolvedValue({ id: 't1', isLocked: false });
-      mockPrisma.forumReply.findUnique.mockResolvedValue(null);
+      tx.forumReply.findUnique.mockResolvedValue(null);
       await expect(
-        service.createReply('user-1', 'John', 't1', { ...dto, parentReplyId: 'invalid' }),
+        service.createReply('user-1', 't1', { ...dto, parentReplyId: 'invalid' }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -205,9 +218,9 @@ describe('ForumService', () => {
 
     it('should create upvote and increment count', async () => {
       mockPrisma.forumThread.findUnique.mockResolvedValue({ id: 't1', upvoteCount: 5 });
-      mockPrisma.forumUpvote.findUnique.mockResolvedValue(null);
-      mockPrisma.forumUpvote.create.mockResolvedValue({});
-      mockPrisma.forumThread.update.mockResolvedValue({});
+      tx.forumUpvote.findUnique.mockResolvedValue(null);
+      tx.forumUpvote.create.mockResolvedValue({});
+      tx.forumThread.update.mockResolvedValue({});
 
       const result = await service.upvoteThread('user-1', 't1');
       expect(result).toEqual({ upvoted: true, upvoteCount: 6 });
@@ -215,9 +228,9 @@ describe('ForumService', () => {
 
     it('should remove upvote and decrement count', async () => {
       mockPrisma.forumThread.findUnique.mockResolvedValue({ id: 't1', upvoteCount: 5 });
-      mockPrisma.forumUpvote.findUnique.mockResolvedValue({ id: 'uv-1' });
-      mockPrisma.forumUpvote.delete.mockResolvedValue({});
-      mockPrisma.forumThread.update.mockResolvedValue({});
+      tx.forumUpvote.findUnique.mockResolvedValue({ id: 'uv-1' });
+      tx.forumUpvote.delete.mockResolvedValue({});
+      tx.forumThread.update.mockResolvedValue({});
 
       const result = await service.upvoteThread('user-1', 't1');
       expect(result).toEqual({ upvoted: false, upvoteCount: 4 });
@@ -232,9 +245,9 @@ describe('ForumService', () => {
 
     it('should create upvote and increment count', async () => {
       mockPrisma.forumReply.findUnique.mockResolvedValue({ id: 'r1', upvoteCount: 3 });
-      mockPrisma.forumUpvote.findUnique.mockResolvedValue(null);
-      mockPrisma.forumUpvote.create.mockResolvedValue({});
-      mockPrisma.forumReply.update.mockResolvedValue({});
+      tx.forumUpvote.findUnique.mockResolvedValue(null);
+      tx.forumUpvote.create.mockResolvedValue({});
+      tx.forumReply.update.mockResolvedValue({});
 
       const result = await service.upvoteReply('user-1', 'r1');
       expect(result).toEqual({ upvoted: true, upvoteCount: 4 });

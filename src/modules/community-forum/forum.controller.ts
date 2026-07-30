@@ -32,8 +32,7 @@ export class ForumController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: CreateThreadDto,
   ) {
-    const displayName = user.email.substring(0, user.email.indexOf('@'));
-    return this.forumService.createThread(user.userId, displayName, dto);
+    return this.forumService.createThread(user.userId, dto);
   }
 
   @Get('threads')
@@ -63,8 +62,7 @@ export class ForumController {
     @Body() dto: CreateReplyDto,
     @Headers('accept-language') lang = 'en',
   ) {
-    const displayName = user.email.substring(0, user.email.indexOf('@'));
-    return this.forumService.createReply(user.userId, displayName, threadId, dto, lang);
+    return this.forumService.createReply(user.userId, threadId, dto, lang);
   }
 
   @Post('threads/:id/upvote')
