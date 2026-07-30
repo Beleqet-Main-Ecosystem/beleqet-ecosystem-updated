@@ -28,9 +28,7 @@ export class JobsResolver {
    * Reduces over-fetching by allowing the frontend to select specific fields.
    */
   @Query(() => PaginatedJobsType, { name: 'jobs' })
-  async jobs(
-    @Args('query', { type: () => QueryJobsInput, nullable: true }) query: QueryJobsInput,
-  ) {
+  async jobs(@Args('query', { type: () => QueryJobsInput, nullable: true }) query: QueryJobsInput) {
     return this.jobsService.findAll(query || {});
   }
 

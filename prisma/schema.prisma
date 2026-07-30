@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  // This line is mandatory for the Alpine 3.21 CI environment to pass
+  engineType    = "library"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -63,15 +63,34 @@ model User {
   kycVerification       KycVerification?
   preferences           UserPreference?
   subscriptions         Subscription[]
+  rbacRoles             Role[]              @relation("UserRoles")
+  auditLogs             AuditLog[]
 
   gdprConsent             Boolean                  @default(true)
   searchHistories         SearchHistory[]
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
-  rbacRoles             Role[]              @relation("UserRoles")
 
   @@map("users")
 }
+
+model UserPreference {
+  id        String          @id @default(uuid())
+  userId    String          @unique
+  theme     ThemePreference @default(SYSTEM)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
 model Permission {
   id          String   @id @default(uuid())
   action      String   @unique
@@ -94,23 +113,6 @@ model Role {
   updatedAt   DateTime     @updatedAt
 
   @@map("roles")
-}
-
-model UserPreference {
-  id        String          @id @default(uuid())
-  userId    String          @unique
-  theme     ThemePreference @default(SYSTEM)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_preferences")
-}
-
-enum ThemePreference {
-  LIGHT
-  DARK
-  SYSTEM
 }
 
 model OAuthAccount {
@@ -426,7 +428,7 @@ model Contract {
   completedAt    DateTime?
   updatedAt      DateTime       @updatedAt
   client         User           @relation("ContractClient", fields: [clientId], references: [id])
- freelanceJob   FreelanceJob   @relation(fields: [freelanceJobId], references: [id])
+  freelanceJob   FreelanceJob   @relation(fields: [freelanceJobId], references: [id])
   freelancer     User           @relation("ContractFreelancer", fields: [freelancerId], references: [id])
   dispute        Dispute?
   milestones     Milestone[]
@@ -898,14 +900,6 @@ model VideoResponse {
   transcript           String?
   rawWhisperResponse   Json?
   processingDurationMs Int?
-<<<<<<< HEAD
-  language             String   @default("en")
-  /// PENDING | TRANSCRIBING | TRANSCRIBED | FAILED
-  processingStatus     String   @default("PENDING")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-=======
->>>>>>> eff6e5a (fix: resolve CI regressions, deduplicate schema, and apply role-based security guards)
   language             String         @default("en")
   processingStatus     String         @default("PENDING")
   createdAt            DateTime       @default(now())
@@ -1254,6 +1248,22 @@ enum FaqBotMessageRole {
   SYSTEM
 }
 
-/// System-wide audit log entity tracking user/system actions, entity state changes,
-/// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+model AuditLog {
+  id             String   @id @default(uuid())
+  userId         String?
+  action         String
+  entityType     String
+  entityId       String
+  previousState  Json?
+  newState       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
 
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
