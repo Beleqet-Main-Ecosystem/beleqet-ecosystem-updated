@@ -9,11 +9,27 @@ export interface ClassificationResult {
 /** Intent patterns mapped to FAQ categories and slugs. */
 const INTENT_PATTERNS: Record<string, { keywords: string[]; slug?: string }> = {
   wallet_withdraw: {
-    keywords: ['withdraw', 'withdrawal', 'cash out', 'telebirr', 'chapa', 'cbe birr', 'wallet balance', 'get my money'],
+    keywords: [
+      'withdraw',
+      'withdrawal',
+      'cash out',
+      'telebirr',
+      'chapa',
+      'cbe birr',
+      'wallet balance',
+      'get my money',
+    ],
     slug: 'wallet-withdrawal',
   },
   escrow_funding: {
-    keywords: ['escrow', 'fund project', 'secure payment', 'beleqetsafe', 'hold period', 'release payment'],
+    keywords: [
+      'escrow',
+      'fund project',
+      'secure payment',
+      'beleqetsafe',
+      'hold period',
+      'release payment',
+    ],
     slug: 'escrow-overview',
   },
   job_application: {

@@ -34,8 +34,7 @@ export class FaqBotCurrencyService {
    * @param currency - Target currency
    */
   formatAmount(amountEtb: number, locale: string, currency: SupportedCurrency): string {
-    const converted =
-      currency === 'ETB' ? amountEtb : this.convert(amountEtb, 'ETB', currency);
+    const converted = currency === 'ETB' ? amountEtb : this.convert(amountEtb, 'ETB', currency);
     const localeTag = locale === 'am' ? 'am-ET' : 'en-ET';
     return new Intl.NumberFormat(localeTag, {
       style: 'currency',

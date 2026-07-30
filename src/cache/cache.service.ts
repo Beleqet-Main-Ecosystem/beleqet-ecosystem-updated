@@ -27,11 +27,7 @@ export class CacheService {
    * Implements coalescing (request collapsing) to prevent duplicate concurrent fetches.
    * On error, the pending entry is cleared so subsequent calls can retry.
    */
-  async getOrSet<T>(
-    key: string,
-    fetchFn: () => Promise<T>,
-    options?: CacheOptions,
-  ): Promise<T> {
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, options?: CacheOptions): Promise<T> {
     if (options?.skipCache) {
       return fetchFn();
     }

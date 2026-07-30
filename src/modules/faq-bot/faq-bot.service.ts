@@ -13,10 +13,7 @@ import { QueryClassifierService } from './services/query-classifier.service';
 import { KnowledgeRetrievalService } from './services/knowledge-retrieval.service';
 import { AiStreamService } from './services/ai-stream.service';
 import { FaqBotConsentService } from './services/faq-bot-consent.service';
-import {
-  FaqBotCurrencyService,
-  SupportedCurrency,
-} from './services/faq-bot-currency.service';
+import { FaqBotCurrencyService, SupportedCurrency } from './services/faq-bot-currency.service';
 import { AiWebhookDto } from './dto/ai-webhook.dto';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -151,7 +148,11 @@ export class FaqBotService {
     );
 
     const enrichedEntries = contextEntries.map((entry) =>
-      this.applyCurrencyToEntry(entry, session.locale, session.preferredCurrency as SupportedCurrency),
+      this.applyCurrencyToEntry(
+        entry,
+        session.locale,
+        session.preferredCurrency as SupportedCurrency,
+      ),
     );
 
     let fullContent = '';
@@ -255,9 +256,7 @@ export class FaqBotService {
   ): FaqKnowledgeEntry {
     const format = (etbAmount: number) => this.currency.formatAmount(etbAmount, locale, currency);
     const replaceTokens = (text: string) =>
-      text
-        .replace(/\{\{MIN_WITHDRAWAL\}\}/g, format(1))
-        .replace(/\{\{ESCROW_FEE\}\}/g, '5%');
+      text.replace(/\{\{MIN_WITHDRAWAL\}\}/g, format(1)).replace(/\{\{ESCROW_FEE\}\}/g, '5%');
 
     return {
       ...entry,
