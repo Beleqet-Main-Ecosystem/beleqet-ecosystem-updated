@@ -1,71 +1,36 @@
-# =============================================================================
-# Beleqet Backend — Multi-Stage Production Image
-# =============================================================================
-
 # ── Stage 1: Build ───────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS builder
 WORKDIR /app
-RUN sed -i 's/https/http/g' /etc/apk/repositories && \
-    apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
-
-# Install build dependencies + wget for healthcheck logic
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl ffmpeg libstdc++6 libgomp1 wget ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
+RUN sed -i 's/https/http/g' /etc/apk/repositories && apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 RUN npm ci && npx prisma generate
 COPY . .
 RUN npm run build
 
-# ── Stage 2: Prune (Production dependencies only) ────────────────────────────
+# ── Stage 2: Prune ───────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS pruner
 WORKDIR /app
-RUN sed -i 's/https/http/g' /etc/apk/repositories && \
-    apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
+RUN sed -i 's/https/http/g' /etc/apk/repositories && apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 RUN npm ci --omit=dev && npx prisma generate
 
-# ── Stage 3: Final Runner (Hardened Image) ──────────────────────────────────
+# ── Stage 3: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine3.21
 WORKDIR /app
 ENV NODE_ENV=production
-
-# 1. Compatibility libs for Prisma on Alpine 3.21 + wget for healthcheck
-# 2. STRIP VULNERABLE CLIs to pass Trivy CRITICAL scans
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat wget ca-certificates \
-# FIX: Added 'wget' and 'ca-certificates' to ensure healthchecks work on Debian slim
-# Also strip vulnerable npm/corepack/yarn CLIs to pass Trivy CRITICAL scans
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openssl ffmpeg libstdc++6 libgomp1 wget ca-certificates \
-  && rm -rf /var/lib/apt/lists/* \
-  && rm -rf \
-    /usr/local/lib/node_modules/npm \
-    /usr/local/lib/node_modules/corepack \
-    /usr/local/bin/npm \
-    /usr/local/bin/npx \
-    /usr/local/bin/corepack \
-    /opt/yarn-v*
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn-v*
 
 COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
-COPY --from=pruner --chown=node:node /app/package.json ./
 COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --from=builder --chown=node:node /app/prisma ./prisma
 
 USER node
 EXPOSE 4000
-
-# Smoke test verify liveness; increased start-period for AI model loading
 HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=15 \
-# HEALTHCHECK FIX: 
-# - Uses wget (now installed)
-# - start-period increased to 180s to allow AI models to load fully before CI times out
-HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=10 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
-
-# Apply committed migrations (production-safe) before starting the server.
 CMD sh -c "npx prisma migrate deploy && npm run start:prod"
