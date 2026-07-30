@@ -66,5 +66,49 @@
     "units": "units",
     "errorGeneric": "Tax calculation failed. Please try again.",
     "errorInvalidAmount": "Enter a valid non-negative income amount."
+  },
+  "auditLog": {
+    "title": "System Audit Logs",
+    "subtitle": "Track, filter, and inspect user activities, API requests, and entity mutations in real time.",
+    "search": "Search Audit Logs",
+    "filterUserId": "Filter by User ID",
+    "filterAction": "Filter by Action",
+    "filterEntity": "Filter by Entity",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "applyFilters": "Apply Filters",
+    "resetFilters": "Reset Filters",
+    "table": {
+      "timestamp": "Timestamp",
+      "userId": "User ID",
+      "action": "Action",
+      "entity": "Entity",
+      "entityId": "Entity ID",
+      "ipAddress": "IP Address",
+      "userAgent": "User Agent",
+      "actions": "Actions"
+    },
+    "viewPayloads": "View Payloads",
+    "noLogs": "No audit logs found matching the filter criteria.",
+    "loading": "Loading audit logs...",
+    "language": "Language",
+    "langEn": "English",
+    "langAm": "አማርኛ",
+    "systemUser": "System",
+    "modal": {
+      "title": "Audit Log Payload Details",
+      "previousState": "Previous State (Pre-mutation)",
+      "newState": "New State (Post-mutation)",
+      "noPreviousState": "No previous state snapshot",
+      "noNewState": "No new state snapshot",
+      "close": "Close"
+    },
+    "pagination": {
+      "page": "Page",
+      "of": "of",
+      "previous": "Previous",
+      "next": "Next",
+      "totalRecords": "Total Records"
+    }
   }
 }

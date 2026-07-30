@@ -1,22 +1,27 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-
-/** Structured metadata attached to non-plain-text chat messages */
-export type MessageMetadata =
-  { type: 'file'; url: string; name: string } | { type: 'video_call'; link: string };
+import { EncryptionService } from '../../common/encryption/encryption.service';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryptionService: EncryptionService,
+  ) { }
 
   /** Create or fetch a chat room between two users (e.g. for a freelance contract) */
   async createOrGetRoom(userId1: string, userId2: string, contractId?: string) {
     if (contractId) {
       const existing = await this.prisma.chatRoom.findUnique({
         where: { contractId },
-        include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } },
+        include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } }
       });
       if (existing) return existing;
     }
@@ -26,55 +31,117 @@ export class ChatService {
       data: {
         contractId,
         participants: {
-          create: [{ userId: userId1 }, { userId: userId2 }],
-        },
+          create: [{ userId: userId1 }, { userId: userId2 }]
+        }
       },
-      include: { participants: true, messages: true },
+      include: { participants: true, messages: true }
     });
 
     this.logger.log(`Created new ChatRoom ${room.id} for users ${userId1} and ${userId2}`);
     return room;
   }
 
-  /** Save a message to DB and return it populated */
-  async saveMessage(roomId: string, senderId: string, content: string, metadata?: MessageMetadata) {
+  /**
+   * Encrypts and stores a chat message.
+   *
+   * Only encrypted content is persisted in PostgreSQL.
+   *
+   * @param roomId Chat room identifier.
+   * @param senderId Sender's user ID.
+   * @param content Plaintext message.
+   * @param metadata Optional message metadata.
+   * @returns The saved message with sender details.
+   */
+  async saveMessage(roomId: string, senderId: string, content: string, metadata?: any) {
     // Verify user is in room
     const participant = await this.prisma.chatParticipant.findUnique({
-      where: { roomId_userId: { roomId, userId: senderId } },
+      where: { roomId_userId: { roomId, userId: senderId } }
     });
     if (!participant) throw new NotFoundException('User is not a participant of this chat room');
 
-    return this.prisma.message.create({
+    if (!content || !content.trim()) {
+      throw new BadRequestException('Message content cannot be empty.');
+    }
+    const encryptedContent = this.encryptionService.encrypt(content);
+
+    const savedMessage = await this.prisma.message.create({
       data: {
         roomId,
         senderId,
-        content,
+        content: encryptedContent,
         metadata,
       },
       include: {
         sender: {
-          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+            role: true,
+          },
         },
       },
     });
+
+    // Never broadcast ciphertext.
+    // Database stays encrypted.
+    return {
+      ...savedMessage,
+      content,
+    };
   }
 
-  /** Fetch message history */
+  /**
+   * Retrieves and decrypts chat messages for an authorized participant.
+   *
+   * Messages are stored encrypted in PostgreSQL and are decrypted
+   * before being returned to the client.
+   *
+   * @param roomId Chat room identifier.
+   * @param userId Authenticated user's ID.
+   * @param take Number of messages to retrieve.
+   * @returns Decrypted chat history.
+   */
   async getRoomMessages(roomId: string, userId: string, take = 50) {
     const participant = await this.prisma.chatParticipant.findUnique({
-      where: { roomId_userId: { roomId, userId } },
+      where: { roomId_userId: { roomId, userId } }
     });
-    if (!participant) throw new NotFoundException('Unauthorized');
 
-    return this.prisma.message.findMany({
+    if (!participant) {
+      throw new NotFoundException('Unauthorized');
+    }
+
+    const messages = await this.prisma.message.findMany({
       where: { roomId },
-      orderBy: { createdAt: 'asc' }, // usually UI wants asc, but depends on frontend
+      orderBy: { createdAt: 'asc' },
       take,
       include: {
         sender: {
-          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+          select: {
+            id: true, firstName: true, lastName: true, avatarUrl: true, role: true,
+          },
         },
       },
     });
+
+    return messages.map((message) => {
+      try {
+        return {
+          ...message,
+          content: this.encryptionService.decrypt(message.content),
+        };
+      } catch (error) {
+        this.logger.error(
+          `Failed to decrypt message ${message.id}`,
+        );
+
+        return {
+          ...message,
+          content: '[Unable to decrypt message]',
+        };
+      }
+    });
   }
 }
+
