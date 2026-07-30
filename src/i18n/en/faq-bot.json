@@ -1,0 +1,15 @@
+{
+  "welcome": "Hello! I'm the Beleqet FAQ Assistant. Ask me about jobs, freelance work, escrow, wallet withdrawals, or your account.",
+  "consentTitle": "Privacy & Data Use",
+  "consentBody": "We store your chat messages for up to 90 days to improve support. You can export or delete your data anytime.",
+  "consentAccept": "I agree — start chat",
+  "consentDecline": "Cancel",
+  "placeholder": "Type your question...",
+  "send": "Send",
+  "thinking": "Thinking...",
+  "errors": {
+    "consentRequired": "GDPR consent is required before using the FAQ Bot",
+    "sessionExpired": "Your session has expired. Please start a new chat.",
+    "generic": "Something went wrong. Please try again."
+  }
+}

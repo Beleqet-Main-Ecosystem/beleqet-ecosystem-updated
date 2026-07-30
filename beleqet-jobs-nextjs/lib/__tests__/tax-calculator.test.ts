@@ -1,4 +1,3 @@
-import { describe, it, expect, vi } from "vitest";
 import { CurrencyUtil } from "@/lib/currency";
 
 type CountryCode = "ET" | "US";
@@ -203,7 +202,7 @@ describe("Tax calculator client utilities", () => {
 
   describe("spy / isolation", () => {
     it("calls toSmallestUnit when building a preview", () => {
-      const spy = vi.spyOn(CurrencyUtil, "toSmallestUnit");
+      const spy = jest.spyOn(CurrencyUtil, "toSmallestUnit");
 
       previewSmallestUnits("100.25");
 
@@ -214,7 +213,7 @@ describe("Tax calculator client utilities", () => {
     });
 
     it("calls format when rendering monetary UI values", () => {
-      const spy = vi.spyOn(CurrencyUtil, "format");
+      const spy = jest.spyOn(CurrencyUtil, "format");
 
       CurrencyUtil.format(1_000, "USD", "en-US");
 

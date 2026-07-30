@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # ── Repository, workflow, and script validation ────────────────────────────
@@ -246,10 +246,8 @@ jobs:
       - run: npm run lint
       - name: TypeScript validation
         run: npx tsc --noEmit
-      # Vitest owns lib/__tests__/**/*.test.ts; Jest owns lib/**/*.spec.ts —
-      # distinct suites by configuration, so both run without double-counting.
-      - name: Vitest suite
-        run: npm run test
+      # Jest owns all test files under beleqet-jobs-nextjs/ after the
+      # vitest→jest migration (PR #179). Both test and test:unit map to jest.
       - name: Jest suite
         run: npm run test:unit -- --runInBand
       - name: Production build

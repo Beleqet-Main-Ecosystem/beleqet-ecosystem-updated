@@ -1,3 +1,5 @@
+import { CacheConfigModule } from './cache/cache.module';
+import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -20,6 +22,7 @@ import { FreelanceModule } from './modules/freelance/freelance.module';
 import { EscrowModule } from './modules/escrow/escrow.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AdminControlModule } from './modules/admin-control/admin-control.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
@@ -28,6 +31,7 @@ import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
 import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
+import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -45,12 +49,15 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
+import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { EncryptionModule } from './common/encryption/encryption.module';
 
 @Module({
   imports: [
@@ -58,6 +65,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
     }),
 
     //  Rate limiting
@@ -125,6 +133,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
     EscrowModule,
     WalletModule,
     AdminModule,
+    AdminControlModule,
     ChatModule,
     UploadsModule,
     TelegramModule,
@@ -147,12 +156,17 @@ import { RbacModule } from './modules/rbac/rbac.module';
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
+    SmartBiddingModule,
     UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
     RbacModule,
+    AuditLogModule,
+    CacheConfigModule,
+    FaqBotModule,
+    EncryptionModule,
   ],
   providers: [
     {
