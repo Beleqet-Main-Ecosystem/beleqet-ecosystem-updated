@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { CreateReplyDto } from './dto/create-reply.dto';
@@ -13,7 +14,10 @@ import { ForumQueryDto } from './dto/forum-query.dto';
 export class ForumService {
   private readonly logger = new Logger(ForumService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async createThread(userId: string, userDisplayName: string, dto: CreateThreadDto) {
     const displayName = dto.isAnonymous ? 'Deleted User' : userDisplayName;
@@ -83,7 +87,7 @@ export class ForumService {
     };
   }
 
-  async findThreadById(threadId: string) {
+  async findThreadById(threadId: string, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({
       where: { id: threadId },
       include: {
@@ -92,21 +96,21 @@ export class ForumService {
       },
     });
 
-    if (!thread) throw new NotFoundException('forum.error.threadNotFound');
+    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     const { _count, ...data } = thread;
     return { ...data, user: data.isAnonymous ? null : data.user, replyCount: _count.replies };
   }
 
-  async createReply(userId: string, userDisplayName: string, threadId: string, dto: CreateReplyDto) {
+  async createReply(userId: string, userDisplayName: string, threadId: string, dto: CreateReplyDto, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new NotFoundException('forum.error.threadNotFound');
-    if (thread.isLocked) throw new ForbiddenException('forum.error.threadLocked');
+    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
+    if (thread.isLocked) throw new ForbiddenException(await this.i18n.t('forum.error.threadLocked', { lang }));
 
     if (dto.parentReplyId) {
       const parent = await this.prisma.forumReply.findUnique({ where: { id: dto.parentReplyId } });
       if (!parent || parent.threadId !== threadId) {
-        throw new NotFoundException('forum.error.parentReplyNotFound');
+        throw new NotFoundException(await this.i18n.t('forum.error.parentReplyNotFound', { lang }));
       }
     }
 
@@ -134,9 +138,9 @@ export class ForumService {
     return reply;
   }
 
-  async findRepliesByThread(threadId: string) {
+  async findRepliesByThread(threadId: string, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new NotFoundException('forum.error.threadNotFound');
+    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     const replies = await this.prisma.forumReply.findMany({
       where: { threadId, parentReplyId: null },
@@ -162,9 +166,9 @@ export class ForumService {
     }));
   }
 
-  async upvoteThread(userId: string, threadId: string) {
+  async upvoteThread(userId: string, threadId: string, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new NotFoundException('forum.error.threadNotFound');
+    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     const existing = await this.prisma.forumUpvote.findUnique({
       where: { userId_threadId: { userId, threadId } },
@@ -187,9 +191,9 @@ export class ForumService {
     return { upvoted: true, upvoteCount: thread.upvoteCount + 1 };
   }
 
-  async upvoteReply(userId: string, replyId: string) {
+  async upvoteReply(userId: string, replyId: string, lang = 'en') {
     const reply = await this.prisma.forumReply.findUnique({ where: { id: replyId } });
-    if (!reply) throw new NotFoundException('forum.error.replyNotFound');
+    if (!reply) throw new NotFoundException(await this.i18n.t('forum.error.replyNotFound', { lang }));
 
     const existing = await this.prisma.forumUpvote.findUnique({
       where: { userId_replyId: { userId, replyId } },

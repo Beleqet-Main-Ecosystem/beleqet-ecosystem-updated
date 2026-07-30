@@ -9,6 +9,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
   HttpCode,
+  Headers,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -43,9 +44,12 @@ export class ForumController {
 
   @Get('threads/:id')
   @ApiOperation({ summary: 'Get a single thread by ID with replies' })
-  async getThread(@Param('id', ParseUUIDPipe) id: string) {
-    const thread = await this.forumService.findThreadById(id);
-    const replies = await this.forumService.findRepliesByThread(id);
+  async getThread(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Headers('accept-language') lang = 'en',
+  ) {
+    const thread = await this.forumService.findThreadById(id, lang);
+    const replies = await this.forumService.findRepliesByThread(id, lang);
     return { ...thread, replies };
   }
 
@@ -57,9 +61,10 @@ export class ForumController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('id', ParseUUIDPipe) threadId: string,
     @Body() dto: CreateReplyDto,
+    @Headers('accept-language') lang = 'en',
   ) {
     const displayName = user.email.substring(0, user.email.indexOf('@'));
-    return this.forumService.createReply(user.userId, displayName, threadId, dto);
+    return this.forumService.createReply(user.userId, displayName, threadId, dto, lang);
   }
 
   @Post('threads/:id/upvote')
@@ -69,8 +74,9 @@ export class ForumController {
   async upvoteThread(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id', ParseUUIDPipe) threadId: string,
+    @Headers('accept-language') lang = 'en',
   ) {
-    return this.forumService.upvoteThread(user.userId, threadId);
+    return this.forumService.upvoteThread(user.userId, threadId, lang);
   }
 
   @Post('replies/:id/upvote')
@@ -80,8 +86,9 @@ export class ForumController {
   async upvoteReply(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id', ParseUUIDPipe) replyId: string,
+    @Headers('accept-language') lang = 'en',
   ) {
-    return this.forumService.upvoteReply(user.userId, replyId);
+    return this.forumService.upvoteReply(user.userId, replyId, lang);
   }
 
   @Delete('my-data')
