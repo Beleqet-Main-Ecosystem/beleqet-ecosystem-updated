@@ -126,7 +126,8 @@
     "moduleNameMapper": {
       "^@common/(.*)$": "<rootDir>/common/$1",
       "^@modules/(.*)$": "<rootDir>/modules/$1",
-      "^@prisma-client$": "<rootDir>/prisma/prisma.service"
+      "^@prisma-client$": "<rootDir>/prisma/prisma.service",
+      "^@napi-rs/canvas$": "<rootDir>/__mocks__/napi-rs-canvas.js"
     },
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
