@@ -345,14 +345,11 @@ export class NotificationsService {
       },
     });
 
-    console.log('=== DEBUG sendSystemAlert users found:', users.length ? JSON.stringify(users.map(u => ({ id: u.id, email: u.email, firstName: u.firstName }))) : 'NONE');
-
     if (users.length === 0) return 0;
 
     const title =
       (metadata?.title as string) ??
       (message.length > 60 ? message.substring(0, 57) + '...' : message);
-    console.log('=== DEBUG sendSystemAlert title:', title);
     const jobsToQueue: Promise<unknown>[] = [];
 
     for (const user of users) {
@@ -374,13 +371,7 @@ export class NotificationsService {
           channel: 'IN_APP' as const,
           metadata: metadata ? (metadata as unknown as Prisma.InputJsonValue) : undefined,
         };
-        console.log('=== DEBUG notification.create payload:', JSON.stringify(createPayload));
-        jobsToQueue.push(
-          this.prisma.notification.create({ data: createPayload }).then((result) => {
-            console.log('=== DEBUG notification.create result:', JSON.stringify(result));
-            return result;
-          }),
-        );
+        jobsToQueue.push(this.prisma.notification.create({ data: createPayload }));
       }
 
       if (pref.emailEnabled && user.email) {
