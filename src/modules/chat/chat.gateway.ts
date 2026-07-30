@@ -62,12 +62,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      // Verify the user is actually a participant BEFORE granting
-      // socket-room membership — otherwise a client could receive
-      // live broadcasts for a room it has no access to, even though
-      // the (separate) history fetch would correctly reject it.
+      // Verify membership & fetch history
       const history = await this.chatService.getRoomMessages(data.roomId, userId);
-
       client.join(data.roomId);
       this.logger.log(`User ${userId} joined room ${data.roomId}`);
       client.emit('room_history', history);

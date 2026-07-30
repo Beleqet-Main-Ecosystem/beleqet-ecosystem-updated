@@ -20,6 +20,7 @@ import { FreelanceModule } from './modules/freelance/freelance.module';
 import { EscrowModule } from './modules/escrow/escrow.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AdminControlModule } from './modules/admin-control/admin-control.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
@@ -126,6 +127,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     EscrowModule,
     WalletModule,
     AdminModule,
+    AdminControlModule,
     ChatModule,
     UploadsModule,
     TelegramModule,
