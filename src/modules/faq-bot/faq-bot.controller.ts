@@ -63,13 +63,9 @@ export class FaqBotController {
     return new Observable((subscriber) => {
       void (async () => {
         try {
-          const result = await this.faqBotService.processQuestion(
-            sessionId,
-            message,
-            (token) => {
-              subscriber.next({ data: { type: 'chunk', token } });
-            },
-          );
+          const result = await this.faqBotService.processQuestion(sessionId, message, (token) => {
+            subscriber.next({ data: { type: 'chunk', token } });
+          });
           subscriber.next({
             data: {
               type: 'end',

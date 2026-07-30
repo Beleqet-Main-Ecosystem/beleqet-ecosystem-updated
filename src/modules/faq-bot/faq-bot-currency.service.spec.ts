@@ -14,10 +14,7 @@ describe('FaqBotCurrencyService', () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        FaqBotCurrencyService,
-        { provide: WalletService, useValue: mockWalletService },
-      ],
+      providers: [FaqBotCurrencyService, { provide: WalletService, useValue: mockWalletService }],
     }).compile();
 
     service = module.get<FaqBotCurrencyService>(FaqBotCurrencyService);

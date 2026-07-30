@@ -1,11 +1,6 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { EncryptionService } from '../../common/encryption/encryption.service';
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class ChatService {
@@ -14,14 +9,14 @@ export class ChatService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryptionService: EncryptionService,
-  ) { }
+  ) {}
 
   /** Create or fetch a chat room between two users (e.g. for a freelance contract) */
   async createOrGetRoom(userId1: string, userId2: string, contractId?: string) {
     if (contractId) {
       const existing = await this.prisma.chatRoom.findUnique({
         where: { contractId },
-        include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } }
+        include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } },
       });
       if (existing) return existing;
     }
@@ -31,10 +26,10 @@ export class ChatService {
       data: {
         contractId,
         participants: {
-          create: [{ userId: userId1 }, { userId: userId2 }]
-        }
+          create: [{ userId: userId1 }, { userId: userId2 }],
+        },
       },
-      include: { participants: true, messages: true }
+      include: { participants: true, messages: true },
     });
 
     this.logger.log(`Created new ChatRoom ${room.id} for users ${userId1} and ${userId2}`);
@@ -55,7 +50,7 @@ export class ChatService {
   async saveMessage(roomId: string, senderId: string, content: string, metadata?: any) {
     // Verify user is in room
     const participant = await this.prisma.chatParticipant.findUnique({
-      where: { roomId_userId: { roomId, userId: senderId } }
+      where: { roomId_userId: { roomId, userId: senderId } },
     });
     if (!participant) throw new NotFoundException('User is not a participant of this chat room');
 
@@ -105,7 +100,7 @@ export class ChatService {
    */
   async getRoomMessages(roomId: string, userId: string, take = 50) {
     const participant = await this.prisma.chatParticipant.findUnique({
-      where: { roomId_userId: { roomId, userId } }
+      where: { roomId_userId: { roomId, userId } },
     });
 
     if (!participant) {
@@ -119,7 +114,11 @@ export class ChatService {
       include: {
         sender: {
           select: {
-            id: true, firstName: true, lastName: true, avatarUrl: true, role: true,
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+            role: true,
           },
         },
       },
@@ -132,9 +131,7 @@ export class ChatService {
           content: this.encryptionService.decrypt(message.content),
         };
       } catch (error) {
-        this.logger.error(
-          `Failed to decrypt message ${message.id}`,
-        );
+        this.logger.error(`Failed to decrypt message ${message.id}`);
 
         return {
           ...message,
@@ -144,4 +141,3 @@ export class ChatService {
     });
   }
 }
-

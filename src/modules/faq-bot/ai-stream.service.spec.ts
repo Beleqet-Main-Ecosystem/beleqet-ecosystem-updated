@@ -17,7 +17,9 @@ describe('AiStreamService', () => {
         {
           provide: KnowledgeRetrievalService,
           useValue: {
-            localizeEntry: jest.fn().mockReturnValue({ question: 'Q', answer: 'Static answer text.' }),
+            localizeEntry: jest
+              .fn()
+              .mockReturnValue({ question: 'Q', answer: 'Static answer text.' }),
           },
         },
       ],

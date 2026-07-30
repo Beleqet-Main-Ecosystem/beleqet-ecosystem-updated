@@ -36,24 +36,13 @@ export class EncryptionService {
     try {
       const iv = crypto.randomBytes(this.IV_LENGTH);
 
-      const cipher = crypto.createCipheriv(
-        this.ALGORITHM,
-        this.key,
-        iv,
-      );
+      const cipher = crypto.createCipheriv(this.ALGORITHM, this.key, iv);
 
-      const ciphertext = Buffer.concat([
-        cipher.update(plaintext, 'utf8'),
-        cipher.final(),
-      ]);
+      const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
 
       const authTag = cipher.getAuthTag();
 
-      const payload = Buffer.concat([
-        iv,
-        authTag,
-        ciphertext,
-      ]);
+      const payload = Buffer.concat([iv, authTag, ciphertext]);
 
       return payload.toString('base64');
     } catch {
@@ -68,39 +57,21 @@ export class EncryptionService {
     try {
       const buffer = Buffer.from(payload, 'base64');
 
-      if (
-        buffer.length <
-        this.IV_LENGTH + this.AUTH_TAG_LENGTH
-      ) {
+      if (buffer.length < this.IV_LENGTH + this.AUTH_TAG_LENGTH) {
         throw new Error('Invalid encrypted payload.');
       }
 
-      const iv = buffer.subarray(
-        0,
-        this.IV_LENGTH,
-      );
+      const iv = buffer.subarray(0, this.IV_LENGTH);
 
-      const authTag = buffer.subarray(
-        this.IV_LENGTH,
-        this.IV_LENGTH + this.AUTH_TAG_LENGTH,
-      );
+      const authTag = buffer.subarray(this.IV_LENGTH, this.IV_LENGTH + this.AUTH_TAG_LENGTH);
 
-      const ciphertext = buffer.subarray(
-        this.IV_LENGTH + this.AUTH_TAG_LENGTH,
-      );
+      const ciphertext = buffer.subarray(this.IV_LENGTH + this.AUTH_TAG_LENGTH);
 
-      const decipher = crypto.createDecipheriv(
-        this.ALGORITHM,
-        this.key,
-        iv,
-      );
+      const decipher = crypto.createDecipheriv(this.ALGORITHM, this.key, iv);
 
       decipher.setAuthTag(authTag);
 
-      const plaintext = Buffer.concat([
-        decipher.update(ciphertext),
-        decipher.final(),
-      ]);
+      const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 
       return plaintext.toString('utf8');
     } catch {

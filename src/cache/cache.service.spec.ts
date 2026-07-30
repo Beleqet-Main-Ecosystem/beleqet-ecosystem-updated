@@ -81,23 +81,20 @@ describe('CacheService', () => {
     });
 
     it('should not retry automatically on error and should clear pending entry', async () => {
-    //   const key = 'error-key';
-    //   const error = new Error('Downstream failure');
-    //   cacheManagerMock.get.mockResolvedValue(undefined);
-    //   const fetchFn = jest.fn().mockRejectedValueOnce(error);
-
-    //   // First call – should reject
-    //   await expect(service.getOrSet(key, fetchFn)).rejects.toThrow('Downstream failure');
-    //   expect(fetchFn).toHaveBeenCalledTimes(1);
-
-    //   // After rejection, pending entry should be cleared
-    //   expect(service['pendingFetches'].has(key)).toBe(false);
-
-    //   // Second call – should try again and succeed
-    //   fetchFn.mockResolvedValue('recovered data');
-    //   const result = await service.getOrSet(key, fetchFn);
-    //   expect(result).toBe('recovered data');
-    //   expect(fetchFn).toHaveBeenCalledTimes(2);
+      //   const key = 'error-key';
+      //   const error = new Error('Downstream failure');
+      //   cacheManagerMock.get.mockResolvedValue(undefined);
+      //   const fetchFn = jest.fn().mockRejectedValueOnce(error);
+      //   // First call – should reject
+      //   await expect(service.getOrSet(key, fetchFn)).rejects.toThrow('Downstream failure');
+      //   expect(fetchFn).toHaveBeenCalledTimes(1);
+      //   // After rejection, pending entry should be cleared
+      //   expect(service['pendingFetches'].has(key)).toBe(false);
+      //   // Second call – should try again and succeed
+      //   fetchFn.mockResolvedValue('recovered data');
+      //   const result = await service.getOrSet(key, fetchFn);
+      //   expect(result).toBe('recovered data');
+      //   expect(fetchFn).toHaveBeenCalledTimes(2);
     });
 
     it('should skip cache if skipCache option is true', async () => {

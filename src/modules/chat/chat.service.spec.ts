@@ -15,7 +15,6 @@ const mockEncryptionService = {
   decrypt: jest.fn((text) => `decrypted-${text}`),
 };
 
-
 describe('ChatService', () => {
   let service: ChatService;
 
@@ -42,9 +41,7 @@ describe('ChatService', () => {
     expect(service).toBeDefined();
   });
 
-
   it('should encrypt message before saving', async () => {
-
     mockPrismaService.chatParticipant.findUnique.mockResolvedValue({
       id: 'participant-id',
     });
@@ -54,22 +51,11 @@ describe('ChatService', () => {
       content: 'encrypted-Hello',
     });
 
+    await service.saveMessage('room-1', 'user-1', 'Hello');
 
-    await service.saveMessage(
-      'room-1',
-      'user-1',
-      'Hello',
-    );
+    expect(mockEncryptionService.encrypt).toHaveBeenCalledWith('Hello');
 
-
-    expect(
-      mockEncryptionService.encrypt,
-    ).toHaveBeenCalledWith('Hello');
-
-
-    expect(
-      mockPrismaService.message.create,
-    ).toHaveBeenCalledWith(
+    expect(mockPrismaService.message.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           content: 'encrypted-Hello',
@@ -79,39 +65,21 @@ describe('ChatService', () => {
   });
 
   it('should decrypt messages when fetching history', async () => {
+    mockPrismaService.chatParticipant.findUnique.mockResolvedValue({
+      id: 'participant-id',
+    });
 
-    mockPrismaService.chatParticipant.findUnique
-      .mockResolvedValue({
-        id: 'participant-id',
-      });
+    mockPrismaService.message.findMany.mockResolvedValue([
+      {
+        id: 'msg-1',
+        content: 'encrypted-Hello',
+      },
+    ]);
 
+    const result = await service.getRoomMessages('room-1', 'user-1');
 
-    mockPrismaService.message.findMany
-      .mockResolvedValue([
-        {
-          id: 'msg-1',
-          content: 'encrypted-Hello',
-        },
-      ]);
+    expect(mockEncryptionService.decrypt).toHaveBeenCalledWith('encrypted-Hello');
 
-
-    const result = await service.getRoomMessages(
-      'room-1',
-      'user-1',
-    );
-
-
-    expect(
-      mockEncryptionService.decrypt,
-    ).toHaveBeenCalledWith(
-      'encrypted-Hello',
-    );
-
-
-    expect(result[0].content)
-      .toBe('decrypted-encrypted-Hello');
+    expect(result[0].content).toBe('decrypted-encrypted-Hello');
   });
-
 });
-
-
