@@ -7,42 +7,30 @@ FROM node:22-alpine3.21 AS builder
 WORKDIR /app
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
-
-# Install build dependencies + gcompat/libstdc++ for Prisma engine
-RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
-RUN npm ci
-COPY . .
-RUN npx prisma generate
+RUN npm ci && npx prisma generate
 COPY . .
 RUN npm run build
 
-# ── Stage 2: Prune ───────────────────────────────────────────────────────────
 # ── Stage 2: Prune (Production dependencies only) ────────────────────────────
 FROM node:22-alpine3.21 AS pruner
 WORKDIR /app
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
-
-# Install libraries needed to generate production Prisma engine
-RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 RUN npm ci --omit=dev && npx prisma generate
 
-# Stage 3: Runner
-FROM node:22-slim
+# ── Stage 3: Final Runner (Hardened Image) ──────────────────────────────────
+FROM node:22-alpine3.21
 WORKDIR /app
 ENV NODE_ENV=production
+
+# 1. Compatibility libs for Prisma on Alpine 3.21 + wget for healthcheck
+# 2. STRIP VULNERABLE CLIs to pass Trivy CRITICAL scans
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
     apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat wget ca-certificates \
-
-# CRITICAL FIXES:
-# 1. Install gcompat & libstdc++ so Prisma can run on Alpine 3.21.
-# 2. ffmpeg is required for the Video Interview module.
-# 3. STRIP npm, npx, corepack, and yarn to pass Trivy CRITICAL scans (tar CVE fix).
-RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat \
   && rm -rf \
     /usr/local/lib/node_modules/npm \
     /usr/local/lib/node_modules/corepack \
@@ -51,19 +39,17 @@ RUN apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat \
     /usr/local/bin/corepack \
     /opt/yarn-v*
 
-COPY --from=pruner /app/package.json ./
-COPY --from=pruner /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
+COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
+COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/prisma ./prisma
+
 USER node
 EXPOSE 4000
+
+# Smoke test verify liveness; increased start-period for AI model loading
 HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=15 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
+
+# Apply committed migrations (production-safe) before starting the server.
 CMD sh -c "npx prisma migrate deploy && npm run start:prod"
-
-# Healthcheck verifies the GraphQL server is responding for the smoke test
-HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=10 \
-  CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
-
-# Start the application
-CMD ["node", "dist/main"]
