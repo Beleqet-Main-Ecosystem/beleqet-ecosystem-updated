@@ -20,6 +20,6 @@ import { EncryptionModule } from '../../common/encryption/encryption.module';
     }),
   ],
   providers: [ChatService, ChatGateway],
-  exports: [ChatService]
+  exports: [ChatService],
 })
-export class ChatModule { }
+export class ChatModule {}

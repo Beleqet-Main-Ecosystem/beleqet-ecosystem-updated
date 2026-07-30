@@ -95,7 +95,7 @@ export class TwoFactorService {
     if (!user) throw new BadRequestException('User not found');
 
     const encrypted = this.encryption.encrypt(secret);
-    
+
     const enrollmentToken = this.jwt.sign(
       { sub: userId, purpose: '2fa_enrollment' },
       { secret: this.tempSecret, expiresIn: ENROLLMENT_TOKEN_EXPIRY },
@@ -107,18 +107,14 @@ export class TwoFactorService {
         secret: encrypted,
         enabled: false,
         enrollmentToken,
-        enrollmentExpiresAt: new Date(
-          Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000,
-        ),
+        enrollmentExpiresAt: new Date(Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000),
       },
       create: {
         userId,
         secret: encrypted,
         enabled: false,
         enrollmentToken,
-        enrollmentExpiresAt: new Date(
-          Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000,
-        ),
+        enrollmentExpiresAt: new Date(Date.now() + ENROLLMENT_TOKEN_EXPIRY * 1000),
       },
     });
 

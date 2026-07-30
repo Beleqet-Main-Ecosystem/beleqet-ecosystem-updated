@@ -33,7 +33,8 @@ import { EncryptionModule } from '../../common/encryption/encryption.module';
 import { EncryptionService } from '../../common/encryption/encryption.service';
 
 @Module({
-  imports: [ConfigModule,
+  imports: [
+    ConfigModule,
     PrismaModule,
     QueuesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -99,4 +100,4 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
     AUDIT_LOGGER,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}

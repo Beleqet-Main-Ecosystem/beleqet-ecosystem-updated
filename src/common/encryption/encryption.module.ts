@@ -23,4 +23,4 @@ import { ENCRYPTION_KEY } from './encryption.constants';
   ],
   exports: [EncryptionService],
 })
-export class EncryptionModule { }
+export class EncryptionModule {}

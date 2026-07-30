@@ -1,9 +1,10 @@
-// @vitest-environment jsdom
+/**
+ * @jest-environment jsdom
+ */
 
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { act } from "react-dom/test-utils";
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { ThemeProvider, useTheme } from "../../components/ThemeProvider";
 import {
   applyThemePreference,
@@ -20,7 +21,7 @@ describe("theme helpers", () => {
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    jest.restoreAllMocks();
   });
 
   it("returns the user preference when it is explicitly stored", () => {
@@ -29,16 +30,19 @@ describe("theme helpers", () => {
   });
 
   it("resolves the system theme when no preference is stored", () => {
-    vi.stubGlobal("matchMedia", vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes("dark"),
-      media: query,
-      onchange: null,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })));
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: jest.fn().mockImplementation((query: string) => ({
+        matches: query.includes("dark"),
+        media: query,
+        onchange: null,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      })),
+    });
 
     expect(getResolvedTheme("system")).toBe("dark");
   });
@@ -68,11 +72,7 @@ describe("theme helpers", () => {
     act(() => {
       root = createRoot(container);
       root.render(
-        React.createElement(
-          ThemeProvider,
-          null,
-          React.createElement(Probe),
-        ),
+        React.createElement(ThemeProvider, null, React.createElement(Probe)),
       );
     });
 

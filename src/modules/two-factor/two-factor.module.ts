@@ -40,19 +40,8 @@ import { EncryptionModule } from '../../common/encryption/encryption.module';
 
   controllers: [TwoFactorController],
 
-  providers: [
-    TwoFactorService,
-    BackupCodeService,
-    TwoFactorProcessor,
-    StepUpGuard,
-  ],
+  providers: [TwoFactorService, BackupCodeService, TwoFactorProcessor, StepUpGuard],
 
-  exports: [
-    TwoFactorService,
-    EncryptionModule,
-    StepUpGuard,
-    JwtModule,
-    BullModule,
-  ],
+  exports: [TwoFactorService, EncryptionModule, StepUpGuard, JwtModule, BullModule],
 })
 export class TwoFactorModule {}
