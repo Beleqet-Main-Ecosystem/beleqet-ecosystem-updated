@@ -51,6 +51,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -153,6 +154,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
     BillingModule,
     SchedulerModule,
     RbacModule,
+    AuditLogModule,
   ],
   providers: [
     {

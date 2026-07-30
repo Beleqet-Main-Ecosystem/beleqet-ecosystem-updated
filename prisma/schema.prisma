@@ -1340,3 +1340,6 @@ enum SkillLevel {
   MID
   SENIOR
 }
+
+/// System-wide audit log entity tracking user/system actions, entity state changes,
+/// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
