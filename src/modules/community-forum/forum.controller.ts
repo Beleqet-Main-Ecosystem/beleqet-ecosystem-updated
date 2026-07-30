@@ -29,7 +29,7 @@ export class ForumController {
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: CreateThreadDto,
   ) {
-    const displayName = `${user.email}`;
+    const displayName = user.email.substring(0, user.email.indexOf('@'));
     return this.forumService.createThread(user.userId, displayName, dto);
   }
 
@@ -56,7 +56,7 @@ export class ForumController {
     @Param('id', ParseUUIDPipe) threadId: string,
     @Body() dto: CreateReplyDto,
   ) {
-    const displayName = `${user.email}`;
+    const displayName = user.email.substring(0, user.email.indexOf('@'));
     return this.forumService.createReply(user.userId, displayName, threadId, dto);
   }
 

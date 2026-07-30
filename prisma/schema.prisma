@@ -1062,7 +1062,7 @@ model ForumThread {
   title           String
   content         String
   tags            String[]     @default([])
-  userId          String
+  userId          String?
   userDisplayName String       @default("Deleted User")
   isAnonymous     Boolean      @default(false)
   upvoteCount     Int          @default(0)
@@ -1086,7 +1086,7 @@ model ForumReply {
   content         String
   threadId        String
   parentReplyId   String?
-  userId          String
+  userId          String?
   userDisplayName String       @default("Deleted User")
   isAnonymous     Boolean      @default(false)
   upvoteCount     Int          @default(0)

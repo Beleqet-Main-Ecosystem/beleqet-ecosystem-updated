@@ -17,7 +17,7 @@ export class ForumService {
 
   async createThread(userId: string, userDisplayName: string, dto: CreateThreadDto) {
     const displayName = dto.isAnonymous ? 'Deleted User' : userDisplayName;
-    return this.prisma.forumThread.create({
+    const thread = await this.prisma.forumThread.create({
       data: {
         title: dto.title,
         content: dto.content,
@@ -28,6 +28,8 @@ export class ForumService {
       },
       include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
     });
+    if (dto.isAnonymous) { (thread as any).user = null; }
+    return thread;
   }
 
   async findThreads(query: ForumQueryDto) {
@@ -69,6 +71,7 @@ export class ForumService {
     return {
       items: items.map(({ _count, ...thread }) => ({
         ...thread,
+        user: thread.isAnonymous ? null : thread.user,
         replyCount: _count.replies,
       })),
       pagination: {
@@ -92,7 +95,7 @@ export class ForumService {
     if (!thread) throw new NotFoundException('forum.error.threadNotFound');
 
     const { _count, ...data } = thread;
-    return { ...data, replyCount: _count.replies };
+    return { ...data, user: data.isAnonymous ? null : data.user, replyCount: _count.replies };
   }
 
   async createReply(userId: string, userDisplayName: string, threadId: string, dto: CreateReplyDto) {
@@ -121,6 +124,8 @@ export class ForumService {
       include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
     });
 
+    if (dto.isAnonymous) { (reply as any).user = null; }
+
     await this.prisma.forumThread.update({
       where: { id: threadId },
       data: { replyCount: { increment: 1 } },
@@ -133,7 +138,7 @@ export class ForumService {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
     if (!thread) throw new NotFoundException('forum.error.threadNotFound');
 
-    return this.prisma.forumReply.findMany({
+    const replies = await this.prisma.forumReply.findMany({
       where: { threadId, parentReplyId: null },
       orderBy: { createdAt: 'asc' },
       include: {
@@ -146,6 +151,15 @@ export class ForumService {
         },
       },
     });
+
+    return replies.map(reply => ({
+      ...reply,
+      user: reply.isAnonymous ? null : reply.user,
+      childReplies: reply.childReplies.map(child => ({
+        ...child,
+        user: child.isAnonymous ? null : child.user,
+      })),
+    }));
   }
 
   async upvoteThread(userId: string, threadId: string) {
