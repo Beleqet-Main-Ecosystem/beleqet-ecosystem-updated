@@ -1,3 +1,5 @@
+import { CacheConfigModule } from './cache/cache.module';
+import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -60,6 +62,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
     }),
 
     //  Rate limiting
@@ -157,6 +160,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     SchedulerModule,
     RbacModule,
     AuditLogModule,
+    CacheConfigModule,
   ],
   providers: [
     {
