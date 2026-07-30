@@ -30,9 +30,10 @@ export class ForumService {
         userDisplayName: displayName,
         isAnonymous: dto.isAnonymous ?? false,
       },
-      include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+      include: dto.isAnonymous
+        ? undefined
+        : { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
     });
-    if (dto.isAnonymous) { (thread as any).user = null; }
     return thread;
   }
 
@@ -116,26 +117,28 @@ export class ForumService {
 
     const displayName = dto.isAnonymous ? 'Deleted User' : userDisplayName;
 
-    const reply = await this.prisma.forumReply.create({
-      data: {
-        content: dto.content,
-        threadId,
-        parentReplyId: dto.parentReplyId ?? null,
-        userId,
-        userDisplayName: displayName,
-        isAnonymous: dto.isAnonymous ?? false,
-      },
-      include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+    return this.prisma.$transaction(async (tx) => {
+      const reply = await tx.forumReply.create({
+        data: {
+          content: dto.content,
+          threadId,
+          parentReplyId: dto.parentReplyId ?? null,
+          userId,
+          userDisplayName: displayName,
+          isAnonymous: dto.isAnonymous ?? false,
+        },
+        include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+      });
+
+      if (dto.isAnonymous) { (reply as any).user = null; }
+
+      await tx.forumThread.update({
+        where: { id: threadId },
+        data: { replyCount: { increment: 1 } },
+      });
+
+      return reply;
     });
-
-    if (dto.isAnonymous) { (reply as any).user = null; }
-
-    await this.prisma.forumThread.update({
-      where: { id: threadId },
-      data: { replyCount: { increment: 1 } },
-    });
-
-    return reply;
   }
 
   async findRepliesByThread(threadId: string, lang = 'en') {
@@ -170,50 +173,54 @@ export class ForumService {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
     if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
-    const existing = await this.prisma.forumUpvote.findUnique({
-      where: { userId_threadId: { userId, threadId } },
-    });
-
-    if (existing) {
-      await this.prisma.forumUpvote.delete({ where: { id: existing.id } });
-      await this.prisma.forumThread.update({
-        where: { id: threadId },
-        data: { upvoteCount: { decrement: 1 } },
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.forumUpvote.findUnique({
+        where: { userId_threadId: { userId, threadId } },
       });
-      return { upvoted: false, upvoteCount: Math.max(0, thread.upvoteCount - 1) };
-    }
 
-    await this.prisma.forumUpvote.create({ data: { userId, threadId } });
-    await this.prisma.forumThread.update({
-      where: { id: threadId },
-      data: { upvoteCount: { increment: 1 } },
+      if (existing) {
+        await tx.forumUpvote.delete({ where: { id: existing.id } });
+        await tx.forumThread.update({
+          where: { id: threadId },
+          data: { upvoteCount: { decrement: 1 } },
+        });
+        return { upvoted: false, upvoteCount: Math.max(0, thread.upvoteCount - 1) };
+      }
+
+      await tx.forumUpvote.create({ data: { userId, threadId } });
+      await tx.forumThread.update({
+        where: { id: threadId },
+        data: { upvoteCount: { increment: 1 } },
+      });
+      return { upvoted: true, upvoteCount: thread.upvoteCount + 1 };
     });
-    return { upvoted: true, upvoteCount: thread.upvoteCount + 1 };
   }
 
   async upvoteReply(userId: string, replyId: string, lang = 'en') {
     const reply = await this.prisma.forumReply.findUnique({ where: { id: replyId } });
     if (!reply) throw new NotFoundException(await this.i18n.t('forum.error.replyNotFound', { lang }));
 
-    const existing = await this.prisma.forumUpvote.findUnique({
-      where: { userId_replyId: { userId, replyId } },
-    });
-
-    if (existing) {
-      await this.prisma.forumUpvote.delete({ where: { id: existing.id } });
-      await this.prisma.forumReply.update({
-        where: { id: replyId },
-        data: { upvoteCount: { decrement: 1 } },
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.forumUpvote.findUnique({
+        where: { userId_replyId: { userId, replyId } },
       });
-      return { upvoted: false, upvoteCount: Math.max(0, reply.upvoteCount - 1) };
-    }
 
-    await this.prisma.forumUpvote.create({ data: { userId, replyId } });
-    await this.prisma.forumReply.update({
-      where: { id: replyId },
-      data: { upvoteCount: { increment: 1 } },
+      if (existing) {
+        await tx.forumUpvote.delete({ where: { id: existing.id } });
+        await tx.forumReply.update({
+          where: { id: replyId },
+          data: { upvoteCount: { decrement: 1 } },
+        });
+        return { upvoted: false, upvoteCount: Math.max(0, reply.upvoteCount - 1) };
+      }
+
+      await tx.forumUpvote.create({ data: { userId, replyId } });
+      await tx.forumReply.update({
+        where: { id: replyId },
+        data: { upvoteCount: { increment: 1 } },
+      });
+      return { upvoted: true, upvoteCount: reply.upvoteCount + 1 };
     });
-    return { upvoted: true, upvoteCount: reply.upvoteCount + 1 };
   }
 
   async anonymizeUserData(userId: string) {

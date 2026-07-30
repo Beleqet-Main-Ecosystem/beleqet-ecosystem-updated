@@ -4,15 +4,7 @@ import { useState } from "react";
 import { ArrowUp, ChevronDown, ChevronRight, User } from "lucide-react";
 import type { ForumReply } from "@/lib/forum-api";
 import { toggleReplyUpvote } from "@/lib/forum-api";
-
-function timeAgo(iso: string): string {
-  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${Math.max(1, mins)}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
+import { timeAgo } from "@/lib/utils/time";
 
 function ReplyCard({ reply, token, depth = 0 }: { reply: ForumReply; token?: string; depth?: number }) {
   const [upvoteCount, setUpvoteCount] = useState(reply.upvoteCount);

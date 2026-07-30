@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import ReplySection from "@/components/forum/ReplySection";
 import { getThread } from "@/lib/forum-api";
+import { timeAgo } from "@/lib/utils/time";
 
 export const revalidate = 30;
 
@@ -14,15 +15,6 @@ interface Props {
 function getAuthToken(): string | undefined {
   const cookieStore = cookies();
   return cookieStore.get("token")?.value;
-}
-
-function timeAgo(iso: string): string {
-  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${Math.max(1, mins)}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 export default async function ThreadDetailPage({ params }: Props) {
