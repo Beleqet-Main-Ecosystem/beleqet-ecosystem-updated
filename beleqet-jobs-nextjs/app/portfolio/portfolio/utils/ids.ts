@@ -4,7 +4,7 @@ let counter = 0;
  * Generates a stable-enough client-side id for list items.
  * Prefixed to avoid collisions with server ids later.
  */
-export function createId(prefix = "item"): string {
+export function createId(prefix = 'item'): string {
   counter += 1;
   return `${prefix}_${Date.now()}_${counter}`;
 }

@@ -32,8 +32,10 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
-    if (!user || !user.id) return false;
+    const user = context.switchToHttp().getRequest<{ user: any }>().user;
+    if (!user) return false;
+    user.userId = user.userId || user.id;
+    if (!user.userId || !user.role) return false;
 
     if (requiredRoles && requiredRoles.length > 0) {
       if (!requiredRoles.includes(user.role)) {
@@ -42,7 +44,7 @@ export class RolesGuard implements CanActivate {
     }
 
     if (requiredPermissions && requiredPermissions.length > 0) {
-      const cacheKey = `user_permissions:${user.id}`;
+      const cacheKey = `user_permissions:${user.userId}`;
       let userPermissions: string[] = [];
       const cached = await this.redis.get(cacheKey);
 
@@ -50,7 +52,7 @@ export class RolesGuard implements CanActivate {
         userPermissions = JSON.parse(cached);
       } else {
         const dbUser = await this.prisma.user.findUnique({
-          where: { id: user.id },
+          where: { id: user.userId },
           include: { rbacRoles: { include: { permissions: true } } },
         });
 

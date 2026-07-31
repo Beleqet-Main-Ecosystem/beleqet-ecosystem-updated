@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation, Locale } from '../../lib/i18n';
 import { CurrencyUtil } from '../../lib/currency';
-import { 
-  ShieldCheck, 
-  UploadCloud, 
-  FileText, 
-  Trash2, 
-  Eye, 
-  Lock, 
-  Languages, 
-  UserCheck, 
-  Coins, 
+import {
+  ShieldCheck,
+  UploadCloud,
+  FileText,
+  Trash2,
+  Eye,
+  Lock,
+  Languages,
+  UserCheck,
+  Coins,
   AlertTriangle,
   Loader2,
-  Download
+  Download,
 } from 'lucide-react';
 
 /**
@@ -42,7 +42,7 @@ interface StoredFile {
  */
 export default function StorageDashboard(): React.ReactElement {
   const { locale, changeLanguage, t } = useTranslation();
-  
+
   // Auth state
   const [token, setToken] = useState<string | null>(null);
   const [email, setEmail] = useState<string>('admin@beleqet.com');
@@ -54,8 +54,11 @@ export default function StorageDashboard(): React.ReactElement {
   const [file, setFile] = useState<File | null>(null);
   const [consentChecked, setConsentChecked] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [uploadFeedback, setUploadFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  
+  const [uploadFeedback, setUploadFeedback] = useState<{
+    message: string;
+    type: 'success' | 'error';
+  } | null>(null);
+
   // Files list state
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState<boolean>(false);
@@ -196,7 +199,7 @@ export default function StorageDashboard(): React.ReactElement {
    */
   const validateAndSetFile = (selected: File): void => {
     setUploadFeedback(null);
-    
+
     const allowedImages = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const allowedDocs = [
       'application/pdf',
@@ -261,7 +264,7 @@ export default function StorageDashboard(): React.ReactElement {
       setUploadFeedback({ message: t('storage.successUpload'), type: 'success' });
       setFile(null);
       setConsentChecked(false);
-      
+
       // Refresh user files list
       await fetchUserFiles();
     } catch (err) {
@@ -290,10 +293,10 @@ export default function StorageDashboard(): React.ReactElement {
       }
 
       const data = (await response.json()) as { url: string };
-      
+
       // Cache URL in state
       setActiveFileUrls((prev) => ({ ...prev, [key]: data.url }));
-      
+
       // Open in a new secure window tab
       window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (err) {
@@ -310,7 +313,11 @@ export default function StorageDashboard(): React.ReactElement {
    * @throws Error if delete processing fails.
    */
   const handleDeleteFile = async (key: string): Promise<void> => {
-    if (!window.confirm('Are you sure you want to permanently delete this file and mask its metadata?')) {
+    if (
+      !window.confirm(
+        'Are you sure you want to permanently delete this file and mask its metadata?',
+      )
+    ) {
       return;
     }
 
@@ -362,21 +369,25 @@ export default function StorageDashboard(): React.ReactElement {
               {t('storage.description')}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-3 bg-[#0d1f15] border border-[#143022] rounded-full p-1.5 shadow-lg">
             <Languages className="w-4 h-4 text-[#22c55e] ml-2" />
-            <button 
+            <button
               onClick={() => changeLanguage('en')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
-                locale === 'en' ? 'bg-[#22c55e] text-white shadow-md' : 'text-slate-400 hover:text-white'
+                locale === 'en'
+                  ? 'bg-[#22c55e] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               English
             </button>
-            <button 
+            <button
               onClick={() => changeLanguage('am')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
-                locale === 'am' ? 'bg-[#22c55e] text-white shadow-md' : 'text-slate-400 hover:text-white'
+                locale === 'am'
+                  ? 'bg-[#22c55e] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               አማርኛ
@@ -392,10 +403,10 @@ export default function StorageDashboard(): React.ReactElement {
               <div className="bg-[#122c1d] border border-[#1b3d2b] p-4 rounded-full text-[#22c55e] mb-4">
                 <Lock className="w-8 h-8" />
               </div>
-              <h2 className="text-xl font-bold text-white tracking-wide">{t('storage.devPortal')}</h2>
-              <p className="text-xs text-slate-400 mt-2">
-                {t('storage.devPortalSub')}
-              </p>
+              <h2 className="text-xl font-bold text-white tracking-wide">
+                {t('storage.devPortal')}
+              </h2>
+              <p className="text-xs text-slate-400 mt-2">{t('storage.devPortalSub')}</p>
             </div>
 
             <form onSubmit={handleDeveloperLogin} className="space-y-4">
@@ -403,7 +414,7 @@ export default function StorageDashboard(): React.ReactElement {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
                   {t('storage.emailLabel')}
                 </label>
-                <input 
+                <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -416,7 +427,7 @@ export default function StorageDashboard(): React.ReactElement {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
                   {t('storage.passwordLabel')}
                 </label>
-                <input 
+                <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -432,7 +443,7 @@ export default function StorageDashboard(): React.ReactElement {
                 </div>
               )}
 
-              <button 
+              <button
                 type="submit"
                 disabled={isLoggingIn}
                 className="w-full bg-[#22c55e] hover:bg-[#1ca84f] disabled:opacity-60 text-white font-bold text-sm tracking-wider uppercase py-3.5 px-4 rounded-xl transition-all shadow-lg hover:shadow-[#22c55e]/20 flex justify-center items-center gap-2"
@@ -457,9 +468,11 @@ export default function StorageDashboard(): React.ReactElement {
             <div className="bg-[#0b1710] border border-[#143022] rounded-2xl px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-300">
                 <span className="w-2.5 h-2.5 bg-[#22c55e] rounded-full animate-ping"></span>
-                <span>{t('storage.activeSession')} <strong>admin@beleqet.com</strong></span>
+                <span>
+                  {t('storage.activeSession')} <strong>admin@beleqet.com</strong>
+                </span>
               </div>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="text-xs font-semibold uppercase tracking-wider text-red-400 hover:text-red-300 transition-colors border border-red-900/30 hover:border-red-900/60 bg-red-950/20 px-4 py-2 rounded-xl"
               >
@@ -469,7 +482,6 @@ export default function StorageDashboard(): React.ReactElement {
 
             {/* Main Action Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
               {/* Column 1: Secure File Upload Zone */}
               <div className="lg:col-span-7 bg-[#0c1811]/90 backdrop-blur-md border border-[#1b3d2b] rounded-3xl p-6 sm:p-8 shadow-xl relative group">
                 <h2 className="text-xl font-bold text-white mb-6 tracking-wide flex items-center gap-2.5">
@@ -479,62 +491,73 @@ export default function StorageDashboard(): React.ReactElement {
 
                 <form onSubmit={handleUploadSubmit} className="space-y-6">
                   {/* Dropzone container */}
-                  <div 
+                  <div
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                     className="border-2 border-dashed border-[#1b3d2b] hover:border-[#22c55e] bg-[#050b07] rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-[#07130b]/60 relative group"
                   >
-                    <input 
+                    <input
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileChange}
                       className="hidden"
                     />
-                    
+
                     <div className="bg-[#122c1d]/60 border border-[#1b3d2b] group-hover:border-[#22c55e] group-hover:text-[#22c55e] p-4 rounded-full text-slate-400 mb-4 transition-all">
                       <UploadCloud className="w-8 h-8" />
                     </div>
 
                     {file ? (
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-white truncate max-w-xs">{file.name}</p>
+                        <p className="text-sm font-semibold text-white truncate max-w-xs">
+                          {file.name}
+                        </p>
                         <p className="text-xs text-slate-400">{formatBytes(file.size)}</p>
                       </div>
                     ) : (
                       <>
-                        <p className="text-sm font-semibold text-white tracking-wide">{t('storage.dropzoneMain')}</p>
-                        <p className="text-xs text-slate-400 mt-1 max-w-sm">{t('storage.dropzoneSub')}</p>
+                        <p className="text-sm font-semibold text-white tracking-wide">
+                          {t('storage.dropzoneMain')}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                          {t('storage.dropzoneSub')}
+                        </p>
                       </>
                     )}
                   </div>
 
                   {/* GDPR Consent Card */}
                   <div className="bg-[#050b07] border border-[#143022] rounded-2xl p-4 flex items-start gap-3">
-                    <input 
+                    <input
                       type="checkbox"
                       id="gdpr-consent"
                       checked={consentChecked}
                       onChange={(e) => setConsentChecked(e.target.checked)}
                       className="w-4 h-4 mt-0.5 rounded border-[#1b3d2b] text-[#22c55e] focus:ring-[#22c55e] bg-[#050b07] cursor-pointer"
                     />
-                    <label htmlFor="gdpr-consent" className="text-xs text-slate-400 select-none cursor-pointer leading-normal">
+                    <label
+                      htmlFor="gdpr-consent"
+                      className="text-xs text-slate-400 select-none cursor-pointer leading-normal"
+                    >
                       {t('storage.gdprConsent')}
                     </label>
                   </div>
 
                   {uploadFeedback && (
-                    <div className={`p-4 rounded-2xl border flex items-start gap-2.5 text-xs ${
-                      uploadFeedback.type === 'success' 
-                        ? 'bg-green-950/30 border-[#22c55e]/40 text-[#22c55e]' 
-                        : 'bg-red-950/30 border-red-900/40 text-red-400'
-                    }`}>
+                    <div
+                      className={`p-4 rounded-2xl border flex items-start gap-2.5 text-xs ${
+                        uploadFeedback.type === 'success'
+                          ? 'bg-green-950/30 border-[#22c55e]/40 text-[#22c55e]'
+                          : 'bg-red-950/30 border-red-900/40 text-red-400'
+                      }`}
+                    >
                       <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                       <span>{uploadFeedback.message}</span>
                     </div>
                   )}
 
-                  <button 
+                  <button
                     type="submit"
                     disabled={isUploading || !file}
                     className="w-full bg-[#22c55e] hover:bg-[#1ca84f] disabled:opacity-50 text-white font-bold text-sm tracking-wider uppercase py-4 rounded-xl transition-all shadow-lg hover:shadow-[#22c55e]/25 flex justify-center items-center gap-2"
@@ -576,7 +599,9 @@ export default function StorageDashboard(): React.ReactElement {
                     <div className="border-t border-[#143022] pt-4">
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-400">{t('storage.equivalentUnits')}</span>
-                        <span className="font-mono text-slate-200">{baseFeeCents} {t('storage.units')}</span>
+                        <span className="font-mono text-slate-200">
+                          {baseFeeCents} {t('storage.units')}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -587,7 +612,7 @@ export default function StorageDashboard(): React.ReactElement {
                     {t('storage.currencyToggle')}
                   </label>
                   <div className="grid grid-cols-2 gap-3">
-                    <button 
+                    <button
                       onClick={() => setSelectedCurrency('ETB')}
                       className={`py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all border ${
                         selectedCurrency === 'ETB'
@@ -597,7 +622,7 @@ export default function StorageDashboard(): React.ReactElement {
                     >
                       ETB (Santim)
                     </button>
-                    <button 
+                    <button
                       onClick={() => setSelectedCurrency('USD')}
                       className={`py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all border ${
                         selectedCurrency === 'USD'
@@ -651,19 +676,23 @@ export default function StorageDashboard(): React.ReactElement {
                           <td className="py-4 px-4 font-mono text-xs text-slate-400">{item.key}</td>
                           <td className="py-4 px-4 text-slate-300">{formatBytes(item.size)}</td>
                           <td className="py-4 px-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                              item.isDeleted 
-                                ? 'bg-red-950/40 border border-red-900/40 text-red-400'
-                                : 'bg-[#122c1d] border border-[#22c55e]/30 text-[#22c55e]'
-                            }`}>
-                              {item.isDeleted ? t('storage.statusDeleted') : t('storage.statusActive')}
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                item.isDeleted
+                                  ? 'bg-red-950/40 border border-red-900/40 text-red-400'
+                                  : 'bg-[#122c1d] border border-[#22c55e]/30 text-[#22c55e]'
+                              }`}
+                            >
+                              {item.isDeleted
+                                ? t('storage.statusDeleted')
+                                : t('storage.statusActive')}
                             </span>
                           </td>
                           <td className="py-4 px-4 text-right">
                             <div className="flex justify-end gap-2">
                               {!item.isDeleted && (
                                 <>
-                                  <button 
+                                  <button
                                     onClick={() => handleFetchUrl(item.key)}
                                     disabled={isGeneratingUrl === item.key}
                                     className="bg-[#122c1d] hover:bg-[#1a3f29] disabled:opacity-50 text-[#22c55e] border border-[#22c55e]/30 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
@@ -680,8 +709,8 @@ export default function StorageDashboard(): React.ReactElement {
                                       </>
                                     )}
                                   </button>
-                                  
-                                  <button 
+
+                                  <button
                                     onClick={() => handleDeleteFile(item.key)}
                                     className="bg-red-950/30 hover:bg-red-900/20 text-red-400 border border-red-900/30 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
                                   >

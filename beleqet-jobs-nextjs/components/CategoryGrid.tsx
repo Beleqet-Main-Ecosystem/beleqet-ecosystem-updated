@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from 'next/link';
 import {
   Laptop,
   Megaphone,
@@ -9,25 +9,21 @@ import {
   Briefcase,
   MoreHorizontal,
   type LucideIcon,
-} from "lucide-react";
-import type { Category } from "@/lib/api";
+} from 'lucide-react';
+import type { Category } from '@/lib/api';
 
 const iconMap: Record<string, LucideIcon> = {
   laptop: Laptop,
   megaphone: Megaphone,
   landmark: Landmark,
-  "heart-pulse": HeartPulse,
-  "graduation-cap": GraduationCap,
+  'heart-pulse': HeartPulse,
+  'graduation-cap': GraduationCap,
   cog: Cog,
   briefcase: Briefcase,
-  "more-horizontal": MoreHorizontal,
+  'more-horizontal': MoreHorizontal,
 };
 
-export default function CategoryGrid({
-  categories,
-}: {
-  categories: Category[];
-}) {
+export default function CategoryGrid({ categories }: { categories: Category[] }) {
   if (!categories.length) return null;
 
   return (
@@ -41,8 +37,7 @@ export default function CategoryGrid({
             There’s a place for your talent.
           </h2>
           <p className="mt-2 text-sm text-muted">
-            Start with an industry and discover where your experience can take
-            you.
+            Start with an industry and discover where your experience can take you.
           </p>
         </div>
         <Link

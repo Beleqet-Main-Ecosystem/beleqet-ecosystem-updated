@@ -24,6 +24,7 @@ import {
   SCORING,
 } from '../queues/queues.constants';
 import { recruiterApplicationEmail } from '../notifications/email-templates';
+import { escapeTelegramMarkdown } from '../../common/utils/telegram-escape';
 
 // ── Payload types ──────────────────────────────────────────────────────────
 
@@ -272,7 +273,7 @@ export class ScreeningProcessor extends WorkerHost {
       if (company.user.telegramId) {
         await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
           telegramId: company.user.telegramId,
-          message: `📋 New application for *${job.data.jobTitle}*\nApplicant: ${job.data.applicantName}\n\nReview → ${this.config.get('FRONTEND_URL')}/dashboard/applications/${job.data.applicationId}`,
+          message: `📋 New application for *${escapeTelegramMarkdown(job.data.jobTitle)}*\nApplicant: ${escapeTelegramMarkdown(job.data.applicantName)}\n\nReview → ${this.config.get('FRONTEND_URL')}/dashboard/applications/${job.data.applicationId}`,
         });
       }
     }

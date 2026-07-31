@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Briefcase, Pencil, ExternalLink } from "lucide-react";
-import { useAuth } from "@/components/AuthProvider";
-import { usePortfolioQuery } from "@/portfolio/queries/portfolio-queries";
-import { usePortfolioTranslations } from "@/portfolio/hooks/usePortfolioTranslations";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Briefcase, Pencil, ExternalLink } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { usePortfolioQuery } from '@/portfolio/queries/portfolio-queries';
+import { usePortfolioTranslations } from '@/portfolio/hooks/usePortfolioTranslations';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 /**
  * Authenticated portfolio management dashboard.
@@ -20,15 +20,11 @@ export default function ProfilePortfolioPage() {
   const portfolioQuery = usePortfolioQuery(Boolean(user && ready));
 
   useEffect(() => {
-    if (ready && !user) router.replace("/login?next=/profile/portfolio");
+    if (ready && !user) router.replace('/login?next=/profile/portfolio');
   }, [ready, user, router]);
 
   if (!ready || !user) {
-    return (
-      <div className="container-page py-16 text-center text-ink/60">
-        Loading…
-      </div>
-    );
+    return <div className="container-page py-16 text-center text-ink/60">Loading…</div>;
   }
 
   const updatedAt = portfolioQuery.data?.meta.updatedAt;
@@ -39,10 +35,10 @@ export default function ProfilePortfolioPage() {
         <p className="text-xs font-extrabold uppercase tracking-[.16em] text-brandGreen">
           Master Profile
         </p>
-        <h1 className="text-hero text-primary">{t("managePortfolio")}</h1>
+        <h1 className="text-hero text-primary">{t('managePortfolio')}</h1>
         <p className="text-sm text-ink/70">
-          Your portfolio powers CVs, applications, and future AI recommendations
-          from a single source of truth.
+          Your portfolio powers CVs, applications, and future AI recommendations from a single
+          source of truth.
         </p>
       </header>
 
@@ -55,13 +51,13 @@ export default function ProfilePortfolioPage() {
           <p className="mt-2 text-sm text-ink/70">
             {portfolioQuery.data
               ? portfolioQuery.data.meta.published
-                ? "Published and ready to share."
-                : "Draft saved — publish when you are ready."
-              : "No saved portfolio yet. Open the builder to get started."}
+                ? 'Published and ready to share.'
+                : 'Draft saved — publish when you are ready.'
+              : 'No saved portfolio yet. Open the builder to get started.'}
           </p>
           {updatedAt && (
             <p className="mt-2 text-xs text-ink/50">
-              {t("lastUpdated")}: {new Date(updatedAt).toLocaleString()}
+              {t('lastUpdated')}: {new Date(updatedAt).toLocaleString()}
             </p>
           )}
         </div>
@@ -71,23 +67,20 @@ export default function ProfilePortfolioPage() {
           <div className="mt-4 flex flex-col gap-2">
             <Link
               href="/portfolio"
-              className={cn(
-                buttonVariants(),
-                "inline-flex w-full justify-center gap-2 rounded-xl",
-              )}
+              className={cn(buttonVariants(), 'inline-flex w-full justify-center gap-2 rounded-xl')}
             >
               <Pencil className="h-4 w-4" />
-              {t("openBuilder")}
+              {t('openBuilder')}
             </Link>
             <Link
               href="/portfolio/templates"
               className={cn(
-                buttonVariants({ variant: "outline" }),
-                "inline-flex w-full justify-center gap-2 rounded-xl",
+                buttonVariants({ variant: 'outline' }),
+                'inline-flex w-full justify-center gap-2 rounded-xl',
               )}
             >
               <ExternalLink className="h-4 w-4" />
-              {t("templates")}
+              {t('templates')}
             </Link>
           </div>
         </div>

@@ -18,152 +18,152 @@ export interface RouteSeoProfile {
   /** Whether crawlers should be allowed to follow links on this route. */
   nofollow: boolean;
   /** Suggested sitemap change frequency (omitted for `noindex` routes). */
-  changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
+  changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
   /** Sitemap priority (0.0 – 1.0). */
   priority?: number;
 }
 
 export const ROUTE_REGISTRY: Record<string, RouteSeoProfile> = {
   HOME: {
-    pattern: "/",
-    name: "Home",
+    pattern: '/',
+    name: 'Home',
     noindex: false,
     nofollow: false,
-    changefreq: "hourly",
+    changefreq: 'hourly',
     priority: 1.0,
   },
   JOBS: {
-    pattern: "/jobs",
-    name: "Jobs Listing",
+    pattern: '/jobs',
+    name: 'Jobs Listing',
     noindex: false,
     nofollow: false,
-    changefreq: "hourly",
+    changefreq: 'hourly',
     priority: 0.8,
   },
   JOB_DETAIL: {
-    pattern: "/jobs/[id]",
-    name: "Job Detail",
+    pattern: '/jobs/[id]',
+    name: 'Job Detail',
     noindex: false,
     nofollow: false,
-    changefreq: "daily",
+    changefreq: 'daily',
     priority: 0.6,
   },
   ABOUT: {
-    pattern: "/about",
-    name: "About",
+    pattern: '/about',
+    name: 'About',
     noindex: false,
     nofollow: false,
-    changefreq: "monthly",
+    changefreq: 'monthly',
     priority: 0.4,
   },
   PRICING: {
-    pattern: "/pricing",
-    name: "Pricing",
+    pattern: '/pricing',
+    name: 'Pricing',
     noindex: false,
     nofollow: false,
-    changefreq: "monthly",
+    changefreq: 'monthly',
     priority: 0.5,
   },
   CONTACT: {
-    pattern: "/contact",
-    name: "Contact",
+    pattern: '/contact',
+    name: 'Contact',
     noindex: false,
     nofollow: false,
-    changefreq: "monthly",
+    changefreq: 'monthly',
     priority: 0.3,
   },
   LOGIN: {
-    pattern: "/login",
-    name: "Login",
+    pattern: '/login',
+    name: 'Login',
     noindex: true,
     nofollow: true,
   },
   REGISTER: {
-    pattern: "/register",
-    name: "Register",
+    pattern: '/register',
+    name: 'Register',
     noindex: true,
     nofollow: true,
   },
   FORGOT_PASSWORD: {
-    pattern: "/forgot-password",
-    name: "Forgot Password",
+    pattern: '/forgot-password',
+    name: 'Forgot Password',
     noindex: true,
     nofollow: true,
   },
   PROFILE: {
-    pattern: "/profile",
-    name: "Profile",
+    pattern: '/profile',
+    name: 'Profile',
     noindex: true,
     nofollow: true,
   },
   POST_JOB: {
-    pattern: "/post-job",
-    name: "Post Job",
+    pattern: '/post-job',
+    name: 'Post Job',
     noindex: true,
     nofollow: true,
   },
   EMPLOYER: {
-    pattern: "/employer",
-    name: "Employer Dashboard",
+    pattern: '/employer',
+    name: 'Employer Dashboard',
     noindex: true,
     nofollow: true,
   },
   CV_MAKER: {
-    pattern: "/cv-maker",
-    name: "CV Maker",
+    pattern: '/cv-maker',
+    name: 'CV Maker',
     noindex: true,
     nofollow: true,
   },
   PORTFOLIO: {
-    pattern: "/portfolio",
-    name: "Portfolio Builder",
+    pattern: '/portfolio',
+    name: 'Portfolio Builder',
     noindex: true,
     nofollow: true,
   },
   PORTFOLIO_TEMPLATES: {
-    pattern: "/portfolio/templates",
-    name: "Portfolio Templates",
+    pattern: '/portfolio/templates',
+    name: 'Portfolio Templates',
     noindex: true,
     nofollow: true,
   },
   PROFILE_PORTFOLIO: {
-    pattern: "/profile/portfolio",
-    name: "Manage Portfolio",
+    pattern: '/profile/portfolio',
+    name: 'Manage Portfolio',
     noindex: true,
     nofollow: true,
   },
   APPLICATIONS: {
-    pattern: "/applications",
-    name: "Applications",
+    pattern: '/applications',
+    name: 'Applications',
     noindex: true,
     nofollow: true,
   },
   ADMIN: {
-    pattern: "/admin",
-    name: "Admin",
+    pattern: '/admin',
+    name: 'Admin',
     noindex: true,
     nofollow: true,
   },
   RESET_PASSWORD: {
-    pattern: "/auth/reset-password",
-    name: "Reset Password",
+    pattern: '/auth/reset-password',
+    name: 'Reset Password',
     noindex: true,
     nofollow: true,
   },
   VERIFY_EMAIL: {
-    pattern: "/auth/verify-email",
-    name: "Verify Email",
+    pattern: '/auth/verify-email',
+    name: 'Verify Email',
     noindex: true,
     nofollow: true,
   },
 };
 
 /** Routes that should appear in the sitemap. */
-export const INDEXABLE_ROUTES: RouteSeoProfile[] = Object.values(
-  ROUTE_REGISTRY,
-).filter((r) => !r.noindex);
+export const INDEXABLE_ROUTES: RouteSeoProfile[] = Object.values(ROUTE_REGISTRY).filter(
+  (r) => !r.noindex,
+);
 
 /** Routes that should be blocked from crawlers. */
-export const NOINDEX_ROUTES: RouteSeoProfile[] = Object.values(
-  ROUTE_REGISTRY,
-).filter((r) => r.noindex);
+export const NOINDEX_ROUTES: RouteSeoProfile[] = Object.values(ROUTE_REGISTRY).filter(
+  (r) => r.noindex,
+);

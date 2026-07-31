@@ -94,7 +94,8 @@ export function TwoFactorSettings({
     setShowRegenerate(true);
     setError(null);
     try {
-      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const accessToken =
+        typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       if (!accessToken) throw new Error('Not authenticated');
       const token = await requestChallenge(apiBaseUrl, accessToken, 'regenerate_backup_codes');
       setChallengeToken(token);
@@ -203,7 +204,11 @@ export function TwoFactorSettings({
           <OtpInput value={code} onChange={setCode} disabled={loading} />
           <div className="flex gap-3 mt-3">
             <button
-              onClick={() => { setShowDisable(false); setCode(''); setError(null); }}
+              onClick={() => {
+                setShowDisable(false);
+                setCode('');
+                setError(null);
+              }}
               className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
             >
               Cancel
@@ -227,7 +232,12 @@ export function TwoFactorSettings({
           <OtpInput value={code} onChange={setCode} disabled={loading} />
           <div className="flex gap-3 mt-3">
             <button
-              onClick={() => { setShowRegenerate(false); setCode(''); setChallengeToken(null); setError(null); }}
+              onClick={() => {
+                setShowRegenerate(false);
+                setCode('');
+                setChallengeToken(null);
+                setError(null);
+              }}
               className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
             >
               Cancel

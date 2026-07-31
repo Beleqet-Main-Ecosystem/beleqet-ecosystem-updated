@@ -1,6 +1,6 @@
-import AuthShell from "@/components/AuthShell";
-import RegisterForm from "@/components/RegisterForm";
-import { registerPageMetadata } from "@/lib/seo/generate-metadata";
+import AuthShell from '@/components/AuthShell';
+import RegisterForm from '@/components/RegisterForm';
+import { registerPageMetadata } from '@/lib/seo/generate-metadata';
 
 export const metadata = registerPageMetadata();
 

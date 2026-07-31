@@ -6,10 +6,7 @@ interface PasswordChangeFormProps {
   onSuccess?: () => void;
 }
 
-export function PasswordChangeForm({
-  apiBaseUrl = '/api/v1',
-  onSuccess,
-}: PasswordChangeFormProps) {
+export function PasswordChangeForm({ apiBaseUrl = '/api/v1', onSuccess }: PasswordChangeFormProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -36,7 +33,10 @@ export function PasswordChangeForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -77,7 +77,9 @@ export function PasswordChangeForm({
             if (onSuccess) {
               setTimeout(onSuccess, 2000);
             } else {
-              setTimeout(() => { window.location.href = '/login'; }, 2000);
+              setTimeout(() => {
+                window.location.href = '/login';
+              }, 2000);
             }
           };
           setStepUpChallenge(data.stepUpToken);
@@ -97,7 +99,9 @@ export function PasswordChangeForm({
       if (onSuccess) {
         setTimeout(onSuccess, 2000);
       } else {
-        setTimeout(() => { window.location.href = '/login'; }, 2000);
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to change password');
@@ -144,7 +148,9 @@ export function PasswordChangeForm({
       <h2 className="text-xl font-semibold mb-4">Change Password</h2>
 
       {successMessage && (
-        <div className="bg-green-50 text-green-700 px-4 py-2 rounded mb-4 text-sm">{successMessage}</div>
+        <div className="bg-green-50 text-green-700 px-4 py-2 rounded mb-4 text-sm">
+          {successMessage}
+        </div>
       )}
       {error && (
         <div className="bg-red-50 text-red-700 px-4 py-2 rounded mb-4 text-sm">{error}</div>
@@ -172,7 +178,9 @@ export function PasswordChangeForm({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Confirm New Password
+          </label>
           <input
             type="password"
             value={confirmPassword}

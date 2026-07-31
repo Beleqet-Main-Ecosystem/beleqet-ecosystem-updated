@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { completeWithGroq, GroqError } from "@/lib/groq";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { completeWithGroq, GroqError } from '@/lib/groq';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 const bodySchema = z.object({
   messages: z
     .array(
       z.object({
-        role: z.enum(["user", "assistant"]),
+        role: z.enum(['user', 'assistant']),
         content: z.string().min(1).max(2000),
       }),
     )
@@ -34,20 +34,20 @@ export async function POST(req: NextRequest) {
       content: message.content,
     }));
     const reply = await completeWithGroq(
-      [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+      [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
       400,
     );
     return NextResponse.json({ reply });
   } catch (error) {
     if (error instanceof z.ZodError)
-      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
     const status = error instanceof GroqError ? error.status : 500;
     const unavailable = status === 429 || status >= 500;
     return NextResponse.json(
       {
         reply: unavailable
-          ? "The assistant is temporarily unavailable. Please try again shortly."
-          : "The assistant could not process that request.",
+          ? 'The assistant is temporarily unavailable. Please try again shortly.'
+          : 'The assistant could not process that request.',
       },
       { status: unavailable ? 503 : 400 },
     );

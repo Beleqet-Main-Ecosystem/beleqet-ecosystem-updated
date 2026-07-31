@@ -3,7 +3,16 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { logout } from '@/lib/api';
-import { ShieldCheck, LogOut, LayoutDashboard, Gavel, ScrollText } from 'lucide-react';
+import {
+  ShieldCheck,
+  LogOut,
+  LayoutDashboard,
+  Gavel,
+  ScrollText,
+  Bell,
+  Settings,
+} from 'lucide-react';
+import { NotificationBell } from '@/components/Notifications';
 
 interface User {
   firstName: string;
@@ -28,8 +37,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace('/login');
       return;
     }
-    const parsed: User = JSON.parse(storedUser);
-    if (parsed.role !== 'ADMIN') {
+    let parsed: User;
+    try {
+      parsed = JSON.parse(storedUser);
+    } catch {
+      localStorage.removeItem('user');
+      router.replace('/login');
+      return;
+    }
+    if (!parsed || parsed.role !== 'ADMIN') {
       router.replace('/login');
       return;
     }
@@ -60,6 +76,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { href: '/admin/disputes', label: 'Dispute Manager', icon: <Gavel size={18} /> },
     { href: '/admin/audit-logs', label: 'Audit Trail', icon: <ScrollText size={18} /> },
+    { href: '/admin/notifications', label: 'Notifications', icon: <Bell size={18} /> },
+    {
+      href: '/admin/settings/notifications',
+      label: 'Notification Settings',
+      icon: <Settings size={18} />,
+    },
   ];
 
   return (
@@ -93,11 +115,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="role">{user.role}</div>
           </div>
+          <NotificationBell />
           <button className="btn btn-ghost" onClick={handleLogout} title="Logout" type="button">
             <LogOut size={18} />
           </button>
         </div>
-
       </aside>
 
       {/*  Main content  */}

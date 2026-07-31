@@ -1,35 +1,37 @@
-"use client";
+'use client';
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Loader2, XCircle } from "lucide-react";
-import { useAuth } from "@/components/AuthProvider";
-import { authenticatedFetch } from "@/lib/auth";
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { Loader2, XCircle } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
+import { authenticatedFetch } from '@/lib/auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 function CheckoutInner() {
   const { user, ready } = useAuth();
   const searchParams = useSearchParams();
-  const planId = searchParams.get("planId");
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [error, setError] = useState("");
+  const planId = searchParams.get('planId');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [error, setError] = useState('');
 
   async function startCheckout() {
-    setStatus("loading");
-    setError("");
+    setStatus('loading');
+    setError('');
     try {
       const response = await authenticatedFetch(`${API_URL}/subscriptions/checkout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId }),
       });
       const data = await response.json();
       if (!response.ok) {
-        setStatus("error");
+        setStatus('error');
         setError(
-          Array.isArray(data.message) ? data.message.join(", ") : data.message ?? "Checkout failed.",
+          Array.isArray(data.message)
+            ? data.message.join(', ')
+            : (data.message ?? 'Checkout failed.'),
         );
         return;
       }
@@ -37,16 +39,16 @@ function CheckoutInner() {
         window.location.href = data.approvalUrl;
         return;
       }
-      setStatus("error");
-      setError("No approval URL returned by the payment gateway.");
+      setStatus('error');
+      setError('No approval URL returned by the payment gateway.');
     } catch {
-      setStatus("error");
-      setError("Cannot reach the server. Please try again.");
+      setStatus('error');
+      setError('Cannot reach the server. Please try again.');
     }
   }
 
   useEffect(() => {
-    if (!ready || !user || !planId || status !== "idle") return;
+    if (!ready || !user || !planId || status !== 'idle') return;
     startCheckout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, user, planId]);
@@ -54,7 +56,7 @@ function CheckoutInner() {
   if (!planId) {
     return (
       <div className="container-page py-24 text-center text-muted">
-        No plan selected.{" "}
+        No plan selected.{' '}
         <Link href="/pricing" className="font-bold text-brandGreen">
           View plans
         </Link>
@@ -82,7 +84,7 @@ function CheckoutInner() {
 
   return (
     <div className="container-page flex min-h-[60vh] flex-col items-center justify-center text-center">
-      {status === "error" ? (
+      {status === 'error' ? (
         <>
           <XCircle className="h-10 w-10 text-redAccent" />
           <p className="mt-4 max-w-md text-sm text-muted">{error}</p>

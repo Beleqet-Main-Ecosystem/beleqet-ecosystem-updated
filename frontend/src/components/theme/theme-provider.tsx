@@ -31,7 +31,10 @@ interface ThemeProviderProps {
  */
 function applyTheme(preference: ThemePreference): void {
   const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  document.documentElement.classList.toggle(DARK_THEME_CLASS, resolvesToDark(preference, systemPrefersDark));
+  document.documentElement.classList.toggle(
+    DARK_THEME_CLASS,
+    resolvesToDark(preference, systemPrefersDark),
+  );
   document.documentElement.dataset.theme = preference;
 }
 
@@ -71,7 +74,9 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
     void getThemePreference()
       .then(({ theme }) => {
         const serverPreference = parseThemePreference(theme);
-        const currentCachedPreference = parseThemePreference(localStorage.getItem(THEME_STORAGE_KEY));
+        const currentCachedPreference = parseThemePreference(
+          localStorage.getItem(THEME_STORAGE_KEY),
+        );
         if (!currentCachedPreference && serverPreference) {
           setPreferenceState(serverPreference);
           applyTheme(serverPreference);

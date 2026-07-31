@@ -13,7 +13,11 @@ import type { ThemePreference } from './theme-preference';
 export function ThemeSwitcher(): JSX.Element {
   const { preference, isMounted, setPreference } = useTheme();
   const { t } = useThemeTranslation();
-  const options: ReadonlyArray<{ value: ThemePreference; key: 'theme.light' | 'theme.dark' | 'theme.system'; icon: JSX.Element }> = [
+  const options: ReadonlyArray<{
+    value: ThemePreference;
+    key: 'theme.light' | 'theme.dark' | 'theme.system';
+    icon: JSX.Element;
+  }> = [
     { value: 'LIGHT', key: 'theme.light', icon: <Sun aria-hidden="true" size={16} /> },
     { value: 'DARK', key: 'theme.dark', icon: <Moon aria-hidden="true" size={16} /> },
     { value: 'SYSTEM', key: 'theme.system', icon: <Monitor aria-hidden="true" size={16} /> },
@@ -25,7 +29,9 @@ export function ThemeSwitcher(): JSX.Element {
         <button
           aria-label={t(option.key)}
           aria-pressed={isMounted && preference === option.value}
-          className={preference === option.value ? 'theme-switcher-option active' : 'theme-switcher-option'}
+          className={
+            preference === option.value ? 'theme-switcher-option active' : 'theme-switcher-option'
+          }
           key={option.value}
           onClick={(): void => setPreference(option.value)}
           type="button"

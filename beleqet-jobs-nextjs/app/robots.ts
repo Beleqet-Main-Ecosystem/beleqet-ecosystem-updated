@@ -1,6 +1,6 @@
-import type { MetadataRoute } from "next";
-import { getSeoConfig } from "@/lib/seo/config";
-import { NOINDEX_ROUTES } from "@/lib/seo/route-registry";
+import type { MetadataRoute } from 'next';
+import { getSeoConfig } from '@/lib/seo/config';
+import { NOINDEX_ROUTES } from '@/lib/seo/route-registry';
 
 /**
  * Robots.txt rules.
@@ -13,15 +13,15 @@ import { NOINDEX_ROUTES } from "@/lib/seo/route-registry";
  */
 export default function robots(): MetadataRoute.Robots {
   const { siteUrl } = getSeoConfig();
-  const base = siteUrl.replace(/\/+$/, "");
+  const base = siteUrl.replace(/\/+$/, '');
 
   // Collect all unique path prefixes from noindex routes.
   const disallowPaths = collectDisallowPaths(NOINDEX_ROUTES.map((r) => r.pattern));
 
   return {
     rules: {
-      userAgent: "*",
-      allow: "/",
+      userAgent: '*',
+      allow: '/',
       disallow: disallowPaths,
     },
     sitemap: `${base}/sitemap.xml`,
@@ -37,8 +37,8 @@ function collectDisallowPaths(patterns: string[]): string[] {
 
   for (const p of patterns) {
     // Group by first path segment when there are ≥ 2 segments
-    const parts = p.replace(/^\//, "").split("/");
-    if (parts.length >= 2 && parts[0] !== "[id]") {
+    const parts = p.replace(/^\//, '').split('/');
+    if (parts.length >= 2 && parts[0] !== '[id]') {
       prefixes.add(`/${parts[0]}`);
     } else {
       prefixes.add(p);

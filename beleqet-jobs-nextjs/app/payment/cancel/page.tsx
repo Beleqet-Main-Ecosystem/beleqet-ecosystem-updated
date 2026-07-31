@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { XCircle } from "lucide-react";
+import Link from 'next/link';
+import { XCircle } from 'lucide-react';
 
 /** PayPal's cancel_url when the payer backs out of approval (see PAYPAL_CANCEL_URL). */
 export default function PaymentCancelPage() {

@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { TwoFactorService } from './two-factor.service';
-import { EncryptionService } from './encryption.service';
+import { EncryptionService } from '../../common/encryption/encryption.service';
+import { ENCRYPTION_KEY } from '../../common/encryption/encryption.constants';
 import { BackupCodeService } from './backup-code.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { REDIS_CLIENT } from '../redis/redis.module';
@@ -55,6 +56,11 @@ const mockJwt = {
   verify: jest.fn().mockReturnValue({ sub: 'user-1', purpose: '2fa_enrollment' }),
 };
 
+const TEST_ENCRYPTION_KEY = Buffer.from(
+  '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  'hex',
+);
+
 const mockRedis = {
   set: jest.fn().mockResolvedValue('OK'),
 };
@@ -69,6 +75,7 @@ describe('TwoFactorService', () => {
       providers: [
         TwoFactorService,
         EncryptionService,
+        { provide: ENCRYPTION_KEY, useValue: TEST_ENCRYPTION_KEY },
         BackupCodeService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ConfigService, useValue: mockConfig },
@@ -98,7 +105,7 @@ describe('TwoFactorService', () => {
           mockPrisma as any,
           mockJwt as any,
           badConfig as any,
-          new EncryptionService(mockConfig as any),
+          new EncryptionService(TEST_ENCRYPTION_KEY),
           new BackupCodeService(),
         ),
     ).toThrow('TOTP_TEMP_SECRET is required');
@@ -138,12 +145,12 @@ describe('TwoFactorService', () => {
     });
 
     it('should return false for invalid code', async () => {
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
 
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: true,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
       });
 
       const result = await service.verifyLogin('user-1', '000000');
@@ -151,12 +158,12 @@ describe('TwoFactorService', () => {
     });
 
     it('should return true for valid code', async () => {
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
 
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: true,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
       });
 
       const result = await service.verifyLogin('user-1', '123456');
@@ -166,12 +173,12 @@ describe('TwoFactorService', () => {
     it('should return false for replayed code', async () => {
       mockRedis.set.mockResolvedValue(null);
 
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
 
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: true,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
       });
 
       const result = await service.verifyLogin('user-1', '123456');
@@ -259,11 +266,11 @@ describe('TwoFactorService', () => {
 
     it('should throw with invalid code', async () => {
       mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_enrollment' });
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: false,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
         id: 'tf-1',
       });
       mockPrisma.$transaction.mockImplementation((cb: any) => cb(mockPrisma));
@@ -276,11 +283,11 @@ describe('TwoFactorService', () => {
 
     it('should succeed with valid code', async () => {
       mockJwt.verify.mockReturnValue({ sub: 'user-1', purpose: '2fa_enrollment' });
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: false,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
         id: 'tf-1',
       });
       mockPrisma.$transaction.mockImplementation((cb: any) => cb(mockPrisma));
@@ -302,21 +309,21 @@ describe('TwoFactorService', () => {
     });
 
     it('should throw with invalid code', async () => {
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: true,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
       });
       await expect(service.verifyStepUp('user-1', '000000')).rejects.toThrow('Invalid code');
     });
 
     it('should return step-up token with valid code', async () => {
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: true,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
       });
       mockPrisma.userTwoFactor.update.mockResolvedValue({});
 
@@ -328,11 +335,11 @@ describe('TwoFactorService', () => {
     it('should throw for replayed code', async () => {
       mockRedis.set.mockResolvedValue(null);
 
-      const encService = new EncryptionService(mockConfig as any);
+      const encService = new EncryptionService(TEST_ENCRYPTION_KEY);
       const encrypted = encService.encrypt('JBSWY3DPEHPK3PXP');
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({
         enabled: true,
-        secret: encrypted.ciphertext,
+        secret: encrypted,
       });
       await expect(service.verifyStepUp('user-1', '123456')).rejects.toThrow(
         'This code has already been used',

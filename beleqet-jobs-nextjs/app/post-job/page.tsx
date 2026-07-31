@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { FormEvent, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   BriefcaseBusiness,
   CheckCircle2,
@@ -9,32 +9,31 @@ import {
   FileText,
   MapPin,
   Send,
-} from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
+} from 'lucide-react';
+import { authenticatedFetch } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 type Category = { id: string; label: string };
 
 export default function PostJobPage() {
   const { user, ready } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [publishedId, setPublishedId] = useState("");
+  const [error, setError] = useState('');
+  const [publishedId, setPublishedId] = useState('');
   const [hasCompany, setHasCompany] = useState<boolean | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
-  const [companyCheckError, setCompanyCheckError] = useState("");
+  const [companyCheckError, setCompanyCheckError] = useState('');
   useEffect(() => {
     fetch(`${API_URL}/jobs/categories`)
       .then((r) => (r.ok ? r.json() : []))
       .then(setCategories)
-      .catch(() => setError("Job categories could not be loaded."));
+      .catch(() => setError('Job categories could not be loaded.'));
   }, []);
 
   const checkCompany = useCallback(async () => {
-    setCompanyCheckError("");
+    setCompanyCheckError('');
     try {
       const response = await authenticatedFetch(`${API_URL}/users/company`, {
         signal: AbortSignal.timeout(60000),
@@ -42,57 +41,53 @@ export default function PostJobPage() {
       if (!response.ok)
         throw new Error(
           response.status === 401
-            ? "Your session has expired. Please sign in again."
-            : "Your company profile could not be checked.",
+            ? 'Your session has expired. Please sign in again.'
+            : 'Your company profile could not be checked.',
         );
       const text = await response.text();
       const data = text ? JSON.parse(text) : null;
       setHasCompany(Boolean(data));
     } catch (err) {
       setCompanyCheckError(
-        err instanceof Error && err.name !== "TimeoutError"
+        err instanceof Error && err.name !== 'TimeoutError'
           ? err.message
-          : "The server took too long to respond. Please try again.",
+          : 'The server took too long to respond. Please try again.',
       );
     }
   }, []);
 
   useEffect(() => {
-    if (!ready || !user || !["EMPLOYER", "ADMIN"].includes(user.role)) return;
+    if (!ready || !user || !['EMPLOYER', 'ADMIN'].includes(user.role)) return;
     checkCompany();
   }, [ready, user, checkCompany]);
 
   async function createCompany(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setCompanyLoading(true);
-    setError("");
+    setError('');
     const form = new FormData(event.currentTarget);
     try {
       const response = await authenticatedFetch(`${API_URL}/users/company`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.get("name"),
-          industry: form.get("industry"),
-          location: form.get("location"),
-          website: form.get("website") || undefined,
-          description: form.get("description"),
+          name: form.get('name'),
+          industry: form.get('industry'),
+          location: form.get('location'),
+          website: form.get('website') || undefined,
+          description: form.get('description'),
         }),
       });
       const data = await response.json();
       if (!response.ok)
         throw new Error(
           Array.isArray(data.message)
-            ? data.message.join(", ")
-            : data.message || "Company profile could not be created.",
+            ? data.message.join(', ')
+            : data.message || 'Company profile could not be created.',
         );
       setHasCompany(true);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Company profile could not be created.",
-      );
+      setError(err instanceof Error ? err.message : 'Company profile could not be created.');
     } finally {
       setCompanyLoading(false);
     }
@@ -101,50 +96,48 @@ export default function PostJobPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setError("");
+    setError('');
     const form = new FormData(event.currentTarget);
     const number = (key: string) => {
       const value = form.get(key)?.toString();
       return value ? Number(value) : undefined;
     };
     const payload = {
-      title: form.get("title"),
-      description: form.get("description"),
-      requirements: form.get("requirements"),
-      location: form.get("location"),
-      type: form.get("type"),
-      categoryId: form.get("categoryId"),
-      salaryMin: number("salaryMin"),
-      salaryMax: number("salaryMax"),
-      deadline: form.get("deadline") || undefined,
-      vacancies: number("vacancies"),
-      experienceLevel: form.get("experienceLevel") || undefined,
-      applyEmail: form.get("applyEmail") || undefined,
+      title: form.get('title'),
+      description: form.get('description'),
+      requirements: form.get('requirements'),
+      location: form.get('location'),
+      type: form.get('type'),
+      categoryId: form.get('categoryId'),
+      salaryMin: number('salaryMin'),
+      salaryMax: number('salaryMax'),
+      deadline: form.get('deadline') || undefined,
+      vacancies: number('vacancies'),
+      experienceLevel: form.get('experienceLevel') || undefined,
+      applyEmail: form.get('applyEmail') || undefined,
       tags: form
-        .get("tags")
+        .get('tags')
         ?.toString()
-        .split(",")
+        .split(',')
         .map((x) => x.trim())
         .filter(Boolean),
     };
     try {
       const response = await authenticatedFetch(`${API_URL}/jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await response.json();
       if (!response.ok)
         throw new Error(
           Array.isArray(data.message)
-            ? data.message.join(", ")
-            : data.message || "Job could not be published.",
+            ? data.message.join(', ')
+            : data.message || 'Job could not be published.',
         );
       setPublishedId(data.id);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Job could not be published.",
-      );
+      setError(err instanceof Error ? err.message : 'Job could not be published.');
     } finally {
       setLoading(false);
     }
@@ -159,7 +152,7 @@ export default function PostJobPage() {
         href="/login"
       />
     );
-  if (ready && user && !["EMPLOYER", "ADMIN"].includes(user.role))
+  if (ready && user && !['EMPLOYER', 'ADMIN'].includes(user.role))
     return (
       <Gate
         title="An employer account is required"
@@ -180,7 +173,7 @@ export default function PostJobPage() {
           >
             Try again
           </button>
-          {companyCheckError.includes("expired") && (
+          {companyCheckError.includes('expired') && (
             <Link
               href="/login?next=/post-job"
               className="rounded-full border border-primary/15 px-5 py-2.5 text-sm font-bold text-primary"
@@ -211,8 +204,8 @@ export default function PostJobPage() {
             Create your company profile
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted">
-            Every published job belongs to a real company record. Complete this
-            once, then continue to your listing.
+            Every published job belongs to a real company record. Complete this once, then continue
+            to your listing.
           </p>
           <form
             onSubmit={createCompany}
@@ -220,11 +213,26 @@ export default function PostJobPage() {
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <Field name="name" label="Company name" placeholder="e.g. Acme Ethiopia" required />
-              <Field name="industry" label="Industry" placeholder="e.g. Financial technology" required />
-              <Field name="location" label="Location" placeholder="e.g. Addis Ababa, Ethiopia" required />
+              <Field
+                name="industry"
+                label="Industry"
+                placeholder="e.g. Financial technology"
+                required
+              />
+              <Field
+                name="location"
+                label="Location"
+                placeholder="e.g. Addis Ababa, Ethiopia"
+                required
+              />
               <Field name="website" label="Website" type="url" placeholder="https://example.com" />
             </div>
-            <TextArea name="description" label="Company description" placeholder="Briefly describe your company, mission, and work culture…" required />
+            <TextArea
+              name="description"
+              label="Company description"
+              placeholder="Briefly describe your company, mission, and work culture…"
+              required
+            />
             {error && (
               <p className="rounded-xl bg-redAccent/10 p-3 text-sm font-semibold text-redAccent">
                 {error}
@@ -234,7 +242,7 @@ export default function PostJobPage() {
               disabled={companyLoading}
               className="w-full rounded-full bg-primary py-3.5 text-sm font-bold text-white hover:bg-brandGreen disabled:opacity-60"
             >
-              {companyLoading ? "Saving…" : "Save company and continue"}
+              {companyLoading ? 'Saving…' : 'Save company and continue'}
             </button>
           </form>
         </div>
@@ -245,9 +253,7 @@ export default function PostJobPage() {
       <div className="container-page py-24 text-center">
         <CheckCircle2 className="mx-auto h-14 w-14 text-brandGreen" />
         <h1 className="mt-5 text-3xl font-black text-primary">Job published</h1>
-        <p className="mt-2 text-muted">
-          The listing is now stored and available to job seekers.
-        </p>
+        <p className="mt-2 text-muted">The listing is now stored and available to job seekers.</p>
         <Link
           href={`/jobs/${publishedId}`}
           className="mt-7 inline-flex rounded-full bg-primary px-6 py-3 text-sm font-bold text-white"
@@ -270,8 +276,8 @@ export default function PostJobPage() {
             great hire.
           </h1>
           <p className="mt-5 max-w-xl text-sm leading-6 text-white/60">
-            Create a complete listing. Published jobs are saved directly to
-            Beleqet and become searchable immediately.
+            Create a complete listing. Published jobs are saved directly to Beleqet and become
+            searchable immediately.
           </p>
         </div>
       </section>
@@ -279,7 +285,12 @@ export default function PostJobPage() {
         <form onSubmit={submit} className="space-y-5">
           <FormSection icon={BriefcaseBusiness} title="Role details">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field name="title" label="Job title" placeholder="e.g. Senior Backend Engineer" required />
+              <Field
+                name="title"
+                label="Job title"
+                placeholder="e.g. Senior Backend Engineer"
+                required
+              />
               <Select name="categoryId" label="Category" required>
                 <option value="">Select category</option>
                 {categories.map((c) => (
@@ -288,7 +299,12 @@ export default function PostJobPage() {
                   </option>
                 ))}
               </Select>
-              <Field name="location" label="Location" placeholder="e.g. Addis Ababa or Remote" required />
+              <Field
+                name="location"
+                label="Location"
+                placeholder="e.g. Addis Ababa or Remote"
+                required
+              />
               <Select name="type" label="Work type" required>
                 <option value="FULL_TIME">Full time</option>
                 <option value="PART_TIME">Part time</option>
@@ -325,25 +341,16 @@ export default function PostJobPage() {
               placeholder="List the required experience, education, and qualifications…"
               required
             />
-            <Field name="tags" label="Skills (comma separated)" placeholder="e.g. Node.js, PostgreSQL, TypeScript" />
+            <Field
+              name="tags"
+              label="Skills (comma separated)"
+              placeholder="e.g. Node.js, PostgreSQL, TypeScript"
+            />
           </FormSection>
-          <FormSection
-            icon={CircleDollarSign}
-            title="Compensation and application"
-          >
+          <FormSection icon={CircleDollarSign} title="Compensation and application">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                name="salaryMin"
-                label="Minimum salary (ETB)"
-                type="number"
-                min="0"
-              />
-              <Field
-                name="salaryMax"
-                label="Maximum salary (ETB)"
-                type="number"
-                min="0"
-              />
+              <Field name="salaryMin" label="Minimum salary (ETB)" type="number" min="0" />
+              <Field name="salaryMax" label="Maximum salary (ETB)" type="number" min="0" />
               <Field name="deadline" label="Application deadline" type="date" />
               <Field
                 name="applyEmail"
@@ -359,7 +366,7 @@ export default function PostJobPage() {
               className="rounded-2xl bg-redAccent/10 p-4 text-sm font-semibold text-redAccent"
             >
               {error}
-              {error.includes("company profile") && (
+              {error.includes('company profile') && (
                 <Link href="/profile" className="ml-1 underline">
                   Open profile
                 </Link>
@@ -370,7 +377,7 @@ export default function PostJobPage() {
             disabled={loading || !categories.length}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 text-sm font-bold text-white hover:bg-brandGreen disabled:opacity-60"
           >
-            {loading ? "Publishing…" : "Publish job"}
+            {loading ? 'Publishing…' : 'Publish job'}
             <Send className="h-4 w-4" />
           </button>
         </form>
@@ -438,7 +445,7 @@ function FormSection({
   );
 }
 const control =
-  "mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none focus:border-brandGreen";
+  'mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none focus:border-brandGreen';
 function Field({
   name,
   label,

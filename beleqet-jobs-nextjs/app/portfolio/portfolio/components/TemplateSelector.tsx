@@ -1,13 +1,10 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Check } from "lucide-react";
-import {
-  PORTFOLIO_TEMPLATES,
-  type TemplateMeta,
-} from "../constants/templates";
-import type { LanguageCode, TemplateId } from "../types";
-import { cn } from "@/lib/utils";
+import Link from 'next/link';
+import { Check } from 'lucide-react';
+import { PORTFOLIO_TEMPLATES, type TemplateMeta } from '../constants/templates';
+import type { LanguageCode, TemplateId } from '../types';
+import { cn } from '@/lib/utils';
 
 type TemplateSelectorProps = {
   selected: TemplateId;
@@ -56,21 +53,11 @@ function TemplateCard({
 }) {
   const inner = (
     <>
-      <div
-        className={cn(
-          "mb-4 h-24 rounded-xl",
-          template.accent,
-          template.previewClass,
-        )}
-      />
+      <div className={cn('mb-4 h-24 rounded-xl', template.accent, template.previewClass)} />
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="font-bold text-primary">
-            {template.name[locale]}
-          </h3>
-          <p className="mt-1 text-xs text-ink/60">
-            {template.description[locale]}
-          </p>
+          <h3 className="font-bold text-primary">{template.name[locale]}</h3>
+          <p className="mt-1 text-xs text-ink/60">{template.description[locale]}</p>
         </div>
         {active && (
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brandGreen text-primary">
@@ -86,10 +73,8 @@ function TemplateCard({
       <Link
         href={`/portfolio?template=${template.id}`}
         className={cn(
-          "block rounded-2xl border p-4 transition hover:shadow-md",
-          active
-            ? "border-brandGreen bg-brandGreen/5"
-            : "border-primary/10 bg-white",
+          'block rounded-2xl border p-4 transition hover:shadow-md',
+          active ? 'border-brandGreen bg-brandGreen/5' : 'border-primary/10 bg-white',
         )}
       >
         {inner}
@@ -102,10 +87,8 @@ function TemplateCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        "rounded-2xl border p-4 text-left transition hover:shadow-md",
-        active
-          ? "border-brandGreen bg-brandGreen/5"
-          : "border-primary/10 bg-white",
+        'rounded-2xl border p-4 text-left transition hover:shadow-md',
+        active ? 'border-brandGreen bg-brandGreen/5' : 'border-primary/10 bg-white',
       )}
       aria-pressed={active}
     >

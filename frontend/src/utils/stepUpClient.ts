@@ -107,13 +107,7 @@ export async function executeSensitiveRequest(
     const code = await onCodeRequest();
 
     // 4. Verify via /step-up
-    const stepUpToken = await verifyStepUp(
-      apiBaseUrl,
-      challengeToken,
-      code,
-      action,
-      resourceId,
-    );
+    const stepUpToken = await verifyStepUp(apiBaseUrl, challengeToken, code, action, resourceId);
 
     // 5. Retry with x-step-up-token
     return requestFn({

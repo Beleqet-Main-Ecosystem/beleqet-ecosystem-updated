@@ -1,0 +1,167 @@
+[1mdiff --git a/frontend/e2e/notifications.spec.ts b/frontend/e2e/notifications.spec.ts[m
+[1mindex e53b2ea..23b56e8 100644[m
+[1m--- a/frontend/e2e/notifications.spec.ts[m
+[1m+++ b/frontend/e2e/notifications.spec.ts[m
+[36m@@ -25,15 +25,16 @@[m [masync function registerUser(email: string, password: string, role: string): Prom[m
+ }[m
+ [m
+ async function createNotification(accessToken: string, title: string, body: string): Promise<void> {[m
+[32m+[m[32m  console.log('=== E2E createNotification: POST /admin/notifications/broadcast');[m
+   const res = await fetch(`${API}/admin/notifications/broadcast`, {[m
+     method: 'POST',[m
+     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },[m
+     body: JSON.stringify({ title, body }),[m
+   });[m
+[32m+[m[32m  const text = await res.text();[m
+[32m+[m[32m  console.log(`=== E2E createNotification response: ${res.status} ${text}`);[m
+   if (!res.ok) {[m
+[31m-    const data = await res.json().catch(() => ({}));[m
+[31m-    // Non-admin users can't broadcast; seed via the DB or ignore[m
+[31m-    console.warn('Broadcast failed (expected for non-admin):', data.message);[m
+[32m+[m[32m    console.warn('Broadcast failed:', text);[m
+   }[m
+ }[m
+ [m
+[1mdiff --git a/frontend/src/components/Notifications/NotificationBell.tsx b/frontend/src/components/Notifications/NotificationBell.tsx[m
+[1mindex 4c02d6b..103217b 100644[m
+[1m--- a/frontend/src/components/Notifications/NotificationBell.tsx[m
+[1m+++ b/frontend/src/components/Notifications/NotificationBell.tsx[m
+[36m@@ -21,6 +21,9 @@[m [mexport default function NotificationBell() {[m
+   }, []);[m
+ [m
+   const previewItems = notifications.slice(0, 8);[m
+[32m+[m[32m  if (open) {[m
+[32m+[m[32m    console.log('=== FRONTEND NotificationBell open, notifications:', JSON.stringify(notifications), 'previewItems:', JSON.stringify(previewItems));[m
+[32m+[m[32m  }[m
+ [m
+   return ([m
+     <div className="notif-bell-wrapper" ref={ref}>[m
+[1mdiff --git a/frontend/src/lib/api.ts b/frontend/src/lib/api.ts[m
+[1mindex 25af8e5..e27d2f9 100644[m
+[1m--- a/frontend/src/lib/api.ts[m
+[1m+++ b/frontend/src/lib/api.ts[m
+[36m@@ -156,6 +156,7 @@[m [mexport async function enqueueChapaCallback([m
+ /** Fetch current user's notifications (latest 50, descending) */[m
+ export async function fetchNotifications(): Promise<Notification[]> {[m
+   const { data } = await apiClient.get<Notification[]>('/users/notifications');[m
+[32m+[m[32m  console.log('=== FRONTEND fetchNotifications response:', JSON.stringify(data));[m
+   return data;[m
+ }[m
+ [m
+[1mdiff --git a/src/common/guards/roles.guard.ts b/src/common/guards/roles.guard.ts[m
+[1mindex 09e53a7..df3a455 100644[m
+[1m--- a/src/common/guards/roles.guard.ts[m
+[1m+++ b/src/common/guards/roles.guard.ts[m
+[36m@@ -33,7 +33,7 @@[m [mexport class RolesGuard implements CanActivate {[m
+     }[m
+ [m
+     const { user } = context.switchToHttp().getRequest();[m
+[31m-    if (!user || !user.id) return false;[m
+[32m+[m[32m    if (!user || !user.userId || !user.role) return false;[m
+ [m
+     if (requiredRoles && requiredRoles.length > 0) {[m
+       if (!requiredRoles.includes(user.role)) {[m
+[36m@@ -42,7 +42,7 @@[m [mexport class RolesGuard implements CanActivate {[m
+     }[m
+ [m
+     if (requiredPermissions && requiredPermissions.length > 0) {[m
+[31m-      const cacheKey = `user_permissions:${user.id}`;[m
+[32m+[m[32m      const cacheKey = `user_permissions:${user.userId}`;[m
+       let userPermissions: string[] = [];[m
+       const cached = await this.redis.get(cacheKey);[m
+ [m
+[36m@@ -50,7 +50,7 @@[m [mexport class RolesGuard implements CanActivate {[m
+         userPermissions = JSON.parse(cached);[m
+       } else {[m
+         const dbUser = await this.prisma.user.findUnique({[m
+[31m-          where: { id: user.id },[m
+[32m+[m[32m          where: { id: user.userId },[m
+           include: { rbacRoles: { include: { permissions: true } } },[m
+         });[m
+ [m
+[1mdiff --git a/src/modules/admin/admin.controller.ts b/src/modules/admin/admin.controller.ts[m
+[1mindex a823943..c793b98 100644[m
+[1m--- a/src/modules/admin/admin.controller.ts[m
+[1m+++ b/src/modules/admin/admin.controller.ts[m
+[36m@@ -122,12 +122,14 @@[m [mexport class AdminController {[m
+   }[m
+ [m
+   @Post('notifications/broadcast')[m
+[31m-  async broadcast(@Body() dto: BroadcastDto) {[m
+[32m+[m[32m  async broadcast(@Body() dto: BroadcastDto, @CurrentUser() user: CurrentUserPayload) {[m
+[32m+[m[32m    console.log('=== DEBUG broadcast controller invoked, user:', JSON.stringify(user));[m
+     const delivered = await this.notificationsService.sendSystemAlert([m
+       'ADMIN_ANNOUNCEMENT',[m
+       dto.body,[m
+       { title: dto.title, userIds: dto.userIds, role: dto.role },[m
+     );[m
+[32m+[m[32m    console.log('=== DEBUG broadcast result:', { delivered });[m
+     return { delivered };[m
+   }[m
+ [m
+[1mdiff --git a/src/modules/notifications/notifications.service.ts b/src/modules/notifications/notifications.service.ts[m
+[1mindex 7dfcaec..726e90b 100644[m
+[1m--- a/src/modules/notifications/notifications.service.ts[m
+[1m+++ b/src/modules/notifications/notifications.service.ts[m
+[36m@@ -345,11 +345,14 @@[m [mexport class NotificationsService {[m
+       },[m
+     });[m
+ [m
+[32m+[m[32m    console.log('=== DEBUG sendSystemAlert users found:', users.length ? JSON.stringify(users.map(u => ({ id: u.id, email: u.email, firstName: u.firstName }))) : 'NONE');[m
+[32m+[m
+     if (users.length === 0) return 0;[m
+ [m
+     const title =[m
+       (metadata?.title as string) ??[m
+       (message.length > 60 ? message.substring(0, 57) + '...' : message);[m
+[32m+[m[32m    console.log('=== DEBUG sendSystemAlert title:', title);[m
+     const jobsToQueue: Promise<unknown>[] = [];[m
+ [m
+     for (const user of users) {[m
+[36m@@ -363,16 +366,19 @@[m [mexport class NotificationsService {[m
+       };[m
+ [m
+       if (pref.inAppEnabled) {[m
+[32m+[m[32m        const createPayload = {[m
+[32m+[m[32m          userId: user.id,[m
+[32m+[m[32m          type: alertType,[m
+[32m+[m[32m          title,[m
+[32m+[m[32m          body: message,[m
+[32m+[m[32m          channel: 'IN_APP' as const,[m
+[32m+[m[32m          metadata: metadata ? (metadata as unknown as Prisma.InputJsonValue) : undefined,[m
+[32m+[m[32m        };[m
+[32m+[m[32m        console.log('=== DEBUG notification.create payload:', JSON.stringify(createPayload));[m
+         jobsToQueue.push([m
+[31m-          this.prisma.notification.create({[m
+[31m-            data: {[m
+[31m-              userId: user.id,[m
+[31m-              type: alertType,[m
+[31m-              title,[m
+[31m-              body: message,[m
+[31m-              channel: 'IN_APP',[m
+[31m-              metadata: metadata ? (metadata as unknown as Prisma.InputJsonValue) : undefined,[m
+[31m-            },[m
+[32m+[m[32m          this.prisma.notification.create({ data: createPayload }).then((result) => {[m
+[32m+[m[32m            console.log('=== DEBUG notification.create result:', JSON.stringify(result));[m
+[32m+[m[32m            return result;[m
+           }),[m
+         );[m
+       }[m
+[1mdiff --git a/src/modules/users/users.controller.ts b/src/modules/users/users.controller.ts[m
+[1mindex 8cd7949..4c4f7e8 100644[m
+[1m--- a/src/modules/users/users.controller.ts[m
+[1m+++ b/src/modules/users/users.controller.ts[m
+[36m@@ -39,8 +39,11 @@[m [mexport class UsersController {[m
+   }[m
+ [m
+   @Get('notifications')[m
+[31m-  notifications(@CurrentUser() u: CurrentUserPayload) {[m
+[31m-    return this.svc.getNotifications(u.userId);[m
+[32m+[m[32m  async notifications(@CurrentUser() u: CurrentUserPayload) {[m
+[32m+[m[32m    console.log('=== DEBUG GET /users/notifications userId:', u.userId, 'role:', u.role);[m
+[32m+[m[32m    const result = await this.svc.getNotifications(u.userId);[m
+[32m+[m[32m    console.log('=== DEBUG GET /users/notifications result:', JSON.stringify(result));[m
+[32m+[m[32m    return result;[m
+   }[m
+ [m
+   @Patch('notifications/:id/read')[m
