@@ -1,8 +1,20 @@
-import { IsString, IsOptional, IsArray, IsBoolean, MinLength, MaxLength, IsNotEmpty, ArrayMaxSize } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  MinLength,
+  MaxLength,
+  IsNotEmpty,
+  ArrayMaxSize,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateThreadDto {
-  @ApiProperty({ example: 'How to get started with NestJS?', description: 'forum.validation.title' })
+  @ApiProperty({
+    example: 'How to get started with NestJS?',
+    description: 'forum.validation.title',
+  })
   @IsString()
   @IsNotEmpty({ message: 'forum.validation.title' })
   @MinLength(5, { message: 'forum.validation.titleMinLength' })

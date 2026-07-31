@@ -1,8 +1,19 @@
+import { Global, Module } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { I18nService } from 'nestjs-i18n';
 import { ForumService } from './forum.service';
 import { CommunityForumModule } from './forum.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaModule } from '../../prisma/prisma.module';
+
+const mockI18n = { t: jest.fn(() => 'translated') };
+
+@Global()
+@Module({
+  providers: [{ provide: I18nService, useValue: mockI18n }],
+  exports: [I18nService],
+})
+class MockI18nModule {}
 
 const tx = {
   forumThread: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
@@ -41,7 +52,7 @@ describe('Community Forum (integration)', () => {
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [PrismaModule, CommunityForumModule],
+      imports: [PrismaModule, MockI18nModule, CommunityForumModule],
     })
       .overrideProvider(PrismaService)
       .useValue(mockPrisma as any)
@@ -56,7 +67,10 @@ describe('Community Forum (integration)', () => {
   });
 
   beforeEach(() => {
-    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({ firstName: 'Test', lastName: 'User' });
+    (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
+      firstName: 'Test',
+      lastName: 'User',
+    });
   });
 
   describe('Thread lifecycle', () => {
@@ -80,7 +94,9 @@ describe('Community Forum (integration)', () => {
 
       (prisma.forumThread.create as jest.Mock).mockResolvedValue(mockThread);
       (prisma.forumThread.findUnique as jest.Mock).mockResolvedValue(mockThread);
-      (prisma.forumThread.findMany as jest.Mock).mockResolvedValue([{ ...mockThread, _count: { replies: 0 } }]);
+      (prisma.forumThread.findMany as jest.Mock).mockResolvedValue([
+        { ...mockThread, _count: { replies: 0 } },
+      ]);
       (prisma.forumThread.count as jest.Mock).mockResolvedValue(1);
 
       const created = await service.createThread('user-1', {
@@ -95,7 +111,10 @@ describe('Community Forum (integration)', () => {
     });
 
     it('should create a reply and update reply count', async () => {
-      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', isLocked: false });
+      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({
+        id: 't1',
+        isLocked: false,
+      });
       (tx.forumReply.create as jest.Mock).mockResolvedValue({
         id: 'r1',
         content: 'Test reply',
@@ -113,7 +132,10 @@ describe('Community Forum (integration)', () => {
     });
 
     it('should toggle upvote on a thread', async () => {
-      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', upvoteCount: 0 });
+      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({
+        id: 't1',
+        upvoteCount: 0,
+      });
       (tx.forumUpvote.findUnique as jest.Mock).mockResolvedValue(null);
       (tx.forumUpvote.create as jest.Mock).mockResolvedValue({});
       (tx.forumThread.update as jest.Mock).mockResolvedValue({});
@@ -124,7 +146,10 @@ describe('Community Forum (integration)', () => {
     });
 
     it('should toggle downvote (remove upvote) on a thread', async () => {
-      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({ id: 't1', upvoteCount: 1 });
+      (mockPrisma.forumThread.findUnique as jest.Mock).mockResolvedValue({
+        id: 't1',
+        upvoteCount: 1,
+      });
       (tx.forumUpvote.findUnique as jest.Mock).mockResolvedValue({ id: 'uv-1' });
       (tx.forumUpvote.delete as jest.Mock).mockResolvedValue({});
       (tx.forumThread.update as jest.Mock).mockResolvedValue({});

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateThreadDto } from './dto/create-thread.dto';
@@ -107,7 +102,8 @@ export class ForumService {
       },
     });
 
-    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
+    if (!thread)
+      throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     const { _count, ...data } = thread;
     return { ...data, user: data.isAnonymous ? null : data.user, replyCount: _count.replies };
@@ -115,8 +111,10 @@ export class ForumService {
 
   async createReply(userId: string, threadId: string, dto: CreateReplyDto, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
-    if (thread.isLocked) throw new ForbiddenException(await this.i18n.t('forum.error.threadLocked', { lang }));
+    if (!thread)
+      throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
+    if (thread.isLocked)
+      throw new ForbiddenException(await this.i18n.t('forum.error.threadLocked', { lang }));
 
     if (dto.parentReplyId) {
       const parent = await this.prisma.forumReply.findUnique({ where: { id: dto.parentReplyId } });
@@ -125,7 +123,9 @@ export class ForumService {
       }
     }
 
-    const userDisplayName = dto.isAnonymous ? 'Deleted User' : await this.resolveDisplayName(userId);
+    const userDisplayName = dto.isAnonymous
+      ? 'Deleted User'
+      : await this.resolveDisplayName(userId);
 
     return this.prisma.$transaction(async (tx) => {
       const reply = await tx.forumReply.create({
@@ -137,10 +137,14 @@ export class ForumService {
           userDisplayName: userDisplayName,
           isAnonymous: dto.isAnonymous ?? false,
         },
-        include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+        },
       });
 
-      if (dto.isAnonymous) { (reply as any).user = null; }
+      if (dto.isAnonymous) {
+        (reply as any).user = null;
+      }
 
       await tx.forumThread.update({
         where: { id: threadId },
@@ -153,7 +157,8 @@ export class ForumService {
 
   async findRepliesByThread(threadId: string, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
+    if (!thread)
+      throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     const replies = await this.prisma.forumReply.findMany({
       where: { threadId, parentReplyId: null },
@@ -169,10 +174,10 @@ export class ForumService {
       },
     });
 
-    return replies.map(reply => ({
+    return replies.map((reply) => ({
       ...reply,
       user: reply.isAnonymous ? null : reply.user,
-      childReplies: reply.childReplies.map(child => ({
+      childReplies: reply.childReplies.map((child) => ({
         ...child,
         user: child.isAnonymous ? null : child.user,
       })),
@@ -181,7 +186,8 @@ export class ForumService {
 
   async upvoteThread(userId: string, threadId: string, lang = 'en') {
     const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId } });
-    if (!thread) throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
+    if (!thread)
+      throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.forumUpvote.findUnique({
@@ -208,7 +214,8 @@ export class ForumService {
 
   async upvoteReply(userId: string, replyId: string, lang = 'en') {
     const reply = await this.prisma.forumReply.findUnique({ where: { id: replyId } });
-    if (!reply) throw new NotFoundException(await this.i18n.t('forum.error.replyNotFound', { lang }));
+    if (!reply)
+      throw new NotFoundException(await this.i18n.t('forum.error.replyNotFound', { lang }));
 
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.forumUpvote.findUnique({

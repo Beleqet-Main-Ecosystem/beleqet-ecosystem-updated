@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Sparkles,
@@ -18,20 +18,19 @@ import {
   AlertCircle,
   Info,
   Users,
-} from "lucide-react";
-import { createThread } from "@/lib/forum-api";
-import { FORUM_CONFIG } from "@/lib/config/forum";
+} from 'lucide-react';
+import { createThread } from '@/lib/forum-api';
+import { FORUM_CONFIG } from '@/lib/config/forum';
 
 const TIPS = [
-  { icon: Heart, text: "Be respectful and constructive in your tone" },
-  { icon: Lightbulb, text: "Clear titles get better responses" },
-  { icon: MessageSquare, text: "Share context: what you tried, what you expect" },
+  { icon: Heart, text: 'Be respectful and constructive in your tone' },
+  { icon: Lightbulb, text: 'Clear titles get better responses' },
+  { icon: MessageSquare, text: 'Share context: what you tried, what you expect' },
 ];
 
 function ProgressBar({ current, max }: { current: number; max: number }) {
   const pct = Math.min((current / max) * 100, 100);
-  const color =
-    pct > 90 ? "bg-redAccent" : pct > 75 ? "bg-amber-500" : "bg-brandGreen";
+  const color = pct > 90 ? 'bg-redAccent' : pct > 75 ? 'bg-amber-500' : 'bg-brandGreen';
   return (
     <div className="mt-2 flex items-center gap-2">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-primary/5">
@@ -49,31 +48,31 @@ function ProgressBar({ current, max }: { current: number; max: number }) {
 
 export default function NewThreadPage() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tagInput, setTagInput] = useState("");
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
-  const wordCount = useMemo(
-    () => content.trim().split(/\s+/).filter(Boolean).length,
-    [content],
-  );
+  const wordCount = useMemo(() => content.trim().split(/\s+/).filter(Boolean).length, [content]);
 
   const addTag = (raw: string) => {
-    const t = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const t = raw
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '');
     if (t && !tags.includes(t) && tags.length < FORUM_CONFIG.VALIDATION.MAX_TAGS) {
       setTags([...tags, t]);
     }
-    setTagInput("");
+    setTagInput('');
   };
 
   const removeTag = (t: string) => setTags(tags.filter((x) => x !== t));
 
   const handleTagKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       addTag(tagInput);
     }
@@ -81,15 +80,15 @@ export default function NewThreadPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     if (!title.trim() || !content.trim()) {
-      setError("Title and content are required.");
+      setError('Title and content are required.');
       return;
     }
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem('token');
     if (!token) {
-      setError("You must be logged in.");
+      setError('You must be logged in.');
       return;
     }
 
@@ -106,7 +105,7 @@ export default function NewThreadPage() {
       );
       router.push(`/forum/${thread.id}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to create thread.";
+      const message = err instanceof Error ? err.message : 'Failed to create thread.';
       setError(message);
     } finally {
       setSubmitting(false);
@@ -145,9 +144,7 @@ export default function NewThreadPage() {
                 <Sparkles className="h-3 w-3" />
                 New Thread
               </div>
-              <h1 className="text-pageH1 mt-4 text-white">
-                Start a Discussion
-              </h1>
+              <h1 className="text-pageH1 mt-4 text-white">Start a Discussion</h1>
               <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/60">
                 Share your thoughts, ask questions, or start a conversation with the community
               </p>
@@ -201,7 +198,10 @@ export default function NewThreadPage() {
                     placeholder="e.g. How do I get started with NestJS?"
                     autoFocus
                   />
-                  <ProgressBar current={title.length} max={FORUM_CONFIG.VALIDATION.MAX_TITLE_LENGTH} />
+                  <ProgressBar
+                    current={title.length}
+                    max={FORUM_CONFIG.VALIDATION.MAX_TITLE_LENGTH}
+                  />
                 </div>
               </div>
 
@@ -214,7 +214,7 @@ export default function NewThreadPage() {
                   <span className="text-sm font-bold text-primary">Content</span>
                   {content.trim() && (
                     <span className="ml-auto text-[11px] font-medium text-muted">
-                      ~{wordCount} {wordCount === 1 ? "word" : "words"}
+                      ~{wordCount} {wordCount === 1 ? 'word' : 'words'}
                     </span>
                   )}
                 </div>
@@ -228,7 +228,10 @@ export default function NewThreadPage() {
                     className="w-full min-h-[200px] resize-y rounded-xl border border-border bg-pageBg/50 px-4 py-3 text-sm leading-relaxed text-ink placeholder:text-muted/40 outline-none transition-all duration-200 focus:border-brandGreen/40 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,101,59,0.08)]"
                     placeholder="Share your thoughts, questions, or advice..."
                   />
-                  <ProgressBar current={content.length} max={FORUM_CONFIG.VALIDATION.MAX_CONTENT_LENGTH} />
+                  <ProgressBar
+                    current={content.length}
+                    max={FORUM_CONFIG.VALIDATION.MAX_CONTENT_LENGTH}
+                  />
                 </div>
               </div>
 
@@ -239,7 +242,10 @@ export default function NewThreadPage() {
                     <Hash className="h-4 w-4" />
                   </div>
                   <span className="text-sm font-bold text-primary">
-                    Tags <span className="font-normal text-muted">({tags.length}/{FORUM_CONFIG.VALIDATION.MAX_TAGS})</span>
+                    Tags{' '}
+                    <span className="font-normal text-muted">
+                      ({tags.length}/{FORUM_CONFIG.VALIDATION.MAX_TAGS})
+                    </span>
                   </span>
                 </div>
                 <div className="p-5 sm:p-6 pt-4 sm:pt-5">
@@ -273,7 +279,11 @@ export default function NewThreadPage() {
                       maxLength={FORUM_CONFIG.VALIDATION.MAX_TAG_LENGTH}
                       disabled={tags.length >= FORUM_CONFIG.VALIDATION.MAX_TAGS}
                       className="flex-1 bg-transparent px-1 py-2.5 text-sm text-ink placeholder:text-muted/40 outline-none disabled:opacity-40"
-                      placeholder={tags.length >= FORUM_CONFIG.VALIDATION.MAX_TAGS ? "Max 10 tags reached" : "Type and press Enter"}
+                      placeholder={
+                        tags.length >= FORUM_CONFIG.VALIDATION.MAX_TAGS
+                          ? 'Max 10 tags reached'
+                          : 'Type and press Enter'
+                      }
                     />
                   </div>
                   <p className="mt-1.5 text-[11px] text-muted">
@@ -295,25 +305,25 @@ export default function NewThreadPage() {
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-primary">
-                          {isAnonymous ? "Post Anonymously" : "Post Publicly"}
+                          {isAnonymous ? 'Post Anonymously' : 'Post Publicly'}
                         </span>
                         <p className="text-[11px] text-muted">
                           {isAnonymous
-                            ? "Your name and avatar will be hidden"
-                            : "Your identity will be visible to everyone"}
+                            ? 'Your name and avatar will be hidden'
+                            : 'Your identity will be visible to everyone'}
                         </p>
                       </div>
                     </div>
                     <div
                       className={`relative h-7 w-12 shrink-0 rounded-full transition-all duration-300 ${
                         isAnonymous
-                          ? "bg-gradient-to-r from-amber-400 to-orange-400 shadow-md"
-                          : "bg-border"
+                          ? 'bg-gradient-to-r from-amber-400 to-orange-400 shadow-md'
+                          : 'bg-border'
                       }`}
                     >
                       <div
                         className={`absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-all duration-300 ${
-                          isAnonymous ? "translate-x-5" : "translate-x-0"
+                          isAnonymous ? 'translate-x-5' : 'translate-x-0'
                         }`}
                       />
                       <input
@@ -404,9 +414,7 @@ export default function NewThreadPage() {
                     <div className="space-y-3">
                       <div className="rounded-xl border border-border bg-pageBg/50 p-3">
                         <p className="text-sm font-bold text-primary line-clamp-1">
-                          {title || (
-                            <span className="text-muted/40 italic">Your title</span>
-                          )}
+                          {title || <span className="text-muted/40 italic">Your title</span>}
                         </p>
                         <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-muted">
                           {content || (
@@ -432,9 +440,7 @@ export default function NewThreadPage() {
                   ) : (
                     <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border bg-pageBg/30 py-6 text-center">
                       <Sparkles className="h-5 w-5 text-muted/30" />
-                      <p className="text-xs text-muted/40">
-                        Start typing to see a preview
-                      </p>
+                      <p className="text-xs text-muted/40">Start typing to see a preview</p>
                     </div>
                   )}
                 </div>

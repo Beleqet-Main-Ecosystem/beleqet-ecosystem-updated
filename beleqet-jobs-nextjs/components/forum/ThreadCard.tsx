@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { MessageSquare, ArrowUp, Pin, Sparkles } from "lucide-react";
-import type { ForumThread } from "@/lib/forum-api";
-import { timeAgo } from "@/lib/utils/time";
+import Link from 'next/link';
+import { MessageSquare, ArrowUp, Pin, Sparkles } from 'lucide-react';
+import type { ForumThread } from '@/lib/forum-api';
+import { timeAgo } from '@/lib/utils/time';
 
 export default function ThreadCard({ thread }: { thread: ForumThread }) {
   return (
@@ -25,9 +25,7 @@ export default function ThreadCard({ thread }: { thread: ForumThread }) {
         </span>
       </div>
 
-      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted/90">
-        {thread.content}
-      </p>
+      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted/90">{thread.content}</p>
 
       {thread.tags.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-1.5">

@@ -84,13 +84,18 @@ describe('ForumService', () => {
           userDisplayName: 'John Doe',
           isAnonymous: false,
         },
-        include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+        },
       });
     });
 
     it('should create an anonymous thread with Deleted User', async () => {
       const anonDto = { ...dto, isAnonymous: true };
-      mockPrisma.forumThread.create.mockResolvedValue({ ...anonDto, userDisplayName: 'Deleted User' });
+      mockPrisma.forumThread.create.mockResolvedValue({
+        ...anonDto,
+        userDisplayName: 'Deleted User',
+      });
 
       const result = await service.createThread('user-1', anonDto);
       expect(result.userDisplayName).toBe('Deleted User');

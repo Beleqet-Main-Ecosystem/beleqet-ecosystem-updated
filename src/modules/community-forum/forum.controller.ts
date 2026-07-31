@@ -28,10 +28,7 @@ export class ForumController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new forum thread' })
-  async createThread(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: CreateThreadDto,
-  ) {
+  async createThread(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateThreadDto) {
     return this.forumService.createThread(user.userId, dto);
   }
 
@@ -43,10 +40,7 @@ export class ForumController {
 
   @Get('threads/:id')
   @ApiOperation({ summary: 'Get a single thread by ID with replies' })
-  async getThread(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Headers('accept-language') lang = 'en',
-  ) {
+  async getThread(@Param('id', ParseUUIDPipe) id: string, @Headers('accept-language') lang = 'en') {
     const thread = await this.forumService.findThreadById(id, lang);
     const replies = await this.forumService.findRepliesByThread(id, lang);
     return { ...thread, replies };

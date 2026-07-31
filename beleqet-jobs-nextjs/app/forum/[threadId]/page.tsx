@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
-import { ArrowUp, Lock, ArrowLeft, Sparkles, MessageSquare, Flag } from "lucide-react";
-import Link from "next/link";
-import { cookies } from "next/headers";
-import ReplySection from "@/components/forum/ReplySection";
-import { getThread } from "@/lib/forum-api";
-import { timeAgo } from "@/lib/utils/time";
-import { FORUM_CONFIG } from "@/lib/config/forum";
+import { notFound } from 'next/navigation';
+import { ArrowUp, Lock, ArrowLeft, Sparkles, MessageSquare, Flag } from 'lucide-react';
+import Link from 'next/link';
+import { cookies } from 'next/headers';
+import ReplySection from '@/components/forum/ReplySection';
+import { getThread } from '@/lib/forum-api';
+import { timeAgo } from '@/lib/utils/time';
+import { FORUM_CONFIG } from '@/lib/config/forum';
 
 export const revalidate = FORUM_CONFIG.CACHE.REVALIDATE_SECONDS;
 
@@ -15,7 +15,7 @@ interface Props {
 
 function getAuthToken(): string | undefined {
   const cookieStore = cookies();
-  return cookieStore.get("token")?.value;
+  return cookieStore.get('token')?.value;
 }
 
 export default async function ThreadDetailPage({ params }: Props) {
@@ -55,24 +55,20 @@ export default async function ThreadDetailPage({ params }: Props) {
                   Locked
                 </span>
               )}
-              <h1 className="text-pageH1 text-primary">
-                {thread.title}
-              </h1>
+              <h1 className="text-pageH1 text-primary">{thread.title}</h1>
               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brandGreen/10 text-brandGreen">
                     <Sparkles className="h-3 w-3" />
                   </span>
-                  <span className="font-semibold text-ink">
-                    {thread.userDisplayName}
-                  </span>
+                  <span className="font-semibold text-ink">{thread.userDisplayName}</span>
                 </span>
                 <span className="text-muted/60">&middot;</span>
                 <span>{timeAgo(thread.createdAt)}</span>
                 <span className="text-muted/60">&middot;</span>
                 <span className="flex items-center gap-1">
                   <MessageSquare className="h-3.5 w-3.5" />
-                  {thread.replyCount} {thread.replyCount === 1 ? "reply" : "replies"}
+                  {thread.replyCount} {thread.replyCount === 1 ? 'reply' : 'replies'}
                 </span>
               </div>
             </div>
@@ -83,9 +79,7 @@ export default async function ThreadDetailPage({ params }: Props) {
           </div>
 
           <div className="mt-6 border-t border-border pt-6">
-            <p className="leading-relaxed text-ink/85 whitespace-pre-line">
-              {thread.content}
-            </p>
+            <p className="leading-relaxed text-ink/85 whitespace-pre-line">{thread.content}</p>
           </div>
 
           {thread.tags && thread.tags.length > 0 && (
@@ -104,7 +98,10 @@ export default async function ThreadDetailPage({ params }: Props) {
         </article>
 
         {/* Replies */}
-        <section className="mt-8 animate-in fade-in duration-500" style={{ animationDelay: "150ms" }}>
+        <section
+          className="mt-8 animate-in fade-in duration-500"
+          style={{ animationDelay: '150ms' }}
+        >
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-sectionH2 text-primary">
               Replies

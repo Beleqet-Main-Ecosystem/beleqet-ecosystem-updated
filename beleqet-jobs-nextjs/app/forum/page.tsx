@@ -1,9 +1,9 @@
-import { Suspense } from "react";
-import { MessageSquare, Plus, Sparkles, TrendingUp, ArrowRight } from "lucide-react";
-import Link from "next/link";
-import ThreadCard from "@/components/forum/ThreadCard";
-import { getThreads } from "@/lib/forum-api";
-import { FORUM_CONFIG } from "@/lib/config/forum";
+import { Suspense } from 'react';
+import { MessageSquare, Plus, Sparkles, TrendingUp, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import ThreadCard from '@/components/forum/ThreadCard';
+import { getThreads } from '@/lib/forum-api';
+import { FORUM_CONFIG } from '@/lib/config/forum';
 
 export const revalidate = FORUM_CONFIG.CACHE.REVALIDATE_SECONDS;
 
@@ -79,8 +79,8 @@ async function ThreadList({ searchParams }: Props) {
                 href={`/forum?page=${p}`}
                 className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition-all duration-200 ${
                   isActive
-                    ? "bg-brandGreen text-white shadow-md"
-                    : "border border-border bg-white text-muted hover:border-brandGreen/40 hover:text-brandGreen hover:shadow-sm"
+                    ? 'bg-brandGreen text-white shadow-md'
+                    : 'border border-border bg-white text-muted hover:border-brandGreen/40 hover:text-brandGreen hover:shadow-sm'
                 }`}
               >
                 {p}
@@ -105,9 +105,7 @@ export default function ForumPage({ searchParams }: Props) {
               <Sparkles className="h-3.5 w-3.5" />
               Community
             </span>
-            <h1 className="text-pageH1 mt-4 text-white">
-              Community Forum
-            </h1>
+            <h1 className="text-pageH1 mt-4 text-white">Community Forum</h1>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/60">
               Share experiences, ask questions, and help fellow freelancers grow together
             </p>
@@ -122,7 +120,7 @@ export default function ForumPage({ searchParams }: Props) {
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm text-white/50">
                 <TrendingUp className="h-4 w-4" />
                 <span className="text-[11px] font-semibold uppercase tracking-wider">
-                  {searchParams.sort === "oldest" ? "Oldest first" : "Latest first"}
+                  {searchParams.sort === 'oldest' ? 'Oldest first' : 'Latest first'}
                 </span>
               </div>
             </div>
@@ -175,9 +173,7 @@ export default function ForumPage({ searchParams }: Props) {
             <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
               Join the conversation
             </p>
-            <h2 className="text-sectionH2 mt-3">
-              Have something to share?
-            </h2>
+            <h2 className="text-sectionH2 mt-3">Have something to share?</h2>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/60">
               Start a discussion, ask for advice, or share your experience with the community.
             </p>
