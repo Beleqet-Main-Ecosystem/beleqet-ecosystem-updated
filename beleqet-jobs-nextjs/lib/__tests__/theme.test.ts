@@ -1,6 +1,4 @@
-/**
- * @jest-environment jsdom
- */
+// @jest-environment jsdom
 
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -15,13 +13,18 @@ import {
 } from "../theme";
 
 describe("theme helpers", () => {
+  const originalMatchMedia = window.matchMedia;
+
   beforeEach(() => {
     document.documentElement.className = "";
     localStorage.clear();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: originalMatchMedia,
+    });
   });
 
   it("returns the user preference when it is explicitly stored", () => {
@@ -32,7 +35,7 @@ describe("theme helpers", () => {
   it("resolves the system theme when no preference is stored", () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
-      value: jest.fn().mockImplementation((query: string) => ({
+      value: (query: string) => ({
         matches: query.includes("dark"),
         media: query,
         onchange: null,
@@ -41,7 +44,7 @@ describe("theme helpers", () => {
         addListener: jest.fn(),
         removeListener: jest.fn(),
         dispatchEvent: jest.fn(),
-      })),
+      }),
     });
 
     expect(getResolvedTheme("system")).toBe("dark");
@@ -72,7 +75,11 @@ describe("theme helpers", () => {
     act(() => {
       root = createRoot(container);
       root.render(
-        React.createElement(ThemeProvider, null, React.createElement(Probe)),
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(Probe),
+        ),
       );
     });
 

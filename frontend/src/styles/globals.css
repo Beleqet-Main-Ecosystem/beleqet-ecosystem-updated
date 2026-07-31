@@ -768,6 +768,8 @@ textarea {
   top: 44px;
   width: 380px;
   max-width: calc(100vw - 32px);
+}
+
 /*  FAQ Bot Widget  */
 .faq-fab {
   position: fixed;
