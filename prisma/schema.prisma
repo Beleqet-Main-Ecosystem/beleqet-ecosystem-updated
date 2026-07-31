@@ -76,6 +76,7 @@ model User {
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
   rbacRoles             Role[]              @relation("UserRoles")
+  matchScores           MatchScore[]
 
   @@map("users")
 }
@@ -312,6 +313,7 @@ model Job {
   applications             Application[]
   questions                JobQuestion[]
   savedBy                  SavedJob[]
+  matchScores              MatchScore[]
   category                 JobCategory   @relation(fields: [categoryId], references: [id])
   company                  Company       @relation(fields: [companyId], references: [id])
 
@@ -381,6 +383,34 @@ model CandidateScore {
 
   @@index([userId])
   @@map("candidate_scores")
+}
+
+model MatchScore {
+  id               String   @id @default(uuid())
+
+  candidateId      String
+  jobId            String
+
+  skillScore       Float    // 0.0 to 100.0 (40% weight)
+  experienceScore  Float    // 0.0 to 100.0 (30% weight)
+  educationScore   Float    // 0.0 to 100.0 (15% weight)
+  locationScore    Float    // 0.0 to 100.0 (15% weight)
+  totalScore       Float    // 0.0 to 100.0 (Weighted total score)
+
+  algorithmVersion String   @default("v1")
+  metadata         Json?    // Detailed breakdown (matched skills, missing skills, etc.)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  candidate User @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateId, jobId])
+  @@index([jobId, totalScore])
+  @@index([candidateId, totalScore])
+  @@index([jobId, skillScore])
+  @@map("match_scores")
 }
 
 model FreelanceCategory {

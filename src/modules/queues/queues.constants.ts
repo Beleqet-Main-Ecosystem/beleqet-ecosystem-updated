@@ -14,6 +14,13 @@ export const QUEUE_NAMES = {
   REFERRALS: 'referrals',
   JOB_ALERTS: 'job-alerts',
   VIDEO_INTERVIEW: 'video-interview',
+  AI_MATCHMAKER: 'ai-matchmaker',
+} as const;
+
+// ── AI Matchmaker jobs ───────────────────────────────────────────────────
+export const AI_MATCHMAKER_JOBS = {
+  CALCULATE_JOB_MATCHES: 'calculate-job-matches',
+  CALCULATE_CANDIDATE_MATCHES: 'calculate-candidate-matches',
 } as const;
 
 // ── Referral jobs ─────────────────────────────────────────────────────────
