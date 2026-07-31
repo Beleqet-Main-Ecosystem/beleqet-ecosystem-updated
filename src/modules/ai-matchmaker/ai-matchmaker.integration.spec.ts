@@ -14,9 +14,15 @@ describe('AiMatchmaker Integration Tests', () => {
     serviceMock = {
       enqueueJobMatching: jest.fn().mockResolvedValue({ queued: true, jobId: 'job-1' }),
       calculateAndPersistMatch: jest.fn().mockResolvedValue({ id: 'm1', totalScore: 85 }),
-      getRankedCandidatesForJob: jest.fn().mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
-      getRankedJobsForCandidate: jest.fn().mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
-      getMatchAnalytics: jest.fn().mockResolvedValue({ totalEvaluatedMatches: 10, averageTotalScore: 78 }),
+      getRankedCandidatesForJob: jest
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
+      getRankedJobsForCandidate: jest
+        .fn()
+        .mockResolvedValue({ data: [], total: 0, page: 1, limit: 20 }),
+      getMatchAnalytics: jest
+        .fn()
+        .mockResolvedValue({ totalEvaluatedMatches: 10, averageTotalScore: 78 }),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({

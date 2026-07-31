@@ -120,18 +120,18 @@ describe('AiMatchmakerService — Complete Unit Test Suite', () => {
       });
       prismaMock.job.findUnique.mockResolvedValue(mockJob);
 
-      await expect(
-        service.calculateAndPersistMatch(mockCandidate.id, mockJob.id),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.calculateAndPersistMatch(mockCandidate.id, mockJob.id)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw NotFoundException if candidate user does not exist', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.job.findUnique.mockResolvedValue(mockJob);
 
-      await expect(
-        service.calculateAndPersistMatch('invalid-user', mockJob.id),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.calculateAndPersistMatch('invalid-user', mockJob.id)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -145,7 +145,9 @@ describe('AiMatchmakerService — Complete Unit Test Suite', () => {
 
       expect(count).toBe(1);
       expect(prismaMock.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { gdprConsent: true, role: { in: ['JOB_SEEKER', 'FREELANCER'] } } }),
+        expect.objectContaining({
+          where: { gdprConsent: true, role: { in: ['JOB_SEEKER', 'FREELANCER'] } },
+        }),
       );
     });
   });
@@ -160,7 +162,11 @@ describe('AiMatchmakerService — Complete Unit Test Suite', () => {
       prismaMock.matchScore.count.mockResolvedValue(2);
       prismaMock.matchScore.findMany.mockResolvedValue(mockRecords);
 
-      const result = await service.getRankedCandidatesForJob(mockJob.id, { minScore: 75, page: 1, limit: 10 });
+      const result = await service.getRankedCandidatesForJob(mockJob.id, {
+        minScore: 75,
+        page: 1,
+        limit: 10,
+      });
 
       expect(result.total).toBe(2);
       expect(result.data.length).toBe(2);

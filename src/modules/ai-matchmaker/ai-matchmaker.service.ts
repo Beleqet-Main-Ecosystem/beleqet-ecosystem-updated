@@ -4,7 +4,11 @@ import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, AI_MATCHMAKER_JOBS } from '../queues/queues.constants';
 import { QueryMatchmakerDto, MatchSortBy } from './dto/query-matchmaker.dto';
-import { MatchScoreResponse, MatchAnalyticsResponse, MatchBreakdownMetadata } from './dto/match-response.dto';
+import {
+  MatchScoreResponse,
+  MatchAnalyticsResponse,
+  MatchBreakdownMetadata,
+} from './dto/match-response.dto';
 
 /** Seniority levels mapped to integer rank indices for experience distance calculation */
 const SENIORITY_MAP: Record<string, number> = {
@@ -20,7 +24,24 @@ const ALGORITHM_VERSION = 'v1';
 
 /** Common stop words filtered out during skill tokenization */
 const STOP_WORDS = new Set([
-  'the', 'and', 'or', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'about', 'as', 'is', 'are', 'was', 'were',
+  'the',
+  'and',
+  'or',
+  'a',
+  'an',
+  'in',
+  'on',
+  'at',
+  'to',
+  'for',
+  'with',
+  'by',
+  'about',
+  'as',
+  'is',
+  'are',
+  'was',
+  'were',
 ]);
 
 /**
@@ -76,8 +97,12 @@ export class AiMatchmakerService {
 
     // GDPR Guard Enforcement: Skip automated profiling if user opted out
     if (candidate.gdprConsent === false) {
-      this.logger.warn(`Skipping match calculation for candidate ${candidateId} due to gdprConsent = false`);
-      throw new ForbiddenException(`Candidate has not granted GDPR consent for automated match profiling.`);
+      this.logger.warn(
+        `Skipping match calculation for candidate ${candidateId} due to gdprConsent = false`,
+      );
+      throw new ForbiddenException(
+        `Candidate has not granted GDPR consent for automated match profiling.`,
+      );
     }
 
     const matchData = this.computePairwiseScores(candidate, job);
@@ -183,11 +208,15 @@ export class AiMatchmakerService {
         });
         processedCount++;
       } catch (err) {
-        this.logger.error(`Error scoring candidate ${candidate.id} for job ${jobId}: ${(err as Error).message}`);
+        this.logger.error(
+          `Error scoring candidate ${candidate.id} for job ${jobId}: ${(err as Error).message}`,
+        );
       }
     }
 
-    this.logger.log(`Completed batch calculation for job ${jobId}. Processed ${processedCount} candidates.`);
+    this.logger.log(
+      `Completed batch calculation for job ${jobId}. Processed ${processedCount} candidates.`,
+    );
     return processedCount;
   }
 
@@ -350,16 +379,27 @@ export class AiMatchmakerService {
     const jobTags = (job.tags || []).map((t) => t.toLowerCase().trim());
 
     // 1. Skill Score (40% weight)
-    const { skillScore, matchedSkills, missingSkills } = this.calculateSkillMatch(candidateSkills, jobTags, job.requirements);
+    const { skillScore, matchedSkills, missingSkills } = this.calculateSkillMatch(
+      candidateSkills,
+      jobTags,
+      job.requirements,
+    );
 
     // 2. Experience Score (30% weight)
     const experienceScore = this.calculateExperienceMatch(candidate.headline, job.experienceLevel);
 
     // 3. Education Score (15% weight)
-    const educationScore = this.calculateEducationMatch(candidate.bio || candidate.headline, job.requirements);
+    const educationScore = this.calculateEducationMatch(
+      candidate.bio || candidate.headline,
+      job.requirements,
+    );
 
     // 4. Location Score (15% weight)
-    const { locationScore, isRemote, matchedLocation } = this.calculateLocationMatch(candidate.location, job.location, job.title);
+    const { locationScore, isRemote, matchedLocation } = this.calculateLocationMatch(
+      candidate.location,
+      job.location,
+      job.title,
+    );
 
     // Weighted Total Score calculation
     const totalScore = Math.min(
@@ -367,10 +407,7 @@ export class AiMatchmakerService {
       Math.max(
         0,
         Math.round(
-          skillScore * 0.40 +
-          experienceScore * 0.30 +
-          educationScore * 0.15 +
-          locationScore * 0.15,
+          skillScore * 0.4 + experienceScore * 0.3 + educationScore * 0.15 + locationScore * 0.15,
         ),
       ),
     );
@@ -394,7 +431,11 @@ export class AiMatchmakerService {
     };
   }
 
-  private calculateSkillMatch(candidateSkills: string[], jobTags: string[], jobRequirements?: string) {
+  private calculateSkillMatch(
+    candidateSkills: string[],
+    jobTags: string[],
+    jobRequirements?: string,
+  ) {
     const candidateSkillSet = new Set(candidateSkills);
 
     // Extract additional requirement tokens if jobTags is empty
@@ -411,7 +452,10 @@ export class AiMatchmakerService {
     const missingSkills: string[] = [];
 
     for (const reqSkill of requiredSkills) {
-      if (candidateSkillSet.has(reqSkill) || [...candidateSkillSet].some((cs) => cs.includes(reqSkill) || reqSkill.includes(cs))) {
+      if (
+        candidateSkillSet.has(reqSkill) ||
+        [...candidateSkillSet].some((cs) => cs.includes(reqSkill) || reqSkill.includes(cs))
+      ) {
         matchedSkills.push(reqSkill);
       } else {
         missingSkills.push(reqSkill);
@@ -424,7 +468,10 @@ export class AiMatchmakerService {
     return { skillScore, matchedSkills, missingSkills };
   }
 
-  private calculateExperienceMatch(candidateHeadline?: string, jobExperienceLevel?: string): number {
+  private calculateExperienceMatch(
+    candidateHeadline?: string,
+    jobExperienceLevel?: string,
+  ): number {
     if (!jobExperienceLevel) return 85;
 
     const reqRank = SENIORITY_MAP[jobExperienceLevel.toUpperCase()] || 2;
@@ -432,15 +479,20 @@ export class AiMatchmakerService {
 
     let candidateRank = 2; // Default to MID
     if (headlineUpper.includes('JUNIOR') || headlineUpper.includes('INTERN')) candidateRank = 1;
-    else if (headlineUpper.includes('LEAD') || headlineUpper.includes('PRINCIPAL') || headlineUpper.includes('MANAGER')) candidateRank = 4;
+    else if (
+      headlineUpper.includes('LEAD') ||
+      headlineUpper.includes('PRINCIPAL') ||
+      headlineUpper.includes('MANAGER')
+    )
+      candidateRank = 4;
     else if (headlineUpper.includes('SENIOR') || headlineUpper.includes('SR')) candidateRank = 3;
 
     const diff = candidateRank - reqRank;
     if (diff === 0) return 100; // Perfect match
-    if (diff === 1) return 90;  // 1 level higher -> Great
+    if (diff === 1) return 90; // 1 level higher -> Great
     if (diff === -1) return 70; // 1 level lower -> Moderate
-    if (diff > 1) return 80;   // Overqualified
-    return 40;                 // Underqualified
+    if (diff > 1) return 80; // Overqualified
+    return 40; // Underqualified
   }
 
   private calculateEducationMatch(candidateText?: string, jobRequirements?: string): number {
@@ -456,7 +508,9 @@ export class AiMatchmakerService {
       return text.includes('master') || text.includes('msc') || text.includes('phd') ? 100 : 65;
     }
     if (req.includes('bachelor') || req.includes('bsc') || req.includes('degree')) {
-      return text.includes('bachelor') || text.includes('bsc') || text.includes('degree') ? 100 : 75;
+      return text.includes('bachelor') || text.includes('bsc') || text.includes('degree')
+        ? 100
+        : 75;
     }
 
     return 85;
@@ -472,7 +526,11 @@ export class AiMatchmakerService {
     }
 
     if (!candidateLoc || !jobLoc) {
-      return { locationScore: 70, isRemote: false, matchedLocation: candidateLoc || jobLoc || 'Unspecified' };
+      return {
+        locationScore: 70,
+        isRemote: false,
+        matchedLocation: candidateLoc || jobLoc || 'Unspecified',
+      };
     }
 
     const cLoc = candidateLoc.toLowerCase().trim();
@@ -482,7 +540,11 @@ export class AiMatchmakerService {
       return { locationScore: 100, isRemote: false, matchedLocation: candidateLoc };
     }
 
-    return { locationScore: 50, isRemote: false, matchedLocation: `${candidateLoc} (Job: ${jobLoc})` };
+    return {
+      locationScore: 50,
+      isRemote: false,
+      matchedLocation: `${candidateLoc} (Job: ${jobLoc})`,
+    };
   }
 
   private tokenizeText(text: string): string[] {

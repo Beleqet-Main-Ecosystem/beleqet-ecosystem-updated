@@ -13,7 +13,9 @@ export class AiMatchmakerController {
   constructor(private readonly matchmakerService: AiMatchmakerService) {}
 
   @Post('calculate/:jobId')
-  @ApiOperation({ summary: 'Enqueue asynchronous batch matching calculation for a job (BullMQ queue)' })
+  @ApiOperation({
+    summary: 'Enqueue asynchronous batch matching calculation for a job (BullMQ queue)',
+  })
   enqueueBatchCalculation(@Param('jobId') jobId: string) {
     return this.matchmakerService.enqueueJobMatching(jobId);
   }
@@ -31,19 +33,26 @@ export class AiMatchmakerController {
 
   @Get('job/:jobId/candidates')
   @ApiOperation({ summary: 'Get ranked candidates for a job filtered by minScore threshold' })
-  @ApiQuery({ name: 'minScore', required: false, type: Number, description: 'Score threshold filter (0-100)' })
+  @ApiQuery({
+    name: 'minScore',
+    required: false,
+    type: Number,
+    description: 'Score threshold filter (0-100)',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  getRankedCandidatesForJob(
-    @Param('jobId') jobId: string,
-    @Query() query: QueryMatchmakerDto,
-  ) {
+  getRankedCandidatesForJob(@Param('jobId') jobId: string, @Query() query: QueryMatchmakerDto) {
     return this.matchmakerService.getRankedCandidatesForJob(jobId, query);
   }
 
   @Get('candidate/:candidateId/jobs')
   @ApiOperation({ summary: 'Get recommended job matches for a candidate profile' })
-  @ApiQuery({ name: 'minScore', required: false, type: Number, description: 'Score threshold filter (0-100)' })
+  @ApiQuery({
+    name: 'minScore',
+    required: false,
+    type: Number,
+    description: 'Score threshold filter (0-100)',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   getRankedJobsForCandidate(
