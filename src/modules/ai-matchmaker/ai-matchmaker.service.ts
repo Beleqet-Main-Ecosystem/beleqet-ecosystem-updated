@@ -15,13 +15,8 @@ const SENIORITY_MAP: Record<string, number> = {
   EXECUTIVE: 5,
 };
 
-/** Standard FX Exchange rates for Multi-Currency Salary Alignment (Base currency: ETB) */
-const CURRENCY_TO_ETB_RATES: Record<string, number> = {
-  ETB: 1.0,
-  USD: 120.0,
-  EUR: 130.0,
-  GBP: 150.0,
-};
+/** Current scoring algorithm version — increment when weighting formula changes */
+const ALGORITHM_VERSION = 'v1';
 
 /** Common stop words filtered out during skill tokenization */
 const STOP_WORDS = new Set([
@@ -98,7 +93,7 @@ export class AiMatchmakerService {
         locationScore: matchData.locationScore,
         totalScore: matchData.totalScore,
         metadata: matchData.metadata as unknown as object,
-        algorithmVersion: 'v1',
+        algorithmVersion: ALGORITHM_VERSION,
       },
       create: {
         candidateId,
@@ -109,7 +104,7 @@ export class AiMatchmakerService {
         locationScore: matchData.locationScore,
         totalScore: matchData.totalScore,
         metadata: matchData.metadata as unknown as object,
-        algorithmVersion: 'v1',
+        algorithmVersion: ALGORITHM_VERSION,
       },
       include: {
         candidate: {
@@ -172,7 +167,7 @@ export class AiMatchmakerService {
             locationScore: scores.locationScore,
             totalScore: scores.totalScore,
             metadata: scores.metadata as unknown as object,
-            algorithmVersion: 'v1',
+            algorithmVersion: ALGORITHM_VERSION,
           },
           create: {
             candidateId: candidate.id,
@@ -183,7 +178,7 @@ export class AiMatchmakerService {
             locationScore: scores.locationScore,
             totalScore: scores.totalScore,
             metadata: scores.metadata as unknown as object,
-            algorithmVersion: 'v1',
+            algorithmVersion: ALGORITHM_VERSION,
           },
         });
         processedCount++;
@@ -401,7 +396,7 @@ export class AiMatchmakerService {
 
   private calculateSkillMatch(candidateSkills: string[], jobTags: string[], jobRequirements?: string) {
     const candidateSkillSet = new Set(candidateSkills);
-    
+
     // Extract additional requirement tokens if jobTags is empty
     let requiredSkills = [...new Set(jobTags)];
     if (requiredSkills.length === 0 && jobRequirements) {
