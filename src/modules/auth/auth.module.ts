@@ -11,12 +11,12 @@ import { AuthService } from './auth.service';
 import { AccountLinkingService, ACCOUNT_REPOSITORY } from './services/account-linking.service';
 // import { TokenEncryptionService } from './services/token-encryption.service';
 import { AccountRepository } from './repositories/account.repository';
-// import {
-//   TOKEN_ENCRYPTION_KEY,
-//   loadAuthEnvConfig,
-//   AuthEnvConfig,
-//   AUTH_ENV_CONFIG,
-// } from './config/auth.config';
+import {
+  TOKEN_ENCRYPTION_KEY,
+  loadAuthEnvConfig,
+  AuthEnvConfig,
+  AUTH_ENV_CONFIG,
+} from './config/auth.config';
 import { TOKEN_CIPHER } from './interfaces/token-cipher.interface';
 import { EMAIL_SENDER } from './interfaces/email-sender.interface';
 import { MailService } from '../../mail/mail.service';
@@ -55,15 +55,15 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
   ],
   controllers: [AuthController],
   providers: [
-    // {
-    //   provide: AUTH_ENV_CONFIG,
-    //   useFactory: () => loadAuthEnvConfig(),
-    // },
-    // {
-    //   provide: TOKEN_ENCRYPTION_KEY,
-    //   useFactory: (config: AuthEnvConfig): Buffer => config.tokenEncryptionKey,
-    //   inject: [AUTH_ENV_CONFIG],
-    // },
+    {
+      provide: AUTH_ENV_CONFIG,
+      useFactory: () => loadAuthEnvConfig(),
+    },
+    {
+      provide: TOKEN_ENCRYPTION_KEY,
+      useFactory: (config: AuthEnvConfig): Buffer => config.tokenEncryptionKey,
+      inject: [AUTH_ENV_CONFIG],
+    },
     AuthService,
     AccountRepository,
     {
