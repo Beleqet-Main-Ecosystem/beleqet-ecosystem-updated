@@ -49,6 +49,7 @@ import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
 import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
+import { MatchingModule } from './modules/matching/matching.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -155,6 +156,7 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     TaxCalculatorModule,
     HealthModule,
     SmartBiddingModule,
+    MatchingModule,
     UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
