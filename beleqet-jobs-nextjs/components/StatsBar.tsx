@@ -1,15 +1,9 @@
-import {
-  Briefcase,
-  Building2,
-  Users,
-  Smile,
-  type LucideIcon,
-} from "lucide-react";
-import { stats } from "@/lib/mockData";
+import { Briefcase, Building2, Users, Smile, type LucideIcon } from 'lucide-react';
+import { stats } from '@/lib/mockData';
 
 const iconMap: Record<string, LucideIcon> = {
   briefcase: Briefcase,
-  "building-2": Building2,
+  'building-2': Building2,
   users: Users,
   smile: Smile,
 };

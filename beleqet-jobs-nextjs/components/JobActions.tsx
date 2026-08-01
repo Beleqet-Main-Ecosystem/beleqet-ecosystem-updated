@@ -1,13 +1,12 @@
-"use client";
+'use client';
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Bookmark, CheckCircle2, FileUp, Send, X } from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
+import { FormEvent, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Bookmark, CheckCircle2, FileUp, Send, X } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 export default function JobActions({ jobId }: { jobId: string }) {
   const { user, ready } = useAuth();
@@ -16,17 +15,13 @@ export default function JobActions({ jobId }: { jobId: string }) {
   const [open, setOpen] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!user) return;
     authenticatedFetch(`${API_URL}/users/saved-jobs`).then(async (response) => {
       if (response.ok)
-        setSaved(
-          (await response.json()).some(
-            (item: { jobId: string }) => item.jobId === jobId,
-          ),
-        );
+        setSaved((await response.json()).some((item: { jobId: string }) => item.jobId === jobId));
     });
   }, [jobId, user]);
 
@@ -35,10 +30,9 @@ export default function JobActions({ jobId }: { jobId: string }) {
       router.push(`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`);
       return;
     }
-    const response = await authenticatedFetch(
-      `${API_URL}/users/saved-jobs/${jobId}`,
-      { method: saved ? "DELETE" : "POST" },
-    );
+    const response = await authenticatedFetch(`${API_URL}/users/saved-jobs/${jobId}`, {
+      method: saved ? 'DELETE' : 'POST',
+    });
     if (response.ok) setSaved(!saved);
   }
 
@@ -48,57 +42,48 @@ export default function JobActions({ jobId }: { jobId: string }) {
       router.push(`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`);
       return;
     }
-    setError("");
+    setError('');
     setOpen(true);
   }
 
   async function uploadResume(file: File): Promise<string> {
     const allowed = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
-    if (!allowed.includes(file.type))
-      throw new Error("Resume must be a PDF, DOC, or DOCX file.");
-    if (file.size > 5 * 1024 * 1024)
-      throw new Error("Resume must be smaller than 5 MB.");
+    if (!allowed.includes(file.type)) throw new Error('Resume must be a PDF, DOC, or DOCX file.');
+    if (file.size > 5 * 1024 * 1024) throw new Error('Resume must be smaller than 5 MB.');
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
-    const response = await authenticatedFetch(
-      `${API_URL}/uploads/file`,
-      {
-        method: "POST",
-        body: formData,
-      },
-    );
+    const response = await authenticatedFetch(`${API_URL}/uploads/file`, {
+      method: 'POST',
+      body: formData,
+    });
     const data = await response.json();
-    if (!response.ok)
-      throw new Error(data.message || "Resume upload failed. Please try again.");
+    if (!response.ok) throw new Error(data.message || 'Resume upload failed. Please try again.');
     return data.publicUrl;
   }
 
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setApplying(true);
-    setError("");
+    setError('');
     const form = new FormData(event.currentTarget);
     try {
-      const file = form.get("resume");
-      const resumeUrl =
-        file instanceof File && file.size
-          ? await uploadResume(file)
-          : undefined;
-      const salary = form.get("expectedSalary")?.toString();
+      const file = form.get('resume');
+      const resumeUrl = file instanceof File && file.size ? await uploadResume(file) : undefined;
+      const salary = form.get('expectedSalary')?.toString();
       const response = await authenticatedFetch(`${API_URL}/applications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           jobId,
-          coverLetter: form.get("coverLetter"),
+          coverLetter: form.get('coverLetter'),
           resumeUrl,
-          portfolioUrl: form.get("portfolioUrl") || undefined,
+          portfolioUrl: form.get('portfolioUrl') || undefined,
           expectedSalary: salary ? Number(salary) : undefined,
         }),
       });
@@ -106,17 +91,13 @@ export default function JobActions({ jobId }: { jobId: string }) {
       if (!response.ok)
         throw new Error(
           Array.isArray(data.message)
-            ? data.message.join(", ")
-            : data.message || "Application could not be submitted.",
+            ? data.message.join(', ')
+            : data.message || 'Application could not be submitted.',
         );
       setApplied(true);
       setOpen(false);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Application could not be submitted.",
-      );
+      setError(err instanceof Error ? err.message : 'Application could not be submitted.');
     } finally {
       setApplying(false);
     }
@@ -130,21 +111,15 @@ export default function JobActions({ jobId }: { jobId: string }) {
           disabled={applied || !ready}
           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brandGreen py-3 text-sm font-semibold text-white transition-colors hover:bg-darkGreen disabled:opacity-60"
         >
-          {applied ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-          {applied ? "Application submitted" : "Apply now"}
+          {applied ? <CheckCircle2 className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+          {applied ? 'Application submitted' : 'Apply now'}
         </button>
         <button
           onClick={toggleSaved}
           className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border py-3 text-sm font-semibold text-ink transition-colors hover:bg-pageBg"
         >
-          <Bookmark
-            className={`h-4 w-4 ${saved ? "fill-brandGreen text-brandGreen" : ""}`}
-          />
-          {saved ? "Saved" : "Save job"}
+          <Bookmark className={`h-4 w-4 ${saved ? 'fill-brandGreen text-brandGreen' : ''}`} />
+          {saved ? 'Saved' : 'Save job'}
         </button>
       </div>
 
@@ -161,10 +136,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
                 <p className="text-xs font-extrabold uppercase tracking-wider text-brandGreen">
                   Job application
                 </p>
-                <h2
-                  id="application-title"
-                  className="mt-1 text-xl font-black text-primary"
-                >
+                <h2 id="application-title" className="mt-1 text-xl font-black text-primary">
                   Tell the employer about yourself
                 </h2>
               </div>
@@ -250,9 +222,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-brandGreen disabled:opacity-60"
                 >
                   <Send className="h-4 w-4" />
-                  {applying
-                    ? "Uploading and submitting…"
-                    : "Submit application"}
+                  {applying ? 'Uploading and submitting…' : 'Submit application'}
                 </button>
               </div>
             </form>

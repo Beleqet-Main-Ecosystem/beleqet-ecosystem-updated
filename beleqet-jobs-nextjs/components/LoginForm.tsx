@@ -1,36 +1,36 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
-import { z } from "zod";
-import { loginUser } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
+import { z } from 'zod';
+import { loginUser } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
 
 const schema = z.object({
-  email: z.string().email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email('Enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export default function LoginForm() {
   const router = useRouter();
   const { user, ready, setUser } = useAuth();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Redirect already-authenticated users away from login
   useEffect(() => {
-    if (ready && user) router.replace("/");
+    if (ready && user) router.replace('/');
   }, [ready, user, router]);
 
   if (ready && user) return null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setError('');
     const parsed = schema.safeParse(form);
     if (!parsed.success) {
       setError(parsed.error.issues[0].message);
@@ -40,10 +40,10 @@ export default function LoginForm() {
     try {
       const user = await loginUser(parsed.data);
       setUser(user);
-      const next = new URLSearchParams(window.location.search).get("next");
-      router.push(next?.startsWith("/") ? next : "/");
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.push(next?.startsWith('/') ? next : '/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -58,9 +58,7 @@ export default function LoginForm() {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-ink mb-1.5">
-          Email
-        </label>
+        <label className="block text-sm font-medium text-ink mb-1.5">Email</label>
         <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
           <Mail className="h-4 w-4 text-muted shrink-0" />
           <input
@@ -77,14 +75,17 @@ export default function LoginForm() {
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <label className="block text-sm font-medium text-ink">Password</label>
-          <Link href="/forgot-password" className="text-xs font-semibold text-brandGreen hover:underline">
+          <Link
+            href="/forgot-password"
+            className="text-xs font-semibold text-brandGreen hover:underline"
+          >
             Forgot password?
           </Link>
         </div>
         <div className="flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2.5 focus-within:border-brandGreen">
           <Lock className="h-4 w-4 text-muted shrink-0" />
           <input
-            type={showPassword ? "text" : "password"}
+            type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -94,14 +95,10 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
             className="text-muted hover:text-ink transition-colors"
           >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4" />
-            ) : (
-              <Eye className="h-4 w-4" />
-            )}
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -112,15 +109,12 @@ export default function LoginForm() {
         className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-brandGreen text-white text-sm font-semibold py-3 hover:bg-darkGreen transition-colors disabled:opacity-60"
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-        {loading ? "Signing in…" : "Sign In"}
+        {loading ? 'Signing in…' : 'Sign In'}
       </button>
 
       <p className="text-sm text-muted text-center">
-        Don’t have an account?{" "}
-        <Link
-          href="/register"
-          className="font-semibold text-brandGreen hover:underline"
-        >
+        Don’t have an account?{' '}
+        <Link href="/register" className="font-semibold text-brandGreen hover:underline">
           Create one
         </Link>
       </p>

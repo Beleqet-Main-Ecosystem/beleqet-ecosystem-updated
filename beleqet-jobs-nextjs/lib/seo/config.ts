@@ -42,27 +42,24 @@ function env(key: string, fallback: string): string {
  * @returns The resolved SEO configuration for the current request.
  */
 export function getSeoConfig(): SeoConfig {
-  const siteUrl = env("NEXT_PUBLIC_SITE_URL", "http://localhost:3000").replace(
-    /\/+$/,
-    "",
-  );
+  const siteUrl = env('NEXT_PUBLIC_SITE_URL', 'http://localhost:3000').replace(/\/+$/, '');
 
   return {
     siteUrl,
-    siteName: "Beleqet Jobs",
+    siteName: 'Beleqet Jobs',
     defaultDescription:
-      "Search verified jobs from trusted employers across Ethiopia. Discover thousands of job opportunities, get instant alerts on Telegram, and apply faster with Beleqet Vacancy Platform.",
-    defaultOgImage: "/og-default.png",
-    twitterHandle: "@BeleqetJobs",
-    defaultLocale: "en",
-    supportedLocales: ["en"],
-    themeColor: "#006633",
+      'Search verified jobs from trusted employers across Ethiopia. Discover thousands of job opportunities, get instant alerts on Telegram, and apply faster with Beleqet Vacancy Platform.',
+    defaultOgImage: '/og-default.png',
+    twitterHandle: '@BeleqetJobs',
+    defaultLocale: 'en',
+    supportedLocales: ['en'],
+    themeColor: '#006633',
     organization: {
-      name: "Beleqet",
+      name: 'Beleqet',
       logo: `${siteUrl}/logo.png`,
       url: siteUrl,
-      email: "support@beleqet.com",
-      address: "Addis Ababa, Ethiopia",
+      email: 'support@beleqet.com',
+      address: 'Addis Ababa, Ethiopia',
     },
   };
 }

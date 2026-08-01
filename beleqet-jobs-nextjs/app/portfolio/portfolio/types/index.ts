@@ -6,39 +6,32 @@
  */
 
 /** Supported UI/content locale codes. Extend the union to add languages. */
-export type LanguageCode = "en" | "am";
+export type LanguageCode = 'en' | 'am';
 
 /** Bilingual (extensible) text field used across the master profile. */
 export type LocalizedText = Record<LanguageCode, string>;
 
 /** Portfolio template identifiers — presentation only, not stored data shape. */
-export type TemplateId = "modern" | "minimal" | "professional" | "creative";
+export type TemplateId = 'modern' | 'minimal' | 'professional' | 'creative';
 
 /** Reorderable builder section identifiers. */
 export type PortfolioSectionId =
-  | "profile"
-  | "summary"
-  | "projects"
-  | "caseStudies"
-  | "skills"
-  | "certifications"
-  | "education"
-  | "experience"
-  | "socialLinks"
-  | "gallery"
-  | "contact";
+  | 'profile'
+  | 'summary'
+  | 'projects'
+  | 'caseStudies'
+  | 'skills'
+  | 'certifications'
+  | 'education'
+  | 'experience'
+  | 'socialLinks'
+  | 'gallery'
+  | 'contact';
 
-export type SkillLevel = "beginner" | "intermediate" | "advanced" | "expert";
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export type SkillCategory =
-  | "frontend"
-  | "backend"
-  | "cloud"
-  | "devops"
-  | "security"
-  | "design"
-  | "languages"
-  | "other";
+  'frontend' | 'backend' | 'cloud' | 'devops' | 'security' | 'design' | 'languages' | 'other';
 
 /** Profile header block — maps to future master profile identity fields. */
 export type ProfileBlock = {
@@ -168,4 +161,4 @@ export type MasterProfileData = {
 };
 
 /** Actions that require authentication before persisting. */
-export type PortfolioPersistAction = "save" | "export" | "publish";
+export type PortfolioPersistAction = 'save' | 'export' | 'publish';

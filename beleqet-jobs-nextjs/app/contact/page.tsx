@@ -1,52 +1,42 @@
-"use client";
+'use client';
 
-import { FormEvent, useState } from "react";
-import {
-  CheckCircle2,
-  Clock3,
-  Mail,
-  MapPin,
-  MessageSquareText,
-  Send,
-} from "lucide-react";
+import { FormEvent, useState } from 'react';
+import { CheckCircle2, Clock3, Mail, MapPin, MessageSquareText, Send } from 'lucide-react';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 export default function ContactPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [reference, setReference] = useState("");
+  const [error, setError] = useState('');
+  const [reference, setReference] = useState('');
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setError("");
+    setError('');
     const form = new FormData(event.currentTarget);
     try {
       const response = await fetch(`${API_URL}/contact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.get("name"),
-          email: form.get("email"),
-          subject: form.get("subject"),
-          message: form.get("message"),
+          name: form.get('name'),
+          email: form.get('email'),
+          subject: form.get('subject'),
+          message: form.get('message'),
         }),
       });
       const data = await response.json();
       if (!response.ok)
         throw new Error(
           Array.isArray(data.message)
-            ? data.message.join(", ")
-            : data.message || "Message could not be sent.",
+            ? data.message.join(', ')
+            : data.message || 'Message could not be sent.',
         );
       setReference(data.reference);
       event.currentTarget.reset();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Message could not be sent.",
-      );
+      setError(err instanceof Error ? err.message : 'Message could not be sent.');
     } finally {
       setLoading(false);
     }
@@ -65,8 +55,8 @@ export default function ContactPage() {
             together.
           </h1>
           <p className="mt-6 max-w-xl text-base leading-7 text-white/60">
-            Questions about an account, listing, hiring plan, or partnership?
-            Send the details and our team will follow up.
+            Questions about an account, listing, hiring plan, or partnership? Send the details and
+            our team will follow up.
           </p>
         </div>
       </section>
@@ -76,24 +66,16 @@ export default function ContactPage() {
             Talk to the right team
           </h2>
           <div className="mt-7 space-y-4">
-            <ContactItem
-              icon={MapPin}
-              title="Visit"
-              text="Addis Ababa, Ethiopia"
-            />
+            <ContactItem icon={MapPin} title="Visit" text="Addis Ababa, Ethiopia" />
             <ContactItem icon={Mail} title="Email" text="support@beleqet.com" />
-            <ContactItem
-              icon={Clock3}
-              title="Response time"
-              text="Within two business days"
-            />
+            <ContactItem icon={Clock3} title="Response time" text="Within two business days" />
           </div>
           <div className="mt-10 rounded-[24px] bg-[#d8ff3e] p-6 text-primary">
             <MessageSquareText className="h-6 w-6" />
             <p className="mt-5 text-lg font-black">Include useful details</p>
             <p className="mt-2 text-sm leading-6 text-primary/65">
-              For listing or account issues, include the email used on Beleqet
-              and any relevant job reference. Never send passwords.
+              For listing or account issues, include the email used on Beleqet and any relevant job
+              reference. Never send passwords.
             </p>
           </div>
         </div>
@@ -103,18 +85,15 @@ export default function ContactPage() {
               <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-brandGreen/10 text-brandGreen">
                 <CheckCircle2 className="h-8 w-8" />
               </span>
-              <h2 className="mt-6 text-2xl font-black text-primary">
-                Message received
-              </h2>
+              <h2 className="mt-6 text-2xl font-black text-primary">Message received</h2>
               <p className="mt-2 max-w-sm text-sm leading-6 text-muted">
-                Your message was saved successfully. Keep this reference if you
-                contact us again.
+                Your message was saved successfully. Keep this reference if you contact us again.
               </p>
               <code className="mt-5 rounded-lg bg-[#f7f5ef] px-3 py-2 text-xs text-primary">
                 {reference}
               </code>
               <button
-                onClick={() => setReference("")}
+                onClick={() => setReference('')}
                 className="mt-6 text-sm font-bold text-brandGreen"
               >
                 Send another message
@@ -123,18 +102,29 @@ export default function ContactPage() {
           ) : (
             <form onSubmit={submit} className="space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-primary">
-                  Send a message
-                </h2>
-                <p className="mt-1 text-sm text-muted">
-                  All fields are required.
-                </p>
+                <h2 className="text-2xl font-black text-primary">Send a message</h2>
+                <p className="mt-1 text-sm text-muted">All fields are required.</p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field name="name" label="Full name" minLength={2} placeholder="e.g. Henok Mekonnen" />
-                <Field name="email" label="Email address" type="email" placeholder="you@example.com" />
+                <Field
+                  name="name"
+                  label="Full name"
+                  minLength={2}
+                  placeholder="e.g. Henok Mekonnen"
+                />
+                <Field
+                  name="email"
+                  label="Email address"
+                  type="email"
+                  placeholder="you@example.com"
+                />
               </div>
-              <Field name="subject" label="Subject" minLength={3} placeholder="What do you need help with?" />
+              <Field
+                name="subject"
+                label="Subject"
+                minLength={3}
+                placeholder="What do you need help with?"
+              />
               <label className="block text-xs font-bold text-ink">
                 How can we help?
                 <textarea
@@ -159,7 +149,7 @@ export default function ContactPage() {
                 disabled={loading}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white hover:bg-brandGreen disabled:opacity-60"
               >
-                {loading ? "Sending…" : "Send message"}
+                {loading ? 'Sending…' : 'Send message'}
                 <Send className="h-4 w-4" />
               </button>
             </form>
@@ -173,7 +163,7 @@ export default function ContactPage() {
 function Field({
   name,
   label,
-  type = "text",
+  type = 'text',
   minLength,
   placeholder,
 }: {
@@ -212,9 +202,7 @@ function ContactItem({
         <Icon className="h-4 w-4" />
       </span>
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-muted">
-          {title}
-        </p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted">{title}</p>
         <p className="mt-0.5 text-sm font-bold text-primary">{text}</p>
       </div>
     </div>

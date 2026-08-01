@@ -297,16 +297,16 @@ jobs:
         run: npm run prisma:migrate:deploy
       - run: npm run build
 
-      - name: Start backend and wait for readiness
+      - name: Run Playwright E2E Tests with backend
         run: |
           node dist/main &
+          BACKEND_PID=$!
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Playwright tests
-        run: npx playwright test --config frontend/playwright.config.ts --trace retain-on-failure
+          npx playwright install --with-deps chromium
+          (cd frontend && npm ci)
+          npx playwright test --config frontend/playwright.config.ts --trace retain-on-failure
+          npx playwright test --config frontend/playwright.harness.config.ts --trace retain-on-failure
+          kill "$BACKEND_PID"
 
       - name: Upload Playwright report and traces on failure
         if: failure()
@@ -362,6 +362,7 @@ jobs:
           TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
           TOTP_TEMP_SECRET=ci_smoke_totp_temp_secret_synthetic
           GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          ENCRYPTION_KEY=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
           OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=
           GOOGLE_CLIENT_ID=ci_smoke_google_client_id
           GOOGLE_CLIENT_SECRET=ci_smoke_google_client_secret

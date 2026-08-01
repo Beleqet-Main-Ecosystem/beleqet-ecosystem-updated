@@ -14,14 +14,14 @@ import { getToken } from '@/lib/auth';
  * connection status visibly to the user.
  */
 export default function MessagesPage() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:4000';
-    const [token, setToken] = useState<string | null | undefined>(undefined);
-  
-    useEffect(() => {
-      setToken(getToken());
-    }, []);
-  
-    const { socket, status } = useSocket({
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:4000';
+  const [token, setToken] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    setToken(getToken());
+  }, []);
+
+  const { socket, status } = useSocket({
     url: apiUrl,
     token: token ?? undefined,
     namespace: '/chat',
@@ -53,8 +53,8 @@ export default function MessagesPage() {
 
       {token === null && (
         <p className="text-sm text-amber-600 mb-4">
-          You are not logged in — connection will be rejected by the server&apos;s JWT check.
-          Log in first to see a successful connection.
+          You are not logged in — connection will be rejected by the server&apos;s JWT check. Log in
+          first to see a successful connection.
         </p>
       )}
 
@@ -63,7 +63,9 @@ export default function MessagesPage() {
           <p className="text-sm text-gray-400">No messages yet.</p>
         ) : (
           messages.map((msg, i) => (
-            <div key={i} className="text-sm mb-1">{msg}</div>
+            <div key={i} className="text-sm mb-1">
+              {msg}
+            </div>
           ))
         )}
       </div>

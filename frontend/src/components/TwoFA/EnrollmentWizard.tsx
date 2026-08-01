@@ -70,8 +70,8 @@ export function EnrollmentWizard({ onEnroll, onConfirm, onComplete }: Enrollment
       <div className="max-w-md mx-auto p-6">
         <h2 className="text-xl font-semibold mb-4">Two-Factor Authentication</h2>
         <p className="text-gray-600 mb-6">
-          Add an extra layer of security to your account. You will need to enter a
-          code from your authenticator app every time you sign in.
+          Add an extra layer of security to your account. You will need to enter a code from your
+          authenticator app every time you sign in.
         </p>
         {error && (
           <div className="bg-red-50 text-red-700 px-4 py-2 rounded mb-4 text-sm">{error}</div>
@@ -119,13 +119,16 @@ export function EnrollmentWizard({ onEnroll, onConfirm, onComplete }: Enrollment
       <div className="max-w-md mx-auto p-6">
         <h2 className="text-xl font-semibold mb-2">Save your backup codes</h2>
         <p className="text-sm text-gray-600 mb-4">
-          Each code can be used only once. Store them in a safe place. If you lose
-          your authenticator device, you will need these codes to access your account.
+          Each code can be used only once. Store them in a safe place. If you lose your
+          authenticator device, you will need these codes to access your account.
         </p>
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
           <div className="grid grid-cols-2 gap-2 font-mono text-sm">
             {backupCodes.map((code, i) => (
-              <div key={i} className="bg-white px-3 py-2 rounded border border-gray-100 text-center">
+              <div
+                key={i}
+                className="bg-white px-3 py-2 rounded border border-gray-100 text-center"
+              >
                 {code}
               </div>
             ))}

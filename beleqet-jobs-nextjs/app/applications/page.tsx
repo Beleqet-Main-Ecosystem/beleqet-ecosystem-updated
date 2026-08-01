@@ -1,19 +1,11 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import {
-  Bookmark,
-  Briefcase,
-  Clock3,
-  ExternalLink,
-  MapPin,
-  XCircle,
-} from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+'use client';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Bookmark, Briefcase, Clock3, ExternalLink, MapPin, XCircle } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 type Application = {
   id: string;
   status: string;
@@ -39,7 +31,7 @@ export default function ApplicationsPage() {
   const { user, ready } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [saved, setSaved] = useState<Saved[]>([]);
-  const [tab, setTab] = useState("applications");
+  const [tab, setTab] = useState('applications');
   const [withdrawId, setWithdrawId] = useState<string | null>(null);
   const load = useCallback(async () => {
     const [a, s] = await Promise.all([
@@ -59,16 +51,15 @@ export default function ApplicationsPage() {
       </div>
     );
   async function withdraw(id: string) {
-    const response = await authenticatedFetch(
-      `${API_URL}/applications/${id}/withdraw`,
-      { method: "PATCH" },
-    );
+    const response = await authenticatedFetch(`${API_URL}/applications/${id}/withdraw`, {
+      method: 'PATCH',
+    });
     if (response.ok) await load();
     setWithdrawId(null);
   }
   async function unsave(jobId: string) {
     await authenticatedFetch(`${API_URL}/users/saved-jobs/${jobId}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
     load();
   }
@@ -85,19 +76,19 @@ export default function ApplicationsPage() {
       <div className="container-page py-10">
         <div className="mb-7 flex gap-2">
           <button
-            onClick={() => setTab("applications")}
-            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === "applications" ? "bg-primary text-white" : "bg-white"}`}
+            onClick={() => setTab('applications')}
+            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === 'applications' ? 'bg-primary text-white' : 'bg-white'}`}
           >
             Applications ({applications.length})
           </button>
           <button
-            onClick={() => setTab("saved")}
-            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === "saved" ? "bg-primary text-white" : "bg-white"}`}
+            onClick={() => setTab('saved')}
+            className={`rounded-full px-5 py-2.5 text-sm font-bold ${tab === 'saved' ? 'bg-primary text-white' : 'bg-white'}`}
           >
             Saved jobs ({saved.length})
           </button>
         </div>
-        {tab === "applications" ? (
+        {tab === 'applications' ? (
           <div className="space-y-3">
             {applications.length ? (
               applications.map((item) => (
@@ -107,14 +98,10 @@ export default function ApplicationsPage() {
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <h2 className="font-extrabold text-primary">
-                        {item.job.title}
-                      </h2>
+                      <h2 className="font-extrabold text-primary">{item.job.title}</h2>
                       <Status value={item.status} />
                     </div>
-                    <p className="mt-1 text-sm text-muted">
-                      {item.job.company.name}
-                    </p>
+                    <p className="mt-1 text-sm text-muted">{item.job.company.name}</p>
                     <p className="mt-2 flex items-center gap-3 text-xs text-muted">
                       <span className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
@@ -133,9 +120,7 @@ export default function ApplicationsPage() {
                     >
                       View job
                     </Link>
-                    {["SUBMITTED", "SCREENING", "SHORTLISTED"].includes(
-                      item.status,
-                    ) && (
+                    {['SUBMITTED', 'SCREENING', 'SHORTLISTED'].includes(item.status) && (
                       <button
                         onClick={() => setWithdrawId(item.id)}
                         className="rounded-full px-4 py-2 text-xs font-bold text-redAccent"
@@ -147,10 +132,7 @@ export default function ApplicationsPage() {
                 </article>
               ))
             ) : (
-              <Empty
-                icon={Briefcase}
-                text="You have not applied to any jobs yet."
-              />
+              <Empty icon={Briefcase} text="You have not applied to any jobs yet." />
             )}
           </div>
         ) : (
@@ -159,9 +141,7 @@ export default function ApplicationsPage() {
               saved.map((item) => (
                 <article key={item.id} className="rounded-2xl bg-white p-5">
                   <Bookmark className="h-5 w-5 fill-brandGreen text-brandGreen" />
-                  <h2 className="mt-4 font-extrabold text-primary">
-                    {item.job.title}
-                  </h2>
+                  <h2 className="mt-4 font-extrabold text-primary">{item.job.title}</h2>
                   <p className="mt-1 text-sm text-muted">
                     {item.job.company.name} · {item.job.location}
                   </p>
@@ -206,7 +186,7 @@ export default function ApplicationsPage() {
 function Status({ value }: { value: string }) {
   return (
     <span className="rounded-full bg-brandGreen/10 px-2.5 py-1 text-[10px] font-bold text-brandGreen">
-      {value.replaceAll("_", " ")}
+      {value.replaceAll('_', ' ')}
     </span>
   );
 }
@@ -215,10 +195,7 @@ function Empty({ icon: Icon, text }: { icon: typeof Briefcase; text: string }) {
     <div className="rounded-2xl border border-dashed border-border bg-white p-14 text-center">
       <Icon className="mx-auto h-7 w-7 text-muted" />
       <p className="mt-3 text-sm font-semibold text-muted">{text}</p>
-      <Link
-        href="/jobs"
-        className="mt-4 inline-flex text-sm font-bold text-brandGreen"
-      >
+      <Link href="/jobs" className="mt-4 inline-flex text-sm font-bold text-brandGreen">
         Browse jobs
       </Link>
     </div>

@@ -9,7 +9,7 @@ import { QueuesModule } from '../queues/queues.module';
 import { QUEUE_NAMES } from '../queues/queues.constants';
 import { AuthService } from './auth.service';
 import { AccountLinkingService, ACCOUNT_REPOSITORY } from './services/account-linking.service';
-// import { TokenEncryptionService } from './services/token-encryption.service';
+import { TokenEncryptionService } from './services/token-encryption.service';
 import { AccountRepository } from './repositories/account.repository';
 import {
   TOKEN_ENCRYPTION_KEY,
@@ -29,8 +29,6 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './auth.controller';
 import { AuthExceptionFilter } from './filters/auth-exception.filter';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
-import { EncryptionModule } from '../../common/encryption/encryption.module';
-import { EncryptionService } from '../../common/encryption/encryption.service';
 
 @Module({
   imports: [
@@ -51,7 +49,6 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
     AuditModule,
     forwardRef(() => TwoFactorModule),
-    EncryptionModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -65,10 +62,11 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
       inject: [AUTH_ENV_CONFIG],
     },
     AuthService,
+    TokenEncryptionService,
     AccountRepository,
     {
       provide: TOKEN_CIPHER,
-      useExisting: EncryptionService,
+      useExisting: TokenEncryptionService,
     },
     {
       provide: ACCOUNT_REPOSITORY,
@@ -94,7 +92,7 @@ import { EncryptionService } from '../../common/encryption/encryption.service';
   exports: [
     AuthService,
     AccountLinkingService,
-    // TokenEncryptionService,
+    TokenEncryptionService,
     JwtModule,
     forwardRef(() => TwoFactorModule),
     AUDIT_LOGGER,

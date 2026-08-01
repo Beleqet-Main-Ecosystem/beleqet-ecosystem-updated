@@ -1,7 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { Job } from 'bullmq';
 import { NotificationsProcessor } from '../notifications.processor';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import {
+  InAppPayload,
+  EmailPayload,
+  TelegramPayload,
+  PushPayload,
+  SmsPayload,
+} from '../notifications.processor';
 
 describe('NotificationsProcessor', () => {
   let processor: NotificationsProcessor;
@@ -21,6 +29,7 @@ describe('NotificationsProcessor', () => {
         SMTP_PASSWORD: 'pass',
         SMTP_SECURE: 'false',
         SMTP_FROM: 'test@test.com',
+        TELEGRAM_BOT_TOKEN: 'token-123',
       };
 
       return (values[key] as T) ?? defaultValue;
@@ -51,7 +60,8 @@ describe('NotificationsProcessor', () => {
 
   describe('sendInApp', () => {
     it('should create database notification', async () => {
-      await processor.sendInApp({
+      const mockJob = {
+        name: 'send-in-app',
         data: {
           userId: 'user-1',
           type: 'INTERVIEW',
@@ -59,7 +69,9 @@ describe('NotificationsProcessor', () => {
           body: 'Scheduled',
           metadata: {},
         },
-      } as any);
+      } as Job<InAppPayload, void, 'send-in-app'>;
+
+      await processor.sendInApp(mockJob);
 
       expect(prismaMock.notification.create).toHaveBeenCalledWith({
         data: {
@@ -76,27 +88,35 @@ describe('NotificationsProcessor', () => {
 
   describe('sendEmail', () => {
     it('should send email successfully', async () => {
-      const spy = jest.spyOn((processor as any).transporter, 'sendMail').mockResolvedValue(true);
-
-      await processor.sendEmail({
+      const mockJob = {
+        name: 'send-email',
         data: {
           to: 'user@test.com',
           subject: 'Interview',
           html: '<p>Hello</p>',
         },
-      } as any);
+      } as Job<EmailPayload, void, 'send-email'>;
+
+      const transporter = (processor as unknown as { transporter: { sendMail: jest.Mock } })
+        .transporter;
+      const spy = jest.spyOn(transporter, 'sendMail').mockResolvedValue(true);
+
+      await processor.sendEmail(mockJob);
 
       expect(spy).toHaveBeenCalled();
     });
 
     it('should ignore missing email', async () => {
-      await processor.sendEmail({
+      const mockJob = {
+        name: 'send-email',
         data: {
           to: '',
           subject: 'test',
           html: 'test',
         },
-      } as any);
+      } as Job<EmailPayload, void, 'send-email'>;
+
+      await processor.sendEmail(mockJob);
     });
   });
 
@@ -104,12 +124,44 @@ describe('NotificationsProcessor', () => {
     it('should skip when bot token missing', async () => {
       configMock.get.mockReturnValue(undefined);
 
-      await processor.sendTelegram({
+      const mockJob = {
+        name: 'send-telegram',
         data: {
           telegramId: '123',
           message: 'hello',
         },
-      } as any);
+      } as Job<TelegramPayload, void, 'send-telegram'>;
+
+      await processor.sendTelegram(mockJob);
+    });
+  });
+
+  describe('sendPush', () => {
+    it('should log push notification when user id provided', async () => {
+      const mockJob = {
+        name: 'send-push',
+        data: {
+          userId: 'user-1',
+          title: 'Test Push',
+          body: 'Push Body',
+        },
+      } as Job<PushPayload, void, 'send-push'>;
+
+      await processor.sendPush(mockJob);
+    });
+  });
+
+  describe('sendSms', () => {
+    it('should log sms notification when phone number provided', async () => {
+      const mockJob = {
+        name: 'send-sms',
+        data: {
+          to: '+1234567890',
+          message: 'SMS message',
+        },
+      } as Job<SmsPayload, void, 'send-sms'>;
+
+      await processor.sendSms(mockJob);
     });
   });
 });

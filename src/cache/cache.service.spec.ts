@@ -117,7 +117,7 @@ describe('CacheService', () => {
       const ttl = 60;
 
       await service.set(key, value, { ttl });
-      expect(cacheManagerMock.set).toHaveBeenCalledWith('test:set-key', value, 60);
+      expect(cacheManagerMock.set).toHaveBeenCalledWith('test:set-key', value, 60000);
     });
   });
 

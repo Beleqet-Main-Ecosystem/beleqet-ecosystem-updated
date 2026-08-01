@@ -21,7 +21,11 @@ function formatDateTime(dateStr: string): string {
 /** Returns a CSS badge class based on the event type's category, for quick visual scanning. */
 function getEventBadge(eventType: string): string {
   if (eventType.includes('LOGIN') || eventType.includes('LOGOUT')) return 'badge badge-open';
-  if (eventType.includes('PAYMENT') || eventType.includes('ESCROW') || eventType.includes('WALLET')) {
+  if (
+    eventType.includes('PAYMENT') ||
+    eventType.includes('ESCROW') ||
+    eventType.includes('WALLET')
+  ) {
     return 'badge badge-resolved';
   }
   return 'badge';
@@ -43,11 +47,7 @@ export default function AuditLogsPage() {
   const [dateToInput, setDateToInput] = useState('');
 
   const fetcher = useCallback(() => fetchAuditLogs(filters), [filters]);
-  const {
-    data: result,
-    loading,
-    error,
-  } = usePolling<AuditLogPage>(fetcher, POLLING_INTERVAL_MS);
+  const { data: result, loading, error } = usePolling<AuditLogPage>(fetcher, POLLING_INTERVAL_MS);
 
   function applyFilters() {
     setFilters({
@@ -106,9 +106,18 @@ export default function AuditLogsPage() {
               <Filter size={16} /> Filters
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, padding: '16px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: 12,
+              padding: '16px',
+            }}
+          >
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="eventType">Event Type</label>
+              <label className="form-label" htmlFor="eventType">
+                Event Type
+              </label>
               <input
                 id="eventType"
                 value={eventTypeInput}
@@ -117,7 +126,9 @@ export default function AuditLogsPage() {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="entityType">Entity Type</label>
+              <label className="form-label" htmlFor="entityType">
+                Entity Type
+              </label>
               <input
                 id="entityType"
                 value={entityTypeInput}
@@ -126,7 +137,9 @@ export default function AuditLogsPage() {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="entityId">Entity ID</label>
+              <label className="form-label" htmlFor="entityId">
+                Entity ID
+              </label>
               <input
                 id="entityId"
                 value={entityIdInput}
@@ -135,7 +148,9 @@ export default function AuditLogsPage() {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="dateFrom">From</label>
+              <label className="form-label" htmlFor="dateFrom">
+                From
+              </label>
               <input
                 id="dateFrom"
                 type="date"
@@ -144,7 +159,9 @@ export default function AuditLogsPage() {
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label" htmlFor="dateTo">To</label>
+              <label className="form-label" htmlFor="dateTo">
+                To
+              </label>
               <input
                 id="dateTo"
                 type="date"
@@ -153,8 +170,12 @@ export default function AuditLogsPage() {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-              <button className="btn btn-primary btn-sm" onClick={applyFilters}>Apply</button>
-              <button className="btn btn-ghost btn-sm" onClick={clearFilters}>Clear</button>
+              <button className="btn btn-primary btn-sm" onClick={applyFilters}>
+                Apply
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={clearFilters}>
+                Clear
+              </button>
             </div>
           </div>
         </div>
@@ -208,7 +229,10 @@ export default function AuditLogsPage() {
                         </span>
                       </td>
                       <td>
-                        <span className="truncate" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        <span
+                          className="truncate"
+                          style={{ fontSize: 12, color: 'var(--text-muted)' }}
+                        >
                           {Object.keys(log.payload).length > 0
                             ? JSON.stringify(log.payload).slice(0, 60)
                             : '—'}
