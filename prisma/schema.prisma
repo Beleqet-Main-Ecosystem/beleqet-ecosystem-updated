@@ -34,6 +34,7 @@ model User {
   applications          Application[]
   bids                  Bid[]
   candidateScores       CandidateScore[]
+  freelanceMatchScores  FreelanceMatchScore[] @relation("FreelancerMatchScores")
   videoInterviews       VideoInterview[]
   chatParticipants      ChatParticipant[]
   company               Company?
@@ -435,6 +436,7 @@ model FreelanceJob {
   experienceLevel    String?
   locationPreference String?
   bids               Bid[]
+  matchScores        FreelanceMatchScore[]
   contract           Contract?
   escrowTx           EscrowTransaction?
   category           FreelanceCategory  @relation(fields: [categoryId], references: [id])
@@ -1637,3 +1639,27 @@ model PromotionWalletTransaction {
 
 /// System-wide audit log entity tracking user/system actions, entity state changes,
 /// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+model FreelanceMatchScore {
+  id             String @id @default(uuid())
+  freelanceJobId String
+  freelancerId   String
+
+  overallScore Int
+  skillScore      Int
+  locationScore   Int
+  experienceScore Int
+
+  algorithmVersion String @default("v1")
+
+  computedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  freelanceJob FreelanceJob @relation(fields: [freelanceJobId], references: [id], onDelete: Cascade)
+  freelancer   User         @relation("FreelancerMatchScores", fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@unique([freelanceJobId, freelancerId])
+  @@index([freelanceJobId, overallScore])
+  @@index([freelancerId, overallScore])
+  @@map("freelance_match_scores")
+}
+
