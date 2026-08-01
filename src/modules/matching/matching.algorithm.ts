@@ -8,7 +8,7 @@
  * All scores are normalized to the 0..1 range internally; the service layer
  * converts the final overallScore to a 0..100 percentage for display.
  */
-
+  export const ALGORITHM_VERSION = 'v1';
 /** Minimal shape of a freelancer profile needed for scoring. */
 export interface FreelancerProfileInput {
   skills: string[];
