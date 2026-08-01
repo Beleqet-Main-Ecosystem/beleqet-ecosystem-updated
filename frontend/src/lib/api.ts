@@ -3,7 +3,7 @@
  * All backend communication is handled here - not inside components (DRY principle).
  */
 import apiClient from './apiClient';
-import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters } from '@/types';
+import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, MatchResult } from '@/types';
 import type { ThemePreference } from '@/components/theme/theme-preference';
 
 /** API response shape for the minimal persisted user theme setting. */
@@ -143,5 +143,27 @@ export async function enqueueChapaCallback(
     '/escrow/callback',
     payload,
   );
+  return data;
+}
+/** Fetches ranked freelancer matches for a freelance job (Employer/Admin only). */
+export async function getJobMatches(
+  jobId: string,
+  minScore: number = 0,
+  limit: number = 20,
+): Promise<MatchResult[]> {
+  const { data } = await apiClient.get<MatchResult[]>(`/matching/jobs/${jobId}/matches`, {
+    params: { minScore, limit },
+  });
+  return data;
+}
+/** Minimal freelance job shape needed to render the Matchmaker page header. */
+export interface FreelanceJobSummary {
+  id: string;
+  title: string;
+}
+
+/** Fetches a single freelance job by id (used to populate the Matchmaker dashboard header). */
+export async function getFreelanceJob(jobId: string): Promise<FreelanceJobSummary> {
+  const { data } = await apiClient.get<FreelanceJobSummary>(`/freelance/jobs/${jobId}`);
   return data;
 }

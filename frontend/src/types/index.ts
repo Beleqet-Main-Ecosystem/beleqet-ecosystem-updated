@@ -118,3 +118,15 @@ export interface AuditLogFilters {
   page?: number;
   limit?: number;
 }
+/** A single ranked freelancer match, as returned by GET /matching/jobs/:jobId/matches. */
+export interface MatchResult {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  headline: string | null;
+  avatarUrl: string | null;
+  overallScore: number;
+  skillScore: number;
+  locationScore: number;
+  experienceScore: number;
+}
