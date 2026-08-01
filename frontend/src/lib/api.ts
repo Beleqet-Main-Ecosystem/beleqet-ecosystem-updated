@@ -17,6 +17,13 @@ import type {
   PromotionCampaign,
   CampaignAnalytics,
 } from '@/types';
+import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, MatchResult } from '@/types';
+import type { ThemePreference } from '@/components/theme/theme-preference';
+
+/** API response shape for the minimal persisted user theme setting. */
+export interface ThemePreferenceResponse {
+  theme: ThemePreference;
+}
 
 /** Fetches the current authenticated user's persisted theme preference. */
 export async function getThemePreference(): Promise<ThemePreferenceResponse> {
@@ -252,4 +259,20 @@ export async function getActiveBoosts(
     params: { targetType, targetIds: targetIds.join(',') },
   });
   return data;
+/** Fetches ranked freelancer matches for a freelance job (Employer/Admin only). */
+export async function getJobMatches(
+  jobId: string,
+  minScore: number = 0,
+  limit: number = 20,
+): Promise<MatchResult[]> {
+  const { data } = await apiClient.get<MatchResult[]>(`/matching/jobs/${jobId}/matches`, {
+    params: { minScore, limit },
+/** Minimal freelance job shape needed to render the Matchmaker page header. */
+export interface FreelanceJobSummary {
+  id: string;
+  title: string;
+
+/** Fetches a single freelance job by id (used to populate the Matchmaker dashboard header). */
+export async function getFreelanceJob(jobId: string): Promise<FreelanceJobSummary> {
+  const { data } = await apiClient.get<FreelanceJobSummary>(`/freelance/jobs/${jobId}`);
 }
