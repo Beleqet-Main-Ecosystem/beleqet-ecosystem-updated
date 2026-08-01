@@ -204,22 +204,7 @@ export async function fetchNotificationPreferences(): Promise<NotificationPrefer
 }
 
 /** Update current user's notification preferences */
-export async function updateNotificationPreferences(
-  prefs: Partial
-    Pick
-      NotificationPreference,
-      | 'emailEnabled'
-      | 'telegramEnabled'
-      | 'inAppEnabled'
-      | 'pushEnabled'
-      | 'smsEnabled'
-      | 'language'
-    >
-  >,
-): Promise<NotificationPreference> {
-  const { data } = await apiClient.patch<NotificationPreference>(
-    '/users/notification-preferences',
-    prefs,
-  );
+export async function updateNotificationPreferences(prefs: Partial<Pick<NotificationPreference, 'emailEnabled' | 'telegramEnabled' | 'inAppEnabled' | 'pushEnabled' | 'smsEnabled' | 'language'>>): Promise<NotificationPreference> {
+  const { data } = await apiClient.patch<NotificationPreference>('/users/notification-preferences', prefs);
   return data;
 }
