@@ -1,9 +1,9 @@
 # =============================================================================
 # Beleqet jobs frontend — production image (Next.js 14)
 #
-# Install AFTER copying sources so a host `node_modules` (or empty stub) cannot
-# wipe the image install. Build via `npm exec` so the Next binary resolves even
-# if `.bin` is not on PATH.
+# Pattern: npm ci BEFORE copying app sources (layer cache), with node_modules
+# excluded via .dockerignore so COPY . . cannot wipe the install. Build with
+# `npm exec` / explicit binary so `next` always resolves (fixes `next: not found`).
 # =============================================================================
 
 # ── Build stage ──────────────────────────────────────────────────────────────
@@ -11,17 +11,17 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# NEXT_PUBLIC_ vars must be present at build time for Next.js static generation
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY . .
 
-# Install the full tree (do not set NODE_ENV=production before npm ci or
-# optional/dev tooling for the Next compiler can be omitted on some setups).
-RUN npm ci \
-  && test -x node_modules/next/dist/bin/next
+# Fail fast if the Next binary did not link (e.g. corrupted npm ci cache).
+RUN test -x node_modules/next/dist/bin/next \
+  && test -e node_modules/.bin/next
 
 ENV NODE_ENV=production
 RUN npm exec -- next build

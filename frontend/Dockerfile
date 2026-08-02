@@ -1,7 +1,6 @@
 # =============================================================================
 # Beleqet admin frontend — production image (Next.js 14)
-# Reproducible: installs from the lockfile with `npm ci` in every stage.
-# Install AFTER copying sources; build via `npm exec` so `next` always resolves.
+# Same install/build pattern as beleqet-jobs-nextjs (avoids `next: not found`).
 # =============================================================================
 
 # ── Build stage ──────────────────────────────────────────────────────────────
@@ -13,10 +12,12 @@ ARG NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY . .
 
-RUN npm ci \
-  && test -x node_modules/next/dist/bin/next
+RUN test -x node_modules/next/dist/bin/next \
+  && test -e node_modules/.bin/next
 
 ENV NODE_ENV=production
 RUN npm exec -- next build
@@ -27,7 +28,8 @@ FROM node:20-alpine AS pruner
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+  && test -x node_modules/next/dist/bin/next
 
 # ── Production stage ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner

@@ -72,4 +72,5 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
 
 # Apply committed migrations (production-safe) before starting the server.
-CMD sh -c "npx prisma migrate deploy && npm run start:prod"
+# Do not use npx/npm here — those CLIs are stripped from the runner image above.
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/main"]
