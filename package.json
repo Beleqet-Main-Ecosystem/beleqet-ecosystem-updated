@@ -21,13 +21,13 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
-    "test:ci-cd": "jest --config ./test/jest-ci-cd.json --runInBand",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "test:e2e": "npx jest --config ./test/jest-e2e.json",
+    "test:ci-cd": "npx jest --config ./test/jest-ci-cd.json --runInBand",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
+    "prisma:studio": "npx prisma studio",
+    "prisma:seed": "npx ts-node --transpile-only prisma/seed.ts"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
