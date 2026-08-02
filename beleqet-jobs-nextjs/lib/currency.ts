@@ -53,11 +53,12 @@ export class CurrencyUtil {
    * @throws Error if input smallestUnit is not an integer.
    * @security GDPR/PII Alert: Be careful when appending names/details of users directly next to currency balances in logs.
    */
-  static format(smallestUnit: number, currency: 'ETB' | 'USD' = 'ETB', locale = 'en-US'): string {
+  static format(smallestUnit: number, currency: string = 'ETB', locale = 'en-US'): string {
     const decimal = this.toDecimal(smallestUnit);
+    const code = currency.toUpperCase();
     return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: currency.toUpperCase(),
+      currency: code,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(decimal);

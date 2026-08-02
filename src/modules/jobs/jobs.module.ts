@@ -4,12 +4,14 @@ import { BullModule } from '@nestjs/bullmq'; // Correct package path
 import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+import { CampaignsModule } from '../campaigns/campaigns.module';
 
 @Module({
   imports: [
     ConfigModule,
     // Formally register the notifications queue so JobsService can inject it
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    CampaignsModule,
   ],
   providers: [JobsService],
   controllers: [JobsController],

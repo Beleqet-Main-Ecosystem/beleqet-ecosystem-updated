@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MapPin, Clock, Building2, ArrowLeft } from 'lucide-react';
 import { fetchJob, fetchJobs, type Job } from '@/lib/api';
 import JobActions from '@/components/JobActions';
+import JobOwnerBoost from '@/components/campaigns/JobOwnerBoost';
 import { jobDetailPageMetadata } from '@/lib/seo/generate-metadata';
 import { JobPostingSchema, BreadcrumbSchema } from '@/lib/seo/schemas';
 
@@ -104,6 +105,7 @@ export default async function JobDetailPage({ params }: { params: { id: string }
 
         <aside className="space-y-6">
           <JobActions jobId={job.id} />
+          <JobOwnerBoost jobId={job.id} jobTitle={job.title} />
 
           {related.length > 0 && (
             <div className="rounded-2xl border border-border bg-white p-6">

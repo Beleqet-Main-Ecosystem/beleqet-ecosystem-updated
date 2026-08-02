@@ -6,6 +6,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { jobPostConfirmationEmail, jobAlertEmail } from '../notifications/email-templates';
+import { CampaignAuctionService } from '../campaigns/campaign-auction.service';
+import { prependBoostedIds } from '../campaigns/promotion-merge.util';
 
 @Injectable()
 export class JobsService {
@@ -15,6 +17,7 @@ export class JobsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
+    private readonly auction: CampaignAuctionService,
   ) {}
 
   async create(employerId: string, dto: CreateJobDto) {
@@ -111,8 +114,36 @@ export class JobsService {
       this.prisma.job.count({ where: where as never }),
     ]);
 
+    let rankedItems = items as Array<(typeof items)[number] & { promoted?: boolean }>;
+    if (q) {
+      try {
+        const boosted = await this.auction.rankForQuery(q, { targetType: 'JOB', limit: limitNum });
+        const boostedIds = boosted.map((b) => b.targetId);
+        const missingIds = boostedIds.filter((id) => !items.some((j) => j.id === id));
+        let extras: typeof items = [];
+        if (missingIds.length > 0) {
+          extras = await this.prisma.job.findMany({
+            where: { id: { in: missingIds }, status: 'PUBLISHED' },
+            include: {
+              company: true,
+              category: true,
+              _count: { select: { applications: true } },
+            },
+          });
+        }
+        const pool = [...extras, ...items];
+        rankedItems = prependBoostedIds(
+          pool as Array<{ id: string } & (typeof items)[number]>,
+          boostedIds,
+          (item) => ({ ...item, promoted: true }),
+        ).slice(0, limitNum) as typeof rankedItems;
+      } catch (err) {
+        this.logger.warn(`Campaign boost merge skipped: ${(err as Error).message}`);
+      }
+    }
+
     return {
-      items,
+      items: rankedItems,
       total,
       page: pageNum,
       limit: limitNum,

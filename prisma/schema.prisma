@@ -77,6 +77,7 @@ model User {
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
   rbacRoles               Role[]              @relation("UserRoles")
+  campaigns               Campaign[]
 
   @@map("users")
 }
@@ -1418,5 +1419,76 @@ enum FaqBotMessageRole {
   SYSTEM
 }
 
-/// System-wide audit log entity tracking user/system actions, entity state changes,
-/// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+enum CampaignTargetType {
+  JOB
+  PROPOSAL
+  GIG
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_PAYMENT
+  ACTIVE
+  PAUSED
+  EXHAUSTED
+  COMPLETED
+  REJECTED
+}
+
+enum CampaignBidModel {
+  CPC
+  CPM
+}
+
+enum AdEventType {
+  IMPRESSION
+  CLICK
+  CONVERSION
+}
+
+model Campaign {
+  id             String             @id @default(uuid())
+  ownerId        String
+  targetType     CampaignTargetType
+  targetId       String
+  status         CampaignStatus     @default(DRAFT)
+  bidModel       CampaignBidModel
+  bidAmount      Int
+  dailyBudgetCap Int
+  totalBudget    Int
+  spentAmount    Int                @default(0)
+  dailySpent     Int                @default(0)
+  dailySpentResetAt DateTime?
+  currencyCode   String             @default("ETB")
+  fxRate         Float?
+  fxFromCurrency String?
+  fxToCurrency   String?
+  reservedAmountEtb Int             @default(0)
+  paymentTxRef   String?            @unique
+  startAt        DateTime?
+  endAt          DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  owner          User               @relation(fields: [ownerId], references: [id])
+  events         AdEvent[]
+
+  @@index([ownerId, status])
+  @@index([targetType, targetId])
+  @@index([status, startAt, endAt])
+  @@map("campaigns")
+}
+
+model AdEvent {
+  id             String      @id @default(uuid())
+  campaignId     String
+  eventType      AdEventType
+  occurredAt     DateTime    @default(now())
+  hashedIp       String?
+  hashedUserAgent String?
+  sessionRef     String?
+  campaign       Campaign    @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+
+  @@index([campaignId, eventType, occurredAt])
+  @@index([occurredAt])
+  @@map("ad_events")
+}

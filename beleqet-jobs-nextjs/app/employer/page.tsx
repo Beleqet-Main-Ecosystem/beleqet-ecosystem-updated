@@ -5,6 +5,8 @@ import { BriefcaseBusiness, Eye, Plus, Users } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
+import BoostPromoteModal from '@/components/campaigns/BoostPromoteModal';
+import { useTranslation } from '@/lib/i18n';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 type Job = {
@@ -33,6 +35,7 @@ const statuses = [
 
 export default function EmployerPage() {
   const { user, ready } = useAuth();
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selected, setSelected] = useState<Job | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
@@ -105,12 +108,20 @@ export default function EmployerPage() {
             </p>
             <h1 className="mt-3 text-4xl font-black">Hiring workspace</h1>
           </div>
-          <Link
-            href="/post-job"
-            className="flex items-center gap-2 rounded-full bg-[#d8ff3e] px-5 py-3 text-sm font-bold text-primary"
-          >
-            <Plus className="h-4 w-4" /> Post a job
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/employer/campaigns"
+              className="flex items-center gap-2 rounded-full border border-[#d8ff3e]/40 px-5 py-3 text-sm font-bold text-[#d8ff3e]"
+            >
+              {t('campaigns.dashboardTitle')}
+            </Link>
+            <Link
+              href="/post-job"
+              className="flex items-center gap-2 rounded-full bg-[#d8ff3e] px-5 py-3 text-sm font-bold text-primary"
+            >
+              <Plus className="h-4 w-4" /> Post a job
+            </Link>
+          </div>
         </div>
       </section>
       <div className="container-page py-10">
@@ -145,7 +156,13 @@ export default function EmployerPage() {
                   <td>{job.status}</td>
                   <td>{job._count.applications}</td>
                   <td>{new Date(job.createdAt).toLocaleDateString()}</td>
-                  <td>
+                  <td className="space-x-3 p-4 text-right">
+                    <BoostPromoteModal
+                      targetType="JOB"
+                      targetId={job.id}
+                      targetTitle={job.title}
+                      compact
+                    />
                     <button
                       onClick={() => openApplicants(job)}
                       className="text-xs font-bold text-brandGreen"

@@ -152,7 +152,52 @@ export class AiFeedService {
 
     const jobs = await this.fetchCandidatePool(boundedKeywords, savedCategoryIds);
 
-    return this.rankJobs(jobs, boundedKeywords, savedCategoryIds).slice(0, limit);
+    const organic = this.rankJobs(jobs, boundedKeywords, savedCategoryIds);
+    const promoted = await this.prependActiveJobBoosts(organic, boundedKeywords.join(' '));
+    return promoted.slice(0, limit);
+  }
+
+  /**
+   * Surfaces ACTIVE job campaigns at the top of the feed using the same
+   * bid × quality_score auction formula (quality via {@link scoreQueryRelevance}).
+   */
+  private async prependActiveJobBoosts(
+    organic: PersonalizedJob[],
+    query: string,
+  ): Promise<PersonalizedJob[]> {
+    const now = new Date();
+    const campaigns = await this.prisma.campaign.findMany({
+      where: {
+        status: 'ACTIVE',
+        targetType: 'JOB',
+        OR: [{ startAt: null }, { startAt: { lte: now } }],
+        AND: [{ OR: [{ endAt: null }, { endAt: { gte: now } }] }],
+      },
+    });
+    if (campaigns.length === 0) return organic;
+
+    const scored = campaigns
+      .map((c) => {
+        const job = organic.find((j) => j.id === c.targetId);
+        if (!job) return null;
+        const qualityScore = this.scoreQueryRelevance(query || job.title, job);
+        return {
+          job: { ...job, relevanceScore: Math.max(job.relevanceScore, qualityScore) },
+          score: c.bidAmount * qualityScore,
+          createdAt: c.createdAt,
+          campaignId: c.id,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+
+    const boostedIds = new Set(scored.map((s) => s.job.id));
+    const head = scored.map((s) => s.job);
+    const rest = organic.filter((j) => !boostedIds.has(j.id));
+    return [...head, ...rest];
   }
 
   /**
@@ -286,6 +331,45 @@ export class AiFeedService {
     return jobs
       .map((job) => ({ ...job, relevanceScore: this.scoreJob(job, keywords, savedCategoryIds) }))
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+
+  /**
+   * Public reuse of the AI-feed relevance formula for auction quality scoring.
+   * Returns the same 0–100 `relevanceScore` signal used by the personal feed
+   * (keyword match + optional category affinity) — does not invent a new metric.
+   *
+   * @param query - Free-text search query (tokenized like search-history terms)
+   * @param document - Target title/description/tags to score against
+   * @param affinityCategoryIds - Optional saved-category set for the affinity bonus
+   */
+  scoreQueryRelevance(
+    query: string,
+    document: {
+      title: string;
+      description: string;
+      tags?: string[];
+      categoryId?: string;
+    },
+    affinityCategoryIds: Set<string> = new Set(),
+  ): number {
+    const keywords = this.extractKeywords([query]);
+    return this.scoreJob(
+      {
+        id: '',
+        title: document.title,
+        description: document.description,
+        tags: document.tags ?? [],
+        categoryId: document.categoryId ?? '',
+        salaryMin: null,
+        salaryMax: null,
+        currency: 'ETB',
+        createdAt: new Date(0),
+        company: null,
+        category: null,
+      },
+      keywords,
+      affinityCategoryIds,
+    );
   }
 
   /**

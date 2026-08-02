@@ -374,6 +374,25 @@ export class GdprGuardService {
         });
       }
 
+      // Campaign / ad_events — delete telemetry (hashed IP/UA/session), complete campaigns.
+      // Product rule is append-only for ops, but GDPR erasure is an explicit exception.
+      const ownedCampaigns = await tx.campaign.findMany({
+        where: { ownerId: userUuid },
+        select: { id: true },
+      });
+      const campaignIds = ownedCampaigns.map((c) => c.id);
+      if (campaignIds.length > 0) {
+        await tx.adEvent.deleteMany({ where: { campaignId: { in: campaignIds } } });
+        await tx.campaign.updateMany({
+          where: { id: { in: campaignIds } },
+          data: {
+            status: 'COMPLETED',
+            paymentTxRef: null,
+            reservedAmountEtb: 0,
+          },
+        });
+      }
+
       await tx.eventLog.create({
         data: {
           eventType: 'GDPR_DATA_ERASURE',

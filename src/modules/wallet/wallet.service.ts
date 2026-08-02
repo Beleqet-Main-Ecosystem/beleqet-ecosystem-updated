@@ -130,6 +130,24 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
     return Math.round(amount * rate);
   }
 
+  /**
+   * Returns the multiplicative FX rate `from → to` used by {@link convertCurrency}.
+   * Campaigns persist this rate at budget-reservation write time so historical
+   * spend reports do not drift when live rates later change.
+   */
+  getExchangeRate(from: string, to: string): number {
+    if (from === to) return 1;
+
+    const rateFrom = this.exchangeRates[from];
+    const rateTo = this.exchangeRates[to];
+
+    if (!rateFrom || !rateTo) {
+      throw new BadRequestException(`Exchange rate for ${from} to ${to} not found`);
+    }
+
+    return rateTo / rateFrom;
+  }
+
   async withdraw(userId: string, dto: WithdrawDto) {
     const wallet = await this.prisma.freelancerWallet.findUnique({ where: { userId } });
     if (!wallet) throw new NotFoundException('Wallet not found');

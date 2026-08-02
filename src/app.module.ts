@@ -57,6 +57,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
 
 @Module({
   imports: [
@@ -165,6 +166,7 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     CacheConfigModule,
     FaqBotModule,
     EncryptionModule,
+    CampaignsModule,
   ],
   providers: [
     {

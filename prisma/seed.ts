@@ -405,7 +405,225 @@ async function main() {
   await seedFaqKnowledge();
   console.log('✅ FAQ Bot knowledge base seeded');
 
+  // ── Campaigns / Ad Events (boost) ──────────────────────────────────────────
+  await seedCampaigns(employer.id, demoJobs[0].id);
+  console.log('✅ Campaigns and synthetic ad_events seeded');
+
   console.log('\n🎉 Database seeded successfully with Production Categories!');
+}
+
+/**
+ * Seeds demo campaigns across JOB / PROPOSAL / GIG targets plus synthetic
+ * append-only ad_events for dashboard testing. Money amounts are minor units.
+ */
+async function seedCampaigns(ownerId: string, jobTargetId: string) {
+  const createHash = (await import('crypto')).createHash;
+  const hash = (value: string) => createHash('sha256').update(value).digest('hex');
+
+  const freelanceCategory = await prisma.freelanceCategory.upsert({
+    where: { slug: 'web-development' },
+    update: {},
+    create: {
+      slug: 'web-development',
+      label: 'Web Development',
+      icon: 'code',
+    },
+  });
+
+  const gig = await prisma.freelanceJob.upsert({
+    where: { id: '22222222-2222-2222-2222-222222222201' },
+    update: {},
+    create: {
+      id: '22222222-2222-2222-2222-222222222201',
+      title: 'Build a Next.js landing page',
+      description: 'Responsive marketing landing page with CMS hooks for Beleqet demos.',
+      budgetMin: 500000,
+      budgetMax: 1500000,
+      currency: 'ETB',
+      deadlineDays: 14,
+      skills: ['Next.js', 'TypeScript', 'Tailwind'],
+      status: 'OPEN',
+      clientId: ownerId,
+      categoryId: freelanceCategory.id,
+    },
+  });
+
+  const freelancer = await prisma.user.upsert({
+    where: { email: 'demo.freelancer@beleqet.com' },
+    update: {},
+    create: {
+      email: 'demo.freelancer@beleqet.com',
+      passwordHash: await bcrypt.hash('DemoFreelancer123!', 12),
+      firstName: 'Demo',
+      lastName: 'Freelancer',
+      role: 'FREELANCER',
+      emailVerified: true,
+      rbacRoles: { connect: { name: 'FREELANCER' } },
+    },
+  });
+
+  const proposal = await prisma.bid.upsert({
+    where: {
+      freelanceJobId_freelancerId: {
+        freelanceJobId: gig.id,
+        freelancerId: freelancer.id,
+      },
+    },
+    update: {},
+    create: {
+      id: '33333333-3333-3333-3333-333333333301',
+      freelanceJobId: gig.id,
+      freelancerId: freelancer.id,
+      amount: 900000,
+      timelineDays: 14,
+      coverLetter: 'I can deliver a polished Next.js landing page with analytics hooks.',
+      status: 'PENDING',
+    },
+  });
+
+  const now = new Date();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const campaigns = [
+    {
+      id: '44444444-4444-4444-4444-444444444401',
+      ownerId,
+      targetType: 'JOB' as const,
+      targetId: jobTargetId,
+      status: 'ACTIVE' as const,
+      bidModel: 'CPC' as const,
+      bidAmount: 50,
+      dailyBudgetCap: 5000,
+      totalBudget: 50000,
+      spentAmount: 1250,
+      currencyCode: 'ETB',
+      startAt: new Date(now.getTime() - 3 * dayMs),
+      endAt: new Date(now.getTime() + 27 * dayMs),
+    },
+    {
+      id: '44444444-4444-4444-4444-444444444402',
+      ownerId,
+      targetType: 'GIG' as const,
+      targetId: gig.id,
+      status: 'ACTIVE' as const,
+      bidModel: 'CPM' as const,
+      bidAmount: 200,
+      dailyBudgetCap: 8000,
+      totalBudget: 80000,
+      spentAmount: 3200,
+      currencyCode: 'ETB',
+      startAt: new Date(now.getTime() - 2 * dayMs),
+      endAt: new Date(now.getTime() + 12 * dayMs),
+    },
+    {
+      id: '44444444-4444-4444-4444-444444444403',
+      ownerId: freelancer.id,
+      targetType: 'PROPOSAL' as const,
+      targetId: proposal.id,
+      status: 'PAUSED' as const,
+      bidModel: 'CPC' as const,
+      bidAmount: 75,
+      dailyBudgetCap: 3000,
+      totalBudget: 20000,
+      spentAmount: 450,
+      currencyCode: 'ETB',
+      startAt: new Date(now.getTime() - 5 * dayMs),
+      endAt: new Date(now.getTime() + 10 * dayMs),
+    },
+    {
+      id: '44444444-4444-4444-4444-444444444404',
+      ownerId,
+      targetType: 'JOB' as const,
+      targetId: jobTargetId,
+      status: 'DRAFT' as const,
+      bidModel: 'CPC' as const,
+      bidAmount: 40,
+      dailyBudgetCap: 2000,
+      totalBudget: 10000,
+      spentAmount: 0,
+      currencyCode: 'ETB',
+      startAt: null,
+      endAt: null,
+    },
+    {
+      id: '44444444-4444-4444-4444-444444444405',
+      ownerId,
+      targetType: 'GIG' as const,
+      targetId: gig.id,
+      status: 'EXHAUSTED' as const,
+      bidModel: 'CPM' as const,
+      bidAmount: 150,
+      dailyBudgetCap: 4000,
+      totalBudget: 4000,
+      spentAmount: 4000,
+      currencyCode: 'ETB',
+      startAt: new Date(now.getTime() - 14 * dayMs),
+      endAt: new Date(now.getTime() - 1 * dayMs),
+    },
+  ];
+
+  for (const campaign of campaigns) {
+    await prisma.campaign.upsert({
+      where: { id: campaign.id },
+      update: {},
+      create: campaign,
+    });
+  }
+
+  // Wipe prior synthetic events for these campaigns so re-seed stays idempotent.
+  await prisma.adEvent.deleteMany({
+    where: { campaignId: { in: campaigns.map((c) => c.id) } },
+  });
+
+  const eventCampaignIds = campaigns
+    .filter((c) => c.status === 'ACTIVE' || c.status === 'EXHAUSTED' || c.status === 'PAUSED')
+    .map((c) => c.id);
+
+  const events: {
+    campaignId: string;
+    eventType: 'IMPRESSION' | 'CLICK' | 'CONVERSION';
+    occurredAt: Date;
+    hashedIp: string;
+    hashedUserAgent: string;
+    sessionRef: string;
+  }[] = [];
+
+  for (const campaignId of eventCampaignIds) {
+    for (let i = 0; i < 40; i++) {
+      const occurredAt = new Date(now.getTime() - Math.floor(Math.random() * 7 * dayMs));
+      const sessionRef = `sess_${hash(`session-${campaignId}-${Math.floor(i / 5)}`).slice(0, 16)}`;
+      events.push({
+        campaignId,
+        eventType: 'IMPRESSION',
+        occurredAt,
+        hashedIp: hash(`10.0.${i % 50}.${i % 200}`),
+        hashedUserAgent: hash(`Mozilla/5.0 demo-agent/${i % 7}`),
+        sessionRef,
+      });
+      if (i % 5 === 0) {
+        events.push({
+          campaignId,
+          eventType: 'CLICK',
+          occurredAt: new Date(occurredAt.getTime() + 1000),
+          hashedIp: hash(`10.0.${i % 50}.${i % 200}`),
+          hashedUserAgent: hash(`Mozilla/5.0 demo-agent/${i % 7}`),
+          sessionRef,
+        });
+      }
+      if (i % 15 === 0) {
+        events.push({
+          campaignId,
+          eventType: 'CONVERSION',
+          occurredAt: new Date(occurredAt.getTime() + 5000),
+          hashedIp: hash(`10.0.${i % 50}.${i % 200}`),
+          hashedUserAgent: hash(`Mozilla/5.0 demo-agent/${i % 7}`),
+          sessionRef,
+        });
+      }
+    }
+  }
+
+  await prisma.adEvent.createMany({ data: events });
 }
 
 async function seedFaqKnowledge() {
