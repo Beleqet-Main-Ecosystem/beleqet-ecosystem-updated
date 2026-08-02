@@ -39,13 +39,13 @@ type Metrics = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: 'bg-green-100 text-green-800',
-  PAUSED: 'bg-amber-100 text-amber-800',
-  EXHAUSTED: 'bg-orange-100 text-orange-800',
-  PENDING_PAYMENT: 'bg-blue-100 text-blue-800',
-  DRAFT: 'bg-slate-100 text-slate-700',
-  REJECTED: 'bg-red-100 text-red-800',
-  COMPLETED: 'bg-slate-200 text-slate-800',
+  ACTIVE: 'bg-green-500/20 text-green-300 ring-1 ring-green-500/30',
+  PAUSED: 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/30',
+  EXHAUSTED: 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-500/30',
+  PENDING_PAYMENT: 'bg-sky-500/20 text-sky-200 ring-1 ring-sky-500/30',
+  DRAFT: 'bg-slate-500/20 text-slate-300 ring-1 ring-slate-500/30',
+  REJECTED: 'bg-red-500/20 text-red-300 ring-1 ring-red-500/30',
+  COMPLETED: 'bg-slate-500/20 text-slate-200 ring-1 ring-slate-500/30',
 };
 
 /**
@@ -117,14 +117,14 @@ export default function CampaignAnalyticsDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
+    <div className="min-h-screen bg-pageBg">
       <section className="bg-primary py-12 text-white">
         <div className="container-page flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
               {t('campaigns.dashboardEyebrow')}
             </p>
-            <h1 className="mt-2 text-4xl font-black">{t('campaigns.dashboardTitle')}</h1>
+            <h1 className="mt-2 text-4xl font-black text-white">{t('campaigns.dashboardTitle')}</h1>
           </div>
           <Link
             href="/employer"
@@ -136,9 +136,11 @@ export default function CampaignAnalyticsDashboard() {
       </section>
 
       <div className="container-page grid gap-8 py-10 lg:grid-cols-[320px_1fr]">
-        <aside className="rounded-2xl bg-white p-4">
+        <aside className="rounded-2xl border border-border bg-white p-4">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-black uppercase text-muted">{t('campaigns.yourCampaigns')}</h2>
+            <h2 className="text-sm font-black uppercase tracking-wide text-ink">
+              {t('campaigns.yourCampaigns')}
+            </h2>
           </div>
           {loading ? (
             <p className="text-sm text-muted">{t('campaigns.loading')}</p>
@@ -151,8 +153,10 @@ export default function CampaignAnalyticsDashboard() {
                   <button
                     type="button"
                     onClick={() => setSelectedId(c.id)}
-                    className={`w-full rounded-xl px-3 py-3 text-left text-sm ${
-                      selectedId === c.id ? 'bg-primary/5 ring-1 ring-primary/20' : 'hover:bg-pageBg'
+                    className={`w-full rounded-xl px-3 py-3 text-left text-sm transition ${
+                      selectedId === c.id
+                        ? 'bg-pageBg ring-1 ring-brandGreen/40'
+                        : 'hover:bg-pageBg'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -161,7 +165,7 @@ export default function CampaignAnalyticsDashboard() {
                       </span>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          STATUS_STYLES[c.status] ?? 'bg-slate-100'
+                          STATUS_STYLES[c.status] ?? 'bg-slate-500/20 text-slate-300'
                         }`}
                       >
                         {c.status}
@@ -180,12 +184,12 @@ export default function CampaignAnalyticsDashboard() {
 
         <section className="space-y-6">
           {!metrics ? (
-            <div className="rounded-2xl bg-white p-10 text-center text-muted">
+            <div className="rounded-2xl border border-border bg-white p-10 text-center text-muted">
               {t('campaigns.selectCampaign')}
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-white p-5">
                 <div>
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -194,7 +198,7 @@ export default function CampaignAnalyticsDashboard() {
                   >
                     {metrics.status}
                   </span>
-                  <p className="mt-2 text-sm text-muted">
+                  <p className="mt-2 text-sm font-medium text-ink">
                     CTR {(metrics.ctr * 100).toFixed(2)}%
                   </p>
                 </div>
@@ -202,7 +206,7 @@ export default function CampaignAnalyticsDashboard() {
                   <button
                     type="button"
                     onClick={() => pauseOrResume(metrics.campaignId, metrics.status)}
-                    className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-white"
+                    className="rounded-full bg-brandGreen px-4 py-2 text-xs font-bold text-white"
                   >
                     {metrics.status === 'ACTIVE'
                       ? t('campaigns.pause')
@@ -217,7 +221,7 @@ export default function CampaignAnalyticsDashboard() {
                 <StatCard label={t('campaigns.conversions')} value={metrics.conversions} />
               </div>
 
-              <div className="rounded-2xl bg-white p-5">
+              <div className="rounded-2xl border border-border bg-white p-5">
                 <h3 className="text-sm font-black text-primary">{t('campaigns.spendVsBudget')}</h3>
                 <Progress
                   label={t('campaigns.totalSpend')}
@@ -231,9 +235,14 @@ export default function CampaignAnalyticsDashboard() {
                 />
               </div>
 
-              <div className="rounded-2xl bg-white p-5">
+              <div className="rounded-2xl border border-border bg-white p-5">
                 <h3 className="mb-4 text-sm font-black text-primary">{t('campaigns.eventsChart')}</h3>
-                <svg viewBox="0 0 360 160" className="h-40 w-full" role="img" aria-label={t('campaigns.eventsChart')}>
+                <svg
+                  viewBox="0 0 360 160"
+                  className="h-40 w-full"
+                  role="img"
+                  aria-label={t('campaigns.eventsChart')}
+                >
                   {chartBars.map((bar, index) => {
                     const barWidth = 70;
                     const gap = 40;
@@ -242,11 +251,26 @@ export default function CampaignAnalyticsDashboard() {
                     const y = 130 - height;
                     return (
                       <g key={bar.label}>
-                        <rect x={x} y={y} width={barWidth} height={height} rx={8} fill="#1f7a4c" />
-                        <text x={x + barWidth / 2} y={148} textAnchor="middle" fontSize="11" fill="#666">
+                        <rect x={x} y={y} width={barWidth} height={height} rx={8} fill="#22c55e" />
+                        <text
+                          x={x + barWidth / 2}
+                          y={148}
+                          textAnchor="middle"
+                          fontSize="11"
+                          fill="currentColor"
+                          className="text-muted"
+                        >
                           {bar.label}
                         </text>
-                        <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="12" fontWeight="700" fill="#111">
+                        <text
+                          x={x + barWidth / 2}
+                          y={y - 6}
+                          textAnchor="middle"
+                          fontSize="12"
+                          fontWeight="700"
+                          fill="currentColor"
+                          className="text-ink"
+                        >
                           {bar.value}
                         </text>
                       </g>
@@ -264,9 +288,9 @@ export default function CampaignAnalyticsDashboard() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-white p-5">
+    <div className="rounded-2xl border border-border bg-white p-5">
       <p className="text-3xl font-black text-primary">{value.toLocaleString()}</p>
-      <p className="text-xs font-bold uppercase text-muted">{label}</p>
+      <p className="mt-1 text-xs font-bold uppercase tracking-wide text-muted">{label}</p>
     </div>
   );
 }
@@ -274,7 +298,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
 function Progress({ label, pct, detail }: { label: string; pct: number; detail: string }) {
   return (
     <div className="mt-4">
-      <div className="mb-1 flex justify-between text-xs font-bold text-muted">
+      <div className="mb-1 flex justify-between text-xs font-bold text-ink">
         <span>{label}</span>
         <span>{pct}%</span>
       </div>

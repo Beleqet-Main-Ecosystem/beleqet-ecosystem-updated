@@ -20,6 +20,11 @@ type Props = {
 
 const CURRENCIES = ['ETB', 'USD', 'EUR'] as const;
 
+const fieldClass =
+  'mt-1.5 w-full rounded-xl border border-border bg-pageBg px-3 py-2.5 text-sm font-semibold text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/20';
+
+const labelClass = 'block text-xs font-bold uppercase tracking-wide text-ink/80';
+
 /**
  * "Boost / Promote Now" modal: budget + bid inputs, currency selector,
  * and a live estimated reach/cost preview.
@@ -63,7 +68,7 @@ export default function BoostPromoteModal({
       totalUnits,
       estimatedReach,
       estimatedDays: days,
-                  dailyFormatted: CurrencyUtil.format(dailyUnits, currency, intlLocale),
+      dailyFormatted: CurrencyUtil.format(dailyUnits, currency, intlLocale),
       totalFormatted: CurrencyUtil.format(totalUnits, currency, intlLocale),
       bidFormatted: CurrencyUtil.format(bidUnits, currency, intlLocale),
     };
@@ -126,8 +131,8 @@ export default function BoostPromoteModal({
         }}
         className={
           compact
-            ? 'inline-flex items-center gap-1 text-xs font-bold text-brandGreen'
-            : 'inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-white'
+            ? 'inline-flex items-center gap-1 text-xs font-bold text-brandGreen hover:underline'
+            : 'inline-flex w-full items-center justify-center gap-2 rounded-full bg-brandGreen px-5 py-3 text-sm font-bold text-white'
         }
       >
         <Megaphone className="h-4 w-4" />
@@ -136,24 +141,26 @@ export default function BoostPromoteModal({
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-[2px]"
           role="dialog"
           aria-modal="true"
           aria-label={t('campaigns.boostTitle')}
         >
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-wide text-brandGreen">
                   {t('campaigns.boostEyebrow')}
                 </p>
                 <h2 className="mt-1 text-xl font-black text-primary">{t('campaigns.boostTitle')}</h2>
-                {targetTitle && <p className="mt-1 text-sm text-muted">{targetTitle}</p>}
+                {targetTitle && (
+                  <p className="mt-1 text-sm font-medium text-muted">{targetTitle}</p>
+                )}
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full p-2 text-muted hover:bg-pageBg"
+                className="rounded-full p-2 text-muted transition hover:bg-pageBg hover:text-ink"
                 aria-label={t('campaigns.close')}
               >
                 <X className="h-5 w-5" />
@@ -161,24 +168,24 @@ export default function BoostPromoteModal({
             </div>
 
             <form onSubmit={submit} className="mt-6 space-y-4">
-              <label className="block text-xs font-bold uppercase text-muted">
+              <label className={labelClass}>
                 {t('campaigns.bidModel')}
                 <select
                   value={bidModel}
                   onChange={(e) => setBidModel(e.target.value as 'CPC' | 'CPM')}
-                  className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-sm font-semibold text-ink"
+                  className={fieldClass}
                 >
                   <option value="CPC">{t('campaigns.bidModelCpc')}</option>
                   <option value="CPM">{t('campaigns.bidModelCpm')}</option>
                 </select>
               </label>
 
-              <label className="block text-xs font-bold uppercase text-muted">
+              <label className={labelClass}>
                 {t('campaigns.currency')}
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value as (typeof CURRENCIES)[number])}
-                  className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-sm font-semibold text-ink"
+                  className={fieldClass}
                 >
                   {CURRENCIES.map((code) => (
                     <option key={code} value={code}>
@@ -189,7 +196,7 @@ export default function BoostPromoteModal({
               </label>
 
               <div className="grid gap-4 sm:grid-cols-3">
-                <label className="block text-xs font-bold uppercase text-muted">
+                <label className={labelClass}>
                   {t('campaigns.bidRate')}
                   <input
                     required
@@ -198,10 +205,10 @@ export default function BoostPromoteModal({
                     step="0.01"
                     value={bidMajor}
                     onChange={(e) => setBidMajor(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-sm font-semibold"
+                    className={fieldClass}
                   />
                 </label>
-                <label className="block text-xs font-bold uppercase text-muted">
+                <label className={labelClass}>
                   {t('campaigns.dailyBudget')}
                   <input
                     required
@@ -210,10 +217,10 @@ export default function BoostPromoteModal({
                     step="0.01"
                     value={dailyMajor}
                     onChange={(e) => setDailyMajor(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-sm font-semibold"
+                    className={fieldClass}
                   />
                 </label>
-                <label className="block text-xs font-bold uppercase text-muted">
+                <label className={labelClass}>
                   {t('campaigns.totalBudget')}
                   <input
                     required
@@ -222,50 +229,56 @@ export default function BoostPromoteModal({
                     step="0.01"
                     value={totalMajor}
                     onChange={(e) => setTotalMajor(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-border px-3 py-2 text-sm font-semibold"
+                    className={fieldClass}
                   />
                 </label>
               </div>
 
-              <div className="rounded-2xl bg-[#f7f5ef] p-4 text-sm">
-                <p className="text-xs font-extrabold uppercase text-muted">
+              <div className="rounded-2xl border border-border bg-pageBg p-4 text-sm text-ink">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-brandGreen">
                   {t('campaigns.livePreview')}
                 </p>
-                <ul className="mt-3 space-y-1.5 text-ink">
-                  <li>
-                    {t('campaigns.estReach')}:{' '}
-                    <strong>{preview.estimatedReach.toLocaleString(intlLocale)}</strong>
+                <ul className="mt-3 space-y-2">
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted">{t('campaigns.estReach')}</span>
+                    <strong className="text-ink">
+                      {preview.estimatedReach.toLocaleString(intlLocale)}
+                    </strong>
                   </li>
-                  <li>
-                    {t('campaigns.estDays')}: <strong>{preview.estimatedDays}</strong>
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted">{t('campaigns.estDays')}</span>
+                    <strong className="text-ink">{preview.estimatedDays}</strong>
                   </li>
-                  <li>
-                    {t('campaigns.dailyCost')}: <strong>{preview.dailyFormatted}</strong>
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted">{t('campaigns.dailyCost')}</span>
+                    <strong className="text-ink">{preview.dailyFormatted}</strong>
                   </li>
-                  <li>
-                    {t('campaigns.totalCost')}: <strong>{preview.totalFormatted}</strong>
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted">{t('campaigns.totalCost')}</span>
+                    <strong className="text-ink">{preview.totalFormatted}</strong>
                   </li>
-                  <li>
-                    {t('campaigns.bidRate')}: <strong>{preview.bidFormatted}</strong>
+                  <li className="flex justify-between gap-3">
+                    <span className="text-muted">{t('campaigns.bidRate')}</span>
+                    <strong className="text-ink">{preview.bidFormatted}</strong>
                   </li>
                 </ul>
               </div>
 
-              {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
-              {success && <p className="text-sm font-semibold text-brandGreen">{success}</p>}
+              {error && <p className="text-sm font-semibold text-redAccent">{error}</p>}
+              {success && <p className="text-sm font-semibold text-success">{success}</p>}
 
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="flex-1 rounded-full border border-border px-4 py-3 text-sm font-bold"
+                  className="flex-1 rounded-full border border-border px-4 py-3 text-sm font-bold text-ink transition hover:bg-pageBg"
                 >
                   {t('campaigns.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 rounded-full bg-brandGreen px-4 py-3 text-sm font-bold text-primary disabled:opacity-60"
+                  className="flex-1 rounded-full bg-brandGreen px-4 py-3 text-sm font-bold text-white disabled:opacity-60"
                 >
                   {submitting ? t('campaigns.submitting') : t('campaigns.submit')}
                 </button>

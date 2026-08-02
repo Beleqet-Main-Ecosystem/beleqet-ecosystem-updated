@@ -99,7 +99,7 @@ export default function EmployerPage() {
       </div>
     );
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
+    <div className="min-h-screen bg-pageBg">
       <section className="bg-primary py-14 text-white">
         <div className="container-page flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
           <div>
@@ -138,10 +138,10 @@ export default function EmployerPage() {
             icon={Users}
           />
         </div>
-        <div className="mt-8 overflow-x-auto rounded-2xl bg-white">
+        <div className="mt-8 overflow-x-auto rounded-2xl border border-border bg-white">
           <table className="w-full min-w-[650px] text-left text-sm">
             <thead>
-              <tr className="bg-primary/5 text-xs uppercase text-muted">
+              <tr className="bg-pageBg text-xs font-bold uppercase tracking-wide text-ink">
                 <th className="p-4">Job</th>
                 <th>Status</th>
                 <th>Applications</th>
@@ -151,11 +151,11 @@ export default function EmployerPage() {
             </thead>
             <tbody>
               {jobs.map((job) => (
-                <tr key={job.id} className="border-t border-border">
+                <tr key={job.id} className="border-t border-border text-ink">
                   <td className="p-4 font-bold text-primary">{job.title}</td>
-                  <td>{job.status}</td>
+                  <td className="text-muted">{job.status}</td>
                   <td>{job._count.applications}</td>
-                  <td>{new Date(job.createdAt).toLocaleDateString()}</td>
+                  <td className="text-muted">{new Date(job.createdAt).toLocaleDateString()}</td>
                   <td className="space-x-3 p-4 text-right">
                     <BoostPromoteModal
                       targetType="JOB"
@@ -257,10 +257,10 @@ function Metric({
   icon: typeof Users;
 }) {
   return (
-    <div className="rounded-2xl bg-white p-5">
+    <div className="rounded-2xl border border-border bg-white p-5">
       <Icon className="h-5 w-5 text-brandGreen" />
       <p className="mt-4 text-3xl font-black text-primary">{value}</p>
-      <p className="text-xs font-bold uppercase text-muted">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-muted">{label}</p>
     </div>
   );
 }

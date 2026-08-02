@@ -51,6 +51,11 @@ html.dark .text-brandGreen {
   color: #4ade80;
 }
 
+/* Hardcoded cream page shells used across older pages */
+html.dark .bg-\[\#f7f5ef\] {
+  background-color: #020617;
+}
+
 ::selection {
   background: #d8ff3e;
   color: #041603;
