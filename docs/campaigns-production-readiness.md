@@ -56,3 +56,33 @@ docker compose build backend
 # or full stack:
 docker compose up -d --build
 ```
+
+**Local verification (this environment):**
+
+- `npm run build` (Nest) — **passed**
+- `docker compose build backend` — **passed** (image `beleqet-ecosystem-updated-backend:latest`)
+- First attempt can fail if the builder cannot reach `binaries.prisma.sh`; retry when network is available.
+
+## Test coverage (campaigns module)
+
+Measured with:
+
+```bash
+npx jest --testPathPattern='modules/campaigns' --coverage \
+  --collectCoverageFrom='modules/campaigns/**/*.ts' \
+  --coveragePathIgnorePatterns='\\.spec\\.ts$'
+```
+
+| Scope | Stmts | Branch | Funcs | Lines |
+|---|---|---|---|---|
+| **All campaigns files** | 32.7% | 20.3% | 29.8% | 32.3% |
+| `promotion-merge.util.ts` | 87.5% | 66.7% | 100% | 100% |
+| `campaign-payment.service.ts` | 47.1% | 22.6% | 66.7% | 47.0% |
+| `campaigns.service.ts` | 44.4% | 19.2% | 40% | 45.6% |
+| `campaign-budget.service.ts` | 39.3% | 20% | 22.2% | 37.5% |
+| `campaign-auction.service.ts` | 40% | 10.5% | 36.4% | 38.1% |
+
+**16 tests passing** across 4 suites (unit + webhook + promotion merge integration).
+Controller / scheduler / DTOs are intentionally thin and lightly covered; critical
+paths (status transitions, concurrency helpers, webhook activation, ranking
+tie-breaks) are exercised.

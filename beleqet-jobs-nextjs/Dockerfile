@@ -1,9 +1,9 @@
 # =============================================================================
 # Beleqet jobs frontend — production image (Next.js 14)
 #
-# This Dockerfile was missing although docker-compose.yml referenced it,
-# which made `docker compose build` fail. Serves on port 3001 (matching the
-# compose port mappings) via the PORT env var that `next start` honors.
+# Install AFTER copying sources so a host `node_modules` (or empty stub) cannot
+# wipe the image install. Build via `npm exec` so the Next binary resolves even
+# if `.bin` is not on PATH.
 # =============================================================================
 
 # ── Build stage ──────────────────────────────────────────────────────────────
@@ -11,16 +11,20 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY . .
-
 # NEXT_PUBLIC_ vars must be present at build time for Next.js static generation
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-RUN npm run build
+COPY package.json package-lock.json ./
+COPY . .
+
+# Install the full tree (do not set NODE_ENV=production before npm ci or
+# optional/dev tooling for the Next compiler can be omitted on some setups).
+RUN npm ci \
+  && test -x node_modules/next/dist/bin/next
+
+ENV NODE_ENV=production
+RUN npm exec -- next build
 
 # ── Prune stage: production-only dependencies ────────────────────────────────
 FROM node:20-alpine AS pruner
@@ -28,7 +32,8 @@ FROM node:20-alpine AS pruner
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev \
+  && test -x node_modules/next/dist/bin/next
 
 # ── Production stage ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
