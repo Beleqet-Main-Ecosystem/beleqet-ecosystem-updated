@@ -83,11 +83,20 @@ async function bootstrap() {
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
-  // Also allow 127.0.0.1 variants (Playwright may use either)
-  const extraOrigins = allowedOrigins.flatMap((origin) => {
-    const alt = origin === 'http://localhost:3000' ? 'http://127.0.0.1:3000' : undefined;
-    return alt ? [origin, alt] : [origin];
-  });
+  // Also allow localhost ↔ 127.0.0.1 variants (browsers / Playwright may use either)
+  const extraOrigins = [
+    ...new Set(
+      allowedOrigins.flatMap((origin) => {
+        const variants = [origin];
+        if (origin.includes('://localhost')) {
+          variants.push(origin.replace('://localhost', '://127.0.0.1'));
+        } else if (origin.includes('://127.0.0.1')) {
+          variants.push(origin.replace('://127.0.0.1', '://localhost'));
+        }
+        return variants;
+      }),
+    ),
+  ];
   app.enableCors({
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
