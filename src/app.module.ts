@@ -57,6 +57,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
+import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
 
 @Module({
   imports: [
@@ -155,6 +156,7 @@ import { EncryptionModule } from './common/encryption/encryption.module';
     TaxCalculatorModule,
     HealthModule,
     SmartBiddingModule,
+    PromotedEngineModule,
     UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
