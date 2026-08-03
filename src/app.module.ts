@@ -86,7 +86,10 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     }),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
-      loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: process.env.NODE_ENV === 'development' },
+      loaderOptions: {
+        path: path.join(__dirname, '/i18n/'),
+        watch: process.env.NODE_ENV === 'development',
+      },
       resolvers: [
         { use: QueryResolver, options: ['lang'] },
         AcceptLanguageResolver,
