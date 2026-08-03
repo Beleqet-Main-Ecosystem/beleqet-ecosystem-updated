@@ -2,12 +2,14 @@ import { CacheConfigModule } from './cache/cache.module';
 import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
+import { APP_GUARD } from '@nestjs/core';
 
+// Feature Modules
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -32,13 +34,11 @@ import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
 import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
-import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
+import { InterviewPlannerModule } from './modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
-import { APP_GUARD } from '@nestjs/core';
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
-
 import { PaymentsModule } from './modules/payments/payments.module';
 import { CommunityForumModule } from './modules/community-forum/forum.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
@@ -49,6 +49,12 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
+
+// GraphQL Layer
+import { GqlThrottlerGuard } from './graphql/guards/gql-throttler.guard';
+import { GraphqlConfigModule } from './graphql/graphql.module';
+
+// Platform Extensions
 import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
@@ -62,52 +68,27 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
 
 @Module({
   imports: [
-    //  Configuration (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
       load: [configuration],
     }),
-
-    //  Rate limiting
-    ThrottlerModule.forRoot([
-      { name: 'short', ttl: 1_000, limit: 10 },
-      { name: 'medium', ttl: 10_000, limit: 50 },
-      { name: 'long', ttl: 60_000, limit: 200 },
-    ]),
-
-    //  Event bus (in-process events between modules)
-    EventEmitterModule.forRoot({
-      wildcard: true,
-      delimiter: '.',
-      maxListeners: 20,
-    }),
-
-    //  BullMQ (Redis-backed job queues)
+    ThrottlerModule.forRoot([{ name: 'short', ttl: 1_000, limit: 10 }]),
+    EventEmitterModule.forRoot({ wildcard: true, delimiter: '.' }),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-          password: config.get<string>('REDIS_PASSWORD'),
-          tls: config.get<string>('REDIS_TLS') === 'true' ? {} : undefined,
-        },
-        defaultJobOptions: {
-          removeOnComplete: 100,
-          removeOnFail: 200,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 2_000 },
+          host: config.get('REDIS_HOST', 'localhost'),
+          port: config.get('REDIS_PORT', 6379),
         },
       }),
     }),
-
-    //  Internationalization (i18n)
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
         path: path.join(__dirname, '/i18n/'),
-        watch: true,
+        watch: process.env.NODE_ENV === 'development',
       },
       resolvers: [
         { use: QueryResolver, options: ['lang'] },
@@ -115,11 +96,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
         new HeaderResolver(['x-custom-lang']),
       ],
     }),
-
-    // — GDPR Guard module ——————————————————————————————————————————
     GdprGuardModule,
-
-    // — Feature modules ——————————————————————————————————————————
     PrismaModule,
     QueuesModule,
     RedisModule,
@@ -141,6 +118,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     ContactModule,
     VideoInterviewModule,
     PlagiarismModule,
+    FaqBotModule,
     InterviewPlannerModule,
     AnomalySensorModule,
     AdminStatsModule,
@@ -157,6 +135,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
+    GraphqlConfigModule,
     SmartBiddingModule,
     PromotedEngineModule,
     UserPreferencesModule,
@@ -167,14 +146,8 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     RbacModule,
     AuditLogModule,
     CacheConfigModule,
-    FaqBotModule,
     EncryptionModule,
   ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
-  ],
+  providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }],
 })
 export class AppModule {}

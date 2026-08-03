@@ -5,6 +5,14 @@ jest.mock('@xenova/transformers', () => ({
   pipeline: jest.fn().mockResolvedValue(async (text: string) => ({
     data: new Float32Array(text.length > 0 ? [1, 0, 0] : [0, 0, 0]),
   })),
+  env: {
+    backends: {
+      onnx: {
+        node: true,
+        wasm: { numThreads: 4, simd: true },
+      },
+    },
+  },
 }));
 
 describe('SemanticService', () => {

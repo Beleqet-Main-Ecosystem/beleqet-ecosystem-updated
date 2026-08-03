@@ -26,7 +26,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 60s
 
   redis:
     image: redis:7-alpine
@@ -115,8 +115,8 @@ services:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1']
       interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+      start_period: 60s
 
   admin-frontend:
     image: ${ADMIN_IMAGE:?ADMIN_IMAGE is required (set by the deploy script)}
@@ -133,7 +133,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 60s
 
   jobs-frontend:
     image: ${JOBS_IMAGE:?JOBS_IMAGE is required (set by the deploy script)}
@@ -150,8 +150,8 @@ services:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3001/ || exit 1']
       interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 60s
 
 volumes:
   postgres_data:

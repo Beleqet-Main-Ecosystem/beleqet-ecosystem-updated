@@ -55,16 +55,23 @@ describe('remainingTotalBudget', () => {
 
 describe('isWithinSchedule', () => {
   it('is true with no endAt and a past startAt', () => {
-    expect(isWithinSchedule({ startAt: new Date('2026-08-01T00:00:00Z'), endAt: null }, NOW)).toBe(true);
+    expect(isWithinSchedule({ startAt: new Date('2026-08-01T00:00:00Z'), endAt: null }, NOW)).toBe(
+      true,
+    );
   });
 
   it('is false before startAt', () => {
-    expect(isWithinSchedule({ startAt: new Date('2026-09-01T00:00:00Z'), endAt: null }, NOW)).toBe(false);
+    expect(isWithinSchedule({ startAt: new Date('2026-09-01T00:00:00Z'), endAt: null }, NOW)).toBe(
+      false,
+    );
   });
 
   it('is false after endAt', () => {
     expect(
-      isWithinSchedule({ startAt: new Date('2026-08-01T00:00:00Z'), endAt: new Date('2026-08-01T12:00:00Z') }, new Date('2026-08-02T00:00:00Z')),
+      isWithinSchedule(
+        { startAt: new Date('2026-08-01T00:00:00Z'), endAt: new Date('2026-08-01T12:00:00Z') },
+        new Date('2026-08-02T00:00:00Z'),
+      ),
     ).toBe(false);
   });
 
@@ -83,19 +90,27 @@ describe('canServeCampaign', () => {
   });
 
   it('is false when outside the schedule window', () => {
-    expect(canServeCampaign(makeCampaign({ startAt: new Date('2026-09-01T00:00:00Z') }), NOW)).toBe(false);
+    expect(canServeCampaign(makeCampaign({ startAt: new Date('2026-09-01T00:00:00Z') }), NOW)).toBe(
+      false,
+    );
   });
 
   it('is false when daily budget cannot cover one more click', () => {
-    expect(canServeCampaign(makeCampaign({ dailyBudget: 100, spentToday: 50, cpcBid: 100 }), NOW)).toBe(false);
+    expect(
+      canServeCampaign(makeCampaign({ dailyBudget: 100, spentToday: 50, cpcBid: 100 }), NOW),
+    ).toBe(false);
   });
 
   it('is false when total budget cannot cover one more click', () => {
-    expect(canServeCampaign(makeCampaign({ totalBudget: 150, spentTotal: 100, cpcBid: 100 }), NOW)).toBe(false);
+    expect(
+      canServeCampaign(makeCampaign({ totalBudget: 150, spentTotal: 100, cpcBid: 100 }), NOW),
+    ).toBe(false);
   });
 
   it('is true at the exact boundary (remaining budget equals cpcBid)', () => {
-    expect(canServeCampaign(makeCampaign({ dailyBudget: 100, spentToday: 0, cpcBid: 100 }), NOW)).toBe(true);
+    expect(
+      canServeCampaign(makeCampaign({ dailyBudget: 100, spentToday: 0, cpcBid: 100 }), NOW),
+    ).toBe(true);
   });
 });
 

@@ -7,7 +7,7 @@
     "^.+\\.(t|j)sx?$": "ts-jest"
   },
   "transformIgnorePatterns": [
-    "/node_modules/(?!@scure|otplib)/"
+    "/node_modules/(?!(@scure|otplib|@otplib|@noble)/)"
   ],
   "moduleNameMapper": {
     "^@common/(.*)$": "<rootDir>/src/common/$1",

@@ -1,6 +1,7 @@
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "library"
+  provider      = "prisma-client-js"
+  engineType    = "library"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -64,23 +65,16 @@ model User {
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
   subscriptions         Subscription[]
+  rbacRoles             Role[]              @relation("UserRoles")
+  auditLogs             AuditLog[]
   promotionCampaigns    PromotionCampaign[]
 
-  /// Whether the user has consented to their search history, skills, and
-  /// saved jobs being used to personalize their AI job feed. Defaults to
-  /// true; when false, the AI Feed module falls back to a generic,
-  /// non-personalized feed and reads none of that data (GDPR compliance).
-  gdprConsent Boolean @default(true)
-
-  /// Back-relation required by Prisma for the one-to-many relationship
-  /// declared on SearchHistory.user below. Not queried directly from the
-  /// User side — the AI Feed module reads SearchHistory independently.
+  gdprConsent             Boolean                  @default(true)
   searchHistories         SearchHistory[]
   notificationPreference  NotificationPreference?
   userPreference          UserPreference?
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
-  rbacRoles               Role[]              @relation("UserRoles")
 
   @@map("users")
 }
@@ -145,44 +139,29 @@ model NotificationPreference {
 
   @@map("notification_preferences")
 }
-
 model OAuthAccount {
   id                    String        @id @default(uuid())
   userId                String
   provider              OAuthProvider
-  providerAccountId     String // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
-  encryptedAccessToken  String? // AES-256-GCM ciphertext, never raw
+  providerAccountId     String
+  encryptedAccessToken  String?
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
   linkedAt              DateTime      @default(now())
   user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId]) // prevents one social identity from attaching to 2 users
+  @@unique([provider, providerAccountId])
   @@index([userId])
   @@map("oauth_accounts")
 }
 
-/// Records each search term a user enters on the job board, timestamped.
-/// Used exclusively by the AI Personal Feed module as one of the signals
-/// (alongside User.skills and SavedJob) used to rank job recommendations.
-/// Only read when the owning user's `gdprConsent` is true.
 model SearchHistory {
-  id String @id @default(uuid())
-
-  /// Owning user. Cascade delete: if the user is deleted, their search
-  /// history is deleted with them rather than left orphaned.
-  userId String
-
-  /// The raw search term as typed by the user (e.g. "React developer").
+  id         String   @id @default(uuid())
+  userId     String
   searchTerm String
-
-  /// When this search was performed. The AI Feed module only considers
-  /// terms from the last 30 days as "recent" signal.
   searchedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  /// Speeds up the AI Feed module's "recent searches for this user" query.
   @@index([userId, searchedAt])
   @@map("search_histories")
 }
@@ -752,8 +731,6 @@ model BackupCode {
   @@map("backup_codes")
 }
 
-// SalaryPrediction Model - Stores AI-powered salary predictions
-// Tracks average market values for job positions based on industry, location, and experience level
 model SalaryPrediction {
   id              String  @id @default(uuid())
   jobTitle        String
@@ -820,8 +797,6 @@ model SalaryHistory {
   @@map("salary_history")
 }
 
-// SalaryAnalytics Model - Pre-computed analytics for performance
-// Stores aggregated data for quick dashboard queries
 model SalaryAnalytics {
   id String @id @default(uuid())
 
@@ -935,8 +910,6 @@ enum NotificationChannel {
   SMS
 }
 
-// ── AI Video Interview ─────────────────────────────────────────────────────
-
 enum VideoInterviewStatus {
   PENDING
   IN_PROGRESS
@@ -946,19 +919,14 @@ enum VideoInterviewStatus {
   EXPIRED
 }
 
-/// AI video interview session linked to a job application.
-/// metadata (JSONB) holds question config; GIN index enables fast JSONB queries.
-/// GDPR: gdprDeleteAt drives scheduled hard-delete of all PII + video files.
 model VideoInterview {
   id            String               @id @default(uuid())
   applicationId String               @unique
   userId        String
   status        VideoInterviewStatus @default(PENDING)
-  /// JSONB: { questions: [{id, text, durationSec}], locale, jobTitle }
   metadata      Json
   scheduledAt   DateTime?
   expiresAt     DateTime?
-  /// GDPR retention window — hard-delete after this date (default 90 days)
   gdprDeleteAt  DateTime?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
@@ -974,26 +942,20 @@ model VideoInterview {
   @@map("video_interviews")
 }
 
-/// One row per question response within a VideoInterview.
-/// rawWhisperResponse (JSONB) stores the full Whisper API payload;
-/// GIN index allows querying by language/word-level timestamps.
 model VideoResponse {
-  id                   String   @id @default(uuid())
+  id                   String         @id @default(uuid())
   videoInterviewId     String
   questionIndex        Int
-  /// S3 presigned URL — files auto-deleted after gdprDeleteAt
   videoUrl             String?
   transcript           String?
-  /// Full Whisper response: { text, segments, language, duration }
   rawWhisperResponse   Json?
   processingDurationMs Int?
-  language             String   @default("en")
-  /// PENDING | TRANSCRIBING | TRANSCRIBED | FAILED
-  processingStatus     String   @default("PENDING")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  language             String         @default("en")
+  processingStatus     String         @default("PENDING")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
-  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview       VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@unique([videoInterviewId, questionIndex])
   @@index([videoInterviewId, questionIndex])
@@ -1001,24 +963,18 @@ model VideoResponse {
   @@map("video_responses")
 }
 
-/// AI evaluation result for a completed interview.
-/// scores (JSONB) holds per-question and trait scores for flexible querying.
-/// rawAiResponse stores the full Ollama/OpenAI output for audit purposes.
 model InterviewEvaluation {
-  id               String   @id @default(uuid())
-  videoInterviewId String   @unique
+  id               String         @id @default(uuid())
+  videoInterviewId String         @unique
   overallScore     Float
-  /// JSONB: { perQuestion: [{idx, score, feedback}], traits: {communication, clarity} }
   scores           Json
   reasoning        String?
-  /// Raw model output for audit trail
   rawAiResponse    Json?
-  modelUsed        String   @default("llama3")
-  /// GDPR: matches parent VideoInterview.gdprDeleteAt
+  modelUsed        String         @default("llama3")
   gdprDeleteAt     DateTime
-  evaluatedAt      DateTime @default(now())
+  evaluatedAt      DateTime       @default(now())
 
-  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview   VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@index([scores], type: Gin)
   @@index([rawAiResponse], type: Gin)
@@ -1038,9 +994,7 @@ model Referral {
   referredId  String?
   code        String         @unique
   status      ReferralStatus @default(PENDING)
-  /// Bonus amount in minor units (e.g. cents / santim)
   bonusAmount Int            @default(0)
-  /// ISO 4217 currency code (e.g. ETB, USD, EUR) — multi-currency support
   currency    String         @default("ETB")
   expiresAt   DateTime
   redeemedAt  DateTime?
@@ -1055,17 +1009,13 @@ model Referral {
   @@map("referrals")
 }
 
-// ── Job Alerts ─────────────────────────────────────────────────────────────
-
 model JobAlert {
   id         String    @id @default(uuid())
   userId     String
   keywords   String[]
   location   String?
   jobType    JobType?
-  /// Minimum salary in minor units — multi-currency support
   minSalary  Int?
-  /// ISO 4217 currency code
   currency   String    @default("ETB")
   isActive   Boolean   @default(true)
   lastSentAt DateTime?
@@ -1148,52 +1098,25 @@ enum ReferralStatus {
   CANCELLED
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Global Payment Gateway (Task Global-Payments-001 & 002)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Stores every payment transaction (Stripe or PayPal) initiated via the
-// Beleqet platform.
-//
-// GDPR notes:
-//  - No raw PII stored here (no card numbers, email, name).
-//  - userId is a UUID reference to the users table.
-//  - metadata is sanitised before insert (PII keys stripped in services).
-//
-// Multi-currency: `currency` is ISO 4217. `amount` is in smallest unit
-// (cents/fils/pence) for Stripe; stored as-is for PayPal (decimal × 100).
 model Payment {
   id                String          @id @default(uuid())
-  /// UUID of the Beleqet user who initiated this payment
   userId            String
-  /// Payment provider: STRIPE or PAYPAL
   provider          PaymentProvider
-  /// Provider-side payment / order ID (pi_… for Stripe, alphanumeric for PayPal)
   providerPaymentId String          @unique
-  /// Amount in smallest currency unit (e.g. cents for USD)
   amount            Int
-  /// ISO 4217 currency code (e.g. USD, EUR, ETB)
   currency          String          @default("USD")
-  /// Current lifecycle status
   status            PaymentStatus   @default(PENDING)
-  /// Human-readable description (stripped of PII before storage)
   description       String?
-  /// Sanitised key-value metadata (no PII keys)
   metadata          Json?
-  /// Timestamp when this payment was refunded (null if not refunded)
   refundedAt        DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Index for looking up all payments by a user (dashboard, history)
   @@index([userId, createdAt])
-  /// Index for admin filtering by status + provider
   @@index([status, provider])
-  /// Index for webhook event processing by providerPaymentId
   @@index([providerPaymentId])
-  /// Index for currency-based reporting (multi-currency analytics)
   @@index([currency, status])
   @@map("payments")
 }
@@ -1243,35 +1166,12 @@ enum KycStatus {
   REJECTED
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Subscription Manager (Task: Admin & Control — Subscription Manager)
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Plan catalog + per-user Subscription lifecycle + billing ledger, layered on
-// top of the existing Global Payment Gateway (Payment/PaymentProvider above).
-// A Subscription's recurring charges reuse the existing PaypalService billing
-// agreement flow (see src/modules/payments/paypal.service.ts) rather than
-// duplicating gateway integration — SubscriptionTransaction rows are written
-// alongside the Payment row that PaypalService already upserts, joined by
-// `providerSubscriptionId` (== the PayPal billing agreement id).
-//
-// GDPR: SubscriptionTransaction.rawPayload is sanitised before insert (no PII
-// keys — see BillingService) and is nulled out by the same data-deletion hook
-// that anonymises Payment rows for a deleted user.
-//
-// Multi-currency: amounts are stored as Int in minor units (see Payment
-// above); Plan.currency / Subscription/Transaction currency are ISO 4217.
-
-/// Billing interval for a recurring Plan.
 enum BillingInterval {
   MONTHLY
   YEARLY
 }
 
-/// Lifecycle status of a user's Subscription.
 enum SubscriptionStatus {
-  /// Checkout started (gateway billing agreement created) but not yet
-  /// confirmed by the gateway's activation webhook.
   PENDING
   ACTIVE
   PAST_DUE
@@ -1279,23 +1179,15 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-/// A purchasable subscription tier (e.g. Free, Pro, Enterprise).
-/// `paypalPlanId` maps to a pre-created PayPal billing plan id — set by an
-/// admin once the equivalent plan exists on the PayPal dashboard — and is
-/// what gets passed to PaypalService.createSubscription() at checkout.
 model Plan {
   id           String          @id @default(uuid())
   name         String          @unique
   description  String?
-  /// Price in smallest currency unit (e.g. cents for USD, santim for ETB)
   priceAmount  Int
-  /// ISO 4217 currency code
   currency     String          @default("ETB")
   interval     BillingInterval @default(MONTHLY)
-  /// Free-form feature list / limits, e.g. { "maxJobPosts": 5, "support": "email" }
   features     Json
   isActive     Boolean         @default(true)
-  /// PayPal billing plan id for recurring checkout via the existing PaypalService
   paypalPlanId String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -1306,7 +1198,6 @@ model Plan {
   @@map("plans")
 }
 
-/// Links a User to a Plan with a tracked billing period and status.
 model Subscription {
   id                     String             @id @default(uuid())
   userId                 String
@@ -1336,16 +1227,13 @@ model Subscription {
   @@map("subscriptions")
 }
 
-/// One row per billing event on a Subscription (audit trail / transaction log).
 model SubscriptionTransaction {
   id               String        @id @default(uuid())
   subscriptionId   String
   amount           Int
   currency         String
   status           PaymentStatus
-  /// Provider-side reference for this specific charge (e.g. PayPal sale id)
   gatewayReference String?
-  /// Sanitised webhook payload for audit purposes (PII keys stripped)
   rawPayload       Json?
   createdAt        DateTime      @default(now())
 
@@ -1355,12 +1243,8 @@ model SubscriptionTransaction {
   @@map("subscription_transactions")
 }
 
-/// Idempotency record for inbound billing webhooks — prevents the same
-/// gateway event from being processed twice (e.g. on gateway retry).
 model WebhookEvent {
   id             String          @id @default(uuid())
-  /// Gateway's own event id (PayPal `id`, Stripe `id`, etc.) — unique guards
-  /// against double-processing the same webhook delivery.
   gatewayEventId String          @unique
   provider       PaymentProvider
   eventType      String
@@ -1383,12 +1267,11 @@ model StoredFile {
   deletedAt                DateTime?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
-  uploadedBy               User?     @relation(fields: [uploadedById], references: [id])
+  uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
 }
 
-/// A Smart Skill Tester assessment run for a user against a job role and level.
 model SkillAssessmentSession {
   id          String               @id @default(uuid())
   userId      String
@@ -1405,7 +1288,6 @@ model SkillAssessmentSession {
   @@map("skill_assessment_sessions")
 }
 
-/// Individual multiple-choice question belonging to a SkillAssessmentSession.
 model AssessmentQuestion {
   id              String                 @id @default(uuid())
   sessionId       String
@@ -1635,5 +1517,22 @@ model PromotionWalletTransaction {
   @@map("promotion_wallet_transactions")
 }
 
-/// System-wide audit log entity tracking user/system actions, entity state changes,
-/// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String?
+  action        String
+  entityType    String
+  entityId      String
+  previousState Json?
+  newState      Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

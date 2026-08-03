@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   canServeCampaign,
@@ -102,7 +108,12 @@ export class PromotedEngineService {
    * set directly here. A CANCELLED campaign cannot be reactivated; a new
    * campaign must be created instead, keeping the audit trail unambiguous.
    */
-  async updateStatus(campaignId: string, requesterId: string, requesterRole: string, newStatus: SettableCampaignStatusDto) {
+  async updateStatus(
+    campaignId: string,
+    requesterId: string,
+    requesterRole: string,
+    newStatus: SettableCampaignStatusDto,
+  ) {
     const campaign = await this.getCampaign(campaignId, requesterId, requesterRole);
 
     if (campaign.status === 'CANCELLED') {
@@ -176,7 +187,14 @@ export class PromotedEngineService {
         return campaign;
       }
 
-      await this.debitOwnerWallet(tx, campaign.ownerId, campaign.targetType, campaign.cpcBid, campaign.currency, campaignId);
+      await this.debitOwnerWallet(
+        tx,
+        campaign.ownerId,
+        campaign.targetType,
+        campaign.cpcBid,
+        campaign.currency,
+        campaignId,
+      );
 
       const updated = await tx.promotionCampaign.update({
         where: { id: campaignId },
@@ -199,7 +217,10 @@ export class PromotedEngineService {
       const final =
         newStatus === updated.status
           ? updated
-          : await tx.promotionCampaign.update({ where: { id: campaignId }, data: { status: newStatus } });
+          : await tx.promotionCampaign.update({
+              where: { id: campaignId },
+              data: { status: newStatus },
+            });
 
       await tx.promotionEvent.create({
         data: { campaignId, type: 'CLICK', costApplied: campaign.cpcBid },
@@ -258,7 +279,8 @@ export class PromotedEngineService {
     return targetIds.map((targetId) => {
       const candidates = byTarget.get(targetId) ?? [];
       const ranked = rankCampaigns(candidates, now);
-      const isBoosted = ranked.length > 0 && ranked[0].cpcBid > 0 && canServeCampaign(ranked[0], now);
+      const isBoosted =
+        ranked.length > 0 && ranked[0].cpcBid > 0 && canServeCampaign(ranked[0], now);
       return { targetId, isBoosted };
     });
   }
@@ -269,9 +291,16 @@ export class PromotedEngineService {
    * Company (Company.userId), FreelanceJob via clientId directly, and
    * Application (a proposal) via its own userId (the applicant).
    */
-  private async assertOwnsTarget(ownerId: string, targetType: PromotionTargetType, targetId: string): Promise<void> {
+  private async assertOwnsTarget(
+    ownerId: string,
+    targetType: PromotionTargetType,
+    targetId: string,
+  ): Promise<void> {
     if (targetType === PromotionTargetType.JOB) {
-      const job = await this.prisma.job.findUnique({ where: { id: targetId }, include: { company: true } });
+      const job = await this.prisma.job.findUnique({
+        where: { id: targetId },
+        include: { company: true },
+      });
       if (!job) throw new NotFoundException(`Job ${targetId} not found`);
       if (job.company.userId !== ownerId) {
         throw new ForbiddenException('You do not own this job posting.');
@@ -297,20 +326,29 @@ export class PromotedEngineService {
   }
 
   /** Throws if the owner's funding wallet can't currently cover `amount`. */
-  private async assertSufficientFunds(ownerId: string, targetType: PromotionTargetType, amount: number, currency: string): Promise<void> {
+  private async assertSufficientFunds(
+    ownerId: string,
+    targetType: PromotionTargetType,
+    amount: number,
+    currency: string,
+  ): Promise<void> {
     const walletRole = WALLET_OWNER_ROLE[targetType];
 
     if (walletRole === 'EMPLOYER') {
       const wallet = await this.prisma.employerWallet.findUnique({ where: { userId: ownerId } });
       if (!wallet || wallet.currency !== currency || wallet.balance < amount) {
-        throw new BadRequestException('Insufficient employer wallet balance to fund this campaign.');
+        throw new BadRequestException(
+          'Insufficient employer wallet balance to fund this campaign.',
+        );
       }
       return;
     }
 
     const wallet = await this.prisma.freelancerWallet.findUnique({ where: { userId: ownerId } });
     if (!wallet || wallet.currency !== currency || wallet.availableBalance < amount) {
-      throw new BadRequestException('Insufficient freelancer wallet balance to fund this campaign.');
+      throw new BadRequestException(
+        'Insufficient freelancer wallet balance to fund this campaign.',
+      );
     }
   }
 

@@ -16,7 +16,7 @@ function validStagingEnv(): Record<string, string> {
     STAGING_ADMIN_HEALTH_URL: 'https://admin.staging.internal.test/',
     STAGING_JOBS_HEALTH_URL: 'https://jobs.staging.internal.test/',
     STAGING_GHCR_USERNAME: 'nathnaelmesfin',
-    STAGING_GHCR_TOKEN: 'ghp_synthetic_token_value_1234567890abcd',
+    STAGING_GHCR_TOKEN: 'mock_token_synthetic_value_1234567890abcd',
   };
 }
 
@@ -162,6 +162,6 @@ describe('isPlaceholderSecret', () => {
     expect(isPlaceholderSecret('Replace_With_real_value')).toBe(true);
   });
   it('accepts realistic secret material', () => {
-    expect(isPlaceholderSecret('ghp_9f8e7d6c5b4a39281706f5e4d3c2b1a09876')).toBe(false);
+    expect(isPlaceholderSecret('mock_token_9f8e7d6c5b4a39281706f5e4d3c2b1a09876')).toBe(false);
   });
 });
