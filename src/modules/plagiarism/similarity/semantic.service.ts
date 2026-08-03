@@ -26,11 +26,13 @@ export class SemanticService implements ISimilarityAlgorithm, OnModuleInit {
    * Pre-loads the embedding model on module startup (non-blocking).
    */
   onModuleInit(): void {
-    void this.ensureModel().catch((err) => {
-      this.logger.warn(
-        `Semantic model preload skipped: ${err instanceof Error ? err.message : err}`,
-      );
-    });
+    if (process.env.NODE_ENV !== 'test' && process.env.NODE_ENV !== 'staging') {
+      void this.ensureModel().catch((err) => {
+        this.logger.warn(
+          `Semantic model preload skipped: ${err instanceof Error ? err.message : err}`,
+        );
+      });
+    }
   }
 
   /**
@@ -65,7 +67,11 @@ export class SemanticService implements ISimilarityAlgorithm, OnModuleInit {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
-      const { pipeline } = await import('@xenova/transformers');
+      const { pipeline, env } = await import('@xenova/transformers');
+      // Prevent Ort::Exception C++ binding crashes on musl/Alpine Linux by disabling native node binding and using single-threaded WASM
+      env.backends.onnx.node = false;
+      env.backends.onnx.wasm.numThreads = 1;
+      env.backends.onnx.wasm.simd = false;
       this.extractor = (await pipeline(
         'feature-extraction',
         MODEL_ID,

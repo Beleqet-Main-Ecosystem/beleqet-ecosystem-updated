@@ -14,14 +14,14 @@ WORKDIR /app
 RUN sed -i 's/https/http/g' /etc/apk/repositories && apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
-RUN npm ci --omit=dev && npx prisma generate
+RUN npm ci --omit=dev && npx prisma generate && rm -rf node_modules/onnxruntime-node
 
 # ── Stage 3: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine3.21
 WORKDIR /app
 ENV NODE_ENV=production
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
-    apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat wget ca-certificates \
+  apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat wget ca-certificates \
   && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn-v*
 
 COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
@@ -33,4 +33,4 @@ USER node
 EXPOSE 4000
 HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=15 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
-CMD sh -c "npx prisma migrate deploy && npm run start:prod"
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/main"]
