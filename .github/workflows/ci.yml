@@ -185,7 +185,7 @@ jobs:
       - run: npm run build
 
       - name: Module integration tests
-        run: npx jest --testPathPattern "integration\.spec\.ts$" --runInBand
+        run: npx jest --testPathPattern "integration\.spec\.ts$" --runInBand --forceExit
 
       - name: NestJS E2E tests
         run: npm run test:e2e -- --runInBand
