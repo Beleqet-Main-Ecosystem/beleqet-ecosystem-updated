@@ -7,12 +7,7 @@ import { io, Socket } from 'socket.io-client';
  * Connection lifecycle states exposed by useSocket.
  */
 export type SocketStatus =
-  | 'idle'
-  | 'connecting'
-  | 'connected'
-  | 'reconnecting'
-  | 'disconnected'
-  | 'error';
+  'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'error';
 
 /**
  * Options accepted by useSocket.

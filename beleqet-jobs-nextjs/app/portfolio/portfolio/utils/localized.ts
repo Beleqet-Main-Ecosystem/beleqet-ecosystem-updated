@@ -1,11 +1,11 @@
-import type { LanguageCode, LocalizedText } from "@/portfolio/types";
+import type { LanguageCode, LocalizedText } from '@/portfolio/types';
 
 /**
  * Creates an empty localized text object for all supported languages.
  *
  * @param value - Optional seed value applied to every locale.
  */
-export function emptyLocalized(value = ""): LocalizedText {
+export function emptyLocalized(value = ''): LocalizedText {
   return { en: value, am: value };
 }
 
@@ -15,13 +15,10 @@ export function emptyLocalized(value = ""): LocalizedText {
  * @param text - Bilingual field from master profile data.
  * @param locale - Active UI locale.
  */
-export function readLocalized(
-  text: LocalizedText,
-  locale: LanguageCode,
-): string {
+export function readLocalized(text: LocalizedText, locale: LanguageCode): string {
   const primary = text[locale]?.trim();
   if (primary) return primary;
-  return text.en?.trim() || text.am?.trim() || "";
+  return text.en?.trim() || text.am?.trim() || '';
 }
 
 /**

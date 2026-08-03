@@ -1,27 +1,15 @@
-"use client";
+'use client';
 
-import { Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  INPUT_CLASS,
-  LABEL_CLASS,
-  SECTION_CARD_CLASS,
-} from "../constants/styles";
-import { SortableList } from "../components/SortableList";
-import {
-  createDefaultCertification,
-  createDefaultProject,
-} from "../hooks/usePortfolioBuilder";
-import type {
-  LanguageCode,
-  LocalizedText,
-  MasterProfileData,
-  PortfolioProject,
-} from "../types";
-import { readLocalized, setLocalized } from "../utils/localized";
+import { Plus, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { INPUT_CLASS, LABEL_CLASS, SECTION_CARD_CLASS } from '../constants/styles';
+import { SortableList } from '../components/SortableList';
+import { createDefaultCertification, createDefaultProject } from '../hooks/usePortfolioBuilder';
+import type { LanguageCode, LocalizedText, MasterProfileData, PortfolioProject } from '../types';
+import { readLocalized, setLocalized } from '../utils/localized';
 
 type SectionEditorProps = {
-  section: MasterProfileData["sectionOrder"][number];
+  section: MasterProfileData['sectionOrder'][number];
   data: MasterProfileData;
   locale: LanguageCode;
   onChange: (updater: (current: MasterProfileData) => MasterProfileData) => void;
@@ -43,11 +31,9 @@ export function SectionEditor({
   onReorderGallery,
 }: SectionEditorProps) {
   switch (section) {
-    case "profile":
-      return (
-        <ProfileSection data={data} locale={locale} onChange={onChange} />
-      );
-    case "summary":
+    case 'profile':
+      return <ProfileSection data={data} locale={locale} onChange={onChange} />;
+    case 'summary':
       return (
         <LocalizedFieldSection
           title="Professional Summary"
@@ -57,7 +43,7 @@ export function SectionEditor({
           multiline
         />
       );
-    case "projects":
+    case 'projects':
       return (
         <ProjectsSection
           projects={data.projects}
@@ -66,11 +52,9 @@ export function SectionEditor({
           onReorder={onReorderProjects}
         />
       );
-    case "skills":
-      return (
-        <SkillsSection data={data} locale={locale} onChange={onChange} />
-      );
-    case "certifications":
+    case 'skills':
+      return <SkillsSection data={data} locale={locale} onChange={onChange} />;
+    case 'certifications':
       return (
         <CertificationsSection
           items={data.certifications}
@@ -79,48 +63,28 @@ export function SectionEditor({
           onReorder={onReorderCerts}
         />
       );
-    case "contact":
+    case 'contact':
+      return <ContactSection data={data} locale={locale} onChange={onChange} />;
+
+    case 'caseStudies':
       return (
-        <ContactSection data={data} locale={locale} onChange={onChange} />
+        <CaseStudiesSection items={data.caseStudies || []} locale={locale} onChange={onChange} />
       );
 
-    case "caseStudies":
+    case 'education':
+      return <EducationSection items={data.education || []} locale={locale} onChange={onChange} />;
+
+    case 'experience':
       return (
-        <CaseStudiesSection
-          items={data.caseStudies || []}
-          locale={locale}
-          onChange={onChange}
-        />
+        <ExperienceSection items={data.experience || []} locale={locale} onChange={onChange} />
       );
 
-    case "education":
+    case 'socialLinks':
       return (
-        <EducationSection
-          items={data.education || []}
-          locale={locale}
-          onChange={onChange}
-        />
+        <SocialLinksSection items={data.socialLinks || []} locale={locale} onChange={onChange} />
       );
 
-    case "experience":
-      return (
-        <ExperienceSection
-          items={data.experience || []}
-          locale={locale}
-          onChange={onChange}
-        />
-      );
-
-    case "socialLinks":
-      return (
-        <SocialLinksSection
-          items={data.socialLinks || []}
-          locale={locale}
-          onChange={onChange}
-        />
-      );
-
-    case "gallery":
+    case 'gallery':
       return (
         <GallerySection
           items={data.gallery}
@@ -155,20 +119,15 @@ function LocalizedInput({
   multiline?: boolean;
 }) {
   const common = {
-    value: value[locale] || "",
-    onChange: (
-      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    ) => onChange(setLocalized(value, locale, e.target.value)),
+    value: value[locale] || '',
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      onChange(setLocalized(value, locale, e.target.value)),
     className: INPUT_CLASS,
   };
   return (
     <div>
       <label className={LABEL_CLASS}>{label}</label>
-      {multiline ? (
-        <textarea {...common} rows={4} />
-      ) : (
-        <input type="text" {...common} />
-      )}
+      {multiline ? <textarea {...common} rows={4} /> : <input type="text" {...common} />}
     </div>
   );
 }
@@ -180,7 +139,7 @@ function ProfileSection({
 }: {
   data: MasterProfileData;
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
 }) {
   return (
     <div className={`${SECTION_CARD_CLASS} space-y-4`}>
@@ -203,17 +162,13 @@ function ProfileSection({
         label="Headline"
         value={data.profile.headline}
         locale={locale}
-        onChange={(headline) =>
-          onChange((d) => ({ ...d, profile: { ...d.profile, headline } }))
-        }
+        onChange={(headline) => onChange((d) => ({ ...d, profile: { ...d.profile, headline } }))}
       />
       <LocalizedInput
         label="Job title"
         value={data.profile.jobTitle}
         locale={locale}
-        onChange={(jobTitle) =>
-          onChange((d) => ({ ...d, profile: { ...d.profile, jobTitle } }))
-        }
+        onChange={(jobTitle) => onChange((d) => ({ ...d, profile: { ...d.profile, jobTitle } }))}
       />
       <div>
         <label className={LABEL_CLASS}>Location</label>
@@ -282,7 +237,7 @@ function ProjectsSection({
 }: {
   projects: PortfolioProject[];
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
   onReorder: (from: number, to: number) => void;
 }) {
   const sorted = [...projects].sort((a, b) => a.orderIndex - b.orderIndex);
@@ -317,9 +272,7 @@ function ProjectsSection({
             onChange={(next) =>
               onChange((d) => ({
                 ...d,
-                projects: d.projects.map((p) =>
-                  p.id === project.id ? next : p,
-                ),
+                projects: d.projects.map((p) => (p.id === project.id ? next : p)),
               }))
             }
             onRemove={() =>
@@ -350,7 +303,7 @@ function ProjectCardEditor({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-primary">
-          {readLocalized(project.title, locale) || "New project"}
+          {readLocalized(project.title, locale) || 'New project'}
         </p>
         <button
           type="button"
@@ -379,12 +332,12 @@ function ProjectCardEditor({
         <input
           type="text"
           className={INPUT_CLASS}
-          value={project.technologies.join(", ")}
+          value={project.technologies.join(', ')}
           onChange={(e) =>
             onChange({
               ...project,
               technologies: e.target.value
-                .split(",")
+                .split(',')
                 .map((s) => s.trim())
                 .filter(Boolean),
             })
@@ -398,9 +351,7 @@ function ProjectCardEditor({
             type="url"
             className={INPUT_CLASS}
             value={project.githubUrl}
-            onChange={(e) =>
-              onChange({ ...project, githubUrl: e.target.value })
-            }
+            onChange={(e) => onChange({ ...project, githubUrl: e.target.value })}
           />
         </div>
         <div>
@@ -409,9 +360,7 @@ function ProjectCardEditor({
             type="url"
             className={INPUT_CLASS}
             value={project.liveDemoUrl}
-            onChange={(e) =>
-              onChange({ ...project, liveDemoUrl: e.target.value })
-            }
+            onChange={(e) => onChange({ ...project, liveDemoUrl: e.target.value })}
           />
         </div>
       </div>
@@ -419,9 +368,7 @@ function ProjectCardEditor({
         <input
           type="checkbox"
           checked={project.featured}
-          onChange={(e) =>
-            onChange({ ...project, featured: e.target.checked })
-          }
+          onChange={(e) => onChange({ ...project, featured: e.target.checked })}
         />
         Featured project
       </label>
@@ -436,7 +383,7 @@ function SkillsSection({
 }: {
   data: MasterProfileData;
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
 }) {
   const group = data.skills[0];
   if (!group) return null;
@@ -461,8 +408,8 @@ function SkillsSection({
                     ...g.skills,
                     {
                       id: `skill_${Date.now()}`,
-                      name: { en: "", am: "" },
-                      level: "intermediate",
+                      name: { en: '', am: '' },
+                      level: 'intermediate',
                       yearsOfExperience: 1,
                       orderIndex: g.skills.length,
                     },
@@ -478,10 +425,7 @@ function SkillsSection({
       </Button>
       <div className="space-y-3">
         {group.skills.map((skill) => (
-          <div
-            key={skill.id}
-            className="rounded-xl border border-primary/10 p-3"
-          >
+          <div key={skill.id} className="rounded-xl border border-primary/10 p-3">
             <LocalizedInput
               label="Skill name"
               value={skill.name}
@@ -492,11 +436,9 @@ function SkillsSection({
                   skills: d.skills.map((sg) =>
                     sg.id === group.id
                       ? {
-                        ...sg,
-                        skills: sg.skills.map((s) =>
-                          s.id === skill.id ? { ...s, name } : s,
-                        ),
-                      }
+                          ...sg,
+                          skills: sg.skills.map((s) => (s.id === skill.id ? { ...s, name } : s)),
+                        }
                       : sg,
                   ),
                 }))
@@ -515,9 +457,9 @@ function CertificationsSection({
   onChange,
   onReorder,
 }: {
-  items: MasterProfileData["certifications"];
+  items: MasterProfileData['certifications'];
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
   onReorder: (from: number, to: number) => void;
 }) {
   const sorted = [...items].sort((a, b) => a.orderIndex - b.orderIndex);
@@ -592,18 +534,16 @@ function ContactSection({
 }: {
   data: MasterProfileData;
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
 }) {
   return (
     <div className={`${SECTION_CARD_CLASS} space-y-4`}>
       <h3 className="text-lg font-extrabold text-primary">Contact</h3>
-      {(["email", "phone", "website"] as const).map((field) => (
+      {(['email', 'phone', 'website'] as const).map((field) => (
         <div key={field}>
-          <label className={LABEL_CLASS}>
-            {field.charAt(0).toUpperCase() + field.slice(1)}
-          </label>
+          <label className={LABEL_CLASS}>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
           <input
-            type={field === "email" ? "email" : field === "website" ? "url" : "tel"}
+            type={field === 'email' ? 'email' : field === 'website' ? 'url' : 'tel'}
             className={INPUT_CLASS}
             value={data.contact[field]}
             onChange={(e) =>
@@ -636,7 +576,7 @@ function CaseStudiesSection({
 }: {
   items: any[];
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
 }) {
   return (
     <div className={`${SECTION_CARD_CLASS} space-y-4`}>
@@ -653,10 +593,10 @@ function CaseStudiesSection({
                 ...(d.caseStudies || []),
                 {
                   id: `case_${Date.now()}`,
-                  title: { en: "", am: "" },
-                  imageUrl: "",
-                  link: "",
-                  orderIndex: (d.caseStudies?.length || 0),
+                  title: { en: '', am: '' },
+                  imageUrl: '',
+                  link: '',
+                  orderIndex: d.caseStudies?.length || 0,
                 } as any,
               ],
             }))
@@ -668,7 +608,7 @@ function CaseStudiesSection({
       </div>
       <SortableList
         items={items}
-        onReorder={() => { }}
+        onReorder={() => {}}
         ariaLabel="Reorder case studies"
         renderItem={(item) => (
           <div className="space-y-3 p-4 border rounded-xl">
@@ -680,7 +620,7 @@ function CaseStudiesSection({
                 onChange((d) => ({
                   ...d,
                   caseStudies: (d.caseStudies || []).map((cs) =>
-                    cs.id === item.id ? { ...cs, title } : cs
+                    cs.id === item.id ? { ...cs, title } : cs,
                   ),
                 }))
               }
@@ -690,12 +630,12 @@ function CaseStudiesSection({
               <input
                 type="url"
                 className={INPUT_CLASS}
-                value={item.imageUrl || ""}
+                value={item.imageUrl || ''}
                 onChange={(e) =>
                   onChange((d) => ({
                     ...d,
                     caseStudies: (d.caseStudies || []).map((cs) =>
-                      cs.id === item.id ? { ...cs, imageUrl: e.target.value } : cs
+                      cs.id === item.id ? { ...cs, imageUrl: e.target.value } : cs,
                     ),
                   }))
                 }
@@ -706,12 +646,12 @@ function CaseStudiesSection({
               <input
                 type="url"
                 className={INPUT_CLASS}
-                value={item.link || ""}
+                value={item.link || ''}
                 onChange={(e) =>
                   onChange((d) => ({
                     ...d,
                     caseStudies: (d.caseStudies || []).map((cs) =>
-                      cs.id === item.id ? { ...cs, link: e.target.value } : cs
+                      cs.id === item.id ? { ...cs, link: e.target.value } : cs,
                     ),
                   }))
                 }
@@ -731,7 +671,7 @@ function EducationSection({
 }: {
   items: any[];
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
 }) {
   return (
     <div className={`${SECTION_CARD_CLASS} space-y-4`}>
@@ -748,12 +688,12 @@ function EducationSection({
                 ...(d.education || []),
                 {
                   id: `edu_${Date.now()}`,
-                  institution: { en: "", am: "" },
-                  degree: { en: "", am: "" },
-                  field: { en: "", am: "" },
-                  startYear: "",
-                  endYear: "",
-                  orderIndex: (d.education?.length || 0),
+                  institution: { en: '', am: '' },
+                  degree: { en: '', am: '' },
+                  field: { en: '', am: '' },
+                  startYear: '',
+                  endYear: '',
+                  orderIndex: d.education?.length || 0,
                 } as any,
               ],
             }))
@@ -765,7 +705,7 @@ function EducationSection({
       </div>
       <SortableList
         items={items}
-        onReorder={() => { }}
+        onReorder={() => {}}
         ariaLabel="Reorder education"
         renderItem={(item) => (
           <div className="space-y-3 p-4 border rounded-xl">
@@ -777,7 +717,7 @@ function EducationSection({
                 onChange((d) => ({
                   ...d,
                   education: (d.education || []).map((edu) =>
-                    edu.id === item.id ? { ...edu, institution } : edu
+                    edu.id === item.id ? { ...edu, institution } : edu,
                   ),
                 }))
               }
@@ -790,7 +730,7 @@ function EducationSection({
                 onChange((d) => ({
                   ...d,
                   education: (d.education || []).map((edu) =>
-                    edu.id === item.id ? { ...edu, degree } : edu
+                    edu.id === item.id ? { ...edu, degree } : edu,
                   ),
                 }))
               }
@@ -803,7 +743,7 @@ function EducationSection({
                 onChange((d) => ({
                   ...d,
                   education: (d.education || []).map((edu) =>
-                    edu.id === item.id ? { ...edu, field } : edu
+                    edu.id === item.id ? { ...edu, field } : edu,
                   ),
                 }))
               }
@@ -814,13 +754,13 @@ function EducationSection({
                 <input
                   type="text"
                   className={INPUT_CLASS}
-                  value={item.startYear || ""}
+                  value={item.startYear || ''}
                   placeholder="2020"
                   onChange={(e) =>
                     onChange((d) => ({
                       ...d,
                       education: (d.education || []).map((edu) =>
-                        edu.id === item.id ? { ...edu, startYear: e.target.value } : edu
+                        edu.id === item.id ? { ...edu, startYear: e.target.value } : edu,
                       ),
                     }))
                   }
@@ -831,13 +771,13 @@ function EducationSection({
                 <input
                   type="text"
                   className={INPUT_CLASS}
-                  value={item.endYear || ""}
+                  value={item.endYear || ''}
                   placeholder="2024"
                   onChange={(e) =>
                     onChange((d) => ({
                       ...d,
                       education: (d.education || []).map((edu) =>
-                        edu.id === item.id ? { ...edu, endYear: e.target.value } : edu
+                        edu.id === item.id ? { ...edu, endYear: e.target.value } : edu,
                       ),
                     }))
                   }
@@ -858,7 +798,7 @@ function ExperienceSection({
 }: {
   items: any[];
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
 }) {
   return (
     <div className={`${SECTION_CARD_CLASS} space-y-4`}>
@@ -875,12 +815,12 @@ function ExperienceSection({
                 ...(d.experience || []),
                 {
                   id: `exp_${Date.now()}`,
-                  company: { en: "", am: "" },
-                  position: { en: "", am: "" },
-                  description: { en: "", am: "" },
-                  startDate: "",
-                  endDate: "",
-                  orderIndex: (d.experience?.length || 0),
+                  company: { en: '', am: '' },
+                  position: { en: '', am: '' },
+                  description: { en: '', am: '' },
+                  startDate: '',
+                  endDate: '',
+                  orderIndex: d.experience?.length || 0,
                 } as any,
               ],
             }))
@@ -892,7 +832,7 @@ function ExperienceSection({
       </div>
       <SortableList
         items={items}
-        onReorder={() => { }}
+        onReorder={() => {}}
         ariaLabel="Reorder experience"
         renderItem={(item) => (
           <div className="space-y-3 p-4 border rounded-xl">
@@ -904,7 +844,7 @@ function ExperienceSection({
                 onChange((d) => ({
                   ...d,
                   experience: (d.experience || []).map((exp) =>
-                    exp.id === item.id ? { ...exp, company } : exp
+                    exp.id === item.id ? { ...exp, company } : exp,
                   ),
                 }))
               }
@@ -917,7 +857,7 @@ function ExperienceSection({
                 onChange((d) => ({
                   ...d,
                   experience: (d.experience || []).map((exp) =>
-                    exp.id === item.id ? { ...exp, position } : exp
+                    exp.id === item.id ? { ...exp, position } : exp,
                   ),
                 }))
               }
@@ -930,7 +870,7 @@ function ExperienceSection({
                 onChange((d) => ({
                   ...d,
                   experience: (d.experience || []).map((exp) =>
-                    exp.id === item.id ? { ...exp, description } : exp
+                    exp.id === item.id ? { ...exp, description } : exp,
                   ),
                 }))
               }
@@ -942,12 +882,12 @@ function ExperienceSection({
                 <input
                   type="text"
                   className={INPUT_CLASS}
-                  value={item.startDate || ""}
+                  value={item.startDate || ''}
                   onChange={(e) =>
                     onChange((d) => ({
                       ...d,
                       experience: (d.experience || []).map((exp) =>
-                        exp.id === item.id ? { ...exp, startDate: e.target.value } : exp
+                        exp.id === item.id ? { ...exp, startDate: e.target.value } : exp,
                       ),
                     }))
                   }
@@ -958,12 +898,12 @@ function ExperienceSection({
                 <input
                   type="text"
                   className={INPUT_CLASS}
-                  value={item.endDate || ""}
+                  value={item.endDate || ''}
                   onChange={(e) =>
                     onChange((d) => ({
                       ...d,
                       experience: (d.experience || []).map((exp) =>
-                        exp.id === item.id ? { ...exp, endDate: e.target.value } : exp
+                        exp.id === item.id ? { ...exp, endDate: e.target.value } : exp,
                       ),
                     }))
                   }
@@ -984,7 +924,7 @@ function SocialLinksSection({
 }: {
   items: any[];
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
 }) {
   return (
     <div className={`${SECTION_CARD_CLASS} space-y-4`}>
@@ -1001,9 +941,9 @@ function SocialLinksSection({
                 ...(d.socialLinks || []),
                 {
                   id: `link_${Date.now()}`,
-                  platform: "",
-                  url: "",
-                  orderIndex: (d.socialLinks?.length || 0),
+                  platform: '',
+                  url: '',
+                  orderIndex: d.socialLinks?.length || 0,
                 } as any,
               ],
             }))
@@ -1027,7 +967,7 @@ function SocialLinksSection({
                   onChange((d) => ({
                     ...d,
                     socialLinks: (d.socialLinks || []).map((l) =>
-                      l.id === link.id ? { ...l, platform: e.target.value } : l
+                      l.id === link.id ? { ...l, platform: e.target.value } : l,
                     ),
                   }))
                 }
@@ -1043,7 +983,7 @@ function SocialLinksSection({
                   onChange((d) => ({
                     ...d,
                     socialLinks: (d.socialLinks || []).map((l) =>
-                      l.id === link.id ? { ...l, url: e.target.value } : l
+                      l.id === link.id ? { ...l, url: e.target.value } : l,
                     ),
                   }))
                 }
@@ -1075,9 +1015,9 @@ function GallerySection({
   onChange,
   onReorder,
 }: {
-  items: MasterProfileData["gallery"];
+  items: MasterProfileData['gallery'];
   locale: LanguageCode;
-  onChange: SectionEditorProps["onChange"];
+  onChange: SectionEditorProps['onChange'];
   onReorder: (from: number, to: number) => void;
 }) {
   const sorted = [...items].sort((a, b) => a.orderIndex - b.orderIndex);
@@ -1097,9 +1037,9 @@ function GallerySection({
                 ...d.gallery,
                 {
                   id: `gallery_${Date.now()}`,
-                  title: { en: "", am: "" },
-                  caption: { en: "", am: "" },
-                  imageUrl: "",
+                  title: { en: '', am: '' },
+                  caption: { en: '', am: '' },
+                  imageUrl: '',
                   orderIndex: d.gallery.length,
                 } as any,
               ],
@@ -1124,9 +1064,7 @@ function GallerySection({
               onChange={(title) =>
                 onChange((d) => ({
                   ...d,
-                  gallery: d.gallery.map((g) =>
-                    g.id === item.id ? { ...g, title } : g
-                  ),
+                  gallery: d.gallery.map((g) => (g.id === item.id ? { ...g, title } : g)),
                 }))
               }
             />
@@ -1137,9 +1075,7 @@ function GallerySection({
               onChange={(caption) =>
                 onChange((d) => ({
                   ...d,
-                  gallery: d.gallery.map((g) =>
-                    g.id === item.id ? { ...g, caption } : g
-                  ),
+                  gallery: d.gallery.map((g) => (g.id === item.id ? { ...g, caption } : g)),
                 }))
               }
             />
@@ -1153,7 +1089,7 @@ function GallerySection({
                   onChange((d) => ({
                     ...d,
                     gallery: d.gallery.map((g) =>
-                      g.id === item.id ? { ...g, imageUrl: e.target.value } : g
+                      g.id === item.id ? { ...g, imageUrl: e.target.value } : g,
                     ),
                   }))
                 }

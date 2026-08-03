@@ -16,10 +16,10 @@
  * This guarantees zero duplication of SEO wiring across the app.
  */
 
-import type { Metadata } from "next";
-import { getSeoConfig } from "./config";
-import { buildCanonical, isNoindexRoute } from "./canonical";
-import { TITLES, DESCRIPTIONS } from "./constants";
+import type { Metadata } from 'next';
+import { getSeoConfig } from './config';
+import { buildCanonical, isNoindexRoute } from './canonical';
+import { TITLES, DESCRIPTIONS } from './constants';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -38,7 +38,7 @@ export interface MetadataInput {
   /** Absolute URL or path (relative to `siteUrl`) for `og:image`. */
   ogImage?: string;
   /** Open Graph type. */
-  ogType?: "website" | "article";
+  ogType?: 'website' | 'article';
   /** ISO-8601 publish time (used with `ogType: "article"`). */
   publishedTime?: string;
   /** BCP-47 locale for this page. */
@@ -67,23 +67,16 @@ export interface JobMeta {
  * Every page-specific factory delegates to this function.
  */
 export function createMetadata(input: MetadataInput): Metadata {
-  const {
-    siteUrl,
-    defaultLocale,
-    defaultOgImage,
-    twitterHandle,
-    siteName,
-  } = getSeoConfig();
+  const { siteUrl, defaultLocale, defaultOgImage, twitterHandle, siteName } = getSeoConfig();
 
   const url = buildCanonical(input.path, input.locale);
-  const noindex =
-    input.noindex ?? isNoindexRoute(input.path);
+  const noindex = input.noindex ?? isNoindexRoute(input.path);
 
   const ogImageUrl = input.ogImage
-    ? input.ogImage.startsWith("http")
+    ? input.ogImage.startsWith('http')
       ? input.ogImage
-      : `${siteUrl.replace(/\/+$/, "")}/${input.ogImage.replace(/^\//, "")}`
-    : `${siteUrl.replace(/\/+$/, "")}/${defaultOgImage.replace(/^\//, "")}`;
+      : `${siteUrl.replace(/\/+$/, '')}/${input.ogImage.replace(/^\//, '')}`
+    : `${siteUrl.replace(/\/+$/, '')}/${defaultOgImage.replace(/^\//, '')}`;
 
   return {
     title: input.title,
@@ -94,27 +87,23 @@ export function createMetadata(input: MetadataInput): Metadata {
       languages: input.alternates,
     },
     openGraph: {
-      type: input.ogType ?? "website",
+      type: input.ogType ?? 'website',
       siteName,
       title: input.title,
       description: input.description,
       url,
       images: [{ url: ogImageUrl, width: 1200, height: 630 }],
       locale: input.locale ?? defaultLocale,
-      ...(input.publishedTime
-        ? { article: { publishedTime: input.publishedTime } }
-        : {}),
+      ...(input.publishedTime ? { article: { publishedTime: input.publishedTime } } : {}),
     },
     twitter: {
-      card: "summary_large_image",
+      card: 'summary_large_image',
       site: twitterHandle,
       title: input.title,
       description: input.description,
       images: [ogImageUrl],
     },
-    robots: noindex
-      ? { index: false, follow: false }
-      : { index: true, follow: true },
+    robots: noindex ? { index: false, follow: false } : { index: true, follow: true },
   };
 }
 
@@ -127,7 +116,7 @@ export function homePageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.HOME,
     description: DESCRIPTIONS.HOME,
-    path: "/",
+    path: '/',
   });
 }
 
@@ -136,7 +125,7 @@ export function jobsPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.JOBS,
     description: DESCRIPTIONS.JOBS,
-    path: "/jobs",
+    path: '/jobs',
   });
 }
 
@@ -148,11 +137,7 @@ export function jobsPageMetadata(): Metadata {
 export function jobDetailPageMetadata(job: JobMeta): Metadata {
   return createMetadata({
     title: TITLES.JOB_DETAIL(job.title, job.company),
-    description: DESCRIPTIONS.JOB_DETAIL(
-      job.title,
-      job.company,
-      job.location,
-    ),
+    description: DESCRIPTIONS.JOB_DETAIL(job.title, job.company, job.location),
     path: `/jobs/${job.id}`,
     ogImage: undefined, // could be a job-specific OG image from the API
     publishedTime: undefined, // could be job.createdAt from API
@@ -164,7 +149,7 @@ export function aboutPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.ABOUT,
     description: DESCRIPTIONS.ABOUT,
-    path: "/about",
+    path: '/about',
   });
 }
 
@@ -173,7 +158,7 @@ export function pricingPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.PRICING,
     description: DESCRIPTIONS.PRICING,
-    path: "/pricing",
+    path: '/pricing',
   });
 }
 
@@ -182,7 +167,7 @@ export function contactPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.CONTACT,
     description: DESCRIPTIONS.CONTACT,
-    path: "/contact",
+    path: '/contact',
   });
 }
 
@@ -191,7 +176,7 @@ export function loginPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.LOGIN,
     description: DESCRIPTIONS.LOGIN,
-    path: "/login",
+    path: '/login',
     noindex: true,
   });
 }
@@ -201,7 +186,7 @@ export function registerPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.REGISTER,
     description: DESCRIPTIONS.REGISTER,
-    path: "/register",
+    path: '/register',
     noindex: true,
   });
 }
@@ -211,7 +196,7 @@ export function forgotPasswordPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.FORGOT_PASSWORD,
     description: DESCRIPTIONS.FORGOT_PASSWORD,
-    path: "/forgot-password",
+    path: '/forgot-password',
     noindex: true,
   });
 }
@@ -221,7 +206,7 @@ export function profilePageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.PROFILE,
     description: DESCRIPTIONS.PROFILE,
-    path: "/profile",
+    path: '/profile',
     noindex: true,
   });
 }
@@ -231,7 +216,7 @@ export function postJobPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.POST_JOB,
     description: DESCRIPTIONS.POST_JOB,
-    path: "/post-job",
+    path: '/post-job',
     noindex: true,
   });
 }
@@ -241,7 +226,7 @@ export function employerPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.EMPLOYER,
     description: DESCRIPTIONS.EMPLOYER,
-    path: "/employer",
+    path: '/employer',
     noindex: true,
   });
 }
@@ -251,7 +236,7 @@ export function cvMakerPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.CV_MAKER,
     description: DESCRIPTIONS.CV_MAKER,
-    path: "/cv-maker",
+    path: '/cv-maker',
     noindex: true,
   });
 }
@@ -261,7 +246,7 @@ export function applicationsPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.APPLICATIONS,
     description: DESCRIPTIONS.APPLICATIONS,
-    path: "/applications",
+    path: '/applications',
     noindex: true,
   });
 }
@@ -271,7 +256,7 @@ export function adminPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.ADMIN,
     description: DESCRIPTIONS.ADMIN,
-    path: "/admin",
+    path: '/admin',
     noindex: true,
   });
 }
@@ -281,7 +266,7 @@ export function resetPasswordPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.RESET_PASSWORD,
     description: DESCRIPTIONS.RESET_PASSWORD,
-    path: "/auth/reset-password",
+    path: '/auth/reset-password',
     noindex: true,
   });
 }
@@ -291,7 +276,7 @@ export function verifyEmailPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.VERIFY_EMAIL,
     description: DESCRIPTIONS.VERIFY_EMAIL,
-    path: "/auth/verify-email",
+    path: '/auth/verify-email',
     noindex: true,
   });
 }
@@ -301,7 +286,7 @@ export function notFoundPageMetadata(): Metadata {
   return createMetadata({
     title: TITLES.NOT_FOUND,
     description: DESCRIPTIONS.NOT_FOUND,
-    path: "/404",
+    path: '/404',
     noindex: true,
   });
 }

@@ -1,29 +1,24 @@
-import Link from "next/link";
-import {
-  ArrowUpRight,
-  BellRing,
-  ShieldCheck,
-  WandSparkles,
-} from "lucide-react";
+import Link from 'next/link';
+import { ArrowUpRight, BellRing, ShieldCheck, WandSparkles } from 'lucide-react';
 
 const features = [
   {
     icon: ShieldCheck,
-    number: "01",
-    title: "Roles you can trust",
-    desc: "We review listings and employers so you spend time on real opportunities.",
+    number: '01',
+    title: 'Roles you can trust',
+    desc: 'We review listings and employers so you spend time on real opportunities.',
   },
   {
     icon: WandSparkles,
-    number: "02",
-    title: "A profile that works",
-    desc: "Show employers your skills, experience, and potential in one clear place.",
+    number: '02',
+    title: 'A profile that works',
+    desc: 'Show employers your skills, experience, and potential in one clear place.',
   },
   {
     icon: BellRing,
-    number: "03",
-    title: "The right alert, on time",
-    desc: "Get relevant openings through the channels you already use, including Telegram.",
+    number: '03',
+    title: 'The right alert, on time',
+    desc: 'Get relevant openings through the channels you already use, including Telegram.',
   },
 ];
 
@@ -41,8 +36,7 @@ export default function WhyChoose() {
             More progress.
           </h2>
           <p className="mt-5 max-w-sm text-sm leading-6 text-muted">
-            Beleqet removes the noise between discovering an opportunity and
-            making your move.
+            Beleqet removes the noise between discovering an opportunity and making your move.
           </p>
           <Link
             href="/register"
@@ -61,12 +55,8 @@ export default function WhyChoose() {
                 <feature.icon className="h-5 w-5" />
               </span>
               <div>
-                <h3 className="text-lg font-extrabold text-primary">
-                  {feature.title}
-                </h3>
-                <p className="mt-1 max-w-lg text-sm leading-6 text-muted">
-                  {feature.desc}
-                </p>
+                <h3 className="text-lg font-extrabold text-primary">{feature.title}</h3>
+                <p className="mt-1 max-w-lg text-sm leading-6 text-muted">{feature.desc}</p>
               </div>
               <span className="hidden text-4xl font-black text-primary/10 sm:block">
                 {feature.number}

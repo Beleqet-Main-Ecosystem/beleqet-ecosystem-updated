@@ -1,11 +1,7 @@
-import { contactPageMetadata } from "@/lib/seo/generate-metadata";
+import { contactPageMetadata } from '@/lib/seo/generate-metadata';
 
 export const metadata = contactPageMetadata();
 
-export default function ContactLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ContactLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

@@ -33,7 +33,7 @@ export class CacheService {
     }
 
     const fullKey = this.buildKey(key, options?.namespace);
-    const ttlSeconds = options?.ttl; // in seconds
+    const ttlMs = options?.ttl ? options.ttl * 1000 : undefined; // ttl is in seconds, cache-manager expects ms
 
     if (this.pendingFetches.has(fullKey)) {
       if (this.debug) {
@@ -42,9 +42,15 @@ export class CacheService {
       return this.pendingFetches.get(fullKey) as Promise<T>;
     }
 
-    // Create the fetch promise – no inner finally, we'll attach .finally() on the promise itself
     const fetchPromise = (async () => {
-      const cached = await this.cacheManager.get<T>(fullKey);
+      let cached: T | undefined;
+      try {
+        cached = await this.cacheManager.get<T>(fullKey);
+      } catch (err) {
+        if (this.debug) {
+          this.logger.warn(`Cache read failed for key: ${fullKey}: ${(err as Error).message}`);
+        }
+      }
       if (cached !== undefined) {
         if (this.debug) {
           this.logger.debug(`Cache hit for key: ${fullKey}`);
@@ -57,16 +63,31 @@ export class CacheService {
       }
 
       const data = await fetchFn();
-      await this.cacheManager.set(fullKey, data, ttlSeconds);
+      try {
+        await this.cacheManager.set(fullKey, data, ttlMs);
+      } catch (err) {
+        if (this.debug) {
+          this.logger.warn(`Cache write failed for key: ${fullKey}: ${(err as Error).message}`);
+        }
+      }
       return data;
     })();
 
-    // Clean up pending entry after the promise settles (success or error)
-    fetchPromise.finally(() => {
-      if (this.pendingFetches.get(fullKey) === fetchPromise) {
-        this.pendingFetches.delete(fullKey);
-      }
-    });
+    // Clean up pending entry after the promise settles. Uses
+    // then(success, failure) instead of finally() so a rejection does not
+    // create an orphaned rejected promise.
+    fetchPromise.then(
+      () => {
+        if (this.pendingFetches.get(fullKey) === fetchPromise) {
+          this.pendingFetches.delete(fullKey);
+        }
+      },
+      () => {
+        if (this.pendingFetches.get(fullKey) === fetchPromise) {
+          this.pendingFetches.delete(fullKey);
+        }
+      },
+    );
 
     // Store the pending promise so concurrent calls can coalesce
     this.pendingFetches.set(fullKey, fetchPromise);
@@ -76,10 +97,10 @@ export class CacheService {
 
   async set<T>(key: string, value: T, options?: CacheOptions): Promise<void> {
     const fullKey = this.buildKey(key, options?.namespace);
-    const ttlSeconds = options?.ttl;
-    await this.cacheManager.set(fullKey, value, ttlSeconds);
+    const ttlMs = options?.ttl ? options.ttl * 1000 : undefined; // ttl is in seconds, cache-manager expects ms
+    await this.cacheManager.set(fullKey, value, ttlMs);
     if (this.debug) {
-      this.logger.debug(`Set cache for key: ${fullKey} with TTL ${ttlSeconds}s`);
+      this.logger.debug(`Set cache for key: ${fullKey} with TTL ${options?.ttl}s`);
     }
   }
 

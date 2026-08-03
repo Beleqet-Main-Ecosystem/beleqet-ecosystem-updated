@@ -58,37 +58,25 @@ model User {
   referralsReceived     Referral[]          @relation("ReferralReferred")
   jobAlerts             JobAlert[]
   payments              Payment[]
+  forumThreads          ForumThread[]
+  forumReplies          ForumReply[]
+  forumUpvotes          ForumUpvote[]
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
-  preferences           UserPreference?
   subscriptions         Subscription[]
   rbacRoles             Role[]              @relation("UserRoles")
   auditLogs             AuditLog[]
+  promotionCampaigns    PromotionCampaign[]
 
   gdprConsent             Boolean                  @default(true)
   searchHistories         SearchHistory[]
+  notificationPreference  NotificationPreference?
+  userPreference          UserPreference?
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
 
   @@map("users")
-}
-
-model UserPreference {
-  id        String          @id @default(uuid())
-  userId    String          @unique
-  theme     ThemePreference @default(SYSTEM)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_preferences")
-}
-
-enum ThemePreference {
-  LIGHT
-  DARK
-  SYSTEM
 }
 
 model Permission {
@@ -115,6 +103,42 @@ model Role {
   @@map("roles")
 }
 
+/// Theme and other small, non-identifying UI choices owned by a user.
+/// This record deliberately contains no behavioural analytics or PII.
+model UserPreference {
+  id        String          @id @default(uuid())
+  userId    String          @unique
+  theme     ThemePreference @default(SYSTEM)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+/// User-selected colour-scheme preference. `SYSTEM` delegates the resolved
+/// colour scheme to the operating system and is the privacy-preserving default.
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+model NotificationPreference {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  emailEnabled    Boolean  @default(true)
+  telegramEnabled Boolean  @default(true)
+  inAppEnabled    Boolean  @default(true)
+  pushEnabled     Boolean  @default(false)
+  smsEnabled      Boolean  @default(false)
+  language        String   @default("en")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
 model OAuthAccount {
   id                    String        @id @default(uuid())
   userId                String
@@ -708,25 +732,34 @@ model BackupCode {
 }
 
 model SalaryPrediction {
-  id                String   @id @default(uuid())
-  jobTitle          String
-  jobCategoryId     String?
-  industry          String?
-  location          String
-  experienceLevel   String?
-  currency          String   @default("ETB")
-  minSalary         Int
-  maxSalary         Int
-  averageSalary     Int
-  medianSalary      Int
-  dataPointsCount   Int      @default(0)
-  standardDeviation Float    @default(0)
-  confidenceScore   Float    @default(0.5)
-  version           Int      @default(1)
-  lastUpdatedAt     DateTime @updatedAt
-  createdAt         DateTime @default(now())
-  isAnonymized      Boolean  @default(true)
+  id              String  @id @default(uuid())
+  jobTitle        String
+  jobCategoryId   String?
+  industry        String?
+  location        String
+  experienceLevel String? // JUNIOR, MID, SENIOR, LEAD, etc.
+  currency        String  @default("ETB")
 
+  // Salary ranges calculated from market data
+  minSalary     Int
+  maxSalary     Int
+  averageSalary Int // Mean of all salary data points
+  medianSalary  Int // Median salary from dataset
+
+  // Statistical data
+  dataPointsCount   Int   @default(0) // Number of job postings used in calculation
+  standardDeviation Float @default(0)
+  confidenceScore   Float @default(0.5) // 0.0 - 1.0, higher = more reliable
+
+  // Version tracking for updates
+  version       Int      @default(1)
+  lastUpdatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  // For GDPR compliance
+  isAnonymized Boolean @default(true)
+
+  // For optimization
   @@index([jobTitle, location, experienceLevel])
   @@index([jobCategoryId, location])
   @@index([location, industry])
@@ -734,22 +767,30 @@ model SalaryPrediction {
   @@map("salary_predictions")
 }
 
+// SalaryHistory Model - Audit trail for salary predictions
+// Maintains historical records of salary trends over time
 model SalaryHistory {
-  id              String   @id @default(uuid())
+  id              String  @id @default(uuid())
   jobTitle        String
   jobCategoryId   String?
   industry        String?
   location        String
   experienceLevel String?
-  currency        String   @default("ETB")
+  currency        String  @default("ETB")
+
+  // Historical snapshot
   minSalary       Int
   maxSalary       Int
   averageSalary   Int
   medianSalary    Int
   dataPointsCount Int
-  recordedAt      DateTime @default(now())
-  version         Int      @default(1)
-  isAnonymized    Boolean  @default(true)
+
+  // Metadata
+  recordedAt DateTime @default(now())
+  version    Int      @default(1)
+
+  // For GDPR compliance
+  isAnonymized Boolean @default(true)
 
   @@index([jobTitle, location])
   @@index([recordedAt, location])
@@ -757,18 +798,25 @@ model SalaryHistory {
 }
 
 model SalaryAnalytics {
-  id               String   @id @default(uuid())
-  location         String
-  industry         String?
-  jobCategoryId    String?
-  currency         String   @default("ETB")
+  id String @id @default(uuid())
+
+  // Aggregation scope
+  location      String
+  industry      String?
+  jobCategoryId String?
+  currency      String  @default("ETB")
+
+  // Statistics
   averageSalary    Int
   medianSalary     Int
-  salaryGrowthRate Float    @default(0)
-  topJobTitles     String[] @default([])
-  periodStartDate  DateTime
-  periodEndDate    DateTime
-  computedAt       DateTime @default(now())
+  salaryGrowthRate Float    @default(0) // Month-over-month percentage
+  topJobTitles     String[] @default([]) // Top 5 job titles by frequency
+
+  // Reporting period
+  periodStartDate DateTime
+  periodEndDate   DateTime
+
+  computedAt DateTime @default(now())
 
   @@index([location, industry])
   @@index([periodEndDate])
@@ -858,6 +906,8 @@ enum NotificationChannel {
   IN_APP
   TELEGRAM
   EMAIL
+  PUSH
+  SMS
 }
 
 enum VideoInterviewStatus {
@@ -978,6 +1028,69 @@ model JobAlert {
   @@map("job_alerts")
 }
 
+model ForumThread {
+  id              String       @id @default(uuid())
+  title           String
+  content         String
+  tags            String[]     @default([])
+  userId          String
+  userDisplayName String       @default("Deleted User")
+  isAnonymous     Boolean      @default(false)
+  upvoteCount     Int          @default(0)
+  replyCount      Int          @default(0)
+  isPinned        Boolean      @default(false)
+  isLocked        Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies         ForumReply[]
+  upvotes         ForumUpvote[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([upvoteCount])
+  @@map("forum_threads")
+}
+
+model ForumReply {
+  id              String       @id @default(uuid())
+  content         String
+  threadId        String
+  parentReplyId   String?
+  userId          String
+  userDisplayName String       @default("Deleted User")
+  isAnonymous     Boolean      @default(false)
+  upvoteCount     Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  thread          ForumThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parentReply     ForumReply?  @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: SetNull)
+  childReplies    ForumReply[] @relation("ReplyToReply")
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  upvotes         ForumUpvote[]
+
+  @@index([threadId, createdAt])
+  @@index([userId])
+  @@map("forum_replies")
+}
+
+model ForumUpvote {
+  id        String       @id @default(uuid())
+  userId    String
+  threadId  String?
+  replyId   String?
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread    ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reply     ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, threadId])
+  @@unique([userId, replyId])
+  @@index([threadId])
+  @@index([replyId])
+  @@map("forum_upvotes")
+}
+
 enum ReferralStatus {
   PENDING
   REDEEMED
@@ -1093,8 +1206,14 @@ model Subscription {
   currentPeriodStart     DateTime           @default(now())
   currentPeriodEnd       DateTime
   cancelAtPeriodEnd      Boolean            @default(false)
+  /// Gateway that owns the recurring charge for this subscription (nullable
+  /// while PENDING, before the user completes the gateway checkout redirect)
   provider               PaymentProvider?
+  /// Provider-side recurring-billing id — the PayPal billing agreement id
+  /// for PayPal; joins to Payment.providerPaymentId for the same charge.
   providerSubscriptionId String?            @unique
+  /// Set once the "expiring in 3 days" reminder has fired, so the reminder
+  /// cron job never re-notifies the same billing period.
   reminderSentAt         DateTime?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
@@ -1154,15 +1273,15 @@ model StoredFile {
 }
 
 model SkillAssessmentSession {
-  id          String     @id @default(uuid())
+  id          String               @id @default(uuid())
   userId      String
   jobRole     String
   skillLevel  SkillLevel
   score       Int?
-  isCompleted Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isCompleted Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   questions   AssessmentQuestion[]
 
   @@index([userId, createdAt])
@@ -1246,6 +1365,156 @@ enum FaqBotMessageRole {
   USER
   ASSISTANT
   SYSTEM
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Promoted Engine & Sponsored Ads (Task: The Vault - Revenue & Monetization)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A single polymorphic PromotionCampaign model covers all three promotable
+// entities (job postings, freelancer proposals/applications, and freelance
+// gigs) rather than three near-duplicate models — the budget/CPC/status/
+// analytics logic is identical across all three; only what's being boosted
+// differs. `targetType` + `targetId` identify the promoted entity; there is
+// deliberately no DB-level foreign key on targetId since it can point at
+// three different tables (Job, Application, or FreelanceJob) — ownership and
+// existence are validated in the service layer at campaign-creation time.
+//
+// Payment model: campaigns are funded by debiting the owner's existing
+// wallet balance (EmployerWallet for job/gig boosts, FreelancerWallet for
+// proposal boosts) — the same pattern EscrowService already uses via
+// WalletService — rather than routing every small ad charge through a new
+// Chapa/Stripe checkout. PromotionWalletTransaction records each debit for
+// audit purposes, mirroring EmployerWalletTransaction/WalletTransaction.
+//
+// Multi-currency: `currency` is ISO 4217, matching Payment/Plan/Job above.
+// All money fields are Int in minor units (cents/santim), matching the
+// platform-wide convention (see Payment.amount).
+//
+// GDPR: PromotionEvent stores no PII — no IP address, no viewer user ID —
+// only an aggregate event type + timestamp + optional non-identifying
+// metadata, so it carries nothing to redact on a data-deletion request.
+
+/// What kind of entity a campaign is boosting.
+enum PromotionTargetType {
+  JOB
+  PROPOSAL
+  GIG
+}
+
+/// Lifecycle status of a promotion campaign.
+enum CampaignStatus {
+  /// Created but not yet funded/activated (e.g. payment pending).
+  PENDING
+  ACTIVE
+  /// Paused by the owner — no spend accrues, can be resumed.
+  PAUSED
+  /// dailyBudget or totalBudget fully spent — campaign stops serving until
+  /// the next day's reset (dailyBudget) or permanently (totalBudget).
+  EXHAUSTED
+  /// Reached its endAt date or was manually ended.
+  COMPLETED
+  CANCELLED
+}
+
+/// A paid visibility-boost campaign for a Job, Proposal (Application), or
+/// FreelanceJob (gig). Drives priority ranking in search/dashboard results
+/// while ACTIVE and funded.
+model PromotionCampaign {
+  id     String              @id @default(uuid())
+  ownerId String
+  targetType PromotionTargetType
+  /// Polymorphic reference — Job.id, Application.id, or FreelanceJob.id
+  /// depending on targetType. Validated (existence + ownership) in the
+  /// service layer, not enforced at the DB level (see note above).
+  targetId String
+
+  status CampaignStatus @default(PENDING)
+
+  /// Cost per click, in minor currency units.
+  cpcBid Int
+  /// Max spend allowed per day, in minor currency units. Enforced by a
+  /// scheduled job that resets `spentToday` to 0 at each day boundary.
+  dailyBudget Int
+  /// Optional lifetime spend cap; null means no cap beyond dailyBudget.
+  totalBudget Int?
+  currency    String @default("ETB")
+
+  spentToday Int      @default(0)
+  spentTotal Int      @default(0)
+  /// Last time spentToday was reset — lets the daily-reset job run
+  /// idempotently (skip campaigns already reset today).
+  lastResetAt DateTime @default(now())
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+  conversions Int @default(0)
+
+  startAt DateTime  @default(now())
+  endAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner        User                        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events       PromotionEvent[]
+  transactions PromotionWalletTransaction[]
+
+  /// Speeds up "find active campaigns boosting this target" — the ranking
+  /// query's main lookup, run on every search/listing page render.
+  @@index([targetType, targetId, status])
+  /// Speeds up "this owner's campaigns" for their analytics dashboard.
+  @@index([ownerId, status])
+  @@map("promotion_campaigns")
+}
+
+/// What kind of interaction a PromotionEvent records.
+enum PromotionEventType {
+  /// Campaign's target was shown in a boosted position. Free (no spend).
+  IMPRESSION
+  /// Viewer clicked through. Costs `campaign.cpcBid` at the time of the click.
+  CLICK
+  /// Click led to a tracked outcome (application submitted, bid placed,
+  /// gig ordered) — reported in analytics but does not itself cost extra.
+  CONVERSION
+}
+
+/// One row per impression/click/conversion against a campaign. Deliberately
+/// minimal and non-identifying (see GDPR note above) — this is an analytics
+/// counter table, not a user-activity log.
+model PromotionEvent {
+  id         String             @id @default(uuid())
+  campaignId String
+  type       PromotionEventType
+  /// Amount charged for this specific event, in minor currency units
+  /// (campaign.cpcBid for CLICK, 0 for IMPRESSION/CONVERSION).
+  costApplied Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  /// Speeds up the analytics dashboard's "events for this campaign, by type,
+  /// over time" query.
+  @@index([campaignId, type, createdAt])
+  @@map("promotion_events")
+}
+
+/// Audit trail of wallet debits/refunds caused by campaign spend, mirroring
+/// EmployerWalletTransaction/WalletTransaction's shape. Kept separate from
+/// those tables (rather than reusing WalletTransactionType) since campaign
+/// spend is its own transaction category with its own reporting needs.
+model PromotionWalletTransaction {
+  id         String   @id @default(uuid())
+  campaignId String
+  /// Amount debited (positive) or refunded (negative), in minor currency units.
+  amount     Int
+  currency   String   @default("ETB")
+  note       String?
+  createdAt  DateTime @default(now())
+
+  campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt])
+  @@map("promotion_wallet_transactions")
 }
 
 model AuditLog {

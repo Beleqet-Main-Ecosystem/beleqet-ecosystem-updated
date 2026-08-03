@@ -1,8 +1,8 @@
-import axios from "axios";
-import { z } from "zod";
+import axios from 'axios';
+import { z } from 'zod';
 
 const authApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1",
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1',
   timeout: 10000,
 });
 
@@ -27,7 +27,7 @@ export type RegisterInput = {
   lastName: string;
   email: string;
   password: string;
-  role: "JOB_SEEKER" | "EMPLOYER" | "FREELANCER";
+  role: 'JOB_SEEKER' | 'EMPLOYER' | 'FREELANCER';
 };
 
 export type LoginInput = {
@@ -35,22 +35,22 @@ export type LoginInput = {
   password: string;
 };
 
-const TOKEN_KEY = "beleqet_token";
-const REFRESH_KEY = "beleqet_refresh";
-const USER_KEY = "beleqet_user";
+const TOKEN_KEY = 'beleqet_token';
+const REFRESH_KEY = 'beleqet_refresh';
+const USER_KEY = 'beleqet_user';
 
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem(TOKEN_KEY);
 }
 
 export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   return localStorage.getItem(REFRESH_KEY);
 }
 
 export function getStoredUser(): AuthUser | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
@@ -77,7 +77,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const { data } = await authApi.post("/auth/refresh", { refreshToken });
+    const { data } = await authApi.post('/auth/refresh', { refreshToken });
     const parsed = authResponseSchema.parse(data);
     persist(parsed.accessToken, parsed.user, parsed.refreshToken);
     return parsed.accessToken;
@@ -87,13 +87,10 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-export async function authenticatedFetch(
-  input: string,
-  init: RequestInit = {},
-): Promise<Response> {
+export async function authenticatedFetch(input: string, init: RequestInit = {}): Promise<Response> {
   const token = getToken();
   const headers = new Headers(init.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (token) headers.set('Authorization', `Bearer ${token}`);
 
   let response = await fetch(input, { ...init, headers });
   if (response.status !== 401) return response;
@@ -101,28 +98,26 @@ export async function authenticatedFetch(
   const refreshedToken = await refreshAccessToken();
   if (!refreshedToken) return response;
 
-  headers.set("Authorization", `Bearer ${refreshedToken}`);
+  headers.set('Authorization', `Bearer ${refreshedToken}`);
   response = await fetch(input, { ...init, headers });
   return response;
 }
 
 function messageFrom(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as
-      | { message?: string | string[] }
-      | undefined;
+    const data = error.response?.data as { message?: string | string[] } | undefined;
     const msg = data?.message;
-    if (Array.isArray(msg)) return msg.join(", ");
-    if (typeof msg === "string") return msg;
-    if (error.code === "ECONNABORTED" || !error.response)
-      return "Cannot reach the server. Please try again.";
+    if (Array.isArray(msg)) return msg.join(', ');
+    if (typeof msg === 'string') return msg;
+    if (error.code === 'ECONNABORTED' || !error.response)
+      return 'Cannot reach the server. Please try again.';
   }
-  return "Something went wrong. Please try again.";
+  return 'Something went wrong. Please try again.';
 }
 
 export async function registerUser(input: RegisterInput): Promise<AuthUser> {
   try {
-    const { data } = await authApi.post("/auth/register", input);
+    const { data } = await authApi.post('/auth/register', input);
     const parsed = authResponseSchema.parse(data);
     persist(parsed.accessToken, parsed.user, parsed.refreshToken);
     return parsed.user;
@@ -133,7 +128,7 @@ export async function registerUser(input: RegisterInput): Promise<AuthUser> {
 
 export async function loginUser(input: LoginInput): Promise<AuthUser> {
   try {
-    const { data } = await authApi.post("/auth/login", input);
+    const { data } = await authApi.post('/auth/login', input);
     const parsed = authResponseSchema.parse(data);
     persist(parsed.accessToken, parsed.user, parsed.refreshToken);
     return parsed.user;

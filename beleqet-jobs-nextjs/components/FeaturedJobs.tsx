@@ -1,6 +1,6 @@
-import Link from "next/link";
-import type { Job } from "@/lib/api";
-import JobCard from "./JobCard";
+import Link from 'next/link';
+import type { Job } from '@/lib/api';
+import JobCard from './JobCard';
 
 export default function FeaturedJobs({ jobs }: { jobs: Job[] }) {
   if (!jobs.length) return null;
@@ -13,9 +13,7 @@ export default function FeaturedJobs({ jobs }: { jobs: Job[] }) {
             <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
               Now hiring
             </p>
-            <h2 className="text-sectionH2 tracking-tight">
-              Your next role could be here.
-            </h2>
+            <h2 className="text-sectionH2 tracking-tight">Your next role could be here.</h2>
             <p className="mt-2 text-sm text-white/55">
               Fresh opportunities from teams building Ethiopia’s future.
             </p>

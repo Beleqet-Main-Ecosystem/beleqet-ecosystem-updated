@@ -1,32 +1,35 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from 'react';
+import { MessageCircle, X, Send, Sparkles } from 'lucide-react';
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { role: 'user' | 'assistant'; content: string };
 
 const GREETING: Message = {
-  role: "assistant",
-  content: "Hi 👋 I’m the Beleqet Assistant. How can I help you today?",
+  role: 'assistant',
+  content: 'Hi 👋 I’m the Beleqet Assistant. How can I help you today?',
 };
 
-const SUGGESTIONS = ["How do I apply for a job?", "How do I post a vacancy?", "Find remote jobs"];
+const SUGGESTIONS = ['How do I apply for a job?', 'How do I post a vacancy?', 'Find remote jobs'];
 
 function MarkdownContent({ content, isUser }: { content: string; isUser: boolean }) {
   const parseInline = (text: string): React.ReactNode[] => {
     const regex = /(\*\*.*?\*\*|`.*?`|\[.*?\]\(.*?\))/g;
     const parts = text.split(regex);
     return parts.map((part, idx) => {
-      if (part.startsWith("**") && part.endsWith("**")) {
+      if (part.startsWith('**') && part.endsWith('**')) {
         return (
-          <strong key={idx} className={`font-extrabold ${isUser ? "text-white" : "text-primary"}`}>
+          <strong key={idx} className={`font-extrabold ${isUser ? 'text-white' : 'text-primary'}`}>
             {part.slice(2, -2)}
           </strong>
         );
       }
-      if (part.startsWith("`") && part.endsWith("`")) {
+      if (part.startsWith('`') && part.endsWith('`')) {
         return (
-          <code key={idx} className="bg-primary/5 px-1 py-0.5 rounded text-xs font-mono text-brandGreen">
+          <code
+            key={idx}
+            className="bg-primary/5 px-1 py-0.5 rounded text-xs font-mono text-brandGreen"
+          >
             {part.slice(1, -1)}
           </code>
         );
@@ -41,8 +44,8 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
             rel="noopener noreferrer"
             className={`${
               isUser
-                ? "text-cyanAccent underline hover:text-white"
-                : "text-brandGreen font-bold underline hover:text-darkGreen"
+                ? 'text-cyanAccent underline hover:text-white'
+                : 'text-brandGreen font-bold underline hover:text-darkGreen'
             } transition-colors`}
           >
             {linkMatch[1]}
@@ -53,9 +56,9 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
     });
   };
 
-  const lines = content.split("\n");
-  const blocks: { type: "p" | "ul" | "ol"; items: string[] }[] = [];
-  let currentBlock: { type: "p" | "ul" | "ol"; items: string[] } | null = null;
+  const lines = content.split('\n');
+  const blocks: { type: 'p' | 'ul' | 'ol'; items: string[] }[] = [];
+  let currentBlock: { type: 'p' | 'ul' | 'ol'; items: string[] } | null = null;
 
   for (const line of lines) {
     const trimmed = line.trim();
@@ -69,12 +72,12 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
 
     const ulMatch = line.match(/^(\s*)[-*]\s+(.*)$/);
     if (ulMatch) {
-      if (currentBlock && currentBlock.type !== "ul") {
+      if (currentBlock && currentBlock.type !== 'ul') {
         blocks.push(currentBlock);
         currentBlock = null;
       }
       if (!currentBlock) {
-        currentBlock = { type: "ul", items: [] };
+        currentBlock = { type: 'ul', items: [] };
       }
       currentBlock.items.push(ulMatch[2]);
       continue;
@@ -82,23 +85,23 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
 
     const olMatch = line.match(/^(\s*)\d+\.\s+(.*)$/);
     if (olMatch) {
-      if (currentBlock && currentBlock.type !== "ol") {
+      if (currentBlock && currentBlock.type !== 'ol') {
         blocks.push(currentBlock);
         currentBlock = null;
       }
       if (!currentBlock) {
-        currentBlock = { type: "ol", items: [] };
+        currentBlock = { type: 'ol', items: [] };
       }
       currentBlock.items.push(olMatch[2]);
       continue;
     }
 
-    if (currentBlock && currentBlock.type !== "p") {
+    if (currentBlock && currentBlock.type !== 'p') {
       blocks.push(currentBlock);
       currentBlock = null;
     }
     if (!currentBlock) {
-      currentBlock = { type: "p", items: [] };
+      currentBlock = { type: 'p', items: [] };
     }
     currentBlock.items.push(line);
   }
@@ -110,7 +113,7 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
   return (
     <div className="space-y-2">
       {blocks.map((block, bIdx) => {
-        if (block.type === "ul") {
+        if (block.type === 'ul') {
           return (
             <ul key={bIdx} className="list-disc pl-5 my-1.5 space-y-1">
               {block.items.map((item, iIdx) => (
@@ -121,7 +124,7 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
             </ul>
           );
         }
-        if (block.type === "ol") {
+        if (block.type === 'ol') {
           return (
             <ol key={bIdx} className="list-decimal pl-5 my-1.5 space-y-1">
               {block.items.map((item, iIdx) => (
@@ -134,7 +137,7 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
         }
         return (
           <p key={bIdx} className="leading-relaxed">
-            {parseInline(block.items.join(" "))}
+            {parseInline(block.items.join(' '))}
           </p>
         );
       })}
@@ -145,13 +148,13 @@ function MarkdownContent({ content, isUser }: { content: string; isUser: boolean
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([GREETING]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, open, loading]);
 
   useEffect(() => {
@@ -162,21 +165,27 @@ export default function ChatWidget() {
     const clean = text.trim();
     if (!clean || loading) return;
 
-    const next: Message[] = [...messages, { role: "user", content: clean }];
+    const next: Message[] = [...messages, { role: 'user', content: clean }];
     setMessages(next);
-    setInput("");
+    setInput('');
     setLoading(true);
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: next.slice(-12) }),
       });
       const data = await res.json();
-      setMessages((m) => [...m, { role: "assistant", content: data.reply ?? "Sorry, something went wrong." }]);
+      setMessages((m) => [
+        ...m,
+        { role: 'assistant', content: data.reply ?? 'Sorry, something went wrong.' },
+      ]);
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Sorry, I couldn’t reach the assistant. Please try again." }]);
+      setMessages((m) => [
+        ...m,
+        { role: 'assistant', content: 'Sorry, I couldn’t reach the assistant. Please try again.' },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -188,7 +197,7 @@ export default function ChatWidget() {
     <>
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close support chat" : "Open support chat"}
+        aria-label={open ? 'Close support chat' : 'Open support chat'}
         className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brandGreen to-darkGreen text-white shadow-[0_10px_30px_-8px_rgba(0,101,59,0.6)] ring-4 ring-brandGreen/10 hover:scale-105 active:scale-95 transition-transform duration-200"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
@@ -196,7 +205,7 @@ export default function ChatWidget() {
 
       <div
         className={`fixed bottom-24 right-5 z-50 flex h-[72vh] max-h-[560px] w-[92vw] max-w-[380px] flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-[0_24px_60px_-15px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out ${
-          open ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-6 opacity-0"
+          open ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-6 opacity-0'
         }`}
       >
         <div className="relative overflow-hidden bg-gradient-to-br from-brandGreen to-darkGreen px-5 py-4 text-white">
@@ -223,20 +232,23 @@ export default function ChatWidget() {
 
         <div className="flex-1 space-y-3 overflow-y-auto bg-gradient-to-b from-pageBg to-white px-4 py-4">
           {messages.map((m, i) => (
-            <div key={i} className={`flex items-end gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              {m.role === "assistant" && (
+            <div
+              key={i}
+              className={`flex items-end gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              {m.role === 'assistant' && (
                 <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brandGreen/10 text-brandGreen">
                   <Sparkles className="h-3.5 w-3.5" />
                 </span>
               )}
               <div
                 className={`max-w-[78%] px-4 py-2.5 text-sm shadow-sm ${
-                  m.role === "user"
-                    ? "rounded-2xl rounded-br-md bg-gradient-to-br from-brandGreen to-darkGreen text-white"
-                    : "rounded-2xl rounded-bl-md border border-border bg-white text-ink"
+                  m.role === 'user'
+                    ? 'rounded-2xl rounded-br-md bg-gradient-to-br from-brandGreen to-darkGreen text-white'
+                    : 'rounded-2xl rounded-bl-md border border-border bg-white text-ink'
                 }`}
               >
-                <MarkdownContent content={m.content} isUser={m.role === "user"} />
+                <MarkdownContent content={m.content} isUser={m.role === 'user'} />
               </div>
             </div>
           ))}

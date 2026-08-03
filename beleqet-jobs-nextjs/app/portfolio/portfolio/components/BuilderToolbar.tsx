@@ -1,15 +1,9 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import {
-  Download,
-  Eye,
-  LayoutTemplate,
-  Save,
-  Send,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import type { PortfolioPersistAction } from "../types";
+import { useRouter } from 'next/navigation';
+import { Download, Eye, LayoutTemplate, Save, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import type { PortfolioPersistAction } from '../types';
 
 type BuilderToolbarProps = {
   onPersist: (action: PortfolioPersistAction) => void;
@@ -38,16 +32,13 @@ export function BuilderToolbar({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => router.push("/portfolio/templates")}
+          onClick={() => router.push('/portfolio/templates')}
         >
           <LayoutTemplate className="h-4 w-4" />
           Templates
         </Button>
-        <span
-          className="hidden text-xs text-ink/50 sm:inline"
-          aria-live="polite"
-        >
-          {dirty ? "Unsaved changes" : "All changes synced locally"}
+        <span className="hidden text-xs text-ink/50 sm:inline" aria-live="polite">
+          {dirty ? 'Unsaved changes' : 'All changes synced locally'}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -62,17 +53,17 @@ export function BuilderToolbar({
           variant="secondary"
           size="sm"
           disabled={isSaving}
-          onClick={() => onPersist("save")}
+          onClick={() => onPersist('save')}
         >
           <Save className="h-4 w-4" />
-          {isSaving ? "Saving…" : "Save"}
+          {isSaving ? 'Saving…' : 'Save'}
         </Button>
         <Button
           type="button"
           variant="outline"
           size="sm"
           disabled={isSaving}
-          onClick={() => onPersist("export")}
+          onClick={() => onPersist('export')}
         >
           <Download className="h-4 w-4" />
           Export
@@ -82,7 +73,7 @@ export function BuilderToolbar({
           size="sm"
           disabled={isSaving}
           className="bg-green-600"
-          onClick={() => onPersist("publish")}
+          onClick={() => onPersist('publish')}
         >
           <Send className="h-4 w-4" />
           Publish

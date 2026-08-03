@@ -5,7 +5,7 @@
  * `<link rel="canonical">`, Open Graph `url`, and `<sitemap>` entries.
  */
 
-import { getSeoConfig } from "./config";
+import { getSeoConfig } from './config';
 
 /**
  * Build an absolute canonical URL for the given relative path.
@@ -23,8 +23,8 @@ import { getSeoConfig } from "./config";
  */
 export function buildCanonical(path: string, locale?: string): string {
   const { siteUrl, defaultLocale } = getSeoConfig();
-  const base = siteUrl.replace(/\/+$/, "");
-  const clean = path.replace(/\/+$/, "") || "/";
+  const base = siteUrl.replace(/\/+$/, '');
+  const clean = path.replace(/\/+$/, '') || '/';
   const url = `${base}${clean}`;
 
   if (locale && locale !== defaultLocale) {
@@ -42,17 +42,17 @@ export function buildCanonical(path: string, locale?: string): string {
  * @returns A new `URL` with tracking parameters removed.
  */
 export function stripTrackingParams(url: string | URL): URL {
-  const parsed = typeof url === "string" ? new URL(url) : new URL(url.href);
+  const parsed = typeof url === 'string' ? new URL(url) : new URL(url.href);
   const tracking = new Set([
-    "utm_source",
-    "utm_medium",
-    "utm_campaign",
-    "utm_term",
-    "utm_content",
-    "ref",
-    "source",
-    "fbclid",
-    "gclid",
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_term',
+    'utm_content',
+    'ref',
+    'source',
+    'fbclid',
+    'gclid',
   ]);
 
   for (const key of [...parsed.searchParams.keys()]) {

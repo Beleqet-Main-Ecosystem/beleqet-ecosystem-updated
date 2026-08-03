@@ -116,7 +116,9 @@ export function ReleaseButton({
   return (
     <div>
       {successMessage && (
-        <div className="bg-green-50 text-green-700 px-4 py-2 rounded mb-4 text-sm">{successMessage}</div>
+        <div className="bg-green-50 text-green-700 px-4 py-2 rounded mb-4 text-sm">
+          {successMessage}
+        </div>
       )}
       {error && (
         <div className="bg-red-50 text-red-700 px-4 py-2 rounded mb-4 text-sm">{error}</div>

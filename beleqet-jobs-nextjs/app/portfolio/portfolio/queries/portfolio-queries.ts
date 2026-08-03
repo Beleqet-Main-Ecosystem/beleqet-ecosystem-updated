@@ -1,16 +1,9 @@
-"use client";
+'use client';
 
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import {
-  fetchPortfolioFromApi,
-  savePortfolioToApi,
-} from "../services/portfolio-api";
-import { portfolioQueryKeys } from "../queries/query-keys";
-import type { MasterProfileData } from "../types";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchPortfolioFromApi, savePortfolioToApi } from '../services/portfolio-api';
+import { portfolioQueryKeys } from '../queries/query-keys';
+import type { MasterProfileData } from '../types';
 
 /**
  * Loads persisted portfolio for authenticated users via TanStack Query.

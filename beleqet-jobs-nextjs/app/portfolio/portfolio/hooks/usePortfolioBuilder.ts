@@ -1,32 +1,22 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/components/AuthProvider";
-import {
-  usePortfolioQuery,
-  useSavePortfolioMutation,
-} from "../queries/portfolio-queries";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
+import { usePortfolioQuery, useSavePortfolioMutation } from '../queries/portfolio-queries';
 import {
   exportPortfolioJson,
   loadLocalPortfolioDraft,
   saveLocalPortfolioDraft,
-} from "../services/portfolio-api";
+} from '../services/portfolio-api';
 import type {
   MasterProfileData,
   PortfolioPersistAction,
   PortfolioSectionId,
   TemplateId,
-} from "../types";
-import { createId } from "../utils/ids";
-import {
-  applyOrderIndices,
-  reorderItems,
-} from "../utils/reorder";
-import {
-  createEmptyPortfolio,
-  switchTemplate,
-  touchPortfolio,
-} from "../utils/portfolio-state";
+} from '../types';
+import { createId } from '../utils/ids';
+import { applyOrderIndices, reorderItems } from '../utils/reorder';
+import { createEmptyPortfolio, switchTemplate, touchPortfolio } from '../utils/portfolio-state';
 import type {
   CaseStudy,
   Certification,
@@ -36,7 +26,7 @@ import type {
   PortfolioProject,
   SkillGroup,
   SocialLink,
-} from "../types";
+} from '../types';
 
 type BuilderState = {
   data: MasterProfileData;
@@ -57,8 +47,7 @@ export function usePortfolioBuilder(initialTemplate?: TemplateId) {
     loaded: false,
   });
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] =
-    useState<PortfolioPersistAction | null>(null);
+  const [pendingAction, setPendingAction] = useState<PortfolioPersistAction | null>(null);
 
   useEffect(() => {
     if (!ready) return;
@@ -80,9 +69,7 @@ export function usePortfolioBuilder(initialTemplate?: TemplateId) {
       const local = loadLocalPortfolioDraft();
       const base = local ?? createEmptyPortfolio();
       setState({
-        data: initialTemplate
-          ? switchTemplate(base, initialTemplate)
-          : base,
+        data: initialTemplate ? switchTemplate(base, initialTemplate) : base,
         dirty: false,
         loaded: true,
       });
@@ -97,16 +84,13 @@ export function usePortfolioBuilder(initialTemplate?: TemplateId) {
     initialTemplate,
   ]);
 
-  const updateData = useCallback(
-    (updater: (current: MasterProfileData) => MasterProfileData) => {
-      setState((prev) => ({
-        data: touchPortfolio(updater(prev.data)),
-        dirty: true,
-        loaded: prev.loaded,
-      }));
-    },
-    [],
-  );
+  const updateData = useCallback((updater: (current: MasterProfileData) => MasterProfileData) => {
+    setState((prev) => ({
+      data: touchPortfolio(updater(prev.data)),
+      dirty: true,
+      loaded: prev.loaded,
+    }));
+  }, []);
 
   const setTemplate = useCallback(
     (templateId: TemplateId) => {
@@ -129,9 +113,7 @@ export function usePortfolioBuilder(initialTemplate?: TemplateId) {
     (from: number, to: number) => {
       updateData((d) => ({
         ...d,
-        projects: applyOrderIndices(
-          reorderItems(sortProjects(d.projects), from, to),
-        ),
+        projects: applyOrderIndices(reorderItems(sortProjects(d.projects), from, to)),
       }));
     },
     [updateData],
@@ -151,9 +133,7 @@ export function usePortfolioBuilder(initialTemplate?: TemplateId) {
     (from: number, to: number) => {
       updateData((d) => ({
         ...d,
-        certifications: applyOrderIndices(
-          reorderItems(sortCerts(d.certifications), from, to),
-        ),
+        certifications: applyOrderIndices(reorderItems(sortCerts(d.certifications), from, to)),
       }));
     },
     [updateData],
@@ -163,9 +143,7 @@ export function usePortfolioBuilder(initialTemplate?: TemplateId) {
     (from: number, to: number) => {
       updateData((d) => ({
         ...d,
-        gallery: applyOrderIndices(
-          reorderItems(sortGallery(d.gallery), from, to),
-        ),
+        gallery: applyOrderIndices(reorderItems(sortGallery(d.gallery), from, to)),
       }));
     },
     [updateData],
@@ -191,16 +169,16 @@ export function usePortfolioBuilder(initialTemplate?: TemplateId) {
         return false;
       }
       const payload =
-        action === "publish"
+        action === 'publish'
           ? { ...state.data, meta: { ...state.data.meta, published: true } }
           : state.data;
 
-      if (action === "export") {
+      if (action === 'export') {
         const blob = exportPortfolioJson(payload);
         const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
+        const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = "beleqet-portfolio.json";
+        anchor.download = 'beleqet-portfolio.json';
         anchor.click();
         URL.revokeObjectURL(url);
       }
@@ -296,14 +274,14 @@ function sortGallery(items: GalleryItem[]) {
 /** Factory helpers exported for builder forms. */
 export function createDefaultProject(orderIndex: number): PortfolioProject {
   return {
-    id: createId("project"),
-    title: { en: "", am: "" },
-    description: { en: "", am: "" },
+    id: createId('project'),
+    title: { en: '', am: '' },
+    description: { en: '', am: '' },
     technologies: [],
     images: [],
     links: [],
-    githubUrl: "",
-    liveDemoUrl: "",
+    githubUrl: '',
+    liveDemoUrl: '',
     tags: [],
     featured: false,
     orderIndex,
@@ -312,12 +290,12 @@ export function createDefaultProject(orderIndex: number): PortfolioProject {
 
 export function createDefaultCaseStudy(orderIndex: number): CaseStudy {
   return {
-    id: createId("case"),
-    title: { en: "", am: "" },
-    problem: { en: "", am: "" },
-    solution: { en: "", am: "" },
-    approach: { en: "", am: "" },
-    results: { en: "", am: "" },
+    id: createId('case'),
+    title: { en: '', am: '' },
+    problem: { en: '', am: '' },
+    solution: { en: '', am: '' },
+    approach: { en: '', am: '' },
+    results: { en: '', am: '' },
     screenshots: [],
     metrics: [],
     orderIndex,
@@ -326,65 +304,65 @@ export function createDefaultCaseStudy(orderIndex: number): CaseStudy {
 
 export function createDefaultCertification(orderIndex: number): Certification {
   return {
-    id: createId("cert"),
-    issuer: "",
-    certificateName: { en: "", am: "" },
-    credentialUrl: "",
-    issueDate: "",
-    expiryDate: "",
+    id: createId('cert'),
+    issuer: '',
+    certificateName: { en: '', am: '' },
+    credentialUrl: '',
+    issueDate: '',
+    expiryDate: '',
     orderIndex,
   };
 }
 
 export function createDefaultExperience(orderIndex: number): ExperienceEntry {
   return {
-    id: createId("exp"),
-    role: { en: "", am: "" },
-    company: { en: "", am: "" },
-    location: "",
-    startDate: "",
-    endDate: "",
-    description: { en: "", am: "" },
+    id: createId('exp'),
+    role: { en: '', am: '' },
+    company: { en: '', am: '' },
+    location: '',
+    startDate: '',
+    endDate: '',
+    description: { en: '', am: '' },
     orderIndex,
   };
 }
 
 export function createDefaultEducation(orderIndex: number): EducationEntry {
   return {
-    id: createId("edu"),
-    institution: { en: "", am: "" },
-    degree: { en: "", am: "" },
-    field: { en: "", am: "" },
-    startYear: "",
-    endYear: "",
-    description: { en: "", am: "" },
+    id: createId('edu'),
+    institution: { en: '', am: '' },
+    degree: { en: '', am: '' },
+    field: { en: '', am: '' },
+    startYear: '',
+    endYear: '',
+    description: { en: '', am: '' },
     orderIndex,
   };
 }
 
 export function createDefaultGalleryItem(orderIndex: number): GalleryItem {
   return {
-    id: createId("gallery"),
-    title: { en: "", am: "" },
-    imageUrl: "",
-    caption: { en: "", am: "" },
+    id: createId('gallery'),
+    title: { en: '', am: '' },
+    imageUrl: '',
+    caption: { en: '', am: '' },
     orderIndex,
   };
 }
 
 export function createDefaultSocialLink(orderIndex: number): SocialLink {
   return {
-    id: createId("social"),
-    platform: "",
-    url: "",
+    id: createId('social'),
+    platform: '',
+    url: '',
     orderIndex,
   };
 }
 
 export function createDefaultSkillGroup(orderIndex: number): SkillGroup {
   return {
-    id: createId("skill_group"),
-    category: "frontend",
+    id: createId('skill_group'),
+    category: 'frontend',
     orderIndex,
     skills: [],
   };

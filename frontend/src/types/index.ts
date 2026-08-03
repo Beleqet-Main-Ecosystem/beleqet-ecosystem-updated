@@ -88,33 +88,74 @@ export interface AuditLogFilters {
   limit?: number;
 }
 
-/** A single immutable audit trail entry (mirrors the backend's `events_log` / EventLog model). */
-export interface AuditLog {
+/** Notification item from the backend */
+export interface Notification {
   id: string;
-  eventType: string;
-  entityId: string;
-  entityType: string;
-  payload: Record<string, unknown>;
-  processedBy: string | null;
+  userId: string;
+  channel: 'IN_APP' | 'EMAIL' | 'TELEGRAM' | 'PUSH' | 'SMS';
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
-/** Paginated response shape returned by GET /audit-logs. */
-export interface AuditLogPage {
-  items: AuditLog[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+/** Notification channel */
+export type NotificationChannel = 'IN_APP' | 'EMAIL' | 'TELEGRAM' | 'PUSH' | 'SMS';
+
+/** Notification preference settings */
+export interface NotificationPreference {
+  id: string;
+  userId: string;
+  emailEnabled: boolean;
+  telegramEnabled: boolean;
+  inAppEnabled: boolean;
+  pushEnabled: boolean;
+  smsEnabled: boolean;
+  language: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-/** Filters accepted by GET /audit-logs. */
-export interface AuditLogFilters {
-  eventType?: string;
-  entityType?: string;
-  entityId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  page?: number;
-  limit?: number;
+/** User-selected colour-scheme preference. `SYSTEM` delegates to the OS. */
+export type ThemePreference = 'LIGHT' | 'DARK' | 'SYSTEM';
+
+/** API response shape for the persisted user theme setting. */
+export interface ThemePreferenceResponse {
+  theme: ThemePreference;
+}
+/** A single promotion campaign, as returned by the Promoted Engine API. */
+export interface PromotionCampaign {
+  id: string;
+  ownerId: string;
+  targetType: 'JOB' | 'PROPOSAL' | 'GIG';
+  targetId: string;
+  status: 'PENDING' | 'ACTIVE' | 'PAUSED' | 'EXHAUSTED' | 'COMPLETED' | 'CANCELLED';
+  cpcBid: number;
+  dailyBudget: number;
+  totalBudget: number | null;
+  currency: string;
+  spentToday: number;
+  spentTotal: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  startAt: string;
+  endAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Analytics summary for a single campaign, as returned by GET /promoted-engine/campaigns/:id/analytics. */
+export interface CampaignAnalytics {
+  campaignId: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  ctr: number;
+  spentTotal: number;
+  spentToday: number;
+  currency: string;
+  status: string;
 }

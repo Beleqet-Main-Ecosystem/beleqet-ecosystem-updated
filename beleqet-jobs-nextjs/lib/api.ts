@@ -1,5 +1,5 @@
-import axios from "axios";
-import { z } from "zod";
+import axios from 'axios';
+import { z } from 'zod';
 
 const rawJobSchema = z.object({
   id: z.string(),
@@ -41,7 +41,7 @@ export type Job = {
   featured?: boolean;
   description?: string;
   tags?: string[];
-//new fields for salary and currency
+  //new fields for salary and currency
   salaryMin?: number;
   salaryMax?: number;
   currency?: string;
@@ -56,20 +56,20 @@ export type Category = {
 };
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1",
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1',
   timeout: 10000,
 });
 
 const typeLabels: Record<string, string> = {
-  FULL_TIME: "Full Time",
-  PART_TIME: "Part Time",
-  REMOTE: "Remote",
-  HYBRID: "Hybrid",
-  CONTRACT: "Contract",
+  FULL_TIME: 'Full Time',
+  PART_TIME: 'Part Time',
+  REMOTE: 'Remote',
+  HYBRID: 'Hybrid',
+  CONTRACT: 'Contract',
 };
 
 function relativeTime(iso?: string | null): string {
-  if (!iso) return "Recently";
+  if (!iso) return 'Recently';
   const diff = Math.max(0, Date.now() - new Date(iso).getTime());
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${Math.max(1, mins)}m ago`;
@@ -82,25 +82,25 @@ function toJob(raw: RawJob): Job {
   return {
     id: raw.id,
     title: raw.title,
-    company: raw.company?.name ?? raw.companyName ?? "Confidential",
-    location: raw.location ?? "",
-    type: (raw.type && typeLabels[raw.type]) ?? raw.type ?? "",
-    category: raw.category?.slug ?? raw.categoryId ?? "",
+    company: raw.company?.name ?? raw.companyName ?? 'Confidential',
+    location: raw.location ?? '',
+    type: (raw.type && typeLabels[raw.type]) ?? raw.type ?? '',
+    category: raw.category?.slug ?? raw.categoryId ?? '',
     postedAgo: relativeTime(raw.createdAt),
     createdAt: raw.createdAt ?? undefined,
     featured: raw.featured ?? false,
-    description: raw.description ?? "",
+    description: raw.description ?? '',
     tags: raw.tags ?? [],
   };
 }
 
 function toCategory(raw: RawCategory): Category {
-  return { id: raw.slug, label: raw.label, icon: raw.icon ?? "briefcase" };
+  return { id: raw.slug, label: raw.label, icon: raw.icon ?? 'briefcase' };
 }
 
 export async function fetchJobs(params?: Record<string, string | number>): Promise<Job[]> {
   try {
-    const { data } = await api.get("/jobs", { params: { limit: 60, ...params } });
+    const { data } = await api.get('/jobs', { params: { limit: 60, ...params } });
     return jobsResponseSchema.parse(data).items.map(toJob);
   } catch {
     return [];
@@ -118,7 +118,7 @@ export async function fetchJob(id: string): Promise<Job | null> {
 
 export async function fetchCategories(): Promise<Category[]> {
   try {
-    const { data } = await api.get("/jobs/categories");
+    const { data } = await api.get('/jobs/categories');
     return z.array(rawCategorySchema).parse(data).map(toCategory);
   } catch {
     return [];
@@ -131,7 +131,7 @@ const planSchema = z.object({
   description: z.string().nullish(),
   priceAmount: z.number(),
   currency: z.string(),
-  interval: z.enum(["MONTHLY", "YEARLY"]),
+  interval: z.enum(['MONTHLY', 'YEARLY']),
   features: z.record(z.string(), z.unknown()).nullish(),
   isActive: z.boolean(),
 });
@@ -140,7 +140,7 @@ export type Plan = z.infer<typeof planSchema>;
 
 export async function fetchPlans(): Promise<Plan[]> {
   try {
-    const { data } = await api.get("/plans");
+    const { data } = await api.get('/plans');
     return z.array(planSchema).parse(data);
   } catch {
     return [];
