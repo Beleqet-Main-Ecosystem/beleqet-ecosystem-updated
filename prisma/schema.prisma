@@ -61,6 +61,7 @@ model User {
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
   subscriptions         Subscription[]
+  promotionCampaigns    PromotionCampaign[]
 
   /// Whether the user has consented to their search history, skills, and
   /// saved jobs being used to personalize their AI job feed. Defaults to
@@ -1416,6 +1417,156 @@ enum FaqBotMessageRole {
   USER
   ASSISTANT
   SYSTEM
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Promoted Engine & Sponsored Ads (Task: The Vault - Revenue & Monetization)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A single polymorphic PromotionCampaign model covers all three promotable
+// entities (job postings, freelancer proposals/applications, and freelance
+// gigs) rather than three near-duplicate models — the budget/CPC/status/
+// analytics logic is identical across all three; only what's being boosted
+// differs. `targetType` + `targetId` identify the promoted entity; there is
+// deliberately no DB-level foreign key on targetId since it can point at
+// three different tables (Job, Application, or FreelanceJob) — ownership and
+// existence are validated in the service layer at campaign-creation time.
+//
+// Payment model: campaigns are funded by debiting the owner's existing
+// wallet balance (EmployerWallet for job/gig boosts, FreelancerWallet for
+// proposal boosts) — the same pattern EscrowService already uses via
+// WalletService — rather than routing every small ad charge through a new
+// Chapa/Stripe checkout. PromotionWalletTransaction records each debit for
+// audit purposes, mirroring EmployerWalletTransaction/WalletTransaction.
+//
+// Multi-currency: `currency` is ISO 4217, matching Payment/Plan/Job above.
+// All money fields are Int in minor units (cents/santim), matching the
+// platform-wide convention (see Payment.amount).
+//
+// GDPR: PromotionEvent stores no PII — no IP address, no viewer user ID —
+// only an aggregate event type + timestamp + optional non-identifying
+// metadata, so it carries nothing to redact on a data-deletion request.
+
+/// What kind of entity a campaign is boosting.
+enum PromotionTargetType {
+  JOB
+  PROPOSAL
+  GIG
+}
+
+/// Lifecycle status of a promotion campaign.
+enum CampaignStatus {
+  /// Created but not yet funded/activated (e.g. payment pending).
+  PENDING
+  ACTIVE
+  /// Paused by the owner — no spend accrues, can be resumed.
+  PAUSED
+  /// dailyBudget or totalBudget fully spent — campaign stops serving until
+  /// the next day's reset (dailyBudget) or permanently (totalBudget).
+  EXHAUSTED
+  /// Reached its endAt date or was manually ended.
+  COMPLETED
+  CANCELLED
+}
+
+/// A paid visibility-boost campaign for a Job, Proposal (Application), or
+/// FreelanceJob (gig). Drives priority ranking in search/dashboard results
+/// while ACTIVE and funded.
+model PromotionCampaign {
+  id     String              @id @default(uuid())
+  ownerId String
+  targetType PromotionTargetType
+  /// Polymorphic reference — Job.id, Application.id, or FreelanceJob.id
+  /// depending on targetType. Validated (existence + ownership) in the
+  /// service layer, not enforced at the DB level (see note above).
+  targetId String
+
+  status CampaignStatus @default(PENDING)
+
+  /// Cost per click, in minor currency units.
+  cpcBid Int
+  /// Max spend allowed per day, in minor currency units. Enforced by a
+  /// scheduled job that resets `spentToday` to 0 at each day boundary.
+  dailyBudget Int
+  /// Optional lifetime spend cap; null means no cap beyond dailyBudget.
+  totalBudget Int?
+  currency    String @default("ETB")
+
+  spentToday Int      @default(0)
+  spentTotal Int      @default(0)
+  /// Last time spentToday was reset — lets the daily-reset job run
+  /// idempotently (skip campaigns already reset today).
+  lastResetAt DateTime @default(now())
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+  conversions Int @default(0)
+
+  startAt DateTime  @default(now())
+  endAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner        User                        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events       PromotionEvent[]
+  transactions PromotionWalletTransaction[]
+
+  /// Speeds up "find active campaigns boosting this target" — the ranking
+  /// query's main lookup, run on every search/listing page render.
+  @@index([targetType, targetId, status])
+  /// Speeds up "this owner's campaigns" for their analytics dashboard.
+  @@index([ownerId, status])
+  @@map("promotion_campaigns")
+}
+
+/// What kind of interaction a PromotionEvent records.
+enum PromotionEventType {
+  /// Campaign's target was shown in a boosted position. Free (no spend).
+  IMPRESSION
+  /// Viewer clicked through. Costs `campaign.cpcBid` at the time of the click.
+  CLICK
+  /// Click led to a tracked outcome (application submitted, bid placed,
+  /// gig ordered) — reported in analytics but does not itself cost extra.
+  CONVERSION
+}
+
+/// One row per impression/click/conversion against a campaign. Deliberately
+/// minimal and non-identifying (see GDPR note above) — this is an analytics
+/// counter table, not a user-activity log.
+model PromotionEvent {
+  id         String             @id @default(uuid())
+  campaignId String
+  type       PromotionEventType
+  /// Amount charged for this specific event, in minor currency units
+  /// (campaign.cpcBid for CLICK, 0 for IMPRESSION/CONVERSION).
+  costApplied Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  /// Speeds up the analytics dashboard's "events for this campaign, by type,
+  /// over time" query.
+  @@index([campaignId, type, createdAt])
+  @@map("promotion_events")
+}
+
+/// Audit trail of wallet debits/refunds caused by campaign spend, mirroring
+/// EmployerWalletTransaction/WalletTransaction's shape. Kept separate from
+/// those tables (rather than reusing WalletTransactionType) since campaign
+/// spend is its own transaction category with its own reporting needs.
+model PromotionWalletTransaction {
+  id         String   @id @default(uuid())
+  campaignId String
+  /// Amount debited (positive) or refunded (negative), in minor currency units.
+  amount     Int
+  currency   String   @default("ETB")
+  note       String?
+  createdAt  DateTime @default(now())
+
+  campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt])
+  @@map("promotion_wallet_transactions")
 }
 
 /// System-wide audit log entity tracking user/system actions, entity state changes,
