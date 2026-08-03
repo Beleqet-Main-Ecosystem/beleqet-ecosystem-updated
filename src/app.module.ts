@@ -40,6 +40,7 @@ import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 
 import { PaymentsModule } from './modules/payments/payments.module';
+import { CommunityForumModule } from './modules/community-forum/forum.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AuditModule } from './modules/audit/audit.module';
@@ -146,6 +147,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
+    CommunityForumModule,
     TwoFactorModule,
     KycModule,
     AuditModule,
