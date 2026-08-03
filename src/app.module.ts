@@ -68,19 +68,30 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env.local', '.env'], load: [configuration] }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+      load: [configuration],
+    }),
     ThrottlerModule.forRoot([{ name: 'short', ttl: 1_000, limit: 10 }]),
     EventEmitterModule.forRoot({ wildcard: true, delimiter: '.' }),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        connection: { host: config.get('REDIS_HOST', 'localhost'), port: config.get('REDIS_PORT', 6379) }
+        connection: {
+          host: config.get('REDIS_HOST', 'localhost'),
+          port: config.get('REDIS_PORT', 6379),
+        },
       }),
     }),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
-      resolvers: [{ use: QueryResolver, options: ['lang'] }, AcceptLanguageResolver, new HeaderResolver(['x-custom-lang'])],
+      resolvers: [
+        { use: QueryResolver, options: ['lang'] },
+        AcceptLanguageResolver,
+        new HeaderResolver(['x-custom-lang']),
+      ],
     }),
     GdprGuardModule,
     PrismaModule,
@@ -134,8 +145,6 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     CacheConfigModule,
     EncryptionModule,
   ],
-  providers: [
-    { provide: APP_GUARD, useClass: GqlThrottlerGuard },
-  ],
+  providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }],
 })
 export class AppModule {}
