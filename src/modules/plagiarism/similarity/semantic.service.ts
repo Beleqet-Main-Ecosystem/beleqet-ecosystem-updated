@@ -69,9 +69,13 @@ export class SemanticService implements ISimilarityAlgorithm, OnModuleInit {
     this.initPromise = (async () => {
       const { pipeline, env } = await import('@xenova/transformers');
       // Prevent Ort::Exception C++ binding crashes on musl/Alpine Linux by disabling native node binding and using single-threaded WASM
-      env.backends.onnx.node = false;
-      env.backends.onnx.wasm.numThreads = 1;
-      env.backends.onnx.wasm.simd = false;
+      if (env?.backends?.onnx) {
+        env.backends.onnx.node = false;
+        if (env.backends.onnx.wasm) {
+          env.backends.onnx.wasm.numThreads = 1;
+          env.backends.onnx.wasm.simd = false;
+        }
+      }
       this.extractor = (await pipeline(
         'feature-extraction',
         MODEL_ID,
