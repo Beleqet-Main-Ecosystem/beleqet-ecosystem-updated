@@ -14,6 +14,8 @@ import type {
   NotificationPreference,
   ThemePreference,
   ThemePreferenceResponse,
+  PromotionCampaign,
+  CampaignAnalytics,
 } from '@/types';
 
 /** Fetches the current authenticated user's persisted theme preference. */
@@ -196,5 +198,58 @@ export async function updateNotificationPreferences(
     '/users/notification-preferences',
     prefs,
   );
+  return data;
+}
+// ── Promoted Engine ──────────────────────────────────────────────────────────
+
+/** Creates a new promotion campaign for a job, proposal, or gig. */
+export async function createCampaign(payload: {
+  targetType: 'JOB' | 'PROPOSAL' | 'GIG';
+  targetId: string;
+  cpcBid: number;
+  dailyBudget: number;
+  totalBudget?: number;
+  currency?: string;
+  endAt?: string;
+}): Promise<PromotionCampaign> {
+  const { data } = await apiClient.post<PromotionCampaign>('/promoted-engine/campaigns', payload);
+  return data;
+}
+
+/** Lists the current user's own campaigns. */
+export async function listMyCampaigns(): Promise<PromotionCampaign[]> {
+  const { data } = await apiClient.get<PromotionCampaign[]>('/promoted-engine/campaigns/mine');
+  return data;
+}
+
+/** Fetches a single campaign by id. */
+export async function getCampaign(id: string): Promise<PromotionCampaign> {
+  const { data } = await apiClient.get<PromotionCampaign>(`/promoted-engine/campaigns/${id}`);
+  return data;
+}
+
+/** Pauses, resumes, or cancels a campaign. */
+export async function updateCampaignStatus(
+  id: string,
+  status: 'ACTIVE' | 'PAUSED' | 'CANCELLED',
+): Promise<PromotionCampaign> {
+  const { data } = await apiClient.patch<PromotionCampaign>(`/promoted-engine/campaigns/${id}/status`, { status });
+  return data;
+}
+
+/** Fetches impressions/clicks/conversions/spend for a single campaign. */
+export async function getCampaignAnalytics(id: string): Promise<CampaignAnalytics> {
+  const { data } = await apiClient.get<CampaignAnalytics>(`/promoted-engine/campaigns/${id}/analytics`);
+  return data;
+}
+
+/** Checks which of a batch of targets currently have a winning active boost. No auth required. */
+export async function getActiveBoosts(
+  targetType: 'JOB' | 'PROPOSAL' | 'GIG',
+  targetIds: string[],
+): Promise<{ targetId: string; isBoosted: boolean }[]> {
+  const { data } = await apiClient.get<{ targetId: string; isBoosted: boolean }[]>('/promoted-engine/active-boosts', {
+    params: { targetType, targetIds: targetIds.join(',') },
+  });
   return data;
 }

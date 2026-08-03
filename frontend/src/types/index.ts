@@ -125,3 +125,37 @@ export type ThemePreference = 'LIGHT' | 'DARK' | 'SYSTEM';
 export interface ThemePreferenceResponse {
   theme: ThemePreference;
 }
+/** A single promotion campaign, as returned by the Promoted Engine API. */
+export interface PromotionCampaign {
+  id: string;
+  ownerId: string;
+  targetType: 'JOB' | 'PROPOSAL' | 'GIG';
+  targetId: string;
+  status: 'PENDING' | 'ACTIVE' | 'PAUSED' | 'EXHAUSTED' | 'COMPLETED' | 'CANCELLED';
+  cpcBid: number;
+  dailyBudget: number;
+  totalBudget: number | null;
+  currency: string;
+  spentToday: number;
+  spentTotal: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  startAt: string;
+  endAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Analytics summary for a single campaign, as returned by GET /promoted-engine/campaigns/:id/analytics. */
+export interface CampaignAnalytics {
+  campaignId: string;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+  ctr: number;
+  spentTotal: number;
+  spentToday: number;
+  currency: string;
+  status: string;
+}
