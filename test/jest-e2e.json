@@ -5,29 +5,13 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)sx?$": "ts-jest"
-<<<<<<< HEAD
-<<<<<<< HEAD
-  },
-  "transformIgnorePatterns": [
-<<<<<<< HEAD
-    "/node_modules/(?!@scure|otplib)/"
-=======
   },
   "transformIgnorePatterns": [
     "/node_modules/(?!(@scure|otplib|@otplib|@noble)/)"
->>>>>>> 5da82d4 (fix(ci): fix throttler guard crashing on graphql requests)
-=======
-    "/node_modules/(?!(@scure|otplib|@otplib|@noble)/)"
->>>>>>> 9961b0e (Resolve CI failures, remove binary gitignore and dist, fix conflict markers)
   ],
   "moduleNameMapper": {
     "^@common/(.*)$": "<rootDir>/src/common/$1",
     "^@modules/(.*)$": "<rootDir>/src/modules/$1",
     "^@prisma-client$": "<rootDir>/src/prisma/prisma.service"
-<<<<<<< HEAD
-=======
->>>>>>> c47ff25 (fix(ci): resolve prettier and formatting errors)
-=======
->>>>>>> 5da82d4 (fix(ci): fix throttler guard crashing on graphql requests)
   }
 }
