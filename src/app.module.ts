@@ -1,3 +1,5 @@
+import { CacheConfigModule } from './cache/cache.module';
+import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -20,13 +22,16 @@ import { FreelanceModule } from './modules/freelance/freelance.module';
 import { EscrowModule } from './modules/escrow/escrow.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AdminControlModule } from './modules/admin-control/admin-control.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
 import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
+import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -37,17 +42,25 @@ import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.
 import { PaymentsModule } from './modules/payments/payments.module';
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
+import { CommunityForumModule } from './modules/community-forum/forum.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
+import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { EncryptionModule } from './common/encryption/encryption.module';
+import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
@@ -58,6 +71,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
+      load: [configuration],
     }),
 
     //  Rate limiting
@@ -74,7 +88,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
       maxListeners: 20,
     }),
 
-    // ── Unified BullMQ (Redis-backed job queues) ───────────────────────────
+    //  BullMQ (Redis-backed job queues)
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -107,7 +121,10 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
       ],
     }),
 
-    //  Feature modules
+    // — GDPR Guard module ——————————————————————————————————————————
+    GdprGuardModule,
+
+    // — Feature modules ——————————————————————————————————————————
     PrismaModule,
     QueuesModule,
     RedisModule,
@@ -122,6 +139,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     EscrowModule,
     WalletModule,
     AdminModule,
+    AdminControlModule,
     ChatModule,
     UploadsModule,
     TelegramModule,
@@ -134,9 +152,10 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     DisputeManagerModule,
     DbIndexMasterModule,
     PaymentsModule,
-    // ── Fixed: PerformanceWorkerModule removed from imports array ──
+    CommunityForumModule,
     TwoFactorModule,
     KycModule,
+    AuditModule,
     AiFeedModule,
     ResumeBrainModule,
 
@@ -144,12 +163,19 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
+    SmartBiddingModule,
+    PromotedEngineModule,
+    UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
-
     FraudAlertModule,
+    RbacModule,
+    AuditLogModule,
+    CacheConfigModule,
+    FaqBotModule,
+    EncryptionModule,
   ],
   providers: [
     {

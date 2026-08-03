@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { Plus } from "lucide-react";
-import { useAuth } from "@/components/AuthProvider";
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
-export default function PostJobButton({ className = "" }: { className?: string }) {
+export default function PostJobButton({ className = '' }: { className?: string }) {
   const { user, ready } = useAuth();
   if (!ready || !user) return null;
 
-  const canPost = user.role === "EMPLOYER" || user.role === "ADMIN";
+  const canPost = user.role === 'EMPLOYER' || user.role === 'ADMIN';
   if (!canPost) return null;
 
   return (

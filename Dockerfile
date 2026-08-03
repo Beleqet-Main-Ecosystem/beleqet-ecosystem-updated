@@ -17,10 +17,10 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
 RUN npm ci
+RUN npm run prisma:generate
 
 COPY . .
 
-RUN npm run prisma:generate
 RUN npm run build
 
 # ── Prune stage: production-only node_modules + generated Prisma client ──────
@@ -71,4 +71,5 @@ EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
 
-CMD ["node", "dist/main"]
+# Apply committed migrations (production-safe) before starting the server.
+CMD sh -c "npx prisma migrate deploy && npm run start:prod"

@@ -1,5 +1,5 @@
-import React from "react";
-import { getSeoConfig } from "../config";
+import React from 'react';
+import { getSeoConfig } from '../config';
 
 /**
  * `<script type="application/ld+json">` fragment describing the organisation
@@ -12,27 +12,24 @@ export function OrganizationSchema(): React.ReactElement {
   const { organization } = getSeoConfig();
 
   const json = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
     name: organization.name,
     url: organization.url,
     logo: organization.logo,
     email: organization.email,
     address: {
-      "@type": "PostalAddress",
+      '@type': 'PostalAddress',
       addressLocality: organization.address,
     },
     contactPoint: {
-      "@type": "ContactPoint",
+      '@type': 'ContactPoint',
       email: organization.email,
-      contactType: "customer support",
+      contactType: 'customer support',
     },
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
   );
 }

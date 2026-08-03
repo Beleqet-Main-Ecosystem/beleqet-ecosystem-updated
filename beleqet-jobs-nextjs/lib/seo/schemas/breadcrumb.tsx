@@ -1,5 +1,5 @@
-import React from "react";
-import { getSeoConfig } from "../config";
+import React from 'react';
+import { getSeoConfig } from '../config';
 
 /** A single breadcrumb list item. */
 export interface BreadcrumbItem {
@@ -16,30 +16,21 @@ export interface BreadcrumbItem {
  *
  * @see https://schema.org/BreadcrumbList
  */
-export function BreadcrumbSchema({
-  items,
-}: {
-  items: BreadcrumbItem[];
-}): React.ReactElement {
+export function BreadcrumbSchema({ items }: { items: BreadcrumbItem[] }): React.ReactElement {
   const { siteUrl } = getSeoConfig();
 
   const json = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
     itemListElement: items.map((item, index) => ({
-      "@type": "ListItem",
+      '@type': 'ListItem',
       position: index + 1,
       name: item.name,
-      item: item.href.startsWith("http")
-        ? item.href
-        : `${siteUrl.replace(/\/+$/, "")}${item.href}`,
+      item: item.href.startsWith('http') ? item.href : `${siteUrl.replace(/\/+$/, '')}${item.href}`,
     })),
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
   );
 }

@@ -121,3 +121,5 @@ temp-storage/
 **/temp-storage/
 
 src/i18n/am/
+Redis.zip
+Redis/

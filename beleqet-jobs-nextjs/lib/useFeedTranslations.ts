@@ -68,7 +68,10 @@ export function useFeedTranslations() {
   }, []);
 
   /** Translates a key, falling back to the key itself if missing. */
-  const t = useCallback((key: string) => messages[key] ?? FALLBACK_MESSAGES[key] ?? key, [messages]);
+  const t = useCallback(
+    (key: string) => messages[key] ?? FALLBACK_MESSAGES[key] ?? key,
+    [messages],
+  );
 
   return { t, locale, setLocale };
 }

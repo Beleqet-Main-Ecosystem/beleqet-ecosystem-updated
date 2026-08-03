@@ -29,9 +29,9 @@
     "node_modules",
     "dist",
     "coverage",
-    "beleqet-jobs-nextjs",
     "frontend",
     "web",
+    "beleqet-jobs-nextjs",
     "src/**/frontend"
   ]
 }

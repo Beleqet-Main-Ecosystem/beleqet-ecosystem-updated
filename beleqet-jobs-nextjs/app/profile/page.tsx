@@ -25,13 +25,14 @@ type Subscription = {
   plan: { name: string; priceAmount: number; currency: string };
 };
 
-const subscriptionStatusMeta: Record<Subscription['status'], { label: string; className: string }> = {
-  PENDING: { label: 'Pending approval', className: 'text-muted' },
-  ACTIVE: { label: 'Active', className: 'text-brandGreen' },
-  PAST_DUE: { label: 'Payment failed', className: 'text-redAccent' },
-  CANCELLED: { label: 'Cancelled', className: 'text-muted' },
-  EXPIRED: { label: 'Expired', className: 'text-redAccent' },
-};
+const subscriptionStatusMeta: Record<Subscription['status'], { label: string; className: string }> =
+  {
+    PENDING: { label: 'Pending approval', className: 'text-muted' },
+    ACTIVE: { label: 'Active', className: 'text-brandGreen' },
+    PAST_DUE: { label: 'Payment failed', className: 'text-redAccent' },
+    CANCELLED: { label: 'Cancelled', className: 'text-muted' },
+    EXPIRED: { label: 'Expired', className: 'text-redAccent' },
+  };
 
 const quickActionsByRole: Record<
   string,
@@ -303,7 +304,11 @@ export default function ProfilePage() {
           </div>
         ) : (
           <p className="text-sm text-muted">
-            You&apos;re on the Free plan. <Link href="/pricing" className="font-semibold text-brandGreen">Upgrade anytime</Link>.
+            You&apos;re on the Free plan.{' '}
+            <Link href="/pricing" className="font-semibold text-brandGreen">
+              Upgrade anytime
+            </Link>
+            .
           </p>
         )}
       </div>

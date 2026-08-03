@@ -1,5 +1,5 @@
-import { Suspense } from "react";
-import PortfolioBuilderClient from "./portfolio/builder/PortfolioBuilderClient";
+import { Suspense } from 'react';
+import PortfolioBuilderClient from './portfolio/builder/PortfolioBuilderClient';
 
 export default function PortfolioPage() {
   return (

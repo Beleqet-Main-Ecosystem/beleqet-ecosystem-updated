@@ -66,5 +66,49 @@
     "units": "יחידות",
     "errorGeneric": "የግብር ስሌት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
     "errorInvalidAmount": "ትክክለኛ የማይነስ ገቢ መጠን ያስገቡ።"
+  },
+  "auditLog": {
+    "title": "የስርዓት ኦዲት መዝገቦች",
+    "subtitle": "የተጠቃሚ እንቅስቃሴዎችን፣ ኤፒአይ ጥያቄዎችን እና የውሂብ ለውጦችን በቅጽበት ይከታተሉ እና ይመልከቱ።",
+    "search": "ኦዲት መዝገቦችን ፈልግ",
+    "filterUserId": "በተጠቃሚ መለያ አጣራ",
+    "filterAction": "በድርጊት አይነት አጣራ",
+    "filterEntity": "በእቃ አጣራ",
+    "startDate": "የመነሻ ቀን",
+    "endDate": "የማብቂያ ቀን",
+    "applyFilters": "ማጣሪያዎችን ተግብር",
+    "resetFilters": "ማጣሪያዎችን አጽዳ",
+    "table": {
+      "timestamp": "ጊዜ",
+      "userId": "የተጠቃሚ መለያ",
+      "action": "ድርጊት",
+      "entity": "እቃ",
+      "entityId": "የእቃ መለያ",
+      "ipAddress": "አይፒ አድራሻ",
+      "userAgent": "የተጠቃሚ ወኪል",
+      "actions": "እርምጃዎች"
+    },
+    "viewPayloads": "መረጃዎችን ይመልከቱ",
+    "noLogs": "የተፈለገውን መስፈርት የሚያሟላ ኦዲት መዝገብ አልተገኘም።",
+    "loading": "ኦዲት መዝገቦችን በመጫን ላይ...",
+    "language": "ቋንቋ",
+    "langEn": "English",
+    "langAm": "አማርኛ",
+    "systemUser": "ሲስተም",
+    "modal": {
+      "title": "የኦዲት መዝገብ ዝርዝር መረጃ",
+      "previousState": "ቀዳሚ ሁኔታ (ከለውጥ በፊት)",
+      "newState": "አዲስ ሁኔታ (ከለውጥ በኋላ)",
+      "noPreviousState": "ምንም ቀዳሚ ሁኔታ snapshot አልተገኘም",
+      "noNewState": "ምንም አዲስ ሁኔታ snapshot አልተገኘም",
+      "close": "ዝጋ"
+    },
+    "pagination": {
+      "page": "ገፅ",
+      "of": "ከ",
+      "previous": "ቀዳሚ",
+      "next": "ቀጣይ",
+      "totalRecords": "ጠቅላላ መዝገቦች"
+    }
   }
 }

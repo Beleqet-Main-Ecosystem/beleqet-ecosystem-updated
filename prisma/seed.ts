@@ -6,6 +6,63 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding Beleqet database...');
 
+  console.log('🛡️ Seeding RBAC permissions and roles...');
+  const permissionsData = [
+    { action: 'manage:roles', description: 'Manage roles and permissions' },
+    { action: 'manage:users', description: 'Manage user accounts' },
+    { action: 'manage:jobs', description: 'Manage all jobs' },
+    { action: 'create:jobs', description: 'Create and post jobs' },
+    { action: 'view:stats', description: 'View platform statistics' },
+    { action: 'manage:billing', description: 'Manage subscriptions and billing' },
+    { action: 'manage:kyc', description: 'Manage KYC verification' },
+    { action: 'manage:disputes', description: 'Manage contracts and disputes' },
+    { action: 'manage:db', description: 'Manage database indexing' },
+  ];
+
+  const permissions = await Promise.all(
+    permissionsData.map(p => prisma.permission.upsert({
+      where: { action: p.action },
+      update: {},
+      create: p,
+    }))
+  );
+  
+  const permMap = Object.fromEntries(permissions.map(p => [p.action, { id: p.id }]));
+
+  await prisma.role.upsert({
+    where: { name: 'ADMIN' },
+    update: {},
+    create: {
+      name: 'ADMIN',
+      description: 'Super Administrator',
+      isSystem: true,
+      permissions: { connect: Object.values(permMap) },
+    }
+  });
+
+  await prisma.role.upsert({
+    where: { name: 'EMPLOYER' },
+    update: {},
+    create: {
+      name: 'EMPLOYER',
+      description: 'Employer who posts jobs',
+      isSystem: true,
+      permissions: { connect: [permMap['create:jobs'], permMap['manage:disputes']] },
+    }
+  });
+
+  await prisma.role.upsert({
+    where: { name: 'FREELANCER' },
+    update: {},
+    create: {
+      name: 'FREELANCER',
+      description: 'Freelancer providing services',
+      isSystem: true,
+      permissions: { connect: [permMap['manage:disputes']] },
+    }
+  });
+  console.log('✅ RBAC initialization complete');
+
   const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (adminEmail && adminPassword) {
@@ -13,7 +70,7 @@ async function main() {
       throw new Error('ADMIN_PASSWORD must contain at least 12 characters');
     await prisma.user.upsert({
       where: { email: adminEmail },
-      update: { role: 'ADMIN', isActive: true },
+      update: { role: 'ADMIN', isActive: true, rbacRoles: { connect: { name: 'ADMIN' } } },
       create: {
         email: adminEmail,
         passwordHash: await bcrypt.hash(adminPassword, 12),
@@ -21,6 +78,7 @@ async function main() {
         lastName: process.env.ADMIN_LAST_NAME || 'Admin',
         role: 'ADMIN',
         emailVerified: true,
+        rbacRoles: { connect: { name: 'ADMIN' } },
       },
     });
     console.log('✅ Environment-configured admin created');
@@ -133,7 +191,7 @@ async function main() {
 
   const employer = await prisma.user.upsert({
     where: { email: 'employer@beleqet.demo' },
-    update: {},
+    update: { rbacRoles: { connect: { name: 'EMPLOYER' } } },
     create: {
       email: 'employer@beleqet.demo',
       passwordHash: await bcrypt.hash('Password123!', 10),
@@ -141,6 +199,7 @@ async function main() {
       lastName: 'Employer',
       role: 'EMPLOYER',
       emailVerified: true,
+      rbacRoles: { connect: { name: 'EMPLOYER' } },
     },
   });
 
@@ -342,6 +401,10 @@ async function main() {
   ]);
   console.log('✅ Subscription plans created (Free/Pro/Enterprise)');
 
+  // ── FAQ Bot Knowledge Base ─────────────────────────────────────────────────
+  await seedFaqKnowledge();
+  console.log('✅ FAQ Bot knowledge base seeded');
+
   console.log('\n🎉 Database seeded successfully with Production Categories!');
 
   // ── Fraud Detection Rules ────────────────────────────────────────────────
@@ -414,6 +477,55 @@ async function main() {
   ]);
 
   console.log('✅ Fraud detection rules seeded');
+}
+
+async function seedFaqKnowledge() {
+  const OpenAI = (await import('openai')).default;
+  const apiKey = process.env.OPENAI_API_KEY;
+  const openai = apiKey ? new OpenAI({ apiKey }) : null;
+  const embeddingModel = process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small';
+
+  const { FAQ_KNOWLEDGE_SEED } = await import('./faq-seed-data');
+
+  for (const entry of FAQ_KNOWLEDGE_SEED) {
+    let embedding: number[] | undefined;
+    if (openai) {
+      try {
+        const text = `${entry.questionEn}\n${entry.answerEn}`;
+        const response = await openai.embeddings.create({ model: embeddingModel, input: text });
+        embedding = response.data[0]?.embedding;
+      } catch {
+        embedding = undefined;
+      }
+    }
+
+    await prisma.faqKnowledgeEntry.upsert({
+      where: { slug: entry.slug },
+      update: {
+        category: entry.category,
+        questionEn: entry.questionEn,
+        questionAm: entry.questionAm,
+        answerEn: entry.answerEn,
+        answerAm: entry.answerAm,
+        keywords: [...entry.keywords],
+        currency: 'currency' in entry ? entry.currency : null,
+        embedding: embedding ?? undefined,
+        isPublished: true,
+      },
+      create: {
+        slug: entry.slug,
+        category: entry.category,
+        questionEn: entry.questionEn,
+        questionAm: entry.questionAm,
+        answerEn: entry.answerEn,
+        answerAm: entry.answerAm,
+        keywords: [...entry.keywords],
+        currency: 'currency' in entry ? entry.currency : null,
+        embedding: embedding ?? undefined,
+        isPublished: true,
+      },
+    });
+  }
 }
 
 main()

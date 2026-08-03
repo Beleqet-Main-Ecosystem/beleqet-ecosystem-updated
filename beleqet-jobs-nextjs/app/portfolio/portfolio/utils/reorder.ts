@@ -27,9 +27,7 @@ export function reorderItems<T>(items: T[], fromIndex: number, toIndex: number):
  *
  * @param items - Items with an orderIndex field.
  */
-export function applyOrderIndices<T extends { orderIndex: number }>(
-  items: T[],
-): T[] {
+export function applyOrderIndices<T extends { orderIndex: number }>(items: T[]): T[] {
   return items.map((item, index) => ({ ...item, orderIndex: index }));
 }
 
@@ -38,8 +36,6 @@ export function applyOrderIndices<T extends { orderIndex: number }>(
  *
  * @param items - Items carrying orderIndex.
  */
-export function sortByOrderIndex<T extends { orderIndex: number }>(
-  items: T[],
-): T[] {
+export function sortByOrderIndex<T extends { orderIndex: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.orderIndex - b.orderIndex);
 }

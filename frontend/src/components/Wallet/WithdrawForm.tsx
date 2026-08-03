@@ -6,10 +6,7 @@ interface WithdrawFormProps {
   onBalanceChange?: (newBalance: number) => void;
 }
 
-export function WithdrawForm({
-  apiBaseUrl = '/api/v1',
-  onBalanceChange,
-}: WithdrawFormProps) {
+export function WithdrawForm({ apiBaseUrl = '/api/v1', onBalanceChange }: WithdrawFormProps) {
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<'CHAPA' | 'TELEBIRR' | 'CBE_BIRR'>('CHAPA');
   const [accountRef, setAccountRef] = useState('');
@@ -27,7 +24,10 @@ export function WithdrawForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amountNum = Number(amount);
-    if (!amount || amountNum <= 0) { setError('Enter a valid amount'); return; }
+    if (!amount || amountNum <= 0) {
+      setError('Enter a valid amount');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -127,7 +127,9 @@ export function WithdrawForm({
       <h2 className="text-xl font-semibold mb-4">Withdraw Funds</h2>
 
       {successMessage && (
-        <div className="bg-green-50 text-green-700 px-4 py-2 rounded mb-4 text-sm">{successMessage}</div>
+        <div className="bg-green-50 text-green-700 px-4 py-2 rounded mb-4 text-sm">
+          {successMessage}
+        </div>
       )}
       {error && (
         <div className="bg-red-50 text-red-700 px-4 py-2 rounded mb-4 text-sm">{error}</div>

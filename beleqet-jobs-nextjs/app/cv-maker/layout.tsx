@@ -1,11 +1,7 @@
-import { cvMakerPageMetadata } from "@/lib/seo/generate-metadata";
+import { cvMakerPageMetadata } from '@/lib/seo/generate-metadata';
 
 export const metadata = cvMakerPageMetadata();
 
-export default function CvMakerLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function CvMakerLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }

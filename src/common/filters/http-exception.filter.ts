@@ -24,30 +24,36 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const message =
       exception instanceof HttpException ? exception.getResponse() : 'Internal server error';
 
+    const sanitizedUrl = req.url.replace(
+      /([?&])(token|password|secret|key|authorization|access_token)=[^&]*/gi,
+      '$1$2=[REDACTED]',
+    );
+
     if (status >= 500) {
       this.logger.error(
-        `${req.method} ${req.url} → ${status}`,
+        `${req.method} ${sanitizedUrl} → ${status}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }
 
-    const responseBody: Record<string, any> = {
+    // Preserve custom fields from HttpException responses (e.g. requiresStepUp, stepUpToken)
+    // so the frontend can consume them without regression.
+    const baseResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
-      path: req.url,
+      path: sanitizedUrl,
     };
 
     if (typeof message === 'string') {
-      responseBody.message = message;
-    } else if (typeof message === 'object') {
-      responseBody.message = (message as any).message ?? 'Internal server error';
-      for (const key of Object.keys(message as object)) {
-        if (key !== 'message' && key !== 'statusCode') {
-          responseBody[key] = (message as any)[key];
-        }
-      }
+      res.status(status).json({ ...baseResponse, message });
+    } else {
+      // Spread the full exception response object to preserve custom fields, ensuring message exists
+      const exceptionBody = message as Record<string, unknown>;
+      res.status(status).json({
+        message: 'An error occurred',
+        ...baseResponse,
+        ...exceptionBody,
+      });
     }
-
-    res.status(status).json(responseBody);
   }
 }

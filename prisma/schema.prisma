@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
@@ -56,40 +57,109 @@ model User {
   referralsReceived     Referral[]          @relation("ReferralReferred")
   jobAlerts             JobAlert[]
   payments              Payment[]
+  forumThreads          ForumThread[]
+  forumReplies          ForumReply[]
+  forumUpvotes          ForumUpvote[]
   twoFactor             UserTwoFactor?
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
   subscriptions         Subscription[]
+  promotionCampaigns    PromotionCampaign[]
 
   /// Whether the user has consented to their search history, skills, and
   /// saved jobs being used to personalize their AI job feed. Defaults to
   /// true; when false, the AI Feed module falls back to a generic,
   /// non-personalized feed and reads none of that data (GDPR compliance).
-  gdprConsent           Boolean             @default(true)
+  gdprConsent Boolean @default(true)
 
   /// Back-relation required by Prisma for the one-to-many relationship
   /// declared on SearchHistory.user below. Not queried directly from the
   /// User side — the AI Feed module reads SearchHistory independently.
-  searchHistories       SearchHistory[]
-  storedFiles           StoredFile[]
+  searchHistories         SearchHistory[]
+  notificationPreference  NotificationPreference?
+  userPreference          UserPreference?
+  storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
-  fraudAlerts           FraudAlert[]        @relation("AlertUser")
-  resolvedFraudAlerts   FraudAlert[]        @relation("AlertResolver")
+  fraudAlerts             FraudAlert[]        @relation("AlertUser")
+  resolvedFraudAlerts     FraudAlert[]        @relation("AlertResolver")
+  rbacRoles               Role[]              @relation("UserRoles")
 
   @@map("users")
 }
+
+model Permission {
+  id          String   @id @default(uuid())
+  action      String   @unique
+  description String?
+  roles       Role[]   @relation("RolePermissions")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("permissions")
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  isSystem    Boolean      @default(false)
+  permissions Permission[] @relation("RolePermissions")
+  users       User[]       @relation("UserRoles")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("roles")
+}
+
+/// Theme and other small, non-identifying UI choices owned by a user.
+/// This record deliberately contains no behavioural analytics or PII.
+model UserPreference {
+  id        String          @id @default(uuid())
+  userId    String          @unique
+  theme     ThemePreference @default(SYSTEM)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+/// User-selected colour-scheme preference. `SYSTEM` delegates the resolved
+/// colour scheme to the operating system and is the privacy-preserving default.
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+model NotificationPreference {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  emailEnabled    Boolean  @default(true)
+  telegramEnabled Boolean  @default(true)
+  inAppEnabled    Boolean  @default(true)
+  pushEnabled     Boolean  @default(false)
+  smsEnabled      Boolean  @default(false)
+  language        String   @default("en")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
 model OAuthAccount {
-  id                    String   @id @default(uuid())
+  id                    String        @id @default(uuid())
   userId                String
   provider              OAuthProvider
-  providerAccountId     String            // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
-  encryptedAccessToken  String?           // AES-256-GCM ciphertext, never raw
+  providerAccountId     String // the provider's stable subject id (Google `sub`, LinkedIn `sub`)
+  encryptedAccessToken  String? // AES-256-GCM ciphertext, never raw
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
-  linkedAt              DateTime @default(now())
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedAt              DateTime      @default(now())
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])   // prevents one social identity from attaching to 2 users
+  @@unique([provider, providerAccountId]) // prevents one social identity from attaching to 2 users
   @@index([userId])
   @@map("oauth_accounts")
 }
@@ -99,11 +169,11 @@ model OAuthAccount {
 /// (alongside User.skills and SavedJob) used to rank job recommendations.
 /// Only read when the owning user's `gdprConsent` is true.
 model SearchHistory {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
   /// Owning user. Cascade delete: if the user is deleted, their search
   /// history is deleted with them rather than left orphaned.
-  userId     String
+  userId String
 
   /// The raw search term as typed by the user (e.g. "React developer").
   searchTerm String
@@ -112,7 +182,7 @@ model SearchHistory {
   /// terms from the last 30 days as "recent" signal.
   searchedAt DateTime @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   /// Speeds up the AI Feed module's "recent searches for this user" query.
   @@index([userId, searchedAt])
@@ -123,6 +193,7 @@ enum OAuthProvider {
   GOOGLE
   LINKEDIN
 }
+
 model SavedJob {
   id        String   @id @default(uuid())
   userId    String
@@ -226,7 +297,6 @@ model JobCategory {
 
   @@map("job_categories")
 }
-
 
 model Job {
   id                       String        @id @default(uuid())
@@ -414,18 +484,20 @@ model Contract {
 }
 
 model Milestone {
-  id           String          @id @default(uuid())
-  contractId   String
-  title        String
-  description  String?
-  amount       Int
-  deadline     DateTime
-  status       MilestoneStatus @default(PENDING)
-  approvedAt   DateTime?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  deliverables Deliverable[]
-  contract     Contract        @relation(fields: [contractId], references: [id])
+  id                   String          @id @default(uuid())
+  contractId           String
+  title                String
+  description          String?
+  amount               Int
+  deadline             DateTime
+  status               MilestoneStatus @default(PENDING)
+  approvedAt           DateTime?
+  employerApprovedAt   DateTime?
+  freelancerApprovedAt DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  deliverables         Deliverable[]
+  contract             Contract        @relation(fields: [contractId], references: [id])
 
   @@map("milestones")
 }
@@ -557,6 +629,9 @@ model EventLog {
   createdAt   DateTime @default(now())
 
   @@index([eventType, entityId])
+  @@index([createdAt], map: "idx_events_log_created_at")
+  @@index([entityType], map: "idx_events_log_entity_type")
+  @@index([eventType, entityId, createdAt])
   @@map("events_log")
 }
 
@@ -649,6 +724,7 @@ model Interview {
   @@index([startTime])
   @@map("interviews")
 }
+
 model UserTwoFactor {
   id                   String       @id @default(uuid())
   userId               String       @unique
@@ -667,12 +743,12 @@ model UserTwoFactor {
 }
 
 model BackupCode {
-  id         String        @id @default(uuid())
+  id          String        @id @default(uuid())
   twoFactorId String
-  codeHash   String
-  usedAt     DateTime?
-  createdAt  DateTime      @default(now())
-  twoFactor  UserTwoFactor @relation(fields: [twoFactorId], references: [id], onDelete: Cascade)
+  codeHash    String
+  usedAt      DateTime?
+  createdAt   DateTime      @default(now())
+  twoFactor   UserTwoFactor @relation(fields: [twoFactorId], references: [id], onDelete: Cascade)
 
   @@index([twoFactorId])
   @@map("backup_codes")
@@ -681,33 +757,33 @@ model BackupCode {
 // SalaryPrediction Model - Stores AI-powered salary predictions
 // Tracks average market values for job positions based on industry, location, and experience level
 model SalaryPrediction {
-  id                  String    @id @default(uuid())
-  jobTitle            String
-  jobCategoryId       String?
-  industry            String?
-  location            String
-  experienceLevel     String?   // JUNIOR, MID, SENIOR, LEAD, etc.
-  currency            String    @default("ETB")
-  
+  id              String  @id @default(uuid())
+  jobTitle        String
+  jobCategoryId   String?
+  industry        String?
+  location        String
+  experienceLevel String? // JUNIOR, MID, SENIOR, LEAD, etc.
+  currency        String  @default("ETB")
+
   // Salary ranges calculated from market data
-  minSalary           Int
-  maxSalary           Int
-  averageSalary       Int       // Mean of all salary data points
-  medianSalary        Int       // Median salary from dataset
-  
+  minSalary     Int
+  maxSalary     Int
+  averageSalary Int // Mean of all salary data points
+  medianSalary  Int // Median salary from dataset
+
   // Statistical data
-  dataPointsCount     Int       @default(0)    // Number of job postings used in calculation
-  standardDeviation   Float     @default(0)
-  confidenceScore     Float     @default(0.5)  // 0.0 - 1.0, higher = more reliable
-  
+  dataPointsCount   Int   @default(0) // Number of job postings used in calculation
+  standardDeviation Float @default(0)
+  confidenceScore   Float @default(0.5) // 0.0 - 1.0, higher = more reliable
+
   // Version tracking for updates
-  version             Int       @default(1)
-  lastUpdatedAt       DateTime  @updatedAt
-  createdAt           DateTime  @default(now())
-  
+  version       Int      @default(1)
+  lastUpdatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
   // For GDPR compliance
-  isAnonymized        Boolean   @default(true)
-  
+  isAnonymized Boolean @default(true)
+
   // For optimization
   @@index([jobTitle, location, experienceLevel])
   @@index([jobCategoryId, location])
@@ -719,28 +795,28 @@ model SalaryPrediction {
 // SalaryHistory Model - Audit trail for salary predictions
 // Maintains historical records of salary trends over time
 model SalaryHistory {
-  id                String   @id @default(uuid())
-  jobTitle          String
-  jobCategoryId     String?
-  industry          String?
-  location          String
-  experienceLevel   String?
-  currency          String   @default("ETB")
-  
+  id              String  @id @default(uuid())
+  jobTitle        String
+  jobCategoryId   String?
+  industry        String?
+  location        String
+  experienceLevel String?
+  currency        String  @default("ETB")
+
   // Historical snapshot
-  minSalary         Int
-  maxSalary         Int
-  averageSalary     Int
-  medianSalary      Int
-  dataPointsCount   Int
-  
+  minSalary       Int
+  maxSalary       Int
+  averageSalary   Int
+  medianSalary    Int
+  dataPointsCount Int
+
   // Metadata
-  recordedAt        DateTime @default(now())
-  version           Int      @default(1)
-  
+  recordedAt DateTime @default(now())
+  version    Int      @default(1)
+
   // For GDPR compliance
-  isAnonymized      Boolean  @default(true)
-  
+  isAnonymized Boolean @default(true)
+
   @@index([jobTitle, location])
   @@index([recordedAt, location])
   @@map("salary_history")
@@ -749,26 +825,26 @@ model SalaryHistory {
 // SalaryAnalytics Model - Pre-computed analytics for performance
 // Stores aggregated data for quick dashboard queries
 model SalaryAnalytics {
-  id                  String    @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // Aggregation scope
-  location            String
-  industry            String?
-  jobCategoryId       String?
-  currency            String    @default("ETB")
-  
+  location      String
+  industry      String?
+  jobCategoryId String?
+  currency      String  @default("ETB")
+
   // Statistics
-  averageSalary       Int
-  medianSalary        Int
-  salaryGrowthRate    Float     @default(0)      // Month-over-month percentage
-  topJobTitles        String[]  @default([])     // Top 5 job titles by frequency
-  
+  averageSalary    Int
+  medianSalary     Int
+  salaryGrowthRate Float    @default(0) // Month-over-month percentage
+  topJobTitles     String[] @default([]) // Top 5 job titles by frequency
+
   // Reporting period
-  periodStartDate     DateTime
-  periodEndDate       DateTime
-  
-  computedAt          DateTime  @default(now())
-  
+  periodStartDate DateTime
+  periodEndDate   DateTime
+
+  computedAt DateTime @default(now())
+
   @@index([location, industry])
   @@index([periodEndDate])
   @@map("salary_analytics")
@@ -907,6 +983,8 @@ enum NotificationChannel {
   IN_APP
   TELEGRAM
   EMAIL
+  PUSH
+  SMS
 }
 
 // ── AI Video Interview ─────────────────────────────────────────────────────
@@ -937,10 +1015,10 @@ model VideoInterview {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
-  application   Application          @relation(fields: [applicationId], references: [id])
-  user          User                 @relation(fields: [userId], references: [id])
-  responses     VideoResponse[]
-  evaluation    InterviewEvaluation?
+  application Application          @relation(fields: [applicationId], references: [id])
+  user        User                 @relation(fields: [userId], references: [id])
+  responses   VideoResponse[]
+  evaluation  InterviewEvaluation?
 
   @@index([userId, status])
   @@index([status, expiresAt])
@@ -952,7 +1030,7 @@ model VideoInterview {
 /// rawWhisperResponse (JSONB) stores the full Whisper API payload;
 /// GIN index allows querying by language/word-level timestamps.
 model VideoResponse {
-  id                   String         @id @default(uuid())
+  id                   String   @id @default(uuid())
   videoInterviewId     String
   questionIndex        Int
   /// S3 presigned URL — files auto-deleted after gdprDeleteAt
@@ -961,13 +1039,13 @@ model VideoResponse {
   /// Full Whisper response: { text, segments, language, duration }
   rawWhisperResponse   Json?
   processingDurationMs Int?
-  language             String         @default("en")
+  language             String   @default("en")
   /// PENDING | TRANSCRIBING | TRANSCRIBED | FAILED
-  processingStatus     String         @default("PENDING")
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  processingStatus     String   @default("PENDING")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  videoInterview       VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@unique([videoInterviewId, questionIndex])
   @@index([videoInterviewId, questionIndex])
@@ -979,20 +1057,20 @@ model VideoResponse {
 /// scores (JSONB) holds per-question and trait scores for flexible querying.
 /// rawAiResponse stores the full Ollama/OpenAI output for audit purposes.
 model InterviewEvaluation {
-  id               String         @id @default(uuid())
-  videoInterviewId String         @unique
+  id               String   @id @default(uuid())
+  videoInterviewId String   @unique
   overallScore     Float
   /// JSONB: { perQuestion: [{idx, score, feedback}], traits: {communication, clarity} }
   scores           Json
   reasoning        String?
   /// Raw model output for audit trail
   rawAiResponse    Json?
-  modelUsed        String         @default("llama3")
+  modelUsed        String   @default("llama3")
   /// GDPR: matches parent VideoInterview.gdprDeleteAt
   gdprDeleteAt     DateTime
-  evaluatedAt      DateTime       @default(now())
+  evaluatedAt      DateTime @default(now())
 
-  videoInterview   VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@index([scores], type: Gin)
   @@index([rawAiResponse], type: Gin)
@@ -1050,6 +1128,69 @@ model JobAlert {
   @@index([userId])
   @@index([isActive])
   @@map("job_alerts")
+}
+
+model ForumThread {
+  id              String       @id @default(uuid())
+  title           String
+  content         String
+  tags            String[]     @default([])
+  userId          String
+  userDisplayName String       @default("Deleted User")
+  isAnonymous     Boolean      @default(false)
+  upvoteCount     Int          @default(0)
+  replyCount      Int          @default(0)
+  isPinned        Boolean      @default(false)
+  isLocked        Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies         ForumReply[]
+  upvotes         ForumUpvote[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([upvoteCount])
+  @@map("forum_threads")
+}
+
+model ForumReply {
+  id              String       @id @default(uuid())
+  content         String
+  threadId        String
+  parentReplyId   String?
+  userId          String
+  userDisplayName String       @default("Deleted User")
+  isAnonymous     Boolean      @default(false)
+  upvoteCount     Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  thread          ForumThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parentReply     ForumReply?  @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: SetNull)
+  childReplies    ForumReply[] @relation("ReplyToReply")
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  upvotes         ForumUpvote[]
+
+  @@index([threadId, createdAt])
+  @@index([userId])
+  @@map("forum_replies")
+}
+
+model ForumUpvote {
+  id        String       @id @default(uuid())
+  userId    String
+  threadId  String?
+  replyId   String?
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread    ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reply     ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, threadId])
+  @@unique([userId, replyId])
+  @@index([threadId])
+  @@index([replyId])
+  @@map("forum_upvotes")
 }
 
 enum ReferralStatus {
@@ -1219,24 +1360,24 @@ model Plan {
 
 /// Links a User to a Plan with a tracked billing period and status.
 model Subscription {
-  id                 String             @id @default(uuid())
-  userId             String
-  planId             String
-  status             SubscriptionStatus @default(ACTIVE)
-  currentPeriodStart DateTime           @default(now())
-  currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean            @default(false)
+  id                     String             @id @default(uuid())
+  userId                 String
+  planId                 String
+  status                 SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart     DateTime           @default(now())
+  currentPeriodEnd       DateTime
+  cancelAtPeriodEnd      Boolean            @default(false)
   /// Gateway that owns the recurring charge for this subscription (nullable
   /// while PENDING, before the user completes the gateway checkout redirect)
-  provider           PaymentProvider?
+  provider               PaymentProvider?
   /// Provider-side recurring-billing id — the PayPal billing agreement id
   /// for PayPal; joins to Payment.providerPaymentId for the same charge.
-  providerSubscriptionId String?        @unique
+  providerSubscriptionId String?            @unique
   /// Set once the "expiring in 3 days" reminder has fired, so the reminder
   /// cron job never re-notifies the same billing period.
-  reminderSentAt     DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  reminderSentAt         DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
 
   user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan         Plan                      @relation(fields: [planId], references: [id])
@@ -1283,33 +1424,33 @@ model WebhookEvent {
 }
 
 model StoredFile {
-  id                         String    @id @default(uuid())
-  key                        String    @unique
-  filename                   String
-  mimeType                   String
-  size                       Int
-  uploadedById               String?
-  hasConsentedToProcessing   Boolean   @default(false)
-  isDeleted                  Boolean   @default(false)
-  deletedAt                  DateTime?
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
-  uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
+  id                       String    @id @default(uuid())
+  key                      String    @unique
+  filename                 String
+  mimeType                 String
+  size                     Int
+  uploadedById             String?
+  hasConsentedToProcessing Boolean   @default(false)
+  isDeleted                Boolean   @default(false)
+  deletedAt                DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  uploadedBy               User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
 }
 
 /// A Smart Skill Tester assessment run for a user against a job role and level.
 model SkillAssessmentSession {
-  id          String     @id @default(uuid())
+  id          String               @id @default(uuid())
   userId      String
   jobRole     String
   skillLevel  SkillLevel
   score       Int?
-  isCompleted Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isCompleted Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   questions   AssessmentQuestion[]
 
   @@index([userId, createdAt])
@@ -1338,6 +1479,7 @@ enum SkillLevel {
   MID
   SENIOR
 }
+
 enum FraudSeverity {
   LOW
   MEDIUM
@@ -1359,3 +1501,213 @@ enum FraudRuleType {
   PAYMENT_ANOMALY
   DUPLICATE_LISTING
 }
+
+model FaqKnowledgeEntry {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  category    String
+  questionEn  String
+  questionAm  String?
+  answerEn    String
+  answerAm    String?
+  keywords    String[] @default([])
+  currency    String?
+  embedding   Json?
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("faq_knowledge_entries")
+}
+
+model FaqBotSession {
+  id                String          @id @default(uuid())
+  userId            String?
+  anonymousId       String?
+  locale            String          @default("en")
+  preferredCurrency String          @default("ETB")
+  consentGiven      Boolean         @default(false)
+  consentAt         DateTime?
+  expiresAt         DateTime
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  messages          FaqBotMessage[]
+
+  @@index([userId])
+  @@index([anonymousId])
+  @@index([expiresAt])
+  @@map("faq_bot_sessions")
+}
+
+model FaqBotMessage {
+  id        String            @id @default(uuid())
+  sessionId String
+  role      FaqBotMessageRole
+  content   String
+  sources   Json?
+  createdAt DateTime          @default(now())
+  session   FaqBotSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("faq_bot_messages")
+}
+
+enum FaqBotMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+// ─────────────────────────────────────────────────────────────────────────────
+// Promoted Engine & Sponsored Ads (Task: The Vault - Revenue & Monetization)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// A single polymorphic PromotionCampaign model covers all three promotable
+// entities (job postings, freelancer proposals/applications, and freelance
+// gigs) rather than three near-duplicate models — the budget/CPC/status/
+// analytics logic is identical across all three; only what's being boosted
+// differs. `targetType` + `targetId` identify the promoted entity; there is
+// deliberately no DB-level foreign key on targetId since it can point at
+// three different tables (Job, Application, or FreelanceJob) — ownership and
+// existence are validated in the service layer at campaign-creation time.
+//
+// Payment model: campaigns are funded by debiting the owner's existing
+// wallet balance (EmployerWallet for job/gig boosts, FreelancerWallet for
+// proposal boosts) — the same pattern EscrowService already uses via
+// WalletService — rather than routing every small ad charge through a new
+// Chapa/Stripe checkout. PromotionWalletTransaction records each debit for
+// audit purposes, mirroring EmployerWalletTransaction/WalletTransaction.
+//
+// Multi-currency: `currency` is ISO 4217, matching Payment/Plan/Job above.
+// All money fields are Int in minor units (cents/santim), matching the
+// platform-wide convention (see Payment.amount).
+//
+// GDPR: PromotionEvent stores no PII — no IP address, no viewer user ID —
+// only an aggregate event type + timestamp + optional non-identifying
+// metadata, so it carries nothing to redact on a data-deletion request.
+
+/// What kind of entity a campaign is boosting.
+enum PromotionTargetType {
+  JOB
+  PROPOSAL
+  GIG
+}
+
+/// Lifecycle status of a promotion campaign.
+enum CampaignStatus {
+  /// Created but not yet funded/activated (e.g. payment pending).
+  PENDING
+  ACTIVE
+  /// Paused by the owner — no spend accrues, can be resumed.
+  PAUSED
+  /// dailyBudget or totalBudget fully spent — campaign stops serving until
+  /// the next day's reset (dailyBudget) or permanently (totalBudget).
+  EXHAUSTED
+  /// Reached its endAt date or was manually ended.
+  COMPLETED
+  CANCELLED
+}
+
+/// A paid visibility-boost campaign for a Job, Proposal (Application), or
+/// FreelanceJob (gig). Drives priority ranking in search/dashboard results
+/// while ACTIVE and funded.
+model PromotionCampaign {
+  id     String              @id @default(uuid())
+  ownerId String
+  targetType PromotionTargetType
+  /// Polymorphic reference — Job.id, Application.id, or FreelanceJob.id
+  /// depending on targetType. Validated (existence + ownership) in the
+  /// service layer, not enforced at the DB level (see note above).
+  targetId String
+
+  status CampaignStatus @default(PENDING)
+
+  /// Cost per click, in minor currency units.
+  cpcBid Int
+  /// Max spend allowed per day, in minor currency units. Enforced by a
+  /// scheduled job that resets `spentToday` to 0 at each day boundary.
+  dailyBudget Int
+  /// Optional lifetime spend cap; null means no cap beyond dailyBudget.
+  totalBudget Int?
+  currency    String @default("ETB")
+
+  spentToday Int      @default(0)
+  spentTotal Int      @default(0)
+  /// Last time spentToday was reset — lets the daily-reset job run
+  /// idempotently (skip campaigns already reset today).
+  lastResetAt DateTime @default(now())
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+  conversions Int @default(0)
+
+  startAt DateTime  @default(now())
+  endAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner        User                        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events       PromotionEvent[]
+  transactions PromotionWalletTransaction[]
+
+  /// Speeds up "find active campaigns boosting this target" — the ranking
+  /// query's main lookup, run on every search/listing page render.
+  @@index([targetType, targetId, status])
+  /// Speeds up "this owner's campaigns" for their analytics dashboard.
+  @@index([ownerId, status])
+  @@map("promotion_campaigns")
+}
+
+/// What kind of interaction a PromotionEvent records.
+enum PromotionEventType {
+  /// Campaign's target was shown in a boosted position. Free (no spend).
+  IMPRESSION
+  /// Viewer clicked through. Costs `campaign.cpcBid` at the time of the click.
+  CLICK
+  /// Click led to a tracked outcome (application submitted, bid placed,
+  /// gig ordered) — reported in analytics but does not itself cost extra.
+  CONVERSION
+}
+
+/// One row per impression/click/conversion against a campaign. Deliberately
+/// minimal and non-identifying (see GDPR note above) — this is an analytics
+/// counter table, not a user-activity log.
+model PromotionEvent {
+  id         String             @id @default(uuid())
+  campaignId String
+  type       PromotionEventType
+  /// Amount charged for this specific event, in minor currency units
+  /// (campaign.cpcBid for CLICK, 0 for IMPRESSION/CONVERSION).
+  costApplied Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  /// Speeds up the analytics dashboard's "events for this campaign, by type,
+  /// over time" query.
+  @@index([campaignId, type, createdAt])
+  @@map("promotion_events")
+}
+
+/// Audit trail of wallet debits/refunds caused by campaign spend, mirroring
+/// EmployerWalletTransaction/WalletTransaction's shape. Kept separate from
+/// those tables (rather than reusing WalletTransactionType) since campaign
+/// spend is its own transaction category with its own reporting needs.
+model PromotionWalletTransaction {
+  id         String   @id @default(uuid())
+  campaignId String
+  /// Amount debited (positive) or refunded (negative), in minor currency units.
+  amount     Int
+  currency   String   @default("ETB")
+  note       String?
+  createdAt  DateTime @default(now())
+
+  campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, createdAt])
+  @@map("promotion_wallet_transactions")
+}
+
+/// System-wide audit log entity tracking user/system actions, entity state changes,
+/// IP addresses, user agents, and timestamped historical snapshots for compliance (GDPR/Multi-currency).

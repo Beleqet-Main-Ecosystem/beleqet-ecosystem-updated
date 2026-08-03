@@ -1,4 +1,55 @@
 {
+  "forum": {
+    "validation": {
+      "title": "Thread title",
+      "titleMinLength": "Title must be at least 5 characters",
+      "titleMaxLength": "Title must not exceed 200 characters",
+      "content": "Thread content",
+      "contentMinLength": "Content must be at least 20 characters",
+      "contentMaxLength": "Content must not exceed 10,000 characters",
+      "replyMinLength": "Reply must not be empty",
+      "replyMaxLength": "Reply must not exceed 5,000 characters",
+      "parentReplyId": "Parent reply ID",
+      "isAnonymous": "Post anonymously",
+      "tagsMax": "Maximum 10 tags allowed",
+      "tagMaxLength": "Each tag must not exceed 30 characters"
+    },
+    "error": {
+      "threadNotFound": "Forum thread not found",
+      "replyNotFound": "Reply not found",
+      "parentReplyNotFound": "Parent reply not found",
+      "threadLocked": "This thread is locked and no longer accepts replies"
+    },
+    "list": {
+      "title": "Community Forum",
+      "subtitle": "Share experiences, ask questions, and help fellow freelancers",
+      "createThread": "Create Thread",
+      "searchPlaceholder": "Search discussions...",
+      "sortLatest": "Latest",
+      "sortPopular": "Popular",
+      "sortUnanswered": "Unanswered",
+      "noThreads": "No discussions found. Be the first to start one!",
+      "reply": "reply",
+      "replies": "replies",
+      "upvotes": "upvotes",
+      "by": "by",
+      "pinned": "Pinned"
+    },
+    "detail": {
+      "replyToThread": "Write your reply...",
+      "submitReply": "Post Reply",
+      "loginToReply": "Log in to reply",
+      "threadLocked": "This thread has been locked"
+    }
+  },
+  "audit": {
+    "ACCESS_DENIED": "You do not have permission to view the audit trail.",
+    "INVALID_DATE_RANGE": "The date range provided is invalid.",
+    "LOG_ENTRY_CREATED": "A new audit log entry was recorded.",
+    "IMMUTABLE_VIOLATION_ATTEMPT": "An attempt to modify an immutable audit log entry was blocked.",
+    "FILTER_NO_RESULTS": "No audit log entries match your current filters.",
+    "EXPORT_SUCCESS": "Audit log export completed successfully."
+  },
   "admin-stats": {
     "DASHBOARD_TITLE": "Dashboard Statistics",
     "TOTAL_USERS": "Total Active Users",

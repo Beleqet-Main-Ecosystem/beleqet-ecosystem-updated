@@ -8,8 +8,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useFeedTranslations } from '@/lib/useFeedTranslations';
 import type { Job } from '@/lib/api';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
 /** Feed is refreshed automatically at this interval so it keeps reflecting
  *  new searches/saved jobs without requiring a manual reload. */

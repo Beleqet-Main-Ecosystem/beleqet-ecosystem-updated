@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { CheckCircle2, Loader2 } from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { CheckCircle2, Loader2 } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 
-type SubscriptionStatus = "PENDING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
+type SubscriptionStatus = 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED';
 
 /**
  * PayPal's return_url after the payer approves a checkout or subscription
@@ -16,11 +16,11 @@ type SubscriptionStatus = "PENDING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXP
  * flip to ACTIVE rather than assuming success from the redirect alone.
  */
 export default function PaymentSuccessPage() {
-  const [status, setStatus] = useState<SubscriptionStatus | "unknown">("unknown");
+  const [status, setStatus] = useState<SubscriptionStatus | 'unknown'>('unknown');
   const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
-    if (attempts >= 5 || status === "ACTIVE") return;
+    if (attempts >= 5 || status === 'ACTIVE') return;
     const timeout = setTimeout(async () => {
       const response = await authenticatedFetch(`${API_URL}/subscriptions/me`);
       if (response.ok) {
@@ -34,7 +34,7 @@ export default function PaymentSuccessPage() {
 
   return (
     <div className="container-page flex min-h-[60vh] flex-col items-center justify-center text-center">
-      {status === "ACTIVE" ? (
+      {status === 'ACTIVE' ? (
         <>
           <CheckCircle2 className="h-12 w-12 text-brandGreen" />
           <h1 className="mt-4 text-2xl font-black text-primary">Subscription active</h1>

@@ -1,0 +1,27 @@
+INSERT INTO faq_knowledge_entries (id, slug, category, "questionEn", "answerEn", keywords, currency, "isPublished", "createdAt", "updatedAt")
+VALUES
+(gen_random_uuid(), 'wallet-withdrawal', 'wallet', 'How do I withdraw money from my freelancer wallet?',
+ 'Go to Freelance > Wallet, enter your withdrawal amount (minimum {{MIN_WITHDRAWAL}}), choose CHAPA, Telebirr, or CBE Birr, and submit. Funds typically arrive within 1-3 business days after the 3-day hold period clears.',
+ ARRAY['withdraw','withdrawal','wallet','telebirr','chapa','cbe birr','cash out'], 'ETB', true, NOW(), NOW()),
+(gen_random_uuid(), 'escrow-overview', 'escrow', 'How does BeleqetSafe escrow work?',
+ 'BeleqetSafe holds your project funds securely until milestones are approved. A platform fee of {{ESCROW_FEE}} applies. After funding, freelancers can bid.',
+ ARRAY['escrow','beleqetsafe','fund','milestone','hold','release payment'], 'ETB', true, NOW(), NOW()),
+(gen_random_uuid(), 'job-application', 'jobs', 'How do I apply for a job on Beleqet?',
+ 'Browse Jobs, open a listing, and click Apply. Upload your resume, write a cover letter, and answer screening questions.',
+ ARRAY['apply','application','job','resume','cv','cover letter'], NULL, true, NOW(), NOW()),
+(gen_random_uuid(), 'freelance-bidding', 'freelance', 'How do I bid on a freelance project?',
+ 'Find a funded project in Freelance > Browse Gigs. Submit your bid amount, timeline, and cover letter.',
+ ARRAY['bid','freelance','gig','proposal','milestone','contract'], NULL, true, NOW(), NOW()),
+(gen_random_uuid(), 'account-security', 'account', 'How do I keep my Beleqet account secure?',
+ 'Use a strong unique password (12+ characters), verify your email, and never share your login credentials.',
+ ARRAY['password','login','account','security','verify email'], NULL, true, NOW(), NOW()),
+(gen_random_uuid(), 'platform-fees', 'fees', 'What fees does Beleqet charge?',
+ 'BeleqetSafe escrow charges a platform fee of {{ESCROW_FEE}} on funded projects.',
+ ARRAY['fee','commission','platform fee','pricing','cost'], 'ETB', true, NOW(), NOW()),
+(gen_random_uuid(), 'multi-currency', 'wallet', 'Which currencies does Beleqet support?',
+ 'Beleqet supports ETB, USD, and EUR. Minimum withdrawal is {{MIN_WITHDRAWAL}}.',
+ ARRAY['currency','exchange','usd','eur','etb','convert','dollar'], 'ETB', true, NOW(), NOW()),
+(gen_random_uuid(), 'contact-support', 'support', 'How do I contact Beleqet support?',
+ 'Use the Contact page or email support@beleqet.com. Our team typically responds within 24 hours.',
+ ARRAY['support','help','contact','human agent','email'], NULL, true, NOW(), NOW())
+ON CONFLICT (slug) DO NOTHING;

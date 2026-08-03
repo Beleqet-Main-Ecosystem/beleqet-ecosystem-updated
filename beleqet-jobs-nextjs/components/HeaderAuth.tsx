@@ -1,31 +1,25 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import {
-  LogOut,
-  User,
-  Briefcase,
-  ChevronDown,
-  ShieldCheck,
-} from "lucide-react";
-import { useAuth } from "@/components/AuthProvider";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { LogOut, User, Briefcase, ChevronDown, ShieldCheck } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 export const roleMeta: Record<string, { label: string; className: string }> = {
   JOB_SEEKER: {
-    label: "Job Seeker",
-    className: "bg-brandGreen/10 text-brandGreen",
+    label: 'Job Seeker',
+    className: 'bg-brandGreen/10 text-brandGreen',
   },
   EMPLOYER: {
-    label: "Employer",
-    className: "bg-cyanAccent/10 text-cyanAccent",
+    label: 'Employer',
+    className: 'bg-cyanAccent/10 text-cyanAccent',
   },
   FREELANCER: {
-    label: "Freelancer",
-    className: "bg-purpleAccent/10 text-purpleAccent",
+    label: 'Freelancer',
+    className: 'bg-purpleAccent/10 text-purpleAccent',
   },
-  ADMIN: { label: "Admin", className: "bg-orangeAccent/10 text-orangeAccent" },
+  ADMIN: { label: 'Admin', className: 'bg-orangeAccent/10 text-orangeAccent' },
 };
 
 export default function HeaderAuth() {
@@ -36,15 +30,13 @@ export default function HeaderAuth() {
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  if (!ready)
-    return <div className="h-9 w-9 rounded-full bg-pageBg animate-pulse" />;
+  if (!ready) return <div className="h-9 w-9 rounded-full bg-pageBg animate-pulse" />;
 
   if (!user) {
     return (
@@ -68,7 +60,7 @@ export default function HeaderAuth() {
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
   const role = roleMeta[user.role] ?? {
     label: user.role,
-    className: "bg-muted/10 text-muted",
+    className: 'bg-muted/10 text-muted',
   };
 
   return (
@@ -84,7 +76,7 @@ export default function HeaderAuth() {
           {user.firstName}
         </span>
         <ChevronDown
-          className={`h-4 w-4 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -109,36 +101,28 @@ export default function HeaderAuth() {
             </span>
           </div>
           <div className="p-1.5">
-            <MenuLink
-              href="/profile"
-              icon={User}
-              onClick={() => setOpen(false)}
-            >
+            <MenuLink href="/profile" icon={User} onClick={() => setOpen(false)}>
               My Profile
             </MenuLink>
             <MenuLink
               href={
-                user.role === "EMPLOYER"
-                  ? "/employer"
-                  : user.role === "JOB_SEEKER"
-                    ? "/applications"
-                    : "/jobs"
+                user.role === 'EMPLOYER'
+                  ? '/employer'
+                  : user.role === 'JOB_SEEKER'
+                    ? '/applications'
+                    : '/jobs'
               }
               icon={Briefcase}
               onClick={() => setOpen(false)}
             >
-              {user.role === "EMPLOYER"
-                ? "Hiring Dashboard"
-                : user.role === "JOB_SEEKER"
-                  ? "My Applications"
-                  : "Browse Jobs"}
+              {user.role === 'EMPLOYER'
+                ? 'Hiring Dashboard'
+                : user.role === 'JOB_SEEKER'
+                  ? 'My Applications'
+                  : 'Browse Jobs'}
             </MenuLink>
-            {user.role === "ADMIN" && (
-              <MenuLink
-                href="/admin"
-                icon={ShieldCheck}
-                onClick={() => setOpen(false)}
-              >
+            {user.role === 'ADMIN' && (
+              <MenuLink href="/admin" icon={ShieldCheck} onClick={() => setOpen(false)}>
                 Admin Dashboard
               </MenuLink>
             )}
@@ -146,7 +130,7 @@ export default function HeaderAuth() {
               onClick={() => {
                 logout();
                 setOpen(false);
-                router.push("/");
+                router.push('/');
               }}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-redAccent hover:bg-redAccent/5 transition-colors"
             >

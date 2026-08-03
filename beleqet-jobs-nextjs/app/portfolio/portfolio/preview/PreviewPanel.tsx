@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import type { LanguageCode, MasterProfileData } from "../types";
-import { getTemplateMeta } from "../constants/templates";
-import { readLocalized } from "../utils/localized";
-import { cn } from "@/lib/utils";
+import type { LanguageCode, MasterProfileData } from '../types';
+import { getTemplateMeta } from '../constants/templates';
+import { readLocalized } from '../utils/localized';
+import { cn } from '@/lib/utils';
 
 type PreviewPanelProps = {
   data: MasterProfileData;
@@ -15,7 +15,7 @@ type PreviewPanelProps = {
  */
 export function PreviewPanel({ data, locale }: PreviewPanelProps) {
   const template = getTemplateMeta(data.templateId);
-  const name = data.profile.fullName || "Your Name";
+  const name = data.profile.fullName || 'Your Name';
   const headline = readLocalized(data.profile.headline, locale);
   const jobTitle = readLocalized(data.profile.jobTitle, locale);
   const summary = readLocalized(data.summary, locale);
@@ -29,7 +29,7 @@ export function PreviewPanel({ data, locale }: PreviewPanelProps) {
         Live preview · {template.name.en}
       </div>
       <div className="max-h-[calc(100vh-8rem)] overflow-y-auto p-5">
-        <article className={cn("space-y-6", template.previewClass, "p-5")}>
+        <article className={cn('space-y-6', template.previewClass, 'p-5')}>
           <header className="space-y-2">
             {data.profile.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -40,13 +40,11 @@ export function PreviewPanel({ data, locale }: PreviewPanelProps) {
               />
             ) : (
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
-                {name.charAt(0) || "?"}
+                {name.charAt(0) || '?'}
               </div>
             )}
             <h1 className="text-2xl font-extrabold text-primary">{name}</h1>
-            {headline && (
-              <p className="text-sm font-semibold text-brandGreen">{headline}</p>
-            )}
+            {headline && <p className="text-sm font-semibold text-brandGreen">{headline}</p>}
             {jobTitle && <p className="text-sm text-ink/70">{jobTitle}</p>}
             {data.profile.location && (
               <p className="text-xs text-ink/50">{data.profile.location}</p>
@@ -58,7 +56,7 @@ export function PreviewPanel({ data, locale }: PreviewPanelProps) {
                     key={tag}
                     className="rounded-full bg-primary/5 px-2 py-0.5 text-[10px] font-semibold uppercase text-ink/60"
                   >
-                    {tag.replace("_", " ")}
+                    {tag.replace('_', ' ')}
                   </span>
                 ))}
               </div>
@@ -89,7 +87,7 @@ export function PreviewPanel({ data, locale }: PreviewPanelProps) {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="font-bold text-primary">
-                          {readLocalized(project.title, locale) || "Untitled"}
+                          {readLocalized(project.title, locale) || 'Untitled'}
                         </h3>
                         {project.featured && (
                           <span className="text-[10px] font-bold uppercase text-brandGreen">
@@ -102,7 +100,7 @@ export function PreviewPanel({ data, locale }: PreviewPanelProps) {
                       </p>
                       {project.technologies.length > 0 && (
                         <p className="mt-2 text-[10px] text-ink/50">
-                          {project.technologies.join(" · ")}
+                          {project.technologies.join(' · ')}
                         </p>
                       )}
                     </div>
@@ -134,7 +132,7 @@ export function PreviewPanel({ data, locale }: PreviewPanelProps) {
           {data.contact.email && (
             <footer className="border-t border-primary/10 pt-4 text-xs text-ink/60">
               {data.contact.email}
-              {data.contact.phone ? ` · ${data.contact.phone}` : ""}
+              {data.contact.phone ? ` · ${data.contact.phone}` : ''}
             </footer>
           )}
         </article>

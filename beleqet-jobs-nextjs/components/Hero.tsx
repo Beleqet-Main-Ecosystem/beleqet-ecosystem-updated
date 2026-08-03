@@ -1,28 +1,21 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  MapPin,
-  Search,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
-import { popularSearches } from "@/lib/mockData";
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import Link from 'next/link';
+import { ArrowRight, CheckCircle2, MapPin, Search, Sparkles, TrendingUp } from 'lucide-react';
+import { popularSearches } from '@/lib/mockData';
 
 export default function Hero() {
   const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [location, setLocation] = useState("");
+  const [query, setQuery] = useState('');
+  const [location, setLocation] = useState('');
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const params = new URLSearchParams();
-    if (query.trim()) params.set("q", query.trim());
-    if (location.trim()) params.set("loc", location.trim());
+    if (query.trim()) params.set('q', query.trim());
+    if (location.trim()) params.set('loc', location.trim());
     router.push(`/jobs?${params.toString()}`);
   }
 
@@ -36,7 +29,7 @@ export default function Hero() {
           <h1 className="max-w-3xl text-[clamp(3rem,7vw,6.7rem)] font-black leading-[.88] tracking-[-0.065em] text-primary">
             Work that
             <br />
-            moves you{" "}
+            moves you{' '}
             <span className="relative whitespace-nowrap text-brandGreen">
               forward
               <span className="absolute -bottom-1 left-1 h-2 w-[96%] -rotate-1 rounded-full bg-[#d8ff3e] -z-10" />
@@ -44,8 +37,8 @@ export default function Hero() {
             .
           </h1>
           <p className="mt-7 max-w-xl text-base leading-7 text-muted md:text-lg">
-            Find meaningful roles from verified Ethiopian employers, build a
-            standout profile, and take your next career step with confidence.
+            Find meaningful roles from verified Ethiopian employers, build a standout profile, and
+            take your next career step with confidence.
           </p>
 
           <form
@@ -85,9 +78,7 @@ export default function Hero() {
             {popularSearches.slice(0, 4).map((term) => (
               <button
                 key={term}
-                onClick={() =>
-                  router.push(`/jobs?q=${encodeURIComponent(term)}`)
-                }
+                onClick={() => router.push(`/jobs?q=${encodeURIComponent(term)}`)}
                 className="rounded-full border border-primary/10 bg-white px-3 py-1.5 transition hover:border-brandGreen hover:text-brandGreen"
               >
                 {term}
@@ -101,12 +92,8 @@ export default function Hero() {
           <div className="relative rotate-2 rounded-[36px] bg-primary p-6 shadow-[0_35px_80px_rgba(4,22,3,.2)]">
             <div className="flex items-center justify-between border-b border-white/10 pb-5">
               <div>
-                <p className="text-xs font-semibold text-white/50">
-                  RECOMMENDED FOR YOU
-                </p>
-                <p className="mt-1 text-xl font-bold text-white">
-                  Fresh opportunities
-                </p>
+                <p className="text-xs font-semibold text-white/50">RECOMMENDED FOR YOU</p>
+                <p className="mt-1 text-xl font-bold text-white">Fresh opportunities</p>
               </div>
               <span className="rounded-full bg-[#d8ff3e] px-3 py-1 text-xs font-extrabold text-primary">
                 24 new
@@ -155,8 +142,7 @@ export default function Hero() {
           </div>
           <div className="absolute -right-8 top-24 rotate-6 rounded-2xl bg-white p-3 shadow-xl">
             <div className="flex items-center gap-2 text-xs font-bold text-primary">
-              <CheckCircle2 className="h-5 w-5 text-brandGreen" /> Verified
-              employers
+              <CheckCircle2 className="h-5 w-5 text-brandGreen" /> Verified employers
             </div>
           </div>
         </div>
@@ -187,13 +173,9 @@ function Opportunity({
           {initials}
         </span>
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-extrabold text-primary">
-            {title}
-          </h3>
+          <h3 className="truncate text-sm font-extrabold text-primary">{title}</h3>
           <p className="mt-0.5 truncate text-xs text-muted">{company}</p>
-          <p className="mt-2 text-[11px] font-semibold text-brandGreen">
-            {meta}
-          </p>
+          <p className="mt-2 text-[11px] font-semibold text-brandGreen">{meta}</p>
         </div>
       </div>
     </div>

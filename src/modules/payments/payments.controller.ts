@@ -52,6 +52,7 @@ import { CreateRefundDto, CapturePaypalOrderDto } from './dto/webhook.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stripe routes
@@ -128,6 +129,7 @@ Supports **135+ currencies** (ISO 4217). Metadata is GDPR-sanitised
   @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:billing')
   @ApiOperation({
     summary: 'Issue a Stripe refund (Admin only)',
     description:

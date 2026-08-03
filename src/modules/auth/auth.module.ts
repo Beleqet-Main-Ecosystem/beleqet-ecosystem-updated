@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
 import { BullModule } from '@nestjs/bullmq';
@@ -20,8 +20,9 @@ import {
 import { TOKEN_CIPHER } from './interfaces/token-cipher.interface';
 import { EMAIL_SENDER } from './interfaces/email-sender.interface';
 import { MailService } from '../../mail/mail.service';
-import { AUDIT_LOGGER } from './interfaces/audit-logger.interface';
-import { PrismaAuditLogger } from './services/prisma-audit-logger.service';
+import { AUDIT_LOGGER } from '../../common/interfaces/audit-logger.interface';
+import { AuditModule } from '../audit/audit.module';
+import { AuditService } from '../audit/audit.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -31,17 +32,22 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
 
 @Module({
   imports: [
+    ConfigModule,
     PrismaModule,
     QueuesModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
-      useFactory: (_configService: ConfigService) => {
-        const authConfig = loadAuthEnvConfig();
-        return { secret: authConfig.jwtAccessSecret };
-      },
+      imports: [ConfigModule],
       inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get<string>('JWT_ACCESS_SECRET'),
+        signOptions: {
+          expiresIn: config.get<string>('JWT_ACCESS_EXPIRES', '15m'),
+        },
+      }),
     }),
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
+    AuditModule,
     forwardRef(() => TwoFactorModule),
   ],
   controllers: [AuthController],
@@ -67,10 +73,9 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
       useExisting: AccountRepository,
     },
     AccountLinkingService,
-    PrismaAuditLogger,
     {
       provide: AUDIT_LOGGER,
-      useExisting: PrismaAuditLogger,
+      useExisting: AuditService,
     },
     {
       provide: EMAIL_SENDER,
@@ -90,6 +95,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
     TokenEncryptionService,
     JwtModule,
     forwardRef(() => TwoFactorModule),
+    AUDIT_LOGGER,
   ],
 })
 export class AuthModule {}

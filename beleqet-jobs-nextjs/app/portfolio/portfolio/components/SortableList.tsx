@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   DndContext,
@@ -8,16 +8,16 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
-} from "@dnd-kit/core";
+} from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
-import { cn } from "@/lib/utils";
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type SortableListProps<T extends { id: string }> = {
   items: T[];
@@ -56,15 +56,8 @@ export function SortableList<T extends { id: string }>({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={items.map((i) => i.id)}
-        strategy={verticalListSortingStrategy}
-      >
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
         <ul className="space-y-3" aria-label={ariaLabel}>
           {items.map((item, index) => (
             <SortableRow key={item.id} id={item.id}>
@@ -77,21 +70,10 @@ export function SortableList<T extends { id: string }>({
   );
 }
 
-function SortableRow({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+function SortableRow({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -103,8 +85,8 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex gap-2 rounded-xl border border-primary/10 bg-[#fffdf8] p-3",
-        isDragging && "z-10 opacity-90 shadow-md",
+        'flex gap-2 rounded-xl border border-primary/10 bg-[#fffdf8] p-3',
+        isDragging && 'z-10 opacity-90 shadow-md',
       )}
     >
       <button

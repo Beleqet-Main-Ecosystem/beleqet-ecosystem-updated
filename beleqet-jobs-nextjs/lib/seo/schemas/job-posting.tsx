@@ -1,5 +1,5 @@
-import React from "react";
-import { getSeoConfig } from "../config";
+import React from 'react';
+import { getSeoConfig } from '../config';
 
 /**
  * Shape accepted by `JobPostingSchema`.  Only the fields that are safe for
@@ -26,30 +26,26 @@ export interface JobPostingData {
  * @see https://schema.org/JobPosting
  * @see https://developers.google.com/search/docs/appearance/structured-data/job-posting
  */
-export function JobPostingSchema({
-  job,
-}: {
-  job: JobPostingData;
-}): React.ReactElement {
+export function JobPostingSchema({ job }: { job: JobPostingData }): React.ReactElement {
   const { siteUrl, organization } = getSeoConfig();
 
   const json = {
-    "@context": "https://schema.org",
-    "@type": "JobPosting",
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
     title: job.title,
     description: job.description,
     datePosted: job.datePosted,
     hiringOrganization: {
-      "@type": "Organization",
+      '@type': 'Organization',
       name: job.company,
       sameAs: organization.url,
     },
     jobLocation: {
-      "@type": "Place",
+      '@type': 'Place',
       address: {
-        "@type": "PostalAddress",
+        '@type': 'PostalAddress',
         addressLocality: job.location,
-        addressCountry: "ET",
+        addressCountry: 'ET',
       },
     },
     employmentType: normalizeEmploymentType(job.employmentType),
@@ -58,10 +54,7 @@ export function JobPostingSchema({
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
   );
 }
 
@@ -70,14 +63,14 @@ export function JobPostingSchema({
  */
 function normalizeEmploymentType(raw: string): string {
   const map: Record<string, string> = {
-    "FULL_TIME": "FULL_TIME",
-    "PART_TIME": "PART_TIME",
-    "REMOTE": "REMOTE",
-    "HYBRID": "HYBRID",
-    "CONTRACT": "CONTRACTOR",
-    "Full Time": "FULL_TIME",
-    "Part Time": "PART_TIME",
-    "Contract": "CONTRACTOR",
+    FULL_TIME: 'FULL_TIME',
+    PART_TIME: 'PART_TIME',
+    REMOTE: 'REMOTE',
+    HYBRID: 'HYBRID',
+    CONTRACT: 'CONTRACTOR',
+    'Full Time': 'FULL_TIME',
+    'Part Time': 'PART_TIME',
+    Contract: 'CONTRACTOR',
   };
-  return map[raw] ?? "FULL_TIME";
+  return map[raw] ?? 'FULL_TIME';
 }

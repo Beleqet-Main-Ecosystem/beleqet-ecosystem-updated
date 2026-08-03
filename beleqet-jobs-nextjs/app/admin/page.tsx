@@ -1,13 +1,20 @@
-"use client";
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { BellRing, CreditCard, MessageSquare, Receipt, Trash2, UserPlus, Users } from "lucide-react";
-import { authenticatedFetch } from "@/lib/auth";
-import { useAuth } from "@/components/AuthProvider";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
-const roles = ["JOB_SEEKER", "EMPLOYER", "FREELANCER", "ADMIN"];
+'use client';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  BellRing,
+  CreditCard,
+  MessageSquare,
+  Receipt,
+  Trash2,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import { authenticatedFetch } from '@/lib/auth';
+import { useAuth } from '@/components/AuthProvider';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const roles = ['JOB_SEEKER', 'EMPLOYER', 'FREELANCER', 'ADMIN'];
 type ManagedUser = {
   id: string;
   email: string;
@@ -32,33 +39,33 @@ type Plan = {
   description: string | null;
   priceAmount: number;
   currency: string;
-  interval: "MONTHLY" | "YEARLY";
+  interval: 'MONTHLY' | 'YEARLY';
   isActive: boolean;
 };
 type AdminSubscription = {
   id: string;
-  status: "PENDING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
+  status: 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'EXPIRED';
   currentPeriodEnd: string;
   cancelAtPeriodEnd: boolean;
   plan: { name: string };
   user: { firstName: string; lastName: string; email: string };
 };
-const subscriptionStatuses = ["ACTIVE", "PENDING", "PAST_DUE", "CANCELLED", "EXPIRED"] as const;
+const subscriptionStatuses = ['ACTIVE', 'PENDING', 'PAST_DUE', 'CANCELLED', 'EXPIRED'] as const;
 
 export default function AdminPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [tab, setTab] = useState("users");
-  const [notice, setNotice] = useState("");
+  const [tab, setTab] = useState('users');
+  const [notice, setNotice] = useState('');
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
-  const [targetType, setTargetType] = useState<"all" | "role" | "specific">("all");
+  const [targetType, setTargetType] = useState<'all' | 'role' | 'specific'>('all');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [subscriptions, setSubscriptions] = useState<AdminSubscription[]>([]);
-  const [subStatusFilter, setSubStatusFilter] = useState<string>("");
+  const [subStatusFilter, setSubStatusFilter] = useState<string>('');
   const load = useCallback(async () => {
     const [u, c, p] = await Promise.all([
       authenticatedFetch(`${API_URL}/admin/users`),
@@ -70,18 +77,18 @@ export default function AdminPage() {
     if (p.ok) setPlans(await p.json());
   }, []);
   const loadSubscriptions = useCallback(async (status: string) => {
-    const query = status ? `?status=${status}` : "";
+    const query = status ? `?status=${status}` : '';
     const res = await authenticatedFetch(`${API_URL}/subscriptions${query}`);
     if (res.ok) setSubscriptions(await res.json());
   }, []);
   useEffect(() => {
-    if (ready && user?.role !== "ADMIN") router.replace("/");
-    if (user?.role === "ADMIN") load();
+    if (ready && user?.role !== 'ADMIN') router.replace('/');
+    if (user?.role === 'ADMIN') load();
   }, [ready, user, router, load]);
   useEffect(() => {
-    if (user?.role === "ADMIN" && tab === "subscriptions") loadSubscriptions(subStatusFilter);
+    if (user?.role === 'ADMIN' && tab === 'subscriptions') loadSubscriptions(subStatusFilter);
   }, [user, tab, subStatusFilter, loadSubscriptions]);
-  if (!ready || user?.role !== "ADMIN")
+  if (!ready || user?.role !== 'ADMIN')
     return (
       <div className="container-page py-24 text-center text-muted">
         Checking administrator access…
@@ -91,16 +98,16 @@ export default function AdminPage() {
     event.preventDefault();
     const form = event.currentTarget;
     const response = await authenticatedFetch(`${API_URL}/admin/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(Object.fromEntries(new FormData(form))),
     });
     const data = await response.json();
     setNotice(
       response.ok
-        ? "User created."
+        ? 'User created.'
         : Array.isArray(data.message)
-          ? data.message.join(", ")
+          ? data.message.join(', ')
           : data.message,
     );
     if (response.ok) {
@@ -110,18 +117,18 @@ export default function AdminPage() {
   }
   async function updateUser(id: string, data: object) {
     const response = await authenticatedFetch(`${API_URL}/admin/users/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
     if (response.ok) load();
   }
   async function removeUser(id: string) {
     const response = await authenticatedFetch(`${API_URL}/admin/users/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
     const data = await response.json();
-    setNotice(data.reason || (response.ok ? "User deleted." : data.message));
+    setNotice(data.reason || (response.ok ? 'User deleted.' : data.message));
     setDeleteUserId(null);
     await load();
   }
@@ -129,32 +136,32 @@ export default function AdminPage() {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const priceMajor = parseFloat(String(formData.get("priceAmount") ?? "0"));
+    const priceMajor = parseFloat(String(formData.get('priceAmount') ?? '0'));
     let features: Record<string, unknown> = {};
     try {
-      features = JSON.parse(String(formData.get("features") || "{}"));
+      features = JSON.parse(String(formData.get('features') || '{}'));
     } catch {
-      setNotice("Features must be valid JSON, e.g. {\"maxJobPosts\": 5}");
+      setNotice('Features must be valid JSON, e.g. {"maxJobPosts": 5}');
       return;
     }
     const response = await authenticatedFetch(`${API_URL}/plans`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: formData.get("name"),
-        description: formData.get("description") || undefined,
+        name: formData.get('name'),
+        description: formData.get('description') || undefined,
         priceAmount: Math.round(priceMajor * 100),
-        currency: formData.get("currency"),
-        interval: formData.get("interval"),
+        currency: formData.get('currency'),
+        interval: formData.get('interval'),
         features,
       }),
     });
     const data = await response.json();
     setNotice(
       response.ok
-        ? "Plan created."
+        ? 'Plan created.'
         : Array.isArray(data.message)
-          ? data.message.join(", ")
+          ? data.message.join(', ')
           : data.message,
     );
     if (response.ok) {
@@ -164,57 +171,49 @@ export default function AdminPage() {
   }
   async function togglePlanActive(plan: Plan) {
     const response = await authenticatedFetch(`${API_URL}/plans/${plan.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !plan.isActive }),
     });
     if (response.ok) load();
   }
   async function updateContact(id: string, status: string) {
-    const response = await authenticatedFetch(
-      `${API_URL}/admin/contacts/${id}/status`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      },
-    );
+    const response = await authenticatedFetch(`${API_URL}/admin/contacts/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
     if (response.ok) load();
   }
   async function broadcast(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const title = formData.get("title");
-    const body = formData.get("body");
-    
+    const title = formData.get('title');
+    const body = formData.get('body');
+
     const payload: Record<string, any> = { title, body };
-    if (targetType === "role") {
-      payload.role = formData.get("role");
-    } else if (targetType === "specific") {
+    if (targetType === 'role') {
+      payload.role = formData.get('role');
+    } else if (targetType === 'specific') {
       if (selectedUserIds.length === 0) {
-        setNotice("Please select at least one recipient.");
+        setNotice('Please select at least one recipient.');
         return;
       }
       payload.userIds = selectedUserIds;
     }
 
-    const response = await authenticatedFetch(
-      `${API_URL}/admin/notifications/broadcast`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
+    const response = await authenticatedFetch(`${API_URL}/admin/notifications/broadcast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
     const data = await response.json();
-    setNotice(
-      response.ok ? `Delivered to ${data.delivered} users.` : data.message,
-    );
+    setNotice(response.ok ? `Delivered to ${data.delivered} users.` : data.message);
     if (response.ok) {
       form.reset();
       setSelectedUserIds([]);
-      setTargetType("all");
+      setTargetType('all');
     }
   }
   return (
@@ -229,37 +228,21 @@ export default function AdminPage() {
       </section>
       <div className="container-page py-10">
         <div className="mb-6 flex gap-2">
-          <Tab
-            active={tab === "users"}
-            onClick={() => setTab("users")}
-            icon={Users}
-          >
+          <Tab active={tab === 'users'} onClick={() => setTab('users')} icon={Users}>
             Users
           </Tab>
-          <Tab
-            active={tab === "contacts"}
-            onClick={() => setTab("contacts")}
-            icon={MessageSquare}
-          >
+          <Tab active={tab === 'contacts'} onClick={() => setTab('contacts')} icon={MessageSquare}>
             Messages
           </Tab>
-          <Tab
-            active={tab === "broadcast"}
-            onClick={() => setTab("broadcast")}
-            icon={BellRing}
-          >
+          <Tab active={tab === 'broadcast'} onClick={() => setTab('broadcast')} icon={BellRing}>
             Notify
           </Tab>
-          <Tab
-            active={tab === "plans"}
-            onClick={() => setTab("plans")}
-            icon={CreditCard}
-          >
+          <Tab active={tab === 'plans'} onClick={() => setTab('plans')} icon={CreditCard}>
             Plans
           </Tab>
           <Tab
-            active={tab === "subscriptions"}
-            onClick={() => setTab("subscriptions")}
+            active={tab === 'subscriptions'}
+            onClick={() => setTab('subscriptions')}
             icon={Receipt}
           >
             Subscriptions
@@ -270,7 +253,7 @@ export default function AdminPage() {
             {notice}
           </p>
         )}
-        {tab === "users" && (
+        {tab === 'users' && (
           <div className="space-y-6">
             <form
               onSubmit={createUser}
@@ -312,9 +295,7 @@ export default function AdminPage() {
                       <td>
                         <select
                           value={item.role}
-                          onChange={(e) =>
-                            updateUser(item.id, { role: e.target.value })
-                          }
+                          onChange={(e) => updateUser(item.id, { role: e.target.value })}
                           className="rounded-lg border p-2 text-xs"
                         >
                           {roles.map((role) => (
@@ -324,22 +305,15 @@ export default function AdminPage() {
                       </td>
                       <td>
                         <button
-                          onClick={() =>
-                            updateUser(item.id, { isActive: !item.isActive })
-                          }
-                          className={
-                            item.isActive ? "text-brandGreen" : "text-redAccent"
-                          }
+                          onClick={() => updateUser(item.id, { isActive: !item.isActive })}
+                          className={item.isActive ? 'text-brandGreen' : 'text-redAccent'}
                         >
-                          {item.isActive ? "Active" : "Suspended"}
+                          {item.isActive ? 'Active' : 'Suspended'}
                         </button>
                       </td>
                       <td>{new Date(item.createdAt).toLocaleDateString()}</td>
                       <td>
-                        <button
-                          onClick={() => setDeleteUserId(item.id)}
-                          className="text-redAccent"
-                        >
+                        <button onClick={() => setDeleteUserId(item.id)} className="text-redAccent">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </td>
@@ -350,7 +324,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-        {tab === "contacts" && (
+        {tab === 'contacts' && (
           <div className="space-y-3">
             {contacts.map((item) => (
               <article key={item.id} className="rounded-2xl bg-white p-5">
@@ -371,170 +345,197 @@ export default function AdminPage() {
                     <option>RESOLVED</option>
                   </select>
                 </div>
-                <p className="mt-4 whitespace-pre-wrap text-sm text-muted">
-                  {item.message}
-                </p>
+                <p className="mt-4 whitespace-pre-wrap text-sm text-muted">{item.message}</p>
               </article>
             ))}
           </div>
         )}
-        {tab === "broadcast" && (() => {
-          const filteredUsers = searchQuery.trim() === ""
-            ? users.filter(u => !selectedUserIds.includes(u.id) && u.isActive)
-            : users.filter(u => 
-                !selectedUserIds.includes(u.id) && 
-                u.isActive &&
-                (`${u.firstName} ${u.lastName} ${u.email}`).toLowerCase().includes(searchQuery.toLowerCase())
-              );
+        {tab === 'broadcast' &&
+          (() => {
+            const filteredUsers =
+              searchQuery.trim() === ''
+                ? users.filter((u) => !selectedUserIds.includes(u.id) && u.isActive)
+                : users.filter(
+                    (u) =>
+                      !selectedUserIds.includes(u.id) &&
+                      u.isActive &&
+                      `${u.firstName} ${u.lastName} ${u.email}`
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()),
+                  );
 
-          return (
-            <form
-              onSubmit={broadcast}
-              className="max-w-2xl space-y-4 rounded-2xl bg-white p-6"
-            >
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-muted">Recipients Type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setTargetType("all")}
-                    className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
-                      targetType === "all" ? "bg-primary text-white border-primary" : "bg-white text-muted border-border hover:bg-pageBg"
-                    }`}
-                  >
-                    All Users
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTargetType("role")}
-                    className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
-                      targetType === "role" ? "bg-primary text-white border-primary" : "bg-white text-muted border-border hover:bg-pageBg"
-                    }`}
-                  >
-                    By Role
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTargetType("specific")}
-                    className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
-                      targetType === "specific" ? "bg-primary text-white border-primary" : "bg-white text-muted border-border hover:bg-pageBg"
-                    }`}
-                  >
-                    Specific User(s)
-                  </button>
-                </div>
-              </div>
-
-              {targetType === "role" && (
+            return (
+              <form onSubmit={broadcast} className="max-w-2xl space-y-4 rounded-2xl bg-white p-6">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase text-muted">Select Role</label>
-                  <select name="role" required className="control w-full">
-                    <option value="">Select role...</option>
-                    {roles.map((role) => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                  </select>
+                  <label className="text-xs font-bold uppercase text-muted">Recipients Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTargetType('all')}
+                      className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
+                        targetType === 'all'
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-muted border-border hover:bg-pageBg'
+                      }`}
+                    >
+                      All Users
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTargetType('role')}
+                      className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
+                        targetType === 'role'
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-muted border-border hover:bg-pageBg'
+                      }`}
+                    >
+                      By Role
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTargetType('specific')}
+                      className={`rounded-xl py-2 px-3 text-xs font-bold border transition-colors ${
+                        targetType === 'specific'
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-muted border-border hover:bg-pageBg'
+                      }`}
+                    >
+                      Specific User(s)
+                    </button>
+                  </div>
                 </div>
-              )}
 
-              {targetType === "specific" && (
-                <div className="space-y-3">
+                {targetType === 'role' && (
                   <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase text-muted">Selected Recipients</label>
-                    <div className="flex flex-wrap gap-2 p-2.5 border border-border rounded-xl bg-pageBg min-h-[44px]">
-                      {selectedUserIds.length === 0 ? (
-                        <span className="text-xs text-muted flex items-center">No recipients selected yet. Use search below.</span>
-                      ) : (
-                        selectedUserIds.map(id => {
-                          const u = users.find(x => x.id === id);
-                          if (!u) return null;
-                          return (
-                            <span key={id} className="inline-flex items-center gap-1 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-                              {u.firstName} {u.lastName}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedUserIds(prev => prev.filter(x => x !== id))}
-                                className="hover:text-redAccent focus:outline-none ml-1 font-bold text-sm"
+                    <label className="text-xs font-bold uppercase text-muted">Select Role</label>
+                    <select name="role" required className="control w-full">
+                      <option value="">Select role...</option>
+                      {roles.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {targetType === 'specific' && (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold uppercase text-muted">
+                        Selected Recipients
+                      </label>
+                      <div className="flex flex-wrap gap-2 p-2.5 border border-border rounded-xl bg-pageBg min-h-[44px]">
+                        {selectedUserIds.length === 0 ? (
+                          <span className="text-xs text-muted flex items-center">
+                            No recipients selected yet. Use search below.
+                          </span>
+                        ) : (
+                          selectedUserIds.map((id) => {
+                            const u = users.find((x) => x.id === id);
+                            if (!u) return null;
+                            return (
+                              <span
+                                key={id}
+                                className="inline-flex items-center gap-1 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full"
                               >
-                                ×
+                                {u.firstName} {u.lastName}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setSelectedUserIds((prev) => prev.filter((x) => x !== id))
+                                  }
+                                  className="hover:text-redAccent focus:outline-none ml-1 font-bold text-sm"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="relative space-y-1">
+                      <label className="text-xs font-bold uppercase text-muted">Search User</label>
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Type name or email to search..."
+                        className="control w-full text-sm"
+                      />
+                      {searchQuery.trim() !== '' && (
+                        <div className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-border bg-white shadow-xl p-1.5 space-y-1">
+                          {filteredUsers.length === 0 ? (
+                            <p className="text-xs text-muted p-2 text-center">
+                              No active users match search.
+                            </p>
+                          ) : (
+                            filteredUsers.slice(0, 10).map((u) => (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedUserIds((prev) => [...prev, u.id]);
+                                  setSearchQuery('');
+                                }}
+                                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs text-ink hover:bg-pageBg transition-colors"
+                              >
+                                <div>
+                                  <p className="font-bold">
+                                    {u.firstName} {u.lastName}
+                                  </p>
+                                  <p className="text-muted text-[10px]">{u.email}</p>
+                                </div>
+                                <span className="bg-brandGreen/10 text-brandGreen font-extrabold px-2 py-0.5 rounded text-[9px] uppercase">
+                                  {u.role}
+                                </span>
                               </button>
-                            </span>
-                          );
-                        })
+                            ))
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
-                  
-                  <div className="relative space-y-1">
-                    <label className="text-xs font-bold uppercase text-muted">Search User</label>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Type name or email to search..."
-                      className="control w-full text-sm"
-                    />
-                    {searchQuery.trim() !== "" && (
-                      <div className="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl border border-border bg-white shadow-xl p-1.5 space-y-1">
-                        {filteredUsers.length === 0 ? (
-                          <p className="text-xs text-muted p-2 text-center">No active users match search.</p>
-                        ) : (
-                          filteredUsers.slice(0, 10).map(u => (
-                            <button
-                              key={u.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedUserIds(prev => [...prev, u.id]);
-                                setSearchQuery("");
-                              }}
-                              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs text-ink hover:bg-pageBg transition-colors"
-                            >
-                              <div>
-                                <p className="font-bold">{u.firstName} {u.lastName}</p>
-                                <p className="text-muted text-[10px]">{u.email}</p>
-                              </div>
-                              <span className="bg-brandGreen/10 text-brandGreen font-extrabold px-2 py-0.5 rounded text-[9px] uppercase">
-                                {u.role}
-                              </span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase text-muted">Message Title</label>
+                  <Input name="title" placeholder="Enter title" />
                 </div>
-              )}
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-muted">Message Title</label>
-                <Input name="title" placeholder="Enter title" />
-              </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase text-muted">Message Body</label>
+                  <textarea
+                    name="body"
+                    required
+                    minLength={5}
+                    rows={5}
+                    placeholder="Enter message body..."
+                    className="control w-full text-sm"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-muted">Message Body</label>
-                <textarea
-                  name="body"
-                  required
-                  minLength={5}
-                  rows={5}
-                  placeholder="Enter message body..."
-                  className="control w-full text-sm"
-                />
-              </div>
-
-              <button className="rounded-full bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-brandGreen">
-                Send notification
-              </button>
-            </form>
-          );
-        })()}
-        {tab === "plans" && (
+                <button className="rounded-full bg-primary px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-brandGreen">
+                  Send notification
+                </button>
+              </form>
+            );
+          })()}
+        {tab === 'plans' && (
           <div className="space-y-6">
             <form
               onSubmit={createPlan}
               className="grid gap-3 rounded-2xl bg-white p-5 md:grid-cols-6"
             >
-              <input name="name" required minLength={2} placeholder="Plan name" className="control" />
+              <input
+                name="name"
+                required
+                minLength={2}
+                placeholder="Plan name"
+                className="control"
+              />
               <input
                 name="description"
                 placeholder="Description (optional)"
@@ -584,20 +585,22 @@ export default function AdminPage() {
                     <tr key={plan.id} className="border-t border-border">
                       <td className="p-4">
                         <b>{plan.name}</b>
-                        {plan.description && <p className="text-xs text-muted">{plan.description}</p>}
+                        {plan.description && (
+                          <p className="text-xs text-muted">{plan.description}</p>
+                        )}
                       </td>
                       <td>
                         {plan.priceAmount === 0
-                          ? "Free"
+                          ? 'Free'
                           : `${plan.currency} ${(plan.priceAmount / 100).toFixed(2)}`}
                       </td>
-                      <td>{plan.interval === "YEARLY" ? "Yearly" : "Monthly"}</td>
+                      <td>{plan.interval === 'YEARLY' ? 'Yearly' : 'Monthly'}</td>
                       <td>
                         <button
                           onClick={() => togglePlanActive(plan)}
-                          className={plan.isActive ? "text-brandGreen" : "text-redAccent"}
+                          className={plan.isActive ? 'text-brandGreen' : 'text-redAccent'}
                         >
-                          {plan.isActive ? "Active" : "Inactive"}
+                          {plan.isActive ? 'Active' : 'Inactive'}
                         </button>
                       </td>
                       <td />
@@ -608,7 +611,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-        {tab === "subscriptions" && (
+        {tab === 'subscriptions' && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <label className="text-xs font-bold uppercase text-muted">Filter by status</label>
@@ -648,7 +651,7 @@ export default function AdminPage() {
                       <td>{sub.plan.name}</td>
                       <td>{sub.status}</td>
                       <td>{new Date(sub.currentPeriodEnd).toLocaleDateString()}</td>
-                      <td>{sub.cancelAtPeriodEnd ? "No" : "Yes"}</td>
+                      <td>{sub.cancelAtPeriodEnd ? 'No' : 'Yes'}</td>
                     </tr>
                   ))}
                   {subscriptions.length === 0 && (
@@ -681,7 +684,7 @@ export default function AdminPage() {
 function Input({
   name,
   placeholder,
-  type = "text",
+  type = 'text',
 }: {
   name: string;
   placeholder: string;
@@ -692,7 +695,7 @@ function Input({
       name={name}
       type={type}
       required
-      minLength={type === "password" ? 8 : 2}
+      minLength={type === 'password' ? 8 : 2}
       placeholder={placeholder}
       className="control w-full"
     />
@@ -712,7 +715,7 @@ function Tab({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold ${active ? "bg-primary text-white" : "bg-white text-primary"}`}
+      className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold ${active ? 'bg-primary text-white' : 'bg-white text-primary'}`}
     >
       <Icon className="h-4 w-4" />
       {children}

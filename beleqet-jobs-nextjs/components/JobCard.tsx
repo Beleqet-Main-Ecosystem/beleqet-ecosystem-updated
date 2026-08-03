@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { MapPin, Building2 } from "lucide-react";
-import type { Job } from "@/lib/api";
-import SaveJobButton from "@/components/SaveJobButton";
+import Link from 'next/link';
+import { MapPin, Building2 } from 'lucide-react';
+import type { Job } from '@/lib/api';
+import SaveJobButton from '@/components/SaveJobButton';
 
 /** Formats a salary amount using the job's own currency (multi-currency support). */
-function formatCurrency(amount: number, currency: string = "ETB") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
+function formatCurrency(amount: number, currency: string = 'ETB') {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
     currency,
     maximumFractionDigits: 0,
   }).format(amount);
@@ -14,23 +14,23 @@ function formatCurrency(amount: number, currency: string = "ETB") {
 
 export default function JobCard({
   job,
-  variant = "dark",
+  variant = 'dark',
   showMatchScore = false,
 }: {
   job: Job;
-  variant?: "dark" | "light";
+  variant?: 'dark' | 'light';
   /** Set on the AI Personal Feed page to surface the computed relevanceScore. */
   showMatchScore?: boolean;
 }) {
-  const isLight = variant === "light";
+  const isLight = variant === 'light';
   const hasSalary = job.salaryMin != null || job.salaryMax != null;
 
   return (
     <article
       className={`group flex min-h-[280px] flex-col rounded-[22px] border p-5 transition-all hover:-translate-y-1 hover:border-[#d8ff3e]/60 ${
         isLight
-          ? "border-primary/10 bg-white shadow-card hover:shadow-lg"
-          : "border-white/10 bg-white/[.07] hover:bg-white/[.1]"
+          ? 'border-primary/10 bg-white shadow-card hover:shadow-lg'
+          : 'border-white/10 bg-white/[.07] hover:bg-white/[.1]'
       }`}
     >
       <div className="flex items-start justify-between">
@@ -38,10 +38,10 @@ export default function JobCard({
           <Building2 className="h-5 w-5" />
         </span>
         <div className="flex items-center gap-2">
-          {showMatchScore && typeof job.relevanceScore === "number" && (
+          {showMatchScore && typeof job.relevanceScore === 'number' && (
             <span
               className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                isLight ? "bg-brandGreen/10 text-brandGreen" : "bg-[#d8ff3e]/20 text-[#d8ff3e]"
+                isLight ? 'bg-brandGreen/10 text-brandGreen' : 'bg-[#d8ff3e]/20 text-[#d8ff3e]'
               }`}
             >
               {job.relevanceScore}% match
@@ -54,18 +54,16 @@ export default function JobCard({
       <Link href={`/jobs/${job.id}`} className="flex flex-1 flex-col">
         <h3
           className={`text-cardH3 mt-5 line-clamp-2 leading-snug ${
-            isLight ? "text-primary" : "text-white"
+            isLight ? 'text-primary' : 'text-white'
           }`}
         >
           {job.title}
         </h3>
-        <p className={`mt-1 text-sm ${isLight ? "text-ink" : "text-white/55"}`}>
-          {job.company}
-        </p>
+        <p className={`mt-1 text-sm ${isLight ? 'text-ink' : 'text-white/55'}`}>{job.company}</p>
 
         <div
           className={`mt-3 flex items-center gap-1 text-xs ${
-            isLight ? "text-muted" : "text-white/50"
+            isLight ? 'text-muted' : 'text-white/50'
           }`}
         >
           <MapPin className="h-3.5 w-3.5" />
@@ -73,28 +71,26 @@ export default function JobCard({
         </div>
 
         {hasSalary && (
-          <div className={`mt-2 text-xs font-medium ${isLight ? "text-ink" : "text-white/70"}`}>
+          <div className={`mt-2 text-xs font-medium ${isLight ? 'text-ink' : 'text-white/70'}`}>
             {job.salaryMin != null && formatCurrency(job.salaryMin, job.currency)}
-            {job.salaryMin != null && job.salaryMax != null && " – "}
+            {job.salaryMin != null && job.salaryMax != null && ' – '}
             {job.salaryMax != null && formatCurrency(job.salaryMax, job.currency)}
           </div>
         )}
 
         <div
           className={`mt-auto flex items-center justify-between border-t pt-4 ${
-            isLight ? "border-primary/10" : "border-white/10"
+            isLight ? 'border-primary/10' : 'border-white/10'
           }`}
         >
           <span
             className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-              isLight
-                ? "bg-brandGreen/10 text-brandGreen"
-                : "bg-white/10 text-white"
+              isLight ? 'bg-brandGreen/10 text-brandGreen' : 'bg-white/10 text-white'
             }`}
           >
             {job.type}
           </span>
-          <span className={`text-[11px] ${isLight ? "text-muted" : "text-white/40"}`}>
+          <span className={`text-[11px] ${isLight ? 'text-muted' : 'text-white/40'}`}>
             {job.postedAgo}
           </span>
         </div>

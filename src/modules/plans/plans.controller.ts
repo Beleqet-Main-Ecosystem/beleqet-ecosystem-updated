@@ -30,6 +30,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { PlansService } from './plans.service';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Plans')
 @Controller('plans')
@@ -55,6 +56,7 @@ export class PlansController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:billing')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a subscription plan (Admin only)' })
   @ApiResponse({ status: 201, description: 'Plan created' })
@@ -68,6 +70,7 @@ export class PlansController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:billing')
   @ApiOperation({ summary: 'Update a subscription plan (Admin only)' })
   @ApiResponse({ status: 200, description: 'Plan updated' })
   update(@Param('id') id: string, @Body() dto: UpdatePlanDto) {
@@ -78,6 +81,7 @@ export class PlansController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @RequirePermissions('manage:billing')
   @ApiOperation({ summary: 'Retire a subscription plan (Admin only, soft delete)' })
   @ApiResponse({ status: 200, description: 'Plan deactivated' })
   remove(@Param('id') id: string) {

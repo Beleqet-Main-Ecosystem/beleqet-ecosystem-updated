@@ -1,5 +1,5 @@
-import React from "react";
-import { getSeoConfig } from "../config";
+import React from 'react';
+import { getSeoConfig } from '../config';
 
 /**
  * `<script type="application/ld+json">` fragment describing the web site
@@ -13,24 +13,21 @@ export function WebSiteSchema(): React.ReactElement {
   const { siteUrl, siteName } = getSeoConfig();
 
   const json = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
     name: siteName,
     url: siteUrl,
     potentialAction: {
-      "@type": "SearchAction",
+      '@type': 'SearchAction',
       target: {
-        "@type": "EntryPoint",
+        '@type': 'EntryPoint',
         urlTemplate: `${siteUrl}/jobs?q={search_term_string}`,
       },
-      "query-input": "required name=search_term_string",
+      'query-input': 'required name=search_term_string',
     },
   };
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
   );
 }

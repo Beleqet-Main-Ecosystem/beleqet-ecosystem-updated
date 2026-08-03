@@ -4,6 +4,7 @@ import { StatsQueryDto } from './dto/stats-query.dto';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 /**
  * Handles admin statistics routes.
@@ -18,6 +19,7 @@ export class AdminStatsController {
    */
   @Get('dashboard')
   @Roles('ADMIN')
+  @RequirePermissions('view:stats')
   async getDashboard(
     @Query(new ValidationPipe({ transform: true })) query: StatsQueryDto,
   ): Promise<PlatformStats> {

@@ -6,10 +6,7 @@ interface EmailChangeFormProps {
   onSuccess?: () => void;
 }
 
-export function EmailChangeForm({
-  apiBaseUrl = '/api/v1',
-  onSuccess,
-}: EmailChangeFormProps) {
+export function EmailChangeForm({ apiBaseUrl = '/api/v1', onSuccess }: EmailChangeFormProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,7 +30,10 @@ export function EmailChangeForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationError = validate();
-    if (validationError) { setError(validationError); return; }
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -70,8 +70,8 @@ export function EmailChangeForm({
               throw new Error(errData.message || 'Failed to change email');
             }
             setSuccessMessage(
-              'Your email address has been updated. A verification link has been sent to your new email. '
-              + 'Please check your inbox to confirm.'
+              'Your email address has been updated. A verification link has been sent to your new email. ' +
+                'Please check your inbox to confirm.',
             );
             onSuccess?.();
           };
@@ -88,8 +88,8 @@ export function EmailChangeForm({
       }
 
       setSuccessMessage(
-        'Your email address has been updated. A verification link has been sent to your new email. '
-        + 'Please check your inbox to confirm.'
+        'Your email address has been updated. A verification link has been sent to your new email. ' +
+          'Please check your inbox to confirm.',
       );
       onSuccess?.();
     } catch (err: any) {
@@ -137,7 +137,9 @@ export function EmailChangeForm({
       <h2 className="text-xl font-semibold mb-4">Change Email Address</h2>
 
       {successMessage && (
-        <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded mb-4 text-sm">{successMessage}</div>
+        <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded mb-4 text-sm">
+          {successMessage}
+        </div>
       )}
       {error && (
         <div className="bg-red-50 text-red-700 px-4 py-2 rounded mb-4 text-sm">{error}</div>

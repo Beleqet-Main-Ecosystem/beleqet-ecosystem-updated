@@ -60,19 +60,17 @@ export type ExtractedProfile = {
 };
 
 export const emptyCv: CvData = {
-  fullName: "",
-  title: "",
-  email: "",
-  phone: "",
-  location: "",
-  website: "",
-  summary: "",
-  skills: "",
-  languages: "",
-  experience: [
-    { id: 1, role: "", company: "", start: "", end: "", description: "" },
-  ],
-  education: [{ id: 1, school: "", qualification: "", year: "" }],
+  fullName: '',
+  title: '',
+  email: '',
+  phone: '',
+  location: '',
+  website: '',
+  summary: '',
+  skills: '',
+  languages: '',
+  experience: [{ id: 1, role: '', company: '', start: '', end: '', description: '' }],
+  education: [{ id: 1, school: '', qualification: '', year: '' }],
 };
 
 // Map the (possibly edited) CV form onto UpdateUserDto. Only non-empty fields
@@ -82,12 +80,12 @@ export const emptyCv: CvData = {
 export function buildProfilePayload(cv: CvData): Record<string, unknown> {
   const [firstName, ...rest] = cv.fullName.trim().split(/\s+/);
   const skills = cv.skills
-    .split(",")
+    .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
   const payload: Record<string, unknown> = {};
   if (firstName) payload.firstName = firstName;
-  if (rest.length) payload.lastName = rest.join(" ");
+  if (rest.length) payload.lastName = rest.join(' ');
   if (cv.phone.trim()) payload.phone = cv.phone.trim();
   if (cv.title.trim()) payload.headline = cv.title.trim();
   if (cv.summary.trim()) payload.bio = cv.summary.trim();
@@ -111,23 +109,18 @@ export function mergeExtractedProfile(
   const filled = new Set<string>();
   if (!profile) return { next: old, filled };
 
-  const fullName = [profile.firstName, profile.lastName]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim();
 
   const next: CvData = { ...old };
-  if (fullName) (next.fullName = fullName), filled.add("fullName");
-  if (profile.headline) (next.title = profile.headline), filled.add("title");
-  if (profile.email) (next.email = profile.email), filled.add("email");
-  if (profile.phone) (next.phone = profile.phone), filled.add("phone");
-  if (profile.location)
-    (next.location = profile.location), filled.add("location");
-  if (profile.summary) (next.summary = profile.summary), filled.add("summary");
-  if (profile.skills?.length)
-    (next.skills = profile.skills.join(", ")), filled.add("skills");
+  if (fullName) ((next.fullName = fullName), filled.add('fullName'));
+  if (profile.headline) ((next.title = profile.headline), filled.add('title'));
+  if (profile.email) ((next.email = profile.email), filled.add('email'));
+  if (profile.phone) ((next.phone = profile.phone), filled.add('phone'));
+  if (profile.location) ((next.location = profile.location), filled.add('location'));
+  if (profile.summary) ((next.summary = profile.summary), filled.add('summary'));
+  if (profile.skills?.length) ((next.skills = profile.skills.join(', ')), filled.add('skills'));
   if (profile.languages?.length)
-    (next.languages = profile.languages.join(", ")), filled.add("languages");
+    ((next.languages = profile.languages.join(', ')), filled.add('languages'));
   if (profile.experience?.length) {
     next.experience = profile.experience.map((x, i) => ({
       id: idSeed + i,
@@ -137,7 +130,7 @@ export function mergeExtractedProfile(
       end: x.end,
       description: x.description,
     }));
-    filled.add("experience");
+    filled.add('experience');
   }
   if (profile.education?.length) {
     next.education = profile.education.map((x, i) => ({
@@ -146,31 +139,28 @@ export function mergeExtractedProfile(
       qualification: x.qualification,
       year: x.year,
     }));
-    filled.add("education");
+    filled.add('education');
   }
 
   return { next, filled };
 }
 
 // Translate a backend HTTP status into user-facing copy for the upload flow.
-export function extractErrorMessage(
-  status: number,
-  data: { message?: string },
-): string {
+export function extractErrorMessage(status: number, data: { message?: string }): string {
   switch (status) {
     case 400:
       return "That file didn't look like a resume. Please try another file.";
     case 413:
-      return "That file is too large (max 5 MB).";
+      return 'That file is too large (max 5 MB).';
     case 415:
-      return "Unsupported file type. Please upload a PDF or DOCX.";
+      return 'Unsupported file type. Please upload a PDF or DOCX.';
     case 422:
       return "We couldn't read text from that file. Scanned or image-only resumes aren't supported.";
     case 429:
-      return "The AI is busy right now. Please try again in a moment.";
+      return 'The AI is busy right now. Please try again in a moment.';
     case 503:
-      return "Resume AI is temporarily unavailable. Please try again later.";
+      return 'Resume AI is temporarily unavailable. Please try again later.';
     default:
-      return data?.message || "Could not read that resume.";
+      return data?.message || 'Could not read that resume.';
   }
 }
