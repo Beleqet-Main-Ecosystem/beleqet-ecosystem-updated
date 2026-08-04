@@ -129,7 +129,6 @@ describe('EncryptedInboxGateway', () => {
         ciphertext: 'encrypted',
         iv: 'test-iv',
         encryptedMetadata: undefined,
-        serverCiphertext: undefined,
       });
     });
   });
