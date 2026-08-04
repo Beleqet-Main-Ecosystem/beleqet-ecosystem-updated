@@ -26,8 +26,6 @@ describe('EncryptedInboxService', () => {
     ciphertext: 'encrypted-content',
     iv: 'test-iv',
     encryptedMetadata: null,
-    serverCiphertext: null,
-    serverEncryptionVersion: 'v1',
     isSystem: false,
     isDeleted: false,
     deletedAt: null,
@@ -161,7 +159,6 @@ describe('EncryptedInboxService', () => {
         conversationId: 'conv-1',
         ciphertext: 'encrypted-content',
         iv: 'test-iv',
-        serverCiphertext: 'server-encrypted',
       });
 
       expect(result).toEqual(mockMessage);
@@ -285,11 +282,11 @@ describe('EncryptedInboxService', () => {
   });
 
   describe('exportUserData', () => {
-    it('should export user data with decrypted server copies', async () => {
+    it('should export user data correctly', async () => {
       prisma.encryptedConversation.findMany.mockResolvedValue([
         {
           ...mockConversation,
-          messages: [{ ...mockMessage, serverCiphertext: 'server-encrypted' }],
+          messages: [{ ...mockMessage }],
         },
       ]);
       prisma.eventLog.create.mockResolvedValue({});
