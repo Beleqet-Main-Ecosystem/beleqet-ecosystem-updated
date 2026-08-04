@@ -30,6 +30,8 @@ regexes = [
   '''abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789''',
   # Documented example GDPR AES-256 key (docker-compose / .env.example / CI).
   '''0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef''',
+  # Documented example at-rest AES-256 key (docker-compose / verify-compose / CI).
+  '''1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef''',
   # Documented example base64 OAuth key ("TestEncryptionKey32BytesLongXYZ1").
   '''VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=''',
 ]

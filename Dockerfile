@@ -71,5 +71,8 @@ EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
 
-# Apply committed migrations (production-safe) before starting the server.
-CMD sh -c "npx prisma migrate deploy && npm run start:prod"
+# Start the server only. Migrations are a separate, explicitly controlled
+# deployment step (scripts/deploy/migrate.sh) — the container never mutates the
+# schema on start. Exec form with the node binary directly: npm/npx are stripped
+# from this image above, so any npm-based CMD would fail to start.
+CMD ["node", "dist/main"]

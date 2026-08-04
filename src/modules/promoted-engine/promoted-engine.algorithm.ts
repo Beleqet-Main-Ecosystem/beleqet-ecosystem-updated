@@ -27,7 +27,9 @@ export interface CampaignForRanking {
 }
 
 /** Budget remaining today, floored at 0 (never negative). */
-export function remainingDailyBudget(campaign: Pick<CampaignForRanking, 'dailyBudget' | 'spentToday'>): number {
+export function remainingDailyBudget(
+  campaign: Pick<CampaignForRanking, 'dailyBudget' | 'spentToday'>,
+): number {
   return Math.max(0, campaign.dailyBudget - campaign.spentToday);
 }
 
@@ -36,13 +38,18 @@ export function remainingDailyBudget(campaign: Pick<CampaignForRanking, 'dailyBu
  * has no total cap (only bounded by dailyBudget), matching the nullable
  * `totalBudget` field on the schema.
  */
-export function remainingTotalBudget(campaign: Pick<CampaignForRanking, 'totalBudget' | 'spentTotal'>): number | null {
+export function remainingTotalBudget(
+  campaign: Pick<CampaignForRanking, 'totalBudget' | 'spentTotal'>,
+): number | null {
   if (campaign.totalBudget == null) return null;
   return Math.max(0, campaign.totalBudget - campaign.spentTotal);
 }
 
 /** Whether `now` falls within the campaign's [startAt, endAt] window (endAt null = no end date). */
-export function isWithinSchedule(campaign: Pick<CampaignForRanking, 'startAt' | 'endAt'>, now: Date): boolean {
+export function isWithinSchedule(
+  campaign: Pick<CampaignForRanking, 'startAt' | 'endAt'>,
+  now: Date,
+): boolean {
   if (now < campaign.startAt) return false;
   if (campaign.endAt && now > campaign.endAt) return false;
   return true;
@@ -89,7 +96,10 @@ export function computeRankScore(campaign: CampaignForRanking, now: Date): numbe
  * boundary; a campaign exhausted by totalBudget should never be revived.
  */
 export function nextStatusAfterClick(
-  campaignAfterCharge: Pick<CampaignForRanking, 'status' | 'cpcBid' | 'dailyBudget' | 'spentToday' | 'totalBudget' | 'spentTotal'>,
+  campaignAfterCharge: Pick<
+    CampaignForRanking,
+    'status' | 'cpcBid' | 'dailyBudget' | 'spentToday' | 'totalBudget' | 'spentTotal'
+  >,
 ): CampaignForRanking['status'] {
   if (campaignAfterCharge.status !== 'ACTIVE') return campaignAfterCharge.status;
 

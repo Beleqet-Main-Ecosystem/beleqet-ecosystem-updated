@@ -77,7 +77,7 @@ function buildMockPrisma(options: {
 }) {
   const campaign = options.campaign ?? buildCampaignRecord();
   const employerWallet = options.employerWallet
-   ? { userId: OWNER_ID, currency: 'ETB', ...options.employerWallet }
+    ? { userId: OWNER_ID, currency: 'ETB', ...options.employerWallet }
     : null;
   const freelancerWallet = options.freelancerWallet
     ? { userId: OWNER_ID, currency: 'ETB', ...options.freelancerWallet }
@@ -104,7 +104,10 @@ function buildMockPrisma(options: {
   const promotionEventCreate = jest.fn().mockResolvedValue({ id: 'pevt-001' });
 
   const stubTxClient = {
-    promotionCampaign: { findUnique: jest.fn().mockResolvedValue(campaign), update: promotionCampaignUpdate },
+    promotionCampaign: {
+      findUnique: jest.fn().mockResolvedValue(campaign),
+      update: promotionCampaignUpdate,
+    },
     employerWallet: { updateMany: employerWalletUpdateMany },
     freelancerWallet: { updateMany: freelancerWalletUpdateMany },
     promotionWalletTransaction: { create: promotionWalletTransactionCreate },
@@ -130,14 +133,20 @@ function buildMockPrisma(options: {
       updateMany: freelancerWalletUpdateMany,
     },
     promotionCampaign: {
-      create: jest.fn().mockImplementation(({ data }: any) => Promise.resolve({ ...buildCampaignRecord(), ...data })),
+      create: jest
+        .fn()
+        .mockImplementation(({ data }: any) =>
+          Promise.resolve({ ...buildCampaignRecord(), ...data }),
+        ),
       findMany: jest.fn().mockResolvedValue([campaign]),
       findUnique: jest.fn().mockResolvedValue(campaign),
       update: promotionCampaignUpdate,
     },
     promotionEvent: { create: promotionEventCreate },
     promotionWalletTransaction: { create: promotionWalletTransactionCreate },
-    $transaction: jest.fn().mockImplementation(async (cb: (tx: unknown) => unknown) => cb(stubTxClient)),
+    $transaction: jest
+      .fn()
+      .mockImplementation(async (cb: (tx: unknown) => unknown) => cb(stubTxClient)),
   } as unknown as PrismaService;
 }
 
@@ -166,11 +175,14 @@ describe('PromotedEngineService integration', () => {
   });
 
   it('2. rejects campaign creation when the caller does not own the target job', async () => {
-    const { service } = await buildCtx({ employerWallet: { balance: 5000 }, jobOwnerId: OTHER_USER_ID });
+    const { service } = await buildCtx({
+      employerWallet: { balance: 5000 },
+      jobOwnerId: OTHER_USER_ID,
+    });
 
     await expect(
       service.createCampaign(OWNER_ID, {
-      targetType: PromotionTargetType.JOB,
+        targetType: PromotionTargetType.JOB,
         targetId: JOB_ID,
         cpcBid: 100,
         dailyBudget: 1000,
@@ -183,7 +195,7 @@ describe('PromotedEngineService integration', () => {
 
     await expect(
       service.createCampaign(OWNER_ID, {
-       targetType: PromotionTargetType.JOB,
+        targetType: PromotionTargetType.JOB,
         targetId: JOB_ID,
         cpcBid: 100,
         dailyBudget: 1000,
@@ -225,7 +237,9 @@ describe('PromotedEngineService integration', () => {
     await service.recordEvent(CAMPAIGN_ID, 'CLICK');
 
     expect(prisma.employerWallet.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ userId: OWNER_ID, balance: { gte: 100 } }) }),
+      expect.objectContaining({
+        where: expect.objectContaining({ userId: OWNER_ID, balance: { gte: 100 } }),
+      }),
     );
     expect(prisma.promotionWalletTransaction.create).toHaveBeenCalled();
   });
@@ -251,9 +265,15 @@ describe('PromotedEngineService integration', () => {
 
   it('9. throws when the wallet debit finds insufficient funds at charge time (guarded updateMany matches 0 rows)', async () => {
     const campaign = buildCampaignRecord();
-    const { service } = await buildCtx({ campaign, employerWallet: { balance: 5000 }, walletUpdateManyCount: 0 });
+    const { service } = await buildCtx({
+      campaign,
+      employerWallet: { balance: 5000 },
+      walletUpdateManyCount: 0,
+    });
 
-    await expect(service.recordEvent(CAMPAIGN_ID, 'CLICK')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.recordEvent(CAMPAIGN_ID, 'CLICK')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('10. rejects a status update from someone who is neither the owner nor an admin', async () => {
@@ -261,7 +281,12 @@ describe('PromotedEngineService integration', () => {
     const { service } = await buildCtx({ campaign });
 
     await expect(
-      service.updateStatus(CAMPAIGN_ID, OTHER_USER_ID, 'EMPLOYER', SettableCampaignStatusDto.PAUSED),
+      service.updateStatus(
+        CAMPAIGN_ID,
+        OTHER_USER_ID,
+        'EMPLOYER',
+        SettableCampaignStatusDto.PAUSED,
+      ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
@@ -274,7 +299,7 @@ describe('PromotedEngineService integration', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it("12. getActiveBoosts response never includes cpcBid or any other bid amount", async () => {
+  it('12. getActiveBoosts response never includes cpcBid or any other bid amount', async () => {
     const campaign = buildCampaignRecord({ targetId: JOB_ID, cpcBid: 999 });
     const { service } = await buildCtx({ campaign });
 

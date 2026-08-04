@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { I18nService } from 'nestjs-i18n';
 import { FraudAlertController } from './fraud-alert.controller';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { QUEUE_NAMES } from '../queues/queues.constants';
 
 const mockFraudQueue = {
@@ -11,6 +13,11 @@ const mockFraudQueue = {
 const mockI18nService = {
   t: jest.fn().mockReturnValue('Translated message'),
 };
+
+// Guard behaviour (JwtAuthGuard + RolesGuard) is bypassed here — both pull in
+// Prisma/Redis dependencies that unit tests do not provide. HTTP-layer guard
+// enforcement is covered by e2e tests.
+const passGuard = { canActivate: () => true };
 
 describe('FraudAlertController', () => {
   let controller: FraudAlertController;
@@ -24,7 +31,12 @@ describe('FraudAlertController', () => {
         { provide: getQueueToken(QUEUE_NAMES.FRAUD), useValue: mockFraudQueue },
         { provide: I18nService, useValue: mockI18nService },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue(passGuard)
+      .overrideGuard(RolesGuard)
+      .useValue(passGuard)
+      .compile();
 
     controller = module.get<FraudAlertController>(FraudAlertController);
   });

@@ -1,5 +1,14 @@
 import { PromotionTargetType } from '@prisma/client';
-import { IsEnum, IsInt, IsOptional, IsPositive, IsString, IsUUID, IsISO8601, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsString,
+  IsUUID,
+  IsISO8601,
+  MaxLength,
+} from 'class-validator';
 
 /** Body for POST /promoted-engine/campaigns */
 export class CreateCampaignDto {
