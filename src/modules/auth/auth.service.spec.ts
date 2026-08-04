@@ -127,6 +127,10 @@ describe('AuthService', () => {
         },
       });
       expect(mockPrisma.refreshToken.create).toHaveBeenCalled();
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: userId },
+        data: { lastLoginAt: expect.any(Date) },
+      });
     });
   });
 });

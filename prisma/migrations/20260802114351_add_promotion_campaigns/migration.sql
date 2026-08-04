@@ -1,8 +1,11 @@
+-- Superseded in part by 20260802120000_add_campaigns_and_ad_events.
+-- Uses dedicated promotion enums so we do not clash with "CampaignStatus".
+
 -- CreateEnum
 CREATE TYPE "PromotionTargetType" AS ENUM ('JOB', 'PROPOSAL', 'GIG');
 
 -- CreateEnum
-CREATE TYPE "CampaignStatus" AS ENUM ('PENDING', 'ACTIVE', 'PAUSED', 'EXHAUSTED', 'COMPLETED', 'CANCELLED');
+CREATE TYPE "PromotionCampaignStatus" AS ENUM ('PENDING', 'ACTIVE', 'PAUSED', 'EXHAUSTED', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "PromotionEventType" AS ENUM ('IMPRESSION', 'CLICK', 'CONVERSION');
@@ -13,7 +16,7 @@ CREATE TABLE "promotion_campaigns" (
     "ownerId" TEXT NOT NULL,
     "targetType" "PromotionTargetType" NOT NULL,
     "targetId" TEXT NOT NULL,
-    "status" "CampaignStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "PromotionCampaignStatus" NOT NULL DEFAULT 'PENDING',
     "cpcBid" INTEGER NOT NULL,
     "dailyBudget" INTEGER NOT NULL,
     "totalBudget" INTEGER,

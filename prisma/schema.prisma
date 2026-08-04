@@ -21,6 +21,8 @@ model User {
   telegramId            String?             @unique
   isActive              Boolean             @default(true)
   emailVerified         Boolean             @default(false)
+  /// Set on successful session issuance (password/OAuth/2FA). Used by admin active-user metrics.
+  lastLoginAt           DateTime?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   bio                   String?
@@ -66,8 +68,6 @@ model User {
   kycVerification       KycVerification?
   subscriptions         Subscription[]
   rbacRoles             Role[]              @relation("UserRoles")
-  auditLogs             AuditLog[]
-  promotionCampaigns    PromotionCampaign[]
 
   gdprConsent             Boolean                  @default(true)
   searchHistories         SearchHistory[]
@@ -75,9 +75,13 @@ model User {
   userPreference          UserPreference?
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
+  auditLogs             AuditLog[]
+  promotionCampaigns    PromotionCampaign[]
   fraudAlerts             FraudAlert[]             @relation("AlertUser")
   resolvedFraudAlerts     FraudAlert[]             @relation("AlertResolver")
 
+  @@index([lastLoginAt])
+  @@index([createdAt])
   @@map("users")
 }
 
