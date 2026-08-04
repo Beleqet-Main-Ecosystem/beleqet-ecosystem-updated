@@ -111,7 +111,7 @@ export default function AffiliateDashboard() {
             <div className="card" style={{ textAlign: "center", padding: "40px 32px" }}>
               <h2 style={{ fontSize: "22px", fontWeight: "700", marginBottom: "12px" }}>Welcome to Beleqet Advocates</h2>
               <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "32px", maxWidth: "520px", margin: "0 auto 32px" }}>
-                Join the program to start selling success, amplify tech reach, and build the brand's affiliate network.
+                Join the program to start selling success, amplify tech reach, and build the brand&apos;s affiliate network.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", textAlign: "left", maxWidth: "520px", margin: "0 auto" }}>
                 <div className="flex items-center gap-2">

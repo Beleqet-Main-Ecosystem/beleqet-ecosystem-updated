@@ -1355,4 +1355,3 @@ html.light textarea::placeholder,
 .light textarea::placeholder {
   color: var(--text-secondary);
 }
->>>>>>> 95151b3 (feat: implement affiliate dashboard with glassmorphic ui and dynamic theme engine)
