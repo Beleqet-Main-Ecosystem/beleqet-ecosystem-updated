@@ -1300,8 +1300,6 @@ model EncryptedMessage {
   ciphertext          String
   iv                  String
   encryptedMetadata   Json?
-  serverCiphertext    String?
-  serverEncryptionVersion String @default("v1")
   isSystem            Boolean   @default(false)
   isDeleted           Boolean   @default(false)
   deletedAt           DateTime?

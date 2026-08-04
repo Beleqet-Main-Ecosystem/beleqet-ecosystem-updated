@@ -66,11 +66,6 @@ export class SendEncryptedMessageDto {
   @ApiPropertyOptional({ description: 'Encrypted message metadata (type, filename, etc.)' })
   @IsOptional()
   encryptedMetadata?: Record<string, unknown>;
-
-  @ApiPropertyOptional({ description: 'Server-side encrypted copy for GDPR export' })
-  @IsString()
-  @IsOptional()
-  serverCiphertext?: string;
 }
 
 /**

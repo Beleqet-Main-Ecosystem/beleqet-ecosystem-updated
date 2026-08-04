@@ -27,8 +27,7 @@ import {
  * - Users can request permanent deletion of all encrypted data
  * - Conversation participants are verified on every access
  *
- * @remarks The server-side encryption (serverCiphertext) exists solely for
- * GDPR data-export and deletion compliance.  Normal message flow never
+ * @remarks Normal message flow never
  * involves server-side decryption.
  */
 @Injectable()
@@ -272,7 +271,6 @@ export class EncryptedInboxService {
         deletedAt: new Date(),
         ciphertext: '[DELETED]',
         iv: '',
-        serverCiphertext: null,
       },
     });
 
@@ -398,7 +396,6 @@ export class EncryptedInboxService {
         senderId: string;
         createdAt: Date;
         ciphertext: string;
-        serverCiphertext: string | null;
         isDeleted: boolean;
       }>;
     };
@@ -454,7 +451,6 @@ export class EncryptedInboxService {
         deletedAt: new Date(),
         ciphertext: '[GDPR_DELETED]',
         iv: '',
-        serverCiphertext: null,
       },
     });
 

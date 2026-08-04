@@ -123,7 +123,6 @@ export class EncryptedInboxGateway implements OnGatewayConnection, OnGatewayDisc
       ciphertext: string;
       iv: string;
       encryptedMetadata?: Record<string, unknown>;
-      serverCiphertext?: string;
     },
     @ConnectedSocket() client: Socket,
   ) {
@@ -139,7 +138,6 @@ export class EncryptedInboxGateway implements OnGatewayConnection, OnGatewayDisc
         ciphertext: data.ciphertext,
         iv: data.iv,
         encryptedMetadata: data.encryptedMetadata,
-        serverCiphertext: data.serverCiphertext,
       });
 
       // Broadcast to all participants in the conversation
