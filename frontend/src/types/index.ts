@@ -58,6 +58,7 @@ export interface StatCardData {
 }
 
 /** A single immutable audit trail entry (mirrors the backend's `events_log` / EventLog model). */
+/** Matches AuditLogRecord from audit-logging.service.ts */
 export interface AuditLog {
   id: string;
   eventType: string;
@@ -159,3 +160,27 @@ export interface CampaignAnalytics {
   currency: string;
   status: string;
 }
+  actorUserId: string | null;
+  ipAddress: string | null;
+  httpMethod: string | null;
+  path: string | null;
+  statusCode: number | null;
+  durationMs: number | null;
+  displayCurrency?: string;
+  amountInDisplayCurrency?: number | null;
+/** Paginated audit log list response */
+export interface AuditLogListResponse {
+  data: AuditLog[];
+  meta: {
+  };
+  message: string;
+/** Query filters for the admin audit log viewer */
+export interface AuditLogQuery {
+  path?: string;
+  statusCode?: number | string;
+  search?: string;
+  from?: string;
+  to?: string;
+  lang?: string;
+  currency?: string;
+  httpMethod?: string;

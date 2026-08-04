@@ -618,18 +618,27 @@ model Notification {
 }
 
 model EventLog {
-  id          String   @id @default(uuid())
-  eventType   String
-  entityId    String
-  entityType  String
-  payload     Json
-  processedBy String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(uuid())
+  eventType    String
+  entityId     String
+  entityType   String
+  payload      Json
+  processedBy  String?
+  actorUserId  String?
+  ipAddress    String?
+  httpMethod   String?
+  path         String?
+  statusCode   Int?
+  durationMs   Int?
+  createdAt    DateTime @default(now())
 
   @@index([eventType, entityId])
   @@index([createdAt], map: "idx_events_log_created_at")
   @@index([entityType], map: "idx_events_log_entity_type")
   @@index([eventType, entityId, createdAt])
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([path, createdAt])
   @@map("events_log")
 }
 

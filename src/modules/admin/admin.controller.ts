@@ -18,6 +18,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatService } from '../chat/chat.service';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { AuditLoggingService } from '../audit-logging/audit-logging.service';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -69,6 +70,7 @@ export class AdminController {
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
     private readonly notificationsService: NotificationsService,
+    private readonly auditLoggingService: AuditLoggingService,
   ) {}
 
   @RequirePermissions('manage:users')
@@ -204,10 +206,13 @@ export class AdminController {
       select: { enabled: true },
     });
 
+    const auditLogs = await this.auditLoggingService.findByUserForGdpr(userId);
+
     return {
       data: {
         ...user,
         twoFactor: twoFactor ? { enabled: twoFactor.enabled } : null,
+        auditLogs,
       },
     };
   }

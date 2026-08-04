@@ -33,6 +33,8 @@ export async function updateThemePreference(
   });
   return data;
 }
+  AuditLogListResponse,
+  AuditLogQuery,
 
 /** Logs in a user and stores the JWT token in localStorage */
 export async function login(email: string, password: string): Promise<AuthResponse> {
@@ -253,3 +255,38 @@ export async function getActiveBoosts(
   });
   return data;
 }
+/** Fetches paginated audit logs for the admin Log Viewer */
+export async function fetchAuditLogs(query: AuditLogQuery = {}): Promise<AuditLogListResponse> {
+  const { data } = await apiClient.get<AuditLogListResponse>('/admin/audit-logs', {
+    params: {
+      lang: 'en',
+      currency: 'ETB',
+      page: 1,
+      limit: 20,
+      ...query,
+    },
+/** Fetches a single audit log by id */
+export async function fetchAuditLogById(
+  currency: string = 'ETB',
+  lang: string = 'en',
+): Promise<AuditLog> {
+  const { data } = await apiClient.get<AuditLog>(`/admin/audit-logs/${id}`, {
+    params: { currency, lang },
+/** Downloads filtered audit logs as a browser attachment (JSON or CSV) */
+export async function exportAuditLogs(
+  query: AuditLogQuery & { format?: 'json' | 'csv' } = {},
+): Promise<void> {
+  const response = await apiClient.get<Blob>('/admin/audit-logs/export', {
+    params: { lang: 'en', currency: 'ETB', format: 'json', ...query },
+    responseType: 'blob',
+  const disposition = response.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] || `audit-logs.${query.format || 'json'}`;
+  const url = window.URL.createObjectURL(response.data);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);

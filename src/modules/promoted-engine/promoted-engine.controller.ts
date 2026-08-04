@@ -76,21 +76,35 @@ export class PromotedEngineController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'FREELANCER', 'ADMIN')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get impressions/clicks/conversions/spend for a campaign (owner or admin only).' })
+  @ApiOperation({
+    summary: 'Get impressions/clicks/conversions/spend for a campaign (owner or admin only).',
+  })
   async getAnalytics(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.promotedEngineService.getAnalytics(id, user.userId, user.role);
   }
 
   @Post('campaigns/:id/events')
-  @ApiOperation({ summary: 'Record an impression, click, or conversion against a campaign. No auth — called by anonymous viewers.' })
+  @ApiOperation({
+    summary:
+      'Record an impression, click, or conversion against a campaign. No auth — called by anonymous viewers.',
+  })
   async recordEvent(@Param('id') id: string, @Body() dto: RecordEventDto) {
     return this.promotedEngineService.recordEvent(id, dto.type);
   }
 
   @Get('active-boosts')
-  @ApiOperation({ summary: 'Check which of a batch of targets currently have a winning active boost. No auth — used by the public search page.' })
+  @ApiOperation({
+    summary:
+      'Check which of a batch of targets currently have a winning active boost. No auth — used by the public search page.',
+  })
   async getActiveBoosts(@Query() query: ActiveBoostsQueryDto) {
-    const targetIds = query.targetIds.split(',').map((id) => id.trim()).filter(Boolean);
-   return this.promotedEngineService.getActiveBoosts(query.targetType as PromotionTargetType, targetIds);
+    const targetIds = query.targetIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return this.promotedEngineService.getActiveBoosts(
+      query.targetType as PromotionTargetType,
+      targetIds,
+    );
   }
 }
