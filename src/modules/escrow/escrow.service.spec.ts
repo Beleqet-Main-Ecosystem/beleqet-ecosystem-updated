@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bull';
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EscrowService } from './escrow.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
@@ -58,6 +59,7 @@ const mockWalletSvc = {
 };
 
 const mockEscrowQueue = { add: jest.fn().mockResolvedValue({}) };
+const mockEventEmitter = { emit: jest.fn() };
 
 describe('EscrowService', () => {
   let svc: EscrowService;
@@ -71,6 +73,7 @@ describe('EscrowService', () => {
         { provide: ConfigService, useValue: mockConfig },
         { provide: WalletService, useValue: mockWalletSvc },
         { provide: getQueueToken('escrow'), useValue: mockEscrowQueue },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
     svc = module.get<EscrowService>(EscrowService);
