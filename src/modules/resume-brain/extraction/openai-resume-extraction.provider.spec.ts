@@ -37,14 +37,17 @@ describe('OpenAiResumeExtractionProvider', () => {
   it('should throw on construction when no API key is configured in production', () => {
     const prodConfig = {
       get: jest.fn((key: string, fallback?: unknown) => {
-        const values: Record<string, unknown> = { NODE_ENV: 'production', OPENAI_MODEL: 'gpt-4o-mini' };
+        const values: Record<string, unknown> = {
+          NODE_ENV: 'production',
+          OPENAI_MODEL: 'gpt-4o-mini',
+        };
         return values[key] ?? fallback;
       }),
     };
 
-    expect(() => new OpenAiResumeExtractionProvider(prodConfig as unknown as ConfigService)).toThrow(
-      /OPENAI_API_KEY/,
-    );
+    expect(
+      () => new OpenAiResumeExtractionProvider(prodConfig as unknown as ConfigService),
+    ).toThrow(/OPENAI_API_KEY/);
   });
 
   it('should not throw when no API key is configured outside production', () => {

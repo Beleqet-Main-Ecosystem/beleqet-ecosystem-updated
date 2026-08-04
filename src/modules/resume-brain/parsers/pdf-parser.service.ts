@@ -1,7 +1,7 @@
 import { Injectable, Logger, UnprocessableEntityException } from '@nestjs/common';
 // pdf-parse's types use `export =` (CommonJS) with no `.default`; import via
-// `require` syntax to avoid relying on esModuleInterop, which this project does not enable.
-import pdfParse = require('pdf-parse');
+// namespace syntax to avoid relying on esModuleInterop, which this project does not enable.
+import * as pdfParse from 'pdf-parse';
 import { ParsedDocument, ResumeParser } from './resume-parser.interface';
 import { OcrFallbackService } from './ocr-fallback.service';
 

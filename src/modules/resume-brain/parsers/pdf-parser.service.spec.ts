@@ -1,5 +1,5 @@
 import { UnprocessableEntityException } from '@nestjs/common';
-import pdfParse = require('pdf-parse');
+import * as pdfParse from 'pdf-parse';
 import { PdfParserService } from './pdf-parser.service';
 import { OcrFallbackService } from './ocr-fallback.service';
 

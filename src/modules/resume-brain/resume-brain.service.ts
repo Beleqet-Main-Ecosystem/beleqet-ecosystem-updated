@@ -200,7 +200,6 @@ export class ResumeBrainService {
       throw new InternalServerErrorException(this.t('RESUME_DELETE_FAILED', lang));
     }
 
-    
     await this.prisma.resumeUpload.delete({ where: { id } });
 
     await this.logEvent('resume.deleted', id, 'ResumeUpload', { userId });
