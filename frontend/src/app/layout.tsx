@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import '@/styles/globals.css';
+import { FaqBotWidget } from '@/components/FaqBot/FaqBotWidget';
 import { ThemeProvider } from '@/components/theme/theme-provider';
 import { ThemeScript } from '@/components/theme/theme-script';
-import { FaqBotWidget } from '@/components/FaqBot/FaqBotWidget';
 
 export const metadata: Metadata = {
   title: 'Beleqet Admin — Dashboard',
@@ -10,13 +11,13 @@ export const metadata: Metadata = {
 };
 
 /** Root document layout with pre-hydration theme application. */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <ThemeProvider>
           {children}
           <FaqBotWidget />
