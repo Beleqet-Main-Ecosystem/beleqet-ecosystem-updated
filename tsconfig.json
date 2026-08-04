@@ -30,6 +30,7 @@
     "dist",
     "coverage",
     "frontend",
+    "web",
     "beleqet-jobs-nextjs",
     "src/**/frontend"
   ]

@@ -25,32 +25,31 @@ interface AuthSuccessPayload {
   timestamp: string;
 }
 
-/**
- * Payload emitted when an escrow payment is initiated.
- */
-interface EscrowInitiatedPayload {
-  /** The unique identifier of the escrow transaction */
-  escrowId: string;
-  /** The user ID of the client initiating the payment */
-  clientId: string;
-  /** The gross amount of the transaction */
-  grossAmount: number;
-  /** The currency code (e.g., ETB, USD) */
-  currency: string;
-  /** ISO 8601 timestamp of the event */
-  timestamp: string;
+/** Statistical result for a payment amount compared with same-currency history. */
+export interface PaymentAnomalyAnalysis {
+  anomalous: boolean;
+  zScore: number;
+  meanAmount: number;
+  standardDeviation: number;
 }
 
 /**
  * AnomalySensorService - Core anomaly detection engine.
- * Listens to platform events and applies detection rules to identify
- * suspicious activities such as brute-force attacks and unusual payments.
+ *
+ * Exposes `analyzePaymentAmount` as the single statistical detector reused by
+ * both the on-demand fraud scans and the real-time escrow listener in
+ * `FraudAlertService`. This service retains the real-time brute-force /
+ * credential-stuffing detector (`auth.login.failed` / `auth.login.success`)
+ * and its secured audit-logging helper; payment-amount anomalies are no
+ * longer handled here to avoid duplicate alerting — `FraudAlertService` now
+ * owns the `payment.escrow.initiated` flow end-to-end (FraudAlert ticket +
+ * EventLog + admin notifications).
  *
  * Detection methods used:
  * - Rule-based heuristics (auth brute-force sliding window)
- * - Z-Score statistical analysis (payment amount outlier detection)
+ * - Z-Score statistical analysis (called by FraudAlertService)
  *
- * All detected anomalies are:
+ * All detected auth anomalies are:
  * 1. Logged to the secure audit database (EventLog table)
  * 2. Dispatched as alerts via Email and Slack channels
  */
@@ -178,72 +177,37 @@ export class AnomalySensorService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Listens to escrow payment initiations and detects unusually large
-   * transactions using the Z-Score statistical method.
+   * Compares a payment with a same-currency historical baseline.
    *
-   * Detection Rule: Fetches the client's historical escrow amounts
-   * **for the same currency**, computes the mean and standard deviation,
-   * then calculates the Z-Score for the current transaction. If Z > 2.5
-   * (i.e., the amount is more than 2.5 standard deviations above the
-   * mean), an alert is triggered as a potential anomaly.
-   *
-   * Currency Isolation: Only transactions in the same currency as the
-   * incoming payment are used for the statistical baseline. This prevents
-   * invalid Z-Scores from mixing different currency units (e.g., ETB vs USD).
-   *
-   * Requires at least 3 historical transactions in the same currency to
-   * produce a meaningful statistical baseline.
-   *
-   * @param payload - The escrow initiation event data
+   * Keeping this calculation here gives event-driven and on-demand scans one
+   * statistical detector. Callers are responsible for providing history from
+   * a single currency; amounts must not be converted or mixed across currencies.
    */
-  @OnEvent('payment.escrow.initiated')
-  async handlePaymentInitiated(payload: EscrowInitiatedPayload): Promise<void> {
-    const { clientId, grossAmount, escrowId, currency } = payload;
-
-    // Fetch historical transactions for this client in the SAME CURRENCY
-    // to compute a meaningful mean and standard deviation
-    const history = await this.prisma.escrowTransaction.findMany({
-      where: {
-        freelanceJob: { clientId },
-        id: { not: escrowId },
-        status: { in: ['FUNDED', 'RELEASED'] },
-        currency,
-      },
-      select: { grossAmount: true, currency: true },
-    });
-
-    if (history.length < 3) {
-      // Not enough historical data in this currency for a meaningful Z-Score
-      return;
+  analyzePaymentAmount(amount: number, historicalAmounts: number[]): PaymentAnomalyAnalysis {
+    if (historicalAmounts.length < 3) {
+      return {
+        anomalous: false,
+        zScore: 0,
+        meanAmount: 0,
+        standardDeviation: 0,
+      };
     }
 
-    const amounts = history.map((tx) => tx.grossAmount);
-    const mean = amounts.reduce((a, b) => a + b, 0) / amounts.length;
-    const stdDev =
-      Math.sqrt(amounts.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / amounts.length) || 1; // Prevent division by zero when all amounts are identical
+    const meanAmount =
+      historicalAmounts.reduce((sum, value) => sum + value, 0) / historicalAmounts.length;
+    const standardDeviation =
+      Math.sqrt(
+        historicalAmounts.reduce((sum, value) => sum + Math.pow(value - meanAmount, 2), 0) /
+          historicalAmounts.length,
+      ) || 1;
+    const zScore = (amount - meanAmount) / standardDeviation;
 
-    const zScore = (grossAmount - mean) / stdDev;
-
-    if (zScore > 2.5) {
-      this.logger.warn(
-        `Payment anomaly detected for client: ${clientId}, Z-Score: ${zScore.toFixed(2)}`,
-      );
-
-      await this.logAnomaly('PAYMENT_UNUSUAL_AMOUNT', clientId, 'User', {
-        escrowId,
-        amount: grossAmount,
-        currency,
-        zScore,
-        meanAmount: mean,
-      });
-
-      await this.alertingService.dispatchAlert({
-        title: 'Suspicious Payment Transaction',
-        message: `Unusually large transaction initiated by client ${clientId}. Amount: ${grossAmount} ${currency} (Z-Score: ${zScore.toFixed(2)}).`,
-        severity: 'CRITICAL',
-        timestamp: new Date().toISOString(),
-      });
-    }
+    return {
+      anomalous: zScore > 2.5,
+      zScore,
+      meanAmount,
+      standardDeviation,
+    };
   }
 
   /**

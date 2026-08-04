@@ -9,8 +9,8 @@
 
 ## 1. Pre-Deployment: Code & Tests
 
-| # | Check | Status |
-|---|-------|--------|
+| # | Check | Status  |
+|---|-------|-------- |
 | 1.1 | All Jest unit tests pass (`npm test`) | ✅ |
 | 1.2 | Integration tests pass (`payments-wallet.integration.spec.ts`) | ✅ |
 | 1.3 | Test coverage ≥ 80 % for `payments/` and `db-index-master/` | ✅ |

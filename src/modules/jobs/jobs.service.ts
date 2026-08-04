@@ -34,7 +34,7 @@ export class JobsService {
       include: { company: true, category: true },
     });
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4001';
     const jobUrl = `${frontendUrl}/jobs/${job.id}`;
 
     // Send confirmation email to Employer

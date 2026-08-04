@@ -40,6 +40,8 @@ import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.mod
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+
+// ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { CommunityForumModule } from './modules/community-forum/forum.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
@@ -65,6 +67,9 @@ import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
+
+// ── Fixed: PerformanceWorkerModule import statement deleted ──
+import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
 
 @Module({
   imports: [
@@ -131,6 +136,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     AuditModule,
     AiFeedModule,
     ResumeBrainModule,
+
     SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,
@@ -143,6 +149,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
+    FraudAlertModule,
     RbacModule,
     AuditLogModule,
     CacheConfigModule,

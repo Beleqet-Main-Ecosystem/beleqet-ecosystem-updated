@@ -33,4 +33,9 @@ USER node
 EXPOSE 4000
 HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=15 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/main"]
+
+# Start the server only. Migrations are a separate, explicitly controlled
+# deployment step (scripts/deploy/migrate.sh) — the container never mutates the
+# schema on start. Exec form with the node binary directly: npm/npx are stripped
+# from this image above, so any npm-based CMD would fail to start.
+CMD ["node", "dist/main"]

@@ -10,6 +10,7 @@
     "prisma",
     "scripts",
     "src/**/frontend",
+    "web",
     "tools"
   ]
 }

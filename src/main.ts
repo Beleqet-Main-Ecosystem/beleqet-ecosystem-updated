@@ -59,12 +59,13 @@ async function bootstrap() {
     if (adminPassword.length < 12)
       throw new Error('ADMIN_PASSWORD must contain at least 12 characters');
     const prisma = app.get(PrismaService);
+    const passwordHash = await bcrypt.hash(adminPassword, 12);
     await prisma.user.upsert({
       where: { email: adminEmail },
       update: { role: 'ADMIN', isActive: true },
       create: {
         email: adminEmail,
-        passwordHash: await bcrypt.hash(adminPassword, 12),
+        passwordHash,
         firstName: configService.get<string>('ADMIN_FIRST_NAME', 'Platform'),
         lastName: configService.get<string>('ADMIN_LAST_NAME', 'Admin'),
         role: 'ADMIN',
@@ -77,7 +78,7 @@ async function bootstrap() {
   // ── Security ──────────────────────────────────────────────────────────────
   // Handle CORS preflight before any other middleware to guarantee OPTIONS
   // responses include the required CORS headers regardless of routing.
-  const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:3000');
+  const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:4001');
   const allowedOrigins = frontendUrl
     .split(',')
     .map((o) => o.trim())
@@ -92,6 +93,8 @@ async function bootstrap() {
       if (!origin) return cb(null, true);
       if (extraOrigins.includes('*') || extraOrigins.includes(origin)) return cb(null, true);
       if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
+      if (nodeEnv === 'development' && /^http:\/\/localhost(:\d+)?$/i.test(origin))
+        return cb(null, true);
       logger.warn(`CORS blocked origin: ${origin}`);
       return cb(null, false);
     },
@@ -149,6 +152,7 @@ async function bootstrap() {
       .addTag('notifications', 'Notification management')
       .addTag('analytics', 'Platform analytics')
       .addTag('db-index-master', 'DB Index Master — query analysis & index health (admin only)')
+      .addTag('fraud-alert', 'Fraud detection & alerts')
       .addTag('faq-bot', 'AI-powered FAQ Bot assistant')
       .build();
 
