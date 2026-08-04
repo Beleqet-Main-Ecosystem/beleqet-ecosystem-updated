@@ -190,6 +190,42 @@ describe('AdminStatsService', () => {
       expect(((350 - 200) / 200) * 100).toBe(75);
     });
 
+    it('rejects unsupported FX currencies with 400 (does not silently keep raw amounts)', async () => {
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          AdminStatsService,
+          { provide: AdminStatsRepository, useValue: repository },
+          {
+            provide: WalletService,
+            useValue: {
+              convertCurrency: jest.fn(() => {
+                throw new BadRequestException('Exchange rate for XYZ to ETB not found');
+              }),
+            },
+          },
+          {
+            provide: I18nService,
+            useValue: { t: jest.fn().mockReturnValue('Dashboard Statistics') },
+          },
+        ],
+      }).compile();
+      const fxService = moduleRef.get(AdminStatsService);
+
+      repository.findEscrowPlatformFees.mockResolvedValue([
+        { amount: 100, currency: 'XYZ', at: new Date('2026-08-02T00:00:00Z') },
+      ]);
+
+      await expect(
+        fxService.getOverview({
+          currency: 'ETB',
+          range: 'custom',
+          from: '2026-08-01',
+          to: '2026-08-04',
+          tz: 'UTC',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
     it('marks direction as new when last month was 0 and this month has revenue', async () => {
       repository.findEscrowPlatformFees.mockImplementation(async (from: Date) => {
         if (from.getUTCMonth() === 7) {

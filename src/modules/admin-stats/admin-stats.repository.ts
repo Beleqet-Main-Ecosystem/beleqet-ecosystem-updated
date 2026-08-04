@@ -28,15 +28,30 @@ export class AdminStatsRepository {
   }
 
   /**
-   * Distinct users with lastLoginAt in window OR a refresh token created in window.
+   * Distinct users active in the window: lastLoginAt OR a refresh token created in range.
+   * Prefers reporting basis `last_login` when any login stamps exist; otherwise refresh_token.
    */
   async countActiveUsers(since: Date): Promise<{ count: number; basis: 'last_login' | 'refresh_token' }> {
-    const byLogin = await this.countActiveUsersByLastLogin(since);
-    if (byLogin > 0) {
-      return { count: byLogin, basis: 'last_login' };
-    }
-    const byToken = await this.countActiveUsersByRefreshToken(since);
-    return { count: byToken, basis: byToken > 0 ? 'refresh_token' : 'last_login' };
+    const [loginRows, tokenRows] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { lastLoginAt: { gte: since } },
+        select: { id: true },
+      }),
+      this.prisma.refreshToken.findMany({
+        where: { createdAt: { gte: since } },
+        distinct: ['userId'],
+        select: { userId: true },
+      }),
+    ]);
+
+    const ids = new Set<string>();
+    for (const row of loginRows) ids.add(row.id);
+    for (const row of tokenRows) ids.add(row.userId);
+
+    const basis: 'last_login' | 'refresh_token' =
+      loginRows.length > 0 ? 'last_login' : tokenRows.length > 0 ? 'refresh_token' : 'last_login';
+
+    return { count: ids.size, basis };
   }
 
   countActiveUsersByRefreshToken(since: Date): Promise<number> {

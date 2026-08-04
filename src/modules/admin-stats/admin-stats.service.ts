@@ -180,7 +180,7 @@ export class AdminStatsService {
     const currency = this.normalizeCurrency(query.currency);
     const resolved = resolveStatsRange(query);
     const meta = this.buildMeta(currency, resolved);
-    const limit = query.recentLimit ?? 25;
+    const limit = query.recentLimit ?? 10;
 
     const applyRange = query.applyRangeToProjects === true;
     const [grouped, employmentJobs, contracts, recent] = await Promise.all([
@@ -486,8 +486,11 @@ export class AdminStatsService {
   private safeConvert(amount: number, from: string, to: string): number {
     try {
       return this.walletService.convertCurrency(amount, from || 'ETB', to);
-    } catch {
-      return amount;
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException(
+        `Unable to convert ${from || 'ETB'} to ${to} for admin stats revenue`,
+      );
     }
   }
 }

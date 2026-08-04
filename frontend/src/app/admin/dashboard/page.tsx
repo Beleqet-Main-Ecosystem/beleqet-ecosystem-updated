@@ -43,8 +43,20 @@ const RANGES: Array<{ id: StatsRangePreset; label: string }> = [
   { id: '7d', label: '7 days' },
   { id: '30d', label: '30 days' },
   { id: '12m', label: '12 months' },
+  { id: 'custom', label: 'Custom' },
 ];
 const POLL_MS = 30_000;
+
+function todayYmd(): string {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function daysAgoYmd(days: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
 
 function deltaLabel(
   change: OverviewResponse['cards']['revenueChangeVsLastMonth'],
@@ -63,6 +75,8 @@ function deltaLabel(
 export default function AdminDashboardPage() {
   const [currency, setCurrency] = useState('ETB');
   const [range, setRange] = useState<StatsRangePreset>('30d');
+  const [customFrom, setCustomFrom] = useState(daysAgoYmd(29));
+  const [customTo, setCustomTo] = useState(todayYmd());
   const [overview, setOverview] = useState<OverviewResponse | null>(null);
   const [revenue, setRevenue] = useState<RevenueChartResponse | null>(null);
   const [users, setUsers] = useState<UserGrowthChartResponse | null>(null);
@@ -71,16 +85,20 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
 
-  const query: StatsQueryParams = useMemo(
-    () => ({
+  const query: StatsQueryParams = useMemo(() => {
+    const base: StatsQueryParams = {
       currency,
       range,
       lang: 'en',
       tz: 'Africa/Addis_Ababa',
-      recentLimit: 25,
-    }),
-    [currency, range],
-  );
+      recentLimit: 10,
+    };
+    if (range === 'custom') {
+      base.from = customFrom;
+      base.to = customTo;
+    }
+    return base;
+  }, [currency, range, customFrom, customTo]);
 
   const load = useCallback(async () => {
     try {
@@ -216,6 +234,30 @@ export default function AdminDashboardPage() {
               </button>
             ))}
           </div>
+
+          {range === 'custom' && (
+            <div className="custom-range-inputs" aria-label="Custom date range">
+              <label className="custom-range-field">
+                <span>From</span>
+                <input
+                  type="date"
+                  value={customFrom}
+                  max={customTo}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomFrom(e.target.value)}
+                />
+              </label>
+              <label className="custom-range-field">
+                <span>To</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  min={customFrom}
+                  max={todayYmd()}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomTo(e.target.value)}
+                />
+              </label>
+            </div>
+          )}
 
           <select
             className="currency-select"

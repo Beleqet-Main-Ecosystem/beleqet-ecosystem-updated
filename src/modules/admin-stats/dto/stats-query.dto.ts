@@ -51,7 +51,7 @@ export class StatsQueryDto {
   @IsInt()
   @Min(1)
   @Max(50)
-  recentLimit?: number = 25;
+  recentLimit?: number = 10;
 
   @IsOptional()
   @Transform(({ value }) => value === true || value === 'true' || value === '1')
