@@ -193,15 +193,14 @@ export class ResumeBrainService {
     try {
       await this.uploadsService.deleteFile(upload.storageKey);
     } catch (err) {
-      this.logger.error(
-        `Failed to delete stored file for resume ${id}: ${(err as Error).message}`,
-      );
+      this.logger.error(`Failed to delete stored file for resume ${id}: ${(err as Error).message}`);
       // Do not delete the DB row if the file delete failed — the storageKey
       // is the only pointer to the file. Losing it here would leave the PII
       // in storage with no way to find and erase it later.
       throw new InternalServerErrorException(this.t('RESUME_DELETE_FAILED', lang));
     }
 
+    
     await this.prisma.resumeUpload.delete({ where: { id } });
 
     await this.logEvent('resume.deleted', id, 'ResumeUpload', { userId });

@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { translate } from '../i18n';
 
 describe('Resume Brain i18n', () => {

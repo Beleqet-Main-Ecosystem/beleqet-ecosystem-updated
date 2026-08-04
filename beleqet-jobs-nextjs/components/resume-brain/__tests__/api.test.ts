@@ -1,8 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import axios from 'axios';
 import { messageFromResumeBrainError } from '../api';
 
-vi.mock('axios');
+jest.mock('axios');
 
 describe('Resume Brain API helpers', () => {
   it('returns message from Axios error response object', () => {
