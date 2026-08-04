@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { UploadsModule } from '../uploads/uploads.module';
 import { UsersModule } from '../users/users.module';
+import { AI_CHAT_PROVIDER } from './ai/ai-chat-provider.interface';
+import { GroqProvider } from './ai/groq.provider';
 import { MockResumeExtractionProvider } from './extraction/mock-resume-extraction.provider';
 import { OpenAiResumeExtractionProvider } from './extraction/openai-resume-extraction.provider';
 import { DocxParserService } from './parsers/docx-parser.service';
@@ -56,7 +58,10 @@ import { ResumeBrainService } from './resume-brain.service';
       },
       inject: [ConfigService, MockResumeExtractionProvider, OpenAiResumeExtractionProvider],
     },
+    // Exported for SmartSkillTesterModule, which consumes this token
+    // independently of the CV-parsing pipeline above.
+    { provide: AI_CHAT_PROVIDER, useClass: GroqProvider },
   ],
-  exports: [ResumeBrainService],
+  exports: [ResumeBrainService, AI_CHAT_PROVIDER],
 })
 export class ResumeBrainModule {}
