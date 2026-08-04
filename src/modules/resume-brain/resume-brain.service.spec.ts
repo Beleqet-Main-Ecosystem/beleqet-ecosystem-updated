@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  InternalServerErrorException,
   NotFoundException,
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
@@ -217,7 +218,7 @@ describe('ResumeBrainService', () => {
       expect(mockPrismaService.resumeUpload.delete).toHaveBeenCalledWith({ where: { id: 'r1' } });
     });
 
-    it('should still delete the database record even if file deletion fails', async () => {
+    it('should not delete the database record if file deletion fails', async () => {
       mockPrismaService.resumeUpload.findUnique.mockResolvedValue({
         id: 'r1',
         userId: 'user-1',
@@ -225,9 +226,11 @@ describe('ResumeBrainService', () => {
       });
       mockUploadsService.deleteFile.mockRejectedValueOnce(new Error('storage unavailable'));
 
-      await service.deleteResume('user-1', 'r1');
+      await expect(service.deleteResume('user-1', 'r1')).rejects.toThrow(
+        InternalServerErrorException,
+      );
 
-      expect(mockPrismaService.resumeUpload.delete).toHaveBeenCalledWith({ where: { id: 'r1' } });
+      expect(mockPrismaService.resumeUpload.delete).not.toHaveBeenCalled();
     });
   });
 

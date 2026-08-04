@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  InternalServerErrorException,
   PayloadTooLargeException,
   RequestTimeoutException,
   UnsupportedMediaTypeException,
@@ -189,9 +190,17 @@ export class ResumeBrainService {
     if (upload.userId !== userId)
       throw new ForbiddenException(this.t('FORBIDDEN_RESUME_ACCESS', lang));
 
-    await this.uploadsService.deleteFile(upload.storageKey).catch((err) => {
-      this.logger.warn(`Failed to delete stored file for resume ${id}: ${(err as Error).message}`);
-    });
+    try {
+      await this.uploadsService.deleteFile(upload.storageKey);
+    } catch (err) {
+      this.logger.error(
+        `Failed to delete stored file for resume ${id}: ${(err as Error).message}`,
+      );
+      // Do not delete the DB row if the file delete failed — the storageKey
+      // is the only pointer to the file. Losing it here would leave the PII
+      // in storage with no way to find and erase it later.
+      throw new InternalServerErrorException(this.t('RESUME_DELETE_FAILED', lang));
+    }
 
     await this.prisma.resumeUpload.delete({ where: { id } });
 

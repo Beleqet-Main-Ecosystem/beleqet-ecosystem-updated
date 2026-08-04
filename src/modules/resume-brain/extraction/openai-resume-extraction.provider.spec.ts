@@ -34,6 +34,32 @@ describe('OpenAiResumeExtractionProvider', () => {
     expect(provider.engineId).toBe('openai:gpt-4o-mini');
   });
 
+  it('should throw on construction when no API key is configured in production', () => {
+    const prodConfig = {
+      get: jest.fn((key: string, fallback?: unknown) => {
+        const values: Record<string, unknown> = { NODE_ENV: 'production', OPENAI_MODEL: 'gpt-4o-mini' };
+        return values[key] ?? fallback;
+      }),
+    };
+
+    expect(() => new OpenAiResumeExtractionProvider(prodConfig as unknown as ConfigService)).toThrow(
+      /OPENAI_API_KEY/,
+    );
+  });
+
+  it('should not throw when no API key is configured outside production', () => {
+    const devConfig = {
+      get: jest.fn((key: string, fallback?: unknown) => {
+        const values: Record<string, unknown> = { NODE_ENV: 'test', OPENAI_MODEL: 'gpt-4o-mini' };
+        return values[key] ?? fallback;
+      }),
+    };
+
+    expect(
+      () => new OpenAiResumeExtractionProvider(devConfig as unknown as ConfigService),
+    ).not.toThrow();
+  });
+
   it('should return a fully-populated ExtractedResumeDto on a valid AI response', async () => {
     mockCreate.mockResolvedValue({
       choices: [

@@ -29,9 +29,16 @@ export class OpenAiResumeExtractionProvider implements ResumeExtractionProvider 
   constructor(private readonly config: ConfigService) {
     this.model = this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini');
     this.engineId = `openai:${this.model}`;
-    this.openai = new OpenAI({
-      apiKey: this.config.get<string>('OPENAI_API_KEY') || 'dummy_key_for_testing',
-    });
+    const apiKey = this.config.get<string>('OPENAI_API_KEY');
+
+    if (!apiKey && this.config.get<string>('NODE_ENV') === 'production') {
+      throw new Error(
+        'OPENAI_API_KEY is not configured. Refusing to start in production: every resume ' +
+          'extraction would otherwise fail with a confusing OpenAI auth error instead of failing loudly on boot.',
+      );
+    }
+
+    this.openai = new OpenAI({ apiKey: apiKey || 'dummy_key_for_testing' });
   }
 
   /** @inheritdoc */

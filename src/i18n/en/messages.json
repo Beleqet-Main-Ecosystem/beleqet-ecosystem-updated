@@ -262,6 +262,7 @@
     "FORBIDDEN_RESUME_ACCESS": "You do not have access to this resume.",
     "FORBIDDEN_PARSED_RESUME_ACCESS": "You do not have access to this parsed resume.",
     "FORBIDDEN_PROFILE_AUTOFILL": "You can only autofill your own profile.",
-    "CONSENT_REQUIRED": "You must consent to processing of your CV data before uploading."
+    "CONSENT_REQUIRED": "You must consent to processing of your CV data before uploading.",
+    "RESUME_DELETE_FAILED": "We could not delete the stored file for this resume. Nothing was removed — please try again or contact support."
   }
 }

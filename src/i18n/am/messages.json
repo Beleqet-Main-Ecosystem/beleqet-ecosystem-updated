@@ -140,6 +140,7 @@
     "FORBIDDEN_RESUME_ACCESS": "ወደዚህ ሬዙሜ የመድረስ ፈቃድ የለዎትም።",
     "FORBIDDEN_PARSED_RESUME_ACCESS": "ወደዚህ የተተነተነ ሬዙሜ የመድረስ ፈቃድ የለዎትም።",
     "FORBIDDEN_PROFILE_AUTOFILL": "የራስዎን መገለጫ ብቻ በራስ-ሰር መሙላት ይችላሉ።",
-    "CONSENT_REQUIRED": "ከመላክዎ በፊት የሲቪዎ መረጃ እንዲሰራ ስምምነት መስጠት አለብዎት።"
+    "CONSENT_REQUIRED": "ከመላክዎ በፊት የሲቪዎ መረጃ እንዲሰራ ስምምነት መስጠት አለብዎት።",
+    "RESUME_DELETE_FAILED": "የተከማቸውን የዚህን ሬዙሜ ፋይል መሰረዝ አልተቻለም። ምንም አልተሰረዘም — እባክዎ እንደገና ይሞክሩ ወይም ድጋፍን ያግኙ።"
   }
 }

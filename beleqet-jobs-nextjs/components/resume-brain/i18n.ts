@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 export type ResumeBrainLocale = 'en' | 'am';
 
@@ -18,7 +18,8 @@ const dictionaries: Record<ResumeBrainLocale, Record<string, string>> = {
     browseButton: 'Choose file',
     selectedFile: 'Selected file',
     removeFile: 'Remove',
-    consentLabel: 'I consent to processing of my CV data',
+    consentLabel:
+      'I consent to my CV data being processed, including sending the extracted text to OpenAI, our third-party AI provider (based in the United States), to identify my education, work experience, and skills.',
     consentRequiredError: 'You must consent to processing of your CV data before uploading.',
     uploadButton: 'Upload & Parse',
     uploading: 'Uploading…',
@@ -70,7 +71,8 @@ const dictionaries: Record<ResumeBrainLocale, Record<string, string>> = {
     browseButton: 'ፋይል ይምረጡ',
     selectedFile: 'የተመረጠ ፋይል',
     removeFile: 'አስወግድ',
-    consentLabel: 'የሲቪዬ መረጃ እንዲሰራ እስማማለሁ',
+    consentLabel:
+      'የሲቪዬ መረጃ እንዲሰራ እስማማለሁ፣ ይህም የተወሰደውን ጽሑፍ ትምህርቴን፣ የስራ ልምዴን እና ክህሎቶቼን ለመለየት ወደ ሶስተኛ ወገን የ«AI» አቅራቢያችን OpenAI (በዩናይትድ ስቴትስ የሚገኝ) መላክን ያካትታል።',
     consentRequiredError: 'ከመላክዎ በፊት የሲቪዎ መረጃ እንዲሰራ ስምምነት መስጠት አለብዎት።',
     uploadButton: 'ላክ እና ተነትን',
     uploading: 'በመላክ ላይ…',
