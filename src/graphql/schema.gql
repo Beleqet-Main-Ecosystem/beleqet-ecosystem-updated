@@ -1,0 +1,87 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type CompanyType {
+  id: ID!
+  logo: String
+  name: String!
+}
+
+input CreateJobInput {
+  categoryId: ID!
+  description: String!
+  location: String!
+  salaryMax: Int
+  salaryMin: Int
+  title: String!
+  type: JobType!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type JobCategoryType {
+  id: ID!
+  label: String!
+  slug: String!
+}
+
+enum JobStatus {
+  CLOSED
+  DRAFT
+  PUBLISHED
+}
+
+enum JobType {
+  CONTRACT
+  FULL_TIME
+  HYBRID
+  PART_TIME
+  REMOTE
+}
+
+type JobTypeGraphQL {
+  category: JobCategoryType
+  company: CompanyType
+  createdAt: DateTime!
+  currency: String!
+  description: String!
+  featured: Boolean!
+  id: ID!
+  location: String!
+  requirements: String
+  salaryMax: Int
+  salaryMin: Int
+  status: JobStatus!
+  title: String!
+  type: JobType!
+}
+
+type Mutation {
+  createJob(input: CreateJobInput!): JobTypeGraphQL!
+}
+
+type PaginatedJobsType {
+  items: [JobTypeGraphQL!]!
+  limit: Int!
+  page: Int!
+  total: Int!
+  totalPages: Int!
+}
+
+type Query {
+  job(id: String!): JobTypeGraphQL!
+  jobs(query: QueryJobsInput): PaginatedJobsType!
+}
+
+input QueryJobsInput {
+  category: String
+  limit: Int
+  location: String
+  page: Int
+  q: String
+  type: JobType
+}

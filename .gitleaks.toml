@@ -34,4 +34,6 @@ regexes = [
   '''1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef''',
   # Documented example base64 OAuth key ("TestEncryptionKey32BytesLongXYZ1").
   '''VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=''',
+  # Documented example common Encryption key (docker-compose / CI).
+  '''1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef''',
 ]

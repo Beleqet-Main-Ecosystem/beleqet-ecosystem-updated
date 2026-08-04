@@ -7,7 +7,7 @@
 # =============================================================================
 
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine3.21 AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # ── Prune stage: production-only dependencies ────────────────────────────────
-FROM node:20-alpine AS pruner
+FROM node:22-alpine3.21 AS pruner
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # ── Production stage ─────────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-alpine3.21 AS runner
 
 WORKDIR /app
 
@@ -58,7 +58,7 @@ USER node
 
 EXPOSE 3001
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=10 \
   CMD wget -qO- http://127.0.0.1:3001/ || exit 1
 
 CMD ["node", "node_modules/next/dist/bin/next", "start"]

@@ -123,3 +123,6 @@ temp-storage/
 src/i18n/am/
 Redis.zip
 Redis/
+runs.json
+.env.staging
+.env.images
