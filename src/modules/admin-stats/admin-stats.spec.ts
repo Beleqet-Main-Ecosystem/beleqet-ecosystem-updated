@@ -440,7 +440,7 @@ describe('AdminStatsService', () => {
   });
 
   describe('CSV export', () => {
-    it('exports revenue series as CSV', async () => {
+    it('exports a self-documenting revenue CSV with readable money columns', async () => {
       repository.findEscrowPlatformFees.mockResolvedValue([
         { amount: 10, currency: 'ETB', at: new Date('2026-08-01T00:00:00Z') },
       ]);
@@ -452,8 +452,56 @@ describe('AdminStatsService', () => {
         tz: 'UTC',
       });
       const csv = service.exportRevenueCsv(chart);
-      expect(csv).toContain('date,revenue,currency');
-      expect(csv).toContain('2026-08-01,10,ETB');
+      expect(csv).toContain('Admin Stats — Revenue trend');
+      expect(csv).toContain('Date,Revenue (minor units),Revenue (readable),Currency,Bucket');
+      expect(csv).toContain('2026-08-01,10,0.10 ETB,ETB,Calendar day');
+      expect(csv).toContain('Money unit');
+      expect(csv).toContain('Period total (readable)');
+    });
+
+    it('exports overview CSV with human metric labels and descriptions', async () => {
+      repository.countTotalUsers.mockResolvedValue(5);
+      const overview = await service.getOverview({
+        currency: 'ETB',
+        range: 'custom',
+        from: '2026-08-01',
+        to: '2026-08-04',
+        tz: 'UTC',
+      });
+      const csv = service.exportOverviewCsv(overview);
+      expect(csv).toContain('Admin Stats — Overview snapshot');
+      expect(csv).toContain('Metric,Description,Value (raw),Value (readable),Unit,Period / notes');
+      expect(csv).toContain('Total users');
+      expect(csv).toContain('All registered accounts on the platform');
+      expect(csv).toContain('Privacy');
+    });
+
+    it('exports recent projects CSV with status labels and budget range', async () => {
+      repository.findRecentProjects.mockResolvedValue([
+        {
+          id: 'p1',
+          title: 'Logo design',
+          status: 'IN_PROGRESS' as const,
+          budgetMin: 1000,
+          budgetMax: 2500,
+          currency: 'ETB',
+          createdAt: new Date('2026-08-01T12:00:00Z'),
+          client: { firstName: 'Abebe' },
+        },
+      ]);
+      repository.groupProjectsByStatus.mockResolvedValue([{ status: 'IN_PROGRESS', count: 1 }]);
+      const breakdown = await service.getProjectBreakdown({
+        currency: 'ETB',
+        range: '30d',
+        tz: 'UTC',
+        recentLimit: 10,
+      });
+      const csv = service.exportRecentProjectsCsv(breakdown);
+      expect(csv).toContain('Owner first name');
+      expect(csv).toContain('In Progress');
+      expect(csv).toContain('Abebe');
+      expect(csv).toContain('1,000 – 2,500 ETB');
+      expect(csv).not.toContain('@');
     });
   });
 });

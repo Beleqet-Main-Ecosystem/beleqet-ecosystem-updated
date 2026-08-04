@@ -297,13 +297,13 @@ Keep during migration; document as **deprecated**. New UI must call §4.1–4.4.
 
 Every table/series has a download. Same auth + query filters as the JSON sibling.
 
-| UI control | Method | Path | CSV columns |
+| UI control | Method | Path | Purpose |
 | --- | --- | --- | --- |
-| Overview cards | `GET` | `/admin-stats/overview/export.csv` | `metric,value,unit,month_or_window` |
-| Revenue chart | `GET` | `/admin-stats/charts/revenue/export.csv` | `date,revenue,currency` |
-| User growth | `GET` | `/admin-stats/charts/users/export.csv` | `date,registrations,active_users` |
-| Status summary | `GET` | `/admin-stats/projects/status/export.csv` | `status,count` |
-| Recent projects | `GET` | `/admin-stats/projects/recent/export.csv` | `id,title,status,owner_first_name,created_at` |
+| Overview cards | `GET` | `/admin-stats/overview/export.csv` | KPI snapshot + system revenue mix |
+| Revenue chart | `GET` | `/admin-stats/charts/revenue/export.csv` | Daily/monthly revenue series |
+| User growth | `GET` | `/admin-stats/charts/users/export.csv` | Registrations + active users series |
+| Status summary | `GET` | `/admin-stats/projects/status/export.csv` | Freelance status counts + share % |
+| Recent projects | `GET` | `/admin-stats/projects/recent/export.csv` | Latest freelance jobs (GDPR-safe) |
 
 **Headers:**
 
@@ -312,7 +312,40 @@ Content-Type: text/csv; charset=utf-8
 Content-Disposition: attachment; filename="admin-stats-<resource>-<from>_<to>.csv"
 ```
 
-**Rules:** UTF-8, header row required, RFC 4180 quoting, dates ISO, money in minor units (same as JSON), no PII beyond `owner_first_name`.
+**Document shape (all exports):** UTF-8 with BOM, RFC 4180 quoting.
+
+1. **Metadata block** (key/value rows) — report title, generated time, date range, timezone, currency, money unit explanation, privacy note  
+2. **Blank separator**  
+3. **Data table** — human-readable column headers + rows  
+4. **Notes** (optional) — how to interpret money / GDPR / zero-fill
+
+### 5.1 Overview CSV columns
+
+`Metric, Description, Value (raw), Value (readable), Unit, Period / notes`
+
+- Counts: raw = integer; readable = thousands-separated  
+- Money: raw = **minor units**; readable = major amount with currency (e.g. `1,250.50 ETB`)  
+- Includes MoM % with ↑/↓ and revenue mix breakdown rows  
+
+### 5.2 Revenue CSV columns
+
+`Date, Revenue (minor units), Revenue (readable), Currency, Bucket`
+
+Metadata also lists period totals and revenue sources (fees / gateway / subscriptions / refunds).
+
+### 5.3 User growth CSV columns
+
+`Date, New registrations, Active users, Active users note, Bucket`
+
+### 5.4 Status CSV columns
+
+`Status code, Status label, Count, Share of total (%)`
+
+### 5.5 Recent projects CSV columns
+
+`Project ID, Project title, Status code, Status label, Owner first name, Budget min, Budget max, Budget currency, Budget range (readable), Created at (ISO)`
+
+**Rules:** dates ISO, money minor units kept in raw columns for reconciliation, **no PII beyond owner first name**.
 
 ---
 

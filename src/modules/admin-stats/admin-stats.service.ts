@@ -15,7 +15,7 @@ import {
   SystemSnapshot,
   UserGrowthChartResponse,
 } from './types/admin-stats.types';
-import { toCsv } from './utils/csv.util';
+import { toCsvDocument, formatMinorForCsv, formatStatusLabel } from './utils/csv.util';
 import {
   bucketKeyForDate,
   eachDayKey,
@@ -26,6 +26,29 @@ import {
 } from './utils/date-range.util';
 
 const ALL_PROJECT_STATUSES = Object.values(FreelanceJobStatus);
+
+function csvRangeMeta(meta: {
+  generatedAt: string;
+  currency: string;
+  amountUnit: string;
+  range: { preset: string; from: string; to: string; tz: string };
+}): Array<[string, string]> {
+  return [
+    ['Generated at (UTC)', meta.generatedAt],
+    ['Date range preset', meta.range.preset],
+    ['Date range from', meta.range.from],
+    ['Date range to', meta.range.to],
+    ['Timezone', meta.range.tz],
+    ['Currency', meta.currency],
+    [
+      'Money unit',
+      meta.amountUnit === 'minor'
+        ? `minor units (divide by 100 for ${meta.currency} major amount)`
+        : meta.amountUnit,
+    ],
+    ['Privacy', 'No emails or phone numbers — owner first name only where applicable'],
+  ];
+}
 
 /**
  * Business logic for Admin Stats: aggregates repository data into Phase 2 contracts.
@@ -248,65 +271,302 @@ export class AdminStatsService {
   exportOverviewCsv(overview: OverviewResponse): string {
     const c = overview.cards;
     const s = overview.system;
-    return toCsv(
-      ['metric', 'value', 'unit', 'month_or_window'],
-      [
-        ['totalUsers', c.totalUsers, 'count', 'all_time'],
-        ['activeUsers', c.activeUsers.count, 'count', `${c.activeUsers.windowDays}d`],
-        ['totalProjects', c.totalProjects, 'count', 'all_time'],
-        ['activeProjects', c.activeProjects, 'count', 'not_completed_cancelled'],
-        ['revenueThisMonth', c.revenueThisMonth.amount, overview.currency, c.revenueThisMonth.month],
-        [
-          'revenueChangePercent',
-          c.revenueChangeVsLastMonth.percentChange ?? '',
-          'percent',
-          c.revenueChangeVsLastMonth.direction,
-        ],
-        ['openDisputes', s.openDisputes, 'count', 'open'],
-        ['activeSubscriptions', s.activeSubscriptions, 'count', 'active'],
-        ['applicationsInRange', s.applicationsInRange, 'count', 'range'],
-        ['bidsInRange', s.bidsInRange, 'count', 'range'],
-        ['gmvReleasedInRange', s.escrow.gmvReleasedInRange, overview.currency, 'range'],
-        ['platformFeesInRange', s.escrow.platformFeesInRange, overview.currency, 'range'],
+    const currency = overview.currency;
+    const mom = c.revenueChangeVsLastMonth;
+    const momDisplay =
+      mom.percentChange === null
+        ? mom.direction === 'new'
+          ? 'New (no prior month revenue)'
+          : '—'
+        : `${mom.direction === 'up' ? '↑' : mom.direction === 'down' ? '↓' : ''}${mom.percentChange > 0 ? '+' : ''}${mom.percentChange}% (${mom.direction})`;
+
+    return toCsvDocument({
+      title: 'Admin Stats — Overview snapshot',
+      meta: csvRangeMeta(overview),
+      headers: [
+        'Metric',
+        'Description',
+        'Value (raw)',
+        'Value (readable)',
+        'Unit',
+        'Period / notes',
       ],
-    );
+      rows: [
+        [
+          'Total users',
+          'All registered accounts on the platform',
+          c.totalUsers,
+          c.totalUsers.toLocaleString('en-US'),
+          'count',
+          'All time',
+        ],
+        [
+          'Active users',
+          `Users with a successful session in the last ${c.activeUsers.windowDays} days (basis: ${c.activeUsers.basis.replace(/_/g, ' ')})`,
+          c.activeUsers.count,
+          c.activeUsers.count.toLocaleString('en-US'),
+          'count',
+          `Rolling ${c.activeUsers.windowDays} days`,
+        ],
+        [
+          'Total projects',
+          'All freelance jobs (projects)',
+          c.totalProjects,
+          c.totalProjects.toLocaleString('en-US'),
+          'count',
+          'All time',
+        ],
+        [
+          'Active projects',
+          'Freelance jobs not completed or cancelled',
+          c.activeProjects,
+          c.activeProjects.toLocaleString('en-US'),
+          'count',
+          'Statuses: Draft, Funded, Open, In progress',
+        ],
+        [
+          'Revenue this month',
+          'Platform income (fees + payments + subscriptions − refunds) for the calendar month',
+          c.revenueThisMonth.amount,
+          formatMinorForCsv(c.revenueThisMonth.amount, currency),
+          `${currency} (minor)`,
+          c.revenueThisMonth.month,
+        ],
+        [
+          'Revenue vs last month',
+          'Percent change vs previous calendar month',
+          mom.percentChange ?? '',
+          momDisplay,
+          'percent',
+          `This month ${formatMinorForCsv(mom.thisMonthAmount, currency)} · last month ${formatMinorForCsv(mom.lastMonthAmount, currency)}`,
+        ],
+        [
+          'Open disputes',
+          'Disputes still open',
+          s.openDisputes,
+          s.openDisputes.toLocaleString('en-US'),
+          'count',
+          'Current',
+        ],
+        [
+          'Active subscriptions',
+          'Subscriptions currently active',
+          s.activeSubscriptions,
+          s.activeSubscriptions.toLocaleString('en-US'),
+          'count',
+          'Current',
+        ],
+        [
+          'Applications in range',
+          'Job applications created in the selected date range',
+          s.applicationsInRange,
+          s.applicationsInRange.toLocaleString('en-US'),
+          'count',
+          `${overview.range.from} → ${overview.range.to}`,
+        ],
+        [
+          'Bids in range',
+          'Freelance bids created in the selected date range',
+          s.bidsInRange,
+          s.bidsInRange.toLocaleString('en-US'),
+          'count',
+          `${overview.range.from} → ${overview.range.to}`,
+        ],
+        [
+          'GMV released in range',
+          'Gross merchandise value released from escrow in range',
+          s.escrow.gmvReleasedInRange,
+          formatMinorForCsv(s.escrow.gmvReleasedInRange, currency),
+          `${currency} (minor)`,
+          `${overview.range.from} → ${overview.range.to}`,
+        ],
+        [
+          'Platform fees in range',
+          'Escrow platform fees recognized in range',
+          s.escrow.platformFeesInRange,
+          formatMinorForCsv(s.escrow.platformFeesInRange, currency),
+          `${currency} (minor)`,
+          `${overview.range.from} → ${overview.range.to}`,
+        ],
+        [
+          'Revenue mix — platform fees (this month)',
+          'Escrow platform fees in the revenue month',
+          s.revenueBreakdownThisMonth.platformFees,
+          formatMinorForCsv(s.revenueBreakdownThisMonth.platformFees, currency),
+          `${currency} (minor)`,
+          c.revenueThisMonth.month,
+        ],
+        [
+          'Revenue mix — gateway payments (this month)',
+          'Succeeded gateway payments in the revenue month',
+          s.revenueBreakdownThisMonth.gatewayPayments,
+          formatMinorForCsv(s.revenueBreakdownThisMonth.gatewayPayments, currency),
+          `${currency} (minor)`,
+          c.revenueThisMonth.month,
+        ],
+        [
+          'Revenue mix — subscriptions (this month)',
+          'Succeeded subscription charges in the revenue month',
+          s.revenueBreakdownThisMonth.subscriptions,
+          formatMinorForCsv(s.revenueBreakdownThisMonth.subscriptions, currency),
+          `${currency} (minor)`,
+          c.revenueThisMonth.month,
+        ],
+        [
+          'Revenue mix — refunds (this month)',
+          'Refunded payment amounts in the revenue month (subtracted from total)',
+          s.revenueBreakdownThisMonth.refunds,
+          formatMinorForCsv(s.revenueBreakdownThisMonth.refunds, currency),
+          `${currency} (minor)`,
+          c.revenueThisMonth.month,
+        ],
+      ],
+      notes: [
+        'Readable money columns show major units (÷ 100). Raw columns keep API minor units for reconciliation.',
+        'Projects = freelance jobs only (not employment Job listings).',
+      ],
+    });
   }
 
   exportRevenueCsv(chart: RevenueChartResponse): string {
-    return toCsv(
-      ['date', 'revenue', 'currency'],
-      chart.series.map((p) => [p.date, p.revenue, chart.currency]),
-    );
+    const totalReadable = formatMinorForCsv(chart.totals.revenue, chart.currency);
+    return toCsvDocument({
+      title: 'Admin Stats — Revenue trend',
+      meta: [
+        ...csvRangeMeta(chart),
+        ['Granularity', chart.granularity === 'day' ? 'Daily' : 'Monthly'],
+        ['Period total (raw minor)', chart.totals.revenue],
+        ['Period total (readable)', totalReadable],
+        ['Source — platform fees (minor)', chart.sources.platformFees],
+        ['Source — gateway payments (minor)', chart.sources.gatewayPayments],
+        ['Source — subscriptions (minor)', chart.sources.subscriptions],
+        ['Source — refunds (minor)', chart.sources.refunds],
+      ],
+      headers: [
+        'Date',
+        'Revenue (minor units)',
+        'Revenue (readable)',
+        'Currency',
+        'Bucket',
+      ],
+      rows: chart.series.map((p) => [
+        p.date,
+        p.revenue,
+        formatMinorForCsv(p.revenue, chart.currency),
+        chart.currency,
+        chart.granularity === 'day' ? 'Calendar day' : 'Calendar month',
+      ]),
+      notes: [
+        'Missing days/months are filled with 0 so the series is continuous.',
+        'Revenue = platform fees + gateway payments + subscriptions − refunds, converted to the selected currency.',
+      ],
+    });
   }
 
   exportUsersCsv(chart: UserGrowthChartResponse): string {
-    return toCsv(
-      ['date', 'registrations', 'active_users'],
-      chart.series.map((p) => [p.date, p.registrations, p.activeUsers]),
-    );
+    return toCsvDocument({
+      title: 'Admin Stats — User growth',
+      meta: [
+        ...csvRangeMeta(chart),
+        ['Granularity', chart.granularity === 'day' ? 'Daily' : 'Monthly'],
+        ['Total new registrations', chart.totals.registrations],
+        [
+          'Active users available',
+          chart.activeUsersAvailable ? 'Yes' : 'No (column may be empty)',
+        ],
+        [
+          'Total active-user observations',
+          chart.totals.activeUsers === null ? 'n/a' : chart.totals.activeUsers,
+        ],
+      ],
+      headers: [
+        'Date',
+        'New registrations',
+        'Active users',
+        'Active users note',
+        'Bucket',
+      ],
+      rows: chart.series.map((p) => [
+        p.date,
+        p.registrations,
+        p.activeUsers ?? '',
+        chart.activeUsersAvailable
+          ? p.activeUsers === null
+            ? 'Unavailable for this bucket'
+            : 'Users with login activity in this bucket'
+          : 'Active-user tracking not available',
+        chart.granularity === 'day' ? 'Calendar day' : 'Calendar month',
+      ]),
+      notes: [
+        'Registrations = users createdAt in the bucket.',
+        'Active users = distinct users with lastLoginAt in the bucket when tracking is available.',
+      ],
+    });
   }
 
   exportStatusCsv(breakdown: ProjectBreakdownResponse): string {
-    return toCsv(
-      ['status', 'count'],
-      breakdown.statusSummary.map((s) => [s.status, s.count]),
-    );
+    const total = breakdown.statusSummary.reduce((sum, row) => sum + row.count, 0);
+    return toCsvDocument({
+      title: 'Admin Stats — Freelance projects by status',
+      meta: [
+        ...csvRangeMeta(breakdown),
+        ['Total projects in summary', total],
+        [
+          'Range applied to status counts',
+          'No — status summary is all-time unless applyRangeToProjects=true was requested',
+        ],
+      ],
+      headers: ['Status code', 'Status label', 'Count', 'Share of total (%)'],
+      rows: breakdown.statusSummary.map((s) => [
+        s.status,
+        formatStatusLabel(s.status),
+        s.count,
+        total === 0 ? '0.00' : ((s.count / total) * 100).toFixed(2),
+      ]),
+      notes: [
+        'Every freelance job status appears even when count is 0.',
+        'Projects = FreelanceJob records only.',
+      ],
+    });
   }
 
   exportRecentProjectsCsv(breakdown: ProjectBreakdownResponse): string {
-    return toCsv(
-      ['id', 'title', 'status', 'owner_first_name', 'budget_min', 'budget_max', 'currency', 'created_at'],
-      breakdown.recentProjects.map((p) => [
+    return toCsvDocument({
+      title: 'Admin Stats — Recent freelance projects',
+      meta: [
+        ...csvRangeMeta(breakdown),
+        ['Rows exported', breakdown.recentProjects.length],
+        ['GDPR note', 'Owner column is first name only — no email, phone, or last name'],
+      ],
+      headers: [
+        'Project ID',
+        'Project title',
+        'Status code',
+        'Status label',
+        'Owner first name',
+        'Budget min',
+        'Budget max',
+        'Budget currency',
+        'Budget range (readable)',
+        'Created at (ISO)',
+      ],
+      rows: breakdown.recentProjects.map((p) => [
         p.id,
         p.title,
         p.status,
+        formatStatusLabel(p.status),
         p.ownerFirstName,
         p.budgetMin,
         p.budgetMax,
         p.currency,
+        `${p.budgetMin.toLocaleString('en-US')} – ${p.budgetMax.toLocaleString('en-US')} ${p.currency}`,
         p.createdAt,
       ]),
-    );
+      notes: [
+        'Budget min/max are the values stored on the freelance job (major currency units as entered by the client).',
+        'Sorted by created date, newest first.',
+      ],
+    });
   }
 
   private async buildSystemSnapshot(
