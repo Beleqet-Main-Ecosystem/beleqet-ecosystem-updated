@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { TelegramController } from './telegram.controller';
 import { TelegramTmaService } from './telegram-tma.service';
+import { TelegramService } from './telegram.service';
+import { TmaUserRole } from './dto/telegram-tma.dto';
 
 describe('TelegramController', () => {
   let controller: TelegramController;
@@ -17,22 +20,32 @@ describe('TelegramController', () => {
     }),
   };
 
+  const mockTelegramService = {
+    handleWebhookUpdate: jest.fn().mockResolvedValue({ ok: true }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TelegramController],
-      providers: [{ provide: TelegramTmaService, useValue: mockTmaService }],
-    }).compile();
+      providers: [
+        { provide: TelegramTmaService, useValue: mockTmaService },
+        { provide: TelegramService, useValue: mockTelegramService },
+      ],
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TelegramController>(TelegramController);
   });
 
   describe('tmaLogin', () => {
-    it('delegates authentication to TelegramTmaService', async () => {
-      const dto = { initData: 'query_id=test&hash=abc12345' };
+    it('delegates authentication and role to TelegramTmaService', async () => {
+      const dto = { initData: 'query_id=test&hash=abc12345', role: TmaUserRole.EMPLOYER };
       const res = await controller.tmaLogin(dto);
-      expect(mockTmaService.authenticateTmaUser).toHaveBeenCalledWith(dto.initData);
+      expect(mockTmaService.authenticateTmaUser).toHaveBeenCalledWith(dto.initData, dto.role);
       expect(res.accessToken).toBe('test-access-token');
     });
   });
@@ -44,6 +57,15 @@ describe('TelegramController', () => {
       const res = await controller.tmaLink(userPayload, dto);
       expect(mockTmaService.linkTelegramAccount).toHaveBeenCalledWith('usr-456', dto.initData);
       expect(res.success).toBe(true);
+    });
+  });
+
+  describe('handleWebhook', () => {
+    it('forwards incoming webhook payload to TelegramService', async () => {
+      const updatePayload = { update_id: 10001, message: { text: '/start' } };
+      const res = await controller.handleWebhook(updatePayload);
+      expect(mockTelegramService.handleWebhookUpdate).toHaveBeenCalledWith(updatePayload);
+      expect(res).toEqual({ ok: true });
     });
   });
 });

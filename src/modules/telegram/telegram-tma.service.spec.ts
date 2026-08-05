@@ -157,10 +157,35 @@ describe('TelegramTmaService', () => {
           telegramId: '555444',
           emailVerified: true,
           role: 'JOB_SEEKER',
+          wallet: { create: {} },
         },
         select: { id: true },
       });
       expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-new-created');
+      expect(result.accessToken).toBe('jwt-access-token');
+    });
+
+    it('provisions a new EMPLOYER account with an employer wallet when preferred role is specified', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+
+      mockPrisma.user.create.mockResolvedValueOnce({ id: 'usr-employer-created' } as any);
+
+      const result = await service.authenticateTmaUser(initData, 'EMPLOYER');
+
+      expect(mockPrisma.user.create).toHaveBeenCalledWith({
+        data: {
+          email: 'tma_555444@tme.beleqet.local',
+          firstName: 'Sara',
+          lastName: 'T',
+          avatarUrl: null,
+          telegramId: '555444',
+          emailVerified: true,
+          role: 'EMPLOYER',
+          employerWallet: { create: { balance: 0, lockedBalance: 0 } },
+        },
+        select: { id: true },
+      });
+      expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-employer-created');
       expect(result.accessToken).toBe('jwt-access-token');
     });
   });

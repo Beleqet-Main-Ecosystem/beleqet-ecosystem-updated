@@ -103,9 +103,12 @@ export class TelegramTmaService {
 
   /**
    * Authenticates a user from a Telegram Mini App.
-   * Logs in an existing account by telegramId or provisions a new passwordless JOB_SEEKER profile.
+   * Logs in an existing account by telegramId or provisions a new passwordless profile with the preferred role and wallet.
    */
-  async authenticateTmaUser(initData: string) {
+  async authenticateTmaUser(
+    initData: string,
+    preferredRole: 'JOB_SEEKER' | 'EMPLOYER' = 'JOB_SEEKER',
+  ) {
     const userData = this.verifyInitData(initData);
     const telegramIdStr = String(userData.id);
 
@@ -151,13 +154,16 @@ export class TelegramTmaService {
         avatarUrl: userData.photo_url || null,
         telegramId: telegramIdStr,
         emailVerified: true,
-        role: 'JOB_SEEKER',
+        role: preferredRole,
+        ...(preferredRole === 'EMPLOYER'
+          ? { employerWallet: { create: { balance: 0, lockedBalance: 0 } } }
+          : { wallet: { create: {} } }),
       },
       select: { id: true },
     });
 
     this.logger.log(
-      `Provisioned new Telegram TMA account for ID ${telegramIdStr} (${syntheticEmail})`,
+      `Provisioned new Telegram TMA account for ID ${telegramIdStr} as ${preferredRole} (${syntheticEmail})`,
     );
     return this.authService.issueTokensForUserId(newUser.id);
   }

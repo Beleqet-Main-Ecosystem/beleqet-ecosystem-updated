@@ -42,7 +42,6 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
             web_app: { url: webAppUrl },
           },
         });
-
         this.logger.log(`Telegram chat menu button configured for WebApp: ${webAppUrl}`);
       } catch (err) {
         this.logger.warn(`Could not set WebApp chat menu button: ${(err as Error).message}`);
@@ -53,17 +52,24 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       const telegramId = String(ctx.from?.id || '');
       const webApp = this.config.get<string>('TELEGRAM_WEBAPP_URL');
 
+      // Extract optional deep-link payload (e.g., /start gig_123 or startapp parameter)
+      const messageText = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
+      const parts = messageText.split(' ');
+      const startParam = parts.length > 1 ? parts[1].trim() : '';
+
       if (webApp && webApp.startsWith('https://')) {
+        const url = startParam ? `${webApp}?start_param=${encodeURIComponent(startParam)}` : webApp;
         await ctx.reply(
           `Welcome to Beleqet! Tap the button below to launch our interactive Mini App directly inside Telegram:\n\n` +
-            `Your Telegram ID (${telegramId}) will be securely linked to your Beleqet profile.`,
+            `Your Telegram ID (${telegramId}) will be securely linked to your Beleqet profile.` +
+            (startParam ? `\n\n🎯 Deep Link Target: ${startParam}` : ''),
           {
             reply_markup: {
               inline_keyboard: [
                 [
                   {
                     text: '🚀 Launch Beleqet Mini App',
-                    web_app: { url: webApp },
+                    web_app: { url },
                   },
                 ],
               ],
@@ -85,13 +91,74 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       );
     });
 
+    const webhookUrl = this.config.get<string>('TELEGRAM_WEBHOOK_URL');
     try {
-      await this.bot.launch();
-      this.logger.log('Telegram bot listener started successfully.');
+      if (webhookUrl && webhookUrl.startsWith('https://')) {
+        await this.bot.telegram.setWebhook(webhookUrl);
+        this.logger.log(`Telegram bot configured in Webhook mode: ${webhookUrl}`);
+      } else {
+        await this.bot.telegram.deleteWebhook({ drop_pending_updates: false });
+        await this.bot.launch();
+        this.logger.log('Telegram bot listener started successfully in Long Polling mode.');
+      }
     } catch (err) {
-      this.logger.error(`Telegram bot failed to start: ${(err as Error).message}`);
+      this.logger.error(`Telegram bot failed to start/configure: ${(err as Error).message}`);
       this.logger.warn('Continuing without Telegram bot listener.');
       this.enabled = false;
+    }
+  }
+
+  /**
+   * Processes incoming Telegram webhook payloads in horizontally scaled production environments.
+   */
+  async handleWebhookUpdate(update: any) {
+    if (!this.enabled || !this.bot) {
+      return { ok: false, reason: 'Bot is disabled or uninitialized' };
+    }
+    await this.bot.handleUpdate(update);
+    return { ok: true };
+  }
+
+  /**
+   * Sends an automated push notification to a user's Telegram chat.
+   * If targetPath is provided, attaches an interactive inline button pointing to the specific app screen.
+   */
+  async sendNotification(
+    telegramId: string,
+    message: string,
+    targetPath?: string,
+  ): Promise<boolean> {
+    if (!this.enabled || !this.bot) {
+      this.logger.warn(`Cannot send Telegram notification to ${telegramId}: bot is disabled.`);
+      return false;
+    }
+
+    const webAppUrl = this.config.get<string>('TELEGRAM_WEBAPP_URL');
+    try {
+      if (targetPath && webAppUrl && webAppUrl.startsWith('https://')) {
+        const fullUrl = `${webAppUrl.replace(/\/$/, '')}/${targetPath.replace(/^\//, '')}`;
+        await this.bot.telegram.sendMessage(telegramId, message, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '👁️ Open in Mini App',
+                  web_app: { url: fullUrl },
+                },
+              ],
+            ],
+          },
+        });
+      } else {
+        await this.bot.telegram.sendMessage(telegramId, message);
+      }
+      this.logger.log(`Sent push notification to Telegram ID: ${telegramId}`);
+      return true;
+    } catch (err) {
+      this.logger.error(
+        `Failed to send Telegram notification to ${telegramId}: ${(err as Error).message}`,
+      );
+      return false;
     }
   }
 

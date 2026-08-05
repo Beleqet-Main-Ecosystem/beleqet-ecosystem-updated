@@ -1,5 +1,10 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+export enum TmaUserRole {
+  JOB_SEEKER = 'JOB_SEEKER',
+  EMPLOYER = 'EMPLOYER',
+}
 
 export class TmaAuthDto {
   @ApiProperty({
@@ -9,4 +14,14 @@ export class TmaAuthDto {
   @IsString()
   @IsNotEmpty()
   initData: string;
+
+  @ApiProperty({
+    description: 'Optional preferred user role upon new account onboarding',
+    enum: TmaUserRole,
+    required: false,
+    example: TmaUserRole.JOB_SEEKER,
+  })
+  @IsOptional()
+  @IsEnum(TmaUserRole)
+  role?: TmaUserRole;
 }
