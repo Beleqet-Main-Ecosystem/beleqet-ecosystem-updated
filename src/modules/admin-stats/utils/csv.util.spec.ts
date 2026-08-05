@@ -1,9 +1,4 @@
-import {
-  csvEscape,
-  formatMinorForCsv,
-  formatStatusLabel,
-  toCsvDocument,
-} from './csv.util';
+import { csvEscape, formatMinorForCsv, formatStatusLabel, toCsvDocument } from './csv.util';
 
 describe('csv.util', () => {
   it('escapes commas and quotes per RFC 4180', () => {

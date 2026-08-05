@@ -61,7 +61,9 @@ describe('AdminStats HTTP security', () => {
     exportRevenueCsv: jest.fn().mockReturnValue('date,revenue,currency\n'),
     exportUsersCsv: jest.fn().mockReturnValue('date,registrations,active_users\n'),
     exportStatusCsv: jest.fn().mockReturnValue('status,count\n'),
-    exportRecentProjectsCsv: jest.fn().mockReturnValue('id,title,status,owner_first_name,created_at\n'),
+    exportRecentProjectsCsv: jest
+      .fn()
+      .mockReturnValue('id,title,status,owner_first_name,created_at\n'),
   };
 
   beforeAll(async () => {
@@ -142,15 +144,18 @@ describe('AdminStats HTTP security', () => {
     await request(app.getHttpServer()).get(path).expect(403);
   });
 
-  it.each(securedPaths)('%s returns 403 for ADMIN role missing view:stats permission', async (path) => {
-    mockUser = { userId: 'admin-no-perm', email: 'admin@example.com', role: 'ADMIN' };
-    prisma.user.findUnique.mockResolvedValue({
-      id: 'admin-no-perm',
-      rbacRoles: [{ permissions: [{ action: 'manage:users' }] }],
-    });
+  it.each(securedPaths)(
+    '%s returns 403 for ADMIN role missing view:stats permission',
+    async (path) => {
+      mockUser = { userId: 'admin-no-perm', email: 'admin@example.com', role: 'ADMIN' };
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'admin-no-perm',
+        rbacRoles: [{ permissions: [{ action: 'manage:users' }] }],
+      });
 
-    await request(app.getHttpServer()).get(path).expect(403);
-  });
+      await request(app.getHttpServer()).get(path).expect(403);
+    },
+  );
 
   it('GET /admin-stats/overview returns 200 for ADMIN with view:stats', async () => {
     mockUser = { userId: 'admin-1', email: 'admin@example.com', role: 'ADMIN' };

@@ -44,7 +44,7 @@ export class StatsQueryDto {
 
   @IsOptional()
   @IsIn(['freelance'])
-  projectScope?: 'freelance' = 'freelance';
+  projectScope?: string = 'freelance';
 
   @IsOptional()
   @Type(() => Number)

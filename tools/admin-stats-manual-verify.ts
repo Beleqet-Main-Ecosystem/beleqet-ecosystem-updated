@@ -22,7 +22,9 @@ function printFixtureChecklist(): void {
   console.log(`Projects in fixture: ${ADMIN_STATS_FIXTURES.projects.length}`);
   console.log(`  Expected totalProjects:        ${EXPECTED_FROM_FIXTURES.totalProjects}`);
   console.log(`  Expected activeProjects:       ${EXPECTED_FROM_FIXTURES.activeProjects}`);
-  console.log(`Revenue August fees: ${ADMIN_STATS_FIXTURES.augustFees.map((f) => f.amount).join(' + ')}`);
+  console.log(
+    `Revenue August fees: ${ADMIN_STATS_FIXTURES.augustFees.map((f) => f.amount).join(' + ')}`,
+  );
   console.log(`  Expected revenue this month:   ${EXPECTED_FROM_FIXTURES.revenueThisMonthAugust}`);
   console.log(`  Expected last month:           ${EXPECTED_FROM_FIXTURES.revenueLastMonthJuly}`);
   console.log(

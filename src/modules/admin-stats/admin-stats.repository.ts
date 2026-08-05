@@ -31,7 +31,9 @@ export class AdminStatsRepository {
    * Distinct users active in the window: lastLoginAt OR a refresh token created in range.
    * Prefers reporting basis `last_login` when any login stamps exist; otherwise refresh_token.
    */
-  async countActiveUsers(since: Date): Promise<{ count: number; basis: 'last_login' | 'refresh_token' }> {
+  async countActiveUsers(
+    since: Date,
+  ): Promise<{ count: number; basis: 'last_login' | 'refresh_token' }> {
     const [loginRows, tokenRows] = await Promise.all([
       this.prisma.user.findMany({
         where: { lastLoginAt: { gte: since } },
@@ -282,7 +284,10 @@ export class AdminStatsRepository {
     });
   }
 
-  async groupRegistrationsByRole(from: Date, to: Date): Promise<Array<{ role: string; count: number }>> {
+  async groupRegistrationsByRole(
+    from: Date,
+    to: Date,
+  ): Promise<Array<{ role: string; count: number }>> {
     const grouped = await this.prisma.user.groupBy({
       by: ['role'],
       where: { createdAt: { gte: from, lte: to } },

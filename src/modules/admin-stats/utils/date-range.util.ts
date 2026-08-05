@@ -1,9 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import {
-  ResolvedStatsRange,
-  StatsGranularity,
-  StatsRangePreset,
-} from '../types/admin-stats.types';
+import { ResolvedStatsRange, StatsGranularity, StatsRangePreset } from '../types/admin-stats.types';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_SPAN_DAYS = 366;
@@ -79,7 +75,12 @@ function daysBetweenInclusive(from: string, to: string, timeZone: string): numbe
   return Math.floor((b - a) / (24 * 60 * 60 * 1000)) + 1;
 }
 
-function chooseGranularity(preset: StatsRangePreset, from: string, to: string, tz: string): StatsGranularity {
+function chooseGranularity(
+  preset: StatsRangePreset,
+  from: string,
+  to: string,
+  tz: string,
+): StatsGranularity {
   if (preset === '12m') return 'month';
   if (preset === 'custom') {
     return daysBetweenInclusive(from, to, tz) <= 45 ? 'day' : 'month';
@@ -144,7 +145,10 @@ export function resolveStatsRange(input: RangeQueryInput, now = new Date()): Res
 }
 
 /** Calendar month bounds for "this month" relative to the range end date. */
-export function monthBoundsForYmd(ymd: string, timeZone: string): { start: Date; end: Date; month: string } {
+export function monthBoundsForYmd(
+  ymd: string,
+  timeZone: string,
+): { start: Date; end: Date; month: string } {
   const month = ymd.slice(0, 7);
   const [y, m] = month.split('-').map(Number);
   const startYmd = `${month}-01`;
@@ -193,6 +197,10 @@ export function eachMonthKey(from: string, to: string): string[] {
   return keys;
 }
 
-export function bucketKeyForDate(date: Date, granularity: StatsGranularity, timeZone: string): string {
+export function bucketKeyForDate(
+  date: Date,
+  granularity: StatsGranularity,
+  timeZone: string,
+): string {
   return granularity === 'month' ? formatMonthInTz(date, timeZone) : formatDateInTz(date, timeZone);
 }

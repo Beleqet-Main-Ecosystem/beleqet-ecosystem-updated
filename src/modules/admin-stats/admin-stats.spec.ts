@@ -4,10 +4,7 @@ import { I18nService } from 'nestjs-i18n';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { WalletService } from '../wallet/wallet.service';
-import {
-  ADMIN_STATS_FIXTURES,
-  EXPECTED_FROM_FIXTURES,
-} from './__fixtures__/admin-stats.fixtures';
+import { ADMIN_STATS_FIXTURES, EXPECTED_FROM_FIXTURES } from './__fixtures__/admin-stats.fixtures';
 import { AdminStatsController } from './admin-stats.controller';
 import { AdminStatsRepository } from './admin-stats.repository';
 import { AdminStatsService } from './admin-stats.service';
@@ -82,7 +79,10 @@ describe('AdminStatsService', () => {
             ),
           },
         },
-        { provide: I18nService, useValue: { t: jest.fn().mockReturnValue('Dashboard Statistics') } },
+        {
+          provide: I18nService,
+          useValue: { t: jest.fn().mockReturnValue('Dashboard Statistics') },
+        },
       ],
     }).compile();
 
