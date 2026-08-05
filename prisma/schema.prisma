@@ -10,39 +10,29 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  email            String   @unique
-  passwordHash     String?
-  firstName        String
-  lastName         String
-  role             UserRole @default(JOB_SEEKER)
-  avatarUrl        String?
-  phone            String?
-  telegramId       String?  @unique
-  isActive         Boolean  @default(true)
-  emailVerified    Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  bio              String?
-  defaultResumeUrl String?
-  githubUrl        String?
-  headline         String?
-  linkedinUrl      String?
-  location         String?
-  portfolioUrl     String?
-  skills           String[] @default([])
-
-  // Payment gateway integration fields
-  externalCustomerId     String? // Stripe customer ID or PayPal payer ID
-  subscriptionStatus     String? // active, cancelled, past_due, etc.
-  externalSubscriptionId String? // Stripe subscription ID or PayPal subscription ID
-
-  // GDPR consent tracking
-  gdprConsent          Boolean   @default(true)
-  gdprConsentDate      DateTime?
-  gdprConsentRevoked   Boolean   @default(false)
-  gdprConsentRevokedAt DateTime?
-
+  id                    String              @id @default(uuid())
+  email                 String              @unique
+  passwordHash          String?
+  firstName             String
+  lastName              String
+  role                  UserRole            @default(JOB_SEEKER)
+  avatarUrl             String?
+  phone                 String?
+  telegramId            String?             @unique
+  isActive              Boolean             @default(true)
+  emailVerified         Boolean             @default(false)
+  /// Set on successful session issuance (password/OAuth/2FA). Used by admin active-user metrics.
+  lastLoginAt           DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  bio                   String?
+  defaultResumeUrl      String?
+  githubUrl             String?
+  headline              String?
+  linkedinUrl           String?
+  location              String?
+  portfolioUrl          String?
+  skills                String[]            @default([])
   oauthAccounts         OAuthAccount[]
   applications          Application[]
   bids                  Bid[]
@@ -79,10 +69,6 @@ model User {
   kycVerification       KycVerification?
   subscriptions         Subscription[]
   rbacRoles             Role[]              @relation("UserRoles")
-  auditLogs             AuditLog[]
-  promotionCampaigns    PromotionCampaign[]
-  speechConversations   SpeechConversation[]
-  subscriptions         Subscription[]
 
   gdprConsent             Boolean                  @default(true)
   aiFeedConsent           Boolean                  @default(true)
@@ -91,10 +77,15 @@ model User {
   userPreference          UserPreference?
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
+  auditLogs             AuditLog[]
+  promotionCampaigns    PromotionCampaign[]
   fraudAlerts             FraudAlert[]             @relation("AlertUser")
   resolvedFraudAlerts     FraudAlert[]             @relation("AlertResolver")
 
   email_logs      EmailLog[]
+
+  @@index([lastLoginAt])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -1801,7 +1792,6 @@ model FreelanceMatchScore {
 // ─────────────────────────────────────────────────────────
 
 /// Webhook delivery log for payment gateway events (Stripe, PayPal, Chapa).
-/// Provides audit trail, idempotency tracking, and retry history.
 model WebhookLog {
   id             String    @id @default(uuid())
   provider       String

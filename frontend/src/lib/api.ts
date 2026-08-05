@@ -7,7 +7,11 @@ import type {
   AuthResponse,
   Dispute,
   PlatformStats,
-  AuditLog,
+  OverviewResponse,
+  RevenueChartResponse,
+  UserGrowthChartResponse,
+  ProjectBreakdownResponse,
+  StatsQueryParams,
   AuditLogPage,
   AuditLogFilters,
   Notification,
@@ -71,7 +75,7 @@ export async function logout(): Promise<void> {
   }
 }
 
-/** Fetches aggregated platform stats from the admin-stats endpoint */
+/** @deprecated Prefer fetchAdminOverview */
 export async function fetchDashboardStats(
   currency: string = 'ETB',
   lang: string = 'en',
@@ -80,6 +84,65 @@ export async function fetchDashboardStats(
     params: { currency, lang },
   });
   return data;
+}
+
+/** Summary cards for the admin dashboard */
+export async function fetchAdminOverview(params: StatsQueryParams = {}): Promise<OverviewResponse> {
+  const { data } = await apiClient.get<OverviewResponse>('/admin-stats/overview', { params });
+  return data;
+}
+
+/** Zero-filled revenue time series */
+export async function fetchAdminRevenueChart(
+  params: StatsQueryParams = {},
+): Promise<RevenueChartResponse> {
+  const { data } = await apiClient.get<RevenueChartResponse>('/admin-stats/charts/revenue', {
+    params,
+  });
+  return data;
+}
+
+/** Zero-filled user growth time series */
+export async function fetchAdminUserGrowthChart(
+  params: StatsQueryParams = {},
+): Promise<UserGrowthChartResponse> {
+  const { data } = await apiClient.get<UserGrowthChartResponse>('/admin-stats/charts/users', {
+    params,
+  });
+  return data;
+}
+
+/** Project status summary + recent projects table */
+export async function fetchAdminProjectBreakdown(
+  params: StatsQueryParams = {},
+): Promise<ProjectBreakdownResponse> {
+  const { data } = await apiClient.get<ProjectBreakdownResponse>('/admin-stats/projects/breakdown', {
+    params,
+  });
+  return data;
+}
+
+/** Downloads a CSV export for an admin-stats resource. */
+export async function downloadAdminStatsCsv(
+  path: string,
+  params: StatsQueryParams = {},
+  filenameFallback = 'admin-stats.csv',
+): Promise<void> {
+  const { data, headers } = await apiClient.get<Blob>(path, {
+    params,
+    responseType: 'blob',
+  });
+  const disposition = String(headers['content-disposition'] || '');
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const filename = match?.[1] || filenameFallback;
+  const url = URL.createObjectURL(data);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 /** Fetches all disputes (Admin-only) */
@@ -169,7 +232,6 @@ export async function enqueueChapaCallback(
 /** Fetch current user's notifications (latest 50, descending) */
 export async function fetchNotifications(): Promise<Notification[]> {
   const { data } = await apiClient.get<Notification[]>('/users/notifications');
-  console.log('=== FRONTEND fetchNotifications response:', JSON.stringify(data));
   return data;
 }
 

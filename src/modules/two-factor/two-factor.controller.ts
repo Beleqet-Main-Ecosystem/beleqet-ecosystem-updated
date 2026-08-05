@@ -98,15 +98,8 @@ export class TwoFactorController {
       throw new UnauthorizedException('Invalid code');
     }
 
-    const userRecord = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true },
-    });
-    if (!userRecord) {
-      throw new UnauthorizedException('User not found');
-    }
-
-    return this.authService.issueTokens(userRecord);
+    // issueTokensForUserId also stamps lastLoginAt for admin active-user metrics
+    return this.authService.issueTokensForUserId(payload.sub);
   }
 
   /** Generate an action-scoped step-up challenge token for a specific sensitive action.
@@ -204,13 +197,7 @@ export class TwoFactorController {
 
     const remaining = await this.svc.verifyBackupCode(payload.sub, dto.backupCode);
 
-    const userRecord = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true },
-    });
-    if (!userRecord) throw new UnauthorizedException('User not found');
-
-    const tokens = await this.authService.issueTokens(userRecord);
+    const tokens = await this.authService.issueTokensForUserId(payload.sub);
     return {
       ...tokens,
       remainingBackupCodes: remaining,
