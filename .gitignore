@@ -126,3 +126,4 @@ Redis/
 runs.json
 .env.staging
 .env.images
+.env

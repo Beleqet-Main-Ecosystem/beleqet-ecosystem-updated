@@ -70,6 +70,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -154,6 +155,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     AuditLogModule,
     CacheConfigModule,
     EncryptionModule,
+    EmailModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }],
 })
