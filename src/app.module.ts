@@ -68,6 +68,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
+import { EmailModule } from '@modules/email-automation/email.module';
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
@@ -156,6 +157,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     AuditLogModule,
     CacheConfigModule,
     EncryptionModule,
+    EmailModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }],
 })
