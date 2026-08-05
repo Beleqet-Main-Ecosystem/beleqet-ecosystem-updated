@@ -120,3 +120,75 @@ html.dark .text-brandGreen {
     @apply rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-brandGreen;
   }
 }
+
+/* ─── Telegram Mini App (TMA) Theme Integration ────────────────────────────
+ * Default values are the Beleqet dark palette used as fallback in browsers.
+ * When running inside Telegram, useTelegramTheme() overwrites these at
+ * runtime from window.Telegram.WebApp.themeParams.
+ * ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --tg-theme-bg-color: #0f172a;
+  --tg-theme-text-color: #f8fafc;
+  --tg-theme-hint-color: #64748b;
+  --tg-theme-link-color: #38bdf8;
+  --tg-theme-button-color: #3b82f6;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #1e293b;
+}
+
+/* Applied by useTelegramTheme() when running inside the Telegram WebApp */
+body.in-telegram {
+  background-color: var(--tg-theme-bg-color, #0f172a);
+  color: var(--tg-theme-text-color, #f8fafc);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+    Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  /* Prevent accidental body scroll while Telegram manages the viewport */
+  overflow-x: hidden;
+  /* Remove the blue tap-highlight on iOS */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Card component styled with TMA secondary background */
+body.in-telegram .tma-card {
+  background: var(--tg-theme-secondary-bg-color, #1e293b);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Scrollable content area inside the fixed TMA container */
+.tma-scroll-area {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Leave space for the Telegram native MainButton at the bottom */
+  padding-bottom: 80px;
+}
+
+/* ─── Telegram Mini App — Mobile UX Fixes ───────────────────────────────────
+ * Prevents iOS WebView rubber-band over-scrolling that causes blank canvas
+ * margins and accidental pull-to-refresh inside the Telegram WebApp iframe.
+ * Applied globally; has no visible effect in standard desktop browsers.
+ * ─────────────────────────────────────────────────────────────────────────── */
+body.in-telegram html,
+body.in-telegram {
+  overscroll-behavior-y: none;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* All interactive tap targets must be at least 48×48 px to prevent
+ * mis-clicks on small smartphone displays (PDF spec §7, rule 2). */
+body.in-telegram button,
+body.in-telegram [role='button'],
+body.in-telegram a,
+body.in-telegram input[type='checkbox'],
+body.in-telegram input[type='radio'] {
+  min-height: 48px;
+  min-width: 48px;
+}
