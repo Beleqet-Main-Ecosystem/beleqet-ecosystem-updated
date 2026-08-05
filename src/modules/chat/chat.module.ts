@@ -10,6 +10,7 @@ import { EncryptionModule } from '../../common/encryption/encryption.module';
   imports: [
     PrismaModule,
     EncryptionModule,
+
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

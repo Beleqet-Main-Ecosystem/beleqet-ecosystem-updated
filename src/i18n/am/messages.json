@@ -60,7 +60,6 @@
     "invalidPayload": "ልክ ያልሆነ የክህሎት ፈተና ግብአት፦ {details}",
     "aiGenerationFailed": "የክህሎት ግምገማ ጥያቄዎችን ማመንጨት አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
     "requestFailed": "የክህሎት ፈተና ጥያቄ አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
-
   },
   "fraud": {
     "alert": {
@@ -125,6 +124,11 @@
       "export_audit": "የGDPR መረጃ ማውጣት ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል",
       "delete_audit": "የGDPR መረጃ መሰረዝ ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል"
     }
-
+  },
+  "audit-logging": {
+    "LIST_SUCCESS": "የኦዲት መዝገቦች ተገኝተዋል",
+    "EXPORT_SUCCESS": "የኦዲት መዝገቦች ተልኳዋቸዋል",
+    "NOT_FOUND": "የኦዲት መዝገብ አልተገኘም",
+    "TITLE": "የኦዲት መዝገቦች"
   }
 }

@@ -318,4 +318,5 @@ export class WalletProcessor extends WorkerHost {
       note.includes(LEGACY_WITHDRAWAL_FAILED)
     );
   }
+        `[wallet] Released ETB ${amount} from pending → available for user ${userId}`,
 }

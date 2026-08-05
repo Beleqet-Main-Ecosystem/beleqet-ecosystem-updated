@@ -21,6 +21,8 @@ model User {
   telegramId            String?             @unique
   isActive              Boolean             @default(true)
   emailVerified         Boolean             @default(false)
+  /// Set on successful session issuance (password/OAuth/2FA). Used by admin active-user metrics.
+  lastLoginAt           DateTime?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   bio                   String?
@@ -35,6 +37,7 @@ model User {
   applications          Application[]
   bids                  Bid[]
   candidateScores       CandidateScore[]
+  freelanceMatchScores  FreelanceMatchScore[] @relation("FreelancerMatchScores")
   videoInterviews       VideoInterview[]
   chatParticipants      ChatParticipant[]
   company               Company?
@@ -66,18 +69,23 @@ model User {
   kycVerification       KycVerification?
   subscriptions         Subscription[]
   rbacRoles             Role[]              @relation("UserRoles")
-  auditLogs             AuditLog[]
-  promotionCampaigns    PromotionCampaign[]
 
   gdprConsent             Boolean                  @default(true)
+  aiFeedConsent           Boolean                  @default(true)
   searchHistories         SearchHistory[]
   notificationPreference  NotificationPreference?
   userPreference          UserPreference?
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
+  auditLogs             AuditLog[]
+  promotionCampaigns    PromotionCampaign[]
   fraudAlerts             FraudAlert[]             @relation("AlertUser")
   resolvedFraudAlerts     FraudAlert[]             @relation("AlertResolver")
 
+  email_logs      EmailLog[]
+
+  @@index([lastLoginAt])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -171,6 +179,74 @@ model SearchHistory {
 enum OAuthProvider {
   GOOGLE
   LINKEDIN
+}
+model SpeechConversation {
+  id          String               @id @default(uuid())
+  userId      String?
+  title       String?
+  description String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  user        User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  transcripts SpeechTranscript[]
+  messages    SpeechMessage[]
+
+  @@index([userId, createdAt])
+  @@map("speech_conversations")
+}
+
+model SpeechTranscript {
+  id              String                  @id @default(uuid())
+  conversationId  String
+  audioUrl        String?
+  videoUrl        String?
+  duration        Int?
+  rawText         String?
+  normalizedText  String?
+  language        String                  @default("en")
+  confidence      Float?
+  provider        String?
+  processingTime  Int?
+  status          SpeechTranscriptStatus  @default(PENDING)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  conversation    SpeechConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messages        SpeechMessage[]
+
+  @@index([conversationId, createdAt])
+  @@index([status])
+  @@map("speech_transcripts")
+}
+
+model SpeechMessage {
+  id              String              @id @default(uuid())
+  conversationId  String
+  transcriptId    String?
+  content         String
+  type            SpeechMessageType   @default(USER)
+  sender          String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  conversation    SpeechConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  transcript      SpeechTranscript?   @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([transcriptId])
+  @@map("speech_messages")
+}
+
+enum SpeechTranscriptStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum SpeechMessageType {
+  USER
+  ASSISTANT
+  SYSTEM
+  NOTIFICATION
 }
 
 model SavedJob {
@@ -416,6 +492,7 @@ model FreelanceJob {
   experienceLevel    String?
   locationPreference String?
   bids               Bid[]
+  matchScores        FreelanceMatchScore[]
   contract           Contract?
   escrowTx           EscrowTransaction?
   category           FreelanceCategory  @relation(fields: [categoryId], references: [id])
@@ -533,9 +610,16 @@ model WalletTransaction {
   note        String?
   milestoneId String?
   createdAt   DateTime              @default(now())
-  wallet      FreelancerWallet      @relation(fields: [walletId], references: [id])
+
+  // Webhook integration fields
+  externalTransactionId String? @unique // Stripe charge ID, PayPal order ID, etc.
+  status                String? // pending, completed, failed, refunded
+  metadata              Json? // Additional provider-specific data
+
+  wallet FreelancerWallet @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
+  @@index([externalTransactionId])
   @@map("wallet_transactions")
 }
 
@@ -599,18 +683,27 @@ model Notification {
 }
 
 model EventLog {
-  id          String   @id @default(uuid())
-  eventType   String
-  entityId    String
-  entityType  String
-  payload     Json
-  processedBy String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(uuid())
+  eventType    String
+  entityId     String
+  entityType   String
+  payload      Json
+  processedBy  String?
+  actorUserId  String?
+  ipAddress    String?
+  httpMethod   String?
+  path         String?
+  statusCode   Int?
+  durationMs   Int?
+  createdAt    DateTime @default(now())
 
   @@index([eventType, entityId])
   @@index([createdAt], map: "idx_events_log_created_at")
   @@index([entityType], map: "idx_events_log_entity_type")
   @@index([eventType, entityId, createdAt])
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([path, createdAt])
   @@map("events_log")
 }
 
@@ -1609,4 +1702,150 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────
+// Email Automation & Service — Prisma models
+// ─────────────────────────────────────────────────────────
+
+/// Type of automated email being sent
+enum EmailType {
+  WELCOME
+  PASSWORD_RESET
+  PAYMENT_RECEIPT
+  NEWSLETTER
+}
+
+/// Lifecycle status of a queued/sent email
+enum EmailStatus {
+  PENDING
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+}
+
+/// Persistent record of every email dispatch attempt.
+model EmailLog {
+  id            String      @id @default(uuid())
+  recipient     String
+  type          EmailType
+  status        EmailStatus @default(PENDING)
+  subject       String
+  locale        String      @default("en")
+  templateName  String
+  metadata      Json?
+  errorMessage  String?
+  provider      String?
+  providerMsgId String?
+  attempts      Int         @default(0)
+  sentAt        DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([type])
+  @@index([recipient])
+  @@index([createdAt])
+  @@map("email_logs")
+}
+
+/// Suppression list checked before every NEWSLETTER send (GDPR / CAN-SPAM compliance).
+model EmailSuppression {
+  id        String   @id @default(uuid())
+  recipient String   @unique
+  reason    String
+
+  @@map("email_suppressions")
+}
+
+/// AI Matchmaker scored result — persisted per (job, freelancer) pair.
+model FreelanceMatchScore {
+  id             String @id @default(uuid())
+  freelanceJobId String
+  freelancerId   String
+
+  overallScore    Int
+  skillScore      Int
+  locationScore   Int
+  experienceScore Int
+
+  algorithmVersion String @default("v1")
+
+  computedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  freelanceJob FreelanceJob @relation(fields: [freelanceJobId], references: [id], onDelete: Cascade)
+  freelancer   User         @relation("FreelancerMatchScores", fields: [freelancerId], references: [id], onDelete: Cascade)
+
+  @@unique([freelanceJobId, freelancerId])
+  @@index([freelanceJobId, overallScore])
+  @@index([freelancerId, overallScore])
+  @@map("freelance_match_scores")
+}
+
+// ─────────────────────────────────────────────────────────
+// Webhook Integration — Payment Gateway Webhook models
+// ─────────────────────────────────────────────────────────
+
+/// Webhook delivery log for payment gateway events (Stripe, PayPal, Chapa).
+model WebhookLog {
+  id             String    @id @default(uuid())
+  provider       String
+  eventType      String
+  externalId     String
+  idempotencyKey String    @unique
+  statusCode     Int       @default(202)
+  isVerified     Boolean   @default(false)
+  ipAddress      String?
+  userAgent      String?
+  requestBody    Json
+  responseBody   Json?
+  error          String?
+  retryCount     Int       @default(0)
+  retryUntil     DateTime?
+  processedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([provider, eventType])
+  @@index([idempotencyKey])
+  @@index([createdAt])
+  @@index([processedAt])
+  @@map("webhook_logs")
+}
+
+/// Payment transaction audit trail — tracks detailed payment lifecycle events from webhooks.
+model PaymentTransaction {
+  id                    String   @id @default(uuid())
+  externalTransactionId String   @unique
+  externalCustomerId    String
+  provider              String
+  amount                Int
+  currency              String   @default("USD")
+  status                String
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([externalTransactionId])
+  @@index([externalCustomerId])
+  @@index([provider, status])
+  @@index([createdAt])
+  @@map("payment_transactions")
+}
+
+/// GDPR consent tracking for webhook data processing.
+model GdprConsent {
+  id          String    @id @default(uuid())
+  purpose     String
+  version     String    @default("1.0")
+  consentedAt DateTime  @default(now())
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([purpose])
+  @@map("gdpr_consents")
 }

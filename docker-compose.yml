@@ -29,10 +29,12 @@ services:
     restart: unless-stopped
     ports:
       - '4002:4000'
+      - '4001:4001'
     environment:
       - NODE_ENV=development
       - PORT=4000
-      - FRONTEND_URL=http://localhost:4001
+      # Admin (:3000) + jobs app (:3001) — comma-separated for CORS
+      - FRONTEND_URL=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
       - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -41,6 +43,15 @@ services:
       - JWT_ACCESS_SECRET=docker_default_secret_please_change_in_production
       - JWT_ACCESS_EXPIRES=15m
       - JWT_REFRESH_EXPIRES=30d
+      - SESSION_SECRET=docker_session_secret_please_change_in_production_64chars_min
+      - OAUTH_TOKEN_ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      - GOOGLE_CLIENT_ID=docker-google-client-id
+      - GOOGLE_CLIENT_SECRET=docker-google-client-secret
+      - GOOGLE_CALLBACK_URL=http://localhost:4002/api/v1/auth/google/callback
+      - LINKEDIN_CLIENT_ID=docker-linkedin-client-id
+      - LINKEDIN_CLIENT_SECRET=docker-linkedin-client-secret
+      - LINKEDIN_CALLBACK_URL=http://localhost:4002/api/v1/auth/linkedin/callback
+      - APP_BASE_URL=http://localhost:3001
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
       - OPENAI_API_KEY=dummy_key_for_testing
@@ -54,6 +65,18 @@ services:
       - STRIPE_SECRET_KEY=dummy
       - STRIPE_WEBHOOK_SECRET=dummy
       - BILLING_WEBHOOK_SECRET=dummy
+      - UNSUBSCRIBE_SECRET=docker_default_unsubscribe_secret_please_change_in_production
+      - CHAPA_SECRET_KEY=CHASECK_TEST-dummy
+      - CHAPA_PUBLIC_KEY=CHAPUBK_TEST-dummy
+      - CHAPA_WEBHOOK_SECRET=docker_chapa_webhook_secret
+      - CHAPA_CALLBACK_URL=http://localhost:4000/api/v1/escrow/callback
+      - CHAPA_RETURN_URL=http://localhost:4001/freelance/payment-success
+      - SMTP_HOST=smtp.ethereal.email
+      - SMTP_PORT=587
+      - SMTP_SECURE=false
+      - SMTP_USER=docker-smtp-user
+      - SMTP_PASSWORD=docker-smtp-password
+      - SMTP_FROM_ADDRESS=Beleqet <noreply@beleqet.com>
     depends_on:
       - db
       - redis
@@ -65,6 +88,8 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     container_name: beleqet2-frontend
+        - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
+    container_name: beleqet-frontend
     restart: unless-stopped
     ports:
       - '3000:3000'
@@ -80,11 +105,14 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     container_name: beleqet2-jobs-frontend
+        - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
+    container_name: beleqet-jobs-frontend
     restart: unless-stopped
     ports:
       - '3001:3001'
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
     depends_on:
       - backend
 

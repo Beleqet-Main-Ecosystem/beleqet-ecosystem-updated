@@ -41,6 +41,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         return;
       }
+      if (!tokenString) throw new Error('No token provided');
 
       const token = tokenString.replace('Bearer ', '').trim();
       const payload = this.jwtService.verify(token);
@@ -63,6 +64,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleJoinRoom(@MessageBody() data: { roomId: string }, @ConnectedSocket() client: Socket) {
     const userId = client.data.user?.userId;
     if (!userId || !data.roomId) return;
+    if (!userId || !data.roomId) {
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.roomIdRequired', { lang: 'en' }),
+      });
+      return;
+    }
 
     try {
       client.join(data.roomId);
@@ -74,6 +81,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (err) {
       this.logger.error(`Error joining room: ${(err as Error).message}`);
       client.emit('error', { message: 'Failed to join room' });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.joinRoomFailed', { lang: 'en' }),
+      });
     }
   }
 
@@ -91,6 +101,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId,
         roomId: data.roomId,
         content: data.content,
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.messageContentRequired', { lang: 'en' }),
       });
       return;
     }
@@ -104,6 +116,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.emit('error', {
         message: 'Failed to send message',
+        message: this.i18n.t('messages.chat.sendMessageFailed', { lang: 'en' }),
       });
     }
   }
@@ -115,6 +128,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = client.data.user?.userId;
     if (!userId || !data.roomId || !data.fileUrl) return;
+    if (!userId || !data.roomId || !data.fileUrl) {
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.fileUrlRequired', { lang: 'en' }),
+      });
+      return;
+    }
 
     try {
       const content = `Shared a file: ${data.fileName}`;
@@ -127,6 +146,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (err) {
       this.logger.error(`Error sharing file: ${(err as Error).message}`);
       client.emit('error', { message: 'Failed to share file' });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.shareFileFailed', { lang: 'en' }),
+      });
     }
   }
 
@@ -137,6 +159,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = client.data.user?.userId;
     if (!userId || !data.roomId || !data.callLink) return;
+    if (!userId || !data.roomId || !data.callLink) {
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.callLinkRequired', { lang: 'en' }),
+      });
+      return;
+    }
 
     try {
       const content = `Started a video call. Click to join.`;
@@ -153,6 +181,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (err) {
       this.logger.error(`Error starting video call: ${(err as Error).message}`);
       client.emit('error', { message: 'Failed to start video call' });
+      client.emit('error', {
+        message: this.i18n.t('messages.chat.startVideoCallFailed', { lang: 'en' }),
+      });
     }
   }
 }

@@ -64,6 +64,17 @@ const mockAuthService = {
       role: 'JOB_SEEKER',
     },
   }),
+  issueTokensForUserId: jest.fn().mockResolvedValue({
+    accessToken: 'test-access-token',
+    refreshToken: 'test-refresh-token',
+    user: {
+      id: 'user-1',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'JOB_SEEKER',
+    },
+  }),
 };
 
 const mockRedis = {
@@ -162,7 +173,7 @@ describe('TwoFactorController', () => {
 
     const result = await controller.verify({ tempToken: 'valid-token', code: '123456' });
     expect(result).toHaveProperty('accessToken');
-    expect(mockAuthService.issueTokens).toHaveBeenCalled();
+    expect(mockAuthService.issueTokensForUserId).toHaveBeenCalled();
   });
 
   it('should throw on verify with invalid token', async () => {

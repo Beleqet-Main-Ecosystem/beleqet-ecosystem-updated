@@ -1,99 +1,264 @@
 'use client';
-import { useState, useCallback, useMemo, type ChangeEvent } from 'react';
+
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from 'recharts';
-import { Users, DollarSign, ClipboardList, CheckCircle2 } from 'lucide-react';
-import { fetchDashboardStats } from '@/lib/api';
-import { usePolling } from '@/hooks/usePolling';
-import type { PlatformStats, StatCardData } from '@/types';
-
-/** Supported currencies from the backend wallet.service.ts exchange rates */
-const CURRENCIES = ['ETB', 'USD', 'EUR'];
-const POLLING_INTERVAL_MS = 10_000; // 10 seconds
-
+  Users,
+  UserCheck,
+  BriefcaseBusiness,
+  FolderKanban,
+  CircleDollarSign,
+  TrendingUp,
+  FileSpreadsheet,
+  RotateCw,
+} from 'lucide-react';
 import { ThemeSwitcher } from '@/components/theme/theme-switcher';
+import {
+  SummaryCards,
+  RevenueTrendChart,
+  UserGrowthChart,
+  ProjectStatusPie,
+  RecentProjectsTable,
+  SystemDetailsPanel,
+} from '@/components/AdminStats';
+import {
+  downloadAdminStatsCsv,
+  fetchAdminOverview,
+  fetchAdminProjectBreakdown,
+  fetchAdminRevenueChart,
+  fetchAdminUserGrowthChart,
+} from '@/lib/api';
+import { formatCompactNumber, formatMinorMoney } from '@/lib/format';
+import type {
+  OverviewResponse,
+  ProjectBreakdownResponse,
+  RevenueChartResponse,
+  StatsQueryParams,
+  StatsRangePreset,
+  StatCardData,
+  UserGrowthChartResponse,
+} from '@/types';
 
-/**
- * Builds deterministic time-series chart data using the live aggregated total.
- * Uses a fixed growth curve so SSR and client hydration produce identical output.
- * The final month always reflects the real live total.
- */
-function buildRevenueChartData(liveRevenue: number): { month: string; revenue: number }[] {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-  const base = liveRevenue / 7;
-  // Use a deterministic growth multiplier - no Math.random() to avoid SSR hydration mismatch
-  const growthFactors = [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0];
-  return months.map((month, i) => ({
-    month,
-    revenue: Math.round(base * growthFactors[i]),
-  }));
+const CURRENCIES = ['ETB', 'USD', 'EUR'];
+const RANGES: Array<{ id: StatsRangePreset; label: string }> = [
+  { id: '7d', label: '7 days' },
+  { id: '30d', label: '30 days' },
+  { id: '12m', label: '12 months' },
+  { id: 'custom', label: 'Custom' },
+];
+const POLL_MS = 30_000;
+
+function todayYmd(): string {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
+
+function daysAgoYmd(days: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+function deltaLabel(
+  change: OverviewResponse['cards']['revenueChangeVsLastMonth'],
+): StatCardData['delta'] {
+  const { percentChange, direction } = change;
+  if (direction === 'new') return { text: 'New', tone: 'new' };
+  if (percentChange === null) return { text: '—', tone: 'flat' };
+  const sign = percentChange > 0 ? '+' : '';
+  const arrow = direction === 'up' ? '↑' : direction === 'down' ? '↓' : '';
+  return { text: `${arrow}${sign}${percentChange}%`, tone: direction };
 }
 
 /**
- * Admin Stats Dashboard page.
- * Polls the backend every 10 seconds for live aggregated platform statistics.
- * Renders stat cards and Recharts BarChart / AreaChart visualizations.
+ * Admin Stats dashboard — overview cards, system health, Recharts, CSV exports.
  */
 export default function AdminDashboardPage() {
-  const [currency, setCurrency] = useState<string>('ETB');
+  const [currency, setCurrency] = useState('ETB');
+  const [range, setRange] = useState<StatsRangePreset>('30d');
+  const [customFrom, setCustomFrom] = useState(daysAgoYmd(29));
+  const [customTo, setCustomTo] = useState(todayYmd());
+  const [overview, setOverview] = useState<OverviewResponse | null>(null);
+  const [revenue, setRevenue] = useState<RevenueChartResponse | null>(null);
+  const [users, setUsers] = useState<UserGrowthChartResponse | null>(null);
+  const [projects, setProjects] = useState<ProjectBreakdownResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<string | null>(null);
 
-  const fetcher = useCallback(() => fetchDashboardStats(currency, 'en'), [currency]);
+  const query: StatsQueryParams = useMemo(() => {
+    const base: StatsQueryParams = {
+      currency,
+      range,
+      lang: 'en',
+      tz: 'Africa/Addis_Ababa',
+      recentLimit: 10,
+    };
+    if (range === 'custom') {
+      base.from = customFrom;
+      base.to = customTo;
+    }
+    return base;
+  }, [currency, range, customFrom, customTo]);
 
-  const { data: stats, loading, error } = usePolling<PlatformStats>(fetcher, POLLING_INTERVAL_MS);
+  const load = useCallback(async () => {
+    try {
+      const [ov, rev, growth, breakdown] = await Promise.all([
+        fetchAdminOverview(query),
+        fetchAdminRevenueChart(query),
+        fetchAdminUserGrowthChart(query),
+        fetchAdminProjectBreakdown(query),
+      ]);
+      setOverview(ov);
+      setRevenue(rev);
+      setUsers(growth);
+      setProjects(breakdown);
+      setError(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load dashboard';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [query]);
 
-  const statCards: StatCardData[] = stats
+  useEffect(() => {
+    setLoading(true);
+    void load();
+    const timer = setInterval(() => void load(), POLL_MS);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  const cards: StatCardData[] = overview
     ? [
         {
-          label: 'Active Users',
-          value: stats.totalUsers.toLocaleString(),
-          icon: <Users size={22} />,
-          color: 'rgba(59,130,246,0.15)',
+          label: 'Total users',
+          value: formatCompactNumber(overview.cards.totalUsers),
+          icon: <Users size={22} strokeWidth={2} />,
+          color: 'var(--icon-well-blue)',
+          iconColor: 'var(--dash-icon-user)',
+          hint: `${overview.system.inactiveUsers} inactive · ${overview.system.unverifiedEmails} unverified`,
         },
         {
-          label: `Total Revenue (${stats.currency})`,
-          value: stats.totalRevenue.toLocaleString(),
-          icon: <DollarSign size={22} />,
-          color: 'rgba(16,185,129,0.15)',
+          label: 'Active users',
+          value: formatCompactNumber(overview.cards.activeUsers.count),
+          icon: <UserCheck size={22} strokeWidth={2} />,
+          color: 'var(--icon-well-green)',
+          iconColor: 'var(--dash-icon-revenue)',
+          hint: `Last ${overview.cards.activeUsers.windowDays} days · ${overview.cards.activeUsers.basis.replace(/_/g, ' ')}`,
         },
         {
-          label: 'Active Contracts',
-          value: stats.activeContracts.toLocaleString(),
-          icon: <ClipboardList size={22} />,
-          color: 'rgba(245,158,11,0.15)',
+          label: 'Total projects',
+          value: formatCompactNumber(overview.cards.totalProjects),
+          icon: <BriefcaseBusiness size={22} strokeWidth={2} />,
+          color: 'var(--icon-well-slate)',
+          iconColor: 'var(--dash-icon-neutral)',
+          hint: `${overview.system.bidsTotal} bids · ${overview.system.applicationsTotal} applications`,
         },
         {
-          label: 'Completed Jobs',
-          value: stats.completedJobs.toLocaleString(),
-          icon: <CheckCircle2 size={22} />,
-          color: 'rgba(139,92,246,0.15)',
+          label: 'Active projects',
+          value: formatCompactNumber(overview.cards.activeProjects),
+          icon: <FolderKanban size={22} strokeWidth={2} />,
+          color: 'var(--icon-well-amber)',
+          iconColor: 'var(--dash-icon-warn)',
+          hint: `${overview.system.openDisputes} open disputes`,
+        },
+        {
+          label: 'Revenue this month',
+          value: formatMinorMoney(overview.cards.revenueThisMonth.amount, overview.currency),
+          icon: <CircleDollarSign size={22} strokeWidth={2} />,
+          color: 'var(--icon-well-green)',
+          iconColor: 'var(--dash-icon-revenue)',
+          hint: overview.cards.revenueThisMonth.month,
+        },
+        {
+          label: 'vs last month',
+          value:
+            overview.cards.revenueChangeVsLastMonth.percentChange === null
+              ? overview.cards.revenueChangeVsLastMonth.direction === 'new'
+                ? 'New'
+                : '—'
+              : `${overview.cards.revenueChangeVsLastMonth.direction === 'up' ? '↑' : overview.cards.revenueChangeVsLastMonth.direction === 'down' ? '↓' : ''}${overview.cards.revenueChangeVsLastMonth.percentChange > 0 ? '+' : ''}${overview.cards.revenueChangeVsLastMonth.percentChange}%`,
+          icon: <TrendingUp size={22} strokeWidth={2} />,
+          color: 'var(--icon-well-sky)',
+          iconColor: 'var(--dash-accent)',
+          delta: deltaLabel(overview.cards.revenueChangeVsLastMonth),
+          hint: `Prior ${formatMinorMoney(
+            overview.cards.revenueChangeVsLastMonth.lastMonthAmount,
+            overview.currency,
+          )}`,
         },
       ]
     : [];
 
-  const revenueChartData = useMemo(
-    () => (stats ? buildRevenueChartData(stats.totalRevenue) : []),
-    [stats],
-  );
+  async function handleExport(kind: 'overview' | 'revenue' | 'users' | 'status' | 'recent') {
+    const paths: Record<typeof kind, { path: string; file: string }> = {
+      overview: { path: '/admin-stats/overview/export.csv', file: 'overview.csv' },
+      revenue: { path: '/admin-stats/charts/revenue/export.csv', file: 'revenue.csv' },
+      users: { path: '/admin-stats/charts/users/export.csv', file: 'users.csv' },
+      status: { path: '/admin-stats/projects/status/export.csv', file: 'project-status.csv' },
+      recent: { path: '/admin-stats/projects/recent/export.csv', file: 'recent-projects.csv' },
+    };
+    setExporting(kind);
+    try {
+      await downloadAdminStatsCsv(paths[kind].path, query, paths[kind].file);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'CSV export failed');
+    } finally {
+      setExporting(null);
+    }
+  }
 
   return (
-    <>
+    <div className="admin-stats-dashboard">
       <div className="page-header">
         <div>
-          <h1 className="page-header-title">Admin Dashboard</h1>
+          <h1 className="page-header-title">Admin Stats</h1>
           <p className="page-header-subtitle">
-            Platform performance overview — refreshes every 10s
+            Full platform pulse — users, revenue, escrow, jobs, and contracts
+            {overview ? ` · updated ${new Date(overview.generatedAt).toLocaleTimeString()}` : ''}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+
+        <div className="dashboard-toolbar">
+          <div className="range-pills" role="tablist" aria-label="Date range">
+            {RANGES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={range === item.id}
+                className={range === item.id ? 'range-pill active' : 'range-pill'}
+                onClick={() => setRange(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {range === 'custom' && (
+            <div className="custom-range-inputs" aria-label="Custom date range">
+              <label className="custom-range-field">
+                <span>From</span>
+                <input
+                  type="date"
+                  value={customFrom}
+                  max={customTo}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomFrom(e.target.value)}
+                />
+              </label>
+              <label className="custom-range-field">
+                <span>To</span>
+                <input
+                  type="date"
+                  value={customTo}
+                  min={customFrom}
+                  max={todayYmd()}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomTo(e.target.value)}
+                />
+              </label>
+            </div>
+          )}
+
           <select
             className="currency-select"
             value={currency}
@@ -106,129 +271,109 @@ export default function AdminDashboardPage() {
               </option>
             ))}
           </select>
+
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => void handleExport('overview')}
+            disabled={!!exporting}
+            title="Download overview CSV"
+          >
+            <FileSpreadsheet size={16} strokeWidth={2} />
+            Export
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setLoading(true);
+              void load();
+            }}
+            title="Refresh now"
+            aria-label="Refresh dashboard"
+          >
+            <RotateCw size={16} strokeWidth={2} />
+          </button>
+
           <ThemeSwitcher />
+
           <div className="polling-indicator">
             <span className="polling-dot" />
-            <span>Live updates every 10s</span>
+            <span>Live · 30s</span>
           </div>
         </div>
       </div>
 
-      <div className="page-body">
+      <div className="page-body dashboard-body">
         {error && (
           <div className="error-msg" style={{ marginBottom: 24 }}>
-            <strong>Problem loading dashboard:</strong> {error}
+            <strong>Could not load dashboard:</strong> {error}
           </div>
         )}
 
-        {/*  Stat Cards  */}
-        {loading && !stats ? (
+        {loading && !overview ? (
           <div className="loading-spinner">
             <div className="spinner" />
             <span>Loading stats…</span>
           </div>
         ) : (
-          <div className="stats-grid">
-            {statCards.map((card) => (
-              <div key={card.label} className="stat-card">
-                <div className="stat-card-icon" style={{ background: card.color }}>
-                  {card.icon}
-                </div>
-                <div className="stat-card-label">{card.label}</div>
-                <div className="stat-card-value">{card.value}</div>
-              </div>
-            ))}
-          </div>
-        )}
+          <>
+            <SummaryCards cards={cards} />
+            {overview && <SystemDetailsPanel overview={overview} />}
 
-        {/*  Revenue Bar Chart  */}
-        {stats && (
-          <div className="chart-container">
-            <div className="chart-title">Revenue Over Time ({stats.currency})</div>
-            <div className="chart-subtitle">
-              Monthly revenue trend based on released escrow transactions
+            <div className="section-heading">
+              <h2>Trends</h2>
+              <p>Time series for the selected range — missing days are filled with zero</p>
             </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={revenueChartData} margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: '#111827',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    fontSize: 13,
-                  }}
-                  labelStyle={{ color: '#f1f5f9' }}
-                  itemStyle={{ color: '#60a5fa' }}
-                />
-                <Bar dataKey="revenue" fill="url(#revenueGrad)" radius={[6, 6, 0, 0]} />
-                <defs>
-                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" />
-                    <stop offset="100%" stopColor="#6366f1" />
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
 
-        {/*  Platform Activity Area Chart  */}
-        {stats && (
-          <div className="chart-container">
-            <div className="chart-title">Platform Activity Overview</div>
-            <div className="chart-subtitle">Users, contracts, and completed jobs at a glance</div>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart
-                data={[
-                  { name: 'Users', value: stats.totalUsers },
-                  { name: 'Active Contracts', value: stats.activeContracts },
-                  { name: 'Completed Jobs', value: stats.completedJobs },
-                ]}
-                margin={{ top: 4, right: 8, bottom: 4, left: 8 }}
+            <div className="charts-grid">
+              {revenue && <RevenueTrendChart data={revenue} />}
+              {users && <UserGrowthChart data={users} />}
+            </div>
+
+            <div className="section-heading">
+              <h2>Marketplace</h2>
+              <p>Freelance project mix and the latest activity</p>
+            </div>
+
+            <div className="charts-grid charts-grid-bottom">
+              {projects && <ProjectStatusPie data={projects} />}
+              {projects && (
+                <RecentProjectsTable
+                  data={projects}
+                  exporting={exporting === 'recent'}
+                  onExport={() => void handleExport('recent')}
+                />
+              )}
+            </div>
+
+            <div className="export-row">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => void handleExport('revenue')}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: '#111827',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 8,
-                    fontSize: 13,
-                  }}
-                  labelStyle={{ color: '#f1f5f9' }}
-                />
-                <defs>
-                  <linearGradient id="activityGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#10b981"
-                  fill="url(#activityGrad)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+                <FileSpreadsheet size={14} strokeWidth={2} /> Revenue CSV
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => void handleExport('users')}
+              >
+                <FileSpreadsheet size={14} strokeWidth={2} /> Users CSV
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => void handleExport('status')}
+              >
+                <FileSpreadsheet size={14} strokeWidth={2} /> Status CSV
+              </button>
+            </div>
+          </>
         )}
       </div>
-    </>
+    </div>
   );
 }

@@ -7,7 +7,11 @@ import type {
   AuthResponse,
   Dispute,
   PlatformStats,
-  AuditLog,
+  OverviewResponse,
+  RevenueChartResponse,
+  UserGrowthChartResponse,
+  ProjectBreakdownResponse,
+  StatsQueryParams,
   AuditLogPage,
   AuditLogFilters,
   Notification,
@@ -17,6 +21,13 @@ import type {
   PromotionCampaign,
   CampaignAnalytics,
 } from '@/types';
+import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, MatchResult } from '@/types';
+import type { ThemePreference } from '@/components/theme/theme-preference';
+
+/** API response shape for the minimal persisted user theme setting. */
+export interface ThemePreferenceResponse {
+  theme: ThemePreference;
+}
 
 /** Fetches the current authenticated user's persisted theme preference. */
 export async function getThemePreference(): Promise<ThemePreferenceResponse> {
@@ -33,6 +44,8 @@ export async function updateThemePreference(
   });
   return data;
 }
+  AuditLogListResponse,
+  AuditLogQuery,
 
 /** Logs in a user and stores the JWT token in localStorage */
 export async function login(email: string, password: string): Promise<AuthResponse> {
@@ -62,7 +75,7 @@ export async function logout(): Promise<void> {
   }
 }
 
-/** Fetches aggregated platform stats from the admin-stats endpoint */
+/** @deprecated Prefer fetchAdminOverview */
 export async function fetchDashboardStats(
   currency: string = 'ETB',
   lang: string = 'en',
@@ -71,6 +84,65 @@ export async function fetchDashboardStats(
     params: { currency, lang },
   });
   return data;
+}
+
+/** Summary cards for the admin dashboard */
+export async function fetchAdminOverview(params: StatsQueryParams = {}): Promise<OverviewResponse> {
+  const { data } = await apiClient.get<OverviewResponse>('/admin-stats/overview', { params });
+  return data;
+}
+
+/** Zero-filled revenue time series */
+export async function fetchAdminRevenueChart(
+  params: StatsQueryParams = {},
+): Promise<RevenueChartResponse> {
+  const { data } = await apiClient.get<RevenueChartResponse>('/admin-stats/charts/revenue', {
+    params,
+  });
+  return data;
+}
+
+/** Zero-filled user growth time series */
+export async function fetchAdminUserGrowthChart(
+  params: StatsQueryParams = {},
+): Promise<UserGrowthChartResponse> {
+  const { data } = await apiClient.get<UserGrowthChartResponse>('/admin-stats/charts/users', {
+    params,
+  });
+  return data;
+}
+
+/** Project status summary + recent projects table */
+export async function fetchAdminProjectBreakdown(
+  params: StatsQueryParams = {},
+): Promise<ProjectBreakdownResponse> {
+  const { data } = await apiClient.get<ProjectBreakdownResponse>('/admin-stats/projects/breakdown', {
+    params,
+  });
+  return data;
+}
+
+/** Downloads a CSV export for an admin-stats resource. */
+export async function downloadAdminStatsCsv(
+  path: string,
+  params: StatsQueryParams = {},
+  filenameFallback = 'admin-stats.csv',
+): Promise<void> {
+  const { data, headers } = await apiClient.get<Blob>(path, {
+    params,
+    responseType: 'blob',
+  });
+  const disposition = String(headers['content-disposition'] || '');
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const filename = match?.[1] || filenameFallback;
+  const url = URL.createObjectURL(data);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
 
 /** Fetches all disputes (Admin-only) */
@@ -160,7 +232,6 @@ export async function enqueueChapaCallback(
 /** Fetch current user's notifications (latest 50, descending) */
 export async function fetchNotifications(): Promise<Notification[]> {
   const { data } = await apiClient.get<Notification[]>('/users/notifications');
-  console.log('=== FRONTEND fetchNotifications response:', JSON.stringify(data));
   return data;
 }
 
@@ -251,5 +322,70 @@ export async function getActiveBoosts(
   const { data } = await apiClient.get<{ targetId: string; isBoosted: boolean }[]>('/promoted-engine/active-boosts', {
     params: { targetType, targetIds: targetIds.join(',') },
   });
+  return data;
+}
+/** Fetches paginated audit logs for the admin Log Viewer */
+export async function fetchAuditLogs(query: AuditLogQuery = {}): Promise<AuditLogListResponse> {
+  const { data } = await apiClient.get<AuditLogListResponse>('/admin/audit-logs', {
+    params: {
+      lang: 'en',
+      currency: 'ETB',
+      page: 1,
+      limit: 20,
+      ...query,
+    },
+  });
+  return data;
+}
+/** Fetches a single audit log by id */
+export async function fetchAuditLogById(
+  id: string,
+  currency: string = 'ETB',
+  lang: string = 'en',
+): Promise<AuditLog> {
+  const { data } = await apiClient.get<AuditLog>(`/admin/audit-logs/${id}`, {
+    params: { currency, lang },
+  });
+  return data;
+}
+/** Downloads filtered audit logs as a browser attachment (JSON or CSV) */
+export async function exportAuditLogs(
+  query: AuditLogQuery & { format?: 'json' | 'csv' } = {},
+): Promise<void> {
+  const response = await apiClient.get<Blob>('/admin/audit-logs/export', {
+    params: { lang: 'en', currency: 'ETB', format: 'json', ...query },
+    responseType: 'blob',
+  });
+  const disposition = response.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^"]+)"?/i);
+  const filename = match?.[1] || `audit-logs.${query.format || 'json'}`;
+  const url = window.URL.createObjectURL(response.data);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
+}
+/** Fetches ranked freelancer matches for a freelance job (Employer/Admin only). */
+export async function getJobMatches(
+  jobId: string,
+  minScore: number = 0,
+  limit: number = 20,
+): Promise<MatchResult[]> {
+  const { data } = await apiClient.get<MatchResult[]>(`/matching/jobs/${jobId}/matches`, {
+    params: { minScore, limit },
+  });
+  return data;
+}
+/** Minimal freelance job shape needed to render the Matchmaker page header. */
+export interface FreelanceJobSummary {
+  id: string;
+  title: string;
+}
+/** Fetches a single freelance job by id (used to populate the Matchmaker dashboard header). */
+export async function getFreelanceJob(jobId: string): Promise<FreelanceJobSummary> {
+  const { data } = await apiClient.get<FreelanceJobSummary>(`/freelance/jobs/${jobId}`);
   return data;
 }

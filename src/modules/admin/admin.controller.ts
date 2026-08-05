@@ -33,6 +33,7 @@ import { QueryFraudAlertsDto } from '../fraud-alert/dto/query-fraud-alerts.dto';
 import { ResolveFraudAlertDto } from '../fraud-alert/dto/resolve-fraud-alert.dto';
 import { CreateFraudRuleDto, UpdateFraudRuleDto } from '../fraud-alert/dto/create-fraud-rule.dto';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { AuditLoggingService } from '../audit-logging/audit-logging.service';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -85,6 +86,7 @@ export class AdminController {
     private readonly chatService: ChatService,
     private readonly fraudAlertService: FraudAlertService,
     private readonly notificationsService: NotificationsService,
+    private readonly auditLoggingService: AuditLoggingService,
   ) {}
 
   @RequirePermissions('manage:users')
@@ -138,15 +140,55 @@ export class AdminController {
   }
 
   @Post('notifications/broadcast')
-  async broadcast(@Body() dto: BroadcastDto, @CurrentUser() user: CurrentUserPayload) {
-    console.log('=== DEBUG broadcast controller invoked, user:', JSON.stringify(user));
+  async broadcast(@Body() dto: BroadcastDto) {
     const delivered = await this.notificationsService.sendSystemAlert(
       'ADMIN_ANNOUNCEMENT',
       dto.body,
       { title: dto.title, userIds: dto.userIds, role: dto.role },
     );
-    console.log('=== DEBUG broadcast result:', { delivered });
     return { delivered };
+  async broadcast(@Body() dto: BroadcastDto) {
+    let users;
+    if (dto.userIds && dto.userIds.length > 0) {
+      users = await this.prisma.user.findMany({
+        where: { id: { in: dto.userIds }, isActive: true },
+        select: { id: true, email: true, firstName: true },
+      });
+    } else {
+      users = await this.prisma.user.findMany({
+        where: { isActive: true, ...(dto.role && { role: dto.role }) },
+        select: { id: true, email: true, firstName: true },
+      });
+    }
+
+    if (users.length === 0) {
+      return { delivered: 0 };
+    }
+
+    const result = await this.prisma.notification.createMany({
+      data: users.map((user: any) => ({
+        userId: user.id,
+        channel: 'IN_APP',
+        type: 'ADMIN_ANNOUNCEMENT',
+        title: dto.title,
+        body: dto.body,
+      })),
+    });
+
+    // Enqueue emails
+    for (const u of users) {
+      adminAnnouncementEmail(u.firstName, dto.title, dto.body)
+        .then((email) =>
+          this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+            to: u.email,
+            subject: dto.title,
+            ...email,
+          }),
+        )
+        .catch(() => {});
+    }
+
+    return { delivered: result.count };
   }
 
   @Get('escrow/disputes')
@@ -223,23 +265,24 @@ export class AdminController {
       select: { enabled: true },
     });
 
-    await this.prisma.eventLog.create({
-      data: {
-        eventType: 'gdpr.export.user_data',
-        entityId: userId,
-        entityType: 'User',
-        payload: {
-          exportedBy: admin.userId,
-          timestamp: new Date().toISOString(),
-        } as never,
-        processedBy: AdminController.name,
+    void this.auditLoggingService.createSafe({
+      eventType: 'gdpr.export.user_data',
+      entityId: userId,
+      entityType: 'User',
+      payload: {
+        exportedBy: admin.userId,
+        timestamp: new Date().toISOString(),
       },
+      processedBy: AdminController.name,
+      actorUserId: admin.userId,
     });
+    const auditLogs = await this.auditLoggingService.findByUserForGdpr(userId);
 
     return {
       data: {
         ...user,
         twoFactor: twoFactor ? { enabled: twoFactor.enabled } : null,
+        auditLogs,
       },
     };
   }

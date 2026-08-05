@@ -2,6 +2,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EncryptionService } from '../../common/encryption/encryption.service';
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 
+/** Structured metadata attached to non-plain-text chat messages */
+export type MessageMetadata =
+  { type: 'file'; url: string; name: string } | { type: 'video_call'; link: string };
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -64,6 +68,7 @@ export class ChatService {
         roomId,
         senderId,
         content: encryptedContent,
+        content,
         metadata,
       },
       include: {
@@ -75,6 +80,7 @@ export class ChatService {
             avatarUrl: true,
             role: true,
           },
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
         },
       },
     });
@@ -138,6 +144,7 @@ export class ChatService {
           content: '[Unable to decrypt message]',
         };
       }
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
     });
   }
 }

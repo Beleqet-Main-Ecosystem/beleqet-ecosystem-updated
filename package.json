@@ -23,17 +23,19 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --forceExit",
     "test:ci-cd": "jest --config ./test/jest-ci-cd.json --runInBand",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:migrate:deploy": "prisma migrate deploy",
-    "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
+    "prisma:studio": "npx prisma studio",
+    "prisma:seed": "npx ts-node --transpile-only prisma/seed.ts",
+    "prisma:seed:admin-stats": "npx ts-node --transpile-only prisma/seed-admin-stats-demo.ts"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
     "@aws-sdk/client-s3": "^3.1075.0",
     "@aws-sdk/s3-request-presigner": "^3.1075.0",
     "@nestjs/apollo": "^12.2.2",
+    "@nestjs-modules/mailer": "^2.3.7",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.3",
     "@nestjs/common": "^10.4.1",
@@ -55,7 +57,7 @@
     "@socket.io/redis-adapter": "^8.3.0",
     "@xenova/transformers": "^2.17.2",
     "bcryptjs": "^2.4.3",
-    "bullmq": "^5.13.2",
+    "bullmq": "^5.81.2",
     "cache-manager": "^7.2.9",
     "cache-manager-redis-yet": "^5.1.5",
     "class-transformer": "^0.5.1",
@@ -67,6 +69,7 @@
     "graphql": "^16.14.2",
     "graphql-depth-limit": "^1.1.0",
     "graphql-query-complexity": "^2.0.0",
+    "handlebars": "^4.7.9",
     "helmet": "^7.1.0",
     "ioredis": "^5.4.1",
     "mammoth": "^1.12.0",
@@ -99,6 +102,7 @@
     "@nestjs/schematics": "^10.1.4",
     "@nestjs/testing": "^10.4.1",
     "@playwright/test": "^1.61.1",
+    "@testcontainers/postgresql": "^12.0.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^4.17.21",
     "@types/express-session": "^1.19.0",
@@ -120,11 +124,12 @@
     "@typescript-eslint/parser": "^8.63.0",
     "@vitejs/plugin-react": "^4.7.0",
     "eslint": "^8.57.1",
-    "eslint-config-prettier": "^9.1.2",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
     "jest": "^29.7.0",
     "prettier": "^3.3.3",
     "supertest": "^7.2.2",
+    "testcontainers": "^12.0.4",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
@@ -140,6 +145,9 @@
       "jsx"
     ],
     "rootDir": "src",
+    "setupFilesAfterEnv": [
+      "<rootDir>/../jest.setup.js"
+    ],
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)sx?$": "ts-jest"
@@ -157,5 +165,17 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "allowScripts": {
+    "@nestjs/core@10.4.22": true,
+    "@prisma/client@5.22.0": true,
+    "prisma@5.22.0": true,
+    "sharp@0.32.6": true,
+    "sharp@0.35.3": true,
+    "esbuild@0.25.12": true,
+    "msgpackr-extract@3.0.4": true,
+    "@prisma/engines@5.22.0": true,
+    "cpu-features@0.0.10": true,
+    "ssh2@1.17.0": true
   }
 }

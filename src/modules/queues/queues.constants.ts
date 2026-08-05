@@ -65,6 +65,7 @@ export const ESCROW_JOBS = {
 export const WALLET_JOBS = {
   RELEASE_PENDING: 'release-pending',
   PROCESS_WITHDRAWAL: 'process-withdrawal',
+  AUTO_RELEASE: 'auto-release-milestone', // 14-day auto-approval
 } as const;
 
 // ── Two-Factor Authentication jobs ────────────────────────────────────────

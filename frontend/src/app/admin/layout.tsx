@@ -13,6 +13,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/Notifications';
+import { ShieldCheck, LogOut, LayoutDashboard, Gavel, ScrollText } from 'lucide-react';
 
 interface User {
   firstName: string;
@@ -82,6 +83,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       label: 'Notification Settings',
       icon: <Settings size={18} />,
     },
+    { href: '/admin/logs', label: 'Audit Logs', icon: <ScrollText size={18} /> },
   ];
 
   return (

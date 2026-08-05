@@ -39,6 +39,7 @@ import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.m
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
+import { AuditLoggingModule } from './modules/audit-logging/audit-logging.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
@@ -58,6 +59,7 @@ import { GraphqlConfigModule } from './graphql/graphql.module';
 
 // Platform Extensions
 import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
+import { MatchingModule } from './modules/matching/matching.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -67,9 +69,12 @@ import { RbacModule } from './modules/rbac/rbac.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
+import { EmailModule } from '@modules/email-automation/email.module';
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
+import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -128,6 +133,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
+    AuditLoggingModule,
     DbIndexMasterModule,
     PaymentsModule,
     CommunityForumModule,
@@ -144,6 +150,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     GraphqlConfigModule,
     SmartBiddingModule,
     PromotedEngineModule,
+    MatchingModule,
     UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
@@ -154,6 +161,9 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     AuditLogModule,
     CacheConfigModule,
     EncryptionModule,
+    EmailModule,
+    ChatToTextModule,
+    WebhooksModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }],
 })

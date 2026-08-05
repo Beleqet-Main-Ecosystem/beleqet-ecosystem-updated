@@ -21,6 +21,7 @@ describe('ChatGateway', () => {
         ChatGateway,
         { provide: ChatService, useValue: mockChatService },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: I18nService, useValue: mockI18nService },
       ],
     }).compile();
 
