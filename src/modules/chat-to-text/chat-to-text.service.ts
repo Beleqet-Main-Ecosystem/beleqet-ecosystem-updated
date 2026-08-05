@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   CreateConversationDto,
@@ -13,11 +19,7 @@ import {
   SpeechTranscriptStatus,
 } from '@prisma/client';
 import { FasterWhisperService } from './faster-whisper.service';
-import {
-  IUploadedAudioFile,
-  IConversationHistory,
-  IConversationStatistics,
-} from './interfaces';
+import { IUploadedAudioFile, IConversationHistory, IConversationStatistics } from './interfaces';
 
 @Injectable()
 export class ChatToTextService {
@@ -58,12 +60,15 @@ export class ChatToTextService {
       transcribeAudioDto.language,
     );
 
-    return this.create({
-      conversationId: transcribeAudioDto.conversationId,
-      language: transcribeAudioDto.language,
-      provider: 'faster-whisper' as CreateTranscriptDto['provider'],
-      rawText: transcription.text,
-    }, userId);
+    return this.create(
+      {
+        conversationId: transcribeAudioDto.conversationId,
+        language: transcribeAudioDto.language,
+        provider: 'faster-whisper' as CreateTranscriptDto['provider'],
+        rawText: transcription.text,
+      },
+      userId,
+    );
   }
 
   /**
@@ -178,9 +183,15 @@ export class ChatToTextService {
   /**
    * Create a new transcript and save to database.
    */
-  async create(createTranscriptDto: CreateTranscriptDto, userId: string): Promise<SpeechTranscript> {
+  async create(
+    createTranscriptDto: CreateTranscriptDto,
+    userId: string,
+  ): Promise<SpeechTranscript> {
     try {
-      const conversation = await this.findOwnedConversation(createTranscriptDto.conversationId, userId);
+      const conversation = await this.findOwnedConversation(
+        createTranscriptDto.conversationId,
+        userId,
+      );
 
       const normalizedText = this.getTranscriptContent(createTranscriptDto.rawText);
 
@@ -212,9 +223,7 @@ export class ChatToTextService {
         },
       });
 
-      this.logger.log(
-        `Transcript created: ${transcript.id} for conversation ${conversation.id}`,
-      );
+      this.logger.log(`Transcript created: ${transcript.id} for conversation ${conversation.id}`);
 
       return transcript;
     } catch (error) {
@@ -284,7 +293,11 @@ export class ChatToTextService {
     }
   }
 
-  async update(id: string, updateTranscriptDto: UpdateTranscriptDto, userId: string): Promise<SpeechTranscript> {
+  async update(
+    id: string,
+    updateTranscriptDto: UpdateTranscriptDto,
+    userId: string,
+  ): Promise<SpeechTranscript> {
     try {
       const existingTranscript = await this.prisma.speechTranscript.findUnique({
         where: { id },
@@ -331,10 +344,7 @@ export class ChatToTextService {
       this.logger.log(`Transcript deleted: ${id}`);
       return deleted;
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw new NotFoundException(`Transcript with ID ${id} not found`);
       }
 
@@ -346,7 +356,10 @@ export class ChatToTextService {
     }
   }
 
-  async getConversationHistory(conversationId: string, userId: string): Promise<IConversationHistory> {
+  async getConversationHistory(
+    conversationId: string,
+    userId: string,
+  ): Promise<IConversationHistory> {
     try {
       const conversation = await this.prisma.speechConversation.findUnique({
         where: { id: conversationId },
@@ -369,9 +382,7 @@ export class ChatToTextService {
       });
 
       if (!conversation) {
-        throw new NotFoundException(
-          `Conversation with ID ${conversationId} not found`,
-        );
+        throw new NotFoundException(`Conversation with ID ${conversationId} not found`);
       }
       this.assertConversationOwner(conversation.userId, userId);
 
@@ -408,10 +419,12 @@ export class ChatToTextService {
     if (!text) return '';
 
     const trimmed = text.trim().replace(/\s+/g, ' ');
-    const normalized = trimmed
-      .charAt(0).toUpperCase() + trimmed.slice(1)
-      .replace(/([.!?])\1+/g, '$1')
-      .replace(/([.!?])([a-zA-Z])/g, '$1 $2');
+    const normalized =
+      trimmed.charAt(0).toUpperCase() +
+      trimmed
+        .slice(1)
+        .replace(/([.!?])\1+/g, '$1')
+        .replace(/([.!?])([a-zA-Z])/g, '$1 $2');
 
     return /[.!?]$/.test(normalized) ? normalized : `${normalized}.`;
   }
@@ -428,12 +441,10 @@ export class ChatToTextService {
         completedTranscripts: transcripts.filter(
           (t) => t.status === SpeechTranscriptStatus.COMPLETED,
         ).length,
-        failedTranscripts: transcripts.filter(
-          (t) => t.status === SpeechTranscriptStatus.FAILED,
-        ).length,
-        pendingTranscripts: transcripts.filter(
-          (t) => t.status === SpeechTranscriptStatus.PENDING,
-        ).length,
+        failedTranscripts: transcripts.filter((t) => t.status === SpeechTranscriptStatus.FAILED)
+          .length,
+        pendingTranscripts: transcripts.filter((t) => t.status === SpeechTranscriptStatus.PENDING)
+          .length,
         processingTranscripts: transcripts.filter(
           (t) => t.status === SpeechTranscriptStatus.PROCESSING,
         ).length,
@@ -455,7 +466,8 @@ export class ChatToTextService {
       where: { id: conversationId },
       select: { id: true, userId: true },
     });
-    if (!conversation) throw new NotFoundException(`Conversation with ID ${conversationId} not found`);
+    if (!conversation)
+      throw new NotFoundException(`Conversation with ID ${conversationId} not found`);
     this.assertConversationOwner(conversation.userId, userId);
     return conversation;
   }

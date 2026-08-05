@@ -71,10 +71,13 @@ describe('ChatToTextService', () => {
     it('should assign the conversation to the authenticated user', async () => {
       mockPrismaService.speechConversation.create.mockResolvedValue(mockConversation);
 
-      const result = await service.createConversation({
-        title: 'Local smoke test',
-        description: 'Test',
-      }, 'user_123');
+      const result = await service.createConversation(
+        {
+          title: 'Local smoke test',
+          description: 'Test',
+        },
+        'user_123',
+      );
 
       expect(result.userId).toBe('user_123');
       expect(mockPrismaService.speechConversation.create).toHaveBeenCalledWith(
@@ -129,9 +132,9 @@ describe('ChatToTextService', () => {
       mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
       mockPrismaService.speechTranscript.create.mockResolvedValue(mockTranscript);
 
-      await expect(service.create({ conversationId: 'conv_123', rawText: 'You' }, 'user_123')).resolves.toEqual(
-        mockTranscript,
-      );
+      await expect(
+        service.create({ conversationId: 'conv_123', rawText: 'You' }, 'user_123'),
+      ).resolves.toEqual(mockTranscript);
       expect(mockPrismaService.speechTranscript.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({

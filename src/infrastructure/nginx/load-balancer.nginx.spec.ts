@@ -6,10 +6,7 @@ import * as path from 'path';
  * Ensures strategies, health checks, failover, WebSocket upgrades, and sticky sessions.
  */
 describe('Nginx load-balancer configuration', () => {
-  const confPath = path.join(
-    __dirname,
-    '../../../infrastructure/nginx/load-balancer.conf',
-  );
+  const confPath = path.join(__dirname, '../../../infrastructure/nginx/load-balancer.conf');
 
   let conf: string;
 

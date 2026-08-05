@@ -4,9 +4,7 @@ import {
   IAccountRepository,
   VerificationTokenType,
 } from '../interfaces/account-repository.interface';
-import {
-  OAuthSignInOutcome,
-} from '../interfaces/link-account-result.interface';
+import { OAuthSignInOutcome } from '../interfaces/link-account-result.interface';
 import {
   InvalidLinkConfirmationTokenError,
   ProviderIdentityAlreadyLinkedError,
@@ -93,9 +91,7 @@ export class AccountLinkingService {
     );
 
     if (existingLink !== null) {
-      const user = await this.accountRepository.findUserById(
-        existingLink.userId,
-      );
+      const user = await this.accountRepository.findUserById(existingLink.userId);
 
       if (user === null) {
         // Data integrity edge case: a linked OAuthAccount row survived
@@ -107,9 +103,7 @@ export class AccountLinkingService {
       return { kind: 'LOGIN', user };
     }
 
-    const existingUserByEmail = await this.accountRepository.findUserByEmail(
-      profile.email,
-    );
+    const existingUserByEmail = await this.accountRepository.findUserByEmail(profile.email);
 
     if (existingUserByEmail === null) {
       const newUser = await this.accountRepository.createUserWithOAuthAccount({

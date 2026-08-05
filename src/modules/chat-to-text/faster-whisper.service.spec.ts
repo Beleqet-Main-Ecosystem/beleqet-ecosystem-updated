@@ -1,4 +1,3 @@
-
 import { BadGatewayException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -59,10 +58,7 @@ describe('FasterWhisperService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        FasterWhisperService,
-        { provide: ConfigService, useValue: mockConfigService },
-      ],
+      providers: [FasterWhisperService, { provide: ConfigService, useValue: mockConfigService }],
     }).compile();
 
     service = module.get<FasterWhisperService>(FasterWhisperService);

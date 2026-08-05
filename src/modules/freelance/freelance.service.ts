@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -7,62 +13,93 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateFreelanceJobDto {
   @ApiProperty({ example: 'Build a Modern E-commerce Website' })
-  @IsString() title: string;
-  
+  @IsString()
+  title: string;
+
   @ApiProperty({ example: 'I need an experienced freelance developer...' })
-  @IsString() description: string;
-  
+  @IsString()
+  description: string;
+
   @ApiProperty({ example: 'f05b2516-f887-4f58-b44b-791f6c93f396' })
-  @IsString() categoryId: string;
+  @IsString()
+  categoryId: string;
 
   @ApiProperty({ example: 15000 })
-  @IsNumber() @Min(0) budgetMin: number;
-  
+  @IsNumber()
+  @Min(0)
+  budgetMin: number;
+
   @ApiProperty({ example: 30000 })
-  @IsNumber() @Min(0) budgetMax: number;
-  
+  @IsNumber()
+  @Min(0)
+  budgetMax: number;
+
   @ApiProperty({ example: 'FIXED', required: false })
-  @IsOptional() @IsString() pricingType?: string;
+  @IsOptional()
+  @IsString()
+  pricingType?: string;
 
   @ApiProperty({ example: 30 })
-  @IsNumber() @Min(1) deadlineDays: number;
-  
+  @IsNumber()
+  @Min(1)
+  deadlineDays: number;
+
   @ApiProperty({ example: ['Next.js', 'React'] })
-  @IsArray() @IsString({ each: true }) skills: string[];
-  
+  @IsArray()
+  @IsString({ each: true })
+  skills: string[];
+
   @ApiProperty({ example: 'Addis Ababa', required: false })
-  @IsOptional() @IsString() locationPreference?: string;
-  
+  @IsOptional()
+  @IsString()
+  locationPreference?: string;
+
   @ApiProperty({ example: 'Intermediate', required: false })
-  @IsOptional() @IsString() experienceLevel?: string;
-  
+  @IsOptional()
+  @IsString()
+  experienceLevel?: string;
+
   @ApiProperty({ example: [], required: false })
-  @IsOptional() @IsArray() @IsString({ each: true }) attachments?: string[];
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  attachments?: string[];
 }
 
 export class CreateBidDto {
   @ApiProperty({ example: 20000 })
-  @IsNumber() @Min(1) amount: number;
-  
+  @IsNumber()
+  @Min(1)
+  amount: number;
+
   @ApiProperty({ example: 25 })
-  @IsNumber() @Min(1) timelineDays: number;
-  
+  @IsNumber()
+  @Min(1)
+  timelineDays: number;
+
   @ApiProperty({ example: 'I have successfully completed similar projects...' })
-  @IsString() coverLetter: string;
+  @IsString()
+  coverLetter: string;
 }
 
 export class CreateMilestoneDto {
   @ApiProperty({ example: 'Initial Design' })
-  @IsString() title: string;
+  @IsString()
+  title: string;
 
   @ApiProperty({ example: 'Figma mockups for the homepage', required: false })
-  @IsOptional() @IsString() description?: string;
+  @IsOptional()
+  @IsString()
+  description?: string;
 
   @ApiProperty({ example: 10000 })
-  @IsNumber() @Min(1) amount: number;
+  @IsNumber()
+  @Min(1)
+  amount: number;
 
   @ApiProperty({ example: '2026-07-10T00:00:00.000Z' })
-  @IsDateString() deadline: string;
+  @IsDateString()
+  deadline: string;
 }
 
 @Injectable()
@@ -72,7 +109,10 @@ export class FreelanceService {
   async createJob(clientId: string, dto: CreateFreelanceJobDto) {
     return this.prisma.freelanceJob.create({
       data: { ...dto, clientId, status: 'OPEN' },
-      include: { category: true, client: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        category: true,
+        client: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
   }
 
@@ -83,10 +123,11 @@ export class FreelanceService {
 
     const where: Record<string, unknown> = { status: { in: ['OPEN', 'FUNDED'] } };
     if (category) where['category'] = { slug: category };
-    if (q) where['OR'] = [
-      { title:       { contains: q, mode: 'insensitive' } },
-      { description: { contains: q, mode: 'insensitive' } },
-    ];
+    if (q)
+      where['OR'] = [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ];
 
     const [items, total] = await Promise.all([
       this.prisma.freelanceJob.findMany({
@@ -99,7 +140,13 @@ export class FreelanceService {
       this.prisma.freelanceJob.count({ where: where as never }),
     ]);
 
-    return { items, total, page: pageNum, limit: limitNum, totalPages: Math.ceil(total / limitNum) };
+    return {
+      items,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    };
   }
 
   async findJobById(id: string) {
@@ -148,7 +195,12 @@ export class FreelanceService {
 
       // Create contract
       const c = await tx.contract.create({
-        data: { freelanceJobId: bid.freelanceJobId, clientId, freelancerId: bid.freelancerId, agreedAmount: bid.amount },
+        data: {
+          freelanceJobId: bid.freelanceJobId,
+          clientId,
+          freelancerId: bid.freelancerId,
+          agreedAmount: bid.amount,
+        },
       });
 
       // Update gig status
@@ -159,16 +211,16 @@ export class FreelanceService {
 
       // Refund excess escrow if needed
       const escrow = await tx.escrowTransaction.findFirst({
-        where: { freelanceJobId: bid.freelanceJobId, status: { in: ['FUNDED', 'PENDING'] } }
+        where: { freelanceJobId: bid.freelanceJobId, status: { in: ['FUNDED', 'PENDING'] } },
       });
 
       if (escrow && escrow.grossAmount > bid.amount) {
         const excess = escrow.grossAmount - bid.amount;
-        
+
         const wallet = await tx.employerWallet.upsert({
           where: { userId: clientId },
           update: { balance: { increment: excess } },
-          create: { userId: clientId, balance: excess, lockedBalance: 0 }
+          create: { userId: clientId, balance: excess, lockedBalance: 0 },
         });
 
         await tx.employerWalletTransaction.create({
@@ -178,20 +230,20 @@ export class FreelanceService {
             amount: excess,
             note: `Refund for excess escrow on gig ${bid.freelanceJobId}`,
             escrowId: escrow.id,
-          }
+          },
         });
 
-        const platformFeePct = 0.10;
+        const platformFeePct = 0.1;
         const platformFee = Math.round(bid.amount * platformFeePct);
         const netAmount = bid.amount - platformFee;
-        
+
         await tx.escrowTransaction.update({
           where: { id: escrow.id },
           data: {
             grossAmount: bid.amount,
             platformFee,
-            netAmount
-          }
+            netAmount,
+          },
         });
       }
 
@@ -232,10 +284,7 @@ export class FreelanceService {
   async getMyContracts(userId: string) {
     return this.prisma.contract.findMany({
       where: {
-        OR: [
-          { clientId: userId },
-          { freelancerId: userId }
-        ]
+        OR: [{ clientId: userId }, { freelancerId: userId }],
       },
       include: {
         freelanceJob: true,
@@ -252,7 +301,7 @@ export class FreelanceService {
       include: {
         milestones: { include: { deliverables: true } },
         freelanceJob: true,
-        client:     { select: { id: true, firstName: true, lastName: true } },
+        client: { select: { id: true, firstName: true, lastName: true } },
         freelancer: { select: { id: true, firstName: true, lastName: true } },
       },
     });
@@ -265,7 +314,9 @@ export class FreelanceService {
       where: { id: contractId, freelancerId },
     });
     if (!contract) {
-      throw new ForbiddenException('Contract not found or you are not authorized to add milestones to it');
+      throw new ForbiddenException(
+        'Contract not found or you are not authorized to add milestones to it',
+      );
     }
 
     return this.prisma.milestone.create({
@@ -276,5 +327,4 @@ export class FreelanceService {
       },
     });
   }
-
 }

@@ -21,7 +21,20 @@ const MOCK_ROLE = 'JOB_SEEKER' as any;
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: jest.Mocked<
-    Pick<AuthService, 'issueTokensForUserId' | 'refresh' | 'validateUser' | 'login' | 'register' | 'logout' | 'verifyEmail' | 'forgotPassword' | 'resetPassword' | 'changePassword' | 'changeEmail'>
+    Pick<
+      AuthService,
+      | 'issueTokensForUserId'
+      | 'refresh'
+      | 'validateUser'
+      | 'login'
+      | 'register'
+      | 'logout'
+      | 'verifyEmail'
+      | 'forgotPassword'
+      | 'resetPassword'
+      | 'changePassword'
+      | 'changeEmail'
+    >
   >;
 
   const FAKE_TOKENS = {
@@ -60,14 +73,17 @@ describe('AuthController', () => {
           useValue: mockAuthService,
         },
         // 3. USE ACTUAL CLASSES AND CONSTANTS
-        { 
-          provide: AccountLinkingService, 
-          useValue: { 
-            confirmPendingLink: jest.fn(), 
-            handleOAuthSignIn: jest.fn() 
-          } 
+        {
+          provide: AccountLinkingService,
+          useValue: {
+            confirmPendingLink: jest.fn(),
+            handleOAuthSignIn: jest.fn(),
+          },
         },
-        { provide: EMAIL_SENDER, useValue: { sendAccountLinkConfirmation: jest.fn().mockResolvedValue({}) } },
+        {
+          provide: EMAIL_SENDER,
+          useValue: { sendAccountLinkConfirmation: jest.fn().mockResolvedValue({}) },
+        },
         { provide: AUTH_ENV_CONFIG, useValue: { appBaseUrl: 'http://localhost:3000' } },
       ],
     }).compile();

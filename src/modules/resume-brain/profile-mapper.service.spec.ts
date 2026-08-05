@@ -1,8 +1,5 @@
 import { ProfileMapperService } from './profile-mapper.service';
-import {
-  EMPTY_EXTRACTED_RESUME,
-  ExtractedResume,
-} from './dto/extracted-resume.dto';
+import { EMPTY_EXTRACTED_RESUME, ExtractedResume } from './dto/extracted-resume.dto';
 
 const resume = (over: Partial<ExtractedResume> = {}): ExtractedResume => ({
   ...EMPTY_EXTRACTED_RESUME,
@@ -60,16 +57,12 @@ describe('ProfileMapperService', () => {
   });
 
   it('never emits email (that goes through the change-email flow)', () => {
-    const out = service.toUserProfile(
-      resume({ email: 'a@b.com', firstName: 'A' }),
-    );
+    const out = service.toUserProfile(resume({ email: 'a@b.com', firstName: 'A' }));
     expect(out).not.toHaveProperty('email');
   });
 
   it('drops empty/whitespace skill entries', () => {
-    const out = service.toUserProfile(
-      resume({ skills: ['Node', '  ', '', 'React'] }),
-    );
+    const out = service.toUserProfile(resume({ skills: ['Node', '  ', '', 'React'] }));
     expect(out.skills).toEqual(['Node', 'React']);
   });
 

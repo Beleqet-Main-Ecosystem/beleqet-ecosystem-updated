@@ -2,7 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
-import { BullModule } from '@nestjs/bullmq'; 
+import { BullModule } from '@nestjs/bullmq';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { QueuesModule } from '../queues/queues.module';
 import { QUEUE_NAMES } from '../queues/queues.constants';

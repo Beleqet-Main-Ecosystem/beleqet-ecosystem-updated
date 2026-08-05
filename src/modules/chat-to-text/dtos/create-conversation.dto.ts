@@ -1,4 +1,3 @@
-
 import { IsOptional, IsString } from 'class-validator';
 
 export class CreateConversationDto {
@@ -9,5 +8,4 @@ export class CreateConversationDto {
   @IsOptional()
   @IsString()
   description?: string;
-
 }

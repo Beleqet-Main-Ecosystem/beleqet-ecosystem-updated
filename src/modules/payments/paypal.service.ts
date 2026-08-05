@@ -31,17 +31,23 @@ export class PaypalService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    const clientId     = this.config.getOrThrow<string>('PAYPAL_CLIENT_ID');
+    const clientId = this.config.getOrThrow<string>('PAYPAL_CLIENT_ID');
     const clientSecret = this.config.getOrThrow<string>('PAYPAL_CLIENT_SECRET');
-    const mode         = this.config.get<PaypalMode>('PAYPAL_MODE', 'sandbox');
+    const mode = this.config.get<PaypalMode>('PAYPAL_MODE', 'sandbox');
 
-    this.webhookId     = this.config.get<string>('PAYPAL_WEBHOOK_ID', '');
-    this.returnUrlBase = this.config.get<string>('PAYPAL_RETURN_URL', 'https://beleqet.com/payment/success');
-    this.cancelUrlBase = this.config.get<string>('PAYPAL_CANCEL_URL', 'https://beleqet.com/payment/cancel');
+    this.webhookId = this.config.get<string>('PAYPAL_WEBHOOK_ID', '');
+    this.returnUrlBase = this.config.get<string>(
+      'PAYPAL_RETURN_URL',
+      'https://beleqet.com/payment/success',
+    );
+    this.cancelUrlBase = this.config.get<string>(
+      'PAYPAL_CANCEL_URL',
+      'https://beleqet.com/payment/cancel',
+    );
 
     paypal.configure({
       mode,
-      client_id:     clientId,
+      client_id: clientId,
       client_secret: clientSecret,
     });
 
@@ -52,12 +58,12 @@ export class PaypalService {
     if (dto.subscriptionPlanId) {
       const sub = await this.createSubscription(dto);
       return {
-        id:          sub.id,
-        status:      sub.status,
+        id: sub.id,
+        status: sub.status,
         approvalUrl: sub.approvalUrl,
-        amount:      dto.amount.toFixed(2),
-        currency:    dto.currency.toUpperCase(),
-        createdAt:   sub.createdAt,
+        amount: dto.amount.toFixed(2),
+        currency: dto.currency.toUpperCase(),
+        createdAt: sub.createdAt,
       };
     }
 
@@ -65,8 +71,9 @@ export class PaypalService {
     const cancelUrl = dto.cancelUrl ?? this.cancelUrlBase;
 
     const createPaymentJson: paypal.Payment = {
-      intent: (dto.intent ?? PaypalOrderIntent.CAPTURE).toLowerCase() as 'sale' | 'authorize' | 'order',
-      payer:  { payment_method: 'paypal' },
+      intent: (dto.intent ?? PaypalOrderIntent.CAPTURE).toLowerCase() as
+        'sale' | 'authorize' | 'order',
+      payer: { payment_method: 'paypal' },
       redirect_urls: {
         return_url: returnUrl,
         cancel_url: cancelUrl,
@@ -74,44 +81,48 @@ export class PaypalService {
       transactions: [
         {
           amount: {
-            total:    dto.amount.toFixed(2),
+            total: dto.amount.toFixed(2),
             currency: dto.currency.toUpperCase(),
           },
           description: dto.description ?? 'Beleqet Platform Payment',
-          custom:      dto.userId,
+          custom: dto.userId,
         },
       ],
     };
 
-    this.logger.log(`Creating PayPal order: amount=${dto.amount} ${dto.currency} userId=${dto.userId}`);
+    this.logger.log(
+      `Creating PayPal order: amount=${dto.amount} ${dto.currency} userId=${dto.userId}`,
+    );
 
     return new Promise((resolve, reject) => {
       paypal.payment.create(createPaymentJson, async (err, payment) => {
         if (err) {
           this.logger.error(`PayPal createOrder failed: ${JSON.stringify(err)}`);
-          reject(new InternalServerErrorException('PayPal order creation failed. Please try again.'));
+          reject(
+            new InternalServerErrorException('PayPal order creation failed. Please try again.'),
+          );
           return;
         }
 
         const approvalLink = (payment.links ?? []).find((l) => l.rel === 'approval_url');
 
         await this.upsertPaymentRecord({
-          userId:            dto.userId,
-          provider:          'PAYPAL',
+          userId: dto.userId,
+          provider: 'PAYPAL',
           providerPaymentId: payment.id!,
-          amount:            Math.round(dto.amount * 100),
-          currency:          dto.currency.toUpperCase(),
-          status:            'PENDING',
-          description:       dto.description ?? null,
+          amount: Math.round(dto.amount * 100),
+          currency: dto.currency.toUpperCase(),
+          status: 'PENDING',
+          description: dto.description ?? null,
         });
 
         resolve({
-          id:          payment.id!,
-          status:      payment.state ?? 'created',
+          id: payment.id!,
+          status: payment.state ?? 'created',
           approvalUrl: approvalLink?.href ?? null,
-          amount:      dto.amount.toFixed(2),
-          currency:    dto.currency.toUpperCase(),
-          createdAt:   new Date().toISOString(),
+          amount: dto.amount.toFixed(2),
+          currency: dto.currency.toUpperCase(),
+          createdAt: new Date().toISOString(),
         });
       });
     });
@@ -129,18 +140,23 @@ export class PaypalService {
       paypal.payment.execute(dto.orderId, executePaymentJson, async (err, payment) => {
         if (err) {
           this.logger.error(`PayPal captureOrder failed: ${JSON.stringify(err)}`);
-          reject(new InternalServerErrorException('PayPal order capture failed. Please try again.'));
+          reject(
+            new InternalServerErrorException('PayPal order capture failed. Please try again.'),
+          );
           return;
         }
 
         const captureId = payment.transactions?.[0]?.related_resources?.[0]?.sale?.id ?? null;
         const succeeded = payment.state === 'approved';
 
-        await this.updatePaymentStatusByProviderPaymentId(dto.orderId, succeeded ? 'SUCCEEDED' : 'FAILED');
+        await this.updatePaymentStatusByProviderPaymentId(
+          dto.orderId,
+          succeeded ? 'SUCCEEDED' : 'FAILED',
+        );
 
         resolve({
-          orderId:    dto.orderId,
-          status:     payment.state ?? 'unknown',
+          orderId: dto.orderId,
+          status: payment.state ?? 'unknown',
           captureId,
           capturedAt: new Date().toISOString(),
         });
@@ -157,9 +173,9 @@ export class PaypalService {
     const cancelUrl = dto.cancelUrl ?? this.cancelUrlBase;
 
     const billingAgreementAttributes: any = {
-      name:        dto.description ?? 'Beleqet Subscription',
+      name: dto.description ?? 'Beleqet Subscription',
       description: `Beleqet recurring payment — userId: ${dto.userId}`,
-      start_date:  new Date(Date.now() + 60_000).toISOString(),
+      start_date: new Date(Date.now() + 60_000).toISOString(),
       plan: { id: dto.subscriptionPlanId },
       payer: { payment_method: 'paypal' },
       redirect_urls: {
@@ -168,62 +184,81 @@ export class PaypalService {
       },
     };
 
-    this.logger.log(`Creating PayPal subscription: planId=${dto.subscriptionPlanId} userId=${dto.userId}`);
+    this.logger.log(
+      `Creating PayPal subscription: planId=${dto.subscriptionPlanId} userId=${dto.userId}`,
+    );
 
     return new Promise((resolve, reject) => {
-      paypal.billingAgreement.create(billingAgreementAttributes, async (err: any, billingAgreement: any) => {
-        if (err) {
-          this.logger.error(`PayPal createSubscription failed: ${JSON.stringify(err)}`);
-          reject(new InternalServerErrorException('PayPal subscription creation failed. Please try again.'));
-          return;
-        }
+      paypal.billingAgreement.create(
+        billingAgreementAttributes,
+        async (err: any, billingAgreement: any) => {
+          if (err) {
+            this.logger.error(`PayPal createSubscription failed: ${JSON.stringify(err)}`);
+            reject(
+              new InternalServerErrorException(
+                'PayPal subscription creation failed. Please try again.',
+              ),
+            );
+            return;
+          }
 
-        const approvalLink = (billingAgreement.links ?? []).find((l: any) => l.rel === 'approval_url');
+          const approvalLink = (billingAgreement.links ?? []).find(
+            (l: any) => l.rel === 'approval_url',
+          );
 
-        await this.upsertPaymentRecord({
-          userId:            dto.userId,
-          provider:          'PAYPAL',
-          providerPaymentId: billingAgreement.id!,
-          amount:            Math.round(dto.amount * 100),
-          currency:          dto.currency.toUpperCase(),
-          status:            'PENDING',
-          description:       `Subscription: ${dto.subscriptionPlanId}`,
-        });
+          await this.upsertPaymentRecord({
+            userId: dto.userId,
+            provider: 'PAYPAL',
+            providerPaymentId: billingAgreement.id!,
+            amount: Math.round(dto.amount * 100),
+            currency: dto.currency.toUpperCase(),
+            status: 'PENDING',
+            description: `Subscription: ${dto.subscriptionPlanId}`,
+          });
 
-        resolve({
-          id:          billingAgreement.id!,
-          status:      billingAgreement.state ?? 'Pending',
-          approvalUrl: approvalLink?.href ?? null,
-          planId:      dto.subscriptionPlanId!,
-          createdAt:   new Date().toISOString(),
-        });
-      });
+          resolve({
+            id: billingAgreement.id!,
+            status: billingAgreement.state ?? 'Pending',
+            approvalUrl: approvalLink?.href ?? null,
+            planId: dto.subscriptionPlanId!,
+            createdAt: new Date().toISOString(),
+          });
+        },
+      );
     });
   }
 
-  async handleWebhook(body: PaypalWebhookEvent, headers: Record<string, string>): Promise<PaypalWebhookEvent> {
+  async handleWebhook(
+    body: PaypalWebhookEvent,
+    headers: Record<string, string>,
+  ): Promise<PaypalWebhookEvent> {
     this.logger.log(`PayPal webhook received: ${body.event_type} (${body.id})`);
     this.logger.debug(`PayPal webhook headers: ${JSON.stringify(headers)}`);
 
     if (this.webhookId) {
       await this.verifyWebhookSignature(body, headers);
     } else {
-      this.logger.warn('PAYPAL_WEBHOOK_ID not set — skipping signature verification (unsafe for production)');
+      this.logger.warn(
+        'PAYPAL_WEBHOOK_ID not set — skipping signature verification (unsafe for production)',
+      );
     }
 
     await this.processWebhookEvent(body);
     return body;
   }
 
-  private verifyWebhookSignature(body: PaypalWebhookEvent, headers: Record<string, string>): Promise<void> {
+  private verifyWebhookSignature(
+    body: PaypalWebhookEvent,
+    headers: Record<string, string>,
+  ): Promise<void> {
     const verifyData = {
-      transmission_id:   headers['paypal-transmission-id'] ?? '',
+      transmission_id: headers['paypal-transmission-id'] ?? '',
       transmission_time: headers['paypal-transmission-time'] ?? '',
-      cert_url:          headers['paypal-cert-url'] ?? '',
-      auth_algo:         headers['paypal-auth-algo'] ?? '',
-      transmission_sig:  headers['paypal-transmission-sig'] ?? '',
-      webhook_id:        this.webhookId,
-      webhook_event:     body,
+      cert_url: headers['paypal-cert-url'] ?? '',
+      auth_algo: headers['paypal-auth-algo'] ?? '',
+      transmission_sig: headers['paypal-transmission-sig'] ?? '',
+      webhook_id: this.webhookId,
+      webhook_event: body,
     };
 
     return new Promise((resolve, reject) => {
@@ -245,7 +280,7 @@ export class PaypalService {
 
   private async processWebhookEvent(event: PaypalWebhookEvent): Promise<void> {
     const resource = event.resource as Record<string, unknown>;
-    const orderId  = (resource['id'] as string | undefined) ?? '';
+    const orderId = (resource['id'] as string | undefined) ?? '';
 
     switch (event.event_type) {
       case 'PAYMENT.CAPTURE.COMPLETED':
@@ -284,16 +319,16 @@ export class PaypalService {
   }): Promise<void> {
     try {
       await this.prisma.payment.upsert({
-        where:  { providerPaymentId: data.providerPaymentId },
+        where: { providerPaymentId: data.providerPaymentId },
         update: { status: data.status, updatedAt: new Date() },
         create: {
-          userId:            data.userId,
-          provider:          data.provider,
+          userId: data.userId,
+          provider: data.provider,
           providerPaymentId: data.providerPaymentId,
-          amount:            data.amount,
-          currency:          data.currency,
-          status:            data.status,
-          description:       data.description,
+          amount: data.amount,
+          currency: data.currency,
+          status: data.status,
+          description: data.description,
         },
       });
     } catch (err) {
@@ -301,14 +336,19 @@ export class PaypalService {
     }
   }
 
-  private async updatePaymentStatusByProviderPaymentId(providerPaymentId: string, status: PaymentStatus): Promise<void> {
+  private async updatePaymentStatusByProviderPaymentId(
+    providerPaymentId: string,
+    status: PaymentStatus,
+  ): Promise<void> {
     try {
       await this.prisma.payment.updateMany({
         where: { providerPaymentId },
-        data:  { status, updatedAt: new Date() },
+        data: { status, updatedAt: new Date() },
       });
     } catch (err) {
-      this.logger.error(`Failed to update PayPal payment status (${providerPaymentId}): ${String(err)}`);
+      this.logger.error(
+        `Failed to update PayPal payment status (${providerPaymentId}): ${String(err)}`,
+      );
     }
   }
 }

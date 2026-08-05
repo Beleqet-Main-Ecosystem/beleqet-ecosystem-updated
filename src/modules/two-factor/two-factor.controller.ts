@@ -48,9 +48,7 @@ export class TwoFactorController {
   ) {
     const ts = config.get<string>('TOTP_TEMP_SECRET');
     if (!ts) {
-      throw new Error(
-        'TOTP_TEMP_SECRET is required. Set it in your environment variables.',
-      );
+      throw new Error('TOTP_TEMP_SECRET is required. Set it in your environment variables.');
     }
     this.tempSecret = ts;
   }
@@ -72,10 +70,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Confirm 2FA enrollment with TOTP code' })
-  confirmEnrollment(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: ConfirmEnrollmentDto,
-  ) {
+  confirmEnrollment(@CurrentUser() user: CurrentUserPayload, @Body() dto: ConfirmEnrollmentDto) {
     return this.svc.confirmEnrollment(user.userId, dto.enrollmentToken, dto.code);
   }
 
@@ -95,9 +90,7 @@ export class TwoFactorController {
     }
 
     if (payload.purpose !== TOKEN_PURPOSE.LOGIN) {
-      throw new UnauthorizedException(
-        `Invalid token purpose: expected ${TOKEN_PURPOSE.LOGIN}`,
-      );
+      throw new UnauthorizedException(`Invalid token purpose: expected ${TOKEN_PURPOSE.LOGIN}`);
     }
 
     const isValid = await this.svc.verifyLogin(payload.sub, dto.code);
@@ -125,10 +118,7 @@ export class TwoFactorController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 10, ttl: 900_000 } })
   @ApiOperation({ summary: 'Request an action-scoped step-up challenge token' })
-  requestChallenge(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: ChallengeDto,
-  ) {
+  requestChallenge(@CurrentUser() user: CurrentUserPayload, @Body() dto: ChallengeDto) {
     const challengeToken = this.jwt.sign(
       {
         sub: user.userId,
@@ -185,7 +175,8 @@ export class TwoFactorController {
     }
 
     const stepUpToken = await this.svc.verifyStepUp(
-      payload.sub, dto.code,
+      payload.sub,
+      dto.code,
       payload.action !== 'sensitive_action' ? payload.action : undefined,
       payload.resourceId,
     );
@@ -208,9 +199,7 @@ export class TwoFactorController {
     }
 
     if (payload.purpose !== TOKEN_PURPOSE.LOGIN) {
-      throw new UnauthorizedException(
-        `Invalid token purpose: expected ${TOKEN_PURPOSE.LOGIN}`,
-      );
+      throw new UnauthorizedException(`Invalid token purpose: expected ${TOKEN_PURPOSE.LOGIN}`);
     }
 
     const remaining = await this.svc.verifyBackupCode(payload.sub, dto.backupCode);
@@ -234,10 +223,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Regenerate backup codes (requires OTP verification)' })
-  async regenerateBackupCodes(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: StepUpDto,
-  ) {
+  async regenerateBackupCodes(@CurrentUser() user: CurrentUserPayload, @Body() dto: StepUpDto) {
     let payload: Record<string, any>;
     try {
       payload = this.jwt.verify(dto.stepUpToken, { secret: this.tempSecret }) as any;
@@ -256,7 +242,8 @@ export class TwoFactorController {
     }
 
     await this.svc.verifyStepUp(
-      user.userId, dto.code,
+      user.userId,
+      dto.code,
       payload.action !== 'sensitive_action' ? payload.action : undefined,
       payload.resourceId,
     );
@@ -271,10 +258,7 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Disable 2FA (requires current OTP code)' })
-  async disable(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: Disable2faDto,
-  ) {
+  async disable(@CurrentUser() user: CurrentUserPayload, @Body() dto: Disable2faDto) {
     const isValid = await this.svc.verifyLogin(user.userId, dto.code);
     if (!isValid) {
       throw new UnauthorizedException('Invalid code');

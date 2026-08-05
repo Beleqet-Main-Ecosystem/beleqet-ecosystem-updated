@@ -13,7 +13,7 @@ import { CreateApplicationDto, UpdateApplicationStatusDto } from './dto/create-a
 export class ApplicationsController {
   constructor(
     private readonly svc: ApplicationsService,
-    private readonly usersSvc: UsersService
+    private readonly usersSvc: UsersService,
   ) {}
 
   @Post()
@@ -56,19 +56,13 @@ export class ApplicationsController {
 
   @Post(':userId/feedback')
   @ApiOperation({ summary: 'Add client feedback to user (via application)' })
-  addFeedback(
-    @Param('userId') userId: string,
-    @Body() feedback: any,
-  ) {
+  addFeedback(@Param('userId') userId: string, @Body() feedback: any) {
     return this.usersSvc.addClientFeedback(userId, feedback);
   }
 
   @Patch(':userId/verify-skill')
   @ApiOperation({ summary: 'Verify user skills (admin/employer)' })
-  verifySkill(
-    @Param('userId') userId: string,
-    @Body('status') status: boolean,
-  ) {
+  verifySkill(@Param('userId') userId: string, @Body('status') status: boolean) {
     return this.usersSvc.verifySkill(userId, status);
   }
 }
