@@ -72,6 +72,7 @@ import { EmailModule } from '@modules/email-automation/email.module';
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
 import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
+import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
 
 @Module({
   imports: [
@@ -158,6 +159,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     CacheConfigModule,
     EncryptionModule,
     EmailModule,
+    ChatToTextModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }],
 })
