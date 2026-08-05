@@ -34,4 +34,14 @@ describe('TelegramService', () => {
   it('should not throw when bot token is missing', async () => {
     await expect(service.onModuleInit()).resolves.not.toThrow();
   });
+
+  it('handleWebhookUpdate should return ok false when bot is disabled', async () => {
+    const result = await service.handleWebhookUpdate({ update_id: 1 });
+    expect(result).toEqual({ ok: false, reason: expect.any(String) });
+  });
+
+  it('sendNotification should safely return false without throwing when bot is disabled', async () => {
+    const result = await service.sendNotification('12345', 'Test alert', '/wallet');
+    expect(result).toBe(false);
+  });
 });
