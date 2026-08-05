@@ -33,6 +33,7 @@ import { QueryFraudAlertsDto } from '../fraud-alert/dto/query-fraud-alerts.dto';
 import { ResolveFraudAlertDto } from '../fraud-alert/dto/resolve-fraud-alert.dto';
 import { CreateFraudRuleDto, UpdateFraudRuleDto } from '../fraud-alert/dto/create-fraud-rule.dto';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { AuditLoggingService } from '../audit-logging/audit-logging.service';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -85,6 +86,7 @@ export class AdminController {
     private readonly chatService: ChatService,
     private readonly fraudAlertService: FraudAlertService,
     private readonly notificationsService: NotificationsService,
+    private readonly auditLoggingService: AuditLoggingService,
   ) {}
 
   @RequirePermissions('manage:users')
@@ -223,23 +225,24 @@ export class AdminController {
       select: { enabled: true },
     });
 
-    await this.prisma.eventLog.create({
-      data: {
-        eventType: 'gdpr.export.user_data',
-        entityId: userId,
-        entityType: 'User',
-        payload: {
-          exportedBy: admin.userId,
-          timestamp: new Date().toISOString(),
-        } as never,
-        processedBy: AdminController.name,
+    void this.auditLoggingService.createSafe({
+      eventType: 'gdpr.export.user_data',
+      entityId: userId,
+      entityType: 'User',
+      payload: {
+        exportedBy: admin.userId,
+        timestamp: new Date().toISOString(),
       },
+      processedBy: AdminController.name,
+      actorUserId: admin.userId,
     });
+    const auditLogs = await this.auditLoggingService.findByUserForGdpr(userId);
 
     return {
       data: {
         ...user,
         twoFactor: twoFactor ? { enabled: twoFactor.enabled } : null,
+        auditLogs,
       },
     };
   }

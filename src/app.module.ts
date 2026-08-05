@@ -39,6 +39,7 @@ import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.m
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
+import { AuditLoggingModule } from './modules/audit-logging/audit-logging.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
@@ -128,6 +129,7 @@ import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
     AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
+    AuditLoggingModule,
     DbIndexMasterModule,
     PaymentsModule,
     CommunityForumModule,
