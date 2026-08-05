@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "axios": "^1.7.2",
+    "@nestjs/bull": "^11.0.4",
+    "bull": "^4.16.5",
     "lucide-react": "^0.499.0",
     "next": "^14.2.0",
     "qrcode": "^1.5.4",
@@ -19,8 +21,11 @@
     "axios": "^1.7.2",
     "lucide-react": "^0.499.0",
     "socket.io-client": "^4.8.3"
+    "recharts": "^2.12.7"
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@types/bull": "^3.15.9",
     "@types/node": "^22.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.3",

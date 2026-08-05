@@ -10,27 +10,39 @@ datasource db {
 }
 
 model User {
-  id                    String              @id @default(uuid())
-  email                 String              @unique
-  passwordHash          String?
-  firstName             String
-  lastName              String
-  role                  UserRole            @default(JOB_SEEKER)
-  avatarUrl             String?
-  phone                 String?
-  telegramId            String?             @unique
-  isActive              Boolean             @default(true)
-  emailVerified         Boolean             @default(false)
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  bio                   String?
-  defaultResumeUrl      String?
-  githubUrl             String?
-  headline              String?
-  linkedinUrl           String?
-  location              String?
-  portfolioUrl          String?
-  skills                String[]            @default([])
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String?
+  firstName        String
+  lastName         String
+  role             UserRole @default(JOB_SEEKER)
+  avatarUrl        String?
+  phone            String?
+  telegramId       String?  @unique
+  isActive         Boolean  @default(true)
+  emailVerified    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  bio              String?
+  defaultResumeUrl String?
+  githubUrl        String?
+  headline         String?
+  linkedinUrl      String?
+  location         String?
+  portfolioUrl     String?
+  skills           String[] @default([])
+
+  // Payment gateway integration fields
+  externalCustomerId     String? // Stripe customer ID or PayPal payer ID
+  subscriptionStatus     String? // active, cancelled, past_due, etc.
+  externalSubscriptionId String? // Stripe subscription ID or PayPal subscription ID
+
+  // GDPR consent tracking
+  gdprConsent          Boolean   @default(true)
+  gdprConsentDate      DateTime?
+  gdprConsentRevoked   Boolean   @default(false)
+  gdprConsentRevokedAt DateTime?
+
   oauthAccounts         OAuthAccount[]
   applications          Application[]
   bids                  Bid[]
@@ -73,6 +85,7 @@ model User {
   subscriptions         Subscription[]
 
   gdprConsent             Boolean                  @default(true)
+  aiFeedConsent           Boolean                  @default(true)
   searchHistories         SearchHistory[]
   notificationPreference  NotificationPreference?
   userPreference          UserPreference?
@@ -606,9 +619,16 @@ model WalletTransaction {
   note        String?
   milestoneId String?
   createdAt   DateTime              @default(now())
-  wallet      FreelancerWallet      @relation(fields: [walletId], references: [id])
+
+  // Webhook integration fields
+  externalTransactionId String? @unique // Stripe charge ID, PayPal order ID, etc.
+  status                String? // pending, completed, failed, refunded
+  metadata              Json? // Additional provider-specific data
+
+  wallet FreelancerWallet @relation(fields: [walletId], references: [id])
 
   @@index([walletId, createdAt])
+  @@index([externalTransactionId])
   @@map("wallet_transactions")
 }
 
@@ -1774,4 +1794,68 @@ model FreelanceMatchScore {
   @@index([freelanceJobId, overallScore])
   @@index([freelancerId, overallScore])
   @@map("freelance_match_scores")
+}
+
+// ─────────────────────────────────────────────────────────
+// Webhook Integration — Payment Gateway Webhook models
+// ─────────────────────────────────────────────────────────
+
+/// Webhook delivery log for payment gateway events (Stripe, PayPal, Chapa).
+/// Provides audit trail, idempotency tracking, and retry history.
+model WebhookLog {
+  id             String    @id @default(uuid())
+  provider       String
+  eventType      String
+  externalId     String
+  idempotencyKey String    @unique
+  statusCode     Int       @default(202)
+  isVerified     Boolean   @default(false)
+  ipAddress      String?
+  userAgent      String?
+  requestBody    Json
+  responseBody   Json?
+  error          String?
+  retryCount     Int       @default(0)
+  retryUntil     DateTime?
+  processedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([provider, eventType])
+  @@index([idempotencyKey])
+  @@index([createdAt])
+  @@index([processedAt])
+  @@map("webhook_logs")
+}
+
+/// Payment transaction audit trail — tracks detailed payment lifecycle events from webhooks.
+model PaymentTransaction {
+  id                    String   @id @default(uuid())
+  externalTransactionId String   @unique
+  externalCustomerId    String
+  provider              String
+  amount                Int
+  currency              String   @default("USD")
+  status                String
+  metadata              Json?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([externalTransactionId])
+  @@index([externalCustomerId])
+  @@index([provider, status])
+  @@index([createdAt])
+  @@map("payment_transactions")
+}
+
+/// GDPR consent tracking for webhook data processing.
+model GdprConsent {
+  id          String    @id @default(uuid())
+  purpose     String
+  version     String    @default("1.0")
+  consentedAt DateTime  @default(now())
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([purpose])
+  @@map("gdpr_consents")
 }
