@@ -17,6 +17,13 @@ import type {
   PromotionCampaign,
   CampaignAnalytics,
 } from '@/types';
+import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, MatchResult } from '@/types';
+import type { ThemePreference } from '@/components/theme/theme-preference';
+
+/** API response shape for the minimal persisted user theme setting. */
+export interface ThemePreferenceResponse {
+  theme: ThemePreference;
+}
 
 /** Fetches the current authenticated user's persisted theme preference. */
 export async function getThemePreference(): Promise<ThemePreferenceResponse> {
@@ -265,13 +272,20 @@ export async function fetchAuditLogs(query: AuditLogQuery = {}): Promise<AuditLo
       limit: 20,
       ...query,
     },
+  });
+  return data;
+}
 /** Fetches a single audit log by id */
 export async function fetchAuditLogById(
+  id: string,
   currency: string = 'ETB',
   lang: string = 'en',
 ): Promise<AuditLog> {
   const { data } = await apiClient.get<AuditLog>(`/admin/audit-logs/${id}`, {
     params: { currency, lang },
+  });
+  return data;
+}
 /** Downloads filtered audit logs as a browser attachment (JSON or CSV) */
 export async function exportAuditLogs(
   query: AuditLogQuery & { format?: 'json' | 'csv' } = {},
@@ -279,6 +293,7 @@ export async function exportAuditLogs(
   const response = await apiClient.get<Blob>('/admin/audit-logs/export', {
     params: { lang: 'en', currency: 'ETB', format: 'json', ...query },
     responseType: 'blob',
+  });
   const disposition = response.headers['content-disposition'] as string | undefined;
   const match = disposition?.match(/filename="?([^"]+)"?/i);
   const filename = match?.[1] || `audit-logs.${query.format || 'json'}`;
@@ -290,3 +305,25 @@ export async function exportAuditLogs(
   anchor.click();
   anchor.remove();
   window.URL.revokeObjectURL(url);
+}
+/** Fetches ranked freelancer matches for a freelance job (Employer/Admin only). */
+export async function getJobMatches(
+  jobId: string,
+  minScore: number = 0,
+  limit: number = 20,
+): Promise<MatchResult[]> {
+  const { data } = await apiClient.get<MatchResult[]>(`/matching/jobs/${jobId}/matches`, {
+    params: { minScore, limit },
+  });
+  return data;
+}
+/** Minimal freelance job shape needed to render the Matchmaker page header. */
+export interface FreelanceJobSummary {
+  id: string;
+  title: string;
+}
+/** Fetches a single freelance job by id (used to populate the Matchmaker dashboard header). */
+export async function getFreelanceJob(jobId: string): Promise<FreelanceJobSummary> {
+  const { data } = await apiClient.get<FreelanceJobSummary>(`/freelance/jobs/${jobId}`);
+  return data;
+}

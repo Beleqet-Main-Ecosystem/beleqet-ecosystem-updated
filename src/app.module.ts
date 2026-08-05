@@ -59,6 +59,7 @@ import { GraphqlConfigModule } from './graphql/graphql.module';
 
 // Platform Extensions
 import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
+import { MatchingModule } from './modules/matching/matching.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -148,6 +149,7 @@ import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
     GraphqlConfigModule,
     SmartBiddingModule,
     PromotedEngineModule,
+    MatchingModule,
     UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,

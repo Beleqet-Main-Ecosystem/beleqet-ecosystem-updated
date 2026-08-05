@@ -160,27 +160,15 @@ export interface CampaignAnalytics {
   currency: string;
   status: string;
 }
-  actorUserId: string | null;
-  ipAddress: string | null;
-  httpMethod: string | null;
-  path: string | null;
-  statusCode: number | null;
-  durationMs: number | null;
-  displayCurrency?: string;
-  amountInDisplayCurrency?: number | null;
-/** Paginated audit log list response */
-export interface AuditLogListResponse {
-  data: AuditLog[];
-  meta: {
-  };
-  message: string;
-/** Query filters for the admin audit log viewer */
-export interface AuditLogQuery {
-  path?: string;
-  statusCode?: number | string;
-  search?: string;
-  from?: string;
-  to?: string;
-  lang?: string;
-  currency?: string;
-  httpMethod?: string;
+/** A single ranked freelancer match, as returned by GET /matching/jobs/:jobId/matches. */
+export interface MatchResult {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  headline: string | null;
+  avatarUrl: string | null;
+  overallScore: number;
+  skillScore: number;
+  locationScore: number;
+  experienceScore: number;
+}
