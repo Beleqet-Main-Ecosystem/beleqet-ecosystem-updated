@@ -32,18 +32,56 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     if (!this.enabled || !this.bot) return;
 
+    const webAppUrl = this.config.get<string>('TELEGRAM_WEBAPP_URL');
+    if (webAppUrl && webAppUrl.startsWith('https://')) {
+      try {
+        await this.bot.telegram.setChatMenuButton({
+          menuButton: {
+            type: 'web_app',
+            text: 'Launch Beleqet',
+            web_app: { url: webAppUrl },
+          },
+        });
+
+        this.logger.log(`Telegram chat menu button configured for WebApp: ${webAppUrl}`);
+      } catch (err) {
+        this.logger.warn(`Could not set WebApp chat menu button: ${(err as Error).message}`);
+      }
+    }
+
     this.bot.command('start', async (ctx) => {
-      const telegramId = String(ctx.from.id);
-      await ctx.reply(
-        `Welcome to Beleqet! Your Telegram ID is: ${telegramId}.\n\n` +
-          `To receive instant notifications for your gigs, please copy this ID and save it in your Beleqet Profile Settings.`,
-      );
+      const telegramId = String(ctx.from?.id || '');
+      const webApp = this.config.get<string>('TELEGRAM_WEBAPP_URL');
+
+      if (webApp && webApp.startsWith('https://')) {
+        await ctx.reply(
+          `Welcome to Beleqet! Tap the button below to launch our interactive Mini App directly inside Telegram:\n\n` +
+            `Your Telegram ID (${telegramId}) will be securely linked to your Beleqet profile.`,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: '🚀 Launch Beleqet Mini App',
+                    web_app: { url: webApp },
+                  },
+                ],
+              ],
+            },
+          },
+        );
+      } else {
+        await ctx.reply(
+          `Welcome to Beleqet! Your Telegram ID is: ${telegramId}.\n\n` +
+            `To receive instant notifications for your gigs, please copy this ID and save it in your Beleqet Profile Settings.`,
+        );
+      }
       this.logger.log(`Telegram /start triggered by ${telegramId}`);
     });
 
     this.bot.on('text', (ctx) => {
       ctx.reply(
-        'I am an automated notification bot for Beleqet. Please use the main website to interact with gigs!',
+        'I am an automated notification bot for Beleqet. Please use the main website or tap the Mini App button to interact with gigs!',
       );
     });
 
