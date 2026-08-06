@@ -107,7 +107,6 @@ services:
       - '3001:3001'
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
-      - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
     depends_on:
       - backend
 
