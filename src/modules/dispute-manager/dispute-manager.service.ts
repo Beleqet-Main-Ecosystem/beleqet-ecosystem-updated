@@ -13,7 +13,7 @@ export class DisputeManagerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
-  ) {}
+  ) { }
 
   /**
    * Creates a dispute for a contract that the current user is allowed to review.
@@ -52,24 +52,15 @@ export class DisputeManagerService {
    */
   private sanitizePii(text: string): string {
     if (!text) return text;
-    let sanitized = text.replace(
-      /[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+/gi,
-      '[REDACTED EMAIL]',
-    );
-    sanitized = sanitized.replace(
-      /(\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9})/g,
-      '[REDACTED PHONE]',
-    );
+    let sanitized = text.replace(/[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+/gi, '[REDACTED EMAIL]');
+    sanitized = sanitized.replace(/(\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9})/g, '[REDACTED PHONE]');
     return sanitized;
   }
 
   /**
    * Resolves an open dispute and updates the related contract state.
    */
-  async resolveDispute(
-    disputeId: string,
-    resolveDto: ResolveDisputeDto,
-  ): Promise<{ message: string; dispute: Dispute }> {
+  async resolveDispute(disputeId: string, resolveDto: ResolveDisputeDto): Promise<{ message: string; dispute: Dispute }> {
     const dispute = await this.prisma.dispute.findUnique({
       where: { id: disputeId },
       include: { contract: true },
@@ -81,10 +72,6 @@ export class DisputeManagerService {
 
     if (dispute.resolution) {
       throw new BadRequestException('Dispute is already resolved');
-    }
-
-    if (resolveDto.refundAmount && resolveDto.refundAmount > dispute.contract.agreedAmount) {
-      throw new BadRequestException('Refund amount cannot exceed the contract agreed amount');
     }
 
     const updatedDispute = await this.prisma.dispute.update({
@@ -120,8 +107,7 @@ export class DisputeManagerService {
     }
 
     // Choose the final contract state after the dispute resolution.
-    const finalContractStatus =
-      resolveDto.refundAmount && resolveDto.refundAmount > 0 ? 'CANCELLED' : 'COMPLETED';
+    const finalContractStatus = (resolveDto.refundAmount && resolveDto.refundAmount > 0) ? 'CANCELLED' : 'COMPLETED';
 
     await this.prisma.contract.update({
       where: { id: dispute.contractId },
@@ -129,10 +115,7 @@ export class DisputeManagerService {
     });
 
     const lang = resolveDto.lang || 'en';
-    const message = this.i18n.t('dispute-manager.DISPUTE_RESOLVED', {
-      lang,
-      defaultValue: 'Dispute resolved successfully',
-    });
+    const message = this.i18n.t('dispute-manager.DISPUTE_RESOLVED', { lang, defaultValue: 'Dispute resolved successfully' });
 
     return {
       message: typeof message === 'string' ? message : 'Dispute resolved successfully',
@@ -152,9 +135,9 @@ export class DisputeManagerService {
             status: true,
             agreedAmount: true,
             currency: true,
-          },
-        },
-      },
+          }
+        }
+      }
     });
   }
 }
