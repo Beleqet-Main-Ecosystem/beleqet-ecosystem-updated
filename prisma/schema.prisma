@@ -82,7 +82,8 @@ model User {
   fraudAlerts             FraudAlert[]             @relation("AlertUser")
   resolvedFraudAlerts     FraudAlert[]             @relation("AlertResolver")
 
-  email_logs      EmailLog[]
+  email_logs              EmailLog[]
+  speechConversations     SpeechConversation[]
 
   @@index([lastLoginAt])
   @@index([createdAt])
