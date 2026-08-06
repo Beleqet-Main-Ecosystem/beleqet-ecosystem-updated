@@ -21,8 +21,6 @@
     "react-dom": "^18.3.0",
     "recharts": "^2.12.7",
     "socket.io-client": "^4.8.3"
-    "recharts": "^2.12.7"
-    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
