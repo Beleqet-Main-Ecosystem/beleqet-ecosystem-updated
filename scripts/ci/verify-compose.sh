@@ -58,6 +58,7 @@ STRIPE_SECRET_KEY=sk_test_synthetic
 STRIPE_WEBHOOK_SECRET=whsec_synthetic
 PAYPAL_CLIENT_ID=synthetic_paypal_client_id
 PAYPAL_CLIENT_SECRET=synthetic_paypal_client_secret
+UNSUBSCRIBE_SECRET=synthetic_unsubscribe_secret
 EOF
 images_env="$workdir/env.images"
 cat >"$images_env" <<'EOF'

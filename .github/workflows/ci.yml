@@ -209,7 +209,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: freelance-frontend
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -217,7 +217,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: freelance-frontend/package-lock.json
 
       - run: npm ci
       - run: npm run lint
@@ -306,9 +306,9 @@ jobs:
           BACKEND_PID=$!
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
           npx playwright install --with-deps chromium
-          (cd frontend && npm ci)
-          npx playwright test --config frontend/playwright.config.ts --trace retain-on-failure
-          npx playwright test --config frontend/playwright.harness.config.ts --trace retain-on-failure
+          (cd freelance-frontend && npm ci)
+          npx playwright test --config freelance-frontend/playwright.config.ts --trace retain-on-failure
+          npx playwright test --config freelance-frontend/playwright.harness.config.ts --trace retain-on-failure
           kill "$BACKEND_PID"
 
       - name: Upload Playwright report and traces on failure
@@ -339,7 +339,7 @@ jobs:
       - name: Ensure frontend lockfiles contain swc deps
         run: |
           set -e
-          cd frontend
+          cd freelance-frontend
           npm ci
           npm i --package-lock-only
           cd ../beleqet-jobs-nextjs
@@ -355,7 +355,7 @@ jobs:
         run: >-
           docker build
           -t "${{ steps.meta.outputs.namespace }}/beleqet-admin-frontend:${{ github.sha }}"
-          frontend
+          freelance-frontend
 
       - name: Build jobs frontend image
         run: >-
@@ -519,10 +519,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: freelance-frontend/package-lock.json
 
       - name: Admin frontend production dependency audit
-        working-directory: frontend
+        working-directory: freelance-frontend
         run: |
           npm ci
           npm audit --omit=dev || true

@@ -162,7 +162,7 @@ jobs:
             # Dry run: prove the images BUILD at this SHA without any registry
             # or server contact.
             docker build -t "$NAMESPACE/beleqet-backend:$TARGET_SHA" .
-            docker build -t "$NAMESPACE/beleqet-admin-frontend:$TARGET_SHA" frontend
+            docker build -t "$NAMESPACE/beleqet-admin-frontend:$TARGET_SHA" freelance-frontend
             docker build -t "$NAMESPACE/beleqet-jobs-frontend:$TARGET_SHA" beleqet-jobs-nextjs
           else
             # Real deploy: the CI run for this SHA already pushed the images;
