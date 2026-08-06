@@ -283,6 +283,8 @@ describe('UploadsService', () => {
 
   describe('deleteFile', () => {
     it('should throw when cloud storage is not configured', async () => {
+      (service as unknown as { s3Client: null }).s3Client = null;
+
       await expect(service.deleteFile('resumes/some-key.pdf')).rejects.toThrow(
         InternalServerErrorException,
       );

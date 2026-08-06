@@ -10,15 +10,3 @@ services:
       - .:/app
       - /app/node_modules
     command: npm run dev
-version: '3.9'
-services:
-  frontend:
-    build: .
-    ports:
-      - '3000:3000'
-    environment:
-      - NEXT_PUBLIC_API_URL=http://host.docker.internal:4000/api/v1
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: npm run dev
