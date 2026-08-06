@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 /**
@@ -18,7 +18,7 @@ import { AuthGuard } from '@nestjs/passport';
  */
 @Injectable()
 export class GoogleAuthGuard extends AuthGuard('google') {
-  public getAuthenticateOptions(_context: ExecutionContext): { state: boolean } {
+  public getAuthenticateOptions(): { state: boolean } {
     return { state: true };
   }
 }

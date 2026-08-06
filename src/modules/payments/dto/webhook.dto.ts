@@ -6,7 +6,7 @@
  * or plain JSON (PayPal).  These DTOs describe the *query/header* context
  * passed alongside the raw body rather than transforming the body itself.
  */
-import { IsOptional, IsString, IsUUID, IsInt, Min, Length } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Length } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**

@@ -9,7 +9,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from '../auth.controller';
 import { AuthService } from '../auth.service';
 import { RegisterDto } from '../dto/register.dto';
-import { UnauthorizedException } from '@nestjs/common';
 
 // 2. IMPORT REAL TOKENS & SERVICES
 import { AccountLinkingService } from '../services/account-linking.service';

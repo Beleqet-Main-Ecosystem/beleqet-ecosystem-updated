@@ -62,7 +62,7 @@ export class AdminStatsService {
       const currency = tx.currency || 'ETB';
       try {
         totalRevenue += this.walletService.convertCurrency(amount, currency, targetCurrency);
-      } catch (error) {
+      } catch {
         // If conversion rate is unsupported, fallback to 1:1 or ignore
         totalRevenue += amount;
       }

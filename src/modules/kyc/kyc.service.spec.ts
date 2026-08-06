@@ -3,7 +3,7 @@ import { KycService } from './kyc.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { KycDocumentType, KycStatus } from '@prisma/client';
-import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { KycModule } from './kyc.module';
 import { ConfigService } from '@nestjs/config';
 
@@ -178,7 +178,7 @@ describe('KycService', () => {
   });
 
   describe('KycModule KycProvider Factory', () => {
-    let factory: Function;
+    let factory: (config: ConfigService) => unknown;
 
     beforeAll(() => {
       const providers = Reflect.getMetadata('providers', KycModule);

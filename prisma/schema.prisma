@@ -59,7 +59,6 @@ model User {
   kycVerified           Boolean             @default(false)
   kycVerification       KycVerification?
   speechConversations   SpeechConversation[]
-  subscriptions         Subscription[]
 
   /// Whether the user has consented to their search history, skills, and
   /// saved jobs being used to personalize their AI job feed. Defaults to

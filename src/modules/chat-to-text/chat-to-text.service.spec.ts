@@ -4,7 +4,7 @@ import { ChatToTextService } from './chat-to-text.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FasterWhisperService } from './faster-whisper.service';
 import { CreateTranscriptDto } from './dtos';
-import { Prisma, SpeechTranscriptStatus } from '@prisma/client';
+import { SpeechTranscriptStatus } from '@prisma/client';
 
 describe('ChatToTextService', () => {
   let service: ChatToTextService;

@@ -17,12 +17,7 @@ export class MockKycProvider implements KycProvider {
    * @param faceScanBuffer - Buffer containing the live selfie/face scan image.
    * @returns Simulated KYC verification result.
    */
-  async verify(
-    documentBuffer: Buffer,
-    faceScanBuffer: Buffer,
-    documentMimeType?: string,
-    faceScanMimeType?: string,
-  ): Promise<KycVerificationResult> {
+  async verify(documentBuffer: Buffer, faceScanBuffer: Buffer): Promise<KycVerificationResult> {
     this.logger.log('Executing simulated KYC verification (Mock Provider)');
 
     if (!documentBuffer || documentBuffer.length === 0) {

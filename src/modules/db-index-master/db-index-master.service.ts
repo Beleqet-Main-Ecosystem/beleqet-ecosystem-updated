@@ -24,8 +24,8 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
@@ -64,6 +64,7 @@ export class DbIndexMasterService {
    * @throws InternalServerErrorException on query execution failure.
    */
   async explainQuery(sql: string, params: unknown[] = []): Promise<ExplainResult> {
+    void params;
     this.validateQuerySql(sql);
 
     const sanitisedForLog = this.sanitiseSqlForLog(sql);

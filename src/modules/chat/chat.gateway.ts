@@ -40,7 +40,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.data.user = payload;
       this.logger.log(`[ChatGateway] Client connected: ${client.id} (User: ${payload.userId})`);
-    } catch (err) {
+    } catch {
       this.logger.warn(`[ChatGateway] Unauthorized connection attempt: ${client.id}`);
       client.emit('error', { message: this.i18n.t('messages.chat.unauthorized', { lang: 'en' }) });
       client.disconnect();

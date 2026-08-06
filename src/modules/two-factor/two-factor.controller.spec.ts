@@ -15,7 +15,7 @@ jest.mock('otplib', () => ({
     .fn()
     .mockReturnValue('otpauth://totp/Test:user@test.com?secret=JBSWY3DPEHPK3PXP&issuer=Test'),
   generate: jest.fn().mockResolvedValue('123456'),
-  verify: jest.fn().mockImplementation(({ secret, token }: { secret: string; token: string }) => {
+  verify: jest.fn().mockImplementation(({ token }: { secret: string; token: string }) => {
     return Promise.resolve({ valid: token === '123456', delta: token === '123456' ? 0 : -1 });
   }),
 }));
@@ -71,7 +71,6 @@ const mockRedis = {
 
 describe('TwoFactorController', () => {
   let controller: TwoFactorController;
-  let svc: TwoFactorService;
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -91,7 +90,6 @@ describe('TwoFactorController', () => {
     }).compile();
 
     controller = module.get<TwoFactorController>(TwoFactorController);
-    svc = module.get<TwoFactorService>(TwoFactorService);
   });
 
   it('should be defined', () => {

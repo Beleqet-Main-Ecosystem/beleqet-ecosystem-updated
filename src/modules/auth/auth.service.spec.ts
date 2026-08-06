@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { getQueueToken } from '@nestjs/bullmq';
-import { UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -19,8 +18,6 @@ jest.mock('otplib', () => ({
 
 describe('AuthService', () => {
   let svc: AuthService;
-  let prisma: any;
-  let jwt: any;
 
   const mockPrisma = {
     user: {
@@ -82,8 +79,6 @@ describe('AuthService', () => {
     }).compile();
 
     svc = module.get<AuthService>(AuthService);
-    prisma = module.get(PrismaService);
-    jwt = module.get(JwtService);
   });
 
   const userId = 'user-1';
