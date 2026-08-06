@@ -33,7 +33,6 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=4000
-      # Admin (:3000) + jobs app (:3001) — comma-separated for CORS
       - FRONTEND_URL=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
       - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
       - REDIS_HOST=redis
@@ -81,13 +80,13 @@ services:
       - db
       - redis
 
-  frontend:
+  freelance-frontend:
     build:
-      context: ./frontend
+      context: ./freelance-frontend
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
-    container_name: beleqet-frontend
+    container_name: beleqet-freelance-frontend
     restart: unless-stopped
     ports:
       - '3000:3000'
