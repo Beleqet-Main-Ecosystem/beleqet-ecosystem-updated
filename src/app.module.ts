@@ -36,6 +36,7 @@ import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.
 
 import { PaymentsModule } from './modules/payments/payments.module';
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
+import { GraphqlTurboModule } from './modules/graphql-turbo/graphql-turbo.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
@@ -132,6 +133,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     DbIndexMasterModule,
     PaymentsModule,
     // ── Fixed: PerformanceWorkerModule removed from imports array ──
+    GraphqlTurboModule,
     TwoFactorModule,
     KycModule,
     AiFeedModule,

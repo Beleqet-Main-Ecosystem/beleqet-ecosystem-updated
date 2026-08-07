@@ -1,5 +1,6 @@
 import DataLoader from 'dataloader';
 import { PrismaService } from '@prisma-client';
+import type { Company, JobCategory, User, Job } from '@prisma/client';
 
 /**
  * DataLoader factory for batch-loading Company records.
@@ -8,16 +9,16 @@ import { PrismaService } from '@prisma-client';
  * Groups company IDs and fetches them in a single `SELECT ... WHERE id IN (...)`.
  *
  * @param prisma - PrismaService instance
- * @returns DataLoader<string, any>
+ * @returns DataLoader<string, Company | null>
  */
 export function createCompanyLoader(prisma: PrismaService) {
-  return new DataLoader<string, any>(async (companyIds: readonly string[]) => {
+  return new DataLoader<string, Company | null>(async (companyIds: readonly string[]) => {
     const companies = await prisma.company.findMany({
       where: { id: { in: [...companyIds] } },
     });
-    const companyMap = new Map(companies.map((c: any) => [c.id, c]));
+    const companyMap = new Map(companies.map((c: Company) => [c.id, c]));
     return companyIds.map(
-      (id: string) => companyMap.get(id) ?? new Error(`Company ${id} not found`),
+      (id: string) => companyMap.get(id) ?? null,
     );
   });
 }
@@ -28,16 +29,16 @@ export function createCompanyLoader(prisma: PrismaService) {
  * Prevents N+1 queries when resolving `Job.category`.
  *
  * @param prisma - PrismaService instance
- * @returns DataLoader<string, any>
+ * @returns DataLoader<string, JobCategory | null>
  */
 export function createCategoryLoader(prisma: PrismaService) {
-  return new DataLoader<string, any>(async (categoryIds: readonly string[]) => {
+  return new DataLoader<string, JobCategory | null>(async (categoryIds: readonly string[]) => {
     const categories = await prisma.jobCategory.findMany({
       where: { id: { in: [...categoryIds] } },
     });
-    const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
+    const categoryMap = new Map(categories.map((c: JobCategory) => [c.id, c]));
     return categoryIds.map(
-      (id: string) => categoryMap.get(id) ?? new Error(`Category ${id} not found`),
+      (id: string) => categoryMap.get(id) ?? null,
     );
   });
 }
@@ -48,10 +49,10 @@ export function createCategoryLoader(prisma: PrismaService) {
  * Prevents N+1 queries when resolving `Application.user`.
  *
  * @param prisma - PrismaService instance
- * @returns DataLoader<string, any>
+ * @returns DataLoader<string, User | null>
  */
 export function createUserLoader(prisma: PrismaService) {
-  return new DataLoader<string, any>(async (userIds: readonly string[]) => {
+  return new DataLoader<string, Partial<User> | null>(async (userIds: readonly string[]) => {
     const users = await prisma.user.findMany({
       where: { id: { in: [...userIds] } },
       select: {
@@ -71,8 +72,8 @@ export function createUserLoader(prisma: PrismaService) {
         updatedAt: true,
       },
     });
-    const userMap = new Map(users.map((u: any) => [u.id, u]));
-    return userIds.map((id: string) => userMap.get(id) ?? new Error(`User ${id} not found`));
+    const userMap = new Map(users.map((u: Partial<User>) => [u.id as string, u]));
+    return userIds.map((id: string) => userMap.get(id) ?? null);
   });
 }
 
@@ -82,15 +83,15 @@ export function createUserLoader(prisma: PrismaService) {
  * Prevents N+1 queries when resolving `Application.job`.
  *
  * @param prisma - PrismaService instance
- * @returns DataLoader<string, any>
+ * @returns DataLoader<string, Job | null>
  */
 export function createJobLoader(prisma: PrismaService) {
-  return new DataLoader<string, any>(async (jobIds: readonly string[]) => {
+  return new DataLoader<string, Job | null>(async (jobIds: readonly string[]) => {
     const jobs = await prisma.job.findMany({
       where: { id: { in: [...jobIds] } },
     });
-    const jobMap = new Map(jobs.map((j: any) => [j.id, j]));
-    return jobIds.map((id: string) => jobMap.get(id) ?? new Error(`Job ${id} not found`));
+    const jobMap = new Map(jobs.map((j: Job) => [j.id, j]));
+    return jobIds.map((id: string) => jobMap.get(id) ?? null);
   });
 }
 
@@ -110,7 +111,7 @@ export function createApplicationCountLoader(prisma: PrismaService) {
       where: { jobId: { in: [...jobIds] } },
       _count: { id: true },
     });
-    const countMap = new Map<string, number>(results.map((r: any) => [r.jobId, r._count.id]));
+    const countMap = new Map<string, number>(results.map((r: { jobId: string; _count: { id: number } }) => [r.jobId, r._count.id]));
     return jobIds.map((id: string) => countMap.get(id) ?? 0);
   });
 }
@@ -129,7 +130,7 @@ export function createBidCountLoader(prisma: PrismaService) {
       _count: { id: true },
     });
     const countMap = new Map<string, number>(
-      results.map((r: any) => [r.freelanceJobId, r._count.id]),
+      results.map((r: { freelanceJobId: string; _count: { id: number } }) => [r.freelanceJobId, r._count.id]),
     );
     return freelanceJobIds.map((id: string) => countMap.get(id) ?? 0);
   });
