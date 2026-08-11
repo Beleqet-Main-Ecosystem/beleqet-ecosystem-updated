@@ -1,10 +1,19 @@
+<<<<<<< HEAD
 import { Suspense } from 'react';
 import JobsListing from '@/components/JobsListing';
 import { fetchCategories, fetchJobs } from '@/lib/api';
 import { jobsPageMetadata } from '@/lib/seo/generate-metadata';
+=======
+import { Suspense } from "react";
+import JobsListing from "@/components/JobsListing";
+import { fetchCategories, fetchJobs } from "@/lib/api";
+>>>>>>> tmp/pr130
 
 export const revalidate = 60;
-export const metadata = jobsPageMetadata();
+
+export const metadata = {
+  title: "Find Jobs | Beleqet Jobs",
+};
 
 export default async function JobsPage() {
   const [jobs, categories] = await Promise.all([fetchJobs(), fetchCategories()]);

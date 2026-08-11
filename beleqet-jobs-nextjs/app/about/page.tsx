@@ -8,11 +8,15 @@ import {
   HeartHandshake,
   Search,
   Users,
+<<<<<<< HEAD
 } from 'lucide-react';
 import { aboutPageMetadata } from '@/lib/seo/generate-metadata';
 import { OrganizationSchema } from '@/lib/seo/schemas';
 
 export const metadata = aboutPageMetadata();
+=======
+} from "lucide-react";
+>>>>>>> tmp/pr130
 
 const values = [
   {
@@ -22,8 +26,13 @@ const values = [
   },
   {
     icon: Globe2,
+<<<<<<< HEAD
     title: 'Built for local reality',
     text: 'Beleqet is designed around Ethiopia\u2019s talent, employers, mobile habits, and growing digital economy.',
+=======
+    title: "Built for local reality",
+    text: "Beleqet is designed around Ethiopia’s talent, employers, mobile habits, and growing digital economy.",
+>>>>>>> tmp/pr130
   },
   {
     icon: HeartHandshake,
@@ -32,11 +41,13 @@ const values = [
   },
 ];
 
+export const metadata = {
+  title: "About Beleqet | Ethiopia’s Career Marketplace",
+};
+
 export default function AboutPage() {
   return (
     <div className="bg-[#f7f5ef]">
-      <OrganizationSchema />
-
       <section className="relative overflow-hidden bg-primary py-20 text-white lg:py-28">
         <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full border-[70px] border-[#d8ff3e]/10" />
         <div className="container-page relative">

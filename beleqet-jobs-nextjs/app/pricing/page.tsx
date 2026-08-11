@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { Check, Zap, Building2, Rocket, ArrowRight, Star } from 'lucide-react';
 import Link from 'next/link';
 import { pricingPageMetadata } from '@/lib/seo/generate-metadata';
@@ -5,6 +6,16 @@ import { fetchPlans, type Plan } from '@/lib/api';
 
 export const metadata = pricingPageMetadata();
 export const revalidate = 60;
+=======
+import { Check, Zap, Building2, Rocket, ArrowRight, Star } from "lucide-react";
+import Link from "next/link";
+
+export const metadata = {
+  title: "Pricing | Beleqet Jobs",
+  description:
+    "Simple, transparent pricing for Ethiopian employers. Post jobs and reach thousands of qualified candidates on Beleqet.",
+};
+>>>>>>> tmp/pr130
 
 // Cosmetic-only lookup — purely for icon/highlight, keyed by position so the
 // page still renders sensibly if an admin renames or reorders plans.
