@@ -1,15 +1,11 @@
-import { CacheConfigModule } from './cache/cache.module';
-import configuration from './config/configuration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
 import * as path from 'path';
-import { APP_GUARD } from '@nestjs/core';
 
-// Feature Modules
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -24,81 +20,83 @@ import { FreelanceModule } from './modules/freelance/freelance.module';
 import { EscrowModule } from './modules/escrow/escrow.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { AdminModule } from './modules/admin/admin.module';
-import { AdminControlModule } from './modules/admin-control/admin-control.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
-import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
 import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
-import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
-import { InterviewPlannerModule } from './modules/interview-planner/interview-planner.module';
+import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
+import { APP_GUARD } from '@nestjs/core';
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
-import { AuditLoggingModule } from './modules/audit-logging/audit-logging.module';
-import { PaymentsModule } from './modules/payments/payments.module';
 
+import { PaymentsModule } from './modules/payments/payments.module';
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
-import { CommunityForumModule } from './modules/community-forum/forum.module';
+import { GraphqlTurboModule } from './modules/graphql-turbo/graphql-turbo.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
-import { AuditModule } from './modules/audit/audit.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
+import { EncryptedInboxModule } from './modules/encrypted-inbox/encrypted-inbox.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
-
-// GraphQL Layer
-import { GqlThrottlerGuard } from './graphql/guards/gql-throttler.guard';
-import { GraphqlConfigModule } from './graphql/graphql.module';
-
-// Platform Extensions
-import { SmartBiddingModule } from './modules/smart-bidding/smart-bidding.module';
-import { MatchingModule } from './modules/matching/matching.module';
-import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
-import { RbacModule } from './modules/rbac/rbac.module';
-import { AuditLogModule } from './modules/audit-log/audit-log.module';
-import { EncryptionModule } from './common/encryption/encryption.module';
-import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
-import { EmailModule } from '@modules/email-automation/email.module';
-
-// ── Fixed: PerformanceWorkerModule import statement deleted ──
-import { FraudAlertModule } from './modules/fraud-alert/fraud-alert.module';
-import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
-import { WebhooksModule } from './modules/webhooks/webhooks.module';
 
 @Module({
   imports: [
+    //  Configuration (loads .env)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [configuration],
     }),
-    ThrottlerModule.forRoot([{ name: 'short', ttl: 1_000, limit: 10 }]),
-    EventEmitterModule.forRoot({ wildcard: true, delimiter: '.' }),
+
+    //  Rate limiting
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 1_000, limit: 10 },
+      { name: 'medium', ttl: 10_000, limit: 50 },
+      { name: 'long', ttl: 60_000, limit: 200 },
+    ]),
+
+    //  Event bus (in-process events between modules)
+    EventEmitterModule.forRoot({
+      wildcard: true,
+      delimiter: '.',
+      maxListeners: 20,
+    }),
+
+    // ── Unified BullMQ (Redis-backed job queues) ───────────────────────────
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         connection: {
-          host: config.get('REDIS_HOST', 'localhost'),
-          port: config.get('REDIS_PORT', 6379),
+          host: config.get<string>('REDIS_HOST', 'localhost'),
+          port: config.get<number>('REDIS_PORT', 6379),
+          password: config.get<string>('REDIS_PASSWORD'),
+          tls: config.get<string>('REDIS_TLS') === 'true' ? {} : undefined,
+        },
+        defaultJobOptions: {
+          removeOnComplete: 100,
+          removeOnFail: 200,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2_000 },
         },
       }),
     }),
+
+    //  Internationalization (i18n)
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loaderOptions: {
         path: path.join(__dirname, '/i18n/'),
-        watch: process.env.NODE_ENV === 'development',
+        watch: true,
       },
       resolvers: [
         { use: QueryResolver, options: ['lang'] },
@@ -106,7 +104,8 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
         new HeaderResolver(['x-custom-lang']),
       ],
     }),
-    GdprGuardModule,
+
+    //  Feature modules
     PrismaModule,
     QueuesModule,
     RedisModule,
@@ -121,50 +120,39 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     EscrowModule,
     WalletModule,
     AdminModule,
-    AdminControlModule,
     ChatModule,
     UploadsModule,
     TelegramModule,
     ContactModule,
     VideoInterviewModule,
     PlagiarismModule,
-    FaqBotModule,
     InterviewPlannerModule,
     AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
-    AuditLoggingModule,
     DbIndexMasterModule,
     PaymentsModule,
-    CommunityForumModule,
+    // ── Fixed: PerformanceWorkerModule removed from imports array ──
+    GraphqlTurboModule,
     TwoFactorModule,
     KycModule,
-    AuditModule,
     AiFeedModule,
     ResumeBrainModule,
-
+    EncryptedInboxModule,
     SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
-    GraphqlConfigModule,
-    SmartBiddingModule,
-    PromotedEngineModule,
-    MatchingModule,
-    UserPreferencesModule,
     PlansModule,
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
-    FraudAlertModule,
-    RbacModule,
-    AuditLogModule,
-    CacheConfigModule,
-    EncryptionModule,
-    EmailModule,
-    ChatToTextModule,
-    WebhooksModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
