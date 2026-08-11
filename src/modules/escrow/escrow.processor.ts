@@ -20,6 +20,13 @@ interface AutoReleasePayload {
   releaseAt: string;
 }
 
+interface WithdrawalPayload {
+  userId: string;
+  amount: number;
+  method: string;
+  accountRef: string;
+}
+
 interface UnlockFundsPayload {
   escrowId: string;
   clientId: string;
