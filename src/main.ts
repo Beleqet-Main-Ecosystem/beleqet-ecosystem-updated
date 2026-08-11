@@ -163,6 +163,8 @@ async function bootstrap() {
       .addTag('db-index-master', 'DB Index Master — query analysis & index health (admin only)')
       .addTag('fraud-alert', 'Fraud detection & alerts')
       .addTag('faq-bot', 'AI-powered FAQ Bot assistant')
+      .addTag('resumes', 'Resume Brain — CV upload, AI parsing & extraction')
+      .addTag('profiles', 'Resume Brain — profile autofill from parsed resumes')
       .build();
 
     const document = SwaggerModule.createDocument(app, swaggerConfig);

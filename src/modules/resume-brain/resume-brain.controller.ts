@@ -1,91 +1,106 @@
-import { Controller, Get, Post, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { I18n, I18nContext } from 'nestjs-i18n';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
-import { ResumeBrainService, UploadedResumeFile } from './resume-brain.service';
-import { MAX_FILE_SIZE_BYTES } from './resume-brain.constants';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { UploadResumeDto } from './dto/upload-resume.dto';
+import { RESUME_ALLOWED_MIME_TYPES } from './resume-brain.service';
+import { ResumeBrainService } from './resume-brain.service';
+import { ResumeUploadFile } from './resume-upload-file.interface';
 
-@ApiTags('resume-brain')
-@Controller('resume-brain')
+/** Maximum accepted upload size at the interceptor level (bytes), matched by service-level validation. */
+const MULTER_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+/**
+ * REST controller for uploading CVs and retrieving/erasing their parsed results.
+ */
+@ApiTags('resumes')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('resumes')
 export class ResumeBrainController {
   constructor(private readonly resumeBrainService: ResumeBrainService) {}
 
-  @Get('health')
-  @ApiOperation({ summary: 'Resume Brain module health check' })
-  health() {
-    return this.resumeBrainService.health();
-  }
-
-  // NOTE: `ThrottlerGuard` is applied explicitly here. The app configures
-  // `ThrottlerModule.forRoot` but never binds the guard globally (no APP_GUARD),
-  // so a bare `@Throttle` decorator would be inert. Listing it in `@UseGuards`
-  // alongside `JwtAuthGuard` makes the per-endpoint limits below actually
-  // enforce for this module.
-
+  /**
+   * Uploads a CV file (PDF/DOC/DOCX), parses it, and extracts structured data.
+   *
+   * @param file - The uploaded CV file.
+   * @param dto - Upload metadata, including required GDPR consent.
+   * @param user - Current authenticated professional.
+   * @returns The stored upload record together with its parsed result.
+   */
   @Post('upload')
-  @UseGuards(JwtAuthGuard, ThrottlerGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 uploads / minute
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Upload a resume (PDF/DOCX, max 5MB) and echo back its metadata',
-  })
   @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { file: { type: 'string', format: 'binary' } },
-    },
-  })
+  @ApiOperation({ summary: 'Upload a CV (PDF/DOC/DOCX) for AI-assisted parsing' })
   @UseInterceptors(
-    // Multer enforces the 5MB limit and raises 413 Payload Too Large on its own.
-    FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }),
+    FileInterceptor('file', {
+      limits: { fileSize: MULTER_MAX_FILE_SIZE_BYTES },
+      fileFilter: (_req, file, callback) => {
+        if (!RESUME_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+          return callback(
+            new BadRequestException(
+              `Unsupported file type "${file.mimetype}". Only PDF, DOC, and DOCX files are accepted.`,
+            ),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
   )
-  upload(@UploadedFile() file: UploadedResumeFile) {
-    return this.resumeBrainService.describeUpload(file);
+  async upload(
+    @UploadedFile() file: ResumeUploadFile,
+    @Body() dto: UploadResumeDto,
+    @CurrentUser() user: CurrentUserPayload,
+    @I18n() i18n: I18nContext,
+  ) {
+    return this.resumeBrainService.uploadAndProcess(user.userId, file, dto.consent, i18n.lang);
   }
 
-  @Post('parse')
-  @UseGuards(JwtAuthGuard, ThrottlerGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // 10 parses / minute
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Upload a resume (PDF/DOCX, max 5MB) and extract its plain text (no AI yet)',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { file: { type: 'string', format: 'binary' } },
-    },
-  })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }))
-  parse(@UploadedFile() file: UploadedResumeFile) {
-    return this.resumeBrainService.parseResume(file);
+  /**
+   * Retrieves a previously uploaded CV's stored metadata and parsed result.
+   *
+   * @param id - `ResumeUpload` ID.
+   * @param user - Current authenticated professional.
+   */
+  @Get(':id')
+  @ApiOperation({ summary: 'Retrieve a parsed resume by ID' })
+  async getById(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @I18n() i18n: I18nContext,
+  ) {
+    return this.resumeBrainService.getResume(user.userId, id, i18n.lang);
   }
 
-  @Post('extract')
-  @UseGuards(JwtAuthGuard, ThrottlerGuard)
-  // Tighter than upload/parse: this is the only endpoint that calls the paid AI
-  // provider. The burst cap here plus the per-user daily budget in the service
-  // (AiBudgetService) together bound both abuse rate and cumulative cost.
-  @Throttle({ default: { limit: 5, ttl: 60_000 } }) // 5 AI extractions / minute
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary:
-      'Upload a resume (PDF/DOCX, max 5MB), parse it and return a structured ' +
-      'profile as JSON (Phase 4 — AI extraction)',
-  })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: { file: { type: 'string', format: 'binary' } },
-    },
-  })
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_FILE_SIZE_BYTES } }))
-  extract(@UploadedFile() file: UploadedResumeFile, @CurrentUser() user: CurrentUserPayload) {
-    return this.resumeBrainService.extractProfile(file, user?.userId);
+  /**
+   * Permanently deletes a CV and its parsed data (GDPR right-to-erasure).
+   *
+   * @param id - `ResumeUpload` ID.
+   * @param user - Current authenticated professional.
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Permanently delete a resume and its parsed data (GDPR erasure)' })
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @I18n() i18n: I18nContext,
+  ): Promise<void> {
+    await this.resumeBrainService.deleteResume(user.userId, id, i18n.lang);
   }
 }

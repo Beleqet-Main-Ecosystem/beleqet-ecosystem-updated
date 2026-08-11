@@ -10,7 +10,9 @@
     "test": "jest",
     "test:unit": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "docker:build": "docker build -t beleqet-jobs-frontend .",
+    "docker:dev": "docker compose up --build"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -44,6 +46,7 @@
     "zustand": "^4.5.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
