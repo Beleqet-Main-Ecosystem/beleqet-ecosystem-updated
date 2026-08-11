@@ -1,13 +1,7 @@
-<<<<<<< HEAD
 import { Suspense } from 'react';
 import JobsListing from '@/components/JobsListing';
 import { fetchCategories, fetchJobs } from '@/lib/api';
 import { jobsPageMetadata } from '@/lib/seo/generate-metadata';
-=======
-import { Suspense } from "react";
-import JobsListing from "@/components/JobsListing";
-import { fetchCategories, fetchJobs } from "@/lib/api";
->>>>>>> tmp/pr130
 
 export const revalidate = 60;
 

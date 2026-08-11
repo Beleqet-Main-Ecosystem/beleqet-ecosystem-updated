@@ -44,6 +44,12 @@ export class JobsController {
     return this.svc.getCategories();
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get public platform statistics (homepage StatsBar)' })
+  getPlatformStats() {
+    return this.svc.getPlatformStats();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id);

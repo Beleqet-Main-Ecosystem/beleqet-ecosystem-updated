@@ -1,11 +1,7 @@
-<<<<<<< HEAD
 import Link from 'next/link';
 import { notFoundPageMetadata } from '@/lib/seo/generate-metadata';
 
 export const metadata = notFoundPageMetadata();
-=======
-import Link from "next/link";
->>>>>>> tmp/pr130
 
 export default function NotFound() {
   return (
