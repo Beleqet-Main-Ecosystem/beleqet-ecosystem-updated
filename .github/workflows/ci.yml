@@ -23,7 +23,12 @@ permissions:
   contents: read
 
 env:
+<<<<<<< HEAD
   NODE_VERSION: '22'
+=======
+  NODE_VERSION: '20'
+  NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
+>>>>>>> tmp/pr193
 
 jobs:
   # ── Repository, workflow, and script validation ────────────────────────────
@@ -126,6 +131,8 @@ jobs:
         run: bash scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
         run: npm run prisma:migrate:deploy
       - name: Jest unit tests
         run: npm test
@@ -184,6 +191,8 @@ jobs:
         run: bash scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
         run: npm run prisma:migrate:deploy
       - run: npm run build
 
@@ -297,6 +306,8 @@ jobs:
         run: bash scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
         run: npm run prisma:migrate:deploy
       - run: npm run build
 
