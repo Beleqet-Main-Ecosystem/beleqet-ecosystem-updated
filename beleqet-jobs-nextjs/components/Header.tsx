@@ -1,8 +1,12 @@
 "use client";
 
+import { lazy } from "react";
 import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+
+/* Lazy-load the mobile drawer — not needed on desktop first paint. */
+const MobileDrawer = lazy(() => import("@/components/mobile/MobileDrawer"));
 import { BriefcaseBusiness, Menu, X } from "lucide-react";
 import HeaderAuth from "@/components/HeaderAuth";
 import PostJobButton from "@/components/PostJobButton";

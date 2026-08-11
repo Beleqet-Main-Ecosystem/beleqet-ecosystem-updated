@@ -58,6 +58,7 @@ export default function Footer() {
               {col.title}
             </h4>
             <ul className="space-y-2.5">
+<<<<<<< HEAD
               {col.links.map((link) => {
                 const isExternal =
                   typeof link.href === 'string' &&
@@ -75,6 +76,19 @@ export default function Footer() {
                   </li>
                 );
               })}
+=======
+              {col.links.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="group inline-flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
+                  >
+                    {link.label}
+                    <ArrowUpRight className="h-3 w-3 opacity-0 transition group-hover:opacity-100" />
+                  </Link>
+                </li>
+              ))}
+>>>>>>> tmp/pr130
             </ul>
           </div>
         ))}
