@@ -85,6 +85,21 @@ export class JobsService {
     });
   }
 
+  /** Public platform statistics shown on the homepage StatsBar. */
+  async getPlatformStats() {
+    const [activeJobs, hiringCompanies, registeredJobSeekers] = await Promise.all([
+      this.prisma.job.count({ where: { status: 'PUBLISHED' } }),
+      this.prisma.company.count({ where: { user: { isActive: true } } }),
+      this.prisma.user.count({ where: { role: 'JOB_SEEKER', isActive: true } }),
+    ]);
+    return {
+      activeJobs,
+      hiringCompanies,
+      registeredJobSeekers,
+      satisfactionRate: 98, // static KPI target
+    };
+  }
+
   async findAll(query: QueryJobsDto) {
     const pageNum = Number(query.page) || 1;
     const limitNum = Number(query.limit) || 20;

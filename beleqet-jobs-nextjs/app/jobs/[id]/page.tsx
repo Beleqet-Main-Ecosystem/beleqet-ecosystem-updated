@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -24,21 +23,6 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function JobDetailPage({ params }: { params: { id: string } }) {
-=======
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { MapPin, Clock, Building2, ArrowLeft } from "lucide-react";
-import { fetchJob, fetchJobs } from "@/lib/api";
-import JobActions from "@/components/JobActions";
-
-export const revalidate = 300;
-
-export default async function JobDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
->>>>>>> tmp/pr130
   const job = await fetchJob(params.id);
   if (!job) notFound();
 
@@ -47,7 +31,6 @@ export default async function JobDetailPage({
 
   return (
     <div className="container-page py-10">
-<<<<<<< HEAD
       <JobPostingSchema
         job={{
           id: job.id,
@@ -66,8 +49,6 @@ export default async function JobDetailPage({
         ]}
       />
 
-=======
->>>>>>> tmp/pr130
       <Link
         href="/jobs"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-brandGreen mb-6"

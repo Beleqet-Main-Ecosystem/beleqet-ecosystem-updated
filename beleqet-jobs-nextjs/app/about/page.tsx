@@ -8,15 +8,11 @@ import {
   HeartHandshake,
   Search,
   Users,
-<<<<<<< HEAD
 } from 'lucide-react';
 import { aboutPageMetadata } from '@/lib/seo/generate-metadata';
 import { OrganizationSchema } from '@/lib/seo/schemas';
 
 export const metadata = aboutPageMetadata();
-=======
-} from "lucide-react";
->>>>>>> tmp/pr130
 
 const values = [
   {
@@ -26,13 +22,8 @@ const values = [
   },
   {
     icon: Globe2,
-<<<<<<< HEAD
     title: 'Built for local reality',
     text: 'Beleqet is designed around Ethiopia\u2019s talent, employers, mobile habits, and growing digital economy.',
-=======
-    title: "Built for local reality",
-    text: "Beleqet is designed around Ethiopia’s talent, employers, mobile habits, and growing digital economy.",
->>>>>>> tmp/pr130
   },
   {
     icon: HeartHandshake,

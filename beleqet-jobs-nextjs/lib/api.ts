@@ -144,3 +144,30 @@ export async function fetchPlans(): Promise<Plan[]> {
     return [];
   }
 }
+
+// ── Platform stats (public) ───────────────────────────────────────────────────
+
+const platformStatsSchema = z.object({
+  activeJobs: z.number(),
+  hiringCompanies: z.number(),
+  registeredJobSeekers: z.number(),
+  satisfactionRate: z.number(),
+});
+
+export type PlatformStats = z.infer<typeof platformStatsSchema>;
+
+/** Fetches live platform statistics from `GET /jobs/stats`. */
+export async function fetchPlatformStats(): Promise<PlatformStats> {
+  try {
+    const { data } = await api.get('/jobs/stats');
+    return platformStatsSchema.parse(data);
+  } catch {
+    // Fallback to static values if the API is unavailable
+    return {
+      activeJobs: 10000,
+      hiringCompanies: 5000,
+      registeredJobSeekers: 50000,
+      satisfactionRate: 98,
+    };
+  }
+}
