@@ -116,6 +116,8 @@ users-migration.json
 scripts/*
 !scripts/ci/
 !scripts/deploy/
+!scripts/export-wp-users.ts
+!scripts/import-users.ts
 .agents/
 issue_pr_matches.md
 AGENTS.md
