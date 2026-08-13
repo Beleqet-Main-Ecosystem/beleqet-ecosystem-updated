@@ -32,7 +32,6 @@ describe('ChatService', () => {
           useValue: mockEncryptionService,
         },
       ],
-      providers: [ChatService, { provide: PrismaService, useValue: mockPrismaService }],
     }).compile();
 
     service = module.get<ChatService>(ChatService);

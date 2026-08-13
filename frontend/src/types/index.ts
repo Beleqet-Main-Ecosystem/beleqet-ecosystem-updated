@@ -192,28 +192,54 @@ export interface AuditLog {
   entityType: string;
   payload: Record<string, unknown>;
   processedBy: string | null;
+  actorUserId?: string | null;
+  ipAddress?: string | null;
+  httpMethod?: string | null;
+  path?: string | null;
+  statusCode?: number | null;
+  durationMs?: number | null;
+  displayCurrency?: string | null;
+  amountInDisplayCurrency?: number | null;
   createdAt: string;
 }
 
-/** Paginated response shape returned by GET /audit-logs. */
-export interface AuditLogPage {
-  items: AuditLog[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+/** Paginated response shape returned by the admin audit-log endpoint. */
+export interface AuditLogListResponse {
+  data: AuditLog[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  message?: string;
+  currency?: string;
 }
 
-/** Filters accepted by GET /audit-logs. */
+/** Compatibility alias for older audit viewer code. */
+export type AuditLogPage = AuditLogListResponse;
+
 export interface AuditLogFilters {
   eventType?: string;
   entityType?: string;
   entityId?: string;
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
+  path?: string;
+  httpMethod?: string;
+  statusCode?: number | string;
+  from?: string;
+  to?: string;
+  currency?: string;
+  lang?: string;
   page?: number;
   limit?: number;
 }
+
+export type AuditLogQuery = Partial<AuditLogFilters> & {
+  format?: 'json' | 'csv';
+};
 
 /** Notification item from the backend */
 export interface Notification {

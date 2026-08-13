@@ -30,6 +30,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 
 /** All currently supported locale codes. */
 export type SupportedLocale = "en" | "am";
+export type Locale = SupportedLocale;
 
 /** Storage key used to persist the user's locale preference. */
 const LOCALE_STORAGE_KEY = "beleqet_locale";
@@ -255,6 +256,7 @@ export type I18nContextValue = {
   t: (key: string) => string;
   locale: SupportedLocale;
   setLocale: (locale: SupportedLocale) => void;
+  changeLanguage: (locale: SupportedLocale) => void;
 };
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -327,8 +329,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     [locale],
   );
 
+  const changeLanguage = useCallback((newLocale: SupportedLocale) => {
+    setLocale(newLocale);
+  }, [setLocale]);
+
   return (
-    <I18nContext.Provider value={{ t, locale, setLocale }}>
+    <I18nContext.Provider value={{ t, locale, setLocale, changeLanguage }}>
       {children}
     </I18nContext.Provider>
   );

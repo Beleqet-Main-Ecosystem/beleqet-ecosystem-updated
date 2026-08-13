@@ -12,8 +12,6 @@ import {
 import { aboutPageMetadata } from '@/lib/seo/generate-metadata';
 import { OrganizationSchema } from '@/lib/seo/schemas';
 
-export const metadata = aboutPageMetadata();
-
 const values = [
   {
     icon: CheckCircle2,
@@ -33,6 +31,7 @@ const values = [
 ];
 
 export const metadata = {
+  ...aboutPageMetadata(),
   title: "About Beleqet | Ethiopia’s Career Marketplace",
 };
 

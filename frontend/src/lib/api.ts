@@ -13,8 +13,8 @@ import type {
   ProjectBreakdownResponse,
   StatsQueryParams,
   AuditLog,
-  AuditLogPage,
-  AuditLogFilters,
+  AuditLogListResponse,
+  AuditLogQuery,
   Notification,
   NotificationPreference,
   ThemePreference,
@@ -23,18 +23,6 @@ import type {
   CampaignAnalytics,
   MatchResult,
 } from '@/types';
-
-export interface AuditLogListResponse {
-  items: AuditLog[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export type AuditLogQuery = Partial<AuditLogFilters> & {
-  format?: 'json' | 'csv';
-};
 
 /** Fetches the current authenticated user's persisted theme preference. */
 export async function getThemePreference(): Promise<ThemePreferenceResponse> {
@@ -179,12 +167,6 @@ export async function createDispute(
     reason,
     evidenceUrls,
   });
-  return data;
-}
-
-/** Fetches a paginated, filterable slice of the audit trail (Admin-only). */
-export async function fetchAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogPage> {
-  const { data } = await apiClient.get<AuditLogPage>('/audit-logs', { params: filters });
   return data;
 }
 

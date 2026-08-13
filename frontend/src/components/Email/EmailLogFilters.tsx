@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react';
-import type { EmailLogQuery, EmailStatus, EmailType } from '../types/email';
+import type { EmailLogQuery, EmailStatus, EmailType } from '../../types/email';
 
 const STATUS_OPTIONS: EmailStatus[] = ['PENDING', 'QUEUED', 'SENT', 'FAILED', 'BOUNCED'];
 const TYPE_OPTIONS: EmailType[] = [

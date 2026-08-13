@@ -63,6 +63,8 @@ services:
       TOTP_ISSUER: ${TOTP_ISSUER:-Beleqet}
       # GdprGuardService refuses to construct without a 64-char hex key.
       GDPR_ENCRYPTION_KEY: ${GDPR_ENCRYPTION_KEY:?GDPR_ENCRYPTION_KEY is required (64 hex chars)}
+      # Encrypted inbox bootstrap requires the server-side E2EE key to be present.
+      E2EE_SERVER_KEY: ${E2EE_SERVER_KEY:?E2EE_SERVER_KEY is required (64 hex chars)}
       # The common EncryptionModule refuses to boot without a 64-char hex key.
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (64 hex chars)}
       # The auth module refuses to boot without the full OAuth set (see

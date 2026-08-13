@@ -14,13 +14,18 @@ const mockConfigService = {
   }),
 };
 
+import { ConfigService } from '@nestjs/config';
+
 describe('EncryptionService', () => {
   let service: EncryptionService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [EncryptionService, { provide: ENCRYPTION_KEY, useValue: TEST_ENCRYPTION_KEY }],
-      providers: [EncryptionService, { provide: ConfigService, useValue: mockConfigService }],
+      providers: [
+        EncryptionService,
+        { provide: ENCRYPTION_KEY, useValue: TEST_ENCRYPTION_KEY },
+        { provide: ConfigService, useValue: mockConfigService },
+      ],
     }).compile();
 
     service = module.get<EncryptionService>(EncryptionService);
@@ -55,15 +60,7 @@ describe('EncryptionService', () => {
     const wrongService = new EncryptionService(
       Buffer.from('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 'hex'),
     );
-    const wrongConfig = {
-      get: jest.fn((key: string) => {
-        if (key === 'TOTP_ENCRYPTION_KEY')
-          return 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
-        return undefined;
-      }),
-    };
 
-    const wrongService = new EncryptionService(wrongConfig as any);
     expect(() => wrongService.decrypt(ciphertext)).toThrow();
   });
 
