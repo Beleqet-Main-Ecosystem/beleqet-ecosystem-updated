@@ -28,6 +28,10 @@
  */
 const originalIntl = global.Intl;
 
+beforeEach(() => {
+  localStorage.clear();
+});
+
 beforeAll(() => {
   const symbolMap: Record<string, string> = {
     ETB: "Br",
@@ -186,22 +190,40 @@ function renderWithLocale(
   initialLocale: "en" | "am",
   callback: (t: (key: string) => string, helpers: { setLocale: (l: "en" | "am") => void; locale: string }) => void,
 ) {
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <I18nProvider>{children}</I18nProvider>
-  );
+  let currentT: (key: string) => string = () => "";
+  let currentLocale = initialLocale;
+
+  function TranslationProbe({ children }: { children: React.ReactNode }) {
+    const value = useTranslation();
+    currentT = value.t;
+    currentLocale = value.locale;
+    return React.createElement(React.Fragment, null, children);
+  }
+
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(
+      I18nProvider,
+      { initialLocale },
+      React.createElement(TranslationProbe, null, children),
+    );
 
   const { result } = renderHook(() => useTranslation(), { wrapper });
 
-  /* Set locale before running assertions. */
   if (initialLocale !== "en") {
     act(() => {
       result.current.setLocale(initialLocale);
     });
   }
 
-  callback(result.current.t, {
-    setLocale: (l) => act(() => result.current.setLocale(l)),
-    locale: result.current.locale,
+  callback((key) => currentT(key), {
+    setLocale: (l) => {
+      act(() => {
+        result.current.setLocale(l);
+      });
+      currentT = result.current.t;
+      currentLocale = result.current.locale;
+    },
+    locale: currentLocale,
   });
 }
 
@@ -249,57 +271,47 @@ describe("Translation lookup", () => {
   describe("Amharic (am) locale", () => {
     it("returns Amharic translations for navigation keys", () => {
       renderWithLocale("am", (t) => {
-        expect(t("nav.findJobs")).toBe("\u12e0\u1333\u1348\u12eb\u1275 \u12f0\u1235\u1293");
-        expect(t("nav.dashboard")).toBe("\u12e0\u12ac\u130b\u12f5 \u12b8\u1303");
-        expect(t("nav.profile")).toBe("\u1348\u1208\u1320\u1235");
+        expect(t("nav.findJobs")).toBe("ስራዎችን ፈልግ");
+        expect(t("nav.dashboard")).toBe("ዳሽቦርድ");
+        expect(t("nav.profile")).toBe("የግል መገለጫ");
       });
     });
 
     it("returns Amharic translations for dashboard keys", () => {
       renderWithLocale("am", (t) => {
-        expect(t("dashboard.greeting")).toBe("\u12e5\u1293 \u1293\u12a0\u12f0\u121b\u127d");
-        expect(t("dashboard.careerDashboard")).toBe(
-          "\u12e0\u1348\u1208\u12cd\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
-        );
-        expect(t("dashboard.hiringWorkspace")).toBe(
-          "\u12e0\u134b\u1308\u121d\u127d \u1235\u122b\u1228",
-        );
+        expect(t("dashboard.greeting")).toBe("እንኳን ደህና መጡ");
+        expect(t("dashboard.careerDashboard")).toBe("የስራ ዳሽቦርድ");
+        expect(t("dashboard.hiringWorkspace")).toBe("የመቀጠሪያ የስራ ቦታ");
       });
     });
 
     it("returns Amharic translations for badge keys", () => {
       renderWithLocale("am", (t) => {
-        expect(t("dashboard.employerBadge")).toBe(
-          "\u12e0\u134b\u1308\u121d\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
-        );
-        expect(t("dashboard.careerBadge")).toBe(
-          "\u12e0\u1348\u1208\u12cd\u127d \u12e1\u12ac\u130b\u12f5\u12e9 \u12b8\u1303",
-        );
+        expect(t("dashboard.employerBadge")).toBe("የአሰሪ ዳሽቦርድ");
+        expect(t("dashboard.careerBadge")).toBe("የስራ ፈላጊ ዳሽቦርድ");
       });
     });
 
     it("returns Amharic translations for stat keys", () => {
       renderWithLocale("am", (t) => {
-        expect(t("stat.totalJobs")).toBe("\u12a1\u1295\u122d \u12f0\u1235\u1293");
-        expect(t("stat.applications")).toBe("\u1333\u1350\u121d\u1235\u1270\u12ce\u1295");
+        expect(t("stat.totalJobs")).toBe("አጠቃላይ ስራዎች");
+        expect(t("stat.applications")).toBe("የገቡ ማመልከቻዎች");
       });
     });
 
     it("returns Amharic translations for GDPR keys", () => {
       renderWithLocale("am", (t) => {
-        expect(t("gdpr.title")).toBe("\u12e0\u1218\u130d\u120b\u12a0\u1235\u1295 \u1218\u1208\u1235\u1270\u12ce\u1295");
-        expect(t("gdpr.acceptAll")).toBe("\u12c8\u122d\u12ab\u1295\u1295 \u1235\u1235\u1293\u122d");
-        expect(t("gdpr.rejectOptional")).toBe(
-          "\u12a0\u1348\u1218\u120b\u12a0\u1235\u1295\u1295 \u1235\u12ce\u12eb",
-        );
+        expect(t("gdpr.title")).toBe("የግል ደህንነት ምርጫዎች");
+        expect(t("gdpr.acceptAll")).toBe("ሁሉንም ፍቀድ");
+        expect(t("gdpr.rejectOptional")).toBe("አማራጮቹን እምቢ");
       });
     });
 
     it("returns Amharic translations for common keys", () => {
       renderWithLocale("am", (t) => {
-        expect(t("common.loading")).toBe("\u12eb\u1328\u1291\u2026");
-        expect(t("common.retry")).toBe("\u12a0\u1290\u12ab\u1235 \u1235\u12f3\u12ad");
-        expect(t("common.noData")).toMatch(/\u12a0\u1295\u120b\u120d\u121d\u1295/);
+        expect(t("common.loading")).toBe("በመጫን ላይ…");
+        expect(t("common.retry")).toBe("እንደገና ሞክር");
+        expect(t("common.noData")).toMatch(/ምንም መረጃ የለም/);
       });
     });
   });
@@ -339,13 +351,13 @@ describe("Translation lookup", () => {
         setLocale("am");
 
         /* After switching, the same key returns Amharic. */
-        expect(t("dashboard.greeting")).toBe("\u12e5\u1293 \u1293\u12a0\u12f0\u121b\u127d");
+        expect(t("dashboard.greeting")).toBe("እንኳን ደህና መጡ");
       });
     });
 
     it("switches back from Amharic to English correctly", () => {
       renderWithLocale("am", (t, { setLocale }) => {
-        expect(t("dashboard.greeting")).toBe("\u12e5\u1293 \u1293\u12a0\u12f0\u121b\u127d");
+        expect(t("dashboard.greeting")).toBe("እንኳን ደህና መጡ");
 
         setLocale("en");
 

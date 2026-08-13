@@ -11,8 +11,9 @@
 set -Eeuo pipefail
 
 OUT="${1:-.env}"
+OAUTH_TOKEN_ENCRYPTION_KEY="$(openssl rand -base64 32)"
 
-cat >"$OUT" <<'EOF'
+cat >"$OUT" <<EOF
 NODE_ENV=test
 PORT=4000
 FRONTEND_URL=http://localhost:3000
@@ -29,7 +30,7 @@ SESSION_SECRET=ci_session_secret_synthetic_value
 TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
 TOTP_TEMP_SECRET=ci_test_totp_secret_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TOTP_ISSUER=Beleqet
-OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=
+OAUTH_TOKEN_ENCRYPTION_KEY=${OAUTH_TOKEN_ENCRYPTION_KEY}
 GOOGLE_CLIENT_ID=synthetic_google_client_id
 GOOGLE_CLIENT_SECRET=synthetic_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:4000/api/v1/auth/google/callback

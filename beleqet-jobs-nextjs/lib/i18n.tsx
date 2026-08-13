@@ -290,13 +290,23 @@ function getPersistedLocale(): SupportedLocale {
  * </I18nProvider>
  * ```
  */
-export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<SupportedLocale>(DEFAULT_LOCALE);
+export function I18nProvider({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: SupportedLocale;
+}) {
+  const [locale, setLocaleState] = useState<SupportedLocale>(initialLocale ?? getPersistedLocale());
 
-  /* Hydrate from localStorage after mount. */
+  /* Hydrate from localStorage after mount when no explicit initial locale was supplied. */
   useEffect(() => {
+    if (initialLocale) {
+      setLocaleState(initialLocale);
+      return;
+    }
     setLocaleState(getPersistedLocale());
-  }, []);
+  }, [initialLocale]);
 
   /**
    * Switch the active locale and persist the choice.

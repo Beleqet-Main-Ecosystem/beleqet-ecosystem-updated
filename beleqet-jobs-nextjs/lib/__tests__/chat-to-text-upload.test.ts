@@ -1,20 +1,10 @@
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { renderHook } from '@testing-library/react';
 import { useTranscription } from '../../hooks/useTranscription';
-
-function HookProbe() {
-  const { transcribeUploadedFile } = useTranscription();
-  return React.createElement(
-    'div',
-    null,
-    typeof transcribeUploadedFile === 'function' ? 'ready' : 'missing',
-  );
-}
 
 describe('useTranscription upload support', () => {
   it('exposes an upload transcription helper', () => {
-    const html = renderToStaticMarkup(React.createElement(HookProbe));
-    expect(html).toContain('ready');
+    const { result } = renderHook(() => useTranscription());
+    expect(typeof result.current.transcribeUploadedFile).toBe('function');
   });
 });

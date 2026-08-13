@@ -1,9 +1,10 @@
 // @jest-environment jsdom
 
-import React from "react";
+import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { act } from "react-dom/test-utils";
 import { ThemeProvider, useTheme } from "../../components/ThemeProvider";
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 import {
   applyThemePreference,
   getResolvedTheme,
