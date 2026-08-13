@@ -23,12 +23,7 @@ permissions:
   contents: read
 
 env:
-<<<<<<< HEAD
   NODE_VERSION: '22'
-=======
-  NODE_VERSION: '20'
-  NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
->>>>>>> tmp/pr193
 
 jobs:
   # ── Repository, workflow, and script validation ────────────────────────────
