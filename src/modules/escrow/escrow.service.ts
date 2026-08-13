@@ -79,73 +79,6 @@ export class EscrowService {
         ) {
           throw new ConflictException('Escrow is already funded or active for this gig.');
         }
-        `Escrow initiated without a contract for job ${freelanceJobId} — using budgetMax. Consider initiating escrow after bid acceptance.`,
-
-    const employerWallet = await this.prisma.employerWallet.findUnique({
-      where: { userId: clientId },
-    const availableBalance = employerWallet?.balance || 0;
-
-    let amountToPay = grossAmount;
-    let walletAppliedAmount = 0;
-
-    if (availableBalance > 0) {
-      if (availableBalance >= grossAmount) {
-        amountToPay = 0;
-        walletAppliedAmount = grossAmount;
-      } else {
-        amountToPay = grossAmount - availableBalance;
-        walletAppliedAmount = availableBalance;
-
-      const updateResult = await this.prisma.employerWallet.updateMany({
-        where: { userId: clientId, balance: { gte: walletAppliedAmount } },
-        data: {
-          balance: { decrement: walletAppliedAmount },
-          lockedBalance: { increment: walletAppliedAmount },
-        },
-      if (updateResult.count === 0) {
-        throw new BadRequestException('Insufficient balance or concurrent transaction');
-
-
-
-    const escrow = await this.prisma.escrowTransaction.upsert({
-      update: {
-        grossAmount,
-        platformFee,
-        netAmount,
-        walletAppliedAmount,
-        status: amountToPay === 0 ? 'FUNDED' : 'PENDING',
-        gatewayRef: txRef,
-      },
-      create: {
-        freelanceJobId,
-        grossAmount,
-        platformFee,
-        netAmount,
-        walletAppliedAmount,
-        status: amountToPay === 0 ? 'FUNDED' : 'PENDING',
-        gatewayRef: txRef,
-      },
-
-    if (walletAppliedAmount > 0 && amountToPay > 0) {
-      // Queue a job to unlock funds if Chapa payment is not completed in 24 hours
-      await this.escrowQueue.add(
-        ESCROW_JOBS.UNLOCK_FUNDS,
-        {
-          escrowId: escrow.id,
-          clientId,
-          amount: walletAppliedAmount,
-        },
-        { delay: 24 * 60 * 60 * 1000 },
-
-    if (amountToPay === 0) {
-      await this.prisma.employerWalletTransaction.create({
-        data: {
-          walletId: employerWallet!.id,
-          type: 'DEBIT_WITHDRAWAL',
-          amount: walletAppliedAmount,
-          note: `Fully funded escrow for job ${freelanceJobId}`,
-          escrowId: escrow.id,
-        },
 
         if (existingEscrow.status === 'PENDING') {
           return {
@@ -165,7 +98,6 @@ export class EscrowService {
 
       const employerWallet = await tx.employerWallet.findUnique({
         where: { userId: clientId },
-        data: { lockedBalance: { decrement: walletAppliedAmount } },
       });
       const availableBalance = employerWallet?.balance || 0;
       let amountToPay = grossAmount;
@@ -223,36 +155,6 @@ export class EscrowService {
             note: `Fully funded escrow for job ${freelanceJobId}`,
             escrowId: escrow.id,
           },
-      this.logger.log(
-        `Escrow initiated (fully funded via wallet): ${escrow.id} for job ${freelanceJobId} — amount: ETB ${grossAmount}`,
-      );
-      return {
-        checkoutUrl: null,
-
-    let checkoutUrl = `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${escrow.id}`;
-
-    const chapaSecret = this.config.get<string>('CHAPA_SECRET_KEY');
-    if (chapaSecret) {
-      try {
-        const response = await fetch('https://api.chapa.co/v1/transaction/initialize', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${chapaSecret}`,
-            'Content-Type': 'application/json',
-          body: JSON.stringify({
-            amount: amountToPay.toString(),
-            email: job.client.email,
-            first_name: job.client.firstName,
-            last_name: job.client.lastName,
-            tx_ref: txRef,
-            callback_url: this.config.get<string>('CHAPA_CALLBACK_URL'),
-            return_url: this.config.get<string>('CHAPA_RETURN_URL'),
-            customization: {
-              title: 'Beleqet Escrow',
-              description: `Payment for Gig - ${job.title}`
-                .replace(/[^a-zA-Z0-9\-_\.\s]/g, '')
-                .substring(0, 50),
-          }),
         });
 
         await tx.employerWallet.update({
@@ -357,8 +259,6 @@ export class EscrowService {
         this.logger.error(`Failed to initialize Chapa checkout: ${(err as Error).message}`);
       }
     }
-    this.logger.log(
-      `Escrow initiated: ${escrow.id} for job ${freelanceJobId} — amountToPay: ETB ${amountToPay}, walletApplied: ETB ${walletAppliedAmount}`,
 
     this.eventEmitter.emit('payment.escrow.initiated', {
       escrowId: escrow.id,
@@ -374,9 +274,6 @@ export class EscrowService {
       grossAmount: escrow.grossAmount,
       platformFee: funding.platformFee,
       netAmount: funding.netAmount,
-      grossAmount,
-      platformFee,
-      netAmount,
       walletAppliedAmount,
       amountToPay,
     };
@@ -432,15 +329,6 @@ export class EscrowService {
           where: {
             id: milestoneId,
             contract: { OR: [{ clientId: userId }, { freelancerId: userId }] },
-      await tx.eventLog.create({
-        data: {
-          eventType: 'milestone.approved',
-          entityId: milestoneId,
-          entityType: 'Milestone',
-          payload: {
-            milestoneId,
-            freelancerId: milestone.contract.freelancerId,
-            amount: milestone.amount,
           },
           include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
         });
@@ -524,17 +412,6 @@ export class EscrowService {
       }
 
       const wallet = await tx.freelancerWallet.upsert({
-    try {
-      const contractCurrency = milestone.contract.currency || 'ETB';
-      const grossAmountInETB = this.walletSvc.convertCurrency(
-        milestone.amount,
-        contractCurrency,
-        'ETB',
-      );
-      const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
-      const netAmountInETB = grossAmountInETB - platformFee;
-
-      await this.prisma.freelancerWallet.upsert({
         where: { userId: milestone.contract.freelancerId },
         update: { pendingBalance: { increment: netAmountInETB } },
         create: {
@@ -578,10 +455,6 @@ export class EscrowService {
         milestone.approvedAt ?? approvedAt,
       );
       return { success: true, released: true, alreadyReleased: true };
-    } catch (err) {
-      this.logger.error(
-        `Failed to enqueue auto-release for milestone ${milestoneId}`,
-        err instanceof Error ? err.stack : err,
     }
 
     await this.enqueueMilestoneAutoRelease(milestone, netAmountInETB, approvedAt);

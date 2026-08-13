@@ -45,7 +45,11 @@ export class MatchingService {
    * category is expected to be in the hundreds, not millions, so this is
    * simpler to test and adjust than an equivalent SQL scoring expression.
    */
-  async getRankedMatches(jobId: string, minScorePercent: number, limit: number): Promise<MatchResultDto[]> {
+  async getRankedMatches(
+    jobId: string,
+    minScorePercent: number,
+    limit: number,
+  ): Promise<MatchResultDto[]> {
     const job = await this.prisma.freelanceJob.findUnique({
       where: { id: jobId },
       select: {
@@ -105,9 +109,13 @@ export class MatchingService {
 
     await this.persistScores(jobId, scored);
 
-    const filtered = scored.filter((result) => result.overallScore >= minScorePercent).sort((a, b) => b.overallScore - a.overallScore);
+    const filtered = scored
+      .filter((result) => result.overallScore >= minScorePercent)
+      .sort((a, b) => b.overallScore - a.overallScore);
 
-    this.logger.log(`Scored ${scored.length} candidates for job ${jobId}; ${filtered.length} passed minScore=${minScorePercent}`);
+    this.logger.log(
+      `Scored ${scored.length} candidates for job ${jobId}; ${filtered.length} passed minScore=${minScorePercent}`,
+    );
 
     return filtered.slice(0, limit);
   }
@@ -156,7 +164,9 @@ export class MatchingService {
     } catch (error) {
       // Best-effort cache write — log and continue rather than failing the
       // employer's request over a persistence hiccup.
-      this.logger.warn(`Failed to persist match scores for job ${jobId}: ${(error as Error).message}`);
+      this.logger.warn(
+        `Failed to persist match scores for job ${jobId}: ${(error as Error).message}`,
+      );
     }
   }
 }
