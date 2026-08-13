@@ -6,10 +6,6 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 export type MessageMetadata =
   { type: 'file'; url: string; name: string } | { type: 'video_call'; link: string };
 
-/** Structured metadata attached to non-plain-text chat messages */
-export type MessageMetadata =
-  { type: 'file'; url: string; name: string } | { type: 'video_call'; link: string };
-
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -55,7 +51,7 @@ export class ChatService {
    * @param metadata Optional message metadata.
    * @returns The saved message with sender details.
    */
-  async saveMessage(roomId: string, senderId: string, content: string, metadata?: any) {
+  async saveMessage(roomId: string, senderId: string, content: string, metadata?: MessageMetadata) {
     // Verify user is in room
     const participant = await this.prisma.chatParticipant.findUnique({
       where: { roomId_userId: { roomId, userId: senderId } },
@@ -72,7 +68,6 @@ export class ChatService {
         roomId,
         senderId,
         content: encryptedContent,
-        content,
         metadata,
       },
       include: {
@@ -84,7 +79,6 @@ export class ChatService {
             avatarUrl: true,
             role: true,
           },
-          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
         },
       },
     });
@@ -148,7 +142,6 @@ export class ChatService {
           content: '[Unable to decrypt message]',
         };
       }
-          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
     });
   }
 }

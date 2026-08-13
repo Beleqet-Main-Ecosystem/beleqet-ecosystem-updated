@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request = require('supertest');
+import * as request from 'supertest';
 import { ChatToTextController } from './chat-to-text.controller';
 import { ChatToTextService } from './chat-to-text.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -100,10 +100,7 @@ describe('ChatToTextController (Integration)', () => {
     });
 
     it('should validate required fields', async () => {
-      await request(app.getHttpServer())
-        .post('/chat-to-text')
-        .send({ language: 'en' })
-        .expect(400);
+      await request(app.getHttpServer()).post('/chat-to-text').send({ language: 'en' }).expect(400);
     });
   });
 

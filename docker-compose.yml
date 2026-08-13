@@ -28,8 +28,7 @@ services:
     container_name: beleqet2-backend
     restart: unless-stopped
     ports:
-      - '4002:4000'
-      - '4001:4001'
+      - '4000:4000'
     environment:
       - NODE_ENV=development
       - PORT=4000
@@ -47,10 +46,10 @@ services:
       - OAUTH_TOKEN_ENCRYPTION_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       - GOOGLE_CLIENT_ID=docker-google-client-id
       - GOOGLE_CLIENT_SECRET=docker-google-client-secret
-      - GOOGLE_CALLBACK_URL=http://localhost:4002/api/v1/auth/google/callback
+      - GOOGLE_CALLBACK_URL=http://localhost:4000/api/v1/auth/google/callback
       - LINKEDIN_CLIENT_ID=docker-linkedin-client-id
       - LINKEDIN_CLIENT_SECRET=docker-linkedin-client-secret
-      - LINKEDIN_CALLBACK_URL=http://localhost:4002/api/v1/auth/linkedin/callback
+      - LINKEDIN_CALLBACK_URL=http://localhost:4000/api/v1/auth/linkedin/callback
       - APP_BASE_URL=http://localhost:3001
       - BULL_BOARD_USERNAME=admin
       - BULL_BOARD_PASSWORD=admin
@@ -70,7 +69,7 @@ services:
       - CHAPA_PUBLIC_KEY=CHAPUBK_TEST-dummy
       - CHAPA_WEBHOOK_SECRET=docker_chapa_webhook_secret
       - CHAPA_CALLBACK_URL=http://localhost:4000/api/v1/escrow/callback
-      - CHAPA_RETURN_URL=http://localhost:4001/freelance/payment-success
+      - CHAPA_RETURN_URL=http://localhost:4000/freelance/payment-success
       - SMTP_HOST=smtp.ethereal.email
       - SMTP_PORT=587
       - SMTP_SECURE=false
@@ -88,8 +87,6 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     container_name: beleqet2-frontend
-        - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
-    container_name: beleqet-frontend
     restart: unless-stopped
     ports:
       - '3000:3000'
@@ -105,14 +102,11 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
     container_name: beleqet2-jobs-frontend
-        - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
-    container_name: beleqet-jobs-frontend
     restart: unless-stopped
     ports:
       - '3001:3001'
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:4000/api/v1
-      - NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
     depends_on:
       - backend
 
