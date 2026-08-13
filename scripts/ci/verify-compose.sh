@@ -54,6 +54,7 @@ SMTP_HOST=localhost
 SMTP_USER=synthetic_smtp_user
 SMTP_PASSWORD=synthetic_smtp_password
 SMTP_FROM_ADDRESS=noreply@example.test
+UNSUBSCRIBE_SECRET=synthetic_unsubscribe_secret
 STRIPE_SECRET_KEY=sk_test_synthetic
 STRIPE_WEBHOOK_SECRET=whsec_synthetic
 PAYPAL_CLIENT_ID=synthetic_paypal_client_id
