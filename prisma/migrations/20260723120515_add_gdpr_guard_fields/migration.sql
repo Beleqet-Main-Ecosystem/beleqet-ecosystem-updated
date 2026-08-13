@@ -3,25 +3,25 @@
 -- DROP + CREATE INDEX can briefly lock busy tables — prefer a low-traffic window.
 
 -- DropIndex
-DROP INDEX "interview_evaluations_rawAiResponse_gin_idx";
+DROP INDEX IF EXISTS "interview_evaluations_rawAiResponse_gin_idx";
 
 -- DropIndex
-DROP INDEX "interview_evaluations_scores_gin_idx";
+DROP INDEX IF EXISTS "interview_evaluations_scores_gin_idx";
 
 -- DropIndex
-DROP INDEX "video_interviews_metadata_gin_idx";
+DROP INDEX IF EXISTS "video_interviews_metadata_gin_idx";
 
 -- DropIndex
-DROP INDEX "video_responses_rawWhisperResponse_gin_idx";
+DROP INDEX IF EXISTS "video_responses_rawWhisperResponse_gin_idx";
 
 -- CreateIndex
-CREATE INDEX "interview_evaluations_scores_idx" ON "interview_evaluations" USING GIN ("scores");
+CREATE INDEX IF NOT EXISTS "interview_evaluations_scores_idx" ON "interview_evaluations" USING GIN ("scores");
 
 -- CreateIndex
-CREATE INDEX "interview_evaluations_rawAiResponse_idx" ON "interview_evaluations" USING GIN ("rawAiResponse");
+CREATE INDEX IF NOT EXISTS "interview_evaluations_rawAiResponse_idx" ON "interview_evaluations" USING GIN ("rawAiResponse");
 
 -- CreateIndex
-CREATE INDEX "video_interviews_metadata_idx" ON "video_interviews" USING GIN ("metadata");
+CREATE INDEX IF NOT EXISTS "video_interviews_metadata_idx" ON "video_interviews" USING GIN ("metadata");
 
 -- CreateIndex
-CREATE INDEX "video_responses_rawWhisperResponse_idx" ON "video_responses" USING GIN ("rawWhisperResponse");
+CREATE INDEX IF NOT EXISTS "video_responses_rawWhisperResponse_idx" ON "video_responses" USING GIN ("rawWhisperResponse");

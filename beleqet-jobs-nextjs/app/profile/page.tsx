@@ -1,15 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, MapPin, Briefcase, FileText, Search, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  BadgeCheck,
+  Briefcase,
+  FileText,
+  Mail,
+  MapPin,
+  Search,
+  ShieldCheck,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import AvailabilityCard from '@/components/interview-planner/AvailabilityCard';
 import { useAuth } from '@/components/AuthProvider';
 import { roleMeta } from '@/components/HeaderAuth';
-import { authenticatedFetch } from '@/lib/auth';
-import AvailabilityCard from '@/components/interview-planner/AvailabilityCard';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { toast } from 'sonner';
+import { authenticatedFetch } from '@/lib/auth';
+
 type Profile = {
   headline?: string | null;
   bio?: string | null;
@@ -25,20 +34,15 @@ type Subscription = {
   plan: { name: string; priceAmount: number; currency: string };
 };
 
-const subscriptionStatusMeta: Record<Subscription['status'], { label: string; className: string }> =
-  {
-    PENDING: { label: 'Pending approval', className: 'text-muted' },
-    ACTIVE: { label: 'Active', className: 'text-brandGreen' },
-    PAST_DUE: { label: 'Payment failed', className: 'text-redAccent' },
-    CANCELLED: { label: 'Cancelled', className: 'text-muted' },
-    EXPIRED: { label: 'Expired', className: 'text-redAccent' },
-  };
 const subscriptionStatusMeta: Record<Subscription['status'], { label: string; className: string }> = {
+  PENDING: { label: 'Pending approval', className: 'text-muted' },
+  ACTIVE: { label: 'Active', className: 'text-brandGreen' },
+  PAST_DUE: { label: 'Payment failed', className: 'text-redAccent' },
+  CANCELLED: { label: 'Cancelled', className: 'text-muted' },
+  EXPIRED: { label: 'Expired', className: 'text-redAccent' },
+};
 
-const quickActionsByRole: Record<
-  string,
-  { label: string; href: string; icon: typeof Briefcase }[]
-> = {
+const quickActionsByRole: Record<string, { label: string; href: string; icon: typeof Briefcase }[]> = {
   JOB_SEEKER: [
     { label: 'Find Jobs', href: '/jobs', icon: Search },
     { label: 'My Applications', href: '/applications', icon: FileText },
@@ -61,53 +65,18 @@ export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
-  // All hooks must be registered unconditionally, before the loading-state
-  // early return below (React rules-of-hooks).
-  const [slots, setSlots] = useState([]);
-  const [editingSlot, setEditingSlot] = useState<any | null>(null);
   const [slots, setSlots] = useState<any[]>([]);
   const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [slots, setSlots] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (ready && !user) router.replace('/login');
-  }, [ready, user, router]);
-
-  useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-    authenticatedFetch(`${base}/users/profile`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => data && setProfile(data))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (ready && user) {
-      void loadAvailability();
-      void loadSubscription();
-    }
-  }, [ready, user]);
-
-  if (!ready || !user) {
-    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
-  }
-
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
-  const role = roleMeta[user.role] ?? {
-    label: user.role,
-    className: 'bg-muted/10 text-muted',
-  };
-  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
   const loadAvailability = async () => {
-    const res = await authenticatedFetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
-    );
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const res = await authenticatedFetch(`${base}/interview-planner/availability`);
     const data = await res.json();
-    setSlots(data);
+    setSlots(data || []);
   };
 
   const loadSubscription = async () => {
@@ -117,6 +86,28 @@ export default function ProfilePage() {
     const data = await res.json();
     setSubscription(data ?? null);
   };
+
+  useEffect(() => {
+    if (ready && !user) {
+      router.replace('/login');
+    }
+  }, [ready, user, router]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    authenticatedFetch(`${base}/users/profile`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setProfile(data ?? null))
+      .catch(() => setProfile(null));
+  }, [ready]);
+
+  useEffect(() => {
+    if (ready && user) {
+      void loadAvailability();
+      void loadSubscription();
+    }
+  }, [ready, user]);
 
   const cancelSubscription = async () => {
     if (!subscription) return;
@@ -144,14 +135,10 @@ export default function ProfilePage() {
 
     try {
       setDeleting(true);
-
-      const res = await authenticatedFetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability/${deleteSlotId}`,
-        {
-          method: 'DELETE',
-        },
-      );
-
+      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+      const res = await authenticatedFetch(`${base}/interview-planner/availability/${deleteSlotId}`, {
+        method: 'DELETE',
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -159,55 +146,13 @@ export default function ProfilePage() {
       }
 
       await loadAvailability();
-
-      toast.success(data.message);
+      toast.success(data.message || 'Availability slot deleted.');
     } catch (err) {
       console.error(err);
-
       toast.error(err instanceof Error ? err.message : 'Failed to delete availability slot.');
     } finally {
       setDeleting(false);
       setDeleteSlotId(null);
-    }
-  };
-
-  useEffect(() => {
-    // Availability only loads for an authenticated user — matches the
-    // original behavior where this effect sat below the auth guard.
-    if (ready && user) loadAvailability();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user]);
-
-  const loadSubscription = async () => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-    const res = await authenticatedFetch(`${base}/subscriptions/me`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setSubscription(data ?? null);
-  };
-
-  useEffect(() => {
-    if (ready && user) loadSubscription();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user]);
-
-  const cancelSubscription = async () => {
-    if (!subscription) return;
-    try {
-      setCancelling(true);
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-      const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to cancel subscription');
-      await loadSubscription();
-      toast.success('Your subscription will not renew after the current period ends.');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to cancel subscription.');
-    } finally {
-      setCancelling(false);
-      setCancelConfirmOpen(false);
     }
   };
 
@@ -255,7 +200,7 @@ export default function ProfilePage() {
           <Link
             key={a.label}
             href={a.href}
-            className="flex items-center gap-3 rounded-2xl border border-border bg-white p-5 hover:border-brandGreen hover:shadow-card transition-all"
+            className="flex items-center gap-3 rounded-2xl border border-border bg-white p-5 transition-all hover:border-brandGreen hover:shadow-card"
           >
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brandGreen/10 text-brandGreen">
               <a.icon className="h-5 w-5" />
@@ -269,12 +214,11 @@ export default function ProfilePage() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border border-border bg-white p-6">
+        <div className="rounded-2xl border border-border bg-white p-6 lg:col-span-2">
           <h2 className="text-sm font-semibold text-ink">About</h2>
           {profile?.headline && <p className="mt-3 font-medium text-ink">{profile.headline}</p>}
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            {profile?.bio ||
-              'You haven’t added a bio yet. A short summary helps employers get to know you.'}
+            {profile?.bio || 'You haven’t added a bio yet. A short summary helps employers get to know you.'}
           </p>
           {profile?.location && (
             <p className="mt-4 flex items-center gap-1.5 text-sm text-muted">
@@ -283,12 +227,12 @@ export default function ProfilePage() {
           )}
           {profile?.skills && profile.skills.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-2">
-              {profile.skills.map((s) => (
+              {profile.skills.map((skill) => (
                 <span
-                  key={s}
+                  key={skill}
                   className="rounded-full border border-border bg-pageBg px-3 py-1 text-xs font-medium text-muted"
                 >
-                  {s}
+                  {skill}
                 </span>
               ))}
             </div>
@@ -332,9 +276,6 @@ export default function ProfilePage() {
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-pageBg p-4">
             <div>
               <p className="font-semibold text-ink">{subscription.plan.name}</p>
-              <p
-                className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}
-              >
               <p className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}>
                 {subscriptionStatusMeta[subscription.status].label}
                 {subscription.status === 'ACTIVE' &&
@@ -359,7 +300,6 @@ export default function ProfilePage() {
               Upgrade anytime
             </Link>
             .
-            You&apos;re on the Free plan. <Link href="/pricing" className="font-semibold text-brandGreen">Upgrade anytime</Link>.
           </p>
         )}
       </div>
@@ -368,9 +308,7 @@ export default function ProfilePage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold text-ink">Your Interview Availability</h2>
-            <p className="text-sm text-muted">
-              Add and update your available interview time slots.
-            </p>
+            <p className="text-sm text-muted">Add and update your available interview time slots.</p>
           </div>
         </div>
         <AvailabilityCard
@@ -379,6 +317,7 @@ export default function ProfilePage() {
           onDelete={(id) => setDeleteSlotId(id)}
         />
       </div>
+
       <ConfirmDialog
         open={!!deleteSlotId}
         onOpenChange={(open) => {
@@ -392,6 +331,7 @@ export default function ProfilePage() {
         destructive
         onConfirm={handleDelete}
       />
+
       <ConfirmDialog
         open={cancelConfirmOpen}
         onOpenChange={(open) => !open && setCancelConfirmOpen(false)}

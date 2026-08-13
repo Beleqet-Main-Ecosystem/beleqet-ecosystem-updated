@@ -12,6 +12,7 @@ import type {
   UserGrowthChartResponse,
   ProjectBreakdownResponse,
   StatsQueryParams,
+  AuditLog,
   AuditLogPage,
   AuditLogFilters,
   Notification,
@@ -20,14 +21,20 @@ import type {
   ThemePreferenceResponse,
   PromotionCampaign,
   CampaignAnalytics,
+  MatchResult,
 } from '@/types';
-import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, MatchResult } from '@/types';
-import type { ThemePreference } from '@/components/theme/theme-preference';
 
-/** API response shape for the minimal persisted user theme setting. */
-export interface ThemePreferenceResponse {
-  theme: ThemePreference;
+export interface AuditLogListResponse {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
+
+export type AuditLogQuery = Partial<AuditLogFilters> & {
+  format?: 'json' | 'csv';
+};
 
 /** Fetches the current authenticated user's persisted theme preference. */
 export async function getThemePreference(): Promise<ThemePreferenceResponse> {
@@ -44,9 +51,6 @@ export async function updateThemePreference(
   });
   return data;
 }
-  AuditLogListResponse,
-  AuditLogQuery,
-
 /** Logs in a user and stores the JWT token in localStorage */
 export async function login(email: string, password: string): Promise<AuthResponse> {
   const { data } = await apiClient.post<AuthResponse>('/auth/login', { email, password });

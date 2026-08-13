@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation, Locale } from '../../lib/i18n';
 import { CurrencyUtil } from '../../lib/currency';
 import {
@@ -80,13 +80,35 @@ export default function StorageDashboard(): React.ReactElement {
   }, []);
 
   // Fetch files when token changes
+  const fetchUserFiles = useCallback(async (): Promise<void> => {
+    if (!token) return;
+    setIsLoadingFiles(true);
+
+    try {
+      const response = await fetch('http://localhost:4000/api/v1/storage/my-files', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to retrieve file list.');
+      }
+
+      const list = (await response.json()) as StoredFile[];
+      setFiles(list);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (token) {
-      fetchUserFiles();
+      void fetchUserFiles();
     } else {
       setFiles([]);
     }
-  }, [token]);
+  }, [token, fetchUserFiles]);
 
   /**
    * Performs authentication request to the backend with specified credentials
@@ -130,33 +152,6 @@ export default function StorageDashboard(): React.ReactElement {
     localStorage.removeItem('beleqet_token');
     setFiles([]);
     setActiveFileUrls({});
-  };
-
-  /**
-   * Retrieves the listing of files uploaded by the active authenticated user from the backend.
-   *
-   * @throws Error if the HTTP request fails.
-   */
-  const fetchUserFiles = async (): Promise<void> => {
-    if (!token) return;
-    setIsLoadingFiles(true);
-
-    try {
-      const response = await fetch('http://localhost:4000/api/v1/storage/my-files', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to retrieve file list.');
-      }
-
-      const list = (await response.json()) as StoredFile[];
-      setFiles(list);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoadingFiles(false);
-    }
   };
 
   /**

@@ -378,7 +378,7 @@ export class WebhookProcessorService {
 
     // Activate user subscription
     const userUpdateFields = {
-      subscriptionStatus: 'active',
+      subscriptionStatus: 'ACTIVE' as const,
       externalSubscriptionId: event.externalTransactionId,
     };
 
@@ -425,7 +425,7 @@ export class WebhookProcessorService {
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
-        subscriptionStatus: 'cancelled',
+        subscriptionStatus: 'CANCELLED' as const,
       },
     });
 

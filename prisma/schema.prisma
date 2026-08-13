@@ -78,10 +78,24 @@ model User {
   userPreference          UserPreference?
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
-  auditLogs             AuditLog[]
-  promotionCampaigns    PromotionCampaign[]
+  auditLogs               AuditLog[]
+  promotionCampaigns      PromotionCampaign[]
   fraudAlerts             FraudAlert[]             @relation("AlertUser")
   resolvedFraudAlerts     FraudAlert[]             @relation("AlertResolver")
+  resumeUploads           ResumeUpload[]
+  parsedResumes          ParsedResume[]
+  encryptedConversationsInitiated EncryptedConversation[] @relation("InitiatedEncryptedConversations")
+  encryptedConversationsReceived  EncryptedConversation[] @relation("ReceivedEncryptedConversations")
+  encryptedMessages      EncryptedMessage[]        @relation("EncryptedMessageSender")
+  e2EKeyPairs            E2EKeyPair[]
+  gdprConsents           GdprConsent[]
+
+  gdprConsentDate         DateTime?
+  gdprConsentRevoked      Boolean                  @default(false)
+  gdprConsentRevokedAt    DateTime?
+  externalCustomerId      String?                  @unique
+  externalSubscriptionId  String?                  @unique
+  subscriptionStatus      SubscriptionStatus?      @default(ACTIVE)
 
   email_logs      EmailLog[]
 
@@ -1839,14 +1853,127 @@ model PaymentTransaction {
 }
 
 /// GDPR consent tracking for webhook data processing.
+enum ResumeUploadStatus {
+  PENDING
+  PARSING
+  PARSED
+  FAILED
+}
+
+model ResumeUpload {
+  id               String             @id @default(uuid())
+  userId           String
+  originalFilename String
+  storageKey       String
+  storageUrl       String
+  mimeType         String
+  fileSizeBytes    Int
+  status           ResumeUploadStatus @default(PENDING)
+  consentGiven     Boolean            @default(false)
+  consentAt        DateTime?
+  failureReason    String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parsedResume ParsedResume?
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("resume_uploads")
+}
+
+model ParsedResume {
+  id               String   @id @default(uuid())
+  resumeUploadId   String   @unique
+  userId           String
+  personalInfo     Json?
+  education        Json?
+  workExperience   Json?
+  skills           String[] @default([])
+  certifications   Json?
+  languages        Json?
+  extractionEngine String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  resumeUpload ResumeUpload @relation(fields: [resumeUploadId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("parsed_resumes")
+}
+
+enum EncryptedConversationStatus {
+  ACTIVE
+  ARCHIVED
+  BLOCKED
+}
+
+model EncryptedConversation {
+  id          String                      @id @default(uuid())
+  initiatorId String
+  responderId String
+  status      EncryptedConversationStatus @default(ACTIVE)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+
+  initiator User             @relation("InitiatedEncryptedConversations", fields: [initiatorId], references: [id], onDelete: Cascade)
+  responder User             @relation("ReceivedEncryptedConversations", fields: [responderId], references: [id], onDelete: Cascade)
+  messages  EncryptedMessage[]
+
+  @@unique([initiatorId, responderId])
+  @@index([initiatorId, updatedAt])
+  @@index([responderId, updatedAt])
+  @@map("encrypted_conversations")
+}
+
+model EncryptedMessage {
+  id                 String    @id @default(uuid())
+  conversationId     String
+  senderId           String
+  ciphertext         String
+  iv                 String
+  encryptedMetadata  Json?
+  isDeleted          Boolean   @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  conversation EncryptedConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                 @relation("EncryptedMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("encrypted_messages")
+}
+
+model E2EKeyPair {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  publicKey            String
+  encryptedPrivateKey  String
+  algorithm            String   @default("RSA-OAEP-256")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("e2e_key_pairs")
+}
+
 model GdprConsent {
   id          String    @id @default(uuid())
+  userId      String
   purpose     String
   version     String    @default("1.0")
   consentedAt DateTime  @default(now())
   revokedAt   DateTime?
   createdAt   DateTime  @default(now())
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
   @@index([purpose])
   @@map("gdpr_consents")
 }
