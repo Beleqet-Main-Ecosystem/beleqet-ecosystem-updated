@@ -261,3 +261,83 @@
     *{ animation:none !important; transition:none !important; }
     .marquee-track{ flex-wrap:wrap; }
   }
+
+
+  /* ==========================
+   Tibeb Hero Background
+========================== */
+
+.hero-shell {
+  position: relative;
+  overflow: hidden;
+  background: #073b26;
+}
+
+/* Main Tibeb pattern */
+.hero-shell::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+
+  /* Position the pattern behind the hero content */
+  top: 55px;
+
+  height: 90px;
+
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 12px,
+      rgba(190, 255, 35, 0.05) 12px 22px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 12px,
+      rgba(179, 255, 3, 0.05) 12px 22px
+    );
+
+  background-size: 70px 70px;
+
+  opacity: 0.65;
+
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Second Tibeb band */
+.hero-shell::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+
+  top: 500px;
+
+  height: 90px;
+
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 12px,
+      rgba(190, 255, 35, 0.05) 12px 22px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 12px,
+      rgba(190, 255, 35, 0.05) 12px 22px
+    );
+
+  background-size: 70px 70px;
+
+  opacity: 0.55;
+
+  pointer-events: none;
+  z-index: 0;
+}
+
+
+.hero-shell > * {
+  position: relative;
+  z-index: 1;
+}

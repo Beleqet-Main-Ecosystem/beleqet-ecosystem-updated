@@ -424,6 +424,7 @@ export default function Home() {
 
   return (
     <>
+     <div className="tibeb-page-bg"></div>
       <header className="nav" id="site-nav">
         <div className="wordmark-row">
           <span className="logo-dot">
@@ -1067,6 +1068,12 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      <div className="tibeb-strip" aria-hidden="true">
+  <div className="tibeb-layer tibeb-yellow"></div>
+  <div className="tibeb-layer tibeb-green"></div>
+  <div className="tibeb-layer tibeb-red"></div>
+</div>
 
       <footer>
         <div className="foot-inner">
