@@ -36,6 +36,7 @@ jest.mock('paypal-rest-sdk', () => ({
   notification: { webhookEvent: { verify: jest.fn() } },
 }));
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as paypal from 'paypal-rest-sdk';
 
 /** Node-style callback shape used by every mocked paypal-rest-sdk method. */
@@ -134,6 +135,7 @@ async function buildModule(configExtra: Record<string, string> = {}): Promise<{
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       PaypalService,
+      { provide: EventEmitter2, useValue: { emit: jest.fn(), on: jest.fn(), off: jest.fn() } },
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
     ],

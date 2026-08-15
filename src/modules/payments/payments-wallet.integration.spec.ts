@@ -412,7 +412,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       expect(result.success).toBe(true);
       expect(result.amount).toBe(500);
       expect(result.method).toBe('CHAPA');
-      expect(result.status).toBe('PENDING');
+      expect((result as any).status).toBe('PENDING');
       expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
       expect(mockWalletQueue.add).toHaveBeenCalledWith(
         WALLET_JOBS.PROCESS_WITHDRAWAL,
@@ -446,7 +446,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       const result = await ctx.walletService.withdraw('user-001', dto);
 
       expect(result.success).toBe(true);
-      expect(result.amountInETB).toBe(1205);
+      expect((result as any).amountInETB).toBe(1205);
       expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
       expect(mockWalletQueue.add).toHaveBeenCalledWith(
         WALLET_JOBS.PROCESS_WITHDRAWAL,

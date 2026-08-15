@@ -63,7 +63,7 @@ export class DbIndexMasterService {
    * @throws BadRequestException  if DDL / dangerous keywords are present.
    * @throws InternalServerErrorException on query execution failure.
    */
-  async explainQuery(sql: string, params: unknown[] = []): Promise<ExplainResult> {
+  async explainQuery(sql: string, _params: unknown[] = []): Promise<ExplainResult> {
     this.validateQuerySql(sql);
 
     const sanitisedForLog = this.sanitiseSqlForLog(sql);

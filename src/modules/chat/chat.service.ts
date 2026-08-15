@@ -140,7 +140,7 @@ export class ChatService {
           ...message,
           content: this.encryptionService.decrypt(message.content),
         };
-      } catch (error) {
+      } catch {
         this.logger.error(`Failed to decrypt message ${message.id}`);
 
         return {
