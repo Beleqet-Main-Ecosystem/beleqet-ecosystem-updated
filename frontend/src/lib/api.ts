@@ -389,3 +389,122 @@ export async function getFreelanceJob(jobId: string): Promise<FreelanceJobSummar
   const { data } = await apiClient.get<FreelanceJobSummary>(`/freelance/jobs/${jobId}`);
   return data;
 }
+
+// ─── Manual Payment ──────────────────────────────────────────────────────────
+
+export interface ManualPaymentRecord {
+  id: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  transactionReference: string | null;
+  receiptUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Create a new PENDING manual payment record on the backend.
+ */
+export async function createManualPayment(
+  amount: number,
+  currency: string,
+  description?: string,
+): Promise<ManualPaymentRecord> {
+  const res = await apiClient.post<ManualPaymentRecord>('/manual-payment', {
+    amount,
+    currency,
+    description,
+  });
+  return res.data;
+}
+
+/**
+ * Upload a payment receipt + transaction reference for a pending manual payment.
+ * Uses multipart/form-data so the file is streamed to the backend.
+ */
+export async function submitManualPaymentReceipt(
+  paymentId: string,
+  transactionReference: string,
+  receiptFile: File,
+): Promise<ManualPaymentRecord> {
+  const form = new FormData();
+  form.append('paymentId', paymentId);
+  form.append('transactionReference', transactionReference);
+  form.append('receipt', receiptFile);
+
+  const res = await apiClient.post<ManualPaymentRecord>(
+    '/manual-payment/submit-receipt',
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return res.data;
+}
+
+/**
+ * [Admin] Fetch paginated list of all manual payments.
+ */
+export async function fetchManualPayments(
+  page = 1,
+  limit = 20,
+): Promise<ManualPaymentRecord[]> {
+  const res = await apiClient.get<ManualPaymentRecord[]>('/manual-payment/admin', {
+    params: { page, limit },
+  });
+  return res.data;
+}
+
+// ─── Fraud Alerts ────────────────────────────────────────────────────────────
+
+import type { FraudAlert, FraudRule, PaginatedResponse } from '@/types/fraud';
+
+export async function getFraudAlerts(params?: {
+  status?: string;
+  severity?: string;
+  ruleType?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedResponse<FraudAlert>> {
+  const res = await apiClient.get<PaginatedResponse<FraudAlert>>('/admin/fraud/alerts', {
+    params,
+  });
+  return res.data;
+}
+
+export async function getFraudAlert(
+  id: string,
+): Promise<{ alert: FraudAlert; context: Record<string, unknown> }> {
+  const res = await apiClient.get<{ alert: FraudAlert; context: Record<string, unknown> }>(
+    `/admin/fraud/alerts/${id}`,
+  );
+  return res.data;
+}
+
+export async function resolveFraudAlert(
+  id: string,
+  data: { status: string; resolutionNote?: string },
+): Promise<{ resolved: boolean; alert: FraudAlert }> {
+  const res = await apiClient.patch<{ resolved: boolean; alert: FraudAlert }>(
+    `/admin/fraud/alerts/${id}`,
+    data,
+  );
+  return res.data;
+}
+
+export async function getFraudRules(): Promise<FraudRule[]> {
+  const res = await apiClient.get<FraudRule[]>('/admin/fraud/rules');
+  return res.data;
+}
+
+export async function createFraudRule(
+  data: Partial<FraudRule> & { name: string; ruleType: string; i18nKey: string },
+): Promise<FraudRule> {
+  const res = await apiClient.post<FraudRule>('/admin/fraud/rules', data);
+  return res.data;
+}
+
+export async function updateFraudRule(id: string, data: Partial<FraudRule>): Promise<FraudRule> {
+  const res = await apiClient.patch<FraudRule>(`/admin/fraud/rules/${id}`, data);
+  return res.data;
+}
