@@ -36,10 +36,7 @@ describe('ReviewService', () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ReviewService,
-        { provide: REVIEW_REPOSITORY, useValue: mockRepository },
-      ],
+      providers: [ReviewService, { provide: REVIEW_REPOSITORY, useValue: mockRepository }],
     }).compile();
 
     service = module.get<ReviewService>(ReviewService);
@@ -74,18 +71,18 @@ describe('ReviewService', () => {
     });
 
     it('throws BadRequestException when gdprConsentGiven is false', async () => {
-      await expect(
-        service.createReview({ ...dto, gdprConsentGiven: false }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createReview({ ...dto, gdprConsentGiven: false })).rejects.toThrow(
+        BadRequestException,
+      );
 
       expect(mockRepository.create).not.toHaveBeenCalled();
     });
 
     it('throws BadRequestException when comment exceeds max length', async () => {
       const longComment = 'x'.repeat(1001);
-      await expect(
-        service.createReview({ ...dto, comment: longComment }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createReview({ ...dto, comment: longComment })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('accepts a comment exactly at the max length boundary', async () => {
@@ -170,9 +167,9 @@ describe('ReviewService', () => {
     it('throws NotFoundException when review to update does not exist', async () => {
       mockRepository.findById.mockResolvedValue(null);
 
-      await expect(
-        service.updateReview('non-existent', { rating: 4 }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.updateReview('non-existent', { rating: 4 })).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(mockRepository.update).not.toHaveBeenCalled();
     });

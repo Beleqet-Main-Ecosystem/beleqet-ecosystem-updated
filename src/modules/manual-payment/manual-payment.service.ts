@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -76,9 +71,7 @@ export class ManualPaymentService {
     const MAX_SIZE = 5 * 1024 * 1024;
 
     if (!ALLOWED_TYPES.includes(file.mimetype)) {
-      throw new BadRequestException(
-        'Invalid file type. Allowed: JPG, PNG, PDF',
-      );
+      throw new BadRequestException('Invalid file type. Allowed: JPG, PNG, PDF');
     }
     if (file.size > MAX_SIZE) {
       throw new BadRequestException('File size exceeds the 5 MB limit');
@@ -96,17 +89,11 @@ export class ManualPaymentService {
       throw new BadRequestException('You are not the owner of this payment');
     }
     if (payment.status !== PaymentStatus.PENDING) {
-      throw new BadRequestException(
-        `Payment is already in status ${payment.status}`,
-      );
+      throw new BadRequestException(`Payment is already in status ${payment.status}`);
     }
 
     // Upload receipt via the existing uploads service
-    const uploaded = await this.uploadsService.uploadFile(
-      file,
-      'manual-receipts',
-      userId,
-    );
+    const uploaded = await this.uploadsService.uploadFile(file, 'manual-receipts', userId);
 
     // Persist reference + receipt URL, advance status to PROCESSING
     const updated = await this.prisma.payment.update({
@@ -212,9 +199,7 @@ export class ManualPaymentService {
           headers: {
             'Content-Type': 'application/json',
             'Content-Length': Buffer.byteLength(payload),
-            ...(secret
-              ? { 'X-Telegram-Bot-Api-Secret-Token': secret }
-              : {}),
+            ...(secret ? { 'X-Telegram-Bot-Api-Secret-Token': secret } : {}),
           },
           timeout: 15_000,
         },

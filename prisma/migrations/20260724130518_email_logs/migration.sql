@@ -4,17 +4,17 @@ CREATE TYPE "EmailType" AS ENUM ('WELCOME', 'PASSWORD_RESET', 'PAYMENT_RECEIPT',
 -- CreateEnum
 CREATE TYPE "EmailStatus" AS ENUM ('PENDING', 'QUEUED', 'SENT', 'FAILED', 'BOUNCED');
 
--- DropIndex
-DROP INDEX "interview_evaluations_rawAiResponse_gin_idx";
+-- DropIndex (IF EXISTS: these may not exist on fresh CI databases)
+DROP INDEX IF EXISTS "interview_evaluations_rawAiResponse_gin_idx";
 
 -- DropIndex
-DROP INDEX "interview_evaluations_scores_gin_idx";
+DROP INDEX IF EXISTS "interview_evaluations_scores_gin_idx";
 
 -- DropIndex
-DROP INDEX "video_interviews_metadata_gin_idx";
+DROP INDEX IF EXISTS "video_interviews_metadata_gin_idx";
 
 -- DropIndex
-DROP INDEX "video_responses_rawWhisperResponse_gin_idx";
+DROP INDEX IF EXISTS "video_responses_rawWhisperResponse_gin_idx";
 
 -- CreateTable
 CREATE TABLE "salary_predictions" (

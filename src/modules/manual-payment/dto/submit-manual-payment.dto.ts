@@ -1,4 +1,4 @@
-import { IsNumberString, IsString, IsUUID, Length } from 'class-validator';
+import { IsString, IsUUID, Length } from 'class-validator';
 
 export class SubmitManualPaymentDto {
   /** The payment record id to attach the receipt to */

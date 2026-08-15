@@ -1,23 +1,13 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
 import { Review } from './entities/review.entity';
-import {
-  IReviewRepository,
-  REVIEW_REPOSITORY,
-} from './interfaces/review-repository.interface';
+import { IReviewRepository, REVIEW_REPOSITORY } from './interfaces/review-repository.interface';
 
 @Injectable()
 export class ReviewService {
-  private readonly maxCommentLength: number = Number(
-    process.env.REVIEW_MAX_COMMENT_LENGTH ?? 1000,
-  );
+  private readonly maxCommentLength: number = Number(process.env.REVIEW_MAX_COMMENT_LENGTH ?? 1000);
 
   constructor(
     @Inject(REVIEW_REPOSITORY)
@@ -26,9 +16,7 @@ export class ReviewService {
 
   async createReview(dto: CreateReviewDto): Promise<Review> {
     if (!dto.gdprConsentGiven) {
-      throw new BadRequestException(
-        'GDPR consent is required to submit a review',
-      );
+      throw new BadRequestException('GDPR consent is required to submit a review');
     }
     if (dto.comment.length > this.maxCommentLength) {
       throw new BadRequestException(

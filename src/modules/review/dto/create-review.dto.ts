@@ -1,17 +1,8 @@
-import {
-  IsBoolean,
-  IsIn,
-  IsInt,
-  IsString,
-  IsUUID,
-  Length,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsString, IsUUID, Length, Max, Min } from 'class-validator';
 
-const SUPPORTED_CURRENCIES = (
-  process.env.SUPPORTED_CURRENCIES ?? 'USD,EUR,GBP,ETB,NGN,KES'
-).split(',');
+const SUPPORTED_CURRENCIES = (process.env.SUPPORTED_CURRENCIES ?? 'USD,EUR,GBP,ETB,NGN,KES').split(
+  ',',
+);
 
 export class CreateReviewDto {
   @IsUUID('4', { message: 'freelancerId must be a valid UUID v4' })

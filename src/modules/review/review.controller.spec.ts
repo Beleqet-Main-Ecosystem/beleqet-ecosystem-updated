@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { Review } from './entities/review.entity';
 import { ReviewController } from './review.controller';
@@ -41,7 +42,7 @@ describe('ReviewController', () => {
     })
       .overrideGuard(
         // bypass JWT guard so we can test controller logic in isolation
-        require('../../common/guards/jwt-auth.guard').JwtAuthGuard,
+        JwtAuthGuard,
       )
       .useValue({ canActivate: () => true })
       .compile();
@@ -119,7 +120,11 @@ describe('ReviewController', () => {
 
   describe('anonymize', () => {
     it('calls service.anonymizeReview and returns the anonymized review', async () => {
-      const anonymized = makeReview({ customerId: 'REDACTED', comment: 'REDACTED', isAnonymized: true });
+      const anonymized = makeReview({
+        customerId: 'REDACTED',
+        comment: 'REDACTED',
+        isAnonymized: true,
+      });
       mockReviewService.anonymizeReview.mockResolvedValue(anonymized);
 
       const result = await controller.anonymize('review-uuid-1');

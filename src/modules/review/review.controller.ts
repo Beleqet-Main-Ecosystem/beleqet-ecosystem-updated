@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -30,9 +21,7 @@ export class ReviewController {
 
   @Get('freelancer/:freelancerId')
   @ApiOperation({ summary: 'List all reviews for a freelancer' })
-  async findByFreelancer(
-    @Param('freelancerId') freelancerId: string,
-  ): Promise<Review[]> {
+  async findByFreelancer(@Param('freelancerId') freelancerId: string): Promise<Review[]> {
     return this.reviewService.getReviewsForFreelancer(freelancerId);
   }
 
@@ -44,10 +33,7 @@ export class ReviewController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing review' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateReviewDto,
-  ): Promise<Review> {
+  async update(@Param('id') id: string, @Body() dto: UpdateReviewDto): Promise<Review> {
     return this.reviewService.updateReview(id, dto);
   }
 

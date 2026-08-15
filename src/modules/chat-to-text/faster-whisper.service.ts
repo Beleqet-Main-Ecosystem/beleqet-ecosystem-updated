@@ -25,10 +25,7 @@ export class FasterWhisperService {
    * Transcribes an upload using the local faster-whisper Python package.
    * The temporary file is removed whether processing succeeds or fails.
    */
-  async transcribe(
-    file: IUploadedAudioFile,
-    language?: string,
-  ): Promise<ITranscriptionResult> {
+  async transcribe(file: IUploadedAudioFile, language?: string): Promise<ITranscriptionResult> {
     const temporaryDirectory = await mkdtemp(join(tmpdir(), 'beleqet-transcription-'));
     const extension = extname(file.originalname) || '.webm';
     const audioPath = join(temporaryDirectory, `upload${extension}`);
@@ -51,12 +48,20 @@ export class FasterWhisperService {
       'FASTER_WHISPER_TIMEOUT_MS',
       DEFAULT_PROCESS_TIMEOUT_MS,
     );
-    const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0
-      ? configuredTimeout
-      : DEFAULT_PROCESS_TIMEOUT_MS;
+    const timeoutMs =
+      Number.isFinite(configuredTimeout) && configuredTimeout > 0
+        ? configuredTimeout
+        : DEFAULT_PROCESS_TIMEOUT_MS;
     const projectRoot = process.cwd();
     const scriptPath = join(projectRoot, 'scripts', 'transcribe-with-faster-whisper.py');
-    const fallbackScriptPath = join(__dirname, '..', '..', '..', 'scripts', 'transcribe-with-faster-whisper.py');
+    const fallbackScriptPath = join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'scripts',
+      'transcribe-with-faster-whisper.py',
+    );
     const resolvedScriptPath = await this.resolveScriptPath(scriptPath, fallbackScriptPath);
     const processArguments = ['--file', audioPath, '--model', model];
 
