@@ -23,6 +23,7 @@ import type {
 } from '@/types';
 import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, MatchResult } from '@/types';
 import type { ThemePreference } from '@/components/theme/theme-preference';
+import type { FraudAlert, FraudRule, PaginatedResponse } from '@/types/fraud';
 
 /** API response shape for the minimal persisted user theme setting. */
 export interface ThemePreferenceResponse {
@@ -456,8 +457,6 @@ export async function fetchManualPayments(
 }
 
 // ─── Fraud Alerts ────────────────────────────────────────────────────────────
-
-import type { FraudAlert, FraudRule, PaginatedResponse } from '@/types/fraud';
 
 export async function getFraudAlerts(params?: {
   status?: string;

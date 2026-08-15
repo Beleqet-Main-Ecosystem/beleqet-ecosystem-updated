@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation, Locale } from '../../../lib/i18n';
+import { useTranslation, SupportedLocale } from '../../../lib/i18n';
 
 /**
  * Data structure representing a individual system audit log record.
@@ -23,7 +23,7 @@ interface AuditLogRecord {
  * Admin Dashboard Page for inspecting, searching, and filtering System Audit Logs.
  */
 export default function AuditLogsAdminPage() {
-  const { t, locale, changeLanguage } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
 
   const [logs, setLogs] = useState<AuditLogRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -144,7 +144,7 @@ export default function AuditLogsAdminPage() {
             <span className="text-xs text-slate-400 font-medium">{t('auditLog.language')}:</span>
             <button
               id="lang-switch-en"
-              onClick={() => changeLanguage('en')}
+              onClick={() => setLocale('en')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 locale === 'en'
                   ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'
@@ -155,7 +155,7 @@ export default function AuditLogsAdminPage() {
             </button>
             <button
               id="lang-switch-am"
-              onClick={() => changeLanguage('am')}
+              onClick={() => setLocale('am')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 locale === 'am'
                   ? 'bg-sky-500 text-white shadow-lg shadow-sky-500/30'

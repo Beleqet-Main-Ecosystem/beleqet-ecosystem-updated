@@ -526,6 +526,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
           where: { id: 'tx-001' },
           data: expect.objectContaining({ note: expect.stringContaining('Withdrawal FAILED') }),
         }),
+      );
+    });
+  });
 
   // ── 13. Chapa network failure → rollback ─────────────────────────────────
   describe('Scenario 13 – Chapa network failure → InternalServerErrorException + rollback', () => {

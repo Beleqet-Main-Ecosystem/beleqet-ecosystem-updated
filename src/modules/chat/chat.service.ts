@@ -148,7 +148,6 @@ export class ChatService {
           content: '[Unable to decrypt message]',
         };
       }
-          select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
     });
   }
 }

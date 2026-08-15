@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation, Locale } from '../../lib/i18n';
+import { useTranslation, SupportedLocale } from '../../lib/i18n';
 import { CurrencyUtil } from '../../lib/currency';
 import {
   ShieldCheck,
@@ -41,7 +41,7 @@ interface StoredFile {
  *           Authentication: Uses JWT access tokens stored securely in client state and localStorage.
  */
 export default function StorageDashboard(): React.ReactElement {
-  const { locale, changeLanguage, t } = useTranslation();
+  const { locale, setLocale, t } = useTranslation();
 
   // Auth state
   const [token, setToken] = useState<string | null>(null);
@@ -374,7 +374,7 @@ export default function StorageDashboard(): React.ReactElement {
           <div className="flex items-center gap-3 bg-[#0d1f15] border border-[#143022] rounded-full p-1.5 shadow-lg">
             <Languages className="w-4 h-4 text-[#22c55e] ml-2" />
             <button
-              onClick={() => changeLanguage('en')}
+              onClick={() => setLocale('en')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
                 locale === 'en'
                   ? 'bg-[#22c55e] text-white shadow-md'
@@ -384,7 +384,7 @@ export default function StorageDashboard(): React.ReactElement {
               English
             </button>
             <button
-              onClick={() => changeLanguage('am')}
+              onClick={() => setLocale('am')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
                 locale === 'am'
                   ? 'bg-[#22c55e] text-white shadow-md'

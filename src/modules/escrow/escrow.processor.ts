@@ -143,12 +143,6 @@ export class EscrowProcessor extends WorkerHost {
         await tx.freelanceJob.update({
           where: { id: escrow.freelanceJobId },
           data: { status: 'FUNDED' },
-        }),
-      ];
-
-      if (escrow.walletAppliedAmount > 0) {
-        const wallet = await this.prisma.employerWallet.findUnique({
-          where: { userId: escrow.freelanceJob.clientId },
         });
 
         if (escrow.walletAppliedAmount > 0) {
@@ -161,10 +155,6 @@ export class EscrowProcessor extends WorkerHost {
               data: { lockedBalance: { decrement: escrow.walletAppliedAmount } },
             });
             await tx.employerWalletTransaction.create({
-            }) as never,
-          );
-          transactions.push(
-            this.prisma.employerWalletTransaction.create({
               data: {
                 walletId: wallet.id,
                 type: 'DEBIT_WITHDRAWAL',
@@ -174,8 +164,6 @@ export class EscrowProcessor extends WorkerHost {
               },
             });
           }
-            }) as never,
-          );
         }
 
         await tx.eventLog.create({
@@ -187,8 +175,6 @@ export class EscrowProcessor extends WorkerHost {
             processedBy: EscrowProcessor.name,
           },
         });
-        }) as never,
-      );
 
         await tx.eventLog.create({
           data: {

@@ -147,48 +147,6 @@ export class AdminController {
       { title: dto.title, userIds: dto.userIds, role: dto.role },
     );
     return { delivered };
-  async broadcast(@Body() dto: BroadcastDto) {
-    let users;
-    if (dto.userIds && dto.userIds.length > 0) {
-      users = await this.prisma.user.findMany({
-        where: { id: { in: dto.userIds }, isActive: true },
-        select: { id: true, email: true, firstName: true },
-      });
-    } else {
-      users = await this.prisma.user.findMany({
-        where: { isActive: true, ...(dto.role && { role: dto.role }) },
-        select: { id: true, email: true, firstName: true },
-      });
-    }
-
-    if (users.length === 0) {
-      return { delivered: 0 };
-    }
-
-    const result = await this.prisma.notification.createMany({
-      data: users.map((user: any) => ({
-        userId: user.id,
-        channel: 'IN_APP',
-        type: 'ADMIN_ANNOUNCEMENT',
-        title: dto.title,
-        body: dto.body,
-      })),
-    });
-
-    // Enqueue emails
-    for (const u of users) {
-      adminAnnouncementEmail(u.firstName, dto.title, dto.body)
-        .then((email) =>
-          this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
-            to: u.email,
-            subject: dto.title,
-            ...email,
-          }),
-        )
-        .catch(() => {});
-    }
-
-    return { delivered: result.count };
   }
 
   @Get('escrow/disputes')

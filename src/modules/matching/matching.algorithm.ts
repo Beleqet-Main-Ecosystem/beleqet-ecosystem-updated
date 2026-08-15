@@ -8,7 +8,7 @@
  * All scores are normalized to the 0..1 range internally; the service layer
  * converts the final overallScore to a 0..100 percentage for display.
  */
-  export const ALGORITHM_VERSION = 'v1';
+export const ALGORITHM_VERSION = 'v1';
 /** Minimal shape of a freelancer profile needed for scoring. */
 export interface FreelancerProfileInput {
   skills: string[];
@@ -89,7 +89,10 @@ export function computeSkillScore(freelancerSkills: string[], jobSkills: string[
  * - Anything else (mismatched, known locations) scores 0.3 — not zero,
  *   since relocation/travel is sometimes viable for contract work.
  */
-export function computeLocationScore(freelancerLocation: string | null | undefined, jobLocationPreference: string | null | undefined): number {
+export function computeLocationScore(
+  freelancerLocation: string | null | undefined,
+  jobLocationPreference: string | null | undefined,
+): number {
   if (!jobLocationPreference) return 1;
   const jobPref = normalizeToken(jobLocationPreference);
   if (jobPref === 'remote' || jobPref === 'anywhere') return 1;
@@ -111,7 +114,10 @@ export function computeLocationScore(freelancerLocation: string | null | undefin
  * TODO: replace this heuristic once a structured `seniorityLevel` field
  * (or the SkillAssessmentSession.skillLevel result) is available on User.
  */
-export function computeExperienceScore(freelancer: Pick<FreelancerProfileInput, 'headline' | 'bio'>, jobExperienceLevel: string | null | undefined): number {
+export function computeExperienceScore(
+  freelancer: Pick<FreelancerProfileInput, 'headline' | 'bio'>,
+  jobExperienceLevel: string | null | undefined,
+): number {
   if (!jobExperienceLevel) return 0.6;
 
   const jobLevel = normalizeToken(jobExperienceLevel);
@@ -130,12 +136,18 @@ export function computeExperienceScore(freelancer: Pick<FreelancerProfileInput, 
  * Combines the sub-scores into a single weighted match breakdown.
  * This is the main entry point the service layer calls per (freelancer, job) pair.
  */
-export function computeMatch(freelancer: FreelancerProfileInput, job: FreelanceJobInput): MatchBreakdown {
+export function computeMatch(
+  freelancer: FreelancerProfileInput,
+  job: FreelanceJobInput,
+): MatchBreakdown {
   const skillScore = computeSkillScore(freelancer.skills, job.skills);
   const locationScore = computeLocationScore(freelancer.location, job.locationPreference);
   const experienceScore = computeExperienceScore(freelancer, job.experienceLevel);
 
-  const overallScore = skillScore * WEIGHTS.skill + locationScore * WEIGHTS.location + experienceScore * WEIGHTS.experience;
+  const overallScore =
+    skillScore * WEIGHTS.skill +
+    locationScore * WEIGHTS.location +
+    experienceScore * WEIGHTS.experience;
 
   return { skillScore, locationScore, experienceScore, overallScore };
 }

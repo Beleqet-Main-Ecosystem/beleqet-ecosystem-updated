@@ -45,6 +45,7 @@ export type Job = {
   salaryMax?: number;
   currency?: string;
   relevanceScore?: number;
+  createdAt?: string | null;
 };
 
 export type Category = {
