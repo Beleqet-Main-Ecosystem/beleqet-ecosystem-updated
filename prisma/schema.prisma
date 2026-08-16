@@ -85,6 +85,12 @@ model User {
   email_logs         EmailLog[]
   SpeechConversation SpeechConversation[]
 
+  // E2EE encrypted inbox
+  e2EKeyPair                      E2EKeyPair?
+  initiatedEncryptedConversations EncryptedConversation[] @relation("EncryptedConversationInitiator")
+  receivedEncryptedConversations  EncryptedConversation[] @relation("EncryptedConversationResponder")
+  encryptedMessagesSent           EncryptedMessage[]      @relation("EncryptedMessageSender")
+
   @@index([lastLoginAt])
   @@index([createdAt])
   @@map("users")
@@ -1248,22 +1254,22 @@ enum ReferralStatus {
 }
 
 model Payment {
-  id                String          @id @default(uuid())
-  userId            String
-  provider          PaymentProvider
-  providerPaymentId String          @unique
-  amount            Int
-  currency          String          @default("USD")
-  status            PaymentStatus   @default(PENDING)
-  description           String?
-  metadata              Json?
-  refundedAt            DateTime?
+  id                   String          @id @default(uuid())
+  userId               String
+  provider             PaymentProvider
+  providerPaymentId    String          @unique
+  amount               Int
+  currency             String          @default("USD")
+  status               PaymentStatus   @default(PENDING)
+  description          String?
+  metadata             Json?
+  refundedAt           DateTime?
   /// For manual (bank-transfer) payments: customer-supplied transaction reference
-  transactionReference  String?
+  transactionReference String?
   /// For manual payments: URL of the uploaded payment receipt (JPG/PNG/PDF)
-  receiptUrl            String?
-  createdAt             DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  receiptUrl           String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1878,4 +1884,61 @@ model Review {
   @@index([customerId])
   @@index([createdAt])
   @@map("reviews")
+}
+
+// ── Encrypted Inbox (E2EE zero-knowledge messaging) ─────────────────────────
+
+/// E2EE asymmetric key pair per user. Public key stored in plaintext;
+/// private key is server-encrypted (zero-knowledge architecture).
+model E2EKeyPair {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  publicKey           String
+  encryptedPrivateKey String
+  algorithm           String   @default("RSA-OAEP-256")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("e2e_key_pairs")
+}
+
+/// A two-party encrypted conversation thread.
+model EncryptedConversation {
+  id          String   @id @default(uuid())
+  initiatorId String
+  responderId String
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  initiator User               @relation("EncryptedConversationInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  responder User               @relation("EncryptedConversationResponder", fields: [responderId], references: [id], onDelete: Cascade)
+  messages  EncryptedMessage[]
+
+  @@index([initiatorId])
+  @@index([responderId])
+  @@map("encrypted_conversations")
+}
+
+/// A single ciphertext message in an encrypted conversation.
+model EncryptedMessage {
+  id                String    @id @default(uuid())
+  conversationId    String
+  senderId          String
+  ciphertext        String
+  iv                String
+  encryptedMetadata Json?
+  isDeleted         Boolean   @default(false)
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  conversation EncryptedConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                  @relation("EncryptedMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("encrypted_messages")
 }

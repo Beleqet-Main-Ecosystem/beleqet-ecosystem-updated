@@ -10,6 +10,7 @@ import { WebSiteSchema } from '@/lib/seo/schemas';
 import { getSeoConfig } from '@/lib/seo/config';
 import { homePageMetadata } from '@/lib/seo/generate-metadata';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { I18nProvider } from '@/lib/i18n';
 import { TelegramInitializer } from '@/components/TelegramInitializer';
 
 /* Lazy-load non-critical modules — not needed on first paint */
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="color-scheme" content="light dark" />
       </head>
       <body className="min-h-screen bg-pageBg font-sans text-ink antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+        <I18nProvider>
         <ThemeProvider>
           <AuthProvider>
             <QueryProvider>
@@ -55,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </QueryProvider>
           </AuthProvider>
         </ThemeProvider>
+        </I18nProvider>
       </body>
     </html>
   );
