@@ -28,6 +28,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <meta name="theme-color" content={themeColor} />
         <meta name="color-scheme" content="light dark" />
+        {/*
+         * Inline script executed synchronously before the browser paints —
+         * reads the stored theme preference and applies `class="dark"` on
+         * <html> before React hydrates, eliminating the flash of light UI.
+         * Must remain a plain string to be safe for SSR (no client imports).
+         */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=localStorage.getItem('beleqet-theme');var d=p==='dark'||(p!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="min-h-screen bg-pageBg font-sans text-ink antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
         <I18nProvider>
