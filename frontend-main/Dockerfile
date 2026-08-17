@@ -1,14 +1,14 @@
 # ── Stage 1: Dependencies ────────────────────────────────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
+COPY package.json ./
+RUN npm install --omit=dev
 
 # ── Stage 2: Build ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
