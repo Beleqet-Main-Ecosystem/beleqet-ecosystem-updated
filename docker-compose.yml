@@ -110,6 +110,18 @@ services:
     depends_on:
       - backend
 
+  # ── Homepage / landing page (frontend-main) → port 3002 ──────────────────
+  homepage-frontend:
+    build:
+      context: ./frontend-main
+      dockerfile: Dockerfile
+    container_name: beleqet2-homepage
+    restart: unless-stopped
+    ports:
+      - '3002:3002'
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
   redis_data:

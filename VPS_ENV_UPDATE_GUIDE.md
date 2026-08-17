@@ -57,11 +57,12 @@ PAYPAL_CLIENT_ID=<from CEO — see secure channel>
 PAYPAL_CLIENT_SECRET=<from CEO — see secure channel>
 ```
 
-**Chapa (send keys when available):**
+**Chapa (live/sandbox):**
 ```
-CHAPA_SECRET_KEY=<pending — CEO to provide>
-CHAPA_PUBLIC_KEY=<pending — CEO to provide>
-CHAPA_WEBHOOK_SECRET=<pending — CEO to provide>
+CHAPA_SECRET_KEY=<from CEO — see secure channel>
+CHAPA_PUBLIC_KEY=<from CEO — see secure channel>
+CHAPA_ENCRYPTION_KEY=<from CEO — see secure channel>
+CHAPA_WEBHOOK_SECRET=<generate: openssl rand -hex 32>
 CHAPA_CALLBACK_URL=https://api.beleqetjobs.com/api/v1/escrow/callback
 CHAPA_RETURN_URL=https://beleqetjobs.com/freelance/payment-success
 ```
@@ -90,6 +91,42 @@ NEXT_PUBLIC_SITE_URL=https://beleqetjobs.com
 docker compose -f docker-compose.staging.yml down
 docker compose -f docker-compose.staging.yml up -d
 ```
+
+---
+
+### Step 5b — Deploy the new homepage-frontend container (first time)
+
+The `frontend-main` directory is now containerised as `beleqet2-homepage` on port 3002.
+Run this after pulling the latest code:
+
+```bash
+cd /srv/beleqet-staging
+git pull origin main
+docker compose -f docker-compose.staging.yml build homepage-frontend
+docker compose -f docker-compose.staging.yml up -d homepage-frontend
+```
+
+Nginx already routes `beleqetjobs.com /` to port 3002 — reload Nginx after updating the conf:
+
+```bash
+nginx -t && systemctl reload nginx
+# or if Nginx is running in a container:
+docker exec beleqet2-nginx nginx -s reload
+```
+
+---
+
+### Step 5c — Register Stripe Webhook
+
+In the Stripe Dashboard → Developers → Webhooks → Add endpoint:
+- URL: `https://api.beleqetjobs.com/api/v1/payments/webhook/stripe`
+- Events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `checkout.session.completed`
+
+Copy the generated `whsec_...` value and add it to `.env.staging`:
+```
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+Then restart the backend container.
 
 ---
 
