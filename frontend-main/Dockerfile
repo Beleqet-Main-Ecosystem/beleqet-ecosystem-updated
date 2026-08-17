@@ -27,7 +27,9 @@ RUN addgroup --system --gid 1001 nodejs \
 # Standalone build output
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public* ./public/ 2>/dev/null || true
+# Copy public dir only if it exists (frontend-main may not have one)
+RUN mkdir -p ./public
+COPY --from=builder /app/public ./public
 
 USER nextjs
 EXPOSE 3002
