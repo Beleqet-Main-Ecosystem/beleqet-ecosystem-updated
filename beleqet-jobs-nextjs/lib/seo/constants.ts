@@ -4,8 +4,8 @@
  */
 
 export const TITLES = {
-  HOME: 'Beleqet Jobs | Find Your Next Opportunity Faster',
-  JOBS: 'Find Jobs | Beleqet Jobs',
+  HOME: 'Beleqet Jobs | The Ultimate Jobs & Freelance Marketplace in Ethiopia',
+  JOBS: 'All Job Openings & Vacancies in Ethiopia | Beleqet Jobs',
   JOB_DETAIL: (title: string, company: string): string => `${title} at ${company} | Beleqet Jobs`,
   ABOUT: 'About Beleqet | Ethiopia\u2019s Career Marketplace',
   PRICING: 'Pricing | Beleqet Jobs',
@@ -22,11 +22,12 @@ export const TITLES = {
   RESET_PASSWORD: 'Set New Password | Beleqet Jobs',
   VERIFY_EMAIL: 'Verify Email | Beleqet Jobs',
   NOT_FOUND: 'Page Not Found | Beleqet Jobs',
+  FREELANCE: 'Hire Top Ethiopian Freelancers & Find Projects | Beleqet Freelance',
 } as const;
 
 export const DESCRIPTIONS = {
-  HOME: 'Search verified jobs from trusted employers across Ethiopia. Discover thousands of job opportunities, get instant alerts on Telegram, and apply faster with Beleqet Vacancy Platform.',
-  JOBS: 'Browse thousands of verified job listings across Ethiopia. Filter by category, type, and location to find your next career opportunity on Beleqet.',
+  HOME: 'Find verified full-time jobs, remote vacancies, and freelance gigs with secure Escrow payments in Ethiopia. Search, apply, and get hired faster on Beleqet Jobs.',
+  JOBS: 'Browse thousands of verified full-time, part-time, and remote jobs across Ethiopia.',
   JOB_DETAIL: (title: string, company: string, location: string): string =>
     `Apply for ${title} at ${company} in ${location}. View job requirements, responsibilities, and how to apply on Beleqet Jobs.`,
   ABOUT:
@@ -58,4 +59,6 @@ export const DESCRIPTIONS = {
     'Verify your email address to activate your Beleqet account and start applying for jobs.',
   NOT_FOUND:
     'The page you are looking for does not exist or has been moved. Browse jobs or return to the Beleqet homepage.',
+  FREELANCE:
+    'Post freelance projects or work as a freelancer in Ethiopia with protected Escrow payments.',
 } as const;
