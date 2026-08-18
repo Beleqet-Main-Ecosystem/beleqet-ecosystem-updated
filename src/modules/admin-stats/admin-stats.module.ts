@@ -1,15 +1,16 @@
 import { Module } from '@nestjs/common';
-import { AdminStatsService } from './admin-stats.service';
-import { AdminStatsController } from './admin-stats.controller';
 import { WalletModule } from '../wallet/wallet.module';
+import { AdminStatsController } from './admin-stats.controller';
+import { AdminStatsRepository } from './admin-stats.repository';
+import { AdminStatsService } from './admin-stats.service';
 
 /**
- * Module encapsulating the Admin Statistics features.
+ * Admin Stats feature module — isolated request / logic / data layers.
  */
 @Module({
   imports: [WalletModule],
   controllers: [AdminStatsController],
-  providers: [AdminStatsService],
+  providers: [AdminStatsRepository, AdminStatsService],
   exports: [AdminStatsService],
 })
 export class AdminStatsModule {}
