@@ -47,7 +47,6 @@ function buildService(overrides: Record<string, unknown> = {}) {
     prisma as never,
     { get: jest.fn() } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    { initializePayment: jest.fn() } as never,
     escrowQueue as never,
     { emit: jest.fn() } as never,
   );
@@ -127,7 +126,6 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
       get: jest.fn((key: string) => (key === 'FRONTEND_URL' ? 'http://localhost:3000' : undefined)),
     } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    chapaClient as never,
     escrowQueue as never,
     eventEmitter as never,
   );

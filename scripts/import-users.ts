@@ -49,7 +49,6 @@ async function importUsers() {
           data: {
             id: u.company.id,
             name: u.company.name,
-            phone: u.company.phone,
             userId: createdUser.id
           }
         });

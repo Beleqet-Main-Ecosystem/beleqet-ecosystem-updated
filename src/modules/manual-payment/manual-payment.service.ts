@@ -4,7 +4,7 @@ import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as https from 'https';
 import { EmailService } from '../email-automation/email.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UploadsService } from '../uploads/uploads.service';
 import { SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
@@ -73,7 +73,7 @@ export class ManualPaymentService {
     if (!ALLOWED_TYPES.includes(file.mimetype)) {
       throw new BadRequestException('Invalid file type. Allowed: JPG, PNG, PDF');
     }
-    if (file.size > MAX_SIZE) {
+    if ((file.size ?? 0) > MAX_SIZE) {
       throw new BadRequestException('File size exceeds the 5 MB limit');
     }
 
@@ -152,7 +152,7 @@ export class ManualPaymentService {
         recipient: adminEmail,
         type: 'PAYMENT_RECEIPT',
         userId: payment.userId,
-        payload: {
+        variables: {
           paymentId: payment.id,
           amount: payment.amount,
           currency: payment.currency,

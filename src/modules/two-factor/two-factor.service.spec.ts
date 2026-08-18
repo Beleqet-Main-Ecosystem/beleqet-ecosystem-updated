@@ -106,7 +106,6 @@ describe('TwoFactorService', () => {
           mockJwt as any,
           badConfig as any,
           new EncryptionService(TEST_ENCRYPTION_KEY),
-          new EncryptionService(mockConfig as any),
           new BackupCodeService(),
         ),
     ).toThrow('TOTP_TEMP_SECRET is required');

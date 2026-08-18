@@ -7,6 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS } from '../queues/queues.constants';
 import { WalletService } from '../wallet/wallet.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
 
 const PLATFORM_FEE_PCT = 0.1;
 
@@ -264,5 +265,131 @@ export class EscrowService {
 
     this.logger.log(`Milestone ${milestoneId} approved — payout queued`);
     return { success: true };
+  }
+
+  /**
+   * Dual-confirmation milestone release: both the employer and the freelancer
+   * must confirm before funds move. Records each party's timestamp in a
+   * serialised transaction and triggers the auto-release queue once both
+   * sides have confirmed.
+   */
+  async confirmMilestone(milestoneId: string, actorId: string, _body?: ConfirmMilestoneDto) {
+    // ── Step 1: fetch the milestone inside a serialised read (select for update) ──
+    const milestone = await this.prisma.$transaction(async (tx: any) => {
+      await tx.$queryRaw`SELECT id FROM "milestones" WHERE id = ${milestoneId} FOR UPDATE`;
+      return tx.milestone.findFirst({
+        where: { id: milestoneId },
+        include: {
+          contract: {
+            include: { freelanceJob: { include: { escrowTx: true } } },
+          },
+        },
+      });
+    });
+
+    if (!milestone) throw new NotFoundException('Milestone not found');
+
+    const contract = milestone.contract;
+    const isEmployer = actorId === contract.clientId;
+    const isFreelancer = actorId === contract.freelancerId;
+
+    if (!isEmployer && !isFreelancer) {
+      throw new NotFoundException('Milestone not found');
+    }
+
+    // ── Step 2: if already fully approved, re-enqueue idempotently ──
+    if (milestone.status === 'APPROVED' && milestone.employerApprovedAt && milestone.freelancerApprovedAt) {
+      const grossAmountInETB = this.walletSvc.convertCurrency(
+        milestone.amount,
+        contract.currency || 'ETB',
+        'ETB',
+      );
+      const netAmountInETB = Math.round(grossAmountInETB * (1 - PLATFORM_FEE_PCT));
+      const releaseAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      await this.escrowQueue.add(
+        ESCROW_JOBS.AUTO_RELEASE,
+        { milestoneId, freelancerId: contract.freelancerId, amount: netAmountInETB, releaseAt },
+        { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release:${milestoneId}` },
+      );
+      return { success: true, released: true, alreadyReleased: true };
+    }
+
+    // ── Step 3: record this actor's confirmation ──
+    const updateData: Record<string, Date> = {};
+    if (isEmployer) updateData.employerApprovedAt = new Date();
+    else updateData.freelancerApprovedAt = new Date();
+
+    await this.prisma.$transaction(async (tx: any) => {
+      await tx.$queryRaw`SELECT id FROM "milestones" WHERE id = ${milestoneId} FOR UPDATE`;
+      await tx.milestone.update({ where: { id: milestoneId }, data: updateData });
+    });
+
+    const updatedEmployerTs = isEmployer ? updateData.employerApprovedAt : milestone.employerApprovedAt;
+    const updatedFreelancerTs = isFreelancer ? updateData.freelancerApprovedAt : milestone.freelancerApprovedAt;
+    const bothConfirmed = Boolean(updatedEmployerTs && updatedFreelancerTs);
+
+    if (!bothConfirmed) {
+      return {
+        success: true,
+        released: false,
+        waitingFor: isEmployer ? 'FREELANCER' : 'EMPLOYER',
+      };
+    }
+
+    // ── Step 4: both confirmed — credit pending wallet and enqueue release ──
+    const grossAmountInETB = this.walletSvc.convertCurrency(
+      milestone.amount,
+      contract.currency || 'ETB',
+      'ETB',
+    );
+    const netAmountInETB = Math.round(grossAmountInETB * (1 - PLATFORM_FEE_PCT));
+    const releaseAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+
+    let alreadyReleased = false;
+
+    await this.prisma.$transaction(async (tx: any) => {
+      const updated = await tx.milestone.updateMany({
+        where: { id: milestoneId, status: { not: 'APPROVED' } },
+        data: { status: 'APPROVED', approvedAt: new Date() },
+      });
+
+      if (updated.count === 0) {
+        alreadyReleased = true;
+        return;
+      }
+
+      await tx.freelancerWallet.upsert({
+        where: { userId: contract.freelancerId },
+        update: { pendingBalance: { increment: netAmountInETB } },
+        create: { userId: contract.freelancerId, pendingBalance: netAmountInETB, availableBalance: 0 },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          type: 'CREDIT_PENDING',
+          amount: netAmountInETB,
+          milestoneId,
+          userId: contract.freelancerId,
+        },
+      });
+
+      await tx.eventLog.create({
+        data: {
+          eventType: 'milestone.dual_confirmed',
+          entityId: milestoneId,
+          entityType: 'Milestone',
+          payload: { milestoneId, freelancerId: contract.freelancerId, amount: netAmountInETB },
+          processedBy: EscrowService.name,
+        },
+      });
+    });
+
+    await this.escrowQueue.add(
+      ESCROW_JOBS.AUTO_RELEASE,
+      { milestoneId, freelancerId: contract.freelancerId, amount: netAmountInETB, releaseAt },
+      { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release:${milestoneId}` },
+    );
+
+    return { success: true, released: true, ...(alreadyReleased ? { alreadyReleased: true } : {}) };
   }
 }

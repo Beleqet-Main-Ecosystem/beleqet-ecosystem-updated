@@ -223,6 +223,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
       success: true,
       amount: dto.amount,
       method: dto.method,
+      amountInETB: amountInWalletCurrency,
       note: 'Payout processing — typically 1-2 business days',
     };
   }

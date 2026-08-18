@@ -71,6 +71,12 @@ model User {
   rbacRoles             Role[]                @relation("UserRoles")
 
   gdprConsent             Boolean                  @default(true)
+  gdprConsentDate         DateTime?
+  gdprConsentRevoked      Boolean                  @default(false)
+  gdprConsentRevokedAt    DateTime?
+  externalCustomerId      String?
+  externalSubscriptionId  String?
+  subscriptionStatus      String?
   aiFeedConsent           Boolean                  @default(true)
   searchHistories         SearchHistory[]
   notificationPreference  NotificationPreference?
@@ -1856,6 +1862,7 @@ model PaymentTransaction {
 /// GDPR consent tracking for webhook data processing.
 model GdprConsent {
   id          String    @id @default(uuid())
+  userId      String?
   purpose     String
   version     String    @default("1.0")
   consentedAt DateTime  @default(now())
@@ -1863,6 +1870,7 @@ model GdprConsent {
   createdAt   DateTime  @default(now())
 
   @@index([purpose])
+  @@index([userId])
   @@map("gdpr_consents")
 }
 
@@ -1941,4 +1949,54 @@ model EncryptedMessage {
   @@index([conversationId])
   @@index([senderId])
   @@map("encrypted_messages")
+}
+
+/// Upload status for resume processing pipeline.
+enum ResumeUploadStatus {
+  PARSING
+  PARSED
+  FAILED
+}
+
+/// Tracks a CV file uploaded by a professional for the Resume Brain pipeline.
+model ResumeUpload {
+  id                String             @id @default(uuid())
+  userId            String
+  originalFilename  String
+  storageKey        String
+  storageUrl        String
+  mimeType          String
+  fileSizeBytes     Int
+  status            ResumeUploadStatus @default(PARSING)
+  failureReason     String?
+  consentGiven      Boolean            @default(false)
+  consentAt         DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  parsedResume      ParsedResume?
+
+  @@index([userId])
+  @@map("resume_uploads")
+}
+
+/// Structured data extracted from a parsed CV.
+model ParsedResume {
+  id               String       @id @default(uuid())
+  resumeUploadId   String       @unique
+  userId           String
+  personalInfo     Json
+  education        Json
+  workExperience   Json
+  skills           String[]     @default([])
+  certifications   String[]     @default([])
+  languages        Json
+  extractionEngine String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  resumeUpload     ResumeUpload @relation(fields: [resumeUploadId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("parsed_resumes")
 }

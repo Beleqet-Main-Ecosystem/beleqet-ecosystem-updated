@@ -79,12 +79,12 @@ export class EscrowController {
 
     try {
       if (req.method === 'GET') {
-        await this.svc.handleWebhook(payload as ChapaWebhookPayload);
+        await this.svc.handleWebhook(payload as unknown as { reference: string; status: string; [k: string]: unknown });
         const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:4001';
         return { url: `${frontendUrl}/freelance/payment-success` };
       }
 
-      await this.svc.handleWebhook(payload as ChapaWebhookPayload);
+      await this.svc.handleWebhook(payload as unknown as { reference: string; status: string; [k: string]: unknown });
       console.log(`[escrow-webhook] Successfully added to queue for tx_ref: ${payload.tx_ref}`);
       return { success: true };
     } catch (error) {

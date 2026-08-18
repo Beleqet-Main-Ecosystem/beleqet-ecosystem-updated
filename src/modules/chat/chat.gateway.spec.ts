@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
 import { JwtService } from '@nestjs/jwt';
+import { I18nService } from 'nestjs-i18n';
 
 const mockChatService = {
   getRoomMessages: jest.fn(),
@@ -10,6 +11,10 @@ const mockChatService = {
 
 const mockJwtService = {
   verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@test.com' }),
+};
+
+const mockI18nService = {
+  t: jest.fn((key: string) => key),
 };
 
 describe('ChatGateway', () => {

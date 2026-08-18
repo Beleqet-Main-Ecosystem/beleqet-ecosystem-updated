@@ -89,10 +89,8 @@ export class EscrowProcessor extends WorkerHost {
     }
 
     const escrow = await this.prisma.escrowTransaction.findFirst({
-      where: { OR: [{ gatewayRef: txRef }, { gatewayRef: reference }] },
-      include: { freelanceJob: { include: { client: true } } },
       where: {
-        OR: [{ gatewayRef: reference }, { gatewayRef: tx_ref }],
+        OR: [{ gatewayRef: txRef }, { gatewayRef: reference }],
       },
       include: {
         freelanceJob: { include: { client: true } },
