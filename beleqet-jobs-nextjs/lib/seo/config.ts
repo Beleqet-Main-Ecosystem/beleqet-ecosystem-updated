@@ -42,14 +42,14 @@ function env(key: string, fallback: string): string {
  * @returns The resolved SEO configuration for the current request.
  */
 export function getSeoConfig(): SeoConfig {
-  const siteUrl = env('NEXT_PUBLIC_SITE_URL', 'https://beleqetjobs.com').replace(/\/+$/, '');
+  const siteUrl = env('NEXT_PUBLIC_SITE_URL', 'http://localhost:3000').replace(/\/+$/, '');
 
   return {
     siteUrl,
     siteName: 'Beleqet Jobs',
     defaultDescription:
       'Search verified jobs from trusted employers across Ethiopia. Discover thousands of job opportunities, get instant alerts on Telegram, and apply faster with Beleqet Vacancy Platform.',
-    defaultOgImage: '/og-image.jpg',
+    defaultOgImage: '/og-default.png',
     twitterHandle: '@BeleqetJobs',
     defaultLocale: 'en',
     supportedLocales: ['en'],

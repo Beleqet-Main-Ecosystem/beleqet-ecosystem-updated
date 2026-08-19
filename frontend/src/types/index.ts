@@ -193,6 +193,15 @@ export interface AuditLog {
   payload: Record<string, unknown>;
   processedBy: string | null;
   createdAt: string;
+  // HTTP audit fields (populated for HTTP_REQUEST events)
+  actorUserId?: string | null;
+  ipAddress?: string | null;
+  httpMethod?: string | null;
+  path?: string | null;
+  statusCode?: number | null;
+  durationMs?: number | null;
+  displayCurrency?: string | null;
+  amountInDisplayCurrency?: number | null;
 }
 
 /** Paginated response shape returned by GET /audit-logs. */
@@ -213,6 +222,39 @@ export interface AuditLogFilters {
   dateTo?: string;
   page?: number;
   limit?: number;
+}
+
+/** Query params accepted by the admin Log Viewer (GET /admin/audit-logs). */
+export interface AuditLogQuery {
+  search?: string;
+  eventType?: string;
+  entityType?: string;
+  entityId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  path?: string;
+  httpMethod?: string;
+  statusCode?: number | string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+  currency?: string;
+  lang?: string;
+  format?: 'json' | 'csv';
+}
+
+/** Paginated list response from GET /admin/audit-logs. */
+export interface AuditLogListResponse {
+  data: AuditLog[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  message?: string;
+  currency?: string;
 }
 
 /** Notification item from the backend */

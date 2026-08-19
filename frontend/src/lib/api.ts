@@ -16,12 +16,14 @@ import type {
   AuditLogListResponse,
   AuditLogQuery,
   AuditLogFilters,
+  AuditLog,
   Notification,
   NotificationPreference,
   ThemePreference,
   ThemePreferenceResponse,
   PromotionCampaign,
   CampaignAnalytics,
+  MatchResult,
 } from '@/types';
 import type { FraudAlert, FraudRule, PaginatedResponse } from '@/types/fraud';
 
@@ -169,12 +171,6 @@ export async function createDispute(
     reason,
     evidenceUrls,
   });
-  return data;
-}
-
-/** Fetches a paginated, filterable slice of the audit trail (Admin-only). */
-export async function fetchAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogPage> {
-  const { data } = await apiClient.get<AuditLogPage>('/audit-logs', { params: filters });
   return data;
 }
 

@@ -5,7 +5,7 @@
 
 export const TITLES = {
   HOME: 'Beleqet Jobs | The Ultimate Jobs & Freelance Marketplace in Ethiopia',
-  JOBS: 'All Job Openings & Vacancies in Ethiopia | Beleqet Jobs',
+  JOBS: 'Find Jobs in Ethiopia | All Openings & Vacancies | Beleqet Jobs',
   JOB_DETAIL: (title: string, company: string): string => `${title} at ${company} | Beleqet Jobs`,
   ABOUT: 'About Beleqet | Ethiopia\u2019s Career Marketplace',
   PRICING: 'Pricing | Beleqet Jobs',
