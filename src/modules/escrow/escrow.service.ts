@@ -298,7 +298,11 @@ export class EscrowService {
     }
 
     // ── Step 2: if already fully approved, re-enqueue idempotently ──
-    if (milestone.status === 'APPROVED' && milestone.employerApprovedAt && milestone.freelancerApprovedAt) {
+    if (
+      milestone.status === 'APPROVED' &&
+      milestone.employerApprovedAt &&
+      milestone.freelancerApprovedAt
+    ) {
       const grossAmountInETB = this.walletSvc.convertCurrency(
         milestone.amount,
         contract.currency || 'ETB',
@@ -324,8 +328,12 @@ export class EscrowService {
       await tx.milestone.update({ where: { id: milestoneId }, data: updateData });
     });
 
-    const updatedEmployerTs = isEmployer ? updateData.employerApprovedAt : milestone.employerApprovedAt;
-    const updatedFreelancerTs = isFreelancer ? updateData.freelancerApprovedAt : milestone.freelancerApprovedAt;
+    const updatedEmployerTs = isEmployer
+      ? updateData.employerApprovedAt
+      : milestone.employerApprovedAt;
+    const updatedFreelancerTs = isFreelancer
+      ? updateData.freelancerApprovedAt
+      : milestone.freelancerApprovedAt;
     const bothConfirmed = Boolean(updatedEmployerTs && updatedFreelancerTs);
 
     if (!bothConfirmed) {
@@ -361,7 +369,11 @@ export class EscrowService {
       await tx.freelancerWallet.upsert({
         where: { userId: contract.freelancerId },
         update: { pendingBalance: { increment: netAmountInETB } },
-        create: { userId: contract.freelancerId, pendingBalance: netAmountInETB, availableBalance: 0 },
+        create: {
+          userId: contract.freelancerId,
+          pendingBalance: netAmountInETB,
+          availableBalance: 0,
+        },
       });
 
       await tx.walletTransaction.create({

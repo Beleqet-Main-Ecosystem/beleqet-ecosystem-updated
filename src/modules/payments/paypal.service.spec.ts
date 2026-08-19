@@ -135,7 +135,15 @@ async function buildModule(configExtra: Record<string, string> = {}): Promise<{
   const module: TestingModule = await Test.createTestingModule({
     providers: [
       PaypalService,
-      { provide: EventEmitter2, useValue: { emit: jest.fn(), emitAsync: jest.fn().mockResolvedValue([]), on: jest.fn(), off: jest.fn() } },
+      {
+        provide: EventEmitter2,
+        useValue: {
+          emit: jest.fn(),
+          emitAsync: jest.fn().mockResolvedValue([]),
+          on: jest.fn(),
+          off: jest.fn(),
+        },
+      },
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
     ],

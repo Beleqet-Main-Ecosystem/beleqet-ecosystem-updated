@@ -13,7 +13,6 @@ import {
   Settings,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/Notifications';
-import { ShieldCheck, LogOut, LayoutDashboard, Gavel, ScrollText } from 'lucide-react';
 
 interface User {
   firstName: string;
