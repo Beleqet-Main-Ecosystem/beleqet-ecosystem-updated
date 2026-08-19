@@ -50,6 +50,31 @@
     "FILTER_NO_RESULTS": "ከአሁኑ ማጣሪያዎችዎ ጋር የሚዛመድ የኦዲት መዝገብ የለም።",
     "EXPORT_SUCCESS": "የኦዲት መዝገብ ወደ ውጪ መላክ በተሳካ ሁኔታ ተጠናቅቋል።"
   },
+  "admin-stats": {
+    "DASHBOARD_TITLE": "የዳሽቦርድ ስታቲስቲክስ",
+    "TOTAL_USERS": "ጠቅላላ ንቁ ተጠቃሚዎች",
+    "TOTAL_REVENUE": "ጠቅላላ የመድረክ ገቢ",
+    "ACTIVE_CONTRACTS": "ንቁ ውሎች",
+    "COMPLETED_JOBS": "የተጠናቀቁ ሥራዎች"
+  },
+  "dispute-manager": {
+    "DISPUTE_RESOLVED": "ክርክሩ በተሳካ ሁኔታ ተፈትቷል",
+    "DISPUTE_CREATED": "ክርክሩ በተሳካ ሁኔታ ተመዝግቧል",
+    "INVALID_DISPUTE": "ክርክሩ ልክ አይደለም ወይም አልተገኘም",
+    "UNAUTHORIZED_DISPUTE": "ይህን ክርክር ለማስተዳደር ፈቃድ የለዎትም",
+    "CONTRACT_NOT_FOUND": "ውሉ አልተገኘም",
+    "CONTRACT_NOT_ACTIVE": "ክርክር ሊከፈትባቸው የሚችሉት ንቁ ውሎች ብቻ ናቸው",
+    "CONTRACT_NOT_DISPUTED": "ተዛማጅ ውሉ በክርክር ሁኔታ ውስጥ አይደለም",
+    "ALREADY_RESOLVED": "ክርክሩ አስቀድሞ ተፈትቷል",
+    "CONCURRENT_UPDATE": "ክርክሩ በሌላ ጥያቄ ተቀይሯል፤ አድሰው እንደገና ይሞክሩ",
+    "REFUND_TOO_LARGE": "የተመላሽ ገንዘብ መጠን ከውሉ መጠን መብለጥ አይችልም",
+    "REFUND_CURRENCY_MISMATCH": "የተመላሽ ገንዘብ ምንዛሬ ከውሉ ምንዛሬ ጋር መመሳሰል አለበት",
+    "WALLET_NOT_FOUND": "የአሰሪው ቦርሳ አልተገኘም",
+    "WALLET_CURRENCY_MISMATCH": "የአሰሪው ቦርሳ ምንዛሬ ከውሉ ምንዛሬ ጋር አይዛመድም",
+    "ESCROW_NOT_DISPUTED": "የውሉ የአደራ ገንዘብ ለክርክር መፍትሔ ዝግጁ አይደለም",
+    "ESCROW_CURRENCY_MISMATCH": "የአደራ ገንዘቡ ምንዛሬ ከውሉ ምንዛሬ ጋር አይዛመድም",
+    "REFUND_EXCEEDS_ESCROW": "የተመላሽ ገንዘብ መጠን ከተያዘው የአደራ ገንዘብ መብለጥ አይችልም"
+  },
   "tax": {
     "unsupportedJurisdiction": "ያልተደገፈ የግብር ክልል \"{countryCode}\". የሚደገፉት፦ ET, US።",
     "currencyMismatch": "ምንዛሬ \"{currency}\" ከግብር ክልል \"{countryCode}\" ጋር አይጣጣምም። የሚጠበቀው፦ {expectedCurrency}።",

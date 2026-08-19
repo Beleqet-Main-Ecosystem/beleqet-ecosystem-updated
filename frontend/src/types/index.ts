@@ -141,6 +141,9 @@ export interface Dispute {
   reason: string;
   evidenceUrls: string[];
   resolution: string | null;
+  resolvedById: string | null;
+  refundAmount: number | null;
+  refundCurrency: string | null;
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -150,6 +153,14 @@ export interface Dispute {
     agreedAmount: number;
     currency: string;
   };
+}
+
+/** Bounded administrator dispute queue response. */
+export interface DisputeListResponse {
+  items: Dispute[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 /** Auth login response shape */

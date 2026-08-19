@@ -67,7 +67,19 @@
     "DISPUTE_RESOLVED": "Dispute resolved successfully",
     "DISPUTE_CREATED": "Dispute created successfully",
     "INVALID_DISPUTE": "Invalid or non-existent dispute",
-    "UNAUTHORIZED_DISPUTE": "You are not authorized to manage this dispute"
+    "UNAUTHORIZED_DISPUTE": "You are not authorized to manage this dispute",
+    "CONTRACT_NOT_FOUND": "Contract not found",
+    "CONTRACT_NOT_ACTIVE": "Only active contracts can be disputed",
+    "CONTRACT_NOT_DISPUTED": "The related contract is not in a disputed state",
+    "ALREADY_RESOLVED": "Dispute is already resolved",
+    "CONCURRENT_UPDATE": "The dispute was changed by another request; refresh and try again",
+    "REFUND_TOO_LARGE": "Refund amount cannot exceed the contract agreed amount",
+    "REFUND_CURRENCY_MISMATCH": "Refund currency must match the contract currency",
+    "WALLET_NOT_FOUND": "Employer wallet not found",
+    "WALLET_CURRENCY_MISMATCH": "Employer wallet currency does not match the contract currency",
+    "ESCROW_NOT_DISPUTED": "The contract escrow is not available for dispute settlement",
+    "ESCROW_CURRENCY_MISMATCH": "Escrow currency does not match the contract currency",
+    "REFUND_EXCEEDS_ESCROW": "Refund amount cannot exceed the funded escrow amount"
   },
   "kyc": {
     "submitted": "KYC verification submitted successfully.",
@@ -188,7 +200,6 @@
     "forbidden": "You do not have permission to access this interview session.",
     "gdpr_request_accepted": "Your data deletion request has been accepted. All interview data will be permanently removed within 30 days.",
     "invalid_video_url": "The video URL must point to an approved Beleqet storage or CDN host."
-
   },
   "fraud": {
     "alert": {
@@ -253,8 +264,7 @@
       "export_audit": "GDPR data export for fraud alerts performed",
       "delete_audit": "GDPR data deletion for fraud alerts performed"
     }
-
-    },
+  },
   "resume-brain": {
     "NO_FILE": "No file was uploaded.",
     "EMPTY_FILE": "The uploaded file is empty.",

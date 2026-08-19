@@ -3,14 +3,17 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
 import { DisputeManagerService } from './dispute-manager.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
+import { DisputeQueryDto } from './dto/dispute-query.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
@@ -33,7 +36,8 @@ export class DisputeManagerController {
   @RequirePermissions('manage:disputes')
   async create(
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ValidationPipe({ transform: true })) createDisputeDto: CreateDisputeDto,
+    @Body(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+    createDisputeDto: CreateDisputeDto,
   ) {
     return this.disputeManagerService.createDispute(user.userId, createDisputeDto);
   }
@@ -44,8 +48,11 @@ export class DisputeManagerController {
   @Get()
   @Roles('ADMIN')
   @RequirePermissions('manage:disputes')
-  async findAll() {
-    return this.disputeManagerService.getAllDisputes();
+  async findAll(
+    @Query(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+    query: DisputeQueryDto,
+  ) {
+    return this.disputeManagerService.getAllDisputes(query);
   }
 
   /**
@@ -55,9 +62,11 @@ export class DisputeManagerController {
   @Roles('ADMIN')
   @RequirePermissions('manage:disputes')
   async resolve(
-    @Param('id') id: string,
-    @Body(new ValidationPipe({ transform: true })) resolveDto: ResolveDisputeDto,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() admin: CurrentUserPayload,
+    @Body(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+    resolveDto: ResolveDisputeDto,
   ) {
-    return this.disputeManagerService.resolveDispute(id, resolveDto);
+    return this.disputeManagerService.resolveDispute(id, admin.userId, resolveDto);
   }
 }

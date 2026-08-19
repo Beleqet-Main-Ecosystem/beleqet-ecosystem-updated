@@ -1,7 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
+import { DisputeQueryDto } from './dto/dispute-query.dto';
 import { I18nService } from 'nestjs-i18n';
 import type { Dispute } from '@prisma/client';
 
@@ -19,31 +25,49 @@ export class DisputeManagerService {
    * Creates a dispute for a contract that the current user is allowed to review.
    */
   async createDispute(userId: string, createDisputeDto: CreateDisputeDto): Promise<Dispute> {
-    const contract = await this.prisma.contract.findUnique({
-      where: { id: createDisputeDto.contractId },
-    });
+    return this.prisma.$transaction(async (transaction) => {
+      const contract = await transaction.contract.findUnique({
+        where: { id: createDisputeDto.contractId },
+      });
 
-    if (!contract) {
-      throw new NotFoundException('Contract not found');
-    }
+      if (!contract) {
+        throw new NotFoundException(this.translate('CONTRACT_NOT_FOUND', createDisputeDto.lang));
+      }
 
-    if (contract.clientId !== userId && contract.freelancerId !== userId) {
-      throw new BadRequestException('You are not authorized to raise a dispute for this contract');
-    }
+      if (contract.clientId !== userId && contract.freelancerId !== userId) {
+        throw new BadRequestException(
+          this.translate('UNAUTHORIZED_DISPUTE', createDisputeDto.lang),
+        );
+      }
 
-    const sanitizedReason = this.sanitizePii(createDisputeDto.reason);
-    await this.prisma.contract.update({
-      where: { id: contract.id },
-      data: { status: 'DISPUTED' },
-    });
+      if (contract.status !== 'ACTIVE') {
+        throw new ConflictException(this.translate('CONTRACT_NOT_ACTIVE', createDisputeDto.lang));
+      }
 
-    return this.prisma.dispute.create({
-      data: {
-        contractId: createDisputeDto.contractId,
-        raisedById: userId,
-        reason: sanitizedReason,
-        evidenceUrls: createDisputeDto.evidenceUrls,
-      },
+      const stateChange = await transaction.contract.updateMany({
+        where: { id: contract.id, status: 'ACTIVE' },
+        data: { status: 'DISPUTED' },
+      });
+      if (stateChange.count !== 1) {
+        throw new ConflictException(this.translate('CONCURRENT_UPDATE', createDisputeDto.lang));
+      }
+
+      await transaction.escrowTransaction.updateMany({
+        where: {
+          freelanceJobId: contract.freelanceJobId,
+          status: { in: ['FUNDED', 'IN_REVIEW'] },
+        },
+        data: { status: 'DISPUTED' },
+      });
+
+      return transaction.dispute.create({
+        data: {
+          contractId: createDisputeDto.contractId,
+          raisedById: userId,
+          reason: this.sanitizePii(createDisputeDto.reason),
+          evidenceUrls: createDisputeDto.evidenceUrls,
+        },
+      });
     });
   }
 
@@ -68,74 +92,117 @@ export class DisputeManagerService {
    */
   async resolveDispute(
     disputeId: string,
+    adminUserId: string,
     resolveDto: ResolveDisputeDto,
   ): Promise<{ message: string; dispute: Dispute }> {
-    const dispute = await this.prisma.dispute.findUnique({
-      where: { id: disputeId },
-      include: { contract: true },
-    });
-
-    if (!dispute) {
-      throw new NotFoundException('Dispute not found');
-    }
-
-    if (dispute.resolution) {
-      throw new BadRequestException('Dispute is already resolved');
-    }
-
-    if (resolveDto.refundAmount && resolveDto.refundAmount > dispute.contract.agreedAmount) {
-      throw new BadRequestException('Refund amount cannot exceed the contract agreed amount');
-    }
-
-    const updatedDispute = await this.prisma.dispute.update({
-      where: { id: disputeId },
-      data: {
-        resolution: resolveDto.resolution,
-        resolvedAt: new Date(),
-      },
-    });
-
-    // Apply any approved refund to the employer wallet.
-    if (resolveDto.refundAmount && resolveDto.refundAmount > 0) {
-      const employerWallet = await this.prisma.employerWallet.findUnique({
-        where: { userId: dispute.contract.clientId },
+    const refundAmount = resolveDto.refundAmount;
+    const refundCurrency = resolveDto.refundCurrency;
+    const resolvedAt = new Date();
+    const updatedDispute = await this.prisma.$transaction(async (transaction) => {
+      const dispute = await transaction.dispute.findUnique({
+        where: { id: disputeId },
+        include: { contract: true },
       });
 
-      if (employerWallet) {
-        await this.prisma.$transaction([
-          this.prisma.employerWallet.update({
-            where: { id: employerWallet.id },
-            data: { balance: { increment: resolveDto.refundAmount } },
-          }),
-          this.prisma.employerWalletTransaction.create({
-            data: {
-              walletId: employerWallet.id,
-              type: 'CREDIT_AVAILABLE',
-              amount: resolveDto.refundAmount,
-              note: `Admin dispute resolution refund for contract ${dispute.contractId}`,
-            },
-          }),
-        ]);
+      if (!dispute) {
+        throw new NotFoundException(this.translate('INVALID_DISPUTE', resolveDto.lang));
       }
-    }
+      if (dispute.resolvedAt || dispute.resolution) {
+        throw new ConflictException(this.translate('ALREADY_RESOLVED', resolveDto.lang));
+      }
+      if (dispute.contract.status !== 'DISPUTED') {
+        throw new ConflictException(this.translate('CONTRACT_NOT_DISPUTED', resolveDto.lang));
+      }
+      if (refundAmount !== undefined && refundAmount > dispute.contract.agreedAmount) {
+        throw new BadRequestException(this.translate('REFUND_TOO_LARGE', resolveDto.lang));
+      }
+      if (refundAmount !== undefined && refundCurrency !== dispute.contract.currency) {
+        throw new BadRequestException(this.translate('REFUND_CURRENCY_MISMATCH', resolveDto.lang));
+      }
 
-    // Choose the final contract state after the dispute resolution.
-    const finalContractStatus =
-      resolveDto.refundAmount && resolveDto.refundAmount > 0 ? 'CANCELLED' : 'COMPLETED';
+      let employerWalletId: string | undefined;
+      let escrowId: string | undefined;
+      if (refundAmount !== undefined) {
+        const employerWallet = await transaction.employerWallet.findUnique({
+          where: { userId: dispute.contract.clientId },
+        });
+        if (!employerWallet) {
+          throw new NotFoundException(this.translate('WALLET_NOT_FOUND', resolveDto.lang));
+        }
+        if (employerWallet.currency !== dispute.contract.currency) {
+          throw new BadRequestException(
+            this.translate('WALLET_CURRENCY_MISMATCH', resolveDto.lang),
+          );
+        }
+        employerWalletId = employerWallet.id;
 
-    await this.prisma.contract.update({
-      where: { id: dispute.contractId },
-      data: { status: finalContractStatus },
-    });
+        const escrow = await transaction.escrowTransaction.findUnique({
+          where: { freelanceJobId: dispute.contract.freelanceJobId },
+        });
+        if (!escrow || escrow.status !== 'DISPUTED') {
+          throw new ConflictException(this.translate('ESCROW_NOT_DISPUTED', resolveDto.lang));
+        }
+        if (escrow.currency !== dispute.contract.currency) {
+          throw new BadRequestException(
+            this.translate('ESCROW_CURRENCY_MISMATCH', resolveDto.lang),
+          );
+        }
+        if (refundAmount > escrow.grossAmount) {
+          throw new BadRequestException(this.translate('REFUND_EXCEEDS_ESCROW', resolveDto.lang));
+        }
+        escrowId = escrow.id;
+      }
 
-    const lang = resolveDto.lang || 'en';
-    const message = this.i18n.t('dispute-manager.DISPUTE_RESOLVED', {
-      lang,
-      defaultValue: 'Dispute resolved successfully',
+      const resolutionUpdate = await transaction.dispute.updateMany({
+        where: { id: disputeId, resolvedAt: null, resolution: null },
+        data: {
+          resolution: this.sanitizePii(resolveDto.resolution),
+          resolvedById: adminUserId,
+          refundAmount,
+          refundCurrency,
+          resolvedAt,
+        },
+      });
+      if (resolutionUpdate.count !== 1) {
+        throw new ConflictException(this.translate('CONCURRENT_UPDATE', resolveDto.lang));
+      }
+
+      if (refundAmount !== undefined && employerWalletId) {
+        await transaction.employerWallet.update({
+          where: { id: employerWalletId },
+          data: { balance: { increment: refundAmount } },
+        });
+        await transaction.employerWalletTransaction.create({
+          data: {
+            walletId: employerWalletId,
+            type: 'CREDIT_AVAILABLE',
+            amount: refundAmount,
+            escrowId,
+            note: `Dispute ${disputeId} refund for contract ${dispute.contractId}`,
+          },
+        });
+        const escrowUpdate = await transaction.escrowTransaction.updateMany({
+          where: { id: escrowId, status: 'DISPUTED' },
+          data: { status: 'REFUNDED' },
+        });
+        if (escrowUpdate.count !== 1) {
+          throw new ConflictException(this.translate('CONCURRENT_UPDATE', resolveDto.lang));
+        }
+      }
+
+      const contractUpdate = await transaction.contract.updateMany({
+        where: { id: dispute.contractId, status: 'DISPUTED' },
+        data: { status: refundAmount !== undefined ? 'CANCELLED' : 'COMPLETED' },
+      });
+      if (contractUpdate.count !== 1) {
+        throw new ConflictException(this.translate('CONCURRENT_UPDATE', resolveDto.lang));
+      }
+
+      return transaction.dispute.findUniqueOrThrow({ where: { id: disputeId } });
     });
 
     return {
-      message: typeof message === 'string' ? message : 'Dispute resolved successfully',
+      message: this.translate('DISPUTE_RESOLVED', resolveDto.lang),
       dispute: updatedDispute,
     };
   }
@@ -143,18 +210,63 @@ export class DisputeManagerService {
   /**
    * Lists all disputes for admin review.
    */
-  async getAllDisputes(): Promise<Dispute[]> {
-    return this.prisma.dispute.findMany({
-      include: {
-        contract: {
-          select: {
-            id: true,
-            status: true,
-            agreedAmount: true,
-            currency: true,
+  async getAllDisputes(query: DisputeQueryDto): Promise<{
+    items: Dispute[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const where =
+      query.status === 'OPEN'
+        ? { resolvedAt: null }
+        : query.status === 'RESOLVED'
+          ? { resolvedAt: { not: null } }
+          : {};
+    const [items, total] = await Promise.all([
+      this.prisma.dispute.findMany({
+        where,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          contract: {
+            select: {
+              id: true,
+              status: true,
+              agreedAmount: true,
+              currency: true,
+            },
           },
         },
-      },
+      }),
+      this.prisma.dispute.count({ where }),
+    ]);
+    return { items, total, page: query.page, limit: query.limit };
+  }
+
+  /** Resolves a localized dispute message with a safe English fallback. */
+  private translate(key: string, lang: 'en' | 'am' = 'en'): string {
+    const fallback: Record<string, string> = {
+      CONTRACT_NOT_FOUND: 'Contract not found',
+      UNAUTHORIZED_DISPUTE: 'You are not authorized to manage this dispute',
+      CONTRACT_NOT_ACTIVE: 'Only active contracts can be disputed',
+      CONCURRENT_UPDATE: 'The dispute was changed by another request; refresh and try again',
+      INVALID_DISPUTE: 'Invalid or non-existent dispute',
+      ALREADY_RESOLVED: 'Dispute is already resolved',
+      CONTRACT_NOT_DISPUTED: 'The related contract is not in a disputed state',
+      REFUND_TOO_LARGE: 'Refund amount cannot exceed the contract agreed amount',
+      REFUND_CURRENCY_MISMATCH: 'Refund currency must match the contract currency',
+      WALLET_NOT_FOUND: 'Employer wallet not found',
+      WALLET_CURRENCY_MISMATCH: 'Employer wallet currency does not match the contract currency',
+      ESCROW_NOT_DISPUTED: 'The contract escrow is not available for dispute settlement',
+      ESCROW_CURRENCY_MISMATCH: 'Escrow currency does not match the contract currency',
+      REFUND_EXCEEDS_ESCROW: 'Refund amount cannot exceed the funded escrow amount',
+      DISPUTE_RESOLVED: 'Dispute resolved successfully',
+    };
+    const translated = this.i18n.t(`dispute-manager.${key}`, {
+      lang,
+      defaultValue: fallback[key] || key,
     });
+    return typeof translated === 'string' ? translated : fallback[key] || key;
   }
 }
