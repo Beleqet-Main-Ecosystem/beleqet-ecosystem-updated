@@ -17,12 +17,13 @@ import { StatsRangePreset } from '../types/admin-stats.types';
  */
 export class StatsQueryDto {
   @IsOptional()
-  @IsString()
+  @IsIn(['ETB', 'USD', 'EUR'])
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   currency?: string = 'ETB';
 
   @IsOptional()
-  @IsString()
-  lang?: string = 'en';
+  @IsIn(['en', 'am'])
+  lang?: 'en' | 'am' = 'en';
 
   @IsOptional()
   @IsIn(['7d', '30d', '12m', 'custom'])
@@ -40,6 +41,7 @@ export class StatsQueryDto {
 
   @IsOptional()
   @IsString()
+  @Matches(/^[A-Za-z_]+\/[A-Za-z_]+$/)
   tz?: string = 'Africa/Addis_Ababa';
 
   @IsOptional()

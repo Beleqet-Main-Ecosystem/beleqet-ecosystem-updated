@@ -1,7 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { FreelanceJobStatus } from '@prisma/client';
 import { I18nService } from 'nestjs-i18n';
-import { WalletService } from '../wallet/wallet.service';
+import { ADMIN_STATS_CURRENCY_CONVERTER, CurrencyConverter } from './currency-converter.port';
 import { AdminStatsRepository } from './admin-stats.repository';
 import { StatsQueryDto } from './dto/stats-query.dto';
 import {
@@ -57,7 +57,8 @@ function csvRangeMeta(meta: {
 export class AdminStatsService {
   constructor(
     private readonly repository: AdminStatsRepository,
-    private readonly walletService: WalletService,
+    @Inject(ADMIN_STATS_CURRENCY_CONVERTER)
+    private readonly currencyConverter: CurrencyConverter,
     private readonly i18n: I18nService,
   ) {}
 
@@ -738,7 +739,7 @@ export class AdminStatsService {
 
   private safeConvert(amount: number, from: string, to: string): number {
     try {
-      return this.walletService.convertCurrency(amount, from || 'ETB', to);
+      return this.currencyConverter.convertCurrency(amount, from || 'ETB', to);
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
       throw new BadRequestException(

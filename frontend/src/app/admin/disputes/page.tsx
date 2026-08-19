@@ -3,11 +3,23 @@ import { useState, useCallback, type ChangeEvent } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { fetchAllDisputes, resolveDispute } from '@/lib/api';
 import { usePolling } from '@/hooks/usePolling';
-import type { Dispute } from '@/types';
+import type { Dispute, DisputeListResponse } from '@/types';
+import { formatMinorMoney } from '@/lib/format';
 
 import { ThemeSwitcher } from '@/components/theme/theme-switcher';
 
 const POLLING_INTERVAL_MS = 10_000;
+
+/** Converts a major-unit form value to the integer minor-unit amount used by the API. */
+function toMinorUnits(value: string, currency: string): number | undefined {
+  if (!value) return undefined;
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return undefined;
+  const digits =
+    new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions()
+      .maximumFractionDigits ?? 2;
+  return Math.round(amount * 10 ** digits);
+}
 
 /** Returns the correct CSS class for a dispute's badge */
 function getDisputeBadge(resolution: string | null): string {
@@ -39,11 +51,13 @@ export default function DisputesPage() {
 
   const fetcher = useCallback(() => fetchAllDisputes(), []);
   const {
-    data: disputes,
+    data: disputePage,
     loading,
     error,
     refetch,
-  } = usePolling<Dispute[]>(fetcher, POLLING_INTERVAL_MS);
+  } = usePolling<DisputeListResponse>(fetcher, POLLING_INTERVAL_MS);
+
+  const disputes = disputePage?.items ?? null;
 
   function openModal(dispute: Dispute) {
     setSelectedDispute(dispute);
@@ -65,8 +79,20 @@ export default function DisputesPage() {
     setSubmitting(true);
     setResolveError('');
     try {
-      const refund = refundAmount ? parseFloat(refundAmount) : undefined;
-      await resolveDispute(selectedDispute.id, resolution, refund);
+      const currency = selectedDispute.contract?.currency;
+      const refund = currency ? toMinorUnits(refundAmount, currency) : undefined;
+      if (refundAmount && refund === undefined) {
+        setResolveError('Enter a valid refund amount greater than zero.');
+        return;
+      }
+      const lang = navigator.language.toLowerCase().startsWith('am') ? 'am' : 'en';
+      await resolveDispute(
+        selectedDispute.id,
+        resolution,
+        refund,
+        refund ? currency : undefined,
+        lang,
+      );
       setSuccessMsg('Dispute resolved successfully.');
       refetch();
       setTimeout(closeModal, 1500);
@@ -161,14 +187,23 @@ export default function DisputesPage() {
                       </td>
                       <td>
                         {dispute.evidenceUrls.length > 0 ? (
-                          <span>{dispute.evidenceUrls.length} file(s)</span>
+                          <span className="evidence-links">
+                            {dispute.evidenceUrls.map((url, index) => (
+                              <a key={url} href={url} target="_blank" rel="noopener noreferrer">
+                                Evidence {index + 1}
+                              </a>
+                            ))}
+                          </span>
                         ) : (
                           <span style={{ color: 'var(--text-muted)' }}>—</span>
                         )}
                       </td>
                       <td>
                         {dispute.contract
-                          ? `${dispute.contract.agreedAmount.toLocaleString()} ${dispute.contract.currency}`
+                          ? formatMinorMoney(
+                              dispute.contract.agreedAmount,
+                              dispute.contract.currency,
+                            )
                           : '—'}
                       </td>
                       <td>

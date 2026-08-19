@@ -6,6 +6,7 @@ import apiClient from './apiClient';
 import type {
   AuthResponse,
   Dispute,
+  DisputeListResponse,
   PlatformStats,
   OverviewResponse,
   RevenueChartResponse,
@@ -20,14 +21,8 @@ import type {
   ThemePreferenceResponse,
   PromotionCampaign,
   CampaignAnalytics,
+  MatchResult,
 } from '@/types';
-import type { AuthResponse, Dispute, PlatformStats, AuditLog, AuditLogPage, AuditLogFilters, MatchResult } from '@/types';
-import type { ThemePreference } from '@/components/theme/theme-preference';
-
-/** API response shape for the minimal persisted user theme setting. */
-export interface ThemePreferenceResponse {
-  theme: ThemePreference;
-}
 
 /** Fetches the current authenticated user's persisted theme preference. */
 export async function getThemePreference(): Promise<ThemePreferenceResponse> {
@@ -44,9 +39,6 @@ export async function updateThemePreference(
   });
   return data;
 }
-  AuditLogListResponse,
-  AuditLogQuery,
-
 /** Logs in a user and stores the JWT token in localStorage */
 export async function login(email: string, password: string): Promise<AuthResponse> {
   const { data } = await apiClient.post<AuthResponse>('/auth/login', { email, password });
@@ -116,9 +108,12 @@ export async function fetchAdminUserGrowthChart(
 export async function fetchAdminProjectBreakdown(
   params: StatsQueryParams = {},
 ): Promise<ProjectBreakdownResponse> {
-  const { data } = await apiClient.get<ProjectBreakdownResponse>('/admin-stats/projects/breakdown', {
-    params,
-  });
+  const { data } = await apiClient.get<ProjectBreakdownResponse>(
+    '/admin-stats/projects/breakdown',
+    {
+      params,
+    },
+  );
   return data;
 }
 
@@ -146,8 +141,10 @@ export async function downloadAdminStatsCsv(
 }
 
 /** Fetches all disputes (Admin-only) */
-export async function fetchAllDisputes(): Promise<Dispute[]> {
-  const { data } = await apiClient.get<Dispute[]>('/dispute');
+export async function fetchAllDisputes(): Promise<DisputeListResponse> {
+  const { data } = await apiClient.get<DisputeListResponse>('/dispute', {
+    params: { status: 'ALL', page: 1, limit: 100 },
+  });
   return data;
 }
 
@@ -156,10 +153,12 @@ export async function resolveDispute(
   id: string,
   resolution: string,
   refundAmount?: number,
+  refundCurrency?: string,
+  lang: 'en' | 'am' = 'en',
 ): Promise<{ message: string; dispute: Dispute }> {
   const { data } = await apiClient.patch<{ message: string; dispute: Dispute }>(
     `/dispute/${id}/resolve`,
-    { resolution, refundAmount },
+    { resolution, refundAmount, refundCurrency, lang },
   );
   return data;
 }
@@ -169,13 +168,26 @@ export async function createDispute(
   contractId: string,
   reason: string,
   evidenceUrls: string[],
+  lang: 'en' | 'am' = 'en',
 ): Promise<Dispute> {
   const { data } = await apiClient.post<Dispute>('/dispute', {
     contractId,
     reason,
     evidenceUrls,
+    lang,
   });
   return data;
+}
+
+/** Uploads consented dispute evidence through the platform's authenticated storage service. */
+export async function uploadDisputeEvidence(file: File): Promise<string> {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('hasConsentedToProcessing', 'true');
+  const { data } = await apiClient.post<{ publicUrl: string }>('/uploads/upload', body, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data.publicUrl;
 }
 
 /** Fetches a paginated, filterable slice of the audit trail (Admin-only). */
@@ -304,13 +316,18 @@ export async function updateCampaignStatus(
   id: string,
   status: 'ACTIVE' | 'PAUSED' | 'CANCELLED',
 ): Promise<PromotionCampaign> {
-  const { data } = await apiClient.patch<PromotionCampaign>(`/promoted-engine/campaigns/${id}/status`, { status });
+  const { data } = await apiClient.patch<PromotionCampaign>(
+    `/promoted-engine/campaigns/${id}/status`,
+    { status },
+  );
   return data;
 }
 
 /** Fetches impressions/clicks/conversions/spend for a single campaign. */
 export async function getCampaignAnalytics(id: string): Promise<CampaignAnalytics> {
-  const { data } = await apiClient.get<CampaignAnalytics>(`/promoted-engine/campaigns/${id}/analytics`);
+  const { data } = await apiClient.get<CampaignAnalytics>(
+    `/promoted-engine/campaigns/${id}/analytics`,
+  );
   return data;
 }
 
@@ -319,54 +336,13 @@ export async function getActiveBoosts(
   targetType: 'JOB' | 'PROPOSAL' | 'GIG',
   targetIds: string[],
 ): Promise<{ targetId: string; isBoosted: boolean }[]> {
-  const { data } = await apiClient.get<{ targetId: string; isBoosted: boolean }[]>('/promoted-engine/active-boosts', {
-    params: { targetType, targetIds: targetIds.join(',') },
-  });
-  return data;
-}
-/** Fetches paginated audit logs for the admin Log Viewer */
-export async function fetchAuditLogs(query: AuditLogQuery = {}): Promise<AuditLogListResponse> {
-  const { data } = await apiClient.get<AuditLogListResponse>('/admin/audit-logs', {
-    params: {
-      lang: 'en',
-      currency: 'ETB',
-      page: 1,
-      limit: 20,
-      ...query,
+  const { data } = await apiClient.get<{ targetId: string; isBoosted: boolean }[]>(
+    '/promoted-engine/active-boosts',
+    {
+      params: { targetType, targetIds: targetIds.join(',') },
     },
-  });
+  );
   return data;
-}
-/** Fetches a single audit log by id */
-export async function fetchAuditLogById(
-  id: string,
-  currency: string = 'ETB',
-  lang: string = 'en',
-): Promise<AuditLog> {
-  const { data } = await apiClient.get<AuditLog>(`/admin/audit-logs/${id}`, {
-    params: { currency, lang },
-  });
-  return data;
-}
-/** Downloads filtered audit logs as a browser attachment (JSON or CSV) */
-export async function exportAuditLogs(
-  query: AuditLogQuery & { format?: 'json' | 'csv' } = {},
-): Promise<void> {
-  const response = await apiClient.get<Blob>('/admin/audit-logs/export', {
-    params: { lang: 'en', currency: 'ETB', format: 'json', ...query },
-    responseType: 'blob',
-  });
-  const disposition = response.headers['content-disposition'] as string | undefined;
-  const match = disposition?.match(/filename="?([^"]+)"?/i);
-  const filename = match?.[1] || `audit-logs.${query.format || 'json'}`;
-  const url = window.URL.createObjectURL(response.data);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
 }
 /** Fetches ranked freelancer matches for a freelance job (Employer/Admin only). */
 export async function getJobMatches(

@@ -658,6 +658,9 @@ model Dispute {
   reason       String
   evidenceUrls String[]
   resolution   String?
+  resolvedById String?
+  refundAmount Int?
+  refundCurrency String?
   resolvedAt   DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt

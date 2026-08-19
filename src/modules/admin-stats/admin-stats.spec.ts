@@ -1,9 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
+import { FreelanceJobStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { WalletService } from '../wallet/wallet.service';
+import { ADMIN_STATS_CURRENCY_CONVERTER } from './currency-converter.port';
 import { ADMIN_STATS_FIXTURES, EXPECTED_FROM_FIXTURES } from './__fixtures__/admin-stats.fixtures';
 import { AdminStatsController } from './admin-stats.controller';
 import { AdminStatsRepository } from './admin-stats.repository';
@@ -72,7 +73,7 @@ describe('AdminStatsService', () => {
         AdminStatsService,
         { provide: AdminStatsRepository, useValue: repository },
         {
-          provide: WalletService,
+          provide: ADMIN_STATS_CURRENCY_CONVERTER,
           useValue: {
             convertCurrency: jest.fn((amount: number, from: string, to: string) =>
               from === to ? amount : amount,
@@ -196,7 +197,7 @@ describe('AdminStatsService', () => {
           AdminStatsService,
           { provide: AdminStatsRepository, useValue: repository },
           {
-            provide: WalletService,
+            provide: ADMIN_STATS_CURRENCY_CONVERTER,
             useValue: {
               convertCurrency: jest.fn(() => {
                 throw new BadRequestException('Exchange rate for XYZ to ETB not found');
@@ -355,14 +356,14 @@ describe('AdminStatsService', () => {
   describe('getProjectBreakdown', () => {
     it('includes every freelance status and only owner first name', async () => {
       repository.groupProjectsByStatus.mockResolvedValue([
-        { status: 'OPEN' as any, count: 2 },
-        { status: 'COMPLETED' as any, count: 5 },
+        { status: FreelanceJobStatus.OPEN, count: 2 },
+        { status: FreelanceJobStatus.COMPLETED, count: 5 },
       ]);
       repository.findRecentProjects.mockResolvedValue([
         {
           id: 'p1',
           title: 'API work',
-          status: 'OPEN' as any,
+          status: FreelanceJobStatus.OPEN,
           budgetMin: 1000,
           budgetMax: 2000,
           currency: 'ETB',
@@ -406,7 +407,7 @@ describe('AdminStatsService', () => {
       repository.groupProjectsByStatus.mockResolvedValue(
         Object.entries(counts)
           .filter(([, c]) => c > 0)
-          .map(([status, count]) => ({ status: status as any, count })),
+          .map(([status, count]) => ({ status: status as FreelanceJobStatus, count })),
       );
       repository.findRecentProjects.mockResolvedValue(
         [...ADMIN_STATS_FIXTURES.projects]
@@ -415,7 +416,7 @@ describe('AdminStatsService', () => {
           .map((p) => ({
             id: p.id,
             title: p.title,
-            status: p.status as any,
+            status: p.status as FreelanceJobStatus,
             budgetMin: 500,
             budgetMax: 1500,
             currency: 'ETB',
