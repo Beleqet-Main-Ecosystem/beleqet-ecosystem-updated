@@ -3,7 +3,7 @@ import { useState, useCallback, type ChangeEvent } from 'react';
 import { ScrollText, Filter } from 'lucide-react';
 import { fetchAuditLogs } from '@/lib/api';
 import { usePolling } from '@/hooks/usePolling';
-import type { AuditLogPage, AuditLogFilters } from '@/types';
+import type { AuditLogListResponse, AuditLogQuery } from '@/types';
 
 const POLLING_INTERVAL_MS = 10_000;
 
@@ -39,7 +39,7 @@ function getEventBadge(eventType: string): string {
  * existing Dispute Manager page's live-update convention.
  */
 export default function AuditLogsPage() {
-  const [filters, setFilters] = useState<AuditLogFilters>({ page: 1, limit: 25 });
+  const [filters, setFilters] = useState<AuditLogQuery>({ page: 1, limit: 25 });
   const [eventTypeInput, setEventTypeInput] = useState('');
   const [entityTypeInput, setEntityTypeInput] = useState('');
   const [entityIdInput, setEntityIdInput] = useState('');
@@ -47,7 +47,7 @@ export default function AuditLogsPage() {
   const [dateToInput, setDateToInput] = useState('');
 
   const fetcher = useCallback(() => fetchAuditLogs(filters), [filters]);
-  const { data: result, loading, error } = usePolling<AuditLogPage>(fetcher, POLLING_INTERVAL_MS);
+  const { data: result, loading, error } = usePolling<AuditLogListResponse>(fetcher, POLLING_INTERVAL_MS);
 
   function applyFilters() {
     setFilters({
@@ -70,7 +70,7 @@ export default function AuditLogsPage() {
     setFilters({ page: 1, limit: 25 });
   }
 
-  const logs = result?.items ?? [];
+  const logs = result?.data ?? [];
 
   return (
     <>
@@ -83,7 +83,7 @@ export default function AuditLogsPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            {result?.total ?? 0} total entries
+            {result?.meta?.total ?? 0} total entries
           </span>
           <div className="polling-indicator">
             <span className="polling-dot" />
@@ -245,7 +245,7 @@ export default function AuditLogsPage() {
               </table>
             )}
 
-            {result && result.totalPages > 1 && (
+            {result && result.meta.totalPages > 1 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, padding: 16 }}>
                 <button
                   className="btn btn-ghost btn-sm"
@@ -255,11 +255,11 @@ export default function AuditLogsPage() {
                   Previous
                 </button>
                 <span style={{ fontSize: 13, color: 'var(--text-muted)', alignSelf: 'center' }}>
-                  Page {result.page} of {result.totalPages}
+                  Page {result.meta.page} of {result.meta.totalPages}
                 </span>
                 <button
                   className="btn btn-ghost btn-sm"
-                  disabled={(filters.page ?? 1) >= result.totalPages}
+                  disabled={(filters.page ?? 1) >= result.meta.totalPages}
                   onClick={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
                 >
                   Next
