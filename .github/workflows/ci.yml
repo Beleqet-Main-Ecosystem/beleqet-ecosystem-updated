@@ -258,6 +258,8 @@ jobs:
       - name: Jest suite
         run: npm run test:unit -- --runInBand
       - name: Production build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.beleqetjobs.com/api/v1
         run: npm run build
 
   # ── Playwright end-to-end (BLOCKING — no continue-on-error) ────────────────
