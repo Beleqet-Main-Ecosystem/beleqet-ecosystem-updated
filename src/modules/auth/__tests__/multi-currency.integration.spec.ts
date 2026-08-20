@@ -65,7 +65,7 @@ describe('Multi-currency integration — OAuth-provisioned users', () => {
   it('lets an OAuth-provisioned user own a wallet in a non-default currency', async () => {
     const wallet = await prisma.freelancerWallet.create({
       data: {
-        userId: createdUserId,
+        user: { connect: { id: createdUserId } },
         currency: 'USD', // schema default is 'ETB' — proves non-default works too
         pendingBalance: 0,
         availableBalance: 0,
