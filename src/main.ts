@@ -79,6 +79,37 @@ async function bootstrap() {
   // Handle CORS preflight before any other middleware to guarantee OPTIONS
   // responses include the required CORS headers regardless of routing.
   const frontendUrl = configService.get<string>('FRONTEND_URL', 'http://localhost:4001');
+
+  // Explicit OPTIONS handler — must be registered BEFORE enableCors() and helmet
+  // so that preflight requests are answered with 204 immediately, before NestJS
+  // routing can return 404. Without this, NestJS router processes OPTIONS, finds
+  // no matching route, and AllExceptionsFilter returns 404 before CORS headers
+  // are ever written.
+  app.use((req: any, res: any, next: any) => {
+    if (req.method !== 'OPTIONS') return next();
+    const requestOrigin = req.headers['origin'];
+    const frontendOrigins = configService
+      .get<string>('FRONTEND_URL', '')
+      .split(',')
+      .map((o: string) => o.trim())
+      .filter(Boolean);
+    const allowed =
+      !requestOrigin ||
+      frontendOrigins.includes(requestOrigin) ||
+      frontendOrigins.includes('*') ||
+      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(requestOrigin);
+    if (allowed) {
+      res.setHeader('Access-Control-Allow-Origin', requestOrigin || '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
+      res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Content-Type,Authorization,Accept,X-Requested-With',
+      );
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400'); // 24 h preflight cache
+    }
+    res.status(204).end();
+  });
   const allowedOrigins = frontendUrl
     .split(',')
     .map((o) => o.trim())
