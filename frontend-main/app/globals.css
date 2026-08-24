@@ -392,6 +392,10 @@
      ABOUT PAGE  (matches reference screenshot)
   ═══════════════════════════════════════════════════════════════ */
   .about-page{background:#F2EDE4;} /* cream body — no white gaps */
+  /* Kill the global section{padding:88px;max-width:1360px} for about page */
+  .about-page section{max-width:none !important;margin:0 !important;padding:0 !important;}
+  /* Override global section{padding:88px;max-width:1360px} for about page */
+  .about-page section{max-width:none !important;margin:0 !important;padding:0 !important;}
 
   /* Shared eyebrow */
   .ab-eyebrow{font-size:11px;font-weight:700;letter-spacing:1.2px;color:rgba(255,255,255,0.55);text-transform:uppercase;margin:0 0 14px;}
