@@ -17,9 +17,7 @@ export function createCompanyLoader(prisma: PrismaService) {
       where: { id: { in: [...companyIds] } },
     });
     const companyMap = new Map(companies.map((c: Company) => [c.id, c]));
-    return companyIds.map(
-      (id: string) => companyMap.get(id) ?? null,
-    );
+    return companyIds.map((id: string) => companyMap.get(id) ?? null);
   });
 }
 
@@ -37,9 +35,7 @@ export function createCategoryLoader(prisma: PrismaService) {
       where: { id: { in: [...categoryIds] } },
     });
     const categoryMap = new Map(categories.map((c: JobCategory) => [c.id, c]));
-    return categoryIds.map(
-      (id: string) => categoryMap.get(id) ?? null,
-    );
+    return categoryIds.map((id: string) => categoryMap.get(id) ?? null);
   });
 }
 
@@ -111,7 +107,9 @@ export function createApplicationCountLoader(prisma: PrismaService) {
       where: { jobId: { in: [...jobIds] } },
       _count: { id: true },
     });
-    const countMap = new Map<string, number>(results.map((r: { jobId: string; _count: { id: number } }) => [r.jobId, r._count.id]));
+    const countMap = new Map<string, number>(
+      results.map((r: { jobId: string; _count: { id: number } }) => [r.jobId, r._count.id]),
+    );
     return jobIds.map((id: string) => countMap.get(id) ?? 0);
   });
 }
@@ -130,7 +128,10 @@ export function createBidCountLoader(prisma: PrismaService) {
       _count: { id: true },
     });
     const countMap = new Map<string, number>(
-      results.map((r: { freelanceJobId: string; _count: { id: number } }) => [r.freelanceJobId, r._count.id]),
+      results.map((r: { freelanceJobId: string; _count: { id: number } }) => [
+        r.freelanceJobId,
+        r._count.id,
+      ]),
     );
     return freelanceJobIds.map((id: string) => countMap.get(id) ?? 0);
   });

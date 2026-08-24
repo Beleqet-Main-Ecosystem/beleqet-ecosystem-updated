@@ -13,7 +13,8 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**" },
+      // Allow all HTTPS image sources (Unsplash, CDNs, user avatars, etc.)
+      { protocol: "https", hostname: "**", pathname: "/**" },
     ],
     /**
      * Mobile-first device sizes for responsive `next/image`.

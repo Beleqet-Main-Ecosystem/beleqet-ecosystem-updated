@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getSeoConfig } from '@/lib/seo/config';
 import { INDEXABLE_ROUTES, ROUTE_REGISTRY } from '@/lib/seo/route-registry';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 const SITEMAP_PAGE_LIMIT = 500;
 const SITEMAP_MAX_JOBS = 50_000;

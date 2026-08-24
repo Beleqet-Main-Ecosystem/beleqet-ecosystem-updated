@@ -2,7 +2,7 @@ import { io, Socket } from "socket.io-client";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:4000";
+  "https://api.beleqetjobs.com";
 
 export const socket: Socket = io(`${API_URL}/chat`, {
   transports: ["websocket"],

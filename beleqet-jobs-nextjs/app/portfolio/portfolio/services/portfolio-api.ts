@@ -3,7 +3,7 @@ import { PORTFOLIO_API_PATH, PORTFOLIO_DRAFT_KEY } from '../constants/storage';
 import type { MasterProfileData } from '../types';
 import { parsePortfolioData, touchPortfolio } from '../utils/portfolio-state';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 /**
  * Loads portfolio data for authenticated users from the backend.

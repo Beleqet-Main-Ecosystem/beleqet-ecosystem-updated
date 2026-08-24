@@ -61,6 +61,10 @@ describe('Email module (integration: Postgres + Redis + BullMQ)', () => {
       ],
     }).compile();
 
+    // init() starts NestJS lifecycle hooks, which boots the BullMQ WorkerHost
+    // so EmailProcessor actually picks up and processes queued jobs.
+    await moduleRef.init();
+
     emailService = moduleRef.get(EmailService);
     queue = moduleRef.get(getQueueToken('email-dispatch'));
   });

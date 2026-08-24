@@ -32,7 +32,7 @@ beforeAll(() => {
   const symbolMap: Record<string, string> = {
     ETB: "Br",
     USD: "$",
-    EUR: "\u20AC",
+    EUR: "€",
   };
 
   /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -70,16 +70,6 @@ beforeAll(() => {
 
 afterAll(() => {
   global.Intl = originalIntl;
-});
-
-/* Clear localStorage before each test so that locale persistence
-   from a previous test (e.g. an "am" switch) does not leak into
-   the next render.  This keeps each test deterministic regardless
-   of execution order. */
-beforeEach(() => {
-  if (typeof window !== "undefined" && window.localStorage) {
-    window.localStorage.clear();
-  }
 });
 
 /* ------------------------------------------------------------------ */
@@ -146,9 +136,9 @@ describe("formatCurrency", () => {
 
   /* --- EUR --- */
   describe("EUR formatting", () => {
-    it("formats a EUR amount with \u20AC symbol", () => {
+    it("formats a EUR amount with € symbol", () => {
       const result = formatCurrency(1500, "EUR", "en");
-      expect(result).toBe("\u20AC1,500.00 EUR");
+      expect(result).toBe("€1,500.00 EUR");
     });
   });
 
@@ -180,7 +170,7 @@ describe("currencySymbols", () => {
   it("exports the correct symbol for each supported currency", () => {
     expect(currencySymbols.ETB).toBe("Br");
     expect(currencySymbols.USD).toBe("$");
-    expect(currencySymbols.EUR).toBe("\u20AC");
+    expect(currencySymbols.EUR).toBe("€");
   });
 });
 
@@ -209,18 +199,19 @@ function renderWithLocale(
     });
   }
 
-  /* Always read the latest values from result.current so that locale
-     switches performed inside the callback are reflected in `t`. */
-  callback(
-    (key: string) => result.current.t(key),
-    {
-      setLocale: (l) => act(() => result.current.setLocale(l)),
-      locale: result.current.locale,
-    },
-  );
+  // Always read t from result.current so we get the up-to-date translation fn
+  const t = (key: string) => result.current.t(key);
+  callback(t, {
+    setLocale: (l) => act(() => result.current.setLocale(l)),
+    locale: result.current.locale,
+  });
 }
 
 describe("Translation lookup", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   describe("English (en) locale – primary dictionary", () => {
     it("returns the correct English translation for a known key", () => {
       renderWithLocale("en", (t) => {
@@ -273,15 +264,23 @@ describe("Translation lookup", () => {
     it("returns Amharic translations for dashboard keys", () => {
       renderWithLocale("am", (t) => {
         expect(t("dashboard.greeting")).toBe("እንኳን ደህና መጡ");
-        expect(t("dashboard.careerDashboard")).toBe("የስራ ዳሽቦርድ");
-        expect(t("dashboard.hiringWorkspace")).toBe("የመቀጠሪያ የስራ ቦታ");
+        expect(t("dashboard.careerDashboard")).toBe(
+          "የስራ ዳሽቦርድ",
+        );
+        expect(t("dashboard.hiringWorkspace")).toBe(
+          "የመቀጠሪያ የስራ ቦታ",
+        );
       });
     });
 
     it("returns Amharic translations for badge keys", () => {
       renderWithLocale("am", (t) => {
-        expect(t("dashboard.employerBadge")).toBe("የአሰሪ ዳሽቦርድ");
-        expect(t("dashboard.careerBadge")).toBe("የስራ ፈላጊ ዳሽቦርድ");
+        expect(t("dashboard.employerBadge")).toBe(
+          "የአሰሪ ዳሽቦርድ",
+        );
+        expect(t("dashboard.careerBadge")).toBe(
+          "የስራ ፈላጊ ዳሽቦርድ",
+        );
       });
     });
 
@@ -296,7 +295,9 @@ describe("Translation lookup", () => {
       renderWithLocale("am", (t) => {
         expect(t("gdpr.title")).toBe("የግል ደህንነት ምርጫዎች");
         expect(t("gdpr.acceptAll")).toBe("ሁሉንም ፍቀድ");
-        expect(t("gdpr.rejectOptional")).toBe("አማራጮቹን እምቢ");
+        expect(t("gdpr.rejectOptional")).toBe(
+          "አማራጮቹን እምቢ",
+        );
       });
     });
 
@@ -362,7 +363,7 @@ describe("Translation lookup", () => {
   describe("Default locale", () => {
     it("defaults to 'en' when no locale preference is stored", () => {
       renderWithLocale("en", (t) => {
-        expect(t("common.loading")).toBe("Loading\u2026");
+        expect(t("common.loading")).toBe("Loading…");
       });
     });
   });

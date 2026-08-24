@@ -7,7 +7,7 @@ import { Loader2, XCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 function CheckoutInner() {
   const { user, ready } = useAuth();

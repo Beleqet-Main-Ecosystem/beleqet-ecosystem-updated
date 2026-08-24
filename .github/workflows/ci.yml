@@ -23,12 +23,7 @@ permissions:
   contents: read
 
 env:
-<<<<<<< HEAD
   NODE_VERSION: '22'
-=======
-  NODE_VERSION: '20'
-  NPM_CONFIG_LEGACY_PEER_DEPS: 'true'
->>>>>>> tmp/pr193
 
 jobs:
   # ── Repository, workflow, and script validation ────────────────────────────
@@ -263,6 +258,8 @@ jobs:
       - name: Jest suite
         run: npm run test:unit -- --runInBand
       - name: Production build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.beleqetjobs.com/api/v1
         run: npm run build
 
   # ── Playwright end-to-end (BLOCKING — no continue-on-error) ────────────────
@@ -387,6 +384,7 @@ jobs:
           TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
           TOTP_TEMP_SECRET=ci_smoke_totp_temp_secret_synthetic
           GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          E2EE_SERVER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           ENCRYPTION_KEY=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
           OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=
           GOOGLE_CLIENT_ID=ci_smoke_google_client_id

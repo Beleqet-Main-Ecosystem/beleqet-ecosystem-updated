@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Query, UseGuards, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -35,7 +43,8 @@ export class MatchingController {
   @Roles('ADMIN', 'EMPLOYER')
   @ApiOperation({
     summary: 'Get ranked freelancer matches for a freelance job',
-    description: 'Returns freelancers scored and ranked against the given job, filtered to overallScore >= minScore.',
+    description:
+      'Returns freelancers scored and ranked against the given job, filtered to overallScore >= minScore.',
   })
   async getMatches(
     @Param() params: JobIdParamDto,
@@ -46,7 +55,11 @@ export class MatchingController {
       await this.assertEmployerOwnsJob(params.jobId, user.userId);
     }
 
-    return this.matchingService.getRankedMatches(params.jobId, query.minScore ?? 0, query.limit ?? 20);
+    return this.matchingService.getRankedMatches(
+      params.jobId,
+      query.minScore ?? 0,
+      query.limit ?? 20,
+    );
   }
 
   /**

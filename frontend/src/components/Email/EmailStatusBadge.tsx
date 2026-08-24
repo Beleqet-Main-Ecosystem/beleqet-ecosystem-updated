@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle, Clock, AlertTriangle, Hourglass } from 'lucide-react';
-import type { EmailStatus } from '../types/email';
+import type { EmailStatus } from '../../types/email';
 
 const STATUS_CONFIG: Record<
   EmailStatus,

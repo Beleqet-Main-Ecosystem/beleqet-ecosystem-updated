@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation, Locale } from '../../lib/i18n';
+import { useTranslation, SupportedLocale } from '../../lib/i18n';
 import { CurrencyUtil } from '../../lib/currency';
 import {
   ShieldCheck,
@@ -41,7 +41,7 @@ interface StoredFile {
  *           Authentication: Uses JWT access tokens stored securely in client state and localStorage.
  */
 export default function StorageDashboard(): React.ReactElement {
-  const { locale, changeLanguage, t } = useTranslation();
+  const { locale, setLocale, t } = useTranslation();
 
   // Auth state
   const [token, setToken] = useState<string | null>(null);
@@ -86,6 +86,7 @@ export default function StorageDashboard(): React.ReactElement {
     } else {
       setFiles([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   /**
@@ -102,7 +103,7 @@ export default function StorageDashboard(): React.ReactElement {
     setAuthError(null);
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/auth/login', {
+      const response = await fetch('https://api.beleqetjobs.com/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -142,7 +143,7 @@ export default function StorageDashboard(): React.ReactElement {
     setIsLoadingFiles(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/storage/my-files', {
+      const response = await fetch('https://api.beleqetjobs.com/api/v1/storage/my-files', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -251,7 +252,7 @@ export default function StorageDashboard(): React.ReactElement {
     formData.append('hasConsentedToProcessing', 'true');
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/storage/upload', {
+      const response = await fetch('https://api.beleqetjobs.com/api/v1/storage/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -284,7 +285,7 @@ export default function StorageDashboard(): React.ReactElement {
     setIsGeneratingUrl(key);
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/storage/url/${key}`, {
+      const response = await fetch(`https://api.beleqetjobs.com/api/v1/storage/url/${key}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -322,7 +323,7 @@ export default function StorageDashboard(): React.ReactElement {
     }
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/storage/${key}`, {
+      const response = await fetch(`https://api.beleqetjobs.com/api/v1/storage/${key}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -373,7 +374,7 @@ export default function StorageDashboard(): React.ReactElement {
           <div className="flex items-center gap-3 bg-[#0d1f15] border border-[#143022] rounded-full p-1.5 shadow-lg">
             <Languages className="w-4 h-4 text-[#22c55e] ml-2" />
             <button
-              onClick={() => changeLanguage('en')}
+              onClick={() => setLocale('en')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
                 locale === 'en'
                   ? 'bg-[#22c55e] text-white shadow-md'
@@ -383,7 +384,7 @@ export default function StorageDashboard(): React.ReactElement {
               English
             </button>
             <button
-              onClick={() => changeLanguage('am')}
+              onClick={() => setLocale('am')}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all ${
                 locale === 'am'
                   ? 'bg-[#22c55e] text-white shadow-md'

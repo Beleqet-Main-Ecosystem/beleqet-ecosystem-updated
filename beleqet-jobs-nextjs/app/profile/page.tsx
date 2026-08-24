@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, MapPin, Briefcase, FileText, Search, ShieldCheck, BadgeCheck } from 'lucide-react';
@@ -10,6 +10,7 @@ import { authenticatedFetch } from '@/lib/auth';
 import AvailabilityCard from '@/components/interview-planner/AvailabilityCard';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from 'sonner';
+
 type Profile = {
   headline?: string | null;
   bio?: string | null;
@@ -33,7 +34,6 @@ const subscriptionStatusMeta: Record<Subscription['status'], { label: string; cl
     CANCELLED: { label: 'Cancelled', className: 'text-muted' },
     EXPIRED: { label: 'Expired', className: 'text-redAccent' },
   };
-const subscriptionStatusMeta: Record<Subscription['status'], { label: string; className: string }> = {
 
 const quickActionsByRole: Record<
   string,
@@ -60,25 +60,37 @@ const quickActionsByRole: Record<
 export default function ProfilePage() {
   const { user, ready } = useAuth();
   const router = useRouter();
+
+  // ── All state and hooks must be declared before any early return ──────────
   const [profile, setProfile] = useState<Profile | null>(null);
-  // All hooks must be registered unconditionally, before the loading-state
-  // early return below (React rules-of-hooks).
-  const [slots, setSlots] = useState([]);
-  const [editingSlot, setEditingSlot] = useState<any | null>(null);
   const [slots, setSlots] = useState<any[]>([]);
   const [deleteSlotId, setDeleteSlotId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [slots, setSlots] = useState<any[]>([]);
+
+  const loadAvailability = useCallback(async () => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
+    const res = await authenticatedFetch(`${base}/interview-planner/availability`);
+    const data = await res.json();
+    setSlots(data);
+  }, []);
+
+  const loadSubscription = useCallback(async () => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
+    const res = await authenticatedFetch(`${base}/subscriptions/me`);
+    if (!res.ok) return;
+    const data = await res.json();
+    setSubscription(data ?? null);
+  }, []);
 
   useEffect(() => {
     if (ready && !user) router.replace('/login');
   }, [ready, user, router]);
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
     authenticatedFetch(`${base}/users/profile`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => data && setProfile(data))
@@ -90,8 +102,9 @@ export default function ProfilePage() {
       void loadAvailability();
       void loadSubscription();
     }
-  }, [ready, user]);
+  }, [ready, user, loadAvailability, loadSubscription]);
 
+  // ── Early return after all hooks ─────────────────────────────────────────
   if (!ready || !user) {
     return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
   }
@@ -102,28 +115,12 @@ export default function ProfilePage() {
     className: 'bg-muted/10 text-muted',
   };
   const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
-  const loadAvailability = async () => {
-    const res = await authenticatedFetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability`,
-    );
-    const data = await res.json();
-    setSlots(data);
-  };
-
-  const loadSubscription = async () => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-    const res = await authenticatedFetch(`${base}/subscriptions/me`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setSubscription(data ?? null);
-  };
 
   const cancelSubscription = async () => {
     if (!subscription) return;
-
     try {
       setCancelling(true);
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+      const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
       const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
         method: 'POST',
       });
@@ -141,86 +138,26 @@ export default function ProfilePage() {
 
   const handleDelete = async () => {
     if (!deleteSlotId) return;
-
     try {
       setDeleting(true);
-
       const res = await authenticatedFetch(
         `${process.env.NEXT_PUBLIC_API_URL}/interview-planner/availability/${deleteSlotId}`,
-        {
-          method: 'DELETE',
-        },
+        { method: 'DELETE' },
       );
-
       const data = await res.json();
-
       if (!res.ok) {
         throw new Error(data.message || 'Something went wrong');
       }
-
       await loadAvailability();
-
       toast.success(data.message);
     } catch (err) {
       console.error(err);
-
       toast.error(err instanceof Error ? err.message : 'Failed to delete availability slot.');
     } finally {
       setDeleting(false);
       setDeleteSlotId(null);
     }
   };
-
-  useEffect(() => {
-    // Availability only loads for an authenticated user — matches the
-    // original behavior where this effect sat below the auth guard.
-    if (ready && user) loadAvailability();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user]);
-
-  const loadSubscription = async () => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-    const res = await authenticatedFetch(`${base}/subscriptions/me`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setSubscription(data ?? null);
-  };
-
-  useEffect(() => {
-    if (ready && user) loadSubscription();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, user]);
-
-  const cancelSubscription = async () => {
-    if (!subscription) return;
-    try {
-      setCancelling(true);
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-      const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to cancel subscription');
-      await loadSubscription();
-      toast.success('Your subscription will not renew after the current period ends.');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to cancel subscription.');
-    } finally {
-      setCancelling(false);
-      setCancelConfirmOpen(false);
-    }
-  };
-
-  if (!ready || !user) {
-    return <div className="container-page py-24 text-center text-muted">Loading your profile…</div>;
-  }
-
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
-  const role = roleMeta[user.role] ?? {
-    label: user.role,
-    className: 'bg-muted/10 text-muted',
-  };
-  const actions = quickActionsByRole[user.role] ?? quickActionsByRole.JOB_SEEKER;
 
   return (
     <div className="container-page py-10">
@@ -274,7 +211,7 @@ export default function ProfilePage() {
           {profile?.headline && <p className="mt-3 font-medium text-ink">{profile.headline}</p>}
           <p className="mt-2 text-sm leading-relaxed text-muted">
             {profile?.bio ||
-              'You haven’t added a bio yet. A short summary helps employers get to know you.'}
+              'You haven&apos;t added a bio yet. A short summary helps employers get to know you.'}
           </p>
           {profile?.location && (
             <p className="mt-4 flex items-center gap-1.5 text-sm text-muted">
@@ -332,9 +269,6 @@ export default function ProfilePage() {
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-pageBg p-4">
             <div>
               <p className="font-semibold text-ink">{subscription.plan.name}</p>
-              <p
-                className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}
-              >
               <p className={`text-sm font-medium ${subscriptionStatusMeta[subscription.status].className}`}>
                 {subscriptionStatusMeta[subscription.status].label}
                 {subscription.status === 'ACTIVE' &&
@@ -359,7 +293,6 @@ export default function ProfilePage() {
               Upgrade anytime
             </Link>
             .
-            You&apos;re on the Free plan. <Link href="/pricing" className="font-semibold text-brandGreen">Upgrade anytime</Link>.
           </p>
         )}
       </div>
@@ -379,12 +312,11 @@ export default function ProfilePage() {
           onDelete={(id) => setDeleteSlotId(id)}
         />
       </div>
+
       <ConfirmDialog
         open={!!deleteSlotId}
         onOpenChange={(open) => {
-          if (!open) {
-            setDeleteSlotId(null);
-          }
+          if (!open) setDeleteSlotId(null);
         }}
         title="Delete availability slot?"
         description="This action cannot be undone. The selected interview availability time will be permanently removed."

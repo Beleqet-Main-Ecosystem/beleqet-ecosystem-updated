@@ -32,9 +32,6 @@ const values = [
   },
 ];
 
-export const metadata = {
-  title: "About Beleqet | Ethiopia’s Career Marketplace",
-};
 
 export default function AboutPage() {
   return (

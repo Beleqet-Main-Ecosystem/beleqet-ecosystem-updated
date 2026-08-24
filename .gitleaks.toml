@@ -18,6 +18,12 @@ paths = [
   '''scripts/ci/create-test-env\.sh$''',
   # Jest/Vitest spec files use synthetic mock data by policy.
   '''[^/]+\.spec\.ts$''',
+  # Documentation files containing example/sample IDs (not real credentials).
+  '''WEBHOOK_SUMMARY\.md$''',
+  '''WEBHOOK_IMPLEMENTATION\.md$''',
+  # Compiled / generated output directories.
+  '''^dist/''',
+  '''^frontend-main/\.next/''',
 ]
 regexes = [
   # Placeholder / synthetic naming conventions used across the repo.

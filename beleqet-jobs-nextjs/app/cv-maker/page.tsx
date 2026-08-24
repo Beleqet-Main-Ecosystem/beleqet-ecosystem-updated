@@ -29,7 +29,7 @@ import {
   type ExtractedProfile,
 } from '@/lib/resume-brain/mapping';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 const inputClass =
   'mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10';

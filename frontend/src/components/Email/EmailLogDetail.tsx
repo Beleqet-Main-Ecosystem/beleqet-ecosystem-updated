@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { useEmailLog } from '../hooks/useEmailLogs';
+import { useEmailLog } from '../../hooks/useEmailLogs';
 import { EmailStatusBadge } from './EmailStatusBadge';
 
 interface Props {

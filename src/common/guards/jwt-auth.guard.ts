@@ -1,7 +1,7 @@
 // =============================================================================
 // common/guards/jwt-auth.guard.ts
 // =============================================================================
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { firstValueFrom, Observable } from 'rxjs';
 
@@ -14,13 +14,16 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         headers?: Record<string, string | undefined>;
       }>();
 
-      if (!request.user) {
-        request.user = {
-          userId: request.headers?.['x-test-user-id'] ?? 'test-user',
-        };
+      // Only bypass JWT validation when the test explicitly supplies an identity.
+      // If no x-test-user-id header is present, fall through to the real guard
+      // so that unauthenticated-request tests still receive 401.
+      const testUserId = request.headers?.['x-test-user-id'];
+      if (testUserId) {
+        if (!request.user) {
+          request.user = { userId: testUserId };
+        }
+        return true;
       }
-
-      return true;
     }
 
     const result = super.canActivate(context);
@@ -29,6 +32,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return firstValueFrom(result);
     }
 
-    return result;
+    return result as boolean | Promise<boolean>;
   }
 }

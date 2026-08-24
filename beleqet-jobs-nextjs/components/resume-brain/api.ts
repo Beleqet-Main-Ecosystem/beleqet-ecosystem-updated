@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getToken } from '@/lib/auth';
 import { ExtractedResume, ResumeUploadRecord, UploadResumeResponse } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 function authHeaders(): Record<string, string> {
   const token = getToken();

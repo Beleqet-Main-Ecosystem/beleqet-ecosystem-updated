@@ -32,10 +32,10 @@ describe('GraphQL Turbo (Integration)', () => {
     await app?.close();
   });
 
-  describe('GET /graphql (introspection)', () => {
+  describe('GET /api/v1/graphql (introspection)', () => {
     it('should support schema introspection', async () => {
       const response = await request(app.getHttpServer())
-        .post('/graphql')
+        .post('/api/v1/graphql')
         .send({
           query: `
             query IntrospectionQuery {
@@ -60,7 +60,7 @@ describe('GraphQL Turbo (Integration)', () => {
   describe('POST /graphql - jobs query', () => {
     it('should return paginated jobs', async () => {
       const response = await request(app.getHttpServer())
-        .post('/graphql')
+        .post('/api/v1/graphql')
         .send({
           query: `
             query {
@@ -88,7 +88,7 @@ describe('GraphQL Turbo (Integration)', () => {
 
     it('should support filtered job search', async () => {
       const response = await request(app.getHttpServer())
-        .post('/graphql')
+        .post('/api/v1/graphql')
         .send({
           query: `
             query {
@@ -108,7 +108,7 @@ describe('GraphQL Turbo (Integration)', () => {
   describe('POST /graphql - job query', () => {
     it('should return null for non-existent job', async () => {
       const response = await request(app.getHttpServer())
-        .post('/graphql')
+        .post('/api/v1/graphql')
         .send({
           query: `
             query {
@@ -128,7 +128,7 @@ describe('GraphQL Turbo (Integration)', () => {
   describe('POST /graphql - gqlUser query', () => {
     it('should return null for non-existent user', async () => {
       const response = await request(app.getHttpServer())
-        .post('/graphql')
+        .post('/api/v1/graphql')
         .send({
           query: `
             query {
@@ -149,7 +149,7 @@ describe('GraphQL Turbo (Integration)', () => {
   describe('POST /graphql - applications query', () => {
     it('should return paginated applications', async () => {
       const response = await request(app.getHttpServer())
-        .post('/graphql')
+        .post('/api/v1/graphql')
         .send({
           query: `
             query {
@@ -175,7 +175,7 @@ describe('GraphQL Turbo (Integration)', () => {
   describe('POST /graphql - analyticsSummary query', () => {
     it('should return analytics data', async () => {
       const response = await request(app.getHttpServer())
-        .post('/graphql')
+        .post('/api/v1/graphql')
         .send({
           query: `
             query {
@@ -199,7 +199,7 @@ describe('GraphQL Turbo (Integration)', () => {
 
   describe('POST /graphql - error handling', () => {
     it('should handle invalid queries gracefully', async () => {
-      const response = await request(app.getHttpServer()).post('/graphql').send({
+      const response = await request(app.getHttpServer()).post('/api/v1/graphql').send({
         query: `{ nonExistentField }`,
       });
 

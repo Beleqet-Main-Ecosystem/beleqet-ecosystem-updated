@@ -143,7 +143,7 @@ describe('JobsResolver', () => {
 
       const result = await resolver.resolveCompany(mockJob as any);
       expect(result).toBeDefined();
-      expect(result.id).toBe('comp-1');
+      expect(result!.id).toBe('comp-1');
     });
   });
 

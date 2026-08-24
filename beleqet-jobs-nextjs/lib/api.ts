@@ -45,6 +45,7 @@ export type Job = {
   salaryMax?: number;
   currency?: string;
   relevanceScore?: number;
+  createdAt?: string | null;
 };
 
 export type Category = {
@@ -55,7 +56,7 @@ export type Category = {
 };
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1',
   timeout: 10000,
 });
 

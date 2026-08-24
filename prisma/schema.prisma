@@ -10,21 +10,21 @@ datasource db {
 }
 
 model User {
-  id                    String              @id @default(uuid())
-  email                 String              @unique
+  id                    String                @id @default(uuid())
+  email                 String                @unique
   passwordHash          String?
   firstName             String
   lastName              String
-  role                  UserRole            @default(JOB_SEEKER)
+  role                  UserRole              @default(JOB_SEEKER)
   avatarUrl             String?
   phone                 String?
-  telegramId            String?             @unique
-  isActive              Boolean             @default(true)
-  emailVerified         Boolean             @default(false)
+  telegramId            String?               @unique
+  isActive              Boolean               @default(true)
+  emailVerified         Boolean               @default(false)
   /// Set on successful session issuance (password/OAuth/2FA). Used by admin active-user metrics.
   lastLoginAt           DateTime?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
   bio                   String?
   defaultResumeUrl      String?
   githubUrl             String?
@@ -32,7 +32,7 @@ model User {
   linkedinUrl           String?
   location              String?
   portfolioUrl          String?
-  skills                String[]            @default([])
+  skills                String[]              @default([])
   oauthAccounts         OAuthAccount[]
   applications          Application[]
   bids                  Bid[]
@@ -41,8 +41,8 @@ model User {
   videoInterviews       VideoInterview[]
   chatParticipants      ChatParticipant[]
   company               Company?
-  contractsAsClient     Contract[]          @relation("ContractClient")
-  contractsAsFreelancer Contract[]          @relation("ContractFreelancer")
+  contractsAsClient     Contract[]            @relation("ContractClient")
+  contractsAsFreelancer Contract[]            @relation("ContractFreelancer")
   freelanceJobs         FreelanceJob[]
   wallet                FreelancerWallet?
   employerWallet        EmployerWallet?
@@ -53,36 +53,49 @@ model User {
   savedJobs             SavedJob[]
   cvDraft               CvDraft?
   clientFeedback        Json?
-  skillVerified         Boolean             @default(false)
-  availabilities        UserAvailability[]  @relation("UserAvailabilities")
-  employerInterviews    Interview[]         @relation("EmployerInterviews")
-  candidateInterviews   Interview[]         @relation("CandidateInterviews")
-  referralsGiven        Referral[]          @relation("ReferralReferrer")
-  referralsReceived     Referral[]          @relation("ReferralReferred")
+  skillVerified         Boolean               @default(false)
+  availabilities        UserAvailability[]    @relation("UserAvailabilities")
+  employerInterviews    Interview[]           @relation("EmployerInterviews")
+  candidateInterviews   Interview[]           @relation("CandidateInterviews")
+  referralsGiven        Referral[]            @relation("ReferralReferrer")
+  referralsReceived     Referral[]            @relation("ReferralReferred")
   jobAlerts             JobAlert[]
   payments              Payment[]
   forumThreads          ForumThread[]
   forumReplies          ForumReply[]
   forumUpvotes          ForumUpvote[]
   twoFactor             UserTwoFactor?
-  kycVerified           Boolean             @default(false)
+  kycVerified           Boolean               @default(false)
   kycVerification       KycVerification?
   subscriptions         Subscription[]
-  rbacRoles             Role[]              @relation("UserRoles")
+  rbacRoles             Role[]                @relation("UserRoles")
 
   gdprConsent             Boolean                  @default(true)
+  gdprConsentDate         DateTime?
+  gdprConsentRevoked      Boolean                  @default(false)
+  gdprConsentRevokedAt    DateTime?
+  externalCustomerId      String?
+  externalSubscriptionId  String?
+  subscriptionStatus      String?
   aiFeedConsent           Boolean                  @default(true)
   searchHistories         SearchHistory[]
   notificationPreference  NotificationPreference?
   userPreference          UserPreference?
   storedFiles             StoredFile[]
   skillAssessmentSessions SkillAssessmentSession[]
-  auditLogs             AuditLog[]
-  promotionCampaigns    PromotionCampaign[]
+  auditLogs               AuditLog[]
+  promotionCampaigns      PromotionCampaign[]
   fraudAlerts             FraudAlert[]             @relation("AlertUser")
   resolvedFraudAlerts     FraudAlert[]             @relation("AlertResolver")
 
-  email_logs      EmailLog[]
+  email_logs         EmailLog[]
+  SpeechConversation SpeechConversation[]
+
+  // E2EE encrypted inbox
+  e2EKeyPair                      E2EKeyPair?
+  initiatedEncryptedConversations EncryptedConversation[] @relation("EncryptedConversationInitiator")
+  receivedEncryptedConversations  EncryptedConversation[] @relation("EncryptedConversationResponder")
+  encryptedMessagesSent           EncryptedMessage[]      @relation("EncryptedMessageSender")
 
   @@index([lastLoginAt])
   @@index([createdAt])
@@ -149,6 +162,7 @@ model NotificationPreference {
 
   @@map("notification_preferences")
 }
+
 model OAuthAccount {
   id                    String        @id @default(uuid())
   userId                String
@@ -180,14 +194,15 @@ enum OAuthProvider {
   GOOGLE
   LINKEDIN
 }
+
 model SpeechConversation {
-  id          String               @id @default(uuid())
+  id          String             @id @default(uuid())
   userId      String?
   title       String?
   description String?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  user        User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  user        User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   transcripts SpeechTranscript[]
   messages    SpeechMessage[]
 
@@ -196,22 +211,22 @@ model SpeechConversation {
 }
 
 model SpeechTranscript {
-  id              String                  @id @default(uuid())
-  conversationId  String
-  audioUrl        String?
-  videoUrl        String?
-  duration        Int?
-  rawText         String?
-  normalizedText  String?
-  language        String                  @default("en")
-  confidence      Float?
-  provider        String?
-  processingTime  Int?
-  status          SpeechTranscriptStatus  @default(PENDING)
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  conversation    SpeechConversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  messages        SpeechMessage[]
+  id             String                 @id @default(uuid())
+  conversationId String
+  audioUrl       String?
+  videoUrl       String?
+  duration       Int?
+  rawText        String?
+  normalizedText String?
+  language       String                 @default("en")
+  confidence     Float?
+  provider       String?
+  processingTime Int?
+  status         SpeechTranscriptStatus @default(PENDING)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  conversation   SpeechConversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  messages       SpeechMessage[]
 
   @@index([conversationId, createdAt])
   @@index([status])
@@ -219,16 +234,16 @@ model SpeechTranscript {
 }
 
 model SpeechMessage {
-  id              String              @id @default(uuid())
-  conversationId  String
-  transcriptId    String?
-  content         String
-  type            SpeechMessageType   @default(USER)
-  sender          String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  conversation    SpeechConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  transcript      SpeechTranscript?   @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
+  id             String             @id @default(uuid())
+  conversationId String
+  transcriptId   String?
+  content        String
+  type           SpeechMessageType  @default(USER)
+  sender         String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  conversation   SpeechConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  transcript     SpeechTranscript?  @relation(fields: [transcriptId], references: [id], onDelete: SetNull)
 
   @@index([conversationId, createdAt])
   @@index([transcriptId])
@@ -473,30 +488,30 @@ model FreelanceCategory {
 }
 
 model FreelanceJob {
-  id                 String             @id @default(uuid())
+  id                 String                @id @default(uuid())
   title              String
   description        String
   categoryId         String
   clientId           String
   budgetMin          Int
   budgetMax          Int
-  currency           String             @default("ETB")
-  pricingType        String             @default("FIXED")
+  currency           String                @default("ETB")
+  pricingType        String                @default("FIXED")
   deadlineDays       Int
   skills             String[]
-  status             FreelanceJobStatus @default(DRAFT)
-  featured           Boolean            @default(false)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  attachments        String[]           @default([])
+  status             FreelanceJobStatus    @default(DRAFT)
+  featured           Boolean               @default(false)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  attachments        String[]              @default([])
   experienceLevel    String?
   locationPreference String?
   bids               Bid[]
   matchScores        FreelanceMatchScore[]
   contract           Contract?
   escrowTx           EscrowTransaction?
-  category           FreelanceCategory  @relation(fields: [categoryId], references: [id])
-  client             User               @relation(fields: [clientId], references: [id])
+  category           FreelanceCategory     @relation(fields: [categoryId], references: [id])
+  client             User                  @relation(fields: [clientId], references: [id])
 
   @@map("freelance_jobs")
 }
@@ -683,19 +698,19 @@ model Notification {
 }
 
 model EventLog {
-  id           String   @id @default(uuid())
-  eventType    String
-  entityId     String
-  entityType   String
-  payload      Json
-  processedBy  String?
-  actorUserId  String?
-  ipAddress    String?
-  httpMethod   String?
-  path         String?
-  statusCode   Int?
-  durationMs   Int?
-  createdAt    DateTime @default(now())
+  id          String   @id @default(uuid())
+  eventType   String
+  entityId    String
+  entityType  String
+  payload     Json
+  processedBy String?
+  actorUserId String?
+  ipAddress   String?
+  httpMethod  String?
+  path        String?
+  statusCode  Int?
+  durationMs  Int?
+  createdAt   DateTime @default(now())
 
   @@index([eventType, entityId])
   @@index([createdAt], map: "idx_events_log_created_at")
@@ -917,16 +932,17 @@ model SalaryAnalytics {
   @@index([periodEndDate])
   @@map("salary_analytics")
 }
+
 model FraudRule {
-  id        String         @id @default(uuid())
+  id        String        @id @default(uuid())
   name      String
   ruleType  FraudRuleType
-  severity  FraudSeverity  @default(MEDIUM)
-  enabled   Boolean        @default(true)
+  severity  FraudSeverity @default(MEDIUM)
+  enabled   Boolean       @default(true)
   config    Json?
   i18nKey   String
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   alerts    FraudAlert[]
 
   @@index([ruleType, enabled])
@@ -934,31 +950,31 @@ model FraudRule {
 }
 
 model FraudAlert {
-  id             String            @id @default(uuid())
+  id             String           @id @default(uuid())
   entityType     String
   entityId       String
   userId         String?
   ruleId         String?
   ruleType       FraudRuleType
-  severity       FraudSeverity     @default(MEDIUM)
-  score          Float             @default(0)
+  severity       FraudSeverity    @default(MEDIUM)
+  score          Float            @default(0)
   reason         String
   evidence       Json?
   currency       String?
-  status         FraudAlertStatus  @default(OPEN)
+  status         FraudAlertStatus @default(OPEN)
   resolvedById   String?
   resolvedAt     DateTime?
   resolutionNote String?
   metadata       Json?
-  legalBasis     String            @default("legitimate_interest")
+  legalBasis     String           @default("legitimate_interest")
   expiryAt       DateTime?
   deletedAt      DateTime?
   anonymizedAt   DateTime?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  user           User?             @relation("AlertUser", fields: [userId], references: [id])
-  resolvedBy     User?             @relation("AlertResolver", fields: [resolvedById], references: [id])
-  rule           FraudRule?        @relation(fields: [ruleId], references: [id])
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  user           User?            @relation("AlertUser", fields: [userId], references: [id])
+  resolvedBy     User?            @relation("AlertResolver", fields: [resolvedById], references: [id])
+  rule           FraudRule?       @relation(fields: [ruleId], references: [id])
 
   @@index([entityType, entityId])
   @@index([severity, status])
@@ -1088,19 +1104,19 @@ model VideoInterview {
 }
 
 model VideoResponse {
-  id                   String         @id @default(uuid())
+  id                   String   @id @default(uuid())
   videoInterviewId     String
   questionIndex        Int
   videoUrl             String?
   transcript           String?
   rawWhisperResponse   Json?
   processingDurationMs Int?
-  language             String         @default("en")
-  processingStatus     String         @default("PENDING")
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
+  language             String   @default("en")
+  processingStatus     String   @default("PENDING")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  videoInterview       VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@unique([videoInterviewId, questionIndex])
   @@index([videoInterviewId, questionIndex])
@@ -1109,17 +1125,17 @@ model VideoResponse {
 }
 
 model InterviewEvaluation {
-  id               String         @id @default(uuid())
-  videoInterviewId String         @unique
+  id               String   @id @default(uuid())
+  videoInterviewId String   @unique
   overallScore     Float
   scores           Json
   reasoning        String?
   rawAiResponse    Json?
-  modelUsed        String         @default("llama3")
+  modelUsed        String   @default("llama3")
   gdprDeleteAt     DateTime
-  evaluatedAt      DateTime       @default(now())
+  evaluatedAt      DateTime @default(now())
 
-  videoInterview   VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
+  videoInterview VideoInterview @relation(fields: [videoInterviewId], references: [id], onDelete: Cascade)
 
   @@index([scores], type: Gin)
   @@index([rawAiResponse], type: Gin)
@@ -1174,19 +1190,19 @@ model JobAlert {
 }
 
 model ForumThread {
-  id              String       @id @default(uuid())
+  id              String        @id @default(uuid())
   title           String
   content         String
-  tags            String[]     @default([])
+  tags            String[]      @default([])
   userId          String
-  userDisplayName String       @default("Deleted User")
-  isAnonymous     Boolean      @default(false)
-  upvoteCount     Int          @default(0)
-  replyCount      Int          @default(0)
-  isPinned        Boolean      @default(false)
-  isLocked        Boolean      @default(false)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  userDisplayName String        @default("Deleted User")
+  isAnonymous     Boolean       @default(false)
+  upvoteCount     Int           @default(0)
+  replyCount      Int           @default(0)
+  isPinned        Boolean       @default(false)
+  isLocked        Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   replies         ForumReply[]
   upvotes         ForumUpvote[]
@@ -1198,20 +1214,20 @@ model ForumThread {
 }
 
 model ForumReply {
-  id              String       @id @default(uuid())
+  id              String        @id @default(uuid())
   content         String
   threadId        String
   parentReplyId   String?
   userId          String
-  userDisplayName String       @default("Deleted User")
-  isAnonymous     Boolean      @default(false)
-  upvoteCount     Int          @default(0)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  thread          ForumThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  parentReply     ForumReply?  @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: SetNull)
-  childReplies    ForumReply[] @relation("ReplyToReply")
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userDisplayName String        @default("Deleted User")
+  isAnonymous     Boolean       @default(false)
+  upvoteCount     Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  thread          ForumThread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parentReply     ForumReply?   @relation("ReplyToReply", fields: [parentReplyId], references: [id], onDelete: SetNull)
+  childReplies    ForumReply[]  @relation("ReplyToReply")
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   upvotes         ForumUpvote[]
 
   @@index([threadId, createdAt])
@@ -1244,18 +1260,22 @@ enum ReferralStatus {
 }
 
 model Payment {
-  id                String          @id @default(uuid())
-  userId            String
-  provider          PaymentProvider
-  providerPaymentId String          @unique
-  amount            Int
-  currency          String          @default("USD")
-  status            PaymentStatus   @default(PENDING)
-  description       String?
-  metadata          Json?
-  refundedAt        DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id                   String          @id @default(uuid())
+  userId               String
+  provider             PaymentProvider
+  providerPaymentId    String          @unique
+  amount               Int
+  currency             String          @default("USD")
+  status               PaymentStatus   @default(PENDING)
+  description          String?
+  metadata             Json?
+  refundedAt           DateTime?
+  /// For manual (bank-transfer) payments: customer-supplied transaction reference
+  transactionReference String?
+  /// For manual payments: URL of the uploaded payment receipt (JPG/PNG/PDF)
+  receiptUrl           String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1269,6 +1289,7 @@ model Payment {
 enum PaymentProvider {
   STRIPE
   PAYPAL
+  MANUAL
 }
 
 enum PaymentStatus {
@@ -1412,7 +1433,7 @@ model StoredFile {
   deletedAt                DateTime?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
-  uploadedBy                 User?     @relation(fields: [uploadedById], references: [id])
+  uploadedBy               User?     @relation(fields: [uploadedById], references: [id])
 
   @@map("stored_files")
 }
@@ -1533,6 +1554,7 @@ enum FaqBotMessageRole {
   ASSISTANT
   SYSTEM
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Promoted Engine & Sponsored Ads (Task: The Vault - Revenue & Monetization)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1587,18 +1609,18 @@ enum CampaignStatus {
 /// FreelanceJob (gig). Drives priority ranking in search/dashboard results
 /// while ACTIVE and funded.
 model PromotionCampaign {
-  id     String              @id @default(uuid())
-  ownerId String
+  id         String              @id @default(uuid())
+  ownerId    String
   targetType PromotionTargetType
   /// Polymorphic reference — Job.id, Application.id, or FreelanceJob.id
   /// depending on targetType. Validated (existence + ownership) in the
   /// service layer, not enforced at the DB level (see note above).
-  targetId String
+  targetId   String
 
   status CampaignStatus @default(PENDING)
 
   /// Cost per click, in minor currency units.
-  cpcBid Int
+  cpcBid      Int
   /// Max spend allowed per day, in minor currency units. Enforced by a
   /// scheduled job that resets `spentToday` to 0 at each day boundary.
   dailyBudget Int
@@ -1606,8 +1628,8 @@ model PromotionCampaign {
   totalBudget Int?
   currency    String @default("ETB")
 
-  spentToday Int      @default(0)
-  spentTotal Int      @default(0)
+  spentToday  Int      @default(0)
+  spentTotal  Int      @default(0)
   /// Last time spentToday was reset — lets the daily-reset job run
   /// idempotently (skip campaigns already reset today).
   lastResetAt DateTime @default(now())
@@ -1622,7 +1644,7 @@ model PromotionCampaign {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  owner        User                        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User                         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   events       PromotionEvent[]
   transactions PromotionWalletTransaction[]
 
@@ -1649,13 +1671,13 @@ enum PromotionEventType {
 /// minimal and non-identifying (see GDPR note above) — this is an analytics
 /// counter table, not a user-activity log.
 model PromotionEvent {
-  id         String             @id @default(uuid())
-  campaignId String
-  type       PromotionEventType
+  id          String             @id @default(uuid())
+  campaignId  String
+  type        PromotionEventType
   /// Amount charged for this specific event, in minor currency units
   /// (campaign.cpcBid for CLICK, 0 for IMPRESSION/CONVERSION).
-  costApplied Int      @default(0)
-  createdAt   DateTime @default(now())
+  costApplied Int                @default(0)
+  createdAt   DateTime           @default(now())
 
   campaign PromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
@@ -1755,8 +1777,8 @@ model EmailLog {
 
 /// Suppression list checked before every NEWSLETTER send (GDPR / CAN-SPAM compliance).
 model EmailSuppression {
-  id        String   @id @default(uuid())
-  recipient String   @unique
+  id        String @id @default(uuid())
+  recipient String @unique
   reason    String
 
   @@map("email_suppressions")
@@ -1840,6 +1862,7 @@ model PaymentTransaction {
 /// GDPR consent tracking for webhook data processing.
 model GdprConsent {
   id          String    @id @default(uuid())
+  userId      String?
   purpose     String
   version     String    @default("1.0")
   consentedAt DateTime  @default(now())
@@ -1847,5 +1870,133 @@ model GdprConsent {
   createdAt   DateTime  @default(now())
 
   @@index([purpose])
+  @@index([userId])
   @@map("gdpr_consents")
+}
+
+/// Freelancer review submitted by a customer after a completed project.
+model Review {
+  id                  String   @id @default(uuid())
+  freelancerId        String
+  customerId          String
+  rating              Int
+  comment             String
+  locale              String   @default("en")
+  transactionCurrency String   @default("USD")
+  gdprConsentGiven    Boolean  @default(false)
+  isAnonymized        Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([freelancerId])
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+// ── Encrypted Inbox (E2EE zero-knowledge messaging) ─────────────────────────
+
+/// E2EE asymmetric key pair per user. Public key stored in plaintext;
+/// private key is server-encrypted (zero-knowledge architecture).
+model E2EKeyPair {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  publicKey           String
+  encryptedPrivateKey String
+  algorithm           String   @default("RSA-OAEP-256")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("e2e_key_pairs")
+}
+
+/// A two-party encrypted conversation thread.
+model EncryptedConversation {
+  id          String   @id @default(uuid())
+  initiatorId String
+  responderId String
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  initiator User               @relation("EncryptedConversationInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  responder User               @relation("EncryptedConversationResponder", fields: [responderId], references: [id], onDelete: Cascade)
+  messages  EncryptedMessage[]
+
+  @@index([initiatorId])
+  @@index([responderId])
+  @@map("encrypted_conversations")
+}
+
+/// A single ciphertext message in an encrypted conversation.
+model EncryptedMessage {
+  id                String    @id @default(uuid())
+  conversationId    String
+  senderId          String
+  ciphertext        String
+  iv                String
+  encryptedMetadata Json?
+  isDeleted         Boolean   @default(false)
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  conversation EncryptedConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                  @relation("EncryptedMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("encrypted_messages")
+}
+
+/// Upload status for resume processing pipeline.
+enum ResumeUploadStatus {
+  PARSING
+  PARSED
+  FAILED
+}
+
+/// Tracks a CV file uploaded by a professional for the Resume Brain pipeline.
+model ResumeUpload {
+  id                String             @id @default(uuid())
+  userId            String
+  originalFilename  String
+  storageKey        String
+  storageUrl        String
+  mimeType          String
+  fileSizeBytes     Int
+  status            ResumeUploadStatus @default(PARSING)
+  failureReason     String?
+  consentGiven      Boolean            @default(false)
+  consentAt         DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  parsedResume      ParsedResume?
+
+  @@index([userId])
+  @@map("resume_uploads")
+}
+
+/// Structured data extracted from a parsed CV.
+model ParsedResume {
+  id               String       @id @default(uuid())
+  resumeUploadId   String       @unique
+  userId           String
+  personalInfo     Json
+  education        Json
+  workExperience   Json
+  skills           String[]     @default([])
+  certifications   String[]     @default([])
+  languages        Json
+  extractionEngine String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  resumeUpload     ResumeUpload @relation(fields: [resumeUploadId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("parsed_resumes")
 }

@@ -1,3 +1,4 @@
+import type { ITranscript } from '@/lib/chat-to-text-types';
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -328,7 +329,7 @@ export default function ChatToTextPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {transcripts.map((transcript) => (
+                {transcripts.map((transcript: ITranscript) => (
                   <div key={transcript.id} className="rounded-[24px] border border-slate-200 bg-slate-50 p-4 shadow-sm transition hover:shadow-md">
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <div className="flex-1">

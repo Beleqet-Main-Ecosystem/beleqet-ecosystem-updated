@@ -1,4 +1,10 @@
-import { computeSkillScore, computeLocationScore, computeExperienceScore, computeMatch, toPercentage } from '../matching.algorithm';
+import {
+  computeSkillScore,
+  computeLocationScore,
+  computeExperienceScore,
+  computeMatch,
+  toPercentage,
+} from '../matching.algorithm';
 
 describe('computeSkillScore', () => {
   it('returns 0 when the job has no required skills', () => {
@@ -57,11 +63,15 @@ describe('computeExperienceScore', () => {
   });
 
   it('defaults to 0.6 when no seniority signal is found in the profile text', () => {
-    expect(computeExperienceScore({ headline: 'Software Engineer', bio: 'I build things.' }, 'SENIOR')).toBe(0.6);
+    expect(
+      computeExperienceScore({ headline: 'Software Engineer', bio: 'I build things.' }, 'SENIOR'),
+    ).toBe(0.6);
   });
 
   it('scores 1 when the detected seniority matches the job level', () => {
-    expect(computeExperienceScore({ headline: 'Senior Backend Engineer', bio: null }, 'senior')).toBe(1);
+    expect(
+      computeExperienceScore({ headline: 'Senior Backend Engineer', bio: null }, 'senior'),
+    ).toBe(1);
   });
 
   it('scores 0.4 when a seniority signal is found but does not match', () => {
@@ -76,7 +86,12 @@ describe('computeExperienceScore', () => {
 describe('computeMatch', () => {
   it('combines sub-scores into a weighted overall score', () => {
     const result = computeMatch(
-      { skills: ['react', 'node'], location: 'Addis Ababa', headline: 'Senior Engineer', bio: null },
+      {
+        skills: ['react', 'node'],
+        location: 'Addis Ababa',
+        headline: 'Senior Engineer',
+        bio: null,
+      },
       { skills: ['react', 'node'], locationPreference: 'Remote', experienceLevel: 'senior' },
     );
     // skill=1, location=1, experience=1 -> overall should be 1

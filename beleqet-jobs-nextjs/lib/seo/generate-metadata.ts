@@ -113,11 +113,26 @@ export function createMetadata(input: MetadataInput): Metadata {
 
 /** Metadata for the homepage (`/`). */
 export function homePageMetadata(): Metadata {
-  return createMetadata({
-    title: TITLES.HOME,
-    description: DESCRIPTIONS.HOME,
-    path: '/',
-  });
+  return {
+    ...createMetadata({
+      title: TITLES.HOME,
+      description: DESCRIPTIONS.HOME,
+      path: '/',
+      ogImage: '/og-image.jpg',
+    }),
+    keywords: [
+      'Beleqet Jobs',
+      'Beleqet Freelance',
+      'Jobs in Ethiopia',
+      'Ethiopian Freelancers',
+      'Remote Jobs Ethiopia',
+      'Vacancy in Addis Ababa',
+      'Escrow Freelance Payment',
+      'Ethiopian Talent Marketplace',
+    ],
+    authors: [{ name: 'Beleqet Ecosystem' }],
+    creator: 'Beleqet Jobs',
+  };
 }
 
 /** Metadata for the jobs listing page (`/jobs`). */
@@ -126,6 +141,15 @@ export function jobsPageMetadata(): Metadata {
     title: TITLES.JOBS,
     description: DESCRIPTIONS.JOBS,
     path: '/jobs',
+  });
+}
+
+/** Metadata for the freelance listing page (`/freelance`). */
+export function freelancePageMetadata(): Metadata {
+  return createMetadata({
+    title: TITLES.FREELANCE,
+    description: DESCRIPTIONS.FREELANCE,
+    path: '/freelance',
   });
 }
 

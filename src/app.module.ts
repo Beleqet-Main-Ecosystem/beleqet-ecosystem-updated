@@ -28,6 +28,10 @@ import { SalaryModule } from './modules/salary/salary.module';
 import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
 import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
+import { ReviewModule } from './modules/review/review.module';
+import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
+import { ManualPaymentModule } from './modules/manual-payment/manual-payment.module';
+import { BeleqetPayModule } from './modules/beleqet-pay/beleqet-pay.module';
 import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
@@ -147,6 +151,10 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
+    ReviewModule,
+    ChatToTextModule,
+    ManualPaymentModule,
+    BeleqetPayModule,
   ],
   providers: [
     {
