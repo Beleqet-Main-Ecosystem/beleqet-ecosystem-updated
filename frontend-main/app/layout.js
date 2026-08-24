@@ -1,4 +1,5 @@
 import './globals.css';
+import GlobalNav from './components/GlobalNav';
 
 export const metadata = {
   title: {
@@ -20,9 +21,7 @@ export const metadata = {
   authors: [{ name: 'Beleqet Ecosystem' }],
   creator: 'Beleqet Jobs',
   metadataBase: new URL('https://beleqetjobs.com'),
-  alternates: {
-    canonical: 'https://beleqetjobs.com',
-  },
+  alternates: { canonical: 'https://beleqetjobs.com' },
   openGraph: {
     title: 'Beleqet Jobs | Jobs & Freelance Marketplace',
     description:
@@ -46,10 +45,7 @@ export const metadata = {
     description: 'Find full-time jobs and freelance gigs in Ethiopia.',
     images: ['https://beleqetjobs.com/og-image.jpg'],
   },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }) {
@@ -63,7 +59,10 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <GlobalNav />
+        {children}
+      </body>
     </html>
   );
 }
