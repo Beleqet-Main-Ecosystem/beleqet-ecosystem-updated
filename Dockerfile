@@ -21,7 +21,7 @@ FROM node:22-alpine3.21
 WORKDIR /app
 ENV NODE_ENV=production
 RUN sed -i 's/https/http/g' /etc/apk/repositories && \
-  apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat wget ca-certificates python3 py3-pip pkgconf \
+  apk add --no-cache openssl ffmpeg ffmpeg-dev gcompat libstdc++ libc6-compat wget ca-certificates python3 py3-pip pkgconf \
   && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /opt/yarn-v* \
   && python3 -m pip install --no-cache-dir faster-whisper --break-system-packages
 
