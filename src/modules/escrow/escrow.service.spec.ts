@@ -47,6 +47,7 @@ function buildService(overrides: Record<string, unknown> = {}) {
     prisma as never,
     { get: jest.fn() } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
+    { createCheckoutSession: jest.fn(), getTransaction: jest.fn(), createEscrowContract: jest.fn() } as never,
     escrowQueue as never,
     { emit: jest.fn() } as never,
   );
@@ -106,6 +107,7 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
       findUnique: jest.fn().mockResolvedValue(existingEscrow),
       create: jest.fn().mockResolvedValue(escrow),
       update: jest.fn().mockResolvedValue(escrow),
+      upsert: jest.fn().mockResolvedValue(escrow),
     },
     eventLog: {
       create: jest.fn().mockResolvedValue({ id: 'event-1' }),
@@ -126,6 +128,7 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
       get: jest.fn((key: string) => (key === 'FRONTEND_URL' ? 'http://localhost:3000' : undefined)),
     } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
+    { createCheckoutSession: jest.fn().mockResolvedValue({ txRef: 'bp-tx-1', checkoutUrl: 'https://pay.test/checkout', provider: 'CHAPA', status: 'PENDING' }), getTransaction: jest.fn(), createEscrowContract: jest.fn() } as never,
     escrowQueue as never,
     eventEmitter as never,
   );
