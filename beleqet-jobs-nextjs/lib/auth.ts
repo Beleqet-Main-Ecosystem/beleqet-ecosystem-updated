@@ -2,7 +2,7 @@ import axios from 'axios';
 import { z } from 'zod';
 
 const authApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1',
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1',
   timeout: 10000,
 });
 

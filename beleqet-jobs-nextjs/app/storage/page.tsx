@@ -103,7 +103,7 @@ export default function StorageDashboard(): React.ReactElement {
     setAuthError(null);
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/auth/login', {
+      const response = await fetch('https://api.beleqetjobs.com/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -143,7 +143,7 @@ export default function StorageDashboard(): React.ReactElement {
     setIsLoadingFiles(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/storage/my-files', {
+      const response = await fetch('https://api.beleqetjobs.com/api/v1/storage/my-files', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -252,7 +252,7 @@ export default function StorageDashboard(): React.ReactElement {
     formData.append('hasConsentedToProcessing', 'true');
 
     try {
-      const response = await fetch('http://localhost:4000/api/v1/storage/upload', {
+      const response = await fetch('https://api.beleqetjobs.com/api/v1/storage/upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -285,7 +285,7 @@ export default function StorageDashboard(): React.ReactElement {
     setIsGeneratingUrl(key);
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/storage/url/${key}`, {
+      const response = await fetch(`https://api.beleqetjobs.com/api/v1/storage/url/${key}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -323,7 +323,7 @@ export default function StorageDashboard(): React.ReactElement {
     }
 
     try {
-      const response = await fetch(`http://localhost:4000/api/v1/storage/${key}`, {
+      const response = await fetch(`https://api.beleqetjobs.com/api/v1/storage/${key}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

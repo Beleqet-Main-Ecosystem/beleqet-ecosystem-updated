@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 import type { ISpeechConversation, ITranscript } from './chat-to-text-types';
 
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:4000';
+const DEFAULT_API_BASE_URL = 'https://api.beleqetjobs.com';
 
 function normalizeApiBaseUrl(rawUrl?: string): string {
   const value = rawUrl?.trim();

@@ -14,7 +14,7 @@ import { getToken } from '@/lib/auth';
  * connection status visibly to the user.
  */
 export default function MessagesPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'http://localhost:4000';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') ?? 'https://api.beleqetjobs.com';
   const [token, setToken] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {

@@ -71,14 +71,14 @@ export default function ProfilePage() {
   const [cancelling, setCancelling] = useState(false);
 
   const loadAvailability = useCallback(async () => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
     const res = await authenticatedFetch(`${base}/interview-planner/availability`);
     const data = await res.json();
     setSlots(data);
   }, []);
 
   const loadSubscription = useCallback(async () => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
     const res = await authenticatedFetch(`${base}/subscriptions/me`);
     if (!res.ok) return;
     const data = await res.json();
@@ -90,7 +90,7 @@ export default function ProfilePage() {
   }, [ready, user, router]);
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+    const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
     authenticatedFetch(`${base}/users/profile`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => data && setProfile(data))
@@ -120,7 +120,7 @@ export default function ProfilePage() {
     if (!subscription) return;
     try {
       setCancelling(true);
-      const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+      const base = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
       const res = await authenticatedFetch(`${base}/subscriptions/${subscription.id}/cancel`, {
         method: 'POST',
       });

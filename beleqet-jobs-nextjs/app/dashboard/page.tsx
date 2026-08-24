@@ -114,7 +114,7 @@ const API_URL: string = (() => {
         'Example: NEXT_PUBLIC_API_URL=https://api.beleqet.com/api/v1',
     );
   }
-  return "http://localhost:4000/api/v1";
+  return "https://api.beleqetjobs.com/api/v1";
 })();
 
 /* ------------------------------------------------------------------ */

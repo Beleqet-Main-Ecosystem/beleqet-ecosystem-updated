@@ -6,7 +6,7 @@ import { Bookmark, Loader2 } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 export default function SaveJobButton({ jobId, light = true }: { jobId: string; light?: boolean }) {
   const { user, ready } = useAuth();
