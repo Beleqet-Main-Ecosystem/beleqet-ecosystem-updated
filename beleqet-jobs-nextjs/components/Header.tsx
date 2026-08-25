@@ -20,11 +20,16 @@ export default function Header() {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  // Context-aware "For employers" link
+  // Context-aware "For employers" link:
+  //  - Employer/Admin → goes straight to the employer dashboard
+  //  - Logged-in regular user → goes to post-job (most likely next action)
+  //  - Guest (not logged in) → goes to the /for-employers landing page
   const employerHref =
     user && ["EMPLOYER", "ADMIN"].includes(user.role)
       ? "/employer"
-      : "/post-job";
+      : user
+        ? "/post-job"
+        : "/for-employers";
 
   const navItems = [
     { label: "Find jobs", href: "/jobs" },
