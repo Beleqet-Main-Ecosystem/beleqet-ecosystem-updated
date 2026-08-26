@@ -1,9 +1,10 @@
 node_modules
+beleqet-jobs-nextjs/node_modules
+beleqet-jobs-nextjs/.next
 dist
 coverage
 .git
 .gitignore
-beleqet-jobs-nextjs
 frontend
 *.log
 .env
