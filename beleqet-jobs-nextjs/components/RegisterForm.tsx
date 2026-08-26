@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
+import { UserRole } from '@beleqet/common';
 import { registerUser, type RegisterInput } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
 
 const roles: { value: RegisterInput['role']; label: string }[] = [
-  { value: 'JOB_SEEKER', label: 'Job Seeker' },
-  { value: 'EMPLOYER', label: 'Employer' },
-  { value: 'FREELANCER', label: 'Freelancer' },
+  { value: UserRole.JOB_SEEKER, label: 'Job Seeker' },
+  { value: UserRole.EMPLOYER, label: 'Employer' },
+  { value: UserRole.FREELANCER, label: 'Freelancer' },
 ];
 
 const schema = z.object({
@@ -19,7 +20,7 @@ const schema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Enter a valid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['JOB_SEEKER', 'EMPLOYER', 'FREELANCER']),
+  role: z.nativeEnum(UserRole),
 });
 
 export default function RegisterForm() {
