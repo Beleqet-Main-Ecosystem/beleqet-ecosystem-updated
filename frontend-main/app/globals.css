@@ -20,7 +20,9 @@
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
-  body{ margin:0; background:var(--white); color:var(--ink); font-family:var(--body); -webkit-font-smoothing:antialiased; overflow-x:hidden; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; background:var(--white); color:var(--ink); font-family:var(--body); -webkit-font-smoothing:antialiased; overflow-x:hidden; -webkit-tap-highlight-color:transparent; }
+  /* Allow vertical scroll + pinch-zoom; only suppress double-tap delay on interactive elements */
+  a,button,input,select,textarea,[role="button"]{ touch-action:manipulation; }
   .am{ font-family:var(--am); }
   a{ color:inherit; }
   img,svg{ display:block; }
