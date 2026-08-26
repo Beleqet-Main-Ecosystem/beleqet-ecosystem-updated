@@ -92,6 +92,7 @@ describe('ChatToTextController (Integration)', () => {
 
       const response = await request(app.getHttpServer())
         .post('/chat-to-text')
+        .set('x-test-user-id', 'user_123')
         .send(createDto)
         .expect(201);
 
@@ -100,7 +101,7 @@ describe('ChatToTextController (Integration)', () => {
     });
 
     it('should validate required fields', async () => {
-      await request(app.getHttpServer()).post('/chat-to-text').send({ language: 'en' }).expect(400);
+      await request(app.getHttpServer()).post('/chat-to-text').set('x-test-user-id', 'user_123').send({ language: 'en' }).expect(400);
     });
   });
 
@@ -108,6 +109,7 @@ describe('ChatToTextController (Integration)', () => {
     it('should reject an upload with no file attached', async () => {
       await request(app.getHttpServer())
         .post('/chat-to-text/transcribe')
+        .set('x-test-user-id', 'user_123')
         .field('conversationId', 'conv_123')
         .field('language', 'en')
         .expect(400);
@@ -118,6 +120,7 @@ describe('ChatToTextController (Integration)', () => {
 
       await request(app.getHttpServer())
         .post('/chat-to-text/transcribe')
+        .set('x-test-user-id', 'user_123')
         .attach('file', Buffer.from('RIFF\x00\x00\x00\x00WAVE'), {
           filename: 'sample.wav',
           contentType: 'application/octet-stream',

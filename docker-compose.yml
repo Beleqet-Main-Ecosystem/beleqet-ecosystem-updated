@@ -34,7 +34,7 @@ services:
       - PORT=4000
       # Admin (:3000) + jobs app (:3001) — comma-separated for CORS
       - FRONTEND_URL=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
-      - DATABASE_URL=postgresql://beleqet_user:your_password@db:5432/beleqet_db
+      - DATABASE_URL=postgresql://beleqet_staging:Beleqet@Staging2026!@db:5432/beleqet_staging
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=
@@ -57,6 +57,10 @@ services:
       - GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       - ENCRYPTION_KEY=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
       - TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+      - E2EE_SERVER_KEY=f80834413fcb17ca0ba29d634cf2798fa2c99ddd27d1941e3a59bbbf368c183a
+      - E2EE_KEY_VERSION=v1
+      - BELEQET_PAY_API_URL=http://beleqet-pay-api:4001
+      - BELEQET_PAY_SERVICE_KEY=57d0a214ee2c0d6d7bc52ce4b5b41820290a2b8f4b2928eb1c042b2f663679b7
       - TOTP_TEMP_SECRET=docker_totp_temp_secret_please_change_in_production
       - TOTP_ISSUER=Beleqet
       - PAYPAL_CLIENT_ID=dummy

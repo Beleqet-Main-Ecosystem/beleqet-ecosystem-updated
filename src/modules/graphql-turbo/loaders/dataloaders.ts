@@ -1,4 +1,4 @@
-import DataLoader from 'dataloader';
+import * as DataLoader from 'dataloader';
 import { PrismaService } from '@prisma-client';
 import type { Company, JobCategory, User, Job } from '@prisma/client';
 
