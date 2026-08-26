@@ -64,13 +64,18 @@ CHAPA_PUBLIC_KEY=<from CEO — see secure channel>
 CHAPA_ENCRYPTION_KEY=<from CEO — see secure channel>
 CHAPA_WEBHOOK_SECRET=<generate: openssl rand -hex 32>
 CHAPA_CALLBACK_URL=https://api.beleqetjobs.com/api/v1/escrow/callback
-CHAPA_RETURN_URL=https://beleqetjobs.com/freelance/payment-success
+CHAPA_RETURN_URL=https://beleqetpay.com/payment-success
 ```
 
-**Correct the domain URLs:**
+> ⚠️ **beleqetpay.com domain switch (applied 2026-08-26)**
+> `beleqetpay.com` is now registered via Yegara Host and DNS is delegated to Cloudflare,
+> pointing A/CNAME records (`@` and `www`) at `178.105.7.221`.
+> The Chapa return URL above already reflects the new domain.
+
+**Correct the domain URLs (include beleqetpay.com in CORS origins):**
 ```
 STAGING_APP_BASE_URL=https://api.beleqetjobs.com
-STAGING_FRONTEND_URLS=https://admin.beleqetjobs.com,https://beleqetjobs.com
+STAGING_FRONTEND_URLS=https://admin.beleqetjobs.com,https://beleqetjobs.com,https://beleqetpay.com
 ```
 
 ---
@@ -145,3 +150,155 @@ Then restart the backend container.
   after going fully live and completing Stripe's account activation.
 - PayPal is currently using **sandbox** mode. Switch to production credentials at launch.
 - This file should NOT be committed to the repo. It is a local ops reference only.
+
+---
+
+## beleqetpay.com Domain Switch Runbook (2026-08-26)
+
+**Domain:** `beleqetpay.com`  
+**Registrar:** Yegara Host  
+**DNS:** Cloudflare (nameservers delegated from Yegara Host)  
+**Server IP:** `178.105.7.221`
+
+### DNS Records (already configured in Cloudflare)
+
+| Type  | Name | Value          | Proxy  |
+|-------|------|----------------|--------|
+| A     | @    | 178.105.7.221  | ✅ On  |
+| A     | www  | 178.105.7.221  | ✅ On  |
+
+DNS is currently propagating (allow up to 48 h for full global TTL expiry).
+
+---
+
+### Step A — Add Nginx vhost for beleqetpay.com
+
+SSH into the VPS and add (or update) the Nginx config:
+
+```bash
+ssh root@178.105.7.221
+nano /etc/nginx/sites-available/beleqetpay.com
+```
+
+Minimum config — proxies payment routes to the backend and serves the jobs frontend for the
+payment success/cancel pages:
+
+```nginx
+server {
+    listen 80;
+    server_name beleqetpay.com www.beleqetpay.com;
+
+    # Redirect HTTP → HTTPS (let Cloudflare handle SSL, set mode to "Full")
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name beleqetpay.com www.beleqetpay.com;
+
+    # If terminating SSL locally (not relying solely on Cloudflare):
+    # ssl_certificate     /etc/letsencrypt/live/beleqetpay.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/beleqetpay.com/privkey.pem;
+
+    # Proxy all payment/webhook API calls to the NestJS backend
+    location /api/ {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Serve payment success/cancel pages from the Next.js jobs frontend
+    location /payment- {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # Default — serve the jobs frontend
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+Enable and reload:
+
+```bash
+ln -sf /etc/nginx/sites-available/beleqetpay.com /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+---
+
+### Step B — Update .env.staging on the VPS
+
+```bash
+cd /srv/beleqet-staging
+nano .env.staging
+```
+
+Change these two lines:
+
+```env
+STAGING_FRONTEND_URLS=https://admin.beleqetjobs.com,https://beleqetjobs.com,https://beleqetpay.com
+CHAPA_RETURN_URL=https://beleqetpay.com/payment-success
+```
+
+---
+
+### Step C — Restart containers
+
+```bash
+docker compose -f docker-compose.staging.yml restart backend
+```
+
+No rebuild is needed — only the env vars changed.
+
+---
+
+### Step D — Register beleqetpay.com webhooks in payment dashboards
+
+**Chapa Dashboard** (dashboard.chapa.co → Webhooks):
+- Webhook URL: `https://api.beleqetjobs.com/api/v1/webhooks/chapa`
+- (The backend webhook endpoint is domain-agnostic — no code change needed)
+
+**Stripe Dashboard** (dashboard.stripe.com → Developers → Webhooks):
+- Endpoint URL: `https://api.beleqetjobs.com/api/v1/webhooks/stripe`
+- Events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `checkout.session.completed`
+
+---
+
+### Step E — SSL Certificate (if not relying on Cloudflare SSL)
+
+If you need a local cert (Cloudflare SSL mode set to "Full (strict)"):
+
+```bash
+certbot --nginx -d beleqetpay.com -d www.beleqetpay.com
+```
+
+---
+
+### Step F — Verify
+
+1. `curl -I https://beleqetpay.com` → should return `200` or `301`
+2. Chapa test payment → confirm return lands on `https://beleqetpay.com/payment-success`
+3. Backend CORS test: `curl -H "Origin: https://beleqetpay.com" https://api.beleqetjobs.com/api/v1/health/ready` → no CORS error in response headers
+
+---
+
+### Mobile App — Developer Note
+
+The Expo mobile app should use the following production env vars in its EAS build secrets:
+
+```env
+EXPO_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
+EXPO_PUBLIC_SITE_URL=https://beleqetjobs.com
+EXPO_PUBLIC_PAYMENT_RETURN_URL=https://beleqetpay.com/payment-success
+```
+
+The in-app WebView payment flow should redirect to `EXPO_PUBLIC_PAYMENT_RETURN_URL` after Chapa
+processes the payment.

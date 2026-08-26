@@ -566,35 +566,6 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
 
   return (
     <>
-      <header className="nav" id="site-nav">
-        <div className="wordmark-row">
-          <span className="logo-dot">
-            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 11l18-7-7 18-2-8-8-2z" />
-            </svg>
-          </span>
-          <div className="wordmark">
-            <b>Beleqet Job</b>
-          </div>
-          <span className="pill-new">+ Freelance</span>
-        </div>
-        <nav className="links">
-          <a href={`${APP_URL}/jobs`}>Find Jobs</a>
-          <a href={`${APP_URL}/freelance`}>Freelance</a>
-          <a href={`${APP_URL}/cv-maker`}>CV Maker</a>
-          <a href={`${APP_URL}/pricing`}>Pricing</a>
-          <a href={`${APP_URL}/contact`}>Contact</a>
-        </nav>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <a className="btn btn-ghost" href={`${APP_URL}/login`}>
-            Login
-          </a>
-          <a className="btn btn-dark" href={`${APP_URL}/post-job`} id="nav-cta">
-            Post a Job
-          </a>
-        </div>
-      </header>
-
       <div className="hero-shell">
         <section className="hero" style={{ paddingTop: '44px' }}>
           <div id="hero-copy">
@@ -900,7 +871,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
       </section>
 
       <div className="why-shell">
-        <section id="why-choose" style={{ padding: '88px clamp(20px,5vw,64px)' }}>
+        <section id="why-choose">
           <div className="sec-head reveal" style={{ marginBottom: '32px' }}>
             <div>
               <div className="sec-eyebrow">The essentials</div>

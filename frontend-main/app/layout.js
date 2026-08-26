@@ -1,6 +1,13 @@
 import './globals.css';
 import GlobalNav from './components/GlobalNav';
 
+/** Ensures the page renders at device width on mobile — critical for responsiveness. */
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+};
+
 export const metadata = {
   title: {
     default: 'Beleqet Jobs | The Ultimate Jobs & Freelance Marketplace in Ethiopia',

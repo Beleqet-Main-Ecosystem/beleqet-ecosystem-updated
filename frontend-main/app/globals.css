@@ -20,11 +20,13 @@
   }
   *{box-sizing:border-box;}
   html{scroll-behavior:smooth;}
-  body{ margin:0; background:var(--white); color:var(--ink); font-family:var(--body); -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+  body{ margin:0; background:var(--white); color:var(--ink); font-family:var(--body); -webkit-font-smoothing:antialiased; overflow-x:hidden; -webkit-tap-highlight-color:transparent; }
+  /* Allow vertical scroll + pinch-zoom; only suppress double-tap delay on interactive elements */
+  a,button,input,select,textarea,[role="button"]{ touch-action:manipulation; }
   .am{ font-family:var(--am); }
   a{ color:inherit; }
   img,svg{ display:block; }
-  section{ padding:88px clamp(20px,5vw,64px); max-width:1360px; margin:0 auto; }
+  section{ padding:clamp(44px,8vw,88px) clamp(20px,5vw,64px); max-width:1360px; margin:0 auto; }
   .sec-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:40px; flex-wrap:wrap; }
   .sec-eyebrow{ font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:12px; }
   .sec-h{ font-family:var(--disp); font-weight:700; font-size:clamp(24px,2.8vw,34px); margin:0 0 8px; line-height:1.15; letter-spacing:-0.4px; }
@@ -77,7 +79,7 @@
   .hero-sub-am{ font-family:var(--am); font-size:16.5px; color:rgba(255,255,255,0.75); line-height:1.7; max-width:480px; margin:0 0 6px; }
   .hero-sub-en{ font-size:14.5px; color:var(--muted-light); max-width:480px; margin:0 0 26px; line-height:1.65; }
 
-  .search-bar{ display:flex; gap:0; background:var(--white); border-radius:999px; padding:6px; max-width:540px; margin-bottom:18px; box-shadow:0 20px 50px -18px rgba(0,0,0,0.5); transition:box-shadow .3s ease; }
+  .search-bar{ display:flex; gap:0; background:var(--white); border-radius:999px; padding:6px; max-width:540px; margin-bottom:18px; box-shadow:0 20px 50px -18px rgba(0,0,0,0.5); transition:box-shadow .3s ease; flex-wrap:wrap; }
   .search-bar:focus-within{ box-shadow:0 0 0 4px rgba(var(--lime-rgb),0.35), 0 20px 50px -18px rgba(0,0,0,0.5); }
   .search-field{ display:flex; align-items:center; gap:8px; flex:1; padding:0 6px 0 14px; min-width:0; }
   .search-field svg{ width:15px; height:15px; stroke:var(--muted); flex-shrink:0; }
@@ -257,6 +259,20 @@
     nav.links{ display:none; }
     .float-stat, .float-badge{ display:none; }
   }
+  @media (max-width:640px){
+    /* Hero already single-col at 960px — keep it; also reduce hero gap */
+    .hero{ gap:32px; padding-top:40px; padding-bottom:44px; }
+    /* Stats: stay 2-col down to 640px */
+    .stats{ grid-template-columns:repeat(2,1fr); }
+    /* Search bar: stack on narrow screens */
+    .search-bar{ border-radius:16px; }
+    .search-field{ padding:0 8px 0 12px; }
+    .search-bar button{ width:100%; border-radius:12px; justify-content:center; padding:12px 20px; }
+  }
+  @media (max-width:400px){
+    /* Stats: single column at very small screens */
+    .stats{ grid-template-columns:1fr; }
+  }
   @media (prefers-reduced-motion: reduce){
     *{ animation:none !important; transition:none !important; }
     .marquee-track{ flex-wrap:wrap; }
@@ -286,12 +302,17 @@
   .gn__btn--cta{background:var(--lime);color:#0E2018;font-weight:700;}
   .gn__btn--cta:hover{transform:translateY(-1px);box-shadow:0 8px 20px -6px rgba(126,217,87,0.5);}
   .gn__ham{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px;}
-  .gn__ham-line{width:22px;height:2px;background:var(--white);border-radius:2px;transition:transform .3s,opacity .3s;}
+  .gn__ham-line{width:22px;height:2px;background:var(--white);border-radius:2px;transition:transform .3s var(--ease),opacity .3s var(--ease);}
+  /* Hamburger → X animation: top rotates down 45°, mid fades, bottom rotates up 45° */
+  .gn__ham-line:nth-child(1).open{transform:translateY(7px) rotate(45deg);}
+  .gn__ham-line:nth-child(2).open{opacity:0;transform:scaleX(0);}
+  .gn__ham-line:nth-child(3).open{transform:translateY(-7px) rotate(-45deg);}
   .gn__drawer{display:flex;flex-direction:column;background:var(--green-hero);border-top:1px solid rgba(255,255,255,0.08);padding:16px clamp(20px,5vw,40px) 24px;}
   .gn__drawer-link{padding:12px 0;font-size:15px;font-weight:500;color:rgba(255,255,255,0.8);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.06);}
   .gn__drawer-link:hover{color:var(--white);}
   .gn__drawer-actions{display:flex;gap:10px;margin-top:16px;}
-  @media(max-width:900px){.gn__links{display:none;}.gn__ham{display:flex;}.gn__btn--ghost:not(:last-of-type){display:none;}}
+  /* Unified breakpoint: both gn__links hide and gn__ham show at exactly 900px */
+  @media(max-width:900px){.gn__links{display:none;}.gn__btn--ghost:not(:last-of-type){display:none;}.gn__ham{display:flex;}}
 
   /* ═══════════════════════════════════════════════════════════════
      FREELANCE PAGE
@@ -616,12 +637,6 @@
   .portfolio-cta-band p{font-size:15px;color:rgba(14,32,24,0.72);margin:0;}
   .portfolio-cta-band .btn-lime{background:#0E2018;color:var(--lime);}
   @media(max-width:768px){.portfolio-steps{grid-template-columns:1fr 1fr;}}
-
-  /* ═══════════════════════════════════════════════════════════════
-     REMOVE OLD NAV HEADER (replaced by GlobalNav)
-     Hide the inline header.nav from HomepageClient to avoid duplicate nav
-  ═══════════════════════════════════════════════════════════════ */
-  header.nav{ display: none !important; }
 
   /* ═══════════════════════════════════════════════════════════════
      JOBS PAGE

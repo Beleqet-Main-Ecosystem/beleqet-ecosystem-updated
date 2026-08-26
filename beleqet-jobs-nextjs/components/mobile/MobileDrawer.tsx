@@ -145,17 +145,18 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
       <aside
         className="
           absolute top-0 right-0 bottom-0 w-[min(85vw,360px)]
-          bg-[#fffdf8] shadow-xl
+          bg-[#fffdf8] dark:bg-slate-900
+          shadow-xl
           animate-in slide-in-from-right duration-200
         "
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-primary/10 px-5 py-4">
-          <p className="text-sm font-extrabold text-primary">Menu</p>
+        <div className="flex items-center justify-between border-b border-primary/10 dark:border-slate-700 px-5 py-4">
+          <p className="text-sm font-extrabold text-primary dark:text-slate-100">Menu</p>
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/10 text-primary active:scale-90"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-primary/10 dark:border-slate-700 text-primary dark:text-slate-100 active:scale-90"
           >
             <X className="h-5 w-5" />
           </button>
@@ -163,17 +164,17 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
 
         {/* User profile card (authenticated only) */}
         {isAuthenticated && (
-          <div className="border-b border-primary/10 p-5">
+          <div className="border-b border-primary/10 dark:border-slate-700 p-5">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brandGreen to-darkGreen text-sm font-bold uppercase text-white">
                 {user!.firstName.charAt(0)}
                 {user!.lastName.charAt(0)}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-extrabold text-ink">
+                <p className="truncate text-sm font-extrabold text-ink dark:text-slate-100">
                   {user!.firstName} {user!.lastName}
                 </p>
-                <p className="truncate text-xs text-muted">{user!.email}</p>
+                <p className="truncate text-xs text-muted dark:text-slate-400">{user!.email}</p>
               </div>
             </div>
             <span
@@ -201,7 +202,7 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                   transition-colors
                   ${active
                     ? "bg-brandGreen/10 text-brandGreen"
-                    : "text-ink hover:bg-pageBg"
+                    : "text-ink dark:text-slate-200 hover:bg-pageBg dark:hover:bg-slate-800"
                   }
                 `}
               >
@@ -213,18 +214,18 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
 
           {/* Auth links (unauthenticated only) */}
           {!isAuthenticated && (
-            <div className="mt-3 border-t border-primary/10 pt-3">
+            <div className="mt-3 border-t border-primary/10 dark:border-slate-700 pt-3">
               <Link
                 href="/login"
                 onClick={onClose}
-                className="flex items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold text-ink hover:bg-pageBg"
+                className="flex items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold text-ink dark:text-slate-200 hover:bg-pageBg dark:hover:bg-slate-800"
               >
                 <User className="h-5 w-5 shrink-0" /> Login
               </Link>
               <Link
                 href="/register"
                 onClick={onClose}
-                className="flex items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold text-ink hover:bg-pageBg"
+                className="flex items-center gap-3 rounded-xl px-3 py-3.5 text-sm font-semibold text-ink dark:text-slate-200 hover:bg-pageBg dark:hover:bg-slate-800"
               >
                 <User className="h-5 w-5 shrink-0" /> Sign Up
               </Link>
@@ -233,10 +234,10 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
         </nav>
 
         {/* Locale switcher */}
-        <div className="border-t border-primary/10 p-4">
+        <div className="border-t border-primary/10 dark:border-slate-700 p-4">
           <button
             onClick={toggleLocale}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-sm font-semibold text-ink transition-colors hover:bg-pageBg"
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-sm font-semibold text-ink dark:text-slate-200 transition-colors hover:bg-pageBg dark:hover:bg-slate-800"
           >
             <Globe className="h-5 w-5 text-brandGreen" />
             {locale === "en" ? "\u12A0\u121B\u122D\u1275 / Amharic" : "English / \u12E5\u1293\u130D\u139B\u128D"}
