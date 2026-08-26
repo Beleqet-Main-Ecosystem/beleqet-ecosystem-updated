@@ -33,7 +33,7 @@ services:
       - NODE_ENV=development
       - PORT=4000
       # Admin (:3000) + jobs app (:3001) — comma-separated for CORS
-      - FRONTEND_URL=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
+      - FRONTEND_URL=https://beleqetjobs.com,https://www.beleqetjobs.com,https://admin.beleqetjobs.com,https://beleqetpay.com,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
       - DATABASE_URL=postgresql://beleqet_staging:Beleqet@Staging2026!@db:5432/beleqet_staging
       - REDIS_HOST=redis
       - REDIS_PORT=6379
