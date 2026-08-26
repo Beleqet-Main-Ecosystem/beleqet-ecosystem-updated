@@ -19,6 +19,17 @@ import type {
 
 export type { JobCategory, QueryJobsDto };
 
+/**
+ * Display-enriched Category used by UI components (CategoryGrid, JobsListing).
+ * Wraps JobCategory with a mandatory icon string and optional display count.
+ */
+export type Category = {
+  id: string;
+  label: string;
+  icon: string;
+  count?: string;
+};
+
 // ── Display-enriched Job (web-specific presentation layer) ────────────────────
 
 /**
@@ -123,10 +134,14 @@ export async function fetchJob(id: string): Promise<Job | null> {
 }
 
 /** Fetch all job categories. */
-export async function fetchCategories(): Promise<JobCategory[]> {
+export async function fetchCategories(): Promise<Category[]> {
   try {
     const { data } = await api.get<JobCategory[]>('/jobs/categories');
-    return data ?? [];
+    return (data ?? []).map((c) => ({
+      id: c.slug ?? c.id,
+      label: c.label,
+      icon: c.icon ?? 'briefcase',
+    }));
   } catch {
     return [];
   }
