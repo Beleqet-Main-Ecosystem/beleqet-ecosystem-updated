@@ -105,16 +105,23 @@ body {
 /*
  * Prevent iOS Safari elastic over-scroll (rubber-band effect) from
  * revealing a white/black blank area at the top or bottom.
+ * 'contain' (not 'none') so Android Chrome vertical scroll still works.
  */
 body {
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
 }
 
 /*
- * Prevent the 300ms tap delay on mobile browsers that support pointer events.
- * Safe to apply globally — it does not affect desktop scroll.
+ * Suppress the 300ms tap delay ONLY on interactive elements.
+ * Do NOT apply to * — that blocks vertical scroll on Android Chrome.
  */
-* {
+a,
+button,
+[role='button'],
+input,
+select,
+textarea,
+label {
   touch-action: manipulation;
 }
 
