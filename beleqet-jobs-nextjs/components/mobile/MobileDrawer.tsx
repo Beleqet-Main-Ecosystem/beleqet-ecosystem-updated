@@ -145,7 +145,7 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
       <aside
         className="
           absolute top-0 right-0 bottom-0 w-[min(85vw,360px)]
-          bg-[#fffdf8] dark:bg-slate-900
+          bg-[#f7f5ef] dark:bg-slate-900
           shadow-xl
           animate-in slide-in-from-right duration-200
         "
