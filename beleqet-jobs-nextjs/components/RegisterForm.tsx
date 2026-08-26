@@ -31,7 +31,7 @@ export default function RegisterForm() {
     lastName: '',
     email: '',
     password: '',
-    role: 'JOB_SEEKER',
+    role: UserRole.JOB_SEEKER,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
