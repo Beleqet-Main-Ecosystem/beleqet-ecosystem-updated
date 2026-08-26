@@ -55,7 +55,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <TelegramInitializer />
               <WebSiteSchema />
               <Header />
-              <main>
+              {/*
+               * pb-24 on mobile ensures content isn't hidden behind the
+               * fixed MobileBottomNav (~70px + safe-area-inset-bottom).
+               * lg:pb-0 removes it on desktop where no bottom nav exists.
+               */}
+              <main className="pb-24 lg:pb-0">
                 {children}
                 <Toaster position="top-right" richColors />
               </main>

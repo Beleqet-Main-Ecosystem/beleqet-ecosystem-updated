@@ -89,6 +89,48 @@ html.dark .text-brandGreen {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Mobile base fixes                                                   */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Prevent horizontal overflow/scroll on all viewports.
+ * Critical for mobile where a single overflowing element causes the
+ * whole page to scroll sideways.
+ */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/*
+ * Prevent iOS Safari elastic over-scroll (rubber-band effect) from
+ * revealing a white/black blank area at the top or bottom.
+ */
+body {
+  overscroll-behavior-y: none;
+}
+
+/*
+ * Prevent the 300ms tap delay on mobile browsers that support pointer events.
+ * Safe to apply globally — it does not affect desktop scroll.
+ */
+* {
+  touch-action: manipulation;
+}
+
+/*
+ * Remove the blue tap-highlight rectangle on iOS/Android WebViews.
+ */
+a,
+button,
+[role='button'],
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Utility classes                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -120,6 +162,37 @@ html.dark .text-brandGreen {
     margin-right: auto;
     padding-left: 1.25rem;
     padding-right: 1.25rem;
+  }
+
+  /*
+   * pb-nav: bottom padding that clears the fixed MobileBottomNav on mobile.
+   * Use on page wrappers that don't already use MobilePageShell.
+   * On lg+ there is no bottom nav, so padding collapses to 0.
+   */
+  .pb-nav {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 1024px) {
+    .pb-nav {
+      padding-bottom: 0;
+    }
+  }
+
+  /*
+   * Safe-area padding utilities for iOS home-indicator notch.
+   * These complement Tailwind's built-in safe-area support.
+   */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
   }
 }
 

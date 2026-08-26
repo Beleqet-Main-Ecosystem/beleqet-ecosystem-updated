@@ -97,7 +97,7 @@ function TabItem({
         gap-0.5 py-2 transition-colors
         ${active
           ? "text-brandGreen"
-          : "text-muted hover:text-ink"
+          : "text-muted dark:text-slate-400 hover:text-ink dark:hover:text-slate-200"
         }
       `}
     >
@@ -172,8 +172,8 @@ export default function MobileBottomNav() {
       aria-label="Mobile navigation"
       className="
         fixed bottom-0 left-0 right-0 z-50
-        border-t border-primary/10
-        bg-white/95 backdrop-blur-lg
+        border-t border-primary/10 dark:border-slate-800
+        bg-white/95 dark:bg-slate-950/95 backdrop-blur-lg
         pb-[env(safe-area-inset-bottom)]
         lg:hidden
       "
