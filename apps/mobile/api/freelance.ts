@@ -1,138 +1,19 @@
-/** Freelance gig API — listings, detail, escrow status. */
+/**
+ * Freelance gig API — listings, detail, bids, contracts.
+ * Types imported from @beleqet/common keep mobile aligned with the backend.
+ */
 
-import { z } from 'zod';
+import type {
+  FreelanceJob,
+  FreelanceJobsResponse,
+  SubmitBidDto,
+  QueryFreelanceJobsDto,
+} from '@beleqet/common';
 import { apiClient } from './client';
 
-// ── Schemas ───────────────────────────────────────────────────────────────────
+export type { FreelanceJob, QueryFreelanceJobsDto };
 
-export const gigSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string().nullish(),
-  budget: z.number().nullish(),
-  budgetMin: z.number().nullish(),
-  budgetMax: z.number().nullish(),
-  currency: z.string().default('ETB'),
-  type: z.enum(['FIXED', 'HOURLY', 'RETAINER']).nullish(),
-  status: z.string().nullish(),
-  categorySlug: z.string().nullish(),
-  skills: z.array(z.string()).default([]),
-  clientName: z.string().nullish(),
-  createdAt: z.string().nullish(),
-  escrowEnabled: z.boolean().default(false),
-  rating: z.number().nullish(),
-  proposalCount: z.number().nullish(),
-  deadline: z.string().nullish(),
-});
-
-export type Gig = z.infer<typeof gigSchema>;
-
-const gigsResponseSchema = z.object({
-  items: z.array(gigSchema).default([]),
-  total: z.number().nullish(),
-});
-
-// ── Static fallback data (used when API is unavailable) ───────────────────────
-
-export const FALLBACK_GIGS: Gig[] = [
-  {
-    id: 'f1',
-    title: 'React Native Mobile App — Fintech MVP',
-    categorySlug: 'web-app-dev',
-    budgetMin: 12_000,
-    budgetMax: 20_000,
-    budget: undefined,
-    currency: 'ETB',
-    type: 'FIXED',
-    clientName: 'FinTech Startup',
-    skills: ['React Native', 'TypeScript', 'REST API'],
-    createdAt: new Date(Date.now() - 2 * 3_600_000).toISOString(),
-    escrowEnabled: true,
-    rating: 4.9,
-    status: 'OPEN',
-    description: 'Build a cross-platform fintech MVP in React Native.',
-    proposalCount: 3,
-    deadline: null,
-  },
-  {
-    id: 'f2',
-    title: 'Logo & Brand Identity Kit',
-    categorySlug: 'design-creative',
-    budgetMin: 3_500,
-    budgetMax: 6_000,
-    budget: undefined,
-    currency: 'ETB',
-    type: 'FIXED',
-    clientName: 'Boutique Roastery',
-    skills: ['Illustrator', 'Branding', 'Figma'],
-    createdAt: new Date(Date.now() - 5 * 3_600_000).toISOString(),
-    escrowEnabled: true,
-    rating: 5.0,
-    status: 'OPEN',
-    description: 'Full brand identity including logo, color palette, and typography.',
-    proposalCount: 7,
-    deadline: null,
-  },
-  {
-    id: 'f3',
-    title: 'Amharic–English Document Translation',
-    categorySlug: 'writing-translation',
-    budgetMin: 2_000,
-    budgetMax: 3_500,
-    budget: undefined,
-    currency: 'ETB',
-    type: 'FIXED',
-    clientName: 'NGO Ethiopia',
-    skills: ['Amharic', 'English', 'Legal Text'],
-    createdAt: new Date(Date.now() - 24 * 3_600_000).toISOString(),
-    escrowEnabled: true,
-    rating: 4.8,
-    status: 'OPEN',
-    description: 'Translate 30-page legal document from Amharic to English.',
-    proposalCount: 4,
-    deadline: null,
-  },
-  {
-    id: 'f4',
-    title: 'Product Explainer Video (60s)',
-    categorySlug: 'video-animation',
-    budgetMin: 8_000,
-    budgetMax: 14_000,
-    budget: undefined,
-    currency: 'ETB',
-    type: 'FIXED',
-    clientName: 'EdTech Company',
-    skills: ['After Effects', 'Motion Design'],
-    createdAt: new Date(Date.now() - 3 * 3_600_000).toISOString(),
-    escrowEnabled: true,
-    rating: 4.7,
-    status: 'OPEN',
-    description: 'Animated explainer video for a new e-learning platform.',
-    proposalCount: 2,
-    deadline: null,
-  },
-  {
-    id: 'f5',
-    title: 'Monthly Bookkeeping & Reporting',
-    categorySlug: 'finance-accounting',
-    budgetMin: 3_000,
-    budgetMax: 3_000,
-    budget: 3_000,
-    currency: 'ETB',
-    type: 'RETAINER',
-    clientName: 'Small Retailer',
-    skills: ['QuickBooks', 'Excel', 'IFRS'],
-    createdAt: new Date(Date.now() - 12 * 3_600_000).toISOString(),
-    escrowEnabled: true,
-    rating: 5.0,
-    status: 'OPEN',
-    description: 'Monthly bookkeeping, reconciliation, and financial reporting.',
-    proposalCount: 1,
-    deadline: null,
-  },
-];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Display helpers ───────────────────────────────────────────────────────────
 
 function relativeTime(iso?: string | null): string {
   if (!iso) return 'Recently';
@@ -144,65 +25,92 @@ function relativeTime(iso?: string | null): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export function formatBudget(gig: Gig): string {
-  const { currency, budget, budgetMin, budgetMax } = gig;
-  if (budget) return `${budget.toLocaleString()} ${currency}`;
-  if (budgetMin && budgetMax)
+export function formatBudget(gig: FreelanceJob): string {
+  const { currency, budgetMin, budgetMax } = gig;
+  if (budgetMin && budgetMax && budgetMin !== budgetMax)
     return `${budgetMin.toLocaleString()}–${budgetMax.toLocaleString()} ${currency}`;
   if (budgetMin) return `${budgetMin.toLocaleString()}+ ${currency}`;
-  return `${currency}`;
+  return currency;
 }
 
-export function gigPostedAgo(gig: Gig): string {
+export function gigPostedAgo(gig: FreelanceJob): string {
   return relativeTime(gig.createdAt);
 }
 
+// ── Static fallback data ──────────────────────────────────────────────────────
+
+export const FALLBACK_GIGS: FreelanceJob[] = [
+  {
+    id: 'f1',
+    title: 'React Native Mobile App — Fintech MVP',
+    description: 'Build a cross-platform fintech MVP in React Native.',
+    categoryId: 'web-app-dev',
+    clientId: 'fallback-client',
+    budgetMin: 12_000,
+    budgetMax: 20_000,
+    currency: 'ETB',
+    pricingType: 'FIXED',
+    deadlineDays: 30,
+    skills: ['React Native', 'TypeScript', 'REST API'],
+    status: 'OPEN' as FreelanceJob['status'],
+    featured: false,
+    bidCount: 3,
+    createdAt: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: 'f2',
+    title: 'Logo & Brand Identity Kit',
+    description: 'Full brand identity including logo, color palette, and typography.',
+    categoryId: 'design-creative',
+    clientId: 'fallback-client',
+    budgetMin: 3_500,
+    budgetMax: 6_000,
+    currency: 'ETB',
+    pricingType: 'FIXED',
+    deadlineDays: 14,
+    skills: ['Illustrator', 'Branding', 'Figma'],
+    status: 'OPEN' as FreelanceJob['status'],
+    featured: false,
+    bidCount: 7,
+    createdAt: new Date(Date.now() - 5 * 3_600_000).toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
+
 // ── API functions ─────────────────────────────────────────────────────────────
 
-export type GigsParams = {
-  limit?: number;
-  offset?: number;
-  category?: string;
-  q?: string;
-  status?: string;
-};
-
-/**
- * Fetch paginated freelance gig listings.
- * Falls back to static FALLBACK_GIGS when the API is unreachable.
- */
-export async function fetchGigs(params: GigsParams = {}): Promise<Gig[]> {
+/** Fetch paginated freelance gig listings. Falls back to static data. */
+export async function fetchGigs(params: QueryFreelanceJobsDto = {}): Promise<FreelanceJob[]> {
   try {
-    const { data } = await apiClient.get('/freelance/jobs', {
+    const { data } = await apiClient.get<FreelanceJobsResponse>('/freelance/jobs', {
       params: { limit: 40, status: 'OPEN', ...params },
     });
-    const parsed = gigsResponseSchema.parse(data);
-    if (parsed.items.length > 0) return parsed.items;
+    if (data.items && data.items.length > 0) return data.items;
     return FALLBACK_GIGS;
   } catch {
     return FALLBACK_GIGS;
   }
 }
 
-/**
- * Fetch a single gig by ID.
- */
-export async function fetchGig(id: string): Promise<Gig | null> {
+/** Fetch a single gig by ID. */
+export async function fetchGig(id: string): Promise<FreelanceJob | null> {
   try {
-    const { data } = await apiClient.get(`/freelance/jobs/${id}`);
-    return gigSchema.parse(data);
+    const { data } = await apiClient.get<FreelanceJob>(`/freelance/jobs/${id}`);
+    return data;
   } catch {
     return FALLBACK_GIGS.find((g) => g.id === id) ?? null;
   }
 }
 
-/**
- * Submit a proposal for a gig.
- */
+/** Submit a bid/proposal for a gig. */
 export async function submitProposal(
   gigId: string,
-  payload: { coverLetter: string; proposedBudget: number },
+  payload: SubmitBidDto,
 ): Promise<{ proposalId: string }> {
-  const { data } = await apiClient.post(`/freelance/jobs/${gigId}/proposals`, payload);
-  return data as { proposalId: string };
+  const { data } = await apiClient.post<{ proposalId: string }>(
+    `/freelance/jobs/${gigId}/proposals`,
+    payload,
+  );
+  return data;
 }

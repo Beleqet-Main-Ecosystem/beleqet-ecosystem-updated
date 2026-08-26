@@ -1,55 +1,31 @@
-/** Jobs API — feed, detail, categories, apply. */
+/**
+ * Jobs API — feed, detail, categories, apply.
+ *
+ * Types imported from @beleqet/common keep mobile aligned with the backend.
+ */
 
-import { z } from 'zod';
+import type {
+  Job,
+  JobCategory,
+  JobsResponse,
+  JobStats,
+  QueryJobsDto,
+  CreateApplicationDto,
+} from '@beleqet/common';
+import { JobType } from '@beleqet/common';
 import { apiClient } from './client';
 
-// ── Schemas ───────────────────────────────────────────────────────────────────
+// Re-export for consumers.
+export type { Job, JobCategory, QueryJobsDto };
 
-export const categorySchema = z.object({
-  slug: z.string(),
-  label: z.string(),
-  icon: z.string().nullish(),
-  count: z.number().nullish(),
-});
-
-export const jobSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string().nullish(),
-  location: z.string().nullish(),
-  type: z.string().nullish(),
-  featured: z.boolean().nullish(),
-  tags: z.array(z.string()).nullish(),
-  createdAt: z.string().nullish(),
-  salaryMin: z.number().nullish(),
-  salaryMax: z.number().nullish(),
-  currency: z.string().nullish(),
-  companyName: z.string().nullish(),
-  company: z.object({ name: z.string().nullish() }).nullish(),
-  category: categorySchema.nullish(),
-  categoryId: z.string().nullish(),
-  applicationDeadline: z.string().nullish(),
-  requirements: z.array(z.string()).nullish(),
-  benefits: z.array(z.string()).nullish(),
-});
-
-export type Job = z.infer<typeof jobSchema>;
-export type Category = z.infer<typeof categorySchema>;
-
-const jobsResponseSchema = z.object({
-  items: z.array(jobSchema).default([]),
-  total: z.number().nullish(),
-});
-
-// ── Query helpers ─────────────────────────────────────────────────────────────
+// ── Display helpers ───────────────────────────────────────────────────────────
 
 const TYPE_LABELS: Record<string, string> = {
-  FULL_TIME: 'Full Time',
-  PART_TIME: 'Part Time',
-  REMOTE: 'Remote',
-  HYBRID: 'Hybrid',
-  CONTRACT: 'Contract',
-  INTERNSHIP: 'Internship',
+  [JobType.FULL_TIME]: 'Full Time',
+  [JobType.PART_TIME]: 'Part Time',
+  [JobType.REMOTE]:    'Remote',
+  [JobType.HYBRID]:    'Hybrid',
+  [JobType.CONTRACT]:  'Contract',
 };
 
 function relativeTime(iso?: string | null): string {
@@ -62,14 +38,14 @@ function relativeTime(iso?: string | null): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-/** Normalize raw API job into a clean display object. */
-export function normalizeJob(raw: Job) {
+/** Normalize a raw API job into a clean display object. */
+export function normalizeJob(job: Job) {
   return {
-    ...raw,
-    companyDisplay: raw.company?.name ?? raw.companyName ?? 'Confidential',
-    typeDisplay: (raw.type && TYPE_LABELS[raw.type]) ?? raw.type ?? '',
-    postedAgo: relativeTime(raw.createdAt),
-    categorySlug: raw.category?.slug ?? raw.categoryId ?? '',
+    ...job,
+    companyDisplay: job.company?.name ?? 'Confidential',
+    typeDisplay:    (job.type && TYPE_LABELS[job.type]) ?? job.type ?? '',
+    postedAgo:      relativeTime(job.createdAt),
+    categorySlug:   job.category?.slug ?? job.categoryId ?? '',
   };
 }
 
@@ -77,77 +53,43 @@ export type NormalizedJob = ReturnType<typeof normalizeJob>;
 
 // ── API functions ─────────────────────────────────────────────────────────────
 
-export type JobsParams = {
-  limit?: number;
-  offset?: number;
-  category?: string;
-  type?: string;
-  q?: string;
-  featured?: boolean;
-};
-
-/**
- * Fetch paginated job listings.
- */
-export async function fetchJobs(params: JobsParams = {}): Promise<NormalizedJob[]> {
+/** Fetch paginated job listings. */
+export async function fetchJobs(params: QueryJobsDto = {}): Promise<NormalizedJob[]> {
   try {
-    const { data } = await apiClient.get('/jobs', {
+    const { data } = await apiClient.get<JobsResponse>('/jobs', {
       params: { limit: 40, ...params },
     });
-    return jobsResponseSchema.parse(data).items.map(normalizeJob);
+    return (data.items ?? []).map(normalizeJob);
   } catch {
     return [];
   }
 }
 
-/**
- * Fetch a single job by ID.
- */
+/** Fetch a single job by ID. */
 export async function fetchJob(id: string): Promise<NormalizedJob | null> {
   try {
-    const { data } = await apiClient.get(`/jobs/${id}`);
-    return normalizeJob(jobSchema.parse(data));
+    const { data } = await apiClient.get<Job>(`/jobs/${id}`);
+    return normalizeJob(data);
   } catch {
     return null;
   }
 }
 
-/**
- * Fetch all job categories.
- */
-export async function fetchCategories(): Promise<Category[]> {
+/** Fetch all job categories. */
+export async function fetchCategories(): Promise<JobCategory[]> {
   try {
-    const { data } = await apiClient.get('/jobs/categories');
-    return z.array(categorySchema).parse(data);
+    const { data } = await apiClient.get<JobCategory[]>('/jobs/categories');
+    return data ?? [];
   } catch {
     return [];
   }
 }
 
-/**
- * Apply to a job posting.
- * Returns the application ID on success.
- */
-export async function applyToJob(
-  jobId: string,
-  payload: { coverLetter?: string; resumeUrl?: string },
-): Promise<{ applicationId: string }> {
-  const { data } = await apiClient.post(`/jobs/${jobId}/apply`, payload);
-  return data as { applicationId: string };
-}
-
-/**
- * Fetch platform-wide stats (public, no auth required).
- */
-export async function fetchPlatformStats() {
+/** Fetch platform-wide stats. */
+export async function fetchPlatformStats(): Promise<JobStats> {
   try {
-    const { data } = await apiClient.get('/jobs/stats');
-    return data as {
-      activeJobs: number;
-      hiringCompanies: number;
-      registeredJobSeekers: number;
-      satisfactionRate: number;
-    };
+    const { data } = await apiClient.get<JobStats>('/jobs/stats');
+    return data;
   } catch {
     return {
       activeJobs: 10_000,
@@ -156,4 +98,16 @@ export async function fetchPlatformStats() {
       satisfactionRate: 98,
     };
   }
+}
+
+/** Apply to a job posting. */
+export async function applyToJob(
+  jobId: string,
+  payload: Omit<CreateApplicationDto, 'jobId'>,
+): Promise<{ applicationId: string }> {
+  const { data } = await apiClient.post<{ applicationId: string }>(
+    `/jobs/${jobId}/apply`,
+    { ...payload, jobId },
+  );
+  return data;
 }
