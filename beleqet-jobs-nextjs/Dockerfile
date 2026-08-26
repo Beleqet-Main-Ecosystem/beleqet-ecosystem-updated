@@ -1,22 +1,23 @@
 # =============================================================================
 # Beleqet jobs frontend — production image (Next.js 14)
-#
-# This Dockerfile was missing although docker-compose.yml referenced it,
-# which made `docker compose build` fail. Serves on port 3001 (matching the
-# compose port mappings) via the PORT env var that `next start` honors.
+# Build context: repo root (so packages/common is accessible)
 # =============================================================================
 
-# ── Build stage ──────────────────────────────────────────────────────────────
+# ── Build stage ───────────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS builder
 
-WORKDIR /app
+WORKDIR /repo
 
-COPY package.json package-lock.json ./
+# Copy shared package first so npm can resolve file: dependency
+COPY packages/common ./packages/common
+
+# Install jobs-frontend deps
+WORKDIR /repo/beleqet-jobs-nextjs
+COPY beleqet-jobs-nextjs/package.json beleqet-jobs-nextjs/package-lock.json ./
 RUN npm ci
 
-COPY . .
+COPY beleqet-jobs-nextjs/ .
 
-# NEXT_PUBLIC_ vars must be present at build time for Next.js static generation
 ARG NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
 ARG NEXT_PUBLIC_APP_URL=https://beleqetjobs.com
 ARG NEXT_PUBLIC_SITE_URL=https://beleqetjobs.com
@@ -26,15 +27,15 @@ ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 
 RUN npm run build
 
-# ── Prune stage: production-only dependencies ────────────────────────────────
+# ── Prune stage ───────────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS pruner
 
-WORKDIR /app
-
-COPY package.json package-lock.json ./
+WORKDIR /repo/beleqet-jobs-nextjs
+COPY packages/common /repo/packages/common
+COPY beleqet-jobs-nextjs/package.json beleqet-jobs-nextjs/package-lock.json ./
 RUN npm ci --omit=dev
 
-# ── Production stage ─────────────────────────────────────────────────────────
+# ── Production stage ──────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS runner
 
 WORKDIR /app
@@ -42,8 +43,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Strip base-image npm/corepack — runtime starts Next via `node`, and the
-# bundled `tar` (CVE-2026-59873) fails the Trivy CRITICAL image gate.
 RUN rm -rf \
   /usr/local/lib/node_modules/npm \
   /usr/local/lib/node_modules/corepack \
@@ -52,11 +51,11 @@ RUN rm -rf \
   /usr/local/bin/corepack \
   /opt/yarn-v*
 
-COPY --from=pruner --chown=node:node /app/package.json /app/package-lock.json ./
-COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/.next ./.next
-COPY --from=builder --chown=node:node /app/public ./public
-COPY --from=builder --chown=node:node /app/next.config.js ./next.config.js
+COPY --from=pruner --chown=node:node /repo/beleqet-jobs-nextjs/package.json ./
+COPY --from=pruner --chown=node:node /repo/beleqet-jobs-nextjs/node_modules ./node_modules
+COPY --from=builder --chown=node:node /repo/beleqet-jobs-nextjs/.next ./.next
+COPY --from=builder --chown=node:node /repo/beleqet-jobs-nextjs/public ./public
+COPY --from=builder --chown=node:node /repo/beleqet-jobs-nextjs/next.config.js ./next.config.js
 
 USER node
 

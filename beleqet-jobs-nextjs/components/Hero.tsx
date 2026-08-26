@@ -20,7 +20,7 @@ export default function Hero() {
   }
 
   return (
-    <section className="hero-grid relative overflow-hidden bg-[#fffdf8]">
+    <section className="hero-grid relative overflow-hidden bg-[#f7f5ef]">
       <div className="container-page relative grid min-h-[690px] items-center gap-14 py-16 lg:grid-cols-[1.08fr_.92fr] lg:py-20">
         <div className="relative z-10">
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-brandGreen/20 bg-brandGreen/5 px-3.5 py-2 text-xs font-bold text-brandGreen">

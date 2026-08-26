@@ -16,7 +16,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@beleqet/common": "*",
+    "@beleqet/common": "file:../../packages/common",
     "expo": "~51.0.28",
     "expo-router": "~3.5.23",
     "expo-status-bar": "~1.12.1",
