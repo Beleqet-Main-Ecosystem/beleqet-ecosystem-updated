@@ -81,15 +81,15 @@ export default function ForEmployersPage() {
     <div className="bg-[#f7f5ef] dark:bg-slate-950">
       {/* ── Hero ── */}
       <section className="relative overflow-hidden bg-primary py-20 text-white lg:py-28">
-        <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full border-[70px] border-[#d8ff3e]/10 dark:border-brandGreen/10" />
+        <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full border-[70px] border-[#d8ff3e]/10" />
         <div className="container-page relative">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
             For Employers
           </p>
           <h1 className="mt-5 max-w-4xl text-[clamp(2.8rem,7vw,6rem)] font-black leading-[.88] tracking-[-.06em]">
             Find the right person.
             <br />
-            <span className="text-brandGreen">Faster than ever.</span>
+            <span className="text-[#d8ff3e]">Faster than ever.</span>
           </h1>
           <p className="mt-8 max-w-2xl text-base leading-7 text-white/60">
             Post jobs to thousands of active Ethiopian professionals. Screen, shortlist, and hire —
@@ -98,13 +98,13 @@ export default function ForEmployersPage() {
           <div className="mt-10 flex flex-wrap gap-4">
             <Link
               href="/post-job"
-              className="inline-flex items-center gap-2 rounded-full bg-brandGreen px-7 py-3.5 text-sm font-bold text-primary transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full bg-[#d8ff3e] px-7 py-3.5 text-sm font-bold text-primary transition-opacity hover:opacity-90"
             >
               Post a Job Free <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:border-brandGreen hover:text-brandGreen"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:border-[#d8ff3e] hover:text-[#d8ff3e]"
             >
               View Pricing
             </Link>
@@ -125,7 +125,7 @@ export default function ForEmployersPage() {
               key={item.label}
               className="border-primary/10 p-7 even:border-l dark:border-slate-800 md:border-l first:md:border-l-0"
             >
-              <item.icon className="h-5 w-5 text-brandGreen" />
+              <item.icon className="h-5 w-5 text-[#d8ff3e]" />
               <p className="mt-5 text-3xl font-black tracking-tight text-primary dark:text-white">
                 {item.value}
               </p>
@@ -139,7 +139,7 @@ export default function ForEmployersPage() {
 
       {/* ── Why Beleqet ── */}
       <section className="container-page py-20">
-        <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
+        <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
           Why Beleqet for hiring
         </p>
         <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-primary dark:text-white">
@@ -151,7 +151,7 @@ export default function ForEmployersPage() {
               key={title}
               className="rounded-[24px] border border-primary/10 bg-white p-7 dark:border-slate-800 dark:bg-slate-900"
             >
-              <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brandGreen/10 text-brandGreen">
+              <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#d8ff3e]/15 text-[#d8ff3e]">
                 <Icon className="h-5 w-5" />
               </span>
               <h3 className="mb-2 text-base font-bold text-primary dark:text-white">{title}</h3>
@@ -164,7 +164,7 @@ export default function ForEmployersPage() {
       {/* ── How it works ── */}
       <section className="border-y border-primary/10 bg-white py-20 dark:border-slate-800 dark:bg-slate-900">
         <div className="container-page">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
             How it works
           </p>
           <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-primary dark:text-white">
@@ -184,25 +184,30 @@ export default function ForEmployersPage() {
 
       {/* ── CTA band ── */}
       <section className="container-page py-20">
-        <div className="flex flex-col justify-between gap-7 rounded-[30px] bg-brandGreen p-8 sm:p-12 lg:flex-row lg:items-center">
+        <div className="relative overflow-hidden flex flex-col justify-between gap-7 rounded-[30px] bg-primary p-8 sm:p-12 lg:flex-row lg:items-center">
+          {/* decorative ring */}
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full border-[50px] border-[#d8ff3e]/10" />
           <div>
-            <h2 className="text-3xl font-black tracking-tight text-primary">
+            <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+              Ready to hire?
+            </p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight text-white">
               Start hiring today.
             </h2>
-            <p className="mt-2 text-sm text-primary/65">
+            <p className="mt-2 text-sm text-white/60">
               Your first job post is free. No credit card required.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
               href="/post-job"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full bg-[#d8ff3e] px-7 py-3.5 text-sm font-bold text-primary transition-opacity hover:opacity-90"
             >
               Post a Job Free <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/employer"
-              className="inline-flex items-center gap-2 rounded-full border border-primary/20 px-7 py-3.5 text-sm font-bold text-primary transition-colors hover:border-primary/50"
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:border-[#d8ff3e] hover:text-[#d8ff3e]"
             >
               Employer Dashboard
             </Link>
