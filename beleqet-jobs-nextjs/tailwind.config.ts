@@ -24,6 +24,7 @@ const config: Config = {
         primary: "#041603",
         primary2: "#0A2C03",
         brandGreen: "#00653B",
+        limeAccent: "#d8ff3e",   // hero/dashboard highlight — use instead of hardcoded #d8ff3e
         darkGreen: "#015230",
         success: "#22C55E",
         cyanAccent: "#38BDF8",
