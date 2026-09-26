@@ -33,6 +33,7 @@
     "coverage",
     "frontend",
     "web",
+    "apps/mobile",
     "beleqet-jobs-nextjs",
     "src/**/frontend"
   ]
