@@ -11,6 +11,7 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["@beleqet/common"],
   images: {
     remotePatterns: [
       // Allow all HTTPS image sources (Unsplash, CDNs, user avatars, etc.)
