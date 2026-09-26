@@ -402,9 +402,12 @@ export class UploadsService {
 
   private async convertImageToWebp(buffer: Buffer): Promise<Buffer> {
     try {
-      return await sharp(buffer).webp({ quality: 80 }).toBuffer();
-    } catch {
-      throw new BadRequestException('Uploaded image is invalid or corrupted');
+      return await sharp(buffer, { failOn: 'none' }).webp({ quality: 80 }).toBuffer();
+    } catch (error) {
+      this.logger.warn(`Failed to convert image to WebP: ${(error as Error).message}`);
+      throw new BadRequestException(
+        `Uploaded image is invalid or corrupted: ${(error as Error).message}`,
+      );
     }
   }
 

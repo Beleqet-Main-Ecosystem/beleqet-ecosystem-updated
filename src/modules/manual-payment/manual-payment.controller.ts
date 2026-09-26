@@ -30,12 +30,12 @@ export class ManualPaymentController {
   @Post()
   @ApiOperation({ summary: 'Create a new pending manual payment record' })
   async create(
-    @Req() req: Request & { user: { id: string } },
+    @Req() req: Request & { user: { userId: string } },
     @Body()
     body: { amount: number; currency: string; description?: string },
   ): Promise<ManualPaymentRecord> {
     return this.manualPaymentService.createManualPayment(
-      req.user.id,
+      req.user.userId,
       body.amount,
       body.currency,
       body.description,
@@ -49,11 +49,11 @@ export class ManualPaymentController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('receipt'))
   async submitReceipt(
-    @Req() req: Request & { user: { id: string } },
+    @Req() req: Request & { user: { userId: string } },
     @Body() dto: SubmitManualPaymentDto,
     @UploadedFile() file: MulterFile,
   ): Promise<ManualPaymentRecord> {
-    return this.manualPaymentService.submitReceipt(dto, file, req.user.id);
+    return this.manualPaymentService.submitReceipt(dto, file, req.user.userId);
   }
 
   @Get('admin')
