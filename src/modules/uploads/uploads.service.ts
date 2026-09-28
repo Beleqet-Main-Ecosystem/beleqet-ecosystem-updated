@@ -17,7 +17,16 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { StoredFile } from '@prisma/client';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import sharp from 'sharp';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import sharp = require('sharp');
+
+// Resolve sharp across both CommonJS runtime (function export) and ESM/Jest (default export)
+const getSharpInstance = (): any => {
+  const s: any = sharp;
+  if (typeof s === 'function') return s;
+  if (s && typeof s.default === 'function') return s.default;
+  return s;
+};
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from './interfaces/multer-file.interface';
@@ -72,7 +81,18 @@ export class UploadsService {
         ? `https://${this.config.get<string>('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com`
         : undefined);
 
+    const forceLocal =
+      this.config.get<string>('STORAGE_DRIVER') === 'local' ||
+      this.config.get<string>('UPLOAD_LOCAL_FALLBACK') === 'true';
+
+    const isPlaceholderMinio =
+      accessKeyId === 'minio_user' &&
+      secretAccessKey === 'minio_password' &&
+      (!endpoint || endpoint.includes('localhost'));
+
     const hasValidCredentials =
+      !forceLocal &&
+      !isPlaceholderMinio &&
       accessKeyId &&
       accessKeyId !== 'your_access_key' &&
       secretAccessKey &&
@@ -402,7 +422,7 @@ export class UploadsService {
 
   private async convertImageToWebp(buffer: Buffer): Promise<Buffer> {
     try {
-      return await sharp(buffer, { failOn: 'none' }).webp({ quality: 80 }).toBuffer();
+      return await getSharpInstance()(buffer, { failOn: 'none' }).webp({ quality: 80 }).toBuffer();
     } catch (error) {
       this.logger.warn(`Failed to convert image to WebP: ${(error as Error).message}`);
       throw new BadRequestException(

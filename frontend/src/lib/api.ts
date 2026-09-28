@@ -390,6 +390,7 @@ export interface ManualPaymentRecord {
   status: string;
   transactionReference: string | null;
   receiptUrl: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -412,7 +413,8 @@ export async function createManualPayment(
 
 /**
  * Upload a payment receipt + transaction reference for a pending manual payment.
- * Uses multipart/form-data so the file is streamed to the backend.
+ * Passing Content-Type as undefined ensures Axios allows the browser to set
+ * multipart/form-data with the correct boundary parameter.
  */
 export async function submitManualPaymentReceipt(
   paymentId: string,
@@ -427,7 +429,7 @@ export async function submitManualPaymentReceipt(
   const res = await apiClient.post<ManualPaymentRecord>(
     '/manual-payment/submit-receipt',
     form,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    { headers: { 'Content-Type': undefined } },
   );
   return res.data;
 }
@@ -442,6 +444,42 @@ export async function fetchManualPayments(
   const res = await apiClient.get<ManualPaymentRecord[]>('/manual-payment/admin', {
     params: { page, limit },
   });
+  return res.data;
+}
+
+/**
+ * [Admin] Approve a manual payment.
+ */
+export async function approveManualPayment(paymentId: string): Promise<ManualPaymentRecord> {
+  const res = await apiClient.patch<ManualPaymentRecord>(
+    `/manual-payment/admin/${paymentId}/approve`,
+  );
+  return res.data;
+}
+
+/**
+ * [Admin] Reject a manual payment with an optional reason.
+ */
+export async function rejectManualPayment(
+  paymentId: string,
+  reason?: string,
+): Promise<ManualPaymentRecord> {
+  const res = await apiClient.patch<ManualPaymentRecord>(
+    `/manual-payment/admin/${paymentId}/reject`,
+    { reason },
+  );
+  return res.data;
+}
+
+/**
+ * [Admin] Fetch a viewable (presigned or local) URL for a manual payment receipt.
+ */
+export async function fetchManualPaymentReceiptUrl(
+  paymentId: string,
+): Promise<{ url: string }> {
+  const res = await apiClient.get<{ url: string }>(
+    `/manual-payment/admin/${paymentId}/receipt`,
+  );
   return res.data;
 }
 

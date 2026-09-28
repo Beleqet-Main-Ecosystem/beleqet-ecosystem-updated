@@ -44,6 +44,11 @@ export class RolesGuard implements CanActivate {
     }
 
     if (requiredPermissions && requiredPermissions.length > 0) {
+      // Platform super administrators (role === 'ADMIN') implicitly have all permissions
+      if (user.role === 'ADMIN') {
+        return true;
+      }
+
       const cacheKey = `user_permissions:${user.userId}`;
       let userPermissions: string[] = [];
       const cached = await this.redis.get(cacheKey);

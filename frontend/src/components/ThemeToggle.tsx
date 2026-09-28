@@ -1,62 +1,53 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/components/theme/theme-provider';
+import { resolvesToDark } from '@/components/theme/theme-preference';
 
 /**
- * Theme toggle that switches the native CSS variables used across the app.
+ * Theme toggle button that switches between light and dark mode
+ * using the native Beleqet ThemeProvider.
  */
 export function ThemeToggle() {
-  const [mounted, setMounted] = useState(false);
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { preference, isMounted, setPreference } = useTheme();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  if (!isMounted) {
     return (
-      <button className="btn btn-ghost btn-sm" style={{ opacity: 0, width: "120px" }}>
+      <button className="btn btn-ghost btn-sm" style={{ opacity: 0, width: '110px' }} type="button">
         Loading...
       </button>
     );
   }
 
-  const currentTheme = theme === "system" ? resolvedTheme : theme;
-  const isDark = currentTheme === "dark";
+  const systemPrefersDark =
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false;
+  const isDark = resolvesToDark(preference, systemPrefersDark);
 
   return (
     <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      onClick={() => setPreference(isDark ? 'LIGHT' : 'DARK')}
       className="btn btn-ghost btn-sm"
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "8px 14px",
-        cursor: "pointer",
-        borderRadius: "var(--radius-sm)",
-        border: "1px solid var(--border)",
-        background: "var(--bg-card)",
-        color: "var(--text-primary)",
-        transition: "all var(--transition-fast)",
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 12px',
+        fontSize: '12px',
       }}
-      title={`Switch to ${isDark ? "Light" : "Dark"} Mode`}
+      title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+      type="button"
     >
       {isDark ? (
         <>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-amber)" }}>
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-          </svg>
-          <span style={{ fontSize: "13px", fontWeight: 500 }}>Light Mode</span>
+          <Sun size={15} style={{ color: 'var(--accent-amber)' }} />
+          <span>Light Mode</span>
         </>
       ) : (
         <>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-indigo)" }}>
-            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-          </svg>
-          <span style={{ fontSize: "13px", fontWeight: 500 }}>Dark Mode</span>
+          <Moon size={15} style={{ color: 'var(--accent-indigo)' }} />
+          <span>Dark Mode</span>
         </>
       )}
     </button>
