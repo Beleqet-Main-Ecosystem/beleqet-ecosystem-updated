@@ -39,11 +39,8 @@ export class UsersController {
   }
 
   @Get('notifications')
-  async notifications(@CurrentUser() u: CurrentUserPayload) {
-    console.log('=== DEBUG GET /users/notifications userId:', u.userId, 'role:', u.role);
-    const result = await this.svc.getNotifications(u.userId);
-    console.log('=== DEBUG GET /users/notifications result:', JSON.stringify(result));
-    return result;
+  notifications(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getNotifications(u.userId);
   }
 
   @Patch('notifications/:id/read')
