@@ -99,7 +99,7 @@ const mockChapaClient = {
   createTransfer: jest.fn(),
 };
 const mockWalletQueue = {
-  add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal:tx-001' }),
+  add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal-tx-001' }),
 };
 
 import * as paypal from 'paypal-rest-sdk';
@@ -424,7 +424,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
           accountRef: '0912345678',
         }),
         expect.objectContaining({
-          jobId: 'wallet-withdrawal:tx-001',
+          jobId: 'wallet-withdrawal-tx-001',
           attempts: 5,
         }),
       );

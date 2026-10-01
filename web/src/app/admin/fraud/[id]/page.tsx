@@ -28,7 +28,7 @@ export default function FraudAlertDetailPage() {
     setMessage(null);
     try {
       const result = await resolveFraudAlert(params.id, { status, resolutionNote });
-      setAlert(result.alert);
+      setAlert((prev) => (prev ? { ...prev, ...result.alert } : result.alert));
       setMessage(`Alert ${status.replace(/_/g, ' ').toLowerCase()}`);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : String(e));

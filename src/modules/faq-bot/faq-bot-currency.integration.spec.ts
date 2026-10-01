@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { getQueueToken } from '@nestjs/bullmq';
 import { FaqBotCurrencyService } from './services/faq-bot-currency.service';
 import { WalletService } from '../wallet/wallet.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { QUEUE_NAMES } from '../queues/queues.constants';
 
 /**
  * Integration test: verifies the FAQ Bot module connects to the existing
@@ -20,6 +22,7 @@ describe('FaqBotCurrencyService <-> WalletService (integration)', () => {
         WalletService,
         { provide: PrismaService, useValue: {} },
         { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
+        { provide: getQueueToken(QUEUE_NAMES.WALLET), useValue: { add: jest.fn() } },
       ],
     }).compile();
 

@@ -20,10 +20,17 @@ function buildService(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 
+  const findMilestoneMock = jest.fn(async (args?: any) => {
+    if (args?.where?.contract?.clientId && args.where.contract.clientId !== milestone.contract.clientId) {
+      return null;
+    }
+    return milestone;
+  });
+
   const tx = {
     $queryRaw: jest.fn().mockResolvedValue([]),
     milestone: {
-      findFirst: jest.fn().mockResolvedValue(milestone),
+      findFirst: findMilestoneMock,
       update: jest.fn(async ({ data }) => ({ ...milestone, ...data })),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
@@ -31,10 +38,10 @@ function buildService(overrides: Record<string, unknown> = {}) {
     walletTransaction: { create: jest.fn().mockResolvedValue({ id: 'wallet-tx-1' }) },
     eventLog: { create: jest.fn().mockResolvedValue({}) },
   };
-  const escrowQueue = { add: jest.fn().mockResolvedValue({ id: 'auto-release:milestone-1' }) };
+  const escrowQueue = { add: jest.fn().mockResolvedValue({ id: 'auto-release-milestone-1' }) };
   const prisma = {
     milestone: {
-      findFirst: jest.fn().mockResolvedValue(milestone),
+      findFirst: findMilestoneMock,
       update: jest.fn(async ({ data }) => ({ ...milestone, ...data })),
     },
     eventLog: {
@@ -203,7 +210,7 @@ describe('EscrowService milestone confirmations', () => {
       }),
       expect.objectContaining({
         delay: expect.any(Number),
-        jobId: 'auto-release:milestone-1',
+        jobId: 'auto-release-milestone-1',
       }),
     );
   });
@@ -225,7 +232,7 @@ describe('EscrowService milestone confirmations', () => {
     expect(escrowQueue.add).toHaveBeenCalledWith(
       ESCROW_JOBS.AUTO_RELEASE,
       expect.objectContaining({ milestoneId: 'milestone-1', amount: 900 }),
-      expect.objectContaining({ jobId: 'auto-release:milestone-1' }),
+      expect.objectContaining({ jobId: 'auto-release-milestone-1' }),
     );
   });
 
@@ -262,7 +269,7 @@ describe('EscrowService milestone confirmations', () => {
         amount: 900,
       }),
       expect.objectContaining({
-        jobId: 'auto-release:milestone-1',
+        jobId: 'auto-release-milestone-1',
       }),
     );
   });

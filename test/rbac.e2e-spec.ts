@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { REDIS_CLIENT } from '../src/modules/redis/redis.module';
 
 describe('RbacModule (e2e)', () => {
   let app: INestApplication;
@@ -19,6 +20,19 @@ describe('RbacModule (e2e)', () => {
     permission: {
       findMany: jest.fn(),
     },
+    auditLog: {
+      create: jest.fn().mockResolvedValue({}),
+    },
+    eventLog: {
+      create: jest.fn().mockResolvedValue({}),
+    },
+  };
+
+  const mockRedis = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+    disconnect: jest.fn(),
   };
 
   // State to toggle what our mocked AuthGuard returns
@@ -39,6 +53,8 @@ describe('RbacModule (e2e)', () => {
       })
       .overrideProvider(PrismaService)
       .useValue(mockPrismaService)
+      .overrideProvider(REDIS_CLIENT)
+      .useValue(mockRedis)
       .compile();
 
     app = moduleFixture.createNestApplication();

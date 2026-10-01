@@ -209,17 +209,21 @@ export class ApplicationsService {
       },
     });
 
-    const email = await applicationStatusEmail({
-      firstName: application.user.firstName,
-      jobTitle: application.job.title,
-      status,
-      applicationUrl: `${this.config.get('FRONTEND_URL')}/applications`,
-    });
-    await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
-      to: application.user.email,
-      subject: `Application update — ${application.job.title}`,
-      ...email,
-    });
+    try {
+      const email = await applicationStatusEmail({
+        firstName: application.user.firstName,
+        jobTitle: application.job.title,
+        status,
+        applicationUrl: `${this.config.get('FRONTEND_URL')}/applications`,
+      });
+      await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+        to: application.user.email,
+        subject: `Application update — ${application.job.title}`,
+        ...email,
+      });
+    } catch (err: any) {
+      this.logger.error(`Failed to enqueue application status email: ${err.message}`);
+    }
     return updated;
   }
 

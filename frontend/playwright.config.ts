@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'notifications.spec.ts',
+  testMatch: '**/*.spec.ts',
   timeout: 60000,
   retries: 0,
   use: {

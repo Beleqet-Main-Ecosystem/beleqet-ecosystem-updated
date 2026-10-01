@@ -346,7 +346,7 @@ export class EscrowService {
       await this.escrowQueue.add(
         ESCROW_JOBS.AUTO_RELEASE,
         { milestoneId, freelancerId: contract.freelancerId, amount: netAmountInETB, releaseAt },
-        { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release:${milestoneId}` },
+        { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release-${milestoneId}` },
       );
       return { success: true, released: true, alreadyReleased: true };
     }
@@ -390,7 +390,7 @@ export class EscrowService {
         return;
       }
 
-      await tx.freelancerWallet.upsert({
+      const freelancerWallet = await tx.freelancerWallet.upsert({
         where: { userId: contract.freelancerId },
         update: { pendingBalance: { increment: netAmountInETB } },
         create: {
@@ -402,10 +402,10 @@ export class EscrowService {
 
       await tx.walletTransaction.create({
         data: {
+          walletId: freelancerWallet.id,
           type: 'CREDIT_PENDING',
           amount: netAmountInETB,
           milestoneId,
-          userId: contract.freelancerId,
         },
       });
 
@@ -420,14 +420,22 @@ export class EscrowService {
       });
     });
 
-    if (bothConfirmed && !alreadyReleased && netAmountInETB > 0) {
+    if (bothConfirmed && netAmountInETB > 0) {
       await this.escrowQueue.add(
         ESCROW_JOBS.AUTO_RELEASE,
         { milestoneId, freelancerId: contract.freelancerId, amount: netAmountInETB, releaseAt },
-        { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release:${milestoneId}` },
+        { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release-${milestoneId}` },
       );
     }
 
-    return { success: true, released: bothConfirmed, ...(alreadyReleased ? { alreadyReleased: true } : {}) };
+    if (!bothConfirmed) {
+      return {
+        success: true,
+        released: false,
+        waitingFor: !updatedEmployerTs ? 'EMPLOYER' : 'FREELANCER',
+      };
+    }
+
+    return { success: true, released: true, ...(alreadyReleased ? { alreadyReleased: true } : {}) };
   }
 }

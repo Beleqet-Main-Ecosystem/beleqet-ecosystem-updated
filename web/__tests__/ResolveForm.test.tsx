@@ -3,14 +3,22 @@
  * Tests that the resolve buttons render, call the API, and handle error states.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React, { act } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { act } from 'react';
 
 const mockResolveFraudAlert = vi.fn();
 const mockGetFraudAlert = vi.fn();
 const mockUseParams = vi.fn();
 
+class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 vi.mock('@/lib/api', () => ({
+  ApiError,
   getFraudAlert: (...args: unknown[]) => mockGetFraudAlert(...args),
   resolveFraudAlert: (...args: unknown[]) => mockResolveFraudAlert(...args),
 }));
@@ -139,7 +147,7 @@ describe('FraudAlertDetailPage (resolve form)', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Alert not found or error/i)).toBeTruthy();
+      expect(screen.getByText('Network error')).toBeTruthy();
     });
   });
 });
