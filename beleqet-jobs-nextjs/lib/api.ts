@@ -41,19 +41,30 @@ export type Job = {
   title: string;
   /** Resolved company display name. */
   company: string;
+  companyLogo?: string | null;
+  companyVerified?: boolean;
+  companyIndustry?: string | null;
   location: string;
   /** Human-readable job type (e.g. "Full Time"). */
   type: string;
-  /** Category slug for routing. */
+  /** Category display name or slug. */
   category: string;
+  categorySlug?: string;
   /** Relative time string, e.g. "3h ago". */
   postedAgo: string;
   featured?: boolean;
+  urgent?: boolean;
   description?: string;
+  requirements?: string;
   tags?: string[];
   salaryMin?: number | null;
   salaryMax?: number | null;
   currency?: string;
+  experienceLevel?: string | null;
+  yearsOfExperience?: string | null;
+  vacancies?: number | null;
+  deadline?: string | null;
+  applicationsCount?: number;
   relevanceScore?: number;
   createdAt?: string | null;
 };
@@ -90,21 +101,37 @@ function relativeTime(iso?: string | null): string {
 }
 
 /** Map a canonical backend Job to the web display Job. */
-function toDisplayJob(raw: CommonJob): Job {
+function toDisplayJob(raw: any): Job {
   return {
     id: raw.id,
     title: raw.title,
-    company: raw.company?.name ?? 'Confidential',
-    location: raw.location ?? '',
-    type: (raw.type && typeLabels[raw.type]) ?? raw.type ?? '',
-    category: raw.category?.slug ?? raw.categoryId ?? '',
+    company: raw.company?.name ?? raw.companyName ?? 'Confidential',
+    companyLogo: raw.company?.logoUrl ?? raw.companyLogo ?? null,
+    companyVerified: Boolean(raw.company?.verified),
+    companyIndustry: raw.company?.industry ?? null,
+    location: raw.location ?? 'Addis Ababa',
+    type: (raw.type && typeLabels[raw.type]) ?? raw.type ?? 'Full Time',
+    category: raw.category?.label ?? raw.category?.slug ?? raw.categoryId ?? 'General',
+    categorySlug: raw.category?.slug ?? raw.categoryId ?? '',
     postedAgo: relativeTime(raw.createdAt),
-    featured: raw.featured ?? false,
+    featured: Boolean(raw.featured),
+    urgent: Boolean(raw.urgent),
     description: raw.description ?? '',
-    tags: raw.tags ?? [],
-    salaryMin: raw.salaryMin,
-    salaryMax: raw.salaryMax,
-    currency: raw.currency,
+    requirements: raw.requirements ?? '',
+    tags: Array.isArray(raw.tags) ? raw.tags : [],
+    salaryMin: raw.salaryMin ?? null,
+    salaryMax: raw.salaryMax ?? null,
+    currency: raw.currency ?? 'ETB',
+    experienceLevel: raw.experienceLevel ?? null,
+    yearsOfExperience: raw.yearsOfExperience ?? null,
+    vacancies: typeof raw.vacancies === 'number' ? raw.vacancies : null,
+    deadline: raw.deadline
+      ? new Date(raw.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : raw.expiryDate
+      ? new Date(raw.expiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : null,
+    applicationsCount: raw._count?.applications ?? 0,
+    relevanceScore: raw.relevanceScore,
     createdAt: raw.createdAt,
   };
 }

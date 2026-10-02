@@ -23,18 +23,34 @@ export default function JobsListing({
   const [type, setType] = useState<string>('');
 
   const filtered = useMemo(() => {
+    const qLower = query.toLowerCase().trim();
+    const locLower = location.toLowerCase().trim();
+    const selCategory = categories.find((c) => c.id === category);
+
     return initialJobs.filter((job) => {
       const matchesQuery =
-        !query ||
-        job.title.toLowerCase().includes(query.toLowerCase()) ||
-        job.company.toLowerCase().includes(query.toLowerCase());
+        !qLower ||
+        job.title.toLowerCase().includes(qLower) ||
+        job.company.toLowerCase().includes(qLower) ||
+        job.category.toLowerCase().includes(qLower) ||
+        (job.tags && job.tags.some((t) => t.toLowerCase().includes(qLower))) ||
+        (job.description && job.description.toLowerCase().includes(qLower)) ||
+        (job.requirements && job.requirements.toLowerCase().includes(qLower));
+
       const matchesLocation =
-        !location || job.location.toLowerCase().includes(location.toLowerCase());
-      const matchesCategory = !category || job.category === category;
-      const matchesType = !type || job.type === type;
+        !locLower || job.location.toLowerCase().includes(locLower);
+
+      const matchesCategory =
+        !category ||
+        job.category === category ||
+        job.categorySlug === category ||
+        (selCategory && (job.category === selCategory.label || job.categorySlug === selCategory.id));
+
+      const matchesType = !type || job.type.toLowerCase() === type.toLowerCase();
+
       return matchesQuery && matchesLocation && matchesCategory && matchesType;
     });
-  }, [initialJobs, query, location, category, type]);
+  }, [initialJobs, query, location, category, type, categories]);
 
   const categoryLabel = categories.find((c) => c.id === category)?.label;
   const hasFilters = Boolean(query || location || category || type);
