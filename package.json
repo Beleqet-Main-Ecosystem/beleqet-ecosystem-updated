@@ -28,7 +28,8 @@
     "prisma:migrate:deploy": "npx prisma migrate deploy",
     "prisma:studio": "npx prisma studio",
     "prisma:seed": "npx ts-node --transpile-only prisma/seed.ts",
-    "prisma:seed:admin-stats": "npx ts-node --transpile-only prisma/seed-admin-stats-demo.ts"
+    "prisma:seed:admin-stats": "npx ts-node --transpile-only prisma/seed-admin-stats-demo.ts",
+    "prisma:seed:ecosystem": "npx ts-node --transpile-only prisma/seed-ecosystem.ts"
   },
   "dependencies": {
     "@apollo/server": "^4.13.0",
