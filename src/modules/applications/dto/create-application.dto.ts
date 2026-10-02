@@ -37,7 +37,7 @@ export class CreateApplicationDto {
     example: 'https://example.com/resume.pdf',
   })
   @IsOptional()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @MaxLength(500)
   resumeUrl?: string;
 
@@ -49,7 +49,7 @@ export class CreateApplicationDto {
 
   @ApiProperty({ required: false, example: 'https://github.com/beleqet' })
   @IsOptional()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   portfolioUrl?: string;
 
   @ApiProperty({ required: false, example: 50000 })
