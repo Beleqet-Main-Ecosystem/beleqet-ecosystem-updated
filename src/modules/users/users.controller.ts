@@ -1,6 +1,6 @@
-// users.controller.ts
 import { Controller, Delete, Get, Patch, Put, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
@@ -38,6 +38,7 @@ export class UsersController {
     return this.svc.createCompany(u.userId, dto);
   }
 
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @Get('notifications')
   notifications(@CurrentUser() u: CurrentUserPayload) {
     return this.svc.getNotifications(u.userId);
@@ -66,6 +67,7 @@ export class UsersController {
     return this.svc.updateNotificationPreferences(u.userId, dto);
   }
 
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @Get('saved-jobs')
   savedJobs(@CurrentUser() u: CurrentUserPayload) {
     return this.svc.getSavedJobs(u.userId);
