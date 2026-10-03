@@ -78,7 +78,7 @@ describe('Jobs & Applications (e2e)', () => {
     });
 
     // Create company profile for employer
-    const company = await prisma.company.create({
+    await prisma.company.create({
       data: {
         name: `Acme Corp ${testSuffix}`,
         userId: employer.id,
@@ -110,7 +110,9 @@ describe('Jobs & Applications (e2e)', () => {
         await prisma.notification.deleteMany({ where: { userId: candidate.id } }).catch(() => {});
       }
       if (createdJobId) {
-        await prisma.candidateScore.deleteMany({ where: { application: { jobId: createdJobId } } }).catch(() => {});
+        await prisma.candidateScore
+          .deleteMany({ where: { application: { jobId: createdJobId } } })
+          .catch(() => {});
         await prisma.application.deleteMany({ where: { jobId: createdJobId } }).catch(() => {});
         await prisma.job.deleteMany({ where: { id: createdJobId } }).catch(() => {});
       }
@@ -121,7 +123,7 @@ describe('Jobs & Applications (e2e)', () => {
         await prisma.company.deleteMany({ where: { userId: employer.id } }).catch(() => {});
         await prisma.user.deleteMany({ where: { id: employer.id } }).catch(() => {});
       }
-    } catch (e) {
+    } catch {
       // Ignore cleanup error
     }
     await app.close();
@@ -129,18 +131,14 @@ describe('Jobs & Applications (e2e)', () => {
 
   describe('Job Search & Categories (Journeys 3.2, 3.3)', () => {
     it('3.3 should return job categories', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/jobs/categories')
-        .expect(200);
+      const res = await request(app.getHttpServer()).get('/api/v1/jobs/categories').expect(200);
 
       expect(Array.isArray(res.body)).toBeTruthy();
       expect(res.body.length).toBeGreaterThan(0);
     });
 
     it('3.2 should browse and search public jobs', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/jobs')
-        .expect(200);
+      const res = await request(app.getHttpServer()).get('/api/v1/jobs').expect(200);
 
       expect(res.body).toHaveProperty('items');
       expect(res.body).toHaveProperty('total');
@@ -154,7 +152,8 @@ describe('Jobs & Applications (e2e)', () => {
         .set('Authorization', `Bearer ${employerToken}`)
         .send({
           title: `Senior Backend Engineer ${testSuffix}`,
-          description: 'Build robust scalable distributed microservices with NestJS and PostgreSQL.',
+          description:
+            'Build robust scalable distributed microservices with NestJS and PostgreSQL.',
           location: 'Remote',
           type: 'REMOTE',
           categoryId: categoryId,
@@ -196,7 +195,8 @@ describe('Jobs & Applications (e2e)', () => {
         .set('Authorization', `Bearer ${candidateToken}`)
         .send({
           jobId: createdJobId,
-          coverLetter: 'I have extensive full-stack experience crafting high-throughput systems and APIs with TypeScript and NestJS.',
+          coverLetter:
+            'I have extensive full-stack experience crafting high-throughput systems and APIs with TypeScript and NestJS.',
         })
         .expect(201);
 

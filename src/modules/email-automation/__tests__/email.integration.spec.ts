@@ -40,7 +40,10 @@ describe('Email module (integration: Postgres + Redis + BullMQ)', () => {
       redis = await new GenericContainer('redis:7-alpine').withExposedPorts(6379).start();
       dockerAvailable = true;
     } catch (err) {
-      console.warn('Docker daemon not accessible; skipping email integration container tests:', (err as Error).message);
+      console.warn(
+        'Docker daemon not accessible; skipping email integration container tests:',
+        (err as Error).message,
+      );
       return;
     }
 

@@ -70,7 +70,7 @@ describe('Wallet & Payments Lifecycle (e2e)', () => {
         await prisma.employerWallet.deleteMany({ where: { userId: employer.id } });
         await prisma.user.deleteMany({ where: { id: employer.id } });
       }
-    } catch (e) {
+    } catch {
       // ignore cleanup errors
     }
     await app.close();

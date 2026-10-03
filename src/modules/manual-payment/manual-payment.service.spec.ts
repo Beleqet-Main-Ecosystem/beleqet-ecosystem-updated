@@ -147,7 +147,9 @@ describe('ManualPaymentService', () => {
     });
 
     it('rejects when caller does not own the payment', async () => {
-      mockPrismaService.payment.findUnique.mockResolvedValue(createDummyPayment({ userId: 'other-user' }));
+      mockPrismaService.payment.findUnique.mockResolvedValue(
+        createDummyPayment({ userId: 'other-user' }),
+      );
       const file = createDummyFile('image/jpeg');
 
       await expect(
@@ -182,7 +184,11 @@ describe('ManualPaymentService', () => {
 
       expect(result.status).toBe(PaymentStatus.PROCESSING);
       expect(result.transactionReference).toBe('TXN-999');
-      expect(mockUploadsService.uploadFile).toHaveBeenCalledWith(file, 'manual-receipts', 'user-uuid-1');
+      expect(mockUploadsService.uploadFile).toHaveBeenCalledWith(
+        file,
+        'manual-receipts',
+        'user-uuid-1',
+      );
       expect(mockPrismaService.payment.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'pay-uuid-1' },
@@ -199,7 +205,9 @@ describe('ManualPaymentService', () => {
     it('throws NotFoundException if payment does not exist', async () => {
       mockPrismaService.payment.findUnique.mockResolvedValue(null);
 
-      await expect(service.approvePayment('missing-pay', 'admin-1')).rejects.toThrow(NotFoundException);
+      await expect(service.approvePayment('missing-pay', 'admin-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('approves a pending/processing payment and dispatches confirmation email', async () => {
@@ -283,7 +291,8 @@ describe('ManualPaymentService', () => {
 
     it('generates presigned read URL when cloud storage is active', async () => {
       const dummy = createDummyPayment({
-        receiptUrl: 'https://cdn.beleqet.com/manual-receipts/11111111-2222-3333-4444-555555555555.webp',
+        receiptUrl:
+          'https://cdn.beleqet.com/manual-receipts/11111111-2222-3333-4444-555555555555.webp',
       });
       mockPrismaService.payment.findUnique.mockResolvedValue(dummy);
       mockUploadsService.isLocalFallbackActive.mockReturnValue(false);

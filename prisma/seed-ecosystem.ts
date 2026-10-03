@@ -932,7 +932,7 @@ async function main() {
         severity: FraudSeverity.MEDIUM,
         score: 64.0,
         reason: 'Rapid sequential withdrawal attempts from new IP location',
-        status: FraudAlertStatus.INVESTIGATING,
+        status: FraudAlertStatus.UNDER_REVIEW,
         currency: 'USD',
         legalBasis: 'fraud_prevention',
       },

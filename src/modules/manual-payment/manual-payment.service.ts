@@ -182,12 +182,15 @@ export class ManualPaymentService {
         },
       })
       .catch((err) =>
-        this.logger.warn(`Failed to create in-app notification for approved payment: ${err.message}`),
+        this.logger.warn(
+          `Failed to create in-app notification for approved payment: ${err.message}`,
+        ),
       );
 
     // Fire-and-forget user confirmation email
     if (payment.user?.email) {
-      const userName = `${payment.user.firstName || ''} ${payment.user.lastName || ''}`.trim() || 'User';
+      const userName =
+        `${payment.user.firstName || ''} ${payment.user.lastName || ''}`.trim() || 'User';
       void this.emailService
         .dispatch({
           recipient: payment.user.email,
@@ -256,7 +259,9 @@ export class ManualPaymentService {
         },
       })
       .catch((err) =>
-        this.logger.warn(`Failed to create in-app notification for rejected payment: ${err.message}`),
+        this.logger.warn(
+          `Failed to create in-app notification for rejected payment: ${err.message}`,
+        ),
       );
 
     return this.toRecord(updated);

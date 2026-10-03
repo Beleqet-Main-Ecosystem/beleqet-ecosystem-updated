@@ -22,9 +22,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const token = this.config.get<string>('TELEGRAM_BOT_TOKEN');
 
     if (!token || token === 'your_bot_token_here') {
-      this.logger.warn(
-        'Valid TELEGRAM_BOT_TOKEN not provided. Telegram bot listener disabled.',
-      );
+      this.logger.warn('Valid TELEGRAM_BOT_TOKEN not provided. Telegram bot listener disabled.');
       return;
     }
 
@@ -44,12 +42,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       promise,
       new Promise<T>((_, reject) =>
         setTimeout(
-          () =>
-            reject(
-              new Error(
-                `${operation} timed out after ${timeoutMs}ms`,
-              ),
-            ),
+          () => reject(new Error(`${operation} timed out after ${timeoutMs}ms`)),
           timeoutMs,
         ),
       ),
@@ -83,13 +76,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           'Telegram setChatMenuButton',
         );
 
-        this.logger.log(
-          `Telegram chat menu button configured for WebApp: ${webAppUrl}`,
-        );
+        this.logger.log(`Telegram chat menu button configured for WebApp: ${webAppUrl}`);
       } catch (err) {
-        this.logger.warn(
-          `Could not set WebApp chat menu button: ${(err as Error).message}`,
-        );
+        this.logger.warn(`Could not set WebApp chat menu button: ${(err as Error).message}`);
       }
     }
 
@@ -102,26 +91,18 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
       // Extract optional deep-link payload
       // Example: /start gig_123
-      const messageText =
-        ctx.message && 'text' in ctx.message
-          ? ctx.message.text
-          : '';
+      const messageText = ctx.message && 'text' in ctx.message ? ctx.message.text : '';
 
       const parts = messageText.split(' ');
-      const startParam =
-        parts.length > 1 ? parts[1].trim() : '';
+      const startParam = parts.length > 1 ? parts[1].trim() : '';
 
       if (webApp && webApp.startsWith('https://')) {
-        const url = startParam
-          ? `${webApp}?start_param=${encodeURIComponent(startParam)}`
-          : webApp;
+        const url = startParam ? `${webApp}?start_param=${encodeURIComponent(startParam)}` : webApp;
 
         await ctx.reply(
           `Welcome to Beleqet! Tap the button below to launch our interactive Mini App directly inside Telegram:\n\n` +
             `Your Telegram ID (${telegramId}) will be securely linked to your Beleqet profile.` +
-            (startParam
-              ? `\n\n🎯 Deep Link Target: ${startParam}`
-              : ''),
+            (startParam ? `\n\n🎯 Deep Link Target: ${startParam}` : ''),
           {
             reply_markup: {
               inline_keyboard: [
@@ -144,9 +125,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
-      this.logger.log(
-        `Telegram /start triggered by ${telegramId}`,
-      );
+      this.logger.log(`Telegram /start triggered by ${telegramId}`);
     });
 
     /**
@@ -161,14 +140,10 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     /**
      * Configure Telegram webhook or long polling.
      */
-    const webhookUrl =
-      this.config.get<string>('TELEGRAM_WEBHOOK_URL');
+    const webhookUrl = this.config.get<string>('TELEGRAM_WEBHOOK_URL');
 
     try {
-      if (
-        webhookUrl &&
-        webhookUrl.startsWith('https://')
-      ) {
+      if (webhookUrl && webhookUrl.startsWith('https://')) {
         /**
          * WEBHOOK MODE
          */
@@ -178,9 +153,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           'Telegram setWebhook',
         );
 
-        this.logger.log(
-          `Telegram bot configured in Webhook mode: ${webhookUrl}`,
-        );
+        this.logger.log(`Telegram bot configured in Webhook mode: ${webhookUrl}`);
       } else {
         /**
          * LONG POLLING MODE
@@ -194,32 +167,22 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           'Telegram deleteWebhook',
         );
 
-        this.logger.log(
-          'Telegram deleteWebhook completed successfully.',
-        );
+        this.logger.log('Telegram deleteWebhook completed successfully.');
 
         // bot.launch() only resolves when the bot stops polling, so it
         // must never be awaited here — doing so blocks NestJS startup
         // (this caused a production outage on 2026-09-28).
         this.bot.launch().catch((err) => {
-          this.logger.error(
-            `Telegram polling stopped unexpectedly: ${(err as Error).message}`,
-          );
+          this.logger.error(`Telegram polling stopped unexpectedly: ${(err as Error).message}`);
           this.enabled = false;
         });
 
-        this.logger.log(
-          'Telegram bot listener starting in Long Polling mode (background).',
-        );
+        this.logger.log('Telegram bot listener starting in Long Polling mode (background).');
       }
     } catch (err) {
-      this.logger.error(
-        `Telegram bot failed to start/configure: ${(err as Error).message}`,
-      );
+      this.logger.error(`Telegram bot failed to start/configure: ${(err as Error).message}`);
 
-      this.logger.warn(
-        'Continuing without Telegram bot listener.',
-      );
+      this.logger.warn('Continuing without Telegram bot listener.');
 
       this.enabled = false;
     }
@@ -256,57 +219,39 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     targetPath?: string,
   ): Promise<boolean> {
     if (!this.enabled || !this.bot) {
-      this.logger.warn(
-        `Cannot send Telegram notification to ${telegramId}: bot is disabled.`,
-      );
+      this.logger.warn(`Cannot send Telegram notification to ${telegramId}: bot is disabled.`);
 
       return false;
     }
 
-    const webAppUrl =
-      this.config.get<string>('TELEGRAM_WEBAPP_URL');
+    const webAppUrl = this.config.get<string>('TELEGRAM_WEBAPP_URL');
 
     try {
-      if (
-        targetPath &&
-        webAppUrl &&
-        webAppUrl.startsWith('https://')
-      ) {
-        const fullUrl =
-          `${webAppUrl.replace(/\/$/, '')}/` +
-          `${targetPath.replace(/^\//, '')}`;
+      if (targetPath && webAppUrl && webAppUrl.startsWith('https://')) {
+        const fullUrl = `${webAppUrl.replace(/\/$/, '')}/` + `${targetPath.replace(/^\//, '')}`;
 
-        await this.bot.telegram.sendMessage(
-          telegramId,
-          message,
-          {
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  {
-                    text: '👁️ Open in Mini App',
-                    web_app: {
-                      url: fullUrl,
-                    },
+        await this.bot.telegram.sendMessage(telegramId, message, {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '👁️ Open in Mini App',
+                  web_app: {
+                    url: fullUrl,
                   },
-                ],
+                },
               ],
-            },
+            ],
           },
-        );
+        });
       } else {
-        await this.bot.telegram.sendMessage(
-          telegramId,
-          message,
-        );
+        await this.bot.telegram.sendMessage(telegramId, message);
       }
 
       return true;
     } catch (err) {
       this.logger.error(
-        `Failed to send Telegram notification to ${telegramId}: ${
-          (err as Error).message
-        }`,
+        `Failed to send Telegram notification to ${telegramId}: ${(err as Error).message}`,
       );
 
       return false;
@@ -325,12 +270,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       this.bot.stop('NestJS application shutting down');
       this.logger.log('Telegram bot stopped.');
     } catch (err) {
-      this.logger.warn(
-        `Failed to stop Telegram bot cleanly: ${
-          (err as Error).message
-        }`,
-      );
+      this.logger.warn(`Failed to stop Telegram bot cleanly: ${(err as Error).message}`);
     }
   }
-
 }

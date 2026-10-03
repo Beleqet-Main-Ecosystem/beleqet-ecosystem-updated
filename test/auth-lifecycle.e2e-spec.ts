@@ -17,7 +17,7 @@ describe('Auth Lifecycle (e2e)', () => {
 
   let employerToken = '';
   let employerRefreshToken = '';
-  let createdUserIds: string[] = [];
+  const createdUserIds: string[] = [];
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -36,9 +36,11 @@ describe('Auth Lifecycle (e2e)', () => {
 
   afterAll(async () => {
     if (createdUserIds.length > 0) {
-      await prisma.user.deleteMany({
-        where: { id: { in: createdUserIds } },
-      }).catch(() => {});
+      await prisma.user
+        .deleteMany({
+          where: { id: { in: createdUserIds } },
+        })
+        .catch(() => {});
     }
     await app.close();
   });
@@ -172,9 +174,7 @@ describe('Auth Lifecycle (e2e)', () => {
     });
 
     it('1.9 should reject unauthenticated request to /auth/me (401)', async () => {
-      await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .expect(401);
+      await request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
 
       await request(app.getHttpServer())
         .get('/api/v1/auth/me')

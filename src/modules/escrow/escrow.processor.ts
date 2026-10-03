@@ -26,7 +26,7 @@ interface AutoReleasePayload {
   releaseAt: string;
 }
 
-interface WithdrawalPayload {
+export interface WithdrawalPayload {
   userId: string;
   amount: number;
   method: string;
@@ -114,7 +114,9 @@ export class EscrowProcessor extends WorkerHost {
     });
 
     if (!escrow) {
-      this.logger.warn(`[escrow-webhook] No escrow found for txRef=${txRef} externalRef=${externalRef}`);
+      this.logger.warn(
+        `[escrow-webhook] No escrow found for txRef=${txRef} externalRef=${externalRef}`,
+      );
       return;
     }
 
@@ -142,10 +144,7 @@ export class EscrowProcessor extends WorkerHost {
 
       const expectedAmount = escrow.grossAmount - (escrow.walletAppliedAmount ?? 0);
 
-      if (
-        verified.status !== 'SUCCESS' ||
-        !this.amountMatches(verified.amount, expectedAmount)
-      ) {
+      if (verified.status !== 'SUCCESS' || !this.amountMatches(verified.amount, expectedAmount)) {
         throw new Error(
           `Beleqet Pay verification mismatch for escrow ${escrow.id}: ` +
             `status=${verified.status} amount=${verified.amount} expected=${expectedAmount}`,
@@ -239,7 +238,11 @@ export class EscrowProcessor extends WorkerHost {
     this.logger.warn(`[escrow-webhook] Payment not successful for escrow ${escrow.id}`);
 
     if ((escrow.walletAppliedAmount ?? 0) > 0) {
-      await this.releaseLockedFunds(escrow.id, escrow.freelanceJob.clientId, escrow.walletAppliedAmount);
+      await this.releaseLockedFunds(
+        escrow.id,
+        escrow.freelanceJob.clientId,
+        escrow.walletAppliedAmount,
+      );
     }
   }
 
@@ -318,7 +321,9 @@ export class EscrowProcessor extends WorkerHost {
       });
     }
 
-    this.logger.log(`[auto-release] ETB ${amount} moved to available for freelancer ${freelancerId}`);
+    this.logger.log(
+      `[auto-release] ETB ${amount} moved to available for freelancer ${freelancerId}`,
+    );
   }
 
   async handleUnlockFunds(job: BullJob<UnlockFundsPayload>) {
@@ -386,9 +391,6 @@ export class EscrowProcessor extends WorkerHost {
 
   @OnWorkerEvent('failed')
   handleJobFailure(job: BullJob | undefined, error: Error) {
-    this.logger.error(
-      `Job ${job?.id || 'unknown'} failed: ${error.message}`,
-      error.stack,
-    );
+    this.logger.error(`Job ${job?.id || 'unknown'} failed: ${error.message}`, error.stack);
   }
 }

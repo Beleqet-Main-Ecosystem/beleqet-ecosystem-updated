@@ -100,7 +100,11 @@ describe('ChatToTextController (Integration)', () => {
     });
 
     it('should validate required fields', async () => {
-      await request(app.getHttpServer()).post('/chat-to-text').set('x-test-user-id', 'user_123').send({ language: 'en' }).expect(400);
+      await request(app.getHttpServer())
+        .post('/chat-to-text')
+        .set('x-test-user-id', 'user_123')
+        .send({ language: 'en' })
+        .expect(400);
     });
   });
 

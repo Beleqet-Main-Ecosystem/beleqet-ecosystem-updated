@@ -137,7 +137,7 @@ describe('Freelance & Escrow Lifecycle (e2e)', () => {
         await prisma.employerWallet.deleteMany({ where: { userId: employer.id } });
         await prisma.user.deleteMany({ where: { id: employer.id } });
       }
-    } catch (e) {
+    } catch {
       // Ignore cleanup error
     }
     await app.close();

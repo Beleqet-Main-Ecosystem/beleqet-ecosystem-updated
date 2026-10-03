@@ -21,7 +21,10 @@ function buildService(overrides: Record<string, unknown> = {}) {
   };
 
   const findMilestoneMock = jest.fn(async (args?: any) => {
-    if (args?.where?.contract?.clientId && args.where.contract.clientId !== milestone.contract.clientId) {
+    if (
+      args?.where?.contract?.clientId &&
+      args.where.contract.clientId !== milestone.contract.clientId
+    ) {
       return null;
     }
     return milestone;
@@ -54,7 +57,11 @@ function buildService(overrides: Record<string, unknown> = {}) {
     prisma as never,
     { get: jest.fn() } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    { createCheckoutSession: jest.fn(), getTransaction: jest.fn(), createEscrowContract: jest.fn() } as never,
+    {
+      createCheckoutSession: jest.fn(),
+      getTransaction: jest.fn(),
+      createEscrowContract: jest.fn(),
+    } as never,
     escrowQueue as never,
     { emit: jest.fn() } as never,
   );
@@ -135,7 +142,16 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
       get: jest.fn((key: string) => (key === 'FRONTEND_URL' ? 'http://localhost:3000' : undefined)),
     } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    { createCheckoutSession: jest.fn().mockResolvedValue({ txRef: 'bp-tx-1', checkoutUrl: 'https://pay.test/checkout', provider: 'CHAPA', status: 'PENDING' }), getTransaction: jest.fn(), createEscrowContract: jest.fn() } as never,
+    {
+      createCheckoutSession: jest.fn().mockResolvedValue({
+        txRef: 'bp-tx-1',
+        checkoutUrl: 'https://pay.test/checkout',
+        provider: 'CHAPA',
+        status: 'PENDING',
+      }),
+      getTransaction: jest.fn(),
+      createEscrowContract: jest.fn(),
+    } as never,
     escrowQueue as never,
     eventEmitter as never,
   );
