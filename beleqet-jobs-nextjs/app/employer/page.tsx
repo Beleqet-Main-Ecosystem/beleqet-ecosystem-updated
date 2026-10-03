@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BriefcaseBusiness, Eye, Plus, Users } from 'lucide-react';
+import { BriefcaseBusiness, Eye, Plus, Users, Sparkles, FileText, CheckCircle2, Calendar } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
 import { toast } from 'sonner';
@@ -20,7 +20,21 @@ type Applicant = {
   createdAt: string;
   coverLetter?: string;
   resumeUrl?: string;
-  user: { firstName: string; lastName: string; email: string };
+  expectedSalary?: number;
+  user: {
+    id?: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    skills?: string[];
+  };
+  score?: {
+    overallScore: number;
+    skillsScore?: number;
+    experienceScore?: number;
+    educationScore?: number;
+    summary?: string;
+  };
 };
 const statuses = [
   'SUBMITTED',
@@ -164,58 +178,107 @@ export default function EmployerPage() {
             <div className="mt-4 space-y-3">
               {applicants.length ? (
                 applicants.map((item) => (
-                  <article key={item.id} className="rounded-2xl bg-white p-5">
-                    <div className="flex flex-col justify-between gap-4 sm:flex-row">
+                  <article key={item.id} className="rounded-2xl border border-border bg-white p-6 shadow-sm">
+                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                       <div>
-                        <h3 className="font-extrabold text-primary">
-                          {item.user.firstName} {item.user.lastName}
-                        </h3>
-                        <p className="text-xs text-muted">
-                          {item.user.email} · {new Date(item.createdAt).toLocaleDateString()}
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-extrabold text-primary">
+                            {item.user.firstName} {item.user.lastName}
+                          </h3>
+                          {item.score && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-brandGreen/10 px-2.5 py-0.5 text-xs font-bold text-brandGreen">
+                              <Sparkles className="h-3.5 w-3.5" />
+                              {(item.score.overallScore > 10 ? item.score.overallScore / 10 : item.score.overallScore).toFixed(1)} / 10 AI Match
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-muted">
+                          {item.user.email} · Applied on {new Date(item.createdAt).toLocaleDateString()}
+                          {item.expectedSalary && (
+                            <span className="ml-2 font-semibold text-ink">
+                              · Expected: ETB {item.expectedSalary.toLocaleString()}
+                            </span>
+                          )}
                         </p>
+
+                        {/* AI Score breakdown sub-pills */}
+                        {item.score && (
+                          <div className="mt-2.5 flex flex-wrap gap-2 text-[11px]">
+                            {item.score.skillsScore != null && (
+                              <span className="rounded-md bg-blue-50 px-2 py-0.5 font-medium text-blue-700">
+                                Skills: {item.score.skillsScore}/10
+                              </span>
+                            )}
+                            {item.score.experienceScore != null && (
+                              <span className="rounded-md bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
+                                Experience: {item.score.experienceScore}/10
+                              </span>
+                            )}
+                            {item.score.summary && (
+                              <span className="rounded-md bg-purple-50 px-2 py-0.5 font-medium text-purple-700">
+                                {item.score.summary}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex flex-col gap-3 sm:items-end">
-                        <select
-                          value={item.status}
-                          onChange={(e) => changeStatus(item.id, e.target.value)}
-                          className="rounded-xl border border-border px-3 py-2 text-xs font-bold"
-                        >
-                          {statuses.map((status) => (
-                            <option key={status}>{status}</option>
-                          ))}
-                        </select>
+
+                      <div className="flex flex-col gap-2.5 sm:items-end shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-muted">Status:</span>
+                          <select
+                            value={item.status}
+                            onChange={(e) => changeStatus(item.id, e.target.value)}
+                            className="rounded-xl border border-border bg-pageBg px-3 py-2 text-xs font-bold text-ink outline-none focus:border-brandGreen"
+                          >
+                            {statuses.map((status) => (
+                              <option key={status}>{status}</option>
+                            ))}
+                          </select>
+                        </div>
 
                         {item.status === 'SHORTLISTED' && (
                           <button
                             onClick={() => autoSchedule(item.id)}
-                            className="rounded-xl bg-brandGreen px-4 py-2 text-xs font-bold text-white transition hover:opacity-90"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-brandGreen px-4 py-2 text-xs font-bold text-white transition hover:bg-darkGreen shadow-sm"
                           >
-                            Schedule Interview
+                            <Calendar className="h-3.5 w-3.5" /> Schedule Interview
                           </button>
                         )}
 
                         {item.status === 'INTERVIEW_SCHEDULED' && (
-                          <span className="rounded-xl bg-green-100 px-4 py-2 text-xs font-bold text-green-700">
-                            Interview Scheduled
+                          <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 text-xs font-bold text-emerald-700">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Interview Scheduled
                           </span>
                         )}
                       </div>
                     </div>
+
                     {item.coverLetter && (
-                      <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted">
-                        {item.coverLetter}
-                      </p>
+                      <div className="mt-4 rounded-xl bg-pageBg/60 p-4 border border-border/40">
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted block mb-1">
+                          Cover Letter
+                        </span>
+                        <p className="whitespace-pre-wrap text-xs leading-5 text-ink/80">
+                          {item.coverLetter}
+                        </p>
+                      </div>
                     )}
-                    {item.resumeUrl && (
-                      <a
-                        href={item.resumeUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-4 inline-flex text-xs font-bold text-brandGreen"
-                      >
-                        View resume
-                      </a>
-                    )}
+
+                    <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
+                      {item.resumeUrl ? (
+                        <a
+                          href={item.resumeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-brandGreen hover:underline"
+                        >
+                          <FileText className="h-4 w-4" /> View Submitted Resume
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted">No resume attached</span>
+                      )}
+                    </div>
                   </article>
                 ))
               ) : (
