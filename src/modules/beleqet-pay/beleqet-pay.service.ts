@@ -35,9 +35,7 @@ export class BeleqetPayService {
    *
    * @param req - Checkout parameters including amount, currency and redirect URLs.
    */
-  async createCheckoutSession(
-    req: BeleqetPayCheckoutRequest,
-  ): Promise<BeleqetPayCheckoutResponse> {
+  async createCheckoutSession(req: BeleqetPayCheckoutRequest): Promise<BeleqetPayCheckoutResponse> {
     this.logger.debug(
       `[checkout] amount=${req.amount} ${req.currency} provider=${req.preferredProvider ?? 'auto'}`,
     );

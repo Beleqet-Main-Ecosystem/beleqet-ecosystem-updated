@@ -84,15 +84,12 @@ function buildProcessor() {
     }),
   };
 
-  const chapaClient = {
-    verifyTransaction: jest.fn().mockResolvedValue({
-      status: 'success',
-      data: {
-        status: 'success',
-        tx_ref: 'tx-1',
-        amount: '900',
-        currency: 'ETB',
-      },
+  const paySwitch = {
+    getTransaction: jest.fn().mockResolvedValue({
+      status: 'SUCCESS',
+      amount: 900,
+      currency: 'ETB',
+      txRef: 'tx-1',
     }),
   };
 
@@ -101,23 +98,23 @@ function buildProcessor() {
   const processor = new EscrowProcessor(
     prisma as never,
     { get: jest.fn(() => 'http://localhost:3000') } as never,
-    chapaClient as never,
+    paySwitch as never,
     notificationsQueue as never,
     escrowQueue as never,
   );
 
-  return { processor, prisma, tx, chapaClient, notificationsQueue, escrowQueue };
+  return { processor, prisma, tx, paySwitch, notificationsQueue, escrowQueue };
 }
 
 describe('EscrowProcessor', () => {
   it('verifies Chapa before marking escrow funded', async () => {
-    const { processor, tx, chapaClient, notificationsQueue } = buildProcessor();
+    const { processor, tx, paySwitch, notificationsQueue } = buildProcessor();
 
     await processor.handleWebhook({
       data: { event: 'charge.success', tx_ref: 'tx-1', reference: 'chapa-ref', status: 'success' },
     } as Job);
 
-    expect(chapaClient.verifyTransaction).toHaveBeenCalledWith('tx-1');
+    expect(paySwitch.getTransaction).toHaveBeenCalledWith('tx-1');
     expect(tx.escrowTransaction.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FUNDED' }) }),
     );
@@ -130,14 +127,14 @@ describe('EscrowProcessor', () => {
   });
 
   it('skips duplicate webhook events', async () => {
-    const { processor, prisma, chapaClient } = buildProcessor();
+    const { processor, prisma, paySwitch } = buildProcessor();
     prisma.eventLog.findFirst.mockResolvedValueOnce({ id: 'event-1' });
 
     await processor.handleWebhook({
       data: { event: 'charge.success', tx_ref: 'tx-1', reference: 'chapa-ref', status: 'success' },
     } as Job);
 
-    expect(chapaClient.verifyTransaction).not.toHaveBeenCalled();
+    expect(paySwitch.getTransaction).not.toHaveBeenCalled();
   });
 
   it('moves auto-release funds inside one idempotent transaction', async () => {

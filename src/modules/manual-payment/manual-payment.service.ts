@@ -17,6 +17,7 @@ export interface ManualPaymentRecord {
   status: string;
   transactionReference: string | null;
   receiptUrl: string | null;
+  metadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,6 +109,9 @@ export class ManualPaymentService {
     // Fire-and-forget: admin email + Telegram bot webhook (non-blocking)
     void this.notifyAdmin(updated, dto.transactionReference, uploaded.publicUrl);
 
+    // In-app notifications for both user and admins
+    void this.createInAppNotificationsOnSubmit(updated, dto.transactionReference);
+
     return this.toRecord(updated);
   }
 
@@ -131,6 +135,182 @@ export class ManualPaymentService {
       take: limit,
     });
     return payments.map(this.toRecord);
+  }
+
+  /**
+   * [Admin] Approves a manual payment, transitioning status to SUCCEEDED.
+   */
+  async approvePayment(paymentId: string, adminId: string): Promise<ManualPaymentRecord> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { user: true },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment ${paymentId} not found`);
+    }
+
+    if (payment.status === PaymentStatus.SUCCEEDED) {
+      return this.toRecord(payment);
+    }
+
+    const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
+    const updated = await this.prisma.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: PaymentStatus.SUCCEEDED,
+        metadata: {
+          ...currentMetadata,
+          approvedBy: adminId,
+          approvedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    this.logger.log(`Manual payment ${paymentId} approved by admin ${adminId}`);
+
+    // In-app notification for the paying user
+    void this.prisma.notification
+      .create({
+        data: {
+          userId: payment.userId,
+          type: 'PAYMENT_RECEIVED',
+          title: 'Payment Approved',
+          body: `Your manual payment of ${payment.amount} ${payment.currency} has been approved.`,
+          channel: 'IN_APP',
+          metadata: { paymentId: payment.id, approvedBy: adminId },
+        },
+      })
+      .catch((err) =>
+        this.logger.warn(
+          `Failed to create in-app notification for approved payment: ${err.message}`,
+        ),
+      );
+
+    // Fire-and-forget user confirmation email
+    if (payment.user?.email) {
+      const userName =
+        `${payment.user.firstName || ''} ${payment.user.lastName || ''}`.trim() || 'User';
+      void this.emailService
+        .dispatch({
+          recipient: payment.user.email,
+          type: 'PAYMENT_RECEIPT',
+          userId: payment.userId,
+          variables: {
+            name: userName,
+            transactionId: payment.id,
+            amount: payment.amount,
+            currency: payment.currency,
+            paidAt: new Date().toLocaleDateString('en-US'),
+            reference: payment.transactionReference ?? 'N/A',
+            receiptUrl: payment.receiptUrl ?? '',
+          },
+        })
+        .catch((err) =>
+          this.logger.warn(`Failed to dispatch user receipt approval email: ${err.message}`),
+        );
+    }
+
+    return this.toRecord(updated);
+  }
+
+  /**
+   * [Admin] Rejects a manual payment with an optional reason, transitioning status to FAILED.
+   */
+  async rejectPayment(
+    paymentId: string,
+    adminId: string,
+    reason?: string,
+  ): Promise<ManualPaymentRecord> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment ${paymentId} not found`);
+    }
+
+    const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
+    const updated = await this.prisma.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: PaymentStatus.FAILED,
+        metadata: {
+          ...currentMetadata,
+          rejectedBy: adminId,
+          rejectedAt: new Date().toISOString(),
+          rejectionReason: reason ?? 'Receipt verification rejected by administrator.',
+        },
+      },
+    });
+
+    this.logger.log(`Manual payment ${paymentId} rejected by admin ${adminId}. Reason: ${reason}`);
+
+    // In-app notification for the user
+    void this.prisma.notification
+      .create({
+        data: {
+          userId: payment.userId,
+          type: 'PAYMENT_RECEIVED',
+          title: 'Payment Rejected',
+          body: `Your manual payment of ${payment.amount} ${payment.currency} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+          channel: 'IN_APP',
+          metadata: { paymentId: payment.id, rejectedBy: adminId, reason },
+        },
+      })
+      .catch((err) =>
+        this.logger.warn(
+          `Failed to create in-app notification for rejected payment: ${err.message}`,
+        ),
+      );
+
+    return this.toRecord(updated);
+  }
+
+  /**
+   * Resolves a secure viewable URL for an uploaded receipt.
+   * If stored in cloud storage (S3/R2), generates a temporary presigned read URL.
+   */
+  async getReceiptViewUrl(
+    paymentId: string,
+    userId: string,
+    isAdmin: boolean,
+  ): Promise<{ url: string }> {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment ${paymentId} not found`);
+    }
+
+    if (!isAdmin && payment.userId !== userId) {
+      throw new BadRequestException('You do not have permission to view this receipt');
+    }
+
+    if (!payment.receiptUrl) {
+      throw new NotFoundException('No receipt uploaded for this payment');
+    }
+
+    // If local fallback, return the URL directly
+    if (this.uploadsService.isLocalFallbackActive()) {
+      return { url: payment.receiptUrl };
+    }
+
+    // If S3/R2, extract key and generate presigned read URL
+    try {
+      const match = payment.receiptUrl.match(/(manual-receipts\/[A-Za-z0-9_-]+\.[a-z0-9]+)/i);
+      if (match && match[1]) {
+        const presignedUrl = await this.uploadsService.getPresignedReadUrl(match[1]);
+        return { url: presignedUrl };
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Could not generate presigned read URL for ${payment.receiptUrl}: ${(err as Error).message}`,
+      );
+    }
+
+    return { url: payment.receiptUrl };
   }
 
   // ─── private helpers ──────────────────────────────────────────────────────
@@ -228,6 +408,7 @@ export class ManualPaymentService {
     status: string;
     transactionReference?: string | null;
     receiptUrl?: string | null;
+    metadata?: unknown;
     createdAt: Date;
     updatedAt: Date;
   }): ManualPaymentRecord {
@@ -239,8 +420,50 @@ export class ManualPaymentService {
       status: p.status,
       transactionReference: p.transactionReference ?? null,
       receiptUrl: p.receiptUrl ?? null,
+      metadata: (p.metadata as Record<string, unknown>) ?? null,
       createdAt: p.createdAt.toISOString(),
       updatedAt: p.updatedAt.toISOString(),
     };
+  }
+
+  private async createInAppNotificationsOnSubmit(
+    payment: { id: string; userId: string; amount: number; currency: string },
+    reference: string,
+  ): Promise<void> {
+    try {
+      // 1. In-app notification for the user submitting payment
+      await this.prisma.notification.create({
+        data: {
+          userId: payment.userId,
+          type: 'PAYMENT_RECEIVED',
+          title: 'Payment Receipt Submitted',
+          body: `Your payment receipt of ${payment.amount} ${payment.currency} (Ref: ${reference}) was received and is under review.`,
+          channel: 'IN_APP',
+          metadata: { paymentId: payment.id, reference },
+        },
+      });
+
+      // 2. In-app notification for active admins
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'ADMIN', isActive: true },
+        select: { id: true },
+      });
+      for (const admin of admins) {
+        await this.prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: 'PAYMENT_RECEIVED',
+            title: 'New Manual Payment Received',
+            body: `A manual payment of ${payment.amount} ${payment.currency} (Ref: ${reference}) was submitted and requires review.`,
+            channel: 'IN_APP',
+            metadata: { paymentId: payment.id, reference },
+          },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Failed to create in-app notifications on payment submit: ${(err as Error).message}`,
+      );
+    }
   }
 }

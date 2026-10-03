@@ -1,11 +1,3 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
-
-// Dynamically extract props from the provider component itself
-type ThemeProviderProps = React.ComponentProps<typeof NextThemesProvider>;
-
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
-}
+export { ThemeProvider } from './theme/theme-provider';

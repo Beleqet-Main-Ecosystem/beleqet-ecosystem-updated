@@ -158,7 +158,7 @@ describe('UploadsService', () => {
       const s3Client = (service as unknown as { s3Client: { send: jest.Mock } }).s3Client;
       const command = s3Client.send.mock.calls[0][0] as PutObjectCommand;
 
-      expect(mockedSharp).toHaveBeenCalledWith(file.buffer);
+      expect(mockedSharp).toHaveBeenCalledWith(file.buffer, { failOn: 'none' });
       expect(command.input.ContentType).toBe('image/webp');
       expect(command.input.Body).toEqual(Buffer.from('optimized-webp'));
       expect(result.publicUrl).toMatch(/^https:\/\/cdn\.beleqet\.com\/images\/.+\.webp$/);

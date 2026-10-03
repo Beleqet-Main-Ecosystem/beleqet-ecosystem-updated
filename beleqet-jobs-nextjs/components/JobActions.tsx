@@ -57,6 +57,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('hasConsentedToProcessing', 'true');
 
     const response = await authenticatedFetch(`${API_URL}/uploads/file`, {
       method: 'POST',

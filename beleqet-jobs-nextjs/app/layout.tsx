@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
 import './globals.css';
@@ -13,10 +14,10 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/lib/i18n';
 import { TelegramInitializer } from '@/components/TelegramInitializer';
 
-/* Lazy-load non-critical modules — not needed on first paint */
-const ChatWidget = lazy(() => import('@/components/ChatWidget'));
-const MobileBottomNav = lazy(() => import('@/components/mobile/MobileBottomNav'));
-const GdprConsentBanner = lazy(() => import('@/components/mobile/GdprConsentBanner'));
+/* Dynamically-load non-critical client modules — not needed on first paint */
+const ChatWidget = dynamic(() => import('@/components/ChatWidget'), { ssr: false });
+const MobileBottomNav = dynamic(() => import('@/components/mobile/MobileBottomNav'), { ssr: false });
+const GdprConsentBanner = dynamic(() => import('@/components/mobile/GdprConsentBanner'), { ssr: false });
 
 export const metadata: Metadata = homePageMetadata();
 

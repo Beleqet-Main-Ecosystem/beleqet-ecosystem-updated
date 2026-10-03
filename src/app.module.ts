@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { GqlThrottlerGuard } from './common/guards/gql-throttler.guard';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bullmq';
 import { I18nModule, AcceptLanguageResolver, QueryResolver, HeaderResolver } from 'nestjs-i18n';
@@ -40,12 +41,15 @@ import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.
 
 import { PaymentsModule } from './modules/payments/payments.module';
 // ── Fixed: PerformanceWorkerModule import statement deleted ──
+import { GraphqlConfigModule } from './graphql/graphql.module';
 import { GraphqlTurboModule } from './modules/graphql-turbo/graphql-turbo.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { EncryptedInboxModule } from './modules/encrypted-inbox/encrypted-inbox.module';
+import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
+import { CommunityForumModule } from './modules/community-forum/forum.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
@@ -53,6 +57,7 @@ import { PlansModule } from './modules/plans/plans.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { RbacModule } from './modules/rbac/rbac.module';
 
 @Module({
   imports: [
@@ -137,12 +142,14 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     DbIndexMasterModule,
     PaymentsModule,
     // ── Fixed: PerformanceWorkerModule removed from imports array ──
+    GraphqlConfigModule,
     GraphqlTurboModule,
     TwoFactorModule,
     KycModule,
     AiFeedModule,
     ResumeBrainModule,
     EncryptedInboxModule,
+    UserPreferencesModule,
     SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,
@@ -155,11 +162,13 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     ChatToTextModule,
     ManualPaymentModule,
     BeleqetPayModule,
+    CommunityForumModule,
+    RbacModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: GqlThrottlerGuard,
     },
   ],
 })

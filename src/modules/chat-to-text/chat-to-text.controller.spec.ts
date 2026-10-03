@@ -46,18 +46,17 @@ describe('ChatToTextController (Integration)', () => {
             getStatistics: jest.fn(),
           },
         },
-        {
-          provide: JwtAuthGuard,
-          useValue: {
-            canActivate: (context: any) => {
-              const request = context.switchToHttp().getRequest();
-              request.user = { userId: 'user_123' };
-              return true;
-            },
-          },
-        },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({
+        canActivate: (context: any) => {
+          const request = context.switchToHttp().getRequest();
+          request.user = { userId: 'user_123' };
+          return true;
+        },
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.use((req: any, _res: any, next: () => void) => {
@@ -101,7 +100,11 @@ describe('ChatToTextController (Integration)', () => {
     });
 
     it('should validate required fields', async () => {
-      await request(app.getHttpServer()).post('/chat-to-text').set('x-test-user-id', 'user_123').send({ language: 'en' }).expect(400);
+      await request(app.getHttpServer())
+        .post('/chat-to-text')
+        .set('x-test-user-id', 'user_123')
+        .send({ language: 'en' })
+        .expect(400);
     });
   });
 

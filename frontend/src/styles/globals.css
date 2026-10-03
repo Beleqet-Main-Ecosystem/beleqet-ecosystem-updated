@@ -206,6 +206,70 @@ body {
   flex: 1;
   min-height: 100vh;
   background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top Navbar */
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.admin-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.admin-topbar-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.admin-topbar-breadcrumb strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.admin-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.admin-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--accent-green);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.admin-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 6px var(--accent-green);
+}
+.sidebar-section-title {
+  padding: 14px 14px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .page-header {
@@ -391,6 +455,22 @@ tbody tr:hover {
 .badge-active {
   background: rgba(245, 158, 11, 0.15);
   color: var(--accent-amber);
+}
+.badge-pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent-amber);
+}
+.badge-processing {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+}
+.badge-succeeded {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-green);
+}
+.badge-failed {
+  background: rgba(244, 63, 94, 0.15);
+  color: var(--accent-rose);
 }
 
 /*  Buttons  */
@@ -1936,5 +2016,375 @@ html:not(.dark) .admin-stats-dashboard {
     width: 100%;
     justify-content: flex-start;
   }
+}
+
+/* ==========================================================================
+   Manual Payments & Payment Submission Portal Styles
+   ========================================================================== */
+
+/* Alerts / Notification Banners */
+.alert-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+.alert-box-success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--accent-green);
+}
+.alert-box-error {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: var(--accent-rose);
+}
+.alert-box-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--accent-amber);
+}
+.alert-box-info {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--accent-blue);
+}
+
+/* Filter Tabs & Search Bar in Admin */
+.admin-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.admin-filter-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-card);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.admin-filter-tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.admin-filter-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+.admin-filter-tab.active {
+  background: var(--accent-blue);
+  color: #ffffff;
+  font-weight: 600;
+}
+.admin-search-wrapper {
+  position: relative;
+  min-width: 280px;
+}
+.admin-search-wrapper input {
+  padding-left: 36px;
+  font-size: 13px;
+}
+.admin-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Pagination Bar */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.pagination-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Receipt Large Modal */
+.receipt-modal {
+  max-width: 860px;
+  width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+.receipt-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.receipt-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+.receipt-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+/* User / Employer Payment Portal Layout */
+.payment-portal-wrapper {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+}
+.payment-portal-card {
+  width: 100%;
+  max-width: 640px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 36px;
+  box-shadow: var(--shadow-card);
+}
+.payment-portal-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.payment-portal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--accent-blue);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.payment-portal-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.payment-portal-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Bank Transfer Instructions Box */
+.bank-instructions-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 28px;
+}
+.bank-instructions-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bank-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  gap: 12px;
+}
+.bank-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bank-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.bank-item-details {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: monospace;
+}
+.copy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.copy-pill:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* File Dropzone */
+.dropzone-container {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 28px 20px;
+  background: var(--bg-card);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.dropzone-container:hover,
+.dropzone-container.is-dragover {
+  border-color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.04);
+}
+.dropzone-container.has-file {
+  border-color: var(--accent-green);
+  background: rgba(16, 185, 129, 0.04);
+}
+.dropzone-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.dropzone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dropzone-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.file-selected-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+}
+.file-selected-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  overflow: hidden;
+}
+.file-selected-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+.file-selected-size {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Success Receipt Card */
+.receipt-summary-table {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin: 20px 0;
+}
+.receipt-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.receipt-summary-row:last-child {
+  border-bottom: none;
+}
+.receipt-summary-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.receipt-summary-value {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 

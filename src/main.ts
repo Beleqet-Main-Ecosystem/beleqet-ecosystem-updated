@@ -97,7 +97,8 @@ async function bootstrap() {
       !requestOrigin ||
       frontendOrigins.includes(requestOrigin) ||
       frontendOrigins.includes('*') ||
-      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(requestOrigin);
+      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(requestOrigin) ||
+      (nodeEnv === 'development' && /^http:\/\/localhost(:\d+)?$/i.test(requestOrigin));
     if (allowed) {
       res.setHeader('Access-Control-Allow-Origin', requestOrigin || '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');

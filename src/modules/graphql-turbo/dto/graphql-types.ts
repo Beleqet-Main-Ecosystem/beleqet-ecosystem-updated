@@ -1,4 +1,5 @@
 import { ObjectType, Field, ID, Float, Int, registerEnumType, InputType } from '@nestjs/graphql';
+import { IsOptional, IsString, IsEnum, IsInt, IsBoolean } from 'class-validator';
 
 // ── Enums ────────────────────────────────────────────────────────────────
 
@@ -195,27 +196,89 @@ export class GqlApplicationConnection {
 /** Input for filtering/searching jobs */
 @InputType({ description: 'Job search and filter parameters' })
 export class GqlJobFilterInput {
-  @Field(() => String, { nullable: true }) search?: string;
-  @Field(() => String, { nullable: true }) location?: string;
-  @Field(() => GqlJobType, { nullable: true }) type?: GqlJobType;
-  @Field(() => GqlJobStatus, { nullable: true }) status?: GqlJobStatus;
-  @Field(() => Int, { nullable: true }) salaryMin?: number;
-  @Field(() => Int, { nullable: true }) salaryMax?: number;
-  @Field(() => String, { nullable: true }) categoryId?: string;
-  @Field(() => String, { nullable: true }) companyId?: string;
-  @Field(() => Boolean, { nullable: true }) featured?: boolean;
-  @Field(() => Int, { nullable: true, description: 'Page number (1-indexed)' }) page?: number;
-  @Field(() => Int, { nullable: true, description: 'Items per page (max 100)' }) limit?: number;
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @Field(() => GqlJobType, { nullable: true })
+  @IsOptional()
+  @IsEnum(GqlJobType)
+  type?: GqlJobType;
+
+  @Field(() => GqlJobStatus, { nullable: true })
+  @IsOptional()
+  @IsEnum(GqlJobStatus)
+  status?: GqlJobStatus;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  salaryMin?: number;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  salaryMax?: number;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  companyId?: string;
+
+  @Field(() => Boolean, { nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  featured?: boolean;
+
+  @Field(() => Int, { nullable: true, description: 'Page number (1-indexed)' })
+  @IsOptional()
+  @IsInt()
+  page?: number;
+
+  @Field(() => Int, { nullable: true, description: 'Items per page (max 100)' })
+  @IsOptional()
+  @IsInt()
+  limit?: number;
 }
 
 /** Input for filtering applications */
 @InputType({ description: 'Application filter parameters' })
 export class GqlApplicationFilterInput {
-  @Field(() => GqlApplicationStatus, { nullable: true }) status?: GqlApplicationStatus;
-  @Field(() => String, { nullable: true }) jobId?: string;
-  @Field(() => String, { nullable: true }) userId?: string;
-  @Field(() => Int, { nullable: true }) page?: number;
-  @Field(() => Int, { nullable: true }) limit?: number;
+  @Field(() => GqlApplicationStatus, { nullable: true })
+  @IsOptional()
+  @IsEnum(GqlApplicationStatus)
+  status?: GqlApplicationStatus;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  jobId?: string;
+
+  @Field(() => String, { nullable: true })
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  page?: number;
+
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  limit?: number;
 }
 
 /** Dashboard analytics summary */

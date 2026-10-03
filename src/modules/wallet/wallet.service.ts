@@ -185,7 +185,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
           accountRef: dto.accountRef,
         },
         {
-          jobId: `wallet-withdrawal:${tx.id}`,
+          jobId: `wallet-withdrawal-${tx.id}`,
           attempts: 5,
           backoff: { type: 'exponential', delay: 5_000 },
           removeOnComplete: true,

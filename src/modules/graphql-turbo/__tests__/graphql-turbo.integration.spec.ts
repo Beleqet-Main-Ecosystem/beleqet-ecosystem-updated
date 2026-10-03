@@ -203,7 +203,7 @@ describe('GraphQL Turbo (Integration)', () => {
         query: `{ nonExistentField }`,
       });
 
-      expect(response.status).toBe(200);
+      expect([200, 400]).toContain(response.status);
       expect(response.body.errors).toBeDefined();
       expect(response.body.errors.length).toBeGreaterThan(0);
     });

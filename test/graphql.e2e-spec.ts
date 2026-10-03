@@ -27,8 +27,8 @@ describe('GraphQL API (e2e)', () => {
   it('should successfully execute the jobs query and return structured data', () => {
     const query = `
       query {
-        jobs(query: { limit: 1 }) {
-          items {
+        jobs(filter: { limit: 1 }) {
+          jobs {
             id
             title
             featured
@@ -46,7 +46,7 @@ describe('GraphQL API (e2e)', () => {
         if (res.body.errors) console.error(JSON.stringify(res.body.errors, null, 2));
         expect(res.body.data).toBeDefined();
         expect(res.body.data.jobs).toBeDefined();
-        expect(Array.isArray(res.body.data.jobs.items)).toBeTruthy();
+        expect(Array.isArray(res.body.data.jobs.jobs)).toBeTruthy();
       });
   });
 
