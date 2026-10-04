@@ -163,7 +163,7 @@ jobs:
             # or server contact.
             docker build -t "$NAMESPACE/beleqet-backend:$TARGET_SHA" .
             docker build -t "$NAMESPACE/beleqet-admin-frontend:$TARGET_SHA" frontend
-            docker build -t "$NAMESPACE/beleqet-jobs-frontend:$TARGET_SHA" beleqet-jobs-nextjs
+            docker build -f beleqet-jobs-nextjs/Dockerfile -t "$NAMESPACE/beleqet-jobs-frontend:$TARGET_SHA" .
           else
             # Real deploy: the CI run for this SHA already pushed the images;
             # verify their manifests exist before touching the server.

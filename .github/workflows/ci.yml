@@ -313,10 +313,11 @@ jobs:
           if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
           BACKEND_PID=$!
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
+          cd frontend
+          npm ci
           npx playwright install --with-deps chromium
-          (cd frontend && npm ci)
-          npx playwright test --config frontend/playwright.config.ts --trace retain-on-failure
-          npx playwright test --config frontend/playwright.harness.config.ts --trace retain-on-failure
+          npx playwright test --config playwright.config.ts --trace retain-on-failure
+          npx playwright test --config playwright.harness.config.ts --trace retain-on-failure
           kill "$BACKEND_PID"
 
       - name: Upload Playwright report and traces on failure
@@ -325,6 +326,8 @@ jobs:
         with:
           name: playwright-report
           path: |
+            frontend/playwright-report/
+            frontend/test-results/
             playwright-report/
             test-results/
           retention-days: 7
@@ -368,8 +371,9 @@ jobs:
       - name: Build jobs frontend image
         run: >-
           docker build
+          -f beleqet-jobs-nextjs/Dockerfile
           -t "${{ steps.meta.outputs.namespace }}/beleqet-jobs-frontend:${{ github.sha }}"
-          beleqet-jobs-nextjs
+          .
 
       - name: Create synthetic staging environment
         run: |
@@ -521,7 +525,7 @@ jobs:
         run: |
           npm ci
           npm audit --omit=dev || true
-          npm audit --omit=dev --audit-level=critical
+          node scripts/ci/audit-gate.js
 
       - name: Setup Node.js for admin frontend
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -535,7 +539,7 @@ jobs:
         run: |
           npm ci
           npm audit --omit=dev || true
-          npm audit --omit=dev --audit-level=critical
+          node ../scripts/ci/audit-gate.js
 
       - name: Setup Node.js for jobs frontend
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -549,7 +553,7 @@ jobs:
         run: |
           npm ci
           npm audit --omit=dev || true
-          npm audit --omit=dev --audit-level=critical
+          node ../scripts/ci/audit-gate.js
 
   # ── Single aggregate gate for branch protection ────────────────────────────
   ci-success:
