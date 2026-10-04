@@ -59,7 +59,7 @@ jobs:
         run: >-
           docker run --rm -v "$PWD:/repo"
           ghcr.io/gitleaks/gitleaks:v8.21.2
-          detect --source /repo --no-git --redact --no-banner
+          detect --source /repo --config /repo/.gitleaks.toml --no-git --redact --no-banner
 
   # ── Backend static quality ─────────────────────────────────────────────────
   backend-quality:
@@ -199,7 +199,7 @@ jobs:
 
       - name: Boot backend and run API health smoke tests
         run: |
-          node dist/main &
+          if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
           BACKEND_PID=$!
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health 30 2
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 10 2
@@ -310,7 +310,7 @@ jobs:
 
       - name: Run Playwright E2E Tests with backend
         run: |
-          node dist/main &
+          if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
           BACKEND_PID=$!
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
           npx playwright install --with-deps chromium

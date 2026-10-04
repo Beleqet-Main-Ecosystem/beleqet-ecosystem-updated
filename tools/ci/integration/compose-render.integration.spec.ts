@@ -42,6 +42,7 @@ const FULL_ENV = [
   'STRIPE_WEBHOOK_SECRET=whsec_synthetic',
   'PAYPAL_CLIENT_ID=synthetic_paypal_client_id',
   'PAYPAL_CLIENT_SECRET=synthetic_paypal_client_secret',
+  'UNSUBSCRIBE_SECRET=synthetic_unsubscribe_secret_64chars_minimum_for_production_use',
 ].join('\n');
 
 const IMAGES_ENV = [

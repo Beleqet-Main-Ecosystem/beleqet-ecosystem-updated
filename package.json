@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "nest build",
+    "postbuild": "node scripts/post-build.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"tools/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"tools/**/*.ts\"",
     "start": "nest start",

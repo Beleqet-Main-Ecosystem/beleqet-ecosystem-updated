@@ -157,6 +157,9 @@ describe('Auth Lifecycle (e2e)', () => {
     });
 
     it('1.8 should rotate tokens via /auth/refresh', async () => {
+      // Delay 1000ms so JWT timestamp (iat) increments, ensuring new access token
+      await new Promise((r) => setTimeout(r, 1000));
+
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refreshToken: employerRefreshToken })
@@ -164,6 +167,7 @@ describe('Auth Lifecycle (e2e)', () => {
 
       expect(res.body).toHaveProperty('accessToken');
       expect(res.body).toHaveProperty('refreshToken');
+      expect(res.body.refreshToken).not.toBe(employerRefreshToken);
       expect(res.body.accessToken).not.toBe(employerToken);
 
       // Verify new token works
