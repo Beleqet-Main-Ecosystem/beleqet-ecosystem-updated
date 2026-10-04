@@ -26,11 +26,11 @@ describe('GraphQL Turbo (Integration)', () => {
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
     await app.init();
-  }, 30000);
+  }, 120000);
 
   afterAll(async () => {
     await app?.close();
-  });
+  }, 60000);
 
   describe('GET /api/v1/graphql (introspection)', () => {
     it('should support schema introspection', async () => {

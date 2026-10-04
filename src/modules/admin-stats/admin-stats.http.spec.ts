@@ -90,10 +90,11 @@ describe('AdminStats HTTP security', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
+    await app.listen(0);
   });
 
   afterAll(async () => {
-    await app.close();
+    await app?.close();
   });
 
   beforeEach(() => {
