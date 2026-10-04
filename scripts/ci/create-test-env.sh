@@ -15,7 +15,7 @@ OUT="${1:-.env}"
 cat >"$OUT" <<'EOF'
 NODE_ENV=test
 PORT=4000
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,http://localhost:5173,http://127.0.0.1:5173
 APP_BASE_URL=http://localhost:4000
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/beleqet_test
 REDIS_HOST=127.0.0.1

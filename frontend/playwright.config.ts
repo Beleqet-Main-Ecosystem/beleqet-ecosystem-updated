@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 60000,
   retries: 0,
   use: {
-    baseURL: 'http://localhost:3002',
+    baseURL: process.env.BASE_URL || 'http://127.0.0.1:3002',
     headless: true,
     viewport: { width: 1280, height: 720 },
   },
@@ -25,5 +25,9 @@ export default defineConfig({
     reuseExistingServer: true,
     cwd: __dirname,
     timeout: 60000,
+    env: {
+      NEXT_PUBLIC_API_URL: 'http://127.0.0.1:4000/api/v1',
+      PORT: '3002',
+    },
   },
 });

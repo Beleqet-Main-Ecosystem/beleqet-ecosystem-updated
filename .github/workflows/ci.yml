@@ -406,6 +406,7 @@ jobs:
           STRIPE_WEBHOOK_SECRET=whsec_ci_smoke_synthetic
           PAYPAL_CLIENT_ID=ci_smoke_paypal_client_id
           PAYPAL_CLIENT_SECRET=ci_smoke_paypal_client_secret
+          UNSUBSCRIBE_SECRET=synthetic_unsubscribe_secret_64chars_minimum_for_production_use
           EOF
           cat > .env.images <<EOF
           BACKEND_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-backend:${{ github.sha }}
