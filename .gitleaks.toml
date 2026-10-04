@@ -21,9 +21,11 @@ paths = [
   # Documentation files containing example/sample IDs (not real credentials).
   '''WEBHOOK_SUMMARY\.md$''',
   '''WEBHOOK_IMPLEMENTATION\.md$''',
+  # Deployment helper scripts with parameterized values.
+  '''scripts/deploy/vps-update-chapa-rebuild\.sh$''',
   # Compiled / generated output directories.
   '''^dist/''',
-  '''^frontend-main/\.next/''',
+  '''(^|/)\.next/''',
 ]
 regexes = [
   # Placeholder / synthetic naming conventions used across the repo.
