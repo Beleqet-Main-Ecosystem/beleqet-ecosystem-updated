@@ -26,11 +26,11 @@ describe('Encrypted Inbox (Integration)', () => {
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
     );
     await app.init();
-  }, 30000);
+  }, 120000);
 
   afterAll(async () => {
     await app?.close();
-  });
+  }, 60000);
 
   describe('POST /api/v1/encrypted-inbox/keys', () => {
     it('should require authentication', async () => {

@@ -93,11 +93,15 @@ async function bootstrap() {
       .split(',')
       .map((o: string) => o.trim())
       .filter(Boolean);
+    const isLocalDevOrTest =
+      (nodeEnv === 'development' || nodeEnv === 'test') &&
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(requestOrigin || '');
     const allowed =
       !requestOrigin ||
       frontendOrigins.includes(requestOrigin) ||
       frontendOrigins.includes('*') ||
-      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(requestOrigin);
+      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(requestOrigin) ||
+      isLocalDevOrTest;
     if (allowed) {
       res.setHeader('Access-Control-Allow-Origin', requestOrigin || '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
@@ -133,7 +137,10 @@ async function bootstrap() {
       if (!origin) return cb(null, true);
       if (extraOrigins.includes('*') || extraOrigins.includes(origin)) return cb(null, true);
       if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
-      if (nodeEnv === 'development' && /^http:\/\/localhost(:\d+)?$/i.test(origin))
+      if (
+        (nodeEnv === 'development' || nodeEnv === 'test') &&
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+      )
         return cb(null, true);
       logger.warn(`CORS blocked origin: ${origin}`);
       return cb(null, false);

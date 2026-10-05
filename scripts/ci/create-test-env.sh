@@ -15,7 +15,7 @@ OUT="${1:-.env}"
 cat >"$OUT" <<'EOF'
 NODE_ENV=test
 PORT=4000
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,http://localhost:5173,http://127.0.0.1:5173
 APP_BASE_URL=http://localhost:4000
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/beleqet_test
 REDIS_HOST=127.0.0.1
@@ -57,6 +57,8 @@ BULL_BOARD_PASSWORD=ci_board_password_synthetic
 GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 E2EE_SERVER_KEY=abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
 ENCRYPTION_KEY=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
+BELEQET_PAY_API_URL=http://localhost:4001
+BELEQET_PAY_SERVICE_KEY=synthetic_beleqet_pay_service_key
 SWAGGER_ENABLED=false
 EOF
 

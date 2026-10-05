@@ -28,7 +28,7 @@ export default function FraudAlertDetailPage() {
     setMessage(null);
     try {
       const result = await resolveFraudAlert(params.id, { status, resolutionNote });
-      setAlert(result.alert);
+      setAlert((prev) => (prev ? { ...prev, ...result.alert } : result.alert));
       setMessage(`Alert ${status.replace(/_/g, ' ').toLowerCase()}`);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : String(e));
@@ -107,7 +107,7 @@ export default function FraudAlertDetailPage() {
       {context && (
         <div style={{ background: 'white', borderRadius: 8, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: 16 }}>
           <h3>Related Context</h3>
-          {context.message && (
+          {Boolean(context.message) && (
             <div>
               <strong>Message:</strong>
               <pre style={{ background: '#f9f9f9', padding: 12, borderRadius: 6, fontSize: '12px', overflow: 'auto' }}>
@@ -115,7 +115,7 @@ export default function FraudAlertDetailPage() {
               </pre>
             </div>
           )}
-          {context.user && !alert.user && (
+          {Boolean(context.user && !alert.user) && (
             <div>
               <strong>User:</strong>
               <pre style={{ background: '#f9f9f9', padding: 12, borderRadius: 6, fontSize: '12px' }}>
@@ -123,7 +123,7 @@ export default function FraudAlertDetailPage() {
               </pre>
             </div>
           )}
-          {context.job && (
+          {Boolean(context.job) && (
             <div>
               <strong>Job:</strong>
               <pre style={{ background: '#f9f9f9', padding: 12, borderRadius: 6, fontSize: '12px' }}>

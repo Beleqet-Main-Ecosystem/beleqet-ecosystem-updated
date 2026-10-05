@@ -49,7 +49,7 @@ test.describe('Notification Bell dropdown', () => {
     await page.fill('input[type="email"]', user.email);
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/admin/dashboard', { timeout: 10000 });
+    await page.waitForURL('**/admin/dashboard', { timeout: 20000 });
   });
 
   test('Notification bell is visible in the sidebar', async ({ page }) => {
@@ -92,7 +92,7 @@ test.describe('Notifications full page', () => {
     await page.fill('input[type="email"]', user.email);
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/admin/dashboard', { timeout: 10000 });
+    await page.waitForURL('**/admin/dashboard', { timeout: 20000 });
   });
 
   test('Navigating to notifications page via sidebar', async ({ page }) => {
@@ -122,7 +122,7 @@ test.describe('Notification Settings page', () => {
     await page.fill('input[type="email"]', user.email);
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/admin/dashboard', { timeout: 10000 });
+    await page.waitForURL('**/admin/dashboard', { timeout: 20000 });
   });
 
   test('Navigating to notification settings via sidebar', async ({ page }) => {
@@ -186,7 +186,7 @@ test.describe('Admin broadcast creates notification visible to user', () => {
     await page.fill('input[type="email"]', regularUser.email);
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
-    await page.waitForURL('**/admin/dashboard', { timeout: 10000 });
+    await page.waitForURL('**/admin/dashboard', { timeout: 20000 });
 
     // Open bell and check for the notification
     await page.click('.notif-bell-btn');

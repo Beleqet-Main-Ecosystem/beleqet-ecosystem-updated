@@ -18,7 +18,7 @@ const mockChapaClient = {
   createTransfer: jest.fn(),
 };
 const mockWalletQueue = {
-  add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal:tx-001' }),
+  add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal-tx-001' }),
 };
 
 function buildMockPrisma(walletBalance = 10_000, walletCurrency = 'ETB') {
@@ -164,7 +164,7 @@ describe('Step-Up + Multi-Currency integration', () => {
           payoutCurrency: 'ETB',
           accountRef: '0912345678',
         }),
-        expect.objectContaining({ jobId: 'wallet-withdrawal:tx-001' }),
+        expect.objectContaining({ jobId: 'wallet-withdrawal-tx-001' }),
       );
     });
 

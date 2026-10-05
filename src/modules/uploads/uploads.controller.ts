@@ -125,11 +125,11 @@ export class UploadFileDto {
 
 @ApiTags('uploads')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('uploads')
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('presigned-url')
   @ApiOperation({ summary: 'Get a secure S3 upload URL for a file' })
   async getPresignedUrl(@Body() body: PresignedUrlDto, @CurrentUser() user: CurrentUserPayload) {
@@ -142,6 +142,7 @@ export class UploadsController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('upload')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a file securely' })
@@ -168,6 +169,7 @@ export class UploadsController {
     return this.uploadsService.uploadFile(file, consent, user.userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('file')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a file securely (alias)' })
@@ -180,12 +182,14 @@ export class UploadsController {
     return this.uploadFile(file, body, user);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('url/:folder/:filename')
   @ApiOperation({ summary: 'Get a temporary read presigned URL for a stored file key' })
   async getPresignedReadUrl(@Param('folder') folder: string, @Param('filename') filename: string) {
     return { url: await this.uploadsService.getPresignedReadUrl(`${folder}/${filename}`) };
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':folder/:filename')
   @ApiOperation({ summary: 'GDPR Soft-delete and mask a file' })
   async softDeleteFile(
@@ -196,6 +200,7 @@ export class UploadsController {
     return this.uploadsService.softDeleteFile(`${folder}/${filename}`, user.userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('my-files')
   @ApiOperation({ summary: 'List all files uploaded by the active authenticated user' })
   async getMyFiles(@CurrentUser() user: CurrentUserPayload) {
@@ -209,18 +214,13 @@ export class UploadsController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
-    if (!this.uploadsService.isLocalFallbackActive()) {
-      throw new BadRequestException(
-        'Local file serving fallback is not active in this environment.',
-      );
-    }
-
     const filePath = this.uploadsService.resolveLocalFilePath(`${folder}/${filename}`);
     if (!fs.existsSync(filePath)) {
       return res.status(HttpStatus.NOT_FOUND).json({ message: 'File not found on local disk' });
     }
 
     res.setHeader('Content-Type', this.resolveLocalContentType(filename));
+    res.setHeader('Content-Disposition', 'inline');
     fs.createReadStream(filePath).pipe(res);
   }
 

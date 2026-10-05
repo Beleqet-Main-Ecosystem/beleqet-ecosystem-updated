@@ -118,6 +118,7 @@ scripts/*
 !scripts/deploy/
 !scripts/export-wp-users.ts
 !scripts/import-users.ts
+!scripts/post-build.js
 .agents/
 issue_pr_matches.md
 AGENTS.md

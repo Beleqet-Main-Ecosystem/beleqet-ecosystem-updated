@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.adapter';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import * as fs from 'fs';
 import { join } from 'path';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { EmailService, EMAIL_QUEUE_NAME } from './email.service';
@@ -22,27 +23,39 @@ import { EmailGdprService } from './email-gdpr.service';
     MailerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        transport: {
-          host: config.getOrThrow<string>('SMTP_HOST'),
-          port: parseInt(config.get<string>('SMTP_PORT', '587'), 10),
-          secure: config.get<string>('SMTP_SECURE', 'false') === 'true',
-          auth: {
-            user: config.getOrThrow<string>('SMTP_USER'),
-            pass: config.getOrThrow<string>('SMTP_PASSWORD'),
+      useFactory: (config: ConfigService) => {
+        const distTemplateDir = join(__dirname, 'templates');
+        const srcTemplateDir = join(
+          process.cwd(),
+          'src',
+          'modules',
+          'email-automation',
+          'templates',
+        );
+        const templateDir = fs.existsSync(distTemplateDir) ? distTemplateDir : srcTemplateDir;
+
+        return {
+          transport: {
+            host: config.getOrThrow<string>('SMTP_HOST'),
+            port: parseInt(config.get<string>('SMTP_PORT', '587'), 10),
+            secure: config.get<string>('SMTP_SECURE', 'false') === 'true',
+            auth: {
+              user: config.getOrThrow<string>('SMTP_USER'),
+              pass: config.getOrThrow<string>('SMTP_PASSWORD'),
+            },
           },
-        },
-        defaults: {
-          from: config.getOrThrow<string>('SMTP_FROM_ADDRESS'),
-        },
-        // Templates live at src/modules/email/templates/<locale>/<name>.hbs
-        // so each supported language gets its own subfolder (i18n requirement).
-        template: {
-          dir: join(__dirname, 'templates'),
-          adapter: new HandlebarsAdapter(),
-          options: { strict: true },
-        },
-      }),
+          defaults: {
+            from: config.getOrThrow<string>('SMTP_FROM_ADDRESS'),
+          },
+          // Templates live at src/modules/email-automation/templates/<locale>/<name>.hbs
+          // so each supported language gets its own subfolder (i18n requirement).
+          template: {
+            dir: templateDir,
+            adapter: new HandlebarsAdapter(),
+            options: { strict: false },
+          },
+        };
+      },
     }),
   ],
   controllers: [EmailController, UnsubscribeController],

@@ -28,7 +28,7 @@ interface Gig {
   budget: string;
   budgetUnit: string;
   type: 'Fixed' | 'Hourly' | 'Retainer';
-  client: string;
+  client: string | any;
   skills: string[];
   posted: string;
   escrow: boolean;
@@ -205,19 +205,27 @@ function GigCard({ gig }: { gig: Gig }) {
     Fixed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     Hourly: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     Retainer: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  }[gig.type];
+  }[gig.type] ?? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+
+  const rawClient = gig.client as any;
+  const clientName = typeof rawClient === 'string'
+    ? rawClient
+    : (rawClient?.name ?? `${rawClient?.firstName ?? ''} ${rawClient?.lastName ?? ''}`.trim()) || 'Verified Client';
+
+  const clientInitials = clientName
+    .split(' ')
+    .filter(Boolean)
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'VC';
 
   return (
     <article className="group relative flex flex-col rounded-2xl border border-primary/10 bg-white p-6 transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
       {/* Header row */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-xs font-black text-brandGreen">
-          {gig.client
-            .split(' ')
-            .map((w) => w[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase()}
+          {clientInitials}
         </div>
         <button
           onClick={() => setSaved((s) => !s)}
@@ -236,7 +244,7 @@ function GigCard({ gig }: { gig: Gig }) {
       <h3 className="mt-4 text-sm font-bold leading-snug text-primary dark:text-white">
         {gig.title}
       </h3>
-      <p className="mt-1 text-xs text-muted dark:text-slate-400">{gig.client}</p>
+      <p className="mt-1 text-xs text-muted dark:text-slate-400">{clientName}</p>
 
       {/* Skills */}
       <div className="mt-3 flex flex-wrap gap-1.5">

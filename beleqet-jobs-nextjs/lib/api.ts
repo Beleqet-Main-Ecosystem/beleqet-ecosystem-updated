@@ -41,21 +41,35 @@ export type Job = {
   title: string;
   /** Resolved company display name. */
   company: string;
+  companyLogo?: string | null;
+  companyWebsite?: string | null;
+  companyDescription?: string | null;
+  companyVerified?: boolean;
+  companyIndustry?: string | null;
+  companySize?: string | null;
   location: string;
   /** Human-readable job type (e.g. "Full Time"). */
   type: string;
   /** Category slug for routing. */
   category: string;
+  categoryLabel?: string;
   /** Relative time string, e.g. "3h ago". */
   postedAgo: string;
   featured?: boolean;
+  urgent?: boolean;
   description?: string;
+  requirements?: string | null;
+  experienceLevel?: string | null;
+  vacancies?: number | null;
+  expiryDate?: string | null;
+  salaryType?: string | null;
   tags?: string[];
   salaryMin?: number | null;
   salaryMax?: number | null;
   currency?: string;
   relevanceScore?: number;
   createdAt?: string | null;
+  applicantCount?: number;
 };
 
 /** Platform subscription plan — re-exported from @beleqet/common. */
@@ -90,22 +104,42 @@ function relativeTime(iso?: string | null): string {
 }
 
 /** Map a canonical backend Job to the web display Job. */
-function toDisplayJob(raw: CommonJob): Job {
+function toDisplayJob(raw: any): Job {
   return {
     id: raw.id,
     title: raw.title,
-    company: raw.company?.name ?? 'Confidential',
+    company: raw.company?.name ?? raw.companyName ?? 'Confidential',
+    companyLogo: raw.companyLogo ?? raw.company?.logoUrl ?? null,
+    companyWebsite: raw.company?.website ?? null,
+    companyDescription: raw.company?.description ?? null,
+    companyVerified: Boolean(raw.company?.verified),
+    companyIndustry: raw.company?.industry ?? null,
+    companySize: raw.company?.size ?? null,
     location: raw.location ?? '',
     type: (raw.type && typeLabels[raw.type]) ?? raw.type ?? '',
     category: raw.category?.slug ?? raw.categoryId ?? '',
+    categoryLabel: raw.category?.label ?? raw.category?.slug ?? '',
     postedAgo: relativeTime(raw.createdAt),
-    featured: raw.featured ?? false,
+    featured: Boolean(raw.featured),
+    urgent: Boolean(raw.urgent),
     description: raw.description ?? '',
+    requirements: raw.requirements ?? null,
+    experienceLevel: raw.experienceLevel ?? null,
+    vacancies: raw.vacancies ?? 1,
+    expiryDate: raw.expiryDate
+      ? new Date(raw.expiryDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : null,
+    salaryType: raw.salaryType ?? 'Monthly',
     tags: raw.tags ?? [],
     salaryMin: raw.salaryMin,
     salaryMax: raw.salaryMax,
-    currency: raw.currency,
+    currency: raw.currency ?? 'ETB',
     createdAt: raw.createdAt,
+    applicantCount: raw._count?.applications ?? 0,
   };
 }
 

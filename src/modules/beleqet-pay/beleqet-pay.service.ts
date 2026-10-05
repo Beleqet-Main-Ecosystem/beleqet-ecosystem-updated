@@ -26,7 +26,10 @@ export class BeleqetPayService {
       this.config.get<string>('BELEQET_PAY_API_URL', 'http://localhost:4001') + '/v1'
     ).replace(/\/v1\/v1/, '/v1'); // guard against double-prefix
 
-    this.serviceKey = this.config.getOrThrow<string>('BELEQET_PAY_SERVICE_KEY');
+    this.serviceKey = this.config.get<string>(
+      'BELEQET_PAY_SERVICE_KEY',
+      'synthetic_beleqet_pay_service_key',
+    );
   }
 
   /**
@@ -35,9 +38,7 @@ export class BeleqetPayService {
    *
    * @param req - Checkout parameters including amount, currency and redirect URLs.
    */
-  async createCheckoutSession(
-    req: BeleqetPayCheckoutRequest,
-  ): Promise<BeleqetPayCheckoutResponse> {
+  async createCheckoutSession(req: BeleqetPayCheckoutRequest): Promise<BeleqetPayCheckoutResponse> {
     this.logger.debug(
       `[checkout] amount=${req.amount} ${req.currency} provider=${req.preferredProvider ?? 'auto'}`,
     );

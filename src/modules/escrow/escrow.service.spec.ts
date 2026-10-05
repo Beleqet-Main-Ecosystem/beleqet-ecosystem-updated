@@ -20,10 +20,20 @@ function buildService(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 
+  const findMilestoneMock = jest.fn(async (args?: any) => {
+    if (
+      args?.where?.contract?.clientId &&
+      args.where.contract.clientId !== milestone.contract.clientId
+    ) {
+      return null;
+    }
+    return milestone;
+  });
+
   const tx = {
     $queryRaw: jest.fn().mockResolvedValue([]),
     milestone: {
-      findFirst: jest.fn().mockResolvedValue(milestone),
+      findFirst: findMilestoneMock,
       update: jest.fn(async ({ data }) => ({ ...milestone, ...data })),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
@@ -31,10 +41,10 @@ function buildService(overrides: Record<string, unknown> = {}) {
     walletTransaction: { create: jest.fn().mockResolvedValue({ id: 'wallet-tx-1' }) },
     eventLog: { create: jest.fn().mockResolvedValue({}) },
   };
-  const escrowQueue = { add: jest.fn().mockResolvedValue({ id: 'auto-release:milestone-1' }) };
+  const escrowQueue = { add: jest.fn().mockResolvedValue({ id: 'auto-release-milestone-1' }) };
   const prisma = {
     milestone: {
-      findFirst: jest.fn().mockResolvedValue(milestone),
+      findFirst: findMilestoneMock,
       update: jest.fn(async ({ data }) => ({ ...milestone, ...data })),
     },
     eventLog: {
@@ -47,7 +57,11 @@ function buildService(overrides: Record<string, unknown> = {}) {
     prisma as never,
     { get: jest.fn() } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    { createCheckoutSession: jest.fn(), getTransaction: jest.fn(), createEscrowContract: jest.fn() } as never,
+    {
+      createCheckoutSession: jest.fn(),
+      getTransaction: jest.fn(),
+      createEscrowContract: jest.fn(),
+    } as never,
     escrowQueue as never,
     { emit: jest.fn() } as never,
   );
@@ -128,7 +142,16 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
       get: jest.fn((key: string) => (key === 'FRONTEND_URL' ? 'http://localhost:3000' : undefined)),
     } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    { createCheckoutSession: jest.fn().mockResolvedValue({ txRef: 'bp-tx-1', checkoutUrl: 'https://pay.test/checkout', provider: 'CHAPA', status: 'PENDING' }), getTransaction: jest.fn(), createEscrowContract: jest.fn() } as never,
+    {
+      createCheckoutSession: jest.fn().mockResolvedValue({
+        txRef: 'bp-tx-1',
+        checkoutUrl: 'https://pay.test/checkout',
+        provider: 'CHAPA',
+        status: 'PENDING',
+      }),
+      getTransaction: jest.fn(),
+      createEscrowContract: jest.fn(),
+    } as never,
     escrowQueue as never,
     eventEmitter as never,
   );
@@ -203,7 +226,7 @@ describe('EscrowService milestone confirmations', () => {
       }),
       expect.objectContaining({
         delay: expect.any(Number),
-        jobId: 'auto-release:milestone-1',
+        jobId: 'auto-release-milestone-1',
       }),
     );
   });
@@ -225,7 +248,7 @@ describe('EscrowService milestone confirmations', () => {
     expect(escrowQueue.add).toHaveBeenCalledWith(
       ESCROW_JOBS.AUTO_RELEASE,
       expect.objectContaining({ milestoneId: 'milestone-1', amount: 900 }),
-      expect.objectContaining({ jobId: 'auto-release:milestone-1' }),
+      expect.objectContaining({ jobId: 'auto-release-milestone-1' }),
     );
   });
 
@@ -262,7 +285,7 @@ describe('EscrowService milestone confirmations', () => {
         amount: 900,
       }),
       expect.objectContaining({
-        jobId: 'auto-release:milestone-1',
+        jobId: 'auto-release-milestone-1',
       }),
     );
   });

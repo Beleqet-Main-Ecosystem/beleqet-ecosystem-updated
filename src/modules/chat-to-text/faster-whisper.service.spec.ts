@@ -1,6 +1,7 @@
 import { BadGatewayException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as os from 'os';
 import { FasterWhisperService } from './faster-whisper.service';
 import { IUploadedAudioFile } from './interfaces';
 
@@ -91,7 +92,8 @@ describe('FasterWhisperService', () => {
 
   it('should resolve the transcription script from the project root even if cwd changes', async () => {
     const originalCwd = process.cwd();
-    process.chdir('/tmp');
+    const tempDir = os.tmpdir();
+    process.chdir(tempDir);
 
     try {
       const mockProc = createMockProcess();
@@ -100,7 +102,7 @@ describe('FasterWhisperService', () => {
       const promise = service.transcribe(createMockFile());
 
       process.nextTick(() => {
-        mockProc.stdout.emit('data', Buffer.from(JSON.stringify({ text: 'Hello from /tmp' })));
+        mockProc.stdout.emit('data', Buffer.from(JSON.stringify({ text: 'Hello from temp' })));
         mockProc.emit('close', 0);
       });
 
@@ -108,7 +110,7 @@ describe('FasterWhisperService', () => {
 
       expect(mockSpawn).toHaveBeenCalled();
       const [, args] = mockSpawn.mock.calls[0];
-      expect(args[0]).toContain('/scripts/transcribe-with-faster-whisper.py');
+      expect(args[0].replace(/\\/g, '/')).toContain('/scripts/transcribe-with-faster-whisper.py');
     } finally {
       process.chdir(originalCwd);
     }

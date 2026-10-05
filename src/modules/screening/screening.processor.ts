@@ -116,6 +116,13 @@ export class ScreeningProcessor extends WorkerHost {
     const { applicationId, jobTitle, jobDescription, jobRequirements, coverLetter } = job.data;
     this.logger.log(`[screen-candidate] Processing application ${applicationId}`);
 
+    // Verify application exists
+    const appRecord = await this.prisma.application.findUnique({ where: { id: applicationId } });
+    if (!appRecord) {
+      this.logger.warn(`[screen-candidate] Application ${applicationId} not found, skipping`);
+      return;
+    }
+
     // a. Update application status to SCREENING
     await this.prisma.application.update({
       where: { id: applicationId },
@@ -257,18 +264,22 @@ export class ScreeningProcessor extends WorkerHost {
         metadata: { applicationId: job.data.applicationId },
       });
 
-      const applicationUrl = `${this.config.get('FRONTEND_URL')}/employer`;
-      const email = await recruiterApplicationEmail({
-        firstName: company.user.firstName,
-        applicantName: job.data.applicantName,
-        jobTitle: job.data.jobTitle,
-        applicationUrl,
-      });
-      await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
-        to: company.user.email,
-        subject: `New application — ${job.data.jobTitle}`,
-        ...email,
-      });
+      try {
+        const applicationUrl = `${this.config.get('FRONTEND_URL')}/employer`;
+        const email = await recruiterApplicationEmail({
+          firstName: company.user.firstName,
+          applicantName: job.data.applicantName,
+          jobTitle: job.data.jobTitle,
+          applicationUrl,
+        });
+        await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+          to: company.user.email,
+          subject: `New application — ${job.data.jobTitle}`,
+          ...email,
+        });
+      } catch (err: any) {
+        this.logger.error(`Failed to send recruiter application email: ${err.message}`);
+      }
 
       if (company.user.telegramId) {
         await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {

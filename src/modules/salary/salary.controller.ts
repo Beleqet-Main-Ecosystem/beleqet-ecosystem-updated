@@ -33,7 +33,7 @@ import {
  * - GDPR-compliant data queries
  */
 @ApiTags('Salary Helper - AI Powered')
-@Controller('api/v1/salary')
+@Controller('salary')
 @UseGuards(JwtAuthGuard)
 export class SalaryController {
   private readonly logger = new Logger(SalaryController.name);

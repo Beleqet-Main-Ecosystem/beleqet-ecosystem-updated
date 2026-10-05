@@ -13,8 +13,11 @@ FROM node:22-alpine3.21 AS pruner
 WORKDIR /app
 RUN sed -i 's/https/http/g' /etc/apk/repositories && apk add --no-cache openssl ffmpeg gcompat libstdc++ libc6-compat
 COPY package.json package-lock.json ./
-COPY prisma ./prisma/
-RUN npm ci --omit=dev && npx prisma generate && rm -rf node_modules/onnxruntime-node
+RUN npm ci --omit=dev && rm -rf node_modules/onnxruntime-node
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
 # ── Stage 3: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine3.21

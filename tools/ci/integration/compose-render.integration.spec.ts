@@ -26,6 +26,7 @@ const FULL_ENV = [
   'TOTP_ENCRYPTION_KEY=synthetic_totp',
   'TOTP_TEMP_SECRET=synthetic_totp_temp',
   'GDPR_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  'E2EE_SERVER_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   'ENCRYPTION_KEY=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
   'OAUTH_TOKEN_ENCRYPTION_KEY=VGVzdEVuY3J5cHRpb25LZXkzMkJ5dGVzTG9uZ1hZWjE=',
   'GOOGLE_CLIENT_ID=synthetic_google_client_id',
@@ -42,6 +43,7 @@ const FULL_ENV = [
   'STRIPE_WEBHOOK_SECRET=whsec_synthetic',
   'PAYPAL_CLIENT_ID=synthetic_paypal_client_id',
   'PAYPAL_CLIENT_SECRET=synthetic_paypal_client_secret',
+  'UNSUBSCRIBE_SECRET=synthetic_unsubscribe_secret_64chars_minimum_for_production_use',
 ].join('\n');
 
 const IMAGES_ENV = [
