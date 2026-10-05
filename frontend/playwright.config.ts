@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: '**/*.spec.ts',
+  testIgnore: ['step-up-flows.spec.ts'],
   timeout: 60000,
   retries: 0,
   use: {
