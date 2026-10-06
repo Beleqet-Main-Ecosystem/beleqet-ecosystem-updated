@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq'; // Correct package path
 import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
 import { QUEUE_NAMES } from '../queues/queues.constants';
+import { TelegramModule } from '../telegram/telegram.module';
 import { JobsResolver } from './jobs.resolver';
 import { CompanyLoader } from '../../graphql/loaders/company.loader';
 import { CategoryLoader } from '../../graphql/loaders/category.loader';
@@ -11,6 +12,7 @@ import { CategoryLoader } from '../../graphql/loaders/category.loader';
 @Module({
   imports: [
     ConfigModule,
+    TelegramModule,
     // Formally register the notifications queue so JobsService can inject it
     BullModule.registerQueue({ name: QUEUE_NAMES.NOTIFICATIONS }),
   ],
