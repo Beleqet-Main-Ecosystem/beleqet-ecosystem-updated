@@ -43,6 +43,10 @@ export class RolesGuard implements CanActivate {
       }
     }
 
+    if (user.role === 'ADMIN') {
+      return true;
+    }
+
     if (requiredPermissions && requiredPermissions.length > 0) {
       const cacheKey = `user_permissions:${user.userId}`;
       let userPermissions: string[] = [];
@@ -59,11 +63,21 @@ export class RolesGuard implements CanActivate {
         if (!dbUser) return false;
 
         const permSet = new Set<string>();
-        dbUser.rbacRoles.forEach((role) => {
-          role.permissions.forEach((permission) => {
+        dbUser.rbacRoles?.forEach((role) => {
+          role.permissions?.forEach((permission) => {
             permSet.add(permission.action);
           });
         });
+
+        if (dbUser.role) {
+          const systemRole = await this.prisma.role.findUnique({
+            where: { name: dbUser.role },
+            include: { permissions: true },
+          });
+          if (systemRole) {
+            systemRole.permissions?.forEach((p) => permSet.add(p.action));
+          }
+        }
 
         userPermissions = Array.from(permSet);
         await this.redis.set(cacheKey, JSON.stringify(userPermissions), 'EX', 300);
