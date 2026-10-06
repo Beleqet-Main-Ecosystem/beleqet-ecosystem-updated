@@ -601,7 +601,8 @@ async def get_user_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = "📊 **User Stats & Balances**\n\n"
     for uname, uid, score, total_refs in stats:
         # Format the username to prevent markdown errors, or use the ID if no username exists
-        user_display = f"@{uname.replace('_', r'\_')}" if uname else f"`{uid}`"
+        escaped_uname = uname.replace('_', r'\_') if uname else ""
+        user_display = f"@{escaped_uname}" if uname else f"`{uid}`"
         
         # Display both the current withdrawable balance and their all-time invites
         msg += f"👤 {user_display}\n💰 **Balance:** {score} Birr/Points | 📈 **Total Refs:** {total_refs}\n\n"
