@@ -1349,12 +1349,11 @@ async def main() -> None:
         app.router.add_get('/challenge/', challenge_index)
         app.router.add_static('/challenge/', path=os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'app'), name='challenge_static')
         
-        runner = web.AppRunner(app)
-        await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 8080)
+        port = int(os.environ.get('PORT', 8082))
+        site = web.TCPSite(runner, '0.0.0.0', port)
         await site.start()
         logger.info("======================================================")
-        logger.info(">>> Webhook server started on http://0.0.0.0:8080 <<<")
+        logger.info(f">>> Webhook server started on http://0.0.0.0:{port} <<<")
         logger.info("======================================================")
 
 
