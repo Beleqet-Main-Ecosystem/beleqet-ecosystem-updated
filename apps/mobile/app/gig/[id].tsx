@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Shield, Clock, Tag, Users } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
-import { fetchGig, submitProposal, formatBudget, gigPostedAgo, type Gig } from '../../api/freelance';
+import { fetchGig, submitProposal, formatBudget, gigPostedAgo, type FreelanceJob } from '../../api/freelance';
 import { useAuthStore } from '../../store/auth.store';
 import EscrowBadge from '../../components/EscrowBadge';
 
@@ -26,7 +26,7 @@ export default function GigDetailScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
-  const [gig, setGig] = useState<Gig | null>(null);
+  const [gig, setGig] = useState<FreelanceJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
@@ -55,7 +55,8 @@ export default function GigDetailScreen() {
     }
     setSubmitting(true);
     try {
-      await submitProposal(gig.id, { coverLetter: coverLetter.trim(), proposedBudget: budget });
+      // TODO: UI has no timeline input yet; SubmitBidDto requires timelineDays. Using 7 as a placeholder default until the form is updated.
+      await submitProposal(gig.id, { coverLetter: coverLetter.trim(), amount: budget, timelineDays: 7 });
       Toast.show({ type: 'success', text1: 'Proposal submitted! 🎉' });
       setShowProposalForm(false);
       setCoverLetter('');
@@ -86,6 +87,10 @@ export default function GigDetailScreen() {
     );
   }
 
+  // TODO: FreelanceJob DTO is missing clientName/type/proposalCount/escrowEnabled —
+  // needs to be added to @beleqet/common. Casting to any as a stopgap.
+  const g = gig as any;
+
   return (
     <View className="flex-1 bg-surface">
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
@@ -93,11 +98,11 @@ export default function GigDetailScreen() {
         <View className="bg-primary px-5 pt-6 pb-8">
           <View className="w-14 h-14 bg-brandGreen rounded-2xl items-center justify-center mb-4">
             <Text className="text-primary text-xl font-black">
-              {(gig.clientName ?? 'CL').substring(0, 2).toUpperCase()}
+              {(g.clientName ?? 'CL').substring(0, 2).toUpperCase()}
             </Text>
           </View>
           <Text className="text-white text-2xl font-black leading-tight">{gig.title}</Text>
-          <Text className="text-white/50 mt-1 text-base">{gig.clientName ?? 'Anonymous Client'}</Text>
+          <Text className="text-white/50 mt-1 text-base">{g.clientName ?? 'Anonymous Client'}</Text>
 
           {/* Chips */}
           <View className="flex-row flex-wrap gap-2 mt-4">
@@ -105,24 +110,24 @@ export default function GigDetailScreen() {
               <Tag color="#d8ff3e" size={12} />
               <Text className="text-white/80 text-xs font-semibold">{formatBudget(gig)}</Text>
             </View>
-            {gig.type ? (
+            {g.type ? (
               <View className="flex-row items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">
-                <Text className="text-white/80 text-xs font-semibold">{TYPE_LABELS[gig.type] ?? gig.type}</Text>
+                <Text className="text-white/80 text-xs font-semibold">{TYPE_LABELS[g.type] ?? g.type}</Text>
               </View>
             ) : null}
             <View className="flex-row items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">
               <Clock color="#d8ff3e" size={12} />
               <Text className="text-white/80 text-xs font-semibold">{gigPostedAgo(gig)}</Text>
             </View>
-            {gig.proposalCount != null ? (
+            {g.proposalCount != null ? (
               <View className="flex-row items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full">
                 <Users color="#d8ff3e" size={12} />
-                <Text className="text-white/80 text-xs font-semibold">{gig.proposalCount} proposals</Text>
+                <Text className="text-white/80 text-xs font-semibold">{g.proposalCount} proposals</Text>
               </View>
             ) : null}
           </View>
 
-          {gig.escrowEnabled && (
+          {g.escrowEnabled && (
             <View className="mt-3">
               <EscrowBadge />
             </View>

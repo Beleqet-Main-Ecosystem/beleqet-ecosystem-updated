@@ -1,0 +1,4 @@
+services:
+  backend:
+    environment:
+      - NODE_OPTIONS=--report-on-signal --report-signal=SIGUSR2 --report-directory=/tmp

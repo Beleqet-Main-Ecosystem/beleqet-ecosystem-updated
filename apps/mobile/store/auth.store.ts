@@ -8,7 +8,7 @@
  */
 
 import { create } from 'zustand';
-import type { AuthUser, LoginInput, RegisterInput } from '../api/auth';
+import type { AuthUser, LoginDto, RegisterDto } from '../api/auth';
 import { loginUser, registerUser, fetchMe } from '../api/auth';
 import { clearTokens } from '../api/client';
 
@@ -24,8 +24,8 @@ interface AuthState {
    * Calls GET /auth/me using the stored access token.
    */
   hydrate: () => Promise<void>;
-  login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
+  login: (input: LoginDto) => Promise<void>;
+  register: (input: RegisterDto) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
   setUser: (user: AuthUser) => void;

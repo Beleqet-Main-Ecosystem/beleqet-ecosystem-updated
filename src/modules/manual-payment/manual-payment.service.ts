@@ -2,12 +2,12 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { ConfigService } from '@nestjs/config';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import * as https from 'https';
 import { EmailService } from '../email-automation/email.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UploadsService } from '../uploads/uploads.service';
 import { SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
+import { TelegramService } from '../telegram/telegram.service';
 
 export interface ManualPaymentRecord {
   id: string;
@@ -30,12 +30,9 @@ export class ManualPaymentService {
     private readonly uploadsService: UploadsService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly telegramService: TelegramService,
   ) {}
 
-  /**
-   * Creates a new PENDING manual payment record that the customer will
-   * complete by uploading a receipt.
-   */
   async createManualPayment(
     userId: string,
     amount: number,
@@ -57,16 +54,11 @@ export class ManualPaymentService {
     return this.toRecord(payment);
   }
 
-  /**
-   * Attaches a receipt file + transaction reference to an existing PENDING
-   * manual payment and transitions it to PROCESSING (awaiting admin approval).
-   */
   async submitReceipt(
     dto: SubmitManualPaymentDto,
     file: MulterFile,
     userId: string,
   ): Promise<ManualPaymentRecord> {
-    // Validate file type & size (JPG/PNG/PDF, max 5 MB)
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
     const MAX_SIZE = 5 * 1024 * 1024;
 
@@ -77,7 +69,6 @@ export class ManualPaymentService {
       throw new BadRequestException('File size exceeds the 5 MB limit');
     }
 
-    // Verify payment exists, belongs to this user, and is still PENDING
     const payment = await this.prisma.payment.findUnique({
       where: { id: dto.paymentId },
     });
@@ -92,10 +83,8 @@ export class ManualPaymentService {
       throw new BadRequestException(`Payment is already in status ${payment.status}`);
     }
 
-    // Upload receipt via the existing uploads service
     const uploaded = await this.uploadsService.uploadFile(file, 'manual-receipts', userId);
 
-    // Persist reference + receipt URL, advance status to PROCESSING
     const updated = await this.prisma.payment.update({
       where: { id: dto.paymentId },
       data: {
@@ -105,13 +94,11 @@ export class ManualPaymentService {
       },
     });
 
-    // Fire-and-forget: admin email + Telegram bot webhook (non-blocking)
     void this.notifyAdmin(updated, dto.transactionReference, uploaded.publicUrl);
 
     return this.toRecord(updated);
   }
 
-  /** Returns a single payment record */
   async findOne(paymentId: string): Promise<ManualPaymentRecord> {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
@@ -122,7 +109,6 @@ export class ManualPaymentService {
     return this.toRecord(payment);
   }
 
-  /** Lists all manual payments (admin use) */
   async findAll(page = 1, limit = 20): Promise<ManualPaymentRecord[]> {
     const payments = await this.prisma.payment.findMany({
       where: { provider: PaymentProvider.MANUAL },
@@ -132,8 +118,6 @@ export class ManualPaymentService {
     });
     return payments.map(this.toRecord);
   }
-
-  // ─── private helpers ──────────────────────────────────────────────────────
 
   private async notifyAdmin(
     payment: {
@@ -146,7 +130,6 @@ export class ManualPaymentService {
     receiptUrl: string,
   ): Promise<void> {
     try {
-      // 1. Admin email
       const adminEmail = this.config.get<string>('ADMIN_EMAIL', 'admin@beleqetjobs.com');
       await this.emailService.dispatch({
         recipient: adminEmail,
@@ -165,59 +148,23 @@ export class ManualPaymentService {
     }
 
     try {
-      // 2. Telegram bot webhook (matches PHP logic)
-      const webhookUrl = this.config.get<string>('BELEQET_BOT_WEBHOOK_URL');
-      const webhookSecret = this.config.get<string>('WEBHOOK_SECRET_TOKEN', '');
+      const adminTelegramId = this.config.get<string>('ADMIN_TELEGRAM_ID');
+      if (adminTelegramId) {
+        const message =
+          `🧾 New manual payment receipt uploaded\n` +
+          `Order: ${payment.id}\n` +
+          `Amount: ${payment.amount} ${payment.currency}\n` +
+          `Reference: ${reference}\n` +
+          `Receipt: ${receiptUrl}`;
 
-      if (webhookUrl) {
-        await this.postJson(webhookUrl, webhookSecret, {
-          action: 'manual_payment_uploaded',
-          order_id: payment.id,
-          amount: payment.amount,
-          currency: payment.currency,
-          reference,
-          receipt_url: receiptUrl,
-        });
+        await this.telegramService.sendNotification(adminTelegramId, message);
+        this.logger.log(`Telegram admin notification sent for payment ${payment.id}`);
+      } else {
+        this.logger.warn('ADMIN_TELEGRAM_ID not set — skipping Telegram admin notification.');
       }
     } catch (err) {
-      this.logger.warn(`Telegram webhook dispatch failed: ${(err as Error).message}`);
+      this.logger.warn(`Telegram admin notification failed: ${(err as Error).message}`);
     }
-  }
-
-  /** Lightweight HTTPS POST — avoids pulling in axios just for a webhook call */
-  private postJson(url: string, secret: string, body: object): Promise<void> {
-    return new Promise((resolve) => {
-      const payload = JSON.stringify(body);
-      const parsedUrl = new URL(url);
-
-      const req = https.request(
-        {
-          hostname: parsedUrl.hostname,
-          port: parsedUrl.port || 443,
-          path: parsedUrl.pathname + parsedUrl.search,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(payload),
-            ...(secret ? { 'X-Telegram-Bot-Api-Secret-Token': secret } : {}),
-          },
-          timeout: 15_000,
-        },
-        () => resolve(),
-      );
-
-      req.on('error', (err) => {
-        this.logger.warn(`Webhook HTTP error: ${err.message}`);
-        resolve(); // non-blocking — never reject
-      });
-      req.on('timeout', () => {
-        req.destroy();
-        resolve();
-      });
-
-      req.write(payload);
-      req.end();
-    });
   }
 
   private toRecord(p: {

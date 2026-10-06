@@ -42,6 +42,7 @@ COPY --from=pruner --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/dist ./dist
 COPY --from=builder --chown=node:node /app/prisma ./prisma
 COPY --from=builder --chown=node:node /app/scripts ./scripts
+RUN mkdir -p /app/temp-storage && chown -R node:node /app/temp-storage
 
 USER node
 

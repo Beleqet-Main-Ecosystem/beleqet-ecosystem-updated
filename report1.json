@@ -1,0 +1,1835 @@
+
+{
+  "header": {
+    "reportVersion": 5,
+    "event": "SIGUSR2",
+    "trigger": "Signal",
+    "filename": "report.20260909.031341.1.0.001.json",
+    "dumpEventTime": "2026-09-09T03:13:41Z",
+    "dumpEventTimeStamp": "1788923621203",
+    "processId": 1,
+    "threadId": 0,
+    "cwd": "/app",
+    "commandLine": [
+      "node",
+      "dist/main"
+    ],
+    "nodejsVersion": "v22.21.1",
+    "wordSize": 64,
+    "arch": "x64",
+    "platform": "linux",
+    "componentVersions": {
+      "acorn": "8.15.0",
+      "ada": "2.9.2",
+      "amaro": "1.1.4",
+      "ares": "1.34.5",
+      "brotli": "1.1.0",
+      "cjs_module_lexer": "2.1.0",
+      "cldr": "47.0",
+      "icu": "77.1",
+      "llhttp": "9.3.0",
+      "modules": "127",
+      "napi": "10",
+      "nbytes": "0.1.1",
+      "ncrypto": "0.0.1",
+      "nghttp2": "1.64.0",
+      "node": "22.21.1",
+      "openssl": "3.5.4",
+      "simdjson": "3.13.0",
+      "simdutf": "6.4.2",
+      "sqlite": "3.50.4",
+      "tz": "2025b",
+      "undici": "6.22.0",
+      "unicode": "16.0",
+      "uv": "1.51.0",
+      "uvwasi": "0.0.23",
+      "v8": "12.4.254.21-node.33",
+      "zlib": "1.3.1-470d3a2",
+      "zstd": "1.5.7"
+    },
+    "release": {
+      "name": "node",
+      "lts": "Jod",
+      "headersUrl": "https://unofficial-builds.nodejs.org/download/release/v22.21.1/node-v22.21.1-headers.tar.gz",
+      "sourceUrl": "https://unofficial-builds.nodejs.org/download/release/v22.21.1/node-v22.21.1.tar.gz"
+    },
+    "osName": "Linux",
+    "osRelease": "5.15.0-179-generic",
+    "osVersion": "#189-Ubuntu SMP Tue May 5 18:20:56 UTC 2026",
+    "osMachine": "x86_64",
+    "cpus": [
+      {
+        "model": "AMD EPYC-Rome Processor",
+        "speed": 0,
+        "user": 37148520,
+        "nice": 123980,
+        "sys": 13419720,
+        "idle": 2754870040,
+        "irq": 0
+      },
+      {
+        "model": "AMD EPYC-Rome Processor",
+        "speed": 0,
+        "user": 37199390,
+        "nice": 142220,
+        "sys": 13328100,
+        "idle": 2755168650,
+        "irq": 0
+      }
+    ],
+    "networkInterfaces": [
+      {
+        "name": "lo",
+        "internal": true,
+        "mac": "00:00:00:00:00:00",
+        "address": "127.0.0.1",
+        "netmask": "255.0.0.0",
+        "family": "IPv4"
+      },
+      {
+        "name": "eth0",
+        "internal": false,
+        "mac": "0e:78:ca:00:0e:64",
+        "address": "172.18.0.4",
+        "netmask": "255.255.0.0",
+        "family": "IPv4"
+      },
+      {
+        "name": "lo",
+        "internal": true,
+        "mac": "00:00:00:00:00:00",
+        "address": "::1",
+        "netmask": "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+        "family": "IPv6",
+        "scopeid": 0
+      }
+    ],
+    "host": "409f2099287e"
+  },
+  "javascriptStack": {
+    "message": "",
+    "errorProperties": {
+    }
+  },
+  "javascriptHeap": {
+    "totalMemory": 105885696,
+    "executableMemory": 3301376,
+    "totalCommittedMemory": 105164800,
+    "availableMemory": 1949698312,
+    "totalGlobalHandlesMemory": 65536,
+    "usedGlobalHandlesMemory": 11456,
+    "usedMemory": 99158544,
+    "memoryLimit": 2051014656,
+    "mallocedMemory": 2121808,
+    "externalMemory": 4086034,
+    "peakMallocedMemory": 7321016,
+    "nativeContextCount": 1,
+    "detachedContextCount": 0,
+    "doesZapGarbage": 0,
+    "heapSpaces": {
+      "read_only_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "new_space": {
+        "memorySize": 2097152,
+        "committedMemory": 1589248,
+        "capacity": 1030912,
+        "used": 507504,
+        "available": 523408
+      },
+      "old_space": {
+        "memorySize": 80789504,
+        "committedMemory": 80723968,
+        "capacity": 79219872,
+        "used": 77049032,
+        "available": 2170840
+      },
+      "code_space": {
+        "memorySize": 3145728,
+        "committedMemory": 2998272,
+        "capacity": 2948736,
+        "used": 2821952,
+        "available": 126784
+      },
+      "shared_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "trusted_space": {
+        "memorySize": 7647232,
+        "committedMemory": 7647232,
+        "capacity": 7514352,
+        "used": 6814608,
+        "available": 699744
+      },
+      "new_large_object_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 1048576,
+        "used": 0,
+        "available": 1048576
+      },
+      "large_object_space": {
+        "memorySize": 11804672,
+        "committedMemory": 11804672,
+        "capacity": 11587464,
+        "used": 11587464,
+        "available": 0
+      },
+      "code_large_object_space": {
+        "memorySize": 155648,
+        "committedMemory": 155648,
+        "capacity": 138432,
+        "used": 138432,
+        "available": 0
+      },
+      "shared_large_object_space": {
+        "memorySize": 0,
+        "committedMemory": 0,
+        "capacity": 0,
+        "used": 0,
+        "available": 0
+      },
+      "trusted_large_object_space": {
+        "memorySize": 245760,
+        "committedMemory": 245760,
+        "capacity": 239552,
+        "used": 239552,
+        "available": 0
+      }
+    }
+  },
+  "nativeStack": [
+  ],
+  "resourceUsage": {
+    "free_memory": 1736507392,
+    "total_memory": 4001185792,
+    "rss": 206417920,
+    "constrained_memory": 18446744073709551615,
+    "available_memory": 1736507392,
+    "userCpuSeconds": 3.33988,
+    "kernelCpuSeconds": 0.656814,
+    "cpuConsumptionPercent": 11.4191,
+    "userCpuConsumptionPercent": 9.54252,
+    "kernelCpuConsumptionPercent": 1.87661,
+    "maxRss": 263413760,
+    "pageFaults": {
+      "IORequired": 17,
+      "IONotRequired": 146995
+    },
+    "fsActivity": {
+      "reads": 4216,
+      "writes": 16
+    }
+  },
+  "uvthreadResourceUsage": {
+    "userCpuSeconds": 2.46408,
+    "kernelCpuSeconds": 0.478226,
+    "cpuConsumptionPercent": 8.40659,
+    "userCpuConsumptionPercent": 7.04023,
+    "kernelCpuConsumptionPercent": 1.36636,
+    "fsActivity": {
+      "reads": 4216,
+      "writes": 16
+    }
+  },
+  "libuv": [
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdfd25130"
+    },
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x000055cca5343600"
+    },
+    {
+      "type": "timer",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fddc01260",
+      "repeat": 0,
+      "firesInMsFromNow": 3820,
+      "expired": false
+    },
+    {
+      "type": "check",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fddc012f8"
+    },
+    {
+      "type": "idle",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x00007f5fddc01370"
+    },
+    {
+      "type": "prepare",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fddc013e8"
+    },
+    {
+      "type": "check",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fddc01460"
+    },
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fddc014d8"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fddbfc130",
+      "signum": 12,
+      "signal": "SIGUSR2"
+    },
+    {
+      "type": "pipe",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x00007f5fdda87338",
+      "localEndpoint": null,
+      "remoteEndpoint": null,
+      "sendBufferSize": 0,
+      "recvBufferSize": 0,
+      "fd": 2,
+      "stdio": "stderr",
+      "writeQueueSize": 0,
+      "readable": false,
+      "writable": true
+    },
+    {
+      "type": "pipe",
+      "is_active": false,
+      "is_referenced": true,
+      "address": "0x00007f5fdda878f8",
+      "localEndpoint": null,
+      "remoteEndpoint": null,
+      "sendBufferSize": 0,
+      "recvBufferSize": 0,
+      "fd": 1,
+      "stdio": "stdout",
+      "writeQueueSize": 0,
+      "readable": false,
+      "writable": true
+    },
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fd9cd9d48"
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd8804c8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54722
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 20,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd880698",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54724
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 21,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd880888",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54728
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 22,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd880a78",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54730
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 23,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd880c68",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54732
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 24,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd880e58",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54748
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 29,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd8802d8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54738
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 25,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881058",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54740
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 19,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881248",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54744
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 28,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881438",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54762
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 30,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881628",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54774
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 31,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881818",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54782
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 33,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881a08",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54776
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 32,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881bf8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54814
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 27,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881de8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54798
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 26,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd881fd8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54830
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 34,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd8821c8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54842
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 35,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd8823b8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54858
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 36,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd8825a8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54860
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 37,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd882798",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54870
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 38,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd882988",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54898
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 40,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd882b78",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54884
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 39,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd882d68",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54904
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 41,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd882f58",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54908
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 42,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd883148",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54912
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 44,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd883338",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54910
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 43,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd883528",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54926
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 45,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd883718",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54940
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 46,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd883908",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54944
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 47,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd883af8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54960
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 48,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd883ce8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54976
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 49,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb4bf2d0",
+      "filename": "/app/dist/i18n/"
+    },
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdb512828"
+    },
+    {
+      "type": "async",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdb5129b8"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb4bf3f0",
+      "filename": "/app/dist/i18n/am"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd96a080",
+      "filename": "/app/dist/i18n/en"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd96a3e0",
+      "filename": "/app/dist/i18n/am/faq-bot.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd96abc0",
+      "filename": "/app/dist/i18n/am/interview.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd96bb80",
+      "filename": "/app/dist/i18n/am/messages.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdda36750",
+      "filename": "/app/dist/i18n/am/subscriptions.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdda36bd0",
+      "filename": "/app/dist/i18n/en/faq-bot.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd8543e0",
+      "filename": "/app/dist/i18n/en/interview.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd855a60",
+      "filename": "/app/dist/i18n/en/messages.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fe0545b60",
+      "filename": "/app/dist/i18n/en/rbac.json"
+    },
+    {
+      "type": "fs_event",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdd86b700",
+      "filename": "/app/dist/i18n/en/subscriptions.json"
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb1b78",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54994
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 57,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb1d68",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54988
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 51,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86c980",
+      "signum": 1,
+      "signal": "SIGHUP"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86caa0",
+      "signum": 2,
+      "signal": "SIGINT"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86cbc0",
+      "signum": 3,
+      "signal": "SIGQUIT"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86cce0",
+      "signum": 4,
+      "signal": "SIGILL"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86cf20",
+      "signum": 5,
+      "signal": "SIGTRAP"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86d160",
+      "signum": 6,
+      "signal": "SIGABRT"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86d280",
+      "signum": 7,
+      "signal": "SIGBUS"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86d3a0",
+      "signum": 8,
+      "signal": "SIGFPE"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86d4c0",
+      "signum": 11,
+      "signal": "SIGSEGV"
+    },
+    {
+      "type": "signal",
+      "is_active": true,
+      "is_referenced": false,
+      "address": "0x00007f5fdd86d700",
+      "signum": 15,
+      "signal": "SIGTERM"
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb13d8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55004
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 62,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb15b8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 54996
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 61,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb605a88",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55012
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 58,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb605e78",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55022
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 59,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb0fe8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55026
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 63,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb11d8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55040
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 64,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb1f78",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55046
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 65,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb2358",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55054
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 66,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb2548",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55062
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 67,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb2708",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55078
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 68,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb28f8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55094
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 69,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb2ae8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55102
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 70,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d57eb2cd8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55106
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 71,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb5f70d8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55108
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 72,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb5f9f48",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55114
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 73,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb5fa138",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55120
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 75,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb5fa8f8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55116
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 74,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb5faaf8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55128
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 76,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb57e0e8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55130
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 77,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5fdb57e2d8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 55136
+      },
+      "remoteEndpoint": {
+        "host": "beleqet2-redis.beleqet-staging_default",
+        "ip4": "172.18.0.2",
+        "port": 6379
+      },
+      "sendBufferSize": 87040,
+      "recvBufferSize": 131072,
+      "fd": 78,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "tcp",
+      "is_active": true,
+      "is_referenced": true,
+      "address": "0x00007f5d5763cfe8",
+      "localEndpoint": {
+        "host": "409f2099287e",
+        "ip4": "172.18.0.4",
+        "port": 39148
+      },
+      "remoteEndpoint": {
+        "host": "149.154.166.110",
+        "ip4": "149.154.166.110",
+        "port": 443
+      },
+      "sendBufferSize": 46080,
+      "recvBufferSize": 131072,
+      "fd": 80,
+      "writeQueueSize": 0,
+      "readable": true,
+      "writable": true
+    },
+    {
+      "type": "loop",
+      "is_active": true,
+      "address": "0x000055cca53570a0",
+      "loopIdleTimeSeconds": 30.8294
+    }
+  ],
+  "workers": [
+  ],
+  "environmentVariables": {
+    "BULL_BOARD_PASSWORD": "admin",
+    "REDIS_PORT": "6379",
+    "DATABASE_URL": "postgresql://beleqet_user:OucErsNzIXtCPobQlIgqqSjeTUDaY9SC@db:5432/beleqet_db",
+    "NODE_VERSION": "22.21.1",
+    "HOSTNAME": "409f2099287e",
+    "BELEQET_PAY_SERVICE_KEY": "57d0a214ee2c0d6d7bc52ce4b5b41820290a2b8f4b2928eb1c042b2f663679b7",
+    "YARN_VERSION": "1.22.22",
+    "SMTP_PORT": "587",
+    "SHLVL": "1",
+    "PORT": "4000",
+    "STRIPE_WEBHOOK_SECRET": "dummy",
+    "HOME": "/home/node",
+    "BELEQET_BOT_WEBHOOK_URL": "https://webhook.beleqet.com/webhook",
+    "SESSION_SECRET": "docker_session_secret_please_change_in_production_64chars_min",
+    "OPENAI_API_KEY": "dummy_key_for_testing",
+    "NODE_OPTIONS": "--report-on-signal --report-signal=SIGUSR2 --report-directory=/tmp",
+    "TELEGRAM_WEBAPP_URL": "https://beleqet.com",
+    "LINKEDIN_CLIENT_ID": "docker-linkedin-client-id",
+    "BILLING_WEBHOOK_SECRET": "dummy",
+    "LINKEDIN_CLIENT_SECRET": "docker-linkedin-client-secret",
+    "JWT_ACCESS_SECRET": "docker_default_secret_please_change_in_production",
+    "TELEGRAM_BOT_TOKEN": "8995702128:AAGyLtkGqbRUgCzpaxKVcakdGS6Fkt7xjH4",
+    "TOTP_TEMP_SECRET": "docker_totp_temp_secret_please_change_in_production",
+    "BELEQET_PAY_API_URL": "http://beleqet-pay-api:4001",
+    "OAUTH_TOKEN_ENCRYPTION_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "SMTP_FROM_ADDRESS": "Beleqet <noreply@beleqet.com>",
+    "UNSUBSCRIBE_SECRET": "docker_default_unsubscribe_secret_please_change_in_production",
+    "PAYPAL_CLIENT_ID": "dummy",
+    "TOTP_ISSUER": "Beleqet",
+    "SMTP_SECURE": "false",
+    "CHAPA_WEBHOOK_SECRET": "docker_chapa_webhook_secret",
+    "PAYPAL_CLIENT_SECRET": "dummy",
+    "GOOGLE_CLIENT_ID": "docker-google-client-id",
+    "GOOGLE_CLIENT_SECRET": "docker-google-client-secret",
+    "PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "BULL_BOARD_USERNAME": "admin",
+    "WEBHOOK_SECRET_TOKEN": "8f9a2b4c6d8e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a",
+    "JWT_ACCESS_EXPIRES": "15m",
+    "STRIPE_SECRET_KEY": "dummy",
+    "ADMIN_TELEGRAM_ID": "8759994989",
+    "TOTP_ENCRYPTION_KEY": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    "GDPR_ENCRYPTION_KEY": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "ENCRYPTION_KEY": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "LINKEDIN_CALLBACK_URL": "http://localhost:4000/api/v1/auth/linkedin/callback",
+    "TELEGRAM_ENABLED": "true",
+    "CHAPA_PUBLIC_KEY": "CHAPUBK_TEST-dummy",
+    "REDIS_PASSWORD": "",
+    "APP_BASE_URL": "http://localhost:3001",
+    "E2EE_SERVER_KEY": "f80834413fcb17ca0ba29d634cf2798fa2c99ddd27d1941e3a59bbbf368c183a",
+    "CHAPA_CALLBACK_URL": "http://localhost:4000/api/v1/escrow/callback",
+    "E2EE_KEY_VERSION": "v1",
+    "REDIS_HOST": "redis",
+    "CHAPA_RETURN_URL": "http://localhost:3001/freelance/payment-success",
+    "PWD": "/app",
+    "SMTP_PASSWORD": "docker-smtp-password",
+    "REDIS_TLS": "false",
+    "CHAPA_SECRET_KEY": "CHASECK_TEST-dummy",
+    "GOOGLE_CALLBACK_URL": "http://localhost:4000/api/v1/auth/google/callback",
+    "NODE_ENV": "development",
+    "SMTP_HOST": "smtp.ethereal.email",
+    "SMTP_USER": "docker-smtp-user",
+    "FRONTEND_URL": "https://beleqetjobs.com,https://www.beleqetjobs.com,https://admin.beleqetjobs.com,https://beleqetpay.com,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+    "JWT_REFRESH_EXPIRES": "30d",
+    "VIPSHOME": "/target",
+    "SSL_CERT_FILE": "/etc/ssl/cert.pem",
+    "SSL_CERT_DIR": "/etc/ssl/certs"
+  },
+  "userLimits": {
+    "core_file_size_blocks": {
+      "soft": "unlimited",
+      "hard": "unlimited"
+    },
+    "data_seg_size_bytes": {
+      "soft": "unlimited",
+      "hard": "unlimited"
+    },
+    "file_size_blocks": {
+      "soft": "unlimited",
+      "hard": "unlimited"
+    },
+    "max_locked_memory_bytes": {
+      "soft": 65536,
+      "hard": 65536
+    },
+    "max_memory_size_bytes": {
+      "soft": "unlimited",
+      "hard": "unlimited"
+    },
+    "open_files": {
+      "soft": 524288,
+      "hard": 524288
+    },
+    "stack_size_bytes": {
+      "soft": 8388608,
+      "hard": "unlimited"
+    },
+    "cpu_time_seconds": {
+      "soft": "unlimited",
+      "hard": "unlimited"
+    },
+    "max_user_processes": {
+      "soft": "unlimited",
+      "hard": "unlimited"
+    },
+    "virtual_memory_bytes": {
+      "soft": "unlimited",
+      "hard": "unlimited"
+    }
+  },
+  "sharedObjects": [
+    "/usr/local/bin/node",
+    "/usr/lib/libstdc++.so.6",
+    "/usr/lib/libgcc_s.so.1",
+    "/lib/ld-musl-x86_64.so.1",
+    "/app/node_modules/@msgpackr-extract/msgpackr-extract-linux-x64/node.napi.musl.node",
+    "/app/node_modules/@img/sharp-linuxmusl-x64/lib/sharp-linuxmusl-x64-0.35.3.node",
+    "/app/node_modules/@img/sharp-linuxmusl-x64/lib/../../sharp-libvips-linuxmusl-x64/lib/libvips-cpp.so.8.18.3",
+    "/app/node_modules/@css-inline/css-inline-linux-x64-musl/css-inline.linux-x64-musl.node",
+    "/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node",
+    "/usr/lib/libssl.so.3",
+    "/usr/lib/libcrypto.so.3"
+  ]
+}

@@ -17,7 +17,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { StoredFile } from '@prisma/client';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import sharp from 'sharp';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const sharp = require('sharp') as (input?: Buffer | string) => import('sharp').Sharp;
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from './interfaces/multer-file.interface';
@@ -403,7 +404,8 @@ export class UploadsService {
   private async convertImageToWebp(buffer: Buffer): Promise<Buffer> {
     try {
       return await sharp(buffer).webp({ quality: 80 }).toBuffer();
-    } catch {
+    } catch (err) {
+      this.logger.error(`Sharp conversion failed: ${(err as Error).message}`, (err as Error).stack);
       throw new BadRequestException('Uploaded image is invalid or corrupted');
     }
   }

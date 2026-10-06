@@ -1,12 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Search, MapPin, SlidersHorizontal, X } from 'lucide-react';
 import type { Job, Category } from '@/lib/api';
+import { fetchJobs } from '@/lib/api';
 import JobCard from '@/components/JobCard';
 
 const jobTypes = ['Full Time', 'Part Time', 'Remote', 'Hybrid', 'Contract'];
+
+const typeToEnum: Record<string, string> = {
+  'Full Time': 'FULL_TIME',
+  'Part Time': 'PART_TIME',
+  Remote: 'REMOTE',
+  Hybrid: 'HYBRID',
+  Contract: 'CONTRACT',
+};
 
 export default function JobsListing({
   initialJobs,
@@ -22,19 +31,39 @@ export default function JobsListing({
   const [category, setCategory] = useState(searchParams.get('category') ?? '');
   const [type, setType] = useState<string>('');
 
-  const filtered = useMemo(() => {
-    return initialJobs.filter((job) => {
-      const matchesQuery =
-        !query ||
-        job.title.toLowerCase().includes(query.toLowerCase()) ||
-        job.company.toLowerCase().includes(query.toLowerCase());
-      const matchesLocation =
-        !location || job.location.toLowerCase().includes(location.toLowerCase());
-      const matchesCategory = !category || job.category === category;
-      const matchesType = !type || job.type === type;
-      return matchesQuery && matchesLocation && matchesCategory && matchesType;
-    });
-  }, [initialJobs, query, location, category, type]);
+  const [jobs, setJobs] = useState<Job[]>(initialJobs);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const hasAnyFilter = Boolean(query || location || category || type);
+    if (!hasAnyFilter) {
+      setJobs(initialJobs);
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const results = await fetchJobs({
+          q: query || undefined,
+          category: category || undefined,
+          location: location || undefined,
+          type: type ? (typeToEnum[type] as never) : undefined,
+        });
+        if (!cancelled) setJobs(results);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [query, location, category, type, initialJobs]);
+
+  const filtered = jobs;
 
   const categoryLabel = categories.find((c) => c.id === category)?.label;
   const hasFilters = Boolean(query || location || category || type);
@@ -89,7 +118,7 @@ export default function JobsListing({
 
       {hasFilters && (
         <div className="flex flex-wrap items-center gap-2 mb-8">
-          {query && <FilterChip label={`“${query}”`} onClear={() => setQuery('')} />}
+          {query && <FilterChip label={`"${query}"`} onClear={() => setQuery('')} />}
           {location && <FilterChip label={location} onClear={() => setLocation('')} />}
           {category && (
             <FilterChip label={categoryLabel ?? category} onClear={() => setCategory('')} />
@@ -145,7 +174,11 @@ export default function JobsListing({
         </aside>
 
         <div>
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="rounded-xl border border-dashed border-border bg-white p-12 text-center text-muted">
+              Loading…
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-white p-12 text-center">
               <p className="text-ink font-semibold">No jobs match your filters</p>
               <p className="text-sm text-muted mt-1">

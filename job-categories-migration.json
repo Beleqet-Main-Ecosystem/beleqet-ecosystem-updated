@@ -1,0 +1,277 @@
+[
+  {
+    "id": "01ec1042-58da-462f-9e4b-08ecf5a177c6",
+    "slug": "accounting-and-finance",
+    "label": "Accounting And Finance"
+  },
+  {
+    "id": "5c76ff88-5099-453d-85b5-da7eea0df627",
+    "slug": "advisory-and-consultancy",
+    "label": "Advisory And Consultancy"
+  },
+  {
+    "id": "b15672ad-9fd5-4092-a3f7-3d0665635b19",
+    "slug": "aeronautics-and-aerospace",
+    "label": "Aeronautics And Aerospace"
+  },
+  {
+    "id": "c0f20def-d24b-471a-9556-e273b42f5727",
+    "slug": "agriculture",
+    "label": "Agriculture"
+  },
+  {
+    "id": "6512e21a-daa2-405d-ba97-900ee1b7ca59",
+    "slug": "architecture-and-urban-planning",
+    "label": "Architecture And Urban Planning"
+  },
+  {
+    "id": "ec1b4849-1695-4f8b-b3b7-87fc7abee85e",
+    "slug": "beauty-and-grooming",
+    "label": "Beauty And Grooming"
+  },
+  {
+    "id": "bec3086f-c07e-4185-af26-fc45b0c7a7aa",
+    "slug": "broker-and-case-closer",
+    "label": "Broker And Case Closer"
+  },
+  {
+    "id": "309033ea-051d-43d0-af96-c3f57bc25be2",
+    "slug": "business-and-commerce",
+    "label": "Business And Commerce"
+  },
+  {
+    "id": "4fc99720-e17b-4c56-9818-bf8aa046369b",
+    "slug": "chemical-and-biomedical-engineering",
+    "label": "Chemical And Biomedical Engineering"
+  },
+  {
+    "id": "4d5d8947-ebc0-4b8e-b03e-689dca1ea1d9",
+    "slug": "clothing-and-textile",
+    "label": "Clothing And Textile"
+  },
+  {
+    "id": "87a7600e-3156-4be3-ac1c-fd4a6244b506",
+    "slug": "construction-and-civil-engineering",
+    "label": "Construction And Civil Engineering"
+  },
+  {
+    "id": "bd1721b1-51ac-4c1c-8f77-896a6552ba0d",
+    "slug": "creative-art-and-design",
+    "label": "Creative Art And Design"
+  },
+  {
+    "id": "9c89c100-f990-46c8-9211-296d8b44d8b2",
+    "slug": "customer-service-and-care",
+    "label": "Customer Service And Care"
+  },
+  {
+    "id": "b1ee1336-489b-438e-903c-7b665acce669",
+    "slug": "data-mining-and-analytics",
+    "label": "Data Mining And Analytics"
+  },
+  {
+    "id": "3c647bc6-6aa8-4d14-9aa7-ce66cea0158a",
+    "slug": "documentation-and-writing-services",
+    "label": "Documentation And Writing Services"
+  },
+  {
+    "id": "71bd9936-da2e-41b1-9184-84280265fa56",
+    "slug": "entertainment",
+    "label": "Entertainment"
+  },
+  {
+    "id": "0866a962-65f4-4c11-bd8d-6c84256e5efa",
+    "slug": "environmental-and-energy-engineering",
+    "label": "Environmental And Energy Engineering"
+  },
+  {
+    "id": "32f9c26a-f947-4d86-972c-59dcc0cca72e",
+    "slug": "event-management-and-organization",
+    "label": "Event Management And Organization"
+  },
+  {
+    "id": "06804284-971b-4bbb-9526-76d5449a9adb",
+    "slug": "fashion-design",
+    "label": "Fashion Design"
+  },
+  {
+    "id": "5dd094c7-f942-4ecc-a90b-64ae8897e3de",
+    "slug": "food-and-drink-preparation-or-service",
+    "label": "Food And Drink Preparation Or Service"
+  },
+  {
+    "id": "e8592e2c-352c-4a77-bcbd-c97af5ec1224",
+    "slug": "gardening-and-landscaping",
+    "label": "Gardening And Landscaping"
+  },
+  {
+    "id": "b3496263-27fa-4583-b68b-9af51c3c7e70",
+    "slug": "health-care",
+    "label": "Health Care"
+  },
+  {
+    "id": "3b3f1c2e-b5d0-4008-8e09-a7e554d77eb7",
+    "slug": "horticulture",
+    "label": "Horticulture"
+  },
+  {
+    "id": "7e81e57f-38d7-46fa-b8e6-bc4c4ebe6567",
+    "slug": "hospitality-and-tourism",
+    "label": "Hospitality And Tourism"
+  },
+  {
+    "id": "ad9bd78e-aeae-47e0-82e5-4f0058090e83",
+    "slug": "human-resource-and-talent-management",
+    "label": "Human Resource And Talent Management"
+  },
+  {
+    "id": "fe4f0ab4-0572-49b9-8e5c-74e6fdc1854c",
+    "slug": "information-technology",
+    "label": "Information Technology"
+  },
+  {
+    "id": "b7906ed8-3978-4d74-bdac-50fe11cfb69c",
+    "slug": "installation-and-maintenance-technician",
+    "label": "Installation And Maintenance Technician"
+  },
+  {
+    "id": "80caa8c3-b693-47f9-b670-59c193b64927",
+    "slug": "janitorial-and-other-office-services",
+    "label": "Janitorial And Other Office Services"
+  },
+  {
+    "id": "773e0158-5bf5-4da5-9a89-44fa761bea27",
+    "slug": "labor-work-and-masonry",
+    "label": "Labor Work And Masonry"
+  },
+  {
+    "id": "5fb572de-bf13-4536-ba79-c55b35f85760",
+    "slug": "law",
+    "label": "Law"
+  },
+  {
+    "id": "df5f84fd-fd69-433b-a313-3e96609f0935",
+    "slug": "livestock-and-animal-husbandry",
+    "label": "Livestock And Animal Husbandry"
+  },
+  {
+    "id": "cc9ae1b3-d8ab-492b-a16c-c480cb5e4f25",
+    "slug": "logistic-and-supply-chain",
+    "label": "Logistic And Supply Chain"
+  },
+  {
+    "id": "b5029632-474e-4293-8c3f-6bc55a129c95",
+    "slug": "manufacturing-and-production",
+    "label": "Manufacturing And Production"
+  },
+  {
+    "id": "5d6c3c4e-f835-4479-93dc-5e816c286031",
+    "slug": "marketing-and-advertisement",
+    "label": "Marketing And Advertisement"
+  },
+  {
+    "id": "113d094e-16af-4201-b706-d97ed2bf0e73",
+    "slug": "mechanical-and-electrical-engineering",
+    "label": "Mechanical And Electrical Engineering"
+  },
+  {
+    "id": "e96a85a4-46ae-4808-8065-3ba1c26652c8",
+    "slug": "media-and-communication",
+    "label": "Media And Communication"
+  },
+  {
+    "id": "a6a29b49-b78e-4dda-82f2-c43c6c4ba9ef",
+    "slug": "multimedia-content-production",
+    "label": "Multimedia Content Production"
+  },
+  {
+    "id": "7212f971-5fe9-4c0e-abc8-da5d44ef9a06",
+    "slug": "pharmaceutical",
+    "label": "Pharmaceutical"
+  },
+  {
+    "id": "326b38d6-942a-4f02-9878-f8c2cdd2926c",
+    "slug": "project-management-and-administration",
+    "label": "Project Management And Administration"
+  },
+  {
+    "id": "eed2bb31-4842-4cea-b4a3-ea24715d8d2b",
+    "slug": "psychiatry-psychology-and-social-work",
+    "label": "Psychiatry, Psychology And Social Work"
+  },
+  {
+    "id": "ec1c793f-582a-49ea-8e48-61f4c13be617",
+    "slug": "purchasing-and-procurement",
+    "label": "Purchasing And Procurement"
+  },
+  {
+    "id": "73dcf316-f4d2-4097-a982-5f96dd3cbc6b",
+    "slug": "research-and-data-analytics",
+    "label": "Research And Data Analytics"
+  },
+  {
+    "id": "3885982b-5092-4baf-b350-1758098f2cec",
+    "slug": "sales-and-promotion",
+    "label": "Sales And Promotion"
+  },
+  {
+    "id": "4e5199b0-0de0-4be0-91fe-6dfba87c549b",
+    "slug": "secretarial-and-office-management",
+    "label": "Secretarial And Office Management"
+  },
+  {
+    "id": "aa4ddeb4-6b34-4007-b842-5bd7756cba53",
+    "slug": "security-and-safety",
+    "label": "Security And Safety"
+  },
+  {
+    "id": "c834d2a0-1472-4c49-b2fb-62d59e518def",
+    "slug": "shop-and-office-attendant",
+    "label": "Shop And Office Attendant"
+  },
+  {
+    "id": "8d7862b3-78e2-415f-972d-0787f58cd856",
+    "slug": "software-design-and-development",
+    "label": "Software Design And Development"
+  },
+  {
+    "id": "765dc151-081e-4333-80af-2d33aa554065",
+    "slug": "teaching-and-tutor",
+    "label": "Teaching And Tutor"
+  },
+  {
+    "id": "dc490d5a-54f2-45af-91e4-124a4b0c5a5f",
+    "slug": "training-and-consultancy",
+    "label": "Training And Consultancy"
+  },
+  {
+    "id": "81aca7f9-9c66-4c87-8125-30bc4ac5db92",
+    "slug": "training-and-mentorship",
+    "label": "Training And Mentorship"
+  },
+  {
+    "id": "2553ae94-6dbd-4149-a74a-85baf0437c0e",
+    "slug": "translation-and-transcription",
+    "label": "Translation And Transcription"
+  },
+  {
+    "id": "6ecdfec2-50a9-4aa2-b49d-12968a7f2583",
+    "slug": "transportation",
+    "label": "Transportation"
+  },
+  {
+    "id": "b5c9c32c-dc68-4a4a-b090-144eec763ded",
+    "slug": "transportation-and-delivery",
+    "label": "Transportation And Delivery"
+  },
+  {
+    "id": "f377a2fc-295f-42ef-931d-e72229f891b9",
+    "slug": "veterinary",
+    "label": "Veterinary"
+  },
+  {
+    "id": "d2463cce-d5a5-4552-ad9b-7b638d93cc9b",
+    "slug": "woodwork-and-carpentry",
+    "label": "Woodwork And Carpentry"
+  }
+]

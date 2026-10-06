@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, Bell } from 'lucide-react-native';
-import { fetchJobs, fetchCategories, type NormalizedJob, type Category } from '../../api/jobs';
+import { fetchJobs, fetchCategories, type NormalizedJob, type JobCategory } from '../../api/jobs';
 import { useAuthStore } from '../../store/auth.store';
 import JobCard from '../../components/JobCard';
 import CategoryPill from '../../components/CategoryPill';
@@ -24,7 +24,7 @@ export default function JobsScreen() {
   const user = useAuthStore((s) => s.user);
 
   const [jobs, setJobs] = useState<NormalizedJob[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<JobCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState(ALL_SLUG);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);

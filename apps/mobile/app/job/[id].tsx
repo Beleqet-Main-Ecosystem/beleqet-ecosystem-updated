@@ -136,7 +136,7 @@ export default function JobDetailScreen() {
           {/* Requirements */}
           {job.requirements && job.requirements.length > 0 ? (
             <Section title="Requirements">
-              {job.requirements.map((req, i) => (
+              {job.requirements.split('\n').filter(Boolean).map((req, i) => (
                 <View key={i} className="flex-row gap-2 mb-1.5">
                   <Text className="text-brandGreen font-bold text-sm">•</Text>
                   <Text className="text-ink text-sm leading-6 flex-1">{req}</Text>
@@ -146,9 +146,9 @@ export default function JobDetailScreen() {
           ) : null}
 
           {/* Benefits */}
-          {job.benefits && job.benefits.length > 0 ? (
+          {(job as any).benefits && (job as any).benefits.length > 0 ? (
             <Section title="Benefits">
-              {job.benefits.map((b, i) => (
+              {(job as any).benefits.map((b: string, i: number) => (
                 <View key={i} className="flex-row gap-2 mb-1.5">
                   <Text className="text-brandGreen font-bold text-sm">✓</Text>
                   <Text className="text-ink text-sm leading-6 flex-1">{b}</Text>

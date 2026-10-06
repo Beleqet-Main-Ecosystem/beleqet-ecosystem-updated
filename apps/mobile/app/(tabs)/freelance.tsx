@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, Shield, PlusCircle } from 'lucide-react-native';
-import { fetchGigs, type Gig } from '../../api/freelance';
+import { fetchGigs, type FreelanceJob } from '../../api/freelance';
 import GigCard from '../../components/GigCard';
 import CategoryPill from '../../components/CategoryPill';
 
@@ -29,7 +29,7 @@ const CATEGORIES = [
 
 export default function FreelanceScreen() {
   const router = useRouter();
-  const [gigs, setGigs] = useState<Gig[]>([]);
+  const [gigs, setGigs] = useState<FreelanceJob[]>([]);
   const [activeCategory, setActiveCategory] = useState('__all__');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);

@@ -19,3 +19,6 @@ README.md
 docs
 test
 *.md
+dist
+node_modules
+*.tsbuildinfo

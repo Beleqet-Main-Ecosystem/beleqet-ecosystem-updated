@@ -1,0 +1,17 @@
+media/
+nginx/
+.git/
+node_modules/
+**/node_modules/
+frontend/
+frontend-main/
+beleqet-jobs-nextjs/
+prisma/
+/src/
+web/
+docs/
+postman/
+test/
+tools/
+.github/
+beleqet-pay-landing

@@ -20,8 +20,11 @@ import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { REDIS_CLIENT } from './modules/redis/redis.module';
 
 async function bootstrap() {
+  console.log(`[DIAG] bootstrap() entered at ${new Date().toISOString()}`);
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  console.log(`[DIAG] calling NestFactory.create at ${new Date().toISOString()}`);
+  const app = await NestFactory.create(AppModule, { bufferLogs: false, rawBody: true });
+  console.log(`[DIAG] NestFactory.create RESOLVED at ${new Date().toISOString()}`);
   const redisIoAdapter = new RedisIoAdapter(app);
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
@@ -206,7 +209,9 @@ async function bootstrap() {
   // ── Graceful shutdown ─────────────────────────────────────────────────────
   app.enableShutdownHooks();
 
+  console.log(`[DIAG] calling app.listen(${port}) at ${new Date().toISOString()}`);
   await app.listen(port, '0.0.0.0');
+  console.log(`[DIAG] app.listen RESOLVED at ${new Date().toISOString()}`);
   logger.log(`🚀 Beleqet API running on ${port}/api/v1`);
   logger.log(`   Environment: ${nodeEnv}`);
 }
