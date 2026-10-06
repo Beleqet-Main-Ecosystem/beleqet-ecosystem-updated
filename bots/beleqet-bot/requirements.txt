@@ -1,0 +1,5 @@
+python-telegram-bot[job-queue]
+python-dotenv
+pytz
+python-telegram-bot-calendar
+aiosqlite
