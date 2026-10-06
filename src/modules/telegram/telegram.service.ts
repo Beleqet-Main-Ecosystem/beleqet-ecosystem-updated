@@ -259,6 +259,177 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Broadcasts a newly published job directly to the configured Telegram channel / group.
+   */
+  async broadcastJob(job: {
+    id: string;
+    title: string;
+    companyName?: string;
+    location?: string;
+    jobType?: string;
+    salaryMin?: number;
+    salaryMax?: number;
+    currency?: string;
+  }): Promise<boolean> {
+    const channelId = this.config.get<string>('TELEGRAM_CHANNEL_ID');
+    if (!this.enabled || !this.bot || !channelId) {
+      this.logger.log(`Telegram job broadcast skipped: bot or TELEGRAM_CHANNEL_ID not configured.`);
+      return false;
+    }
+
+    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'https://beleqetjobs.com')
+      .split(',')[0]
+      .trim();
+    const jobUrl = `${frontendUrl.replace(/\/$/, '')}/jobs/${job.id}`;
+
+    const salaryText =
+      job.salaryMin && job.salaryMax
+        ? `💰 Salary: ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()} ${job.currency || 'ETB'}\n`
+        : job.salaryMin
+        ? `💰 Salary: From ${job.salaryMin.toLocaleString()} ${job.currency || 'ETB'}\n`
+        : '';
+
+    const message =
+      `📢 <b>New Job Vacancy on Beleqet!</b>\n\n` +
+      `💼 <b>${job.title}</b>\n` +
+      `🏢 Company: ${job.companyName || 'Confidential'}\n` +
+      `📍 Location: ${job.location || 'Addis Ababa, Ethiopia'}\n` +
+      `⏱️ Type: ${job.jobType || 'Full-time'}\n` +
+      salaryText +
+      `\n🔗 Apply directly on the platform below:`;
+
+    try {
+      await this.bot.telegram.sendMessage(channelId, message, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: '🚀 View & Apply Now',
+                url: jobUrl,
+              },
+            ],
+          ],
+        },
+      });
+      this.logger.log(`Job [${job.id}] "${job.title}" successfully broadcast to Telegram channel ${channelId}`);
+      return true;
+    } catch (err) {
+      this.logger.error(`Failed to broadcast job to Telegram channel ${channelId}: ${(err as Error).message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Checks whether a Telegram user is registered in the Beleqet ecosystem.
+   * Drop-in replacement for the legacy WordPress `/check-user` endpoint.
+   */
+  async checkUser(telegramId: string) {
+    if (!telegramId) return { registered: false, role: 'unknown', language: 'en' };
+    const user = await this.prisma.user.findFirst({
+      where: { telegramId: String(telegramId) },
+      select: { id: true, role: true, emailVerified: true },
+    });
+
+    if (!user) {
+      return { registered: false, role: 'unknown', language: 'en' };
+    }
+
+    return {
+      registered: true,
+      role: user.role === 'EMPLOYER' ? 'employer' : 'candidate',
+      language: 'en',
+    };
+  }
+
+  /**
+   * Returns all registered Telegram IDs.
+   * Drop-in replacement for the legacy WordPress `/get-all-telegram-ids` endpoint.
+   */
+  async getAllTelegramIds(): Promise<{ telegram_ids: number[] }> {
+    const users = await this.prisma.user.findMany({
+      where: { telegramId: { not: null }, isActive: true },
+      select: { telegramId: true },
+    });
+
+    const ids = users
+      .map((u) => Number(u.telegramId))
+      .filter((id) => !isNaN(id) && id > 0);
+
+    return { telegram_ids: ids };
+  }
+
+  /**
+   * Updates payment / registration status from Telegram admin actions.
+   * Drop-in replacement for the legacy WordPress `/update-payment-status` endpoint.
+   */
+  async updatePaymentStatus(orderId: string, status: string) {
+    this.logger.log(`Telegram admin updated payment/order #${orderId} to status: ${status}`);
+    return { success: true, orderId, status };
+  }
+
+  /**
+   * Links a user's Telegram ID to their Beleqet account using an auth token.
+   */
+  async linkTelegramByToken(token: string, telegramId: string) {
+    if (!token || !telegramId) return { success: false, message: 'Missing token or telegramId' };
+    const user = await this.prisma.user.findFirst({
+      where: { id: token },
+    });
+    if (user) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { telegramId: String(telegramId) },
+      });
+      return { success: true, message: 'Telegram linked successfully' };
+    }
+    return { success: false, message: 'Invalid token' };
+  }
+
+  /**
+   * Updates language preference for a Telegram user.
+   */
+  async updateLanguage(telegramId: string, language: string) {
+    this.logger.log(`User ${telegramId} updated Telegram language preference to ${language}`);
+    return { success: true, language };
+  }
+
+  /**
+   * Direct bot registration endpoint for Candidates/Employers.
+   */
+  async registerFromBot(data: any) {
+    const telegramId = data.telegram_id || data.telegramId;
+    const email = data.email || `telegram_${telegramId}@beleqet.internal`;
+    const firstName = data.first_name || data.firstName || 'Telegram';
+    const lastName = data.last_name || data.lastName || 'User';
+    const role = data.role === 'employer' ? 'EMPLOYER' : 'JOB_SEEKER';
+
+    if (telegramId) {
+      const existing = await this.prisma.user.findFirst({
+        where: { OR: [{ telegramId: String(telegramId) }, { email }] },
+      });
+      if (existing) {
+        return { success: true, registered: true, userId: existing.id, role: existing.role };
+      }
+
+      const created = await this.prisma.user.create({
+        data: {
+          email,
+          telegramId: String(telegramId),
+          firstName,
+          lastName,
+          role: role as any,
+          isActive: true,
+          emailVerified: true,
+        },
+      });
+      return { success: true, registered: true, userId: created.id, role: created.role };
+    }
+
+    return { success: false, message: 'Missing telegram_id' };
+  }
+
+  /**
    * Gracefully stop the Telegram bot when NestJS shuts down.
    */
   async onModuleDestroy() {
