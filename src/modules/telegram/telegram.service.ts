@@ -170,21 +170,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         this.logger.log('Telegram deleteWebhook completed successfully.');
 
         // bot.launch() only resolves when the bot stops polling, so it
-        // must never be awaited here — doing so blocks NestJS startup
-        // (this caused a production outage on 2026-09-28).
         this.bot.launch().catch((err) => {
-          this.logger.error(`Telegram polling stopped unexpectedly: ${(err as Error).message}`);
-          this.enabled = false;
+          this.logger.warn(`Telegram polling stopped: ${(err as Error).message}. (Outbound broadcasting remains operational via Telegram HTTP API)`);
         });
 
-        this.logger.log('Telegram bot listener starting in Long Polling mode (background).');
+        this.logger.log('Telegram bot listener started in Long Polling mode (background).');
       }
     } catch (err) {
-      this.logger.error(`Telegram bot failed to start/configure: ${(err as Error).message}`);
-
-      this.logger.warn('Continuing without Telegram bot listener.');
-
-      this.enabled = false;
+      this.logger.warn(`Telegram bot listener setup error: ${(err as Error).message}. Outbound broadcasts will still proceed if token is valid.`);
     }
   }
 
@@ -271,15 +264,18 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     salaryMax?: number;
     currency?: string;
   }): Promise<boolean> {
-    const channelId = this.config.get<string>('TELEGRAM_CHANNEL_ID');
+    const channelId = this.config.get<string>('TELEGRAM_CHANNEL_ID') || process.env.TELEGRAM_CHANNEL_ID;
     if (!this.enabled || !this.bot || !channelId) {
-      this.logger.log(`Telegram job broadcast skipped: bot or TELEGRAM_CHANNEL_ID not configured.`);
+      this.logger.log(`Telegram job broadcast skipped: enabled=${this.enabled}, bot=${Boolean(this.bot)}, channelId=${channelId}`);
       return false;
     }
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL', 'https://beleqetjobs.com')
+    let frontendUrl = this.config.get<string>('FRONTEND_URL', 'https://beleqetjobs.com')
       .split(',')[0]
       .trim();
+    if (frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1')) {
+      frontendUrl = 'https://beleqetjobs.com';
+    }
     const jobUrl = `${frontendUrl.replace(/\/$/, '')}/jobs/${job.id}`;
 
     const salaryText =
