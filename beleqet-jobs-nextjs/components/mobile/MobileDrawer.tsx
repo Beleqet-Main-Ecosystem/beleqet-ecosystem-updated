@@ -152,7 +152,12 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-primary/10 dark:border-slate-700 px-5 py-4">
-          <p className="text-sm font-extrabold text-primary dark:text-slate-100">Menu</p>
+          <div className="flex items-center gap-2">
+            <img src="/logo-icon.png" alt="Beleqet" width="30" height="30" className="rounded-lg" />
+            <span className="text-base font-extrabold text-primary dark:text-slate-100">
+              Beleqet<span className="text-brandGreen">.</span>
+            </span>
+          </div>
           <button
             onClick={onClose}
             aria-label="Close menu"

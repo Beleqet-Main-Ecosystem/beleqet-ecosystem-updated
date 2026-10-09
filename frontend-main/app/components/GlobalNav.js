@@ -42,10 +42,8 @@ export default function GlobalNav() {
       <div className="gn__inner">
         {/* ── Logo ── */}
         <Link href="/" className="gn__brand" aria-label="Beleqet Jobs home">
-          <span className="gn__logo-dot" aria-hidden="true">
-            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 11l18-7-7 18-2-8-8-2z" />
-            </svg>
+          <span className="gn__logo-dot" aria-hidden="true" style={{ background: 'transparent', padding: 0, overflow: 'hidden', display: 'inline-flex', alignItems: 'center' }}>
+            <img src="/logo-icon.png" alt="Beleqet" width="34" height="34" style={{ borderRadius: '8px', objectFit: 'contain' }} />
           </span>
           <span className="gn__wordmark">
             <b>Beleqet</b>
