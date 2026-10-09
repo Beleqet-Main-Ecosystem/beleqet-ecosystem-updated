@@ -1,3 +1,5 @@
+"use client";
+
 import Link from 'next/link';
 import {
   Laptop,
@@ -11,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { Category } from '@/lib/api';
+import { useTranslation } from '@/lib/i18n';
 
 const iconMap: Record<string, LucideIcon> = {
   laptop: Laptop,
@@ -24,6 +27,7 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 export default function CategoryGrid({ categories }: { categories: Category[] }) {
+  const { t } = useTranslation();
   if (!categories.length) return null;
 
   return (
@@ -31,20 +35,20 @@ export default function CategoryGrid({ categories }: { categories: Category[] })
       <div className="mb-10 flex items-end justify-between">
         <div>
           <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
-            Explore your field
+            {t('homeSections.exploreField')}
           </p>
           <h2 className="text-sectionH2 tracking-tight text-primary">
-            There’s a place for your talent.
+            {t('homeSections.categoriesHeading')}
           </h2>
           <p className="mt-2 text-sm text-muted">
-            Start with an industry and discover where your experience can take you.
+            {t('homeSections.categoriesSub')}
           </p>
         </div>
         <Link
           href="/jobs"
           className="hidden sm:inline-block text-sm font-semibold text-brandGreen hover:underline shrink-0"
         >
-          View all categories →
+          {t('homeSections.viewAllCategories')}
         </Link>
       </div>
 

@@ -29,6 +29,22 @@ const nextConfig = {
      */
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
   },
+  async redirects() {
+    return [
+      { source: '/user-dashboard', destination: '/dashboard', permanent: false },
+      { source: '/user-dashboard/:path*', destination: '/dashboard/:path*', permanent: false },
+      { source: '/joblists', destination: '/jobs', permanent: false },
+      { source: '/joblists/:path*', destination: '/jobs/:path*', permanent: false },
+      { source: '/my-applied', destination: '/applications', permanent: false },
+      { source: '/my-applied/:path*', destination: '/applications/:path*', permanent: false },
+      { source: '/submit-job', destination: '/post-job', permanent: false },
+      { source: '/submit-job/:path*', destination: '/post-job/:path*', permanent: false },
+      { source: '/applicants-jobs', destination: '/applications', permanent: false },
+      { source: '/applicants-jobs/:path*', destination: '/applications/:path*', permanent: false },
+      { source: '/my-jobs-2', destination: '/dashboard', permanent: false },
+      { source: '/my-jobs-2/:path*', destination: '/dashboard/:path*', permanent: false },
+    ];
+  },
 };
 
 module.exports = nextConfig;

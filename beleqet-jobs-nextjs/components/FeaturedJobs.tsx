@@ -1,8 +1,12 @@
+"use client";
+
 import Link from 'next/link';
 import type { Job } from '@/lib/api';
 import JobCard from './JobCard';
+import { useTranslation } from '@/lib/i18n';
 
 export default function FeaturedJobs({ jobs }: { jobs: Job[] }) {
+  const { t } = useTranslation();
   if (!jobs.length) return null;
 
   return (
@@ -11,18 +15,18 @@ export default function FeaturedJobs({ jobs }: { jobs: Job[] }) {
         <div className="mb-10 flex items-end justify-between">
           <div>
             <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
-              Now hiring
+              {t('homeSections.nowHiring')}
             </p>
-            <h2 className="text-sectionH2 tracking-tight">Your next role could be here.</h2>
+            <h2 className="text-sectionH2 tracking-tight">{t('homeSections.featuredHeading')}</h2>
             <p className="mt-2 text-sm text-white/55">
-              Fresh opportunities from teams building Ethiopia’s future.
+              {t('homeSections.featuredSub')}
             </p>
           </div>
           <Link
             href="/jobs"
             className="hidden shrink-0 text-sm font-bold text-[#d8ff3e] hover:underline sm:inline-block"
           >
-            View all jobs →
+            {t('homeSections.viewAllJobs')}
           </Link>
         </div>
 

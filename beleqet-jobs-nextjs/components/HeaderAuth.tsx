@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, User, Briefcase, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { useTranslation } from '@/lib/i18n';
 
 export const roleMeta: Record<string, { label: string; className: string }> = {
   JOB_SEEKER: {
@@ -24,6 +25,7 @@ export const roleMeta: Record<string, { label: string; className: string }> = {
 
 export default function HeaderAuth() {
   const { user, ready, logout } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -45,13 +47,13 @@ export default function HeaderAuth() {
           href="/login"
           className="inline-block rounded-full px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:text-brandGreen"
         >
-          Login
+          {t('auth.login')}
         </Link>
         <Link
           href="/register"
           className="inline-block rounded-full border border-border px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:border-brandGreen hover:text-brandGreen"
         >
-          Sign Up
+          {t('auth.signUp')}
         </Link>
       </div>
     );
@@ -134,7 +136,7 @@ export default function HeaderAuth() {
               }}
               className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-redAccent hover:bg-redAccent/5 transition-colors"
             >
-              <LogOut className="h-4 w-4" /> Logout
+              <LogOut className="h-4 w-4" /> {t('auth.logout')}
             </button>
           </div>
         </div>

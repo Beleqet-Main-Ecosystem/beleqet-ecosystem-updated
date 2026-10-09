@@ -136,5 +136,14 @@ Redis.zip
 Redis/
 runs.json
 .env.staging
-.env.images
 frontend/.env.local
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/

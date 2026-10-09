@@ -1,5 +1,9 @@
+'use client';
+
 import Link from 'next/link';
-import { ArrowUpRight, BriefcaseBusiness } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowUpRight } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const footerColumns = [
   {
@@ -33,6 +37,8 @@ const footerColumns = [
 ];
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-primary text-white">
       <div className="container-page grid grid-cols-1 gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -41,14 +47,26 @@ export default function Footer() {
             href="/"
             className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight"
           >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] bg-[#d8ff3e] text-primary">
-              <BriefcaseBusiness className="h-5 w-5" />
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] overflow-hidden">
+              <Image
+                src="/logo-icon.png"
+                alt="Beleqet"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+              />
             </span>
-            Beleqet<span className="text-[#d8ff3e]">.</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-extrabold text-white leading-none">
+                Beleqet<span className="text-[#d8ff3e]">.</span>
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-wider text-[#d8ff3e] mt-0.5">
+                Jobs &amp; Freelance
+              </span>
+            </div>
           </Link>
           <p className="mt-5 max-w-xs text-sm leading-6 text-white/55">
-            Beleqet helps job seekers discover opportunities and employers connect with the right
-            talent across Ethiopia.
+            {t('footer.tagline')}
           </p>
         </div>
 

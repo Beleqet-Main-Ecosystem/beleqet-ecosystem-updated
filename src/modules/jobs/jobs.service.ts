@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { jobPostConfirmationEmail, jobAlertEmail } from '../notifications/email-templates';
+import { TelegramService } from '../telegram/telegram.service';
 
 @Injectable()
 export class JobsService {
@@ -15,6 +16,7 @@ export class JobsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
+    private readonly telegramService: TelegramService,
   ) {}
 
   async create(employerId: string, dto: CreateJobDto) {
@@ -56,6 +58,20 @@ export class JobsService {
     this.sendJobAlerts(job, jobUrl).catch((err) =>
       this.logger.error(`Failed to send job alerts: ${err.message}`),
     );
+
+    // Broadcast Job to Telegram Channel
+    this.telegramService
+      .broadcastJob({
+        id: job.id,
+        title: job.title,
+        companyName: job.company?.name,
+        location: job.location,
+        jobType: job.type,
+        salaryMin: job.salaryMin ? Number(job.salaryMin) : undefined,
+        salaryMax: job.salaryMax ? Number(job.salaryMax) : undefined,
+        currency: job.currency,
+      })
+      .catch((err) => this.logger.error(`Telegram job broadcast failed: ${err.message}`));
 
     return job;
   }

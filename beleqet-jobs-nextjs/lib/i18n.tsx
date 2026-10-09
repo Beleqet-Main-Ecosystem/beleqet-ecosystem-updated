@@ -23,6 +23,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import amMessages from "@/locales/am.json";
+import enMessages from "@/locales/en.json";
 
 /* ------------------------------------------------------------------ */
 /*  Locale type & supported values                                    */
@@ -101,13 +103,39 @@ export function formatCurrency(
 type TranslationDictionary = Record<string, string>;
 
 /**
+ * Flattens nested locale JSON (`storage.title`, `auditLog.table.timestamp`)
+ * into the same dotted-key map that `t()` already uses.
+ */
+function flattenMessages(
+  input: unknown,
+  prefix = "",
+  output: TranslationDictionary = {},
+): TranslationDictionary {
+  if (!input || typeof input !== "object") return output;
+
+  for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      flattenMessages(value, path, output);
+    } else if (typeof value === "string") {
+      output[path] = value;
+    }
+  }
+
+  return output;
+}
+
+/**
  * Translation dictionary for **English**.
  */
 const en: TranslationDictionary = {
   /* Navigation */
   "nav.findJobs": "Find Jobs",
+  "nav.freelance": "Freelance",
   "nav.employers": "For Employers",
   "nav.cvMaker": "CV Maker",
+  "nav.portfolio": "Portfolio",
+  "nav.chatToText": "Chat to text",
   "nav.pricing": "Pricing",
   "nav.about": "About",
   "nav.dashboard": "Dashboard",
@@ -174,8 +202,11 @@ const en: TranslationDictionary = {
 const am: TranslationDictionary = {
   /* Navigation */
   "nav.findJobs": "ስራዎችን ፈልግ",
+  "nav.freelance": "ፍሪላንስ",
   "nav.employers": "ለአሰሪዎች",
   "nav.cvMaker": "ሲቪ አዘጋጅ",
+  "nav.portfolio": "ፖርትፎሊዮ",
+  "nav.chatToText": "ቻት ቱ ቴክስት",
   "nav.pricing": "ዋጋዎች",
   "nav.about": "ስለ እኛ",
   "nav.dashboard": "ዳሽቦርድ",
@@ -235,9 +266,13 @@ const am: TranslationDictionary = {
 
 /**
  * Map of locale code to its translation dictionary.
- * Add new locales by extending this object.
+ * Nested JSON files in `locales/` are flattened and merged with the
+ * inline nav/dashboard strings so the header toggle translates every page.
  */
-const dictionaries: Record<SupportedLocale, TranslationDictionary> = { en, am };
+const dictionaries: Record<SupportedLocale, TranslationDictionary> = {
+  en: { ...en, ...flattenMessages(enMessages) },
+  am: { ...am, ...flattenMessages(amMessages) },
+};
 
 /* ------------------------------------------------------------------ */
 /*  React context & hook                                               */
@@ -293,7 +328,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   /* Hydrate from localStorage after mount. */
   useEffect(() => {
-    setLocaleState(getPersistedLocale());
+    const persisted = getPersistedLocale();
+    setLocaleState(persisted);
+    document.documentElement.lang = persisted;
   }, []);
 
   /**
@@ -306,7 +343,20 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.setItem(LOCALE_STORAGE_KEY, newLocale);
       document.documentElement.lang = newLocale;
+      window.dispatchEvent(new CustomEvent("beleqet-locale-change", { detail: newLocale }));
     }
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== LOCALE_STORAGE_KEY) return;
+      if (event.newValue === "am" || event.newValue === "en") {
+        setLocaleState(event.newValue);
+        document.documentElement.lang = event.newValue;
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   /**

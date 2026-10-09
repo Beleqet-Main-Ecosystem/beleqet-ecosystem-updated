@@ -13,6 +13,8 @@ import { useTelegram } from './useTelegram';
  */
 const DEEP_LINK_ROUTES: Record<string, (id: string) => string> = {
   gig_: (id) => `/jobs/${id}`,
+  job_: (id) => `/jobs/${id}`,
+  'job-': (id) => `/jobs/${id}`,
   contract_: (id) => `/escrow/contracts/${id}`,
   proposal_: (id) => `/freelance/proposals/${id}`,
   ref_: (id) => `/invite?ref=${id}`,
@@ -24,7 +26,7 @@ const DEEP_LINK_ROUTES: Record<string, (id: string) => string> = {
  *
  * The param is read from two sources (in priority order):
  *  1. `window.Telegram.WebApp.initDataUnsafe.start_param`
- *  2. `?start_param=` in the URL query string (fallback for web browsers)
+ *  2. `?start_param=` or `?startapp=` in the URL query string (fallback for web browsers)
  *
  * Call this hook once inside the root layout or a top-level component.
  * Has no side effects after the first mount — the redirect fires at most once.
@@ -38,9 +40,12 @@ export function useTelegramDeepLink(): void {
   const router = useRouter();
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     const startParam =
       webApp?.initDataUnsafe?.start_param ??
-      new URLSearchParams(window.location.search).get('start_param');
+      searchParams.get('start_param') ??
+      searchParams.get('startapp') ??
+      searchParams.get('tgWebAppStartParam');
 
     if (!startParam) return;
 

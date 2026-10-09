@@ -1,14 +1,17 @@
 "use client";
 
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { Menu, ChevronDown } from "lucide-react";
 import HeaderAuth from "@/components/HeaderAuth";
 import PostJobButton from "@/components/PostJobButton";
 import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/components/AuthProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTranslation } from "@/lib/i18n";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 /**
  * Lazy-load the full-screen MobileDrawer — not needed on desktop first paint
@@ -18,13 +21,24 @@ const MobileDrawer = lazy(() => import("@/components/mobile/MobileDrawer"));
 
 export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t, locale } = useTranslation();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
+        setToolsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Context-aware "For employers" link:
-  //  - Employer/Admin → goes straight to the employer dashboard
-  //  - Logged-in regular user → goes to post-job (most likely next action)
-  //  - Guest (not logged in) → goes to the /for-employers landing page
   const employerHref =
     user && ["EMPLOYER", "ADMIN"].includes(user.role)
       ? "/employer"
@@ -32,44 +46,53 @@ export default function Header() {
         ? "/post-job"
         : "/for-employers";
 
-  const navItems = [
-    { label: "Find jobs", href: "/jobs" },
-    { label: "Freelance", href: "/freelance" },
-    { label: "For employers", href: employerHref },
-    { label: "CV maker", href: "/cv-maker" },
-    { label: "Portfolio", href: "/portfolio" },
-    { label: "Chat to text", href: "/chat-to-text" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "About", href: "/about" },
+  const primaryNavItems = [
+    { label: t("nav.findJobs"), href: "/jobs" },
+    { label: t("nav.freelance"), href: "/freelance" },
+    { label: t("nav.employers"), href: employerHref },
+    { label: t("nav.pricing"), href: "/pricing" },
+  ];
+
+  const toolsNavItems = [
+    { label: t("nav.cvMaker"), href: "/cv-maker" },
+    { label: t("nav.portfolio"), href: "/portfolio" },
+    { label: t("nav.chatToText"), href: "/chat-to-text" },
+    { label: t("nav.about"), href: "/about" },
   ];
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  const isToolsActive = toolsNavItems.some((item) => isActive(item.href));
+
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-white/10 bg-primary/95 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800 dark:bg-slate-950/90">
         <div className="container-page flex h-[72px] items-center justify-between">
-          {/* Logo — uses the brand SVG mark */}
+          {/* Logo — uses the official brand mark */}
           <Link
             href="/"
             className="group flex items-center gap-2.5 shrink-0"
             aria-label="Beleqet Jobs home"
           >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] bg-brandGreen shadow-sm transition-transform group-hover:-rotate-3">
-              <svg viewBox="0 0 64 64" width="24" height="24" aria-hidden="true">
-                <g transform="translate(14 15) scale(1.45)" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m11 17 2 2a1 1 0 1 0 3-3"/>
-                  <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/>
-                  <path d="m21 3 1 11h-2"/>
-                  <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/>
-                  <path d="M3 4h8"/>
-                </g>
-              </svg>
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] overflow-hidden shadow-sm transition-transform group-hover:-rotate-3">
+              <Image
+                src="/logo-icon.png"
+                alt="Beleqet"
+                width={40}
+                height={40}
+                className="h-full w-full object-contain"
+                priority
+              />
             </span>
-            <span className="text-[19px] font-extrabold tracking-[-0.04em] text-white">
-              Beleqet<span className="text-[#d8ff3e]">.</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-[19px] font-extrabold tracking-[-0.04em] text-white leading-none">
+                Beleqet<span className="text-[#d8ff3e]">.</span>
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-wider text-[#d8ff3e] mt-0.5">
+                Jobs &amp; Freelance
+              </span>
+            </div>
           </Link>
 
           {/* Desktop nav */}
@@ -77,26 +100,69 @@ export default function Header() {
             className="hidden items-center gap-1 lg:flex"
             aria-label="Main navigation"
           >
-            {navItems.map((item) => {
+            {primaryNavItems.map((item) => {
               const active = isActive(item.href);
               return (
                 <Link
-                  key={item.label}
+                  key={item.href}
                   href={item.href}
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                     active
                       ? "bg-white/15 text-white"
-                      : "text-white/60 hover:bg-white/10 hover:text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {item.label}
                 </Link>
               );
             })}
+
+            {/* Tools / More dropdown */}
+            <div className="relative" ref={toolsRef}>
+              <button
+                type="button"
+                onClick={() => setToolsOpen(!toolsOpen)}
+                className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
+                  isToolsActive || toolsOpen
+                    ? "bg-white/15 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span>{locale === "am" ? "ተጨማሪ" : "Tools"}</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    toolsOpen ? "rotate-180 text-[#d8ff3e]" : "text-white/60"
+                  }`}
+                />
+              </button>
+
+              {toolsOpen && (
+                <div className="absolute left-0 mt-2 w-48 rounded-2xl border border-white/10 bg-primary/95 p-1.5 shadow-xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+                  {toolsNavItems.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setToolsOpen(false)}
+                        className={`block rounded-xl px-3.5 py-2.5 text-xs font-bold transition-colors ${
+                          active
+                            ? "bg-white/15 text-[#d8ff3e]"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Desktop action area */}
           <div className="hidden items-center gap-2 lg:flex">
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationBell />
             <HeaderAuth />
@@ -105,6 +171,7 @@ export default function Header() {
 
           {/* Mobile: action icons + hamburger that opens MobileDrawer */}
           <div className="flex items-center gap-1.5 lg:hidden">
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationBell />
             <HeaderAuth />
