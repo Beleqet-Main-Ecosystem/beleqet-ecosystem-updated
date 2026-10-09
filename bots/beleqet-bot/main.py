@@ -43,12 +43,12 @@ TARGET_CHATS = [
     -1002877767689, 
     -1001989588782
 ]
-CHANNEL_ID = -1001989588782
-PRIMARY_ADMIN_ID = int(os.getenv("ADMIN_ID"))
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1001989588782"))
+PRIMARY_ADMIN_ID = int(os.getenv("ADMIN_ID", "6728089681"))
 DB_FILE = "referrals.db"
 WELCOME_PHOTO_FILE_ID = os.getenv("WELCOME_PHOTO_FILE_ID")
-CHANNEL_INVITE_LINK = "https://t.me/BeleqetBoost"
-WEBAPP_URL = "https://beleqetaca-miniapp.beleqet.com/"
+CHANNEL_INVITE_LINK = os.getenv("CHANNEL_INVITE_LINK", "https://t.me/BeleqetBoost")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://beleqetaca-miniapp.beleqet.com/")
 
 # --- 🗄️ ASYNC DATABASE SETUP ---
 async def setup_database():

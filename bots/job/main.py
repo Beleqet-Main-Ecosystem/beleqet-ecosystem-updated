@@ -26,11 +26,11 @@ CONFIG = {
     'telegram_token': os.getenv("BOT_TOKEN"),
     'wp_api_url': os.getenv("WORDPRESS_API_URL"),
     'webhook_url': os.getenv("BOT_WEBHOOK_URL"),
-    'mini_app_url': os.getenv("MINI_APP_URL"),
+    'mini_app_url': (os.getenv("MINI_APP_URL") or "https://beleqetjobs.com").rstrip('/'),
     'candidate_promo_photo_id': os.getenv("CANDIDATE_PROMO_PHOTO_ID"),
     'employer_promo_photo_id': os.getenv("EMPLOYER_PROMO_PHOTO_ID"),
     'admin_ids': [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()],
-    'challenge_mini_app_url': os.getenv("CHALLENGE_MINI_APP_URL"),
+    'challenge_mini_app_url': (os.getenv("CHALLENGE_MINI_APP_URL") or "https://webhook.beleqet.com/challenge").rstrip('/'),
 }
 
 # --- More verbose logging setup ---
@@ -169,18 +169,17 @@ def normalize_role(role: str) -> str:
 
 MENU_URLS = {
     'candidate': {
-        'dashboard': f"{CONFIG['mini_app_url']}user-dashboard/",
-        'my_profile': f"{CONFIG['mini_app_url']}profile/",
-        'my_applications': f"{CONFIG['mini_app_url']}my-applied/",
-        'job_list': f"{CONFIG['mini_app_url']}joblists/"
-        
+        'dashboard': f"{CONFIG['mini_app_url']}/dashboard",
+        'my_profile': f"{CONFIG['mini_app_url']}/profile",
+        'my_applications': f"{CONFIG['mini_app_url']}/applications",
+        'job_list': f"{CONFIG['mini_app_url']}/jobs",
     },
     'employer': {
-        'post_job': f"{CONFIG['mini_app_url']}submit-job/",
-        'dashboard': f"{CONFIG['mini_app_url']}user-dashboard/",
-        'my_profile': f"{CONFIG['mini_app_url']}profile/",
-        'my_jobs': f"{CONFIG['mini_app_url']}my-jobs-2/",
-        'applicants': f"{CONFIG['mini_app_url']}applicants-jobs/"
+        'post_job': f"{CONFIG['mini_app_url']}/post-job",
+        'dashboard': f"{CONFIG['mini_app_url']}/dashboard",
+        'my_profile': f"{CONFIG['mini_app_url']}/profile",
+        'my_jobs': f"{CONFIG['mini_app_url']}/dashboard",
+        'applicants': f"{CONFIG['mini_app_url']}/applications",
     }
 }
 
@@ -306,7 +305,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # --- PRIORITY 2: Deep linking for viewing a JOB ---
     if context.args and context.args[0].startswith("job-"):
         job_slug = context.args[0].split("job-", 1)[1]
-        job_detail_url = f"{CONFIG['mini_app_url']}?startapp=job-{job_slug}"
+        job_detail_url = f"{CONFIG['mini_app_url']}/jobs/{job_slug}"
         if not job_detail_url.startswith(('http://', 'https://')):
              job_detail_url = 'https://' + job_detail_url
              
@@ -725,7 +724,8 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
                 # Post-registration redirect logic
                 post_reg_job = context.user_data.get('post_registration_job')
                 if post_reg_job:
-                    mini_app_job_url = f"{CONFIG['mini_app_url']}?startapp={post_reg_job}"
+                    clean_slug = post_reg_job.replace('job-', '')
+                    mini_app_job_url = f"{CONFIG['mini_app_url']}/jobs/{clean_slug}"
                     
                     if lang == 'am':
                         btn_text = "ስራውን ለመክፈት እዚህ ይጫኑ"
