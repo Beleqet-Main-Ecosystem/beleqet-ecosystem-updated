@@ -2,15 +2,20 @@ import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
+import { existsSync } from 'fs';
 import * as depthLimit from 'graphql-depth-limit';
 import { ComplexityPlugin } from './plugins/complexity.plugin';
 
 // In production Docker the src/ directory is not present (only dist/ is
 // copied). Writing autoSchemaFile to src/ would crash the container on boot.
-// Use /tmp (always writable) in production, and the conventional src/ path in
-// development so the file is generated alongside the source for IDE tooling.
+// Use /tmp (always writable) in production/staging or when src/ is absent,
+// and the conventional src/ path in local development for IDE tooling.
+const hasSrc = existsSync(join(process.cwd(), 'src'));
+const isProductionOrStaging =
+  process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging';
+
 const schemaPath =
-  process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging'
+  isProductionOrStaging || !hasSrc
     ? '/tmp/schema.gql'
     : join(process.cwd(), 'src/graphql/schema.gql');
 
