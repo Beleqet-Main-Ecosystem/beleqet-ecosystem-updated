@@ -1,5 +1,6 @@
 import './globals.css';
 import GlobalNav from './components/GlobalNav';
+import { I18nProvider } from '../lib/i18n';
 
 /** Ensures the page renders at device width on mobile — critical for responsiveness. */
 export const viewport = {
@@ -67,8 +68,10 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <GlobalNav />
-        {children}
+        <I18nProvider>
+          <GlobalNav />
+          {children}
+        </I18nProvider>
       </body>
     </html>
   );

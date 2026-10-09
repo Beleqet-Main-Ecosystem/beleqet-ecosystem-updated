@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 import type { LanguageCode } from '../types';
-import { PORTFOLIO_LOCALE_KEY } from '../constants/storage';
 
 const FALLBACK: Record<string, string> = {
   builderTitle: 'Portfolio Builder',
@@ -40,13 +40,8 @@ const FALLBACK: Record<string, string> = {
  * Follows the same self-contained pattern as `useFeedTranslations`.
  */
 export function usePortfolioTranslations() {
-  const [locale, setLocaleState] = useState<LanguageCode>('en');
+  const { locale, setLocale } = useTranslation();
   const [messages, setMessages] = useState<Record<string, string>>(FALLBACK);
-
-  useEffect(() => {
-    const stored = window.localStorage.getItem(PORTFOLIO_LOCALE_KEY);
-    if (stored === 'en' || stored === 'am') setLocaleState(stored);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,11 +57,6 @@ export function usePortfolioTranslations() {
       cancelled = true;
     };
   }, [locale]);
-
-  const setLocale = useCallback((next: LanguageCode) => {
-    setLocaleState(next);
-    window.localStorage.setItem(PORTFOLIO_LOCALE_KEY, next);
-  }, []);
 
   const t = useCallback((key: string) => messages[key] ?? FALLBACK[key] ?? key, [messages]);
 

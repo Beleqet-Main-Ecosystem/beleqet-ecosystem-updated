@@ -93,22 +93,18 @@ html.dark .text-brandGreen {
 /* ------------------------------------------------------------------ */
 
 /*
- * Prevent horizontal overflow/scroll on all viewports.
- * Critical for mobile where a single overflowing element causes the
- * whole page to scroll sideways.
+ * Prevent horizontal overflow/scroll on all viewports without breaking
+ * the vertical mouse-wheel or touch scrolling container.
+ * Using `overflow-x: clip` prevents horizontal spill without creating
+ * conflicting scroll contexts between html and body.
  */
-html,
-body {
-  overflow-x: hidden;
+html {
+  overflow-x: clip;
 }
 
-/*
- * Prevent iOS Safari elastic over-scroll (rubber-band effect) from
- * revealing a white/black blank area at the top or bottom.
- * 'contain' (not 'none') so Android Chrome vertical scroll still works.
- */
 body {
-  overscroll-behavior-y: contain;
+  overflow-x: clip;
+  min-height: 100vh;
 }
 
 /*
@@ -265,13 +261,10 @@ body.in-telegram .tma-card {
  * margins and accidental pull-to-refresh inside the Telegram WebApp iframe.
  * Applied globally; has no visible effect in standard desktop browsers.
  * ─────────────────────────────────────────────────────────────────────────── */
-body.in-telegram html,
 body.in-telegram {
-  overscroll-behavior-y: none;
-  position: fixed;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  overscroll-behavior-y: contain;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* All interactive tap targets must be at least 48×48 px to prevent

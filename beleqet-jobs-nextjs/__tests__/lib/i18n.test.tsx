@@ -250,6 +250,14 @@ describe("Translation lookup", () => {
         expect(t("dashboard.careerBadge")).toBe("Career dashboard");
       });
     });
+
+    it("loads nested keys from locales/en.json", () => {
+      renderWithLocale("en", (t) => {
+        expect(t("taxCalculator.title")).toBe("Freelancer Tax Calculator");
+        expect(t("storage.title")).toBe("Secure Cloud Storage Dashboard");
+        expect(t("auditLog.table.timestamp")).toBe("Timestamp");
+      });
+    });
   });
 
   describe("Amharic (am) locale", () => {
@@ -308,6 +316,14 @@ describe("Translation lookup", () => {
         expect(t("common.noData")).toBe("ምንም መረጃ የለም።");
       });
     });
+
+    it("loads nested keys from locales/am.json", () => {
+      renderWithLocale("am", (t) => {
+        expect(t("taxCalculator.title")).toBe("የነጻ ስራ ግብር ማስያ");
+        expect(t("storage.uploadButton")).toBe("ፋይል በደህንነት ጫን");
+        expect(t("auditLog.table.timestamp")).toBe("ጊዜ");
+      });
+    });
   });
 
   describe("Fallback chain", () => {
@@ -356,6 +372,14 @@ describe("Translation lookup", () => {
         setLocale("en");
 
         expect(t("dashboard.greeting")).toBe("Welcome back");
+      });
+    });
+
+    it("persists the locale so other pages can restore it", () => {
+      renderWithLocale("en", (t, { setLocale }) => {
+        setLocale("am");
+        expect(localStorage.getItem("beleqet_locale")).toBe("am");
+        expect(t("taxCalculator.title")).toBe("የነጻ ስራ ግብር ማስያ");
       });
     });
   });

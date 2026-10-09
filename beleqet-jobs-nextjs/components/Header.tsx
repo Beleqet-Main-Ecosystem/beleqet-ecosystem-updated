@@ -9,6 +9,8 @@ import PostJobButton from "@/components/PostJobButton";
 import NotificationBell from "@/components/NotificationBell";
 import { useAuth } from "@/components/AuthProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTranslation } from "@/lib/i18n";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 /**
  * Lazy-load the full-screen MobileDrawer — not needed on desktop first paint
@@ -20,6 +22,7 @@ export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Context-aware "For employers" link:
   //  - Employer/Admin → goes straight to the employer dashboard
@@ -33,14 +36,14 @@ export default function Header() {
         : "/for-employers";
 
   const navItems = [
-    { label: "Find jobs", href: "/jobs" },
-    { label: "Freelance", href: "/freelance" },
-    { label: "For employers", href: employerHref },
-    { label: "CV maker", href: "/cv-maker" },
-    { label: "Portfolio", href: "/portfolio" },
-    { label: "Chat to text", href: "/chat-to-text" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "About", href: "/about" },
+    { label: t("nav.findJobs"), href: "/jobs" },
+    { label: t("nav.freelance"), href: "/freelance" },
+    { label: t("nav.employers"), href: employerHref },
+    { label: t("nav.cvMaker"), href: "/cv-maker" },
+    { label: t("nav.portfolio"), href: "/portfolio" },
+    { label: t("nav.chatToText"), href: "/chat-to-text" },
+    { label: t("nav.pricing"), href: "/pricing" },
+    { label: t("nav.about"), href: "/about" },
   ];
 
   const isActive = (href: string) =>
@@ -81,7 +84,7 @@ export default function Header() {
               const active = isActive(item.href);
               return (
                 <Link
-                  key={item.label}
+                  key={item.href}
                   href={item.href}
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                     active
@@ -97,6 +100,7 @@ export default function Header() {
 
           {/* Desktop action area */}
           <div className="hidden items-center gap-2 lg:flex">
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationBell />
             <HeaderAuth />
@@ -105,6 +109,7 @@ export default function Header() {
 
           {/* Mobile: action icons + hamburger that opens MobileDrawer */}
           <div className="flex items-center gap-1.5 lg:hidden">
+            <LanguageSwitcher />
             <ThemeToggle />
             <NotificationBell />
             <HeaderAuth />
