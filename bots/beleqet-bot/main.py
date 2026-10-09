@@ -122,6 +122,18 @@ async def post_init(application: Application):
     """Runs async setup after the application is initialized."""
     await setup_database()
     await migrate_pending_data()
+
+    try:
+        from telegram import MenuButtonWebApp
+        await application.bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(
+                text="Mini App ይክፈቱ",
+                web_app=WebAppInfo(url=WEBAPP_URL)
+            )
+        )
+        logging.info(f">>> Telegram Chat Menu Button set to {WEBAPP_URL} <<<")
+    except Exception as e:
+        logging.warning(f"Could not set chat menu button: {e}")
     
     try:
         async with aiosqlite.connect(DB_FILE) as db:
