@@ -30,7 +30,7 @@ services:
     ports:
       - '4000:4000'
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=${NODE_ENV:-staging}
       - PORT=4000
       # Admin (:3000) + jobs app (:3001) — comma-separated for CORS
       - FRONTEND_URL=${FRONTEND_URL:-https://beleqetjobs.com,https://www.beleqetjobs.com,https://admin.beleqetjobs.com,https://beleqetpay.com,http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
