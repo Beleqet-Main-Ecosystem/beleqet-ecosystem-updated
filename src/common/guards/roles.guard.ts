@@ -45,7 +45,6 @@ export class RolesGuard implements CanActivate {
       }
     }
 
-
     if (requiredPermissions && requiredPermissions.length > 0) {
       const cacheKey = `user_permissions:${user.userId}`;
       let userPermissions: string[] = [];
