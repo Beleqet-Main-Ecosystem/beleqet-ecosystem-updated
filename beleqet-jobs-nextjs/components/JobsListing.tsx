@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Search, MapPin, SlidersHorizontal, X } from 'lucide-react';
 import type { Job, Category } from '@/lib/api';
 import JobCard from '@/components/JobCard';
+import { useTranslation } from '@/lib/i18n';
 
 const jobTypes = ['Full Time', 'Part Time', 'Remote', 'Hybrid', 'Contract'];
 
@@ -16,6 +17,7 @@ export default function JobsListing({
   categories: Category[];
 }) {
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [location, setLocation] = useState(searchParams.get('loc') ?? '');
@@ -49,10 +51,10 @@ export default function JobsListing({
   return (
     <div className="container-page py-10">
       <div className="mb-6">
-        <h1 className="text-pageH1">Search verified jobs from trusted employers.</h1>
+        <h1 className="text-pageH1">{t('jobs.heading')}</h1>
         <p className="text-muted text-sm mt-2">
-          <span className="font-semibold text-ink">{filtered.length}</span> job
-          {filtered.length === 1 ? '' : 's'} found
+          <span className="font-semibold text-ink">{filtered.length}</span>{' '}
+          {filtered.length === 1 ? t('jobs.foundSingular') : t('jobs.foundPlural')}
         </p>
       </div>
 
@@ -99,7 +101,7 @@ export default function JobsListing({
             onClick={clearAll}
             className="text-xs font-semibold text-brandGreen hover:underline ml-1"
           >
-            Clear all
+            {t('jobs.clearFilters')}
           </button>
         </div>
       )}
@@ -108,11 +110,11 @@ export default function JobsListing({
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-xl border border-border bg-white p-5">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-ink mb-4">
-              <SlidersHorizontal className="h-4 w-4" /> Category
+              <SlidersHorizontal className="h-4 w-4" /> {t('jobs.categories')}
             </h3>
             <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
               <FilterButton active={category === ''} onClick={() => setCategory('')}>
-                All Categories
+                {t('jobs.allCategories')}
               </FilterButton>
               {categories.map((cat) => (
                 <FilterButton
@@ -130,10 +132,10 @@ export default function JobsListing({
           </div>
 
           <div className="rounded-xl border border-border bg-white p-5">
-            <h3 className="text-sm font-semibold text-ink mb-4">Job Type</h3>
+            <h3 className="text-sm font-semibold text-ink mb-4">{t('jobs.jobType')}</h3>
             <div className="space-y-1">
               <FilterButton active={type === ''} onClick={() => setType('')}>
-                All Types
+                {t('jobs.allCategories')}
               </FilterButton>
               {jobTypes.map((t) => (
                 <FilterButton key={t} active={type === t} onClick={() => setType(t)}>

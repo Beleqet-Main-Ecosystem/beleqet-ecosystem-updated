@@ -2,21 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslation } from '../../lib/i18n';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://beleqetjobs.com';
 
-const NAV_LINKS = [
-  { label: 'Find Jobs', href: '/jobs' },
-  { label: 'Freelance', href: '/freelance' },
-  { label: 'For Employers', href: '/for-employers' },
-  { label: 'CV Maker', href: '/cv-maker' },
-  { label: 'Portfolio', href: '/portfolio' },
-  { label: 'Chat to Text', href: '/chat-to-text' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'About', href: '/about' },
+const NAV_KEYS = [
+  { key: 'nav.findJobs', href: '/jobs' },
+  { key: 'nav.freelance', href: '/freelance' },
+  { key: 'nav.forEmployers', href: '/for-employers' },
+  { key: 'nav.cvMaker', href: '/cv-maker' },
+  { key: 'nav.portfolio', href: '/portfolio' },
+  { key: 'nav.chatToText', href: '/chat-to-text' },
+  { key: 'nav.pricing', href: '/pricing' },
+  { key: 'nav.about', href: '/about' },
 ];
 
 export default function GlobalNav() {
+  const { t, locale, setLocale } = useTranslation();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dark, setDark] = useState(false);
@@ -55,15 +57,25 @@ export default function GlobalNav() {
 
         {/* ── Desktop nav ── */}
         <nav className="gn__links" aria-label="Main navigation">
-          {NAV_LINKS.map(({ label, href }) => (
+          {NAV_KEYS.map(({ key, href }) => (
             <Link key={href} href={href} className="gn__link">
-              {label}
+              {t(key)}
             </Link>
           ))}
         </nav>
 
         {/* ── Right actions ── */}
         <div className="gn__actions">
+          {/* Language toggle */}
+          <button
+            className="gn__theme-btn"
+            aria-label="Switch language"
+            onClick={() => setLocale(locale === 'en' ? 'am' : 'en')}
+            style={{ fontWeight: 'bold', fontSize: '13px' }}
+          >
+            {locale === 'en' ? 'አማ' : 'EN'}
+          </button>
+
           {/* Theme toggle */}
           <button
             className="gn__theme-btn"
@@ -83,13 +95,13 @@ export default function GlobalNav() {
           </button>
 
           <Link className="gn__btn gn__btn--ghost" href="/login">
-            Login
+            {t('nav.login')}
           </Link>
           <Link className="gn__btn gn__btn--ghost" href="/login?tab=signup">
-            Sign Up
+            {t('nav.signUp')}
           </Link>
           <Link className="gn__btn gn__btn--cta" href="/post-job" id="nav-cta">
-            Post a Job
+            {t('nav.postJob')}
           </Link>
 
           {/* Mobile hamburger */}
@@ -109,30 +121,40 @@ export default function GlobalNav() {
       {/* ── Mobile drawer ── */}
       {menuOpen && (
         <nav className="gn__drawer" aria-label="Mobile navigation">
-          {NAV_LINKS.map(({ label, href }) => (
+          {NAV_KEYS.map(({ key, href }) => (
             <Link
               key={href}
               href={href}
               className="gn__drawer-link"
               onClick={() => setMenuOpen(false)}
             >
-              {label}
+              {t(key)}
             </Link>
           ))}
           <div className="gn__drawer-actions">
+            <button
+              className="gn__btn gn__btn--ghost"
+              onClick={() => {
+                setLocale(locale === 'en' ? 'am' : 'en');
+                setMenuOpen(false);
+              }}
+              style={{ fontWeight: 'bold' }}
+            >
+              {locale === 'en' ? 'አማርኛ' : 'English'}
+            </button>
             <Link
               className="gn__btn gn__btn--ghost"
               href="/login"
               onClick={() => setMenuOpen(false)}
             >
-              Login
+              {t('nav.login')}
             </Link>
             <Link
               className="gn__btn gn__btn--cta"
               href="/post-job"
               onClick={() => setMenuOpen(false)}
             >
-              Post a Job
+              {t('nav.postJob')}
             </Link>
           </div>
         </nav>

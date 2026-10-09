@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowUpRight, BriefcaseBusiness } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const footerColumns = [
   {
@@ -33,6 +36,8 @@ const footerColumns = [
 ];
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-primary text-white">
       <div className="container-page grid grid-cols-1 gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -47,8 +52,7 @@ export default function Footer() {
             Beleqet<span className="text-[#d8ff3e]">.</span>
           </Link>
           <p className="mt-5 max-w-xs text-sm leading-6 text-white/55">
-            Beleqet helps job seekers discover opportunities and employers connect with the right
-            talent across Ethiopia.
+            {t('footer.tagline')}
           </p>
         </div>
 

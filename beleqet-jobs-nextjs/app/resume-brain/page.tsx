@@ -6,14 +6,15 @@ import { Sparkles } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { CvUpload } from '@/components/resume-brain/CvUpload';
 import { ParsedResumePreview } from '@/components/resume-brain/ParsedResumePreview';
-import { ResumeBrainLocale, translate } from '@/components/resume-brain/i18n';
+import { translate } from '@/components/resume-brain/i18n';
 import { UploadResumeResponse } from '@/components/resume-brain/types';
+import { useTranslation } from '@/lib/i18n';
 
 export default function ResumeBrainPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
+  const { locale, setLocale } = useTranslation();
   const [uploaded, setUploaded] = useState<UploadResumeResponse | null>(null);
-  const [locale, setLocale] = useState<ResumeBrainLocale>('en');
 
   useEffect(() => {
     if (ready && !user) router.replace('/login');

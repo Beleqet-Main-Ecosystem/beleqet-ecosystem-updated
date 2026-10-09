@@ -108,7 +108,16 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
     }
     setBoardMode('jobs');
 
+    let isPaused = false;
+    const heroBoardEl = document.getElementById('hero-board-main');
+    const onBoardMouseEnter = () => (isPaused = true);
+    const onBoardMouseLeave = () => (isPaused = false);
+    if (heroBoardEl) {
+      heroBoardEl.addEventListener('mouseenter', onBoardMouseEnter);
+      heroBoardEl.addEventListener('mouseleave', onBoardMouseLeave);
+    }
     const boardInterval = setInterval(() => {
+      if (isPaused) return;
       if (!state.visible.length || !boardEl) return;
       const idx = Math.floor(Math.random() * state.visible.length);
       const rowEl = boardEl.querySelector(`.row[data-i="${idx}"]`);
@@ -122,7 +131,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
         )[1];
       }, 300);
       setTimeout(() => rowEl.classList.remove('flipping'), 650);
-    }, 3400);
+    }, 6000);
 
     /* ---------- featured job cards ---------- */
     function timeAgo(dateStr) {
@@ -409,7 +418,41 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
         .forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
       moveIndicator(document.getElementById(mode === 'jobs' ? 'btn-jobs' : 'btn-freelance'));
       setBoardMode(mode);
+      applyLocale(typeof window !== 'undefined' ? (localStorage.getItem('beleqet_locale') || 'en') : 'en');
     }
+
+    function applyLocale(loc) {
+      const isAm = loc === 'am';
+      const subAmEl = document.getElementById('hero-sub-am');
+      const subEnEl = document.getElementById('hero-sub-en');
+      if (subAmEl) subAmEl.style.display = isAm ? 'block' : 'none';
+      if (subEnEl) subEnEl.style.display = isAm ? 'none' : 'block';
+
+      const searchBtn = document.getElementById('search-btn');
+      if (searchBtn) {
+        const text = isAm
+          ? (currentMode === 'jobs' ? 'ስራዎችን ፈልግ ' : 'ባለሙያ ፈልግ ')
+          : (currentMode === 'jobs' ? 'Search Jobs ' : 'Find Talent ');
+        searchBtn.childNodes[0].textContent = text;
+      }
+      const heroH = document.getElementById('hero-h');
+      if (heroH) {
+        if (isAm) {
+          heroH.innerHTML =
+            currentMode === 'jobs'
+              ? 'የወደፊት የስራ እድልዎን <span class="accent">በፍጥነት</span> ያግኙ።'
+              : 'የፍሪላንስ ፕሮጀክትዎን <span class="accent">በአስተማማኝ</span> ይስሩ።';
+        } else {
+          heroH.innerHTML = modeContent[currentMode].h1;
+        }
+      }
+    }
+
+    const onLocaleChange = () => {
+      const cur = localStorage.getItem('beleqet_locale') || 'en';
+      applyLocale(cur);
+    };
+    window.addEventListener('beleqet_locale_change', onLocaleChange);
 
     const toggleHandlers = Array.from(document.querySelectorAll('.mode-toggle button')).map((b) => {
       const handler = () => applyMode(b.dataset.mode);
@@ -417,6 +460,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
       return { b, handler };
     });
     moveIndicator(document.getElementById('btn-jobs'));
+    applyLocale(typeof window !== 'undefined' ? (localStorage.getItem('beleqet_locale') || 'en') : 'en');
     // Initialise badge with live count
     const badgeEl = document.getElementById('board-new-badge');
     if (badgeEl && stats.activeJobs)
@@ -556,7 +600,12 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
     return () => {
       window.removeEventListener('scroll', onScroll);
       clearInterval(boardInterval);
+      if (heroBoardEl) {
+        heroBoardEl.removeEventListener('mouseenter', onBoardMouseEnter);
+        heroBoardEl.removeEventListener('mouseleave', onBoardMouseLeave);
+      }
       toggleHandlers.forEach(({ b, handler }) => b.removeEventListener('click', handler));
+      window.removeEventListener('beleqet_locale_change', onLocaleChange);
       statIo.disconnect();
       io.disconnect();
     };
