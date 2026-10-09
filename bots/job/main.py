@@ -716,6 +716,7 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_data = context.user_data
     lang = user_data.get('language', 'en')
     chat_id = update.effective_chat.id if update.effective_chat else (update.effective_message.chat_id if update.effective_message else None)
+    backend_role = ROLE_BACKEND.get(user_data.get('role_input', ''), user_data.get('role', 'candidate'))
 
     payload = {
         'telegram_id': str(update.effective_user.id),
