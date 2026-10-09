@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { buildSearchUrl } from '../../lib/api';
+import { useTranslation } from '../../lib/i18n';
 
 /**
  * HomepageClient — all interactive/animation logic.
@@ -10,6 +11,7 @@ import { buildSearchUrl } from '../../lib/api';
  * @param {{ featuredJobs: object[], featuredGigs: object[], stats: object, appUrl: string }} props
  */
 export default function HomepageClient({ featuredJobs, featuredGigs, stats, appUrl }) {
+  const { t, locale } = useTranslation();
   useEffect(() => {
     /* ---------- helpers ---------- */
     function initials(name) {
@@ -779,7 +781,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 <b data-stat-key="activeJobs" data-suffix="+">
                   {(stats.activeJobs || 0).toLocaleString()}+
                 </b>
-                <span>Active Jobs</span>
+                <span>{t('stats.activeJobs')}</span>
               </div>
             </div>
             <div className="stat">
@@ -793,7 +795,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 <b data-stat-key="hiringCompanies" data-suffix="+">
                   {(stats.hiringCompanies || 0).toLocaleString()}+
                 </b>
-                <span>Hiring Companies</span>
+                <span>{t('stats.companies')}</span>
               </div>
             </div>
             <div className="stat">
@@ -807,7 +809,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 <b data-stat-key="registeredJobSeekers" data-suffix="+">
                   {(stats.registeredJobSeekers || 0).toLocaleString()}+
                 </b>
-                <span>Registered Job Seekers</span>
+                <span>{t('stats.seekers')}</span>
               </div>
             </div>
             <div className="stat">
@@ -820,7 +822,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 <b data-stat-key="satisfactionRate" data-suffix="%">
                   {stats.satisfactionRate || 98}%
                 </b>
-                <span>Satisfaction Rate</span>
+                <span>{t('stats.satisfaction')}</span>
               </div>
             </div>
           </div>
@@ -830,14 +832,12 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
       <section id="categories">
         <div className="sec-head reveal">
           <div>
-            <div className="sec-eyebrow">Browse by Category</div>
-            <h2 className="sec-h">Browse Jobs by Category</h2>
-            <p className="sec-p">
-              Explore opportunities across growing industries and find jobs that match your skills.
-            </p>
+            <div className="sec-eyebrow">{t('sec.catEyebrow')}</div>
+            <h2 className="sec-h">{t('sec.catH')}</h2>
+            <p className="sec-p">{t('sec.catP')}</p>
           </div>
           <a className="view-all" href={`${APP_URL}/jobs`}>
-            View all categories{' '}
+            {t('sec.catAll')}{' '}
             <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
@@ -845,13 +845,13 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
         </div>
         <div className="cat-row reveal">
           {[
-            { label: 'IT & Software', slug: 'it-software', count: 0 },
-            { label: 'Marketing', slug: 'marketing', count: 0 },
-            { label: 'Finance', slug: 'finance', count: 0 },
-            { label: 'Health', slug: 'health', count: 0 },
-            { label: 'Education', slug: 'education', count: 0 },
-            { label: 'Engineering', slug: 'engineering', count: 0 },
-            { label: 'Other', slug: 'other', count: 0 },
+            { label: t('cat.it'), slug: 'it-software', count: 0 },
+            { label: t('cat.marketing'), slug: 'marketing', count: 0 },
+            { label: t('cat.finance'), slug: 'finance', count: 0 },
+            { label: t('cat.health'), slug: 'health', count: 0 },
+            { label: t('cat.education'), slug: 'education', count: 0 },
+            { label: t('cat.engineering'), slug: 'engineering', count: 0 },
+            { label: t('cat.other'), slug: 'other', count: 0 },
           ].map((cat) => (
             <a
               key={cat.slug}
@@ -866,20 +866,20 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 </svg>
               </div>
               <b>{cat.label}</b>
-              <span>Browse jobs</span>
+              <span>{t('sec.browseJobs')}</span>
             </a>
           ))}
         </div>
 
-        <div className="subrow-label reveal">Browse Freelance Categories</div>
+        <div className="subrow-label reveal">{t('sec.freelanceCat')}</div>
         <div className="cat-row reveal" id="freelance-categories">
           {[
-            { label: 'Graphic Design', slug: 'graphic-design' },
-            { label: 'Writing & Translation', slug: 'writing-translation' },
-            { label: 'Web & App Dev', slug: 'web-app-dev' },
-            { label: 'Video & Animation', slug: 'video-animation' },
-            { label: 'Digital Marketing', slug: 'digital-marketing' },
-            { label: 'Bookkeeping', slug: 'bookkeeping' },
+            { label: t('cat.graphic'), slug: 'graphic-design' },
+            { label: t('cat.writing'), slug: 'writing-translation' },
+            { label: t('cat.dev'), slug: 'web-app-dev' },
+            { label: t('cat.video'), slug: 'video-animation' },
+            { label: t('cat.digital'), slug: 'digital-marketing' },
+            { label: t('cat.bookkeeping'), slug: 'bookkeeping' },
           ].map((cat) => (
             <a
               key={cat.slug}
@@ -894,7 +894,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 </svg>
               </div>
               <b>{cat.label}</b>
-              <span>Browse gigs</span>
+              <span>{t('sec.browseGigs')}</span>
             </a>
           ))}
         </div>
@@ -903,19 +903,19 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
       <section id="featured" style={{ paddingTop: 0 }}>
         <div className="sec-head reveal">
           <div>
-            <div className="sec-eyebrow">Curated for you</div>
-            <h2 className="sec-h">Featured Jobs</h2>
-            <p className="sec-p">Fresh opportunities from companies hiring right now.</p>
+            <div className="sec-eyebrow">{t('sec.featEyebrow')}</div>
+            <h2 className="sec-h">{t('sec.featJobsH')}</h2>
+            <p className="sec-p">{t('sec.featJobsP')}</p>
           </div>
           <a className="view-all" href={`${APP_URL}/jobs`}>
-            View all jobs{' '}
+            {t('sec.viewAllJobs')}{' '}
             <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </a>
         </div>
         <div className="job-row reveal" id="featured-jobs"></div>
-        <div className="subrow-label reveal">Featured Gigs</div>
+        <div className="subrow-label reveal">{t('sec.featGigs')}</div>
         <div className="job-row reveal" id="featured-gigs"></div>
       </section>
 
@@ -923,8 +923,8 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
         <section id="why-choose">
           <div className="sec-head reveal" style={{ marginBottom: '32px' }}>
             <div>
-              <div className="sec-eyebrow">The essentials</div>
-              <h2 className="sec-h">Why Choose Beleqet?</h2>
+              <div className="sec-eyebrow">{t('sec.whyEyebrow')}</div>
+              <h2 className="sec-h">{t('sec.whyH')}</h2>
             </div>
           </div>
           <div className="choose-row reveal">
@@ -934,8 +934,8 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                   <path d="M12 2l7 3v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V5z" />
                 </svg>
               </div>
-              <b>Trusted Platform</b>
-              <span>All jobs are verified for your security.</span>
+              <b>{t('sec.why1Title')}</b>
+              <span>{t('sec.why1Desc')}</span>
             </div>
             <div className="choose-card">
               <div className="icon">
@@ -943,8 +943,8 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                   <path d="M13 2L3 14h7l-1 8 11-14h-7l1-6z" />
                 </svg>
               </div>
-              <b>Fast &amp; Easy</b>
-              <span>Search and apply in just a few clicks.</span>
+              <b>{t('sec.why2Title')}</b>
+              <span>{t('sec.why2Desc')}</span>
             </div>
             <div className="choose-card">
               <div className="icon">
@@ -954,8 +954,8 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                   <path d="M3.5 9a9 9 0 0 1 14.7-3.4L23 10M1 14l4.8 4.4A9 9 0 0 0 20.5 15" />
                 </svg>
               </div>
-              <b>Real-time Updates</b>
-              <span>Get instant job alerts every step.</span>
+              <b>{t('sec.why3Title')}</b>
+              <span>{t('sec.why3Desc')}</span>
             </div>
             <div className="choose-card">
               <div className="icon">
@@ -964,8 +964,8 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                   <path d="M22 2l-7 20-4-9-9-4 20-7z" />
                 </svg>
               </div>
-              <b>Telegram Alerts</b>
-              <span>Get instant job alerts on Telegram.</span>
+              <b>{t('sec.why4Title')}</b>
+              <span>{t('sec.why4Desc')}</span>
             </div>
             <div className="choose-card promo">
               <div className="icon">
@@ -1087,11 +1087,8 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                   <path d="M22 2l-7 20-4-9-9-4 20-7z" />
                 </svg>
               </div>
-              <h3>Never Miss an Opportunity</h3>
-              <p>
-                Join the Beleqet Telegram channel and get instant job and gig alerts delivered
-                directly to your phone.
-              </p>
+              <h3>{t('sec.neverMissH')}</h3>
+              <p>{t('sec.neverMissP')}</p>
             </div>
             <div className="cta-buttons">
               <a
@@ -1100,13 +1097,13 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 target="_blank"
                 rel="noreferrer"
               >
-                Join Telegram Channel{' '}
+                {t('sec.joinTelegram')}{' '}
                 <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </a>
               <a className="btn btn-outline-hero" href={`${APP_URL}/jobs`}>
-                Browse Jobs &amp; Gigs
+                {t('sec.browseJobsGigs')}
               </a>
             </div>
           </div>
