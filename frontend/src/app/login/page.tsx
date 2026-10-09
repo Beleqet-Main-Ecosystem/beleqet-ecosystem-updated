@@ -39,8 +39,8 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo">
-          <div className="login-logo-icon">
-            <ShieldCheck size={32} />
+          <div className="login-logo-icon" style={{ background: 'transparent' }}>
+            <img src="/logo-icon.png" alt="Beleqet Admin" width="48" height="48" style={{ borderRadius: '12px', objectFit: 'contain' }} />
           </div>
           <h1>Beleqet Admin</h1>
           <p>Sign in to the control panel</p>
