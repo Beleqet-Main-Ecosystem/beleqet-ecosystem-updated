@@ -329,22 +329,51 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Checks whether a Telegram user is registered in the Beleqet ecosystem.
+   * Checks whether a Telegram user or email is registered in the Beleqet ecosystem.
    * Drop-in replacement for the legacy WordPress `/check-user` endpoint.
    */
-  async checkUser(telegramId: string) {
-    if (!telegramId) return { registered: false, role: 'unknown', language: 'en' };
+  async checkUser(telegramId?: string, email?: string) {
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim();
+      const user = await this.prisma.user.findFirst({
+        where: { email: normalizedEmail },
+        select: { id: true, role: true, emailVerified: true },
+      });
+
+      if (!user) {
+        return {
+          registered: false,
+          email_registered: false,
+          can_reregister: true,
+          role: 'unknown',
+          language: 'en',
+        };
+      }
+
+      return {
+        registered: true,
+        email_registered: true,
+        can_reregister: false,
+        role: user.role === 'EMPLOYER' ? 'employer' : 'candidate',
+        language: 'en',
+      };
+    }
+
+    if (!telegramId) {
+      return { registered: false, email_registered: false, role: 'unknown', language: 'en' };
+    }
     const user = await this.prisma.user.findFirst({
       where: { telegramId: String(telegramId) },
       select: { id: true, role: true, emailVerified: true },
     });
 
     if (!user) {
-      return { registered: false, role: 'unknown', language: 'en' };
+      return { registered: false, email_registered: false, role: 'unknown', language: 'en' };
     }
 
     return {
       registered: true,
+      email_registered: true,
       role: user.role === 'EMPLOYER' ? 'employer' : 'candidate',
       language: 'en',
     };
@@ -405,10 +434,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
    */
   async registerFromBot(data: any) {
     const telegramId = data.telegram_id || data.telegramId;
-    const email = data.email || `telegram_${telegramId}@beleqet.internal`;
-    const firstName = data.first_name || data.firstName || 'Telegram';
-    const lastName = data.last_name || data.lastName || 'User';
-    const role = data.role === 'employer' ? 'EMPLOYER' : 'JOB_SEEKER';
+    const email = (data.email || `telegram_${telegramId}@beleqet.internal`).toLowerCase().trim();
+    const fullName = data.name || data.first_name || data.firstName || 'Telegram User';
+    const parts = fullName.trim().split(/\s+/);
+    const firstName = parts[0] || 'Telegram';
+    const lastName = parts.slice(1).join(' ') || data.last_name || data.lastName || 'User';
+    const role =
+      data.role === 'employer' || data.role === 'wp_job_board_pro_employer'
+        ? 'EMPLOYER'
+        : 'JOB_SEEKER';
 
     if (telegramId) {
       const existing = await this.prisma.user.findFirst({

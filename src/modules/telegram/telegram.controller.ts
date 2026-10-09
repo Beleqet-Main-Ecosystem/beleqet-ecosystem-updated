@@ -62,8 +62,8 @@ export class TelegramController {
   @Get('check-user')
   @SkipThrottle()
   @ApiOperation({ summary: 'Check if Telegram user is registered (WordPress migration drop-in)' })
-  async checkUser(@Query('telegram_id') telegramId: string) {
-    return this.telegramService.checkUser(telegramId);
+  async checkUser(@Query('telegram_id') telegramId?: string, @Query('email') email?: string) {
+    return this.telegramService.checkUser(telegramId, email);
   }
 
   @Get('get-all-telegram-ids')

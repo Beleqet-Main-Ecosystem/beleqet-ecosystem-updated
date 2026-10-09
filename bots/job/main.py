@@ -566,11 +566,19 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return EMAIL
 
 async def check_email_exists(email: str) -> dict:
-    async with bot_context.session.get(
-        f"{CONFIG['wp_api_url']}/../check-user?email={email}",
-        timeout=aiohttp.ClientTimeout(total=30)
-    ) as response:
-        return await response.json() if response.status == 200 else None
+    try:
+        url = f"{CONFIG['wp_api_url']}/../check-user?email={email}"
+        async with bot_context.session.get(
+            url,
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as response:
+            if response.status == 200:
+                return await response.json()
+            logger.warning(f"Email check returned HTTP status {response.status} from {url}")
+            return None
+    except Exception as e:
+        logger.error(f"Error checking email availability for {email}: {e}")
+        return None
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     message = update.effective_message
@@ -579,7 +587,7 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             await update.callback_query.answer()
         return EMAIL
 
-    email = message.text.strip()
+    email = message.text.strip().lower()
     lang = context.user_data.get('language', 'en')
 
     if not re.match(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$', email):
@@ -591,22 +599,18 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     result = await check_email_exists(email)
     
-    if result is None:
-        await bot_context.rate_limiter.send_message(
-            message.chat_id,
-            TRANSLATIONS[lang]['email_error']
-        )
-        return EMAIL
+    if result is not None:
+        is_registered = result.get('email_registered', False)
+        can_proceed = result.get('can_reregister', False)
 
-    is_registered = result.get('email_registered', False)
-    can_proceed = result.get('can_reregister', False)
-
-    if is_registered and not can_proceed:
-        await bot_context.rate_limiter.send_message(
-            message.chat_id,
-            TRANSLATIONS[lang]['email_exists']
-        )
-        return EMAIL
+        if is_registered and not can_proceed:
+            await bot_context.rate_limiter.send_message(
+                message.chat_id,
+                TRANSLATIONS[lang]['email_exists']
+            )
+            return EMAIL
+    else:
+        logger.warning(f"Could not verify email {email} availability upfront; proceeding with registration.")
 
     context.user_data['email'] = email
     
@@ -713,29 +717,36 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     lang = user_data.get('language', 'en')
     chat_id = update.effective_chat.id if update.effective_chat else (update.effective_message.chat_id if update.effective_message else None)
 
-    form_data = aiohttp.FormData()
-    form_data.add_field('telegram_id', str(update.effective_user.id))
-    form_data.add_field('name', user_data.get('name'))
-    form_data.add_field('email', user_data.get('email'))
-    form_data.add_field('password', user_data.get('password'))
-    form_data.add_field('username', f"tg_{update.effective_user.id}")
-    backend_role = ROLE_BACKEND.get(user_data.get('role_input', ''), user_data.get('role', ''))
-    form_data.add_field('role', backend_role)
-    form_data.add_field('language', lang)
-    form_data.add_field('phone', user_data.get('phone', ''))
-    form_data.add_field('tg_username', user_data.get('tg_username', '')),
-    form_data.add_field('job_title', user_data.get('job_title', '')),
-    form_data.add_field('company_name', user_data.get('company_name', ''))
-
-    if 'trade_license_bytes' in user_data:
-        form_data.add_field('trade_license_file', 
-                           user_data['trade_license_bytes'],
-                           filename=user_data['trade_license_name'],
-                           content_type='application/octet-stream')
+    payload = {
+        'telegram_id': str(update.effective_user.id),
+        'name': user_data.get('name'),
+        'email': user_data.get('email'),
+        'password': user_data.get('password'),
+        'username': f"tg_{update.effective_user.id}",
+        'role': backend_role,
+        'language': lang,
+        'phone': user_data.get('phone', ''),
+        'tg_username': user_data.get('tg_username', ''),
+        'job_title': user_data.get('job_title', ''),
+        'company_name': user_data.get('company_name', '')
+    }
 
     try:
-        
-        async with bot_context.session.post(CONFIG['wp_api_url'], data=form_data, timeout=60) as response:
+        if 'trade_license_bytes' in user_data:
+            form_data = aiohttp.FormData()
+            for k, v in payload.items():
+                form_data.add_field(k, str(v or ''))
+            form_data.add_field(
+                'trade_license_file',
+                user_data['trade_license_bytes'],
+                filename=user_data.get('trade_license_name', 'license.jpg'),
+                content_type='application/octet-stream'
+            )
+            req_kwargs = {'data': form_data}
+        else:
+            req_kwargs = {'json': payload}
+
+        async with bot_context.session.post(CONFIG['wp_api_url'], **req_kwargs, timeout=60) as response:
             if response.status == 201 or response.status == 200:
                 data = await response.json()
                 context.user_data['role'] = normalize_role(data.get('role'))
