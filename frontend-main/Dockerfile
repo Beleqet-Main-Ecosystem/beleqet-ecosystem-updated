@@ -11,6 +11,7 @@ COPY package.json ./
 RUN npm install
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_IGNORE_INCORRECT_LOCKFILE=1
 RUN npm run build
 
 # ── Stage 3: Production image ─────────────────────────────────────────────────
