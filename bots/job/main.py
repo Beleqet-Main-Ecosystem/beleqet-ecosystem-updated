@@ -820,8 +820,8 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
 ➡️ለኢንተርቪ ከመጠራቶት በፊት፣ <b>እንዴት</b> እና <b>በምን</b> መልኩ ልዘጋጅ ብለው እንዳይጨነቁ በማሰብ፣ ዓለማቀፋዊ ዕይታ ያላቸውን ምክረ-ሐሳቦች በማቅረብ ጭንቀቶን እናቀላለል፣\n
 ➡️<b>የዜሮ</b> እና <b>የተለያዩ ዓመታት</b>፣ የሥራ ቅጥር ማስታወቂያዎችን በብዛት በቴሌግራም እና በዌብሳይታችን ላይ፣በሰፊው ተደራሽ እንዲሆኑ በመልቀቅ የስራ ባለቤት እናደርጎታለን።\n       
 ለፈጣን የስራ ማስታወቂያዎች <b>የቴሌግራም ቻናላችንን ይቀላቀሉ</b> እና <b>አሁኑኑ ለማመልከት ድረገጻችንን ይጎብኙ!</b>በቀላሉ በእጅ ስልኮትያገኛሉ።\n
-https:t.me/BeleqetJobs <b>እና</b>\n
-https://beleqet.com/vacancy/ ላይማስታወቂያዎችን በመመልከት <b>አሁኑኑ</b> ያመልክቱ"""
+https://t.me/BeleqetJobs <b>እና</b>\n
+https://beleqetjobs.com ላይማስታወቂያዎችን በመመልከት <b>አሁኑኑ</b> ያመልክቱ"""
 
         if photo_id:
             await bot_context.rate_limiter.send_photo(
@@ -847,7 +847,7 @@ https://beleqet.com/vacancy/ ላይማስታወቂያዎችን በመመልከ�
 
 ዛሬውኑ የ<b>Beleqet Jobs</b>ን
 ➡️የቴሌግራም(https://t.me/BeleqetJobs) እና
-➡️የዌብሳይት(https://beleqet.com/vacancy/) ገፆቻችንን በመቀላቀልይመልከቱ!
+➡️የዌብሳይት(https://beleqetjobs.com) ገፆቻችንን በመቀላቀልይመልከቱ!
 
 <b>Beleqet Jobs</b> ለንግድዎ፣ ለቤተሰብዎና ለጓደኞችዎ ተጨማሪ ትርፍ ጊዜ በመስጠት የቅጥር ጊዜዎን ይቀንሳል፣ ጭንቀትዎን ያቀላል፣ ለእርሶም የሚገባዎትን እረፍት ይሰጥዎታል"""
 
@@ -1361,6 +1361,19 @@ async def main() -> None:
 
         await bot_context.application.initialize()
         await bot_context.application.start()
+
+        try:
+            from telegram import MenuButtonWebApp
+            await bot_context.application.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Open App",
+                    web_app=WebAppInfo(url=CONFIG['mini_app_url'])
+                )
+            )
+            logger.info(f">>> Telegram Chat Menu Button set to {CONFIG['mini_app_url']} <<<")
+        except Exception as e:
+            logger.warning(f"Could not set chat menu button: {e}")
+
         await bot_context.application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
         logger.info(">>> Telegram bot started polling <<<")
 
