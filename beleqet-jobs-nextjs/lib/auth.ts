@@ -61,12 +61,20 @@ function persist(token: string, user: AuthUser, refreshToken?: string | null): v
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
   if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
+  if (typeof document !== 'undefined') {
+    document.cookie = `beleqet_token=${encodeURIComponent(token)}; path=/; max-age=2592000; SameSite=Lax`;
+    document.cookie = `beleqet_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=2592000; SameSite=Lax`;
+  }
 }
 
 export function clearAuth(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
+  if (typeof document !== 'undefined') {
+    document.cookie = 'beleqet_token=; path=/; max-age=0; SameSite=Lax';
+    document.cookie = 'beleqet_user=; path=/; max-age=0; SameSite=Lax';
+  }
 }
 
 // ── Token refresh ─────────────────────────────────────────────────────────────

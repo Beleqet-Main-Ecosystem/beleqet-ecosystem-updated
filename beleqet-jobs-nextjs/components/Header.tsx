@@ -1,10 +1,10 @@
 "use client";
 
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { Menu, ChevronDown } from "lucide-react";
 import HeaderAuth from "@/components/HeaderAuth";
 import PostJobButton from "@/components/PostJobButton";
 import NotificationBell from "@/components/NotificationBell";
@@ -21,14 +21,24 @@ const MobileDrawer = lazy(() => import("@/components/mobile/MobileDrawer"));
 
 export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
+        setToolsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Context-aware "For employers" link:
-  //  - Employer/Admin → goes straight to the employer dashboard
-  //  - Logged-in regular user → goes to post-job (most likely next action)
-  //  - Guest (not logged in) → goes to the /for-employers landing page
   const employerHref =
     user && ["EMPLOYER", "ADMIN"].includes(user.role)
       ? "/employer"
@@ -36,19 +46,24 @@ export default function Header() {
         ? "/post-job"
         : "/for-employers";
 
-  const navItems = [
+  const primaryNavItems = [
     { label: t("nav.findJobs"), href: "/jobs" },
     { label: t("nav.freelance"), href: "/freelance" },
     { label: t("nav.employers"), href: employerHref },
+    { label: t("nav.pricing"), href: "/pricing" },
+  ];
+
+  const toolsNavItems = [
     { label: t("nav.cvMaker"), href: "/cv-maker" },
     { label: t("nav.portfolio"), href: "/portfolio" },
     { label: t("nav.chatToText"), href: "/chat-to-text" },
-    { label: t("nav.pricing"), href: "/pricing" },
     { label: t("nav.about"), href: "/about" },
   ];
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  const isToolsActive = toolsNavItems.some((item) => isActive(item.href));
 
   return (
     <>
@@ -85,7 +100,7 @@ export default function Header() {
             className="hidden items-center gap-1 lg:flex"
             aria-label="Main navigation"
           >
-            {navItems.map((item) => {
+            {primaryNavItems.map((item) => {
               const active = isActive(item.href);
               return (
                 <Link
@@ -94,13 +109,55 @@ export default function Header() {
                   className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                     active
                       ? "bg-white/15 text-white"
-                      : "text-white/60 hover:bg-white/10 hover:text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {item.label}
                 </Link>
               );
             })}
+
+            {/* Tools / More dropdown */}
+            <div className="relative" ref={toolsRef}>
+              <button
+                type="button"
+                onClick={() => setToolsOpen(!toolsOpen)}
+                className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
+                  isToolsActive || toolsOpen
+                    ? "bg-white/15 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span>{locale === "am" ? "ተጨማሪ" : "Tools"}</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    toolsOpen ? "rotate-180 text-[#d8ff3e]" : "text-white/60"
+                  }`}
+                />
+              </button>
+
+              {toolsOpen && (
+                <div className="absolute left-0 mt-2 w-48 rounded-2xl border border-white/10 bg-primary/95 p-1.5 shadow-xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+                  {toolsNavItems.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setToolsOpen(false)}
+                        className={`block rounded-xl px-3.5 py-2.5 text-xs font-bold transition-colors ${
+                          active
+                            ? "bg-white/15 text-[#d8ff3e]"
+                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Desktop action area */}
