@@ -35,17 +35,16 @@ export class RolesGuard implements CanActivate {
     const user = context.switchToHttp().getRequest<{ user: any }>().user;
     if (!user) return false;
     user.userId = user.userId || user.id;
-    if (!user.userId || !user.role) { console.log("Missing user ID or role in JWT:", user); return false; }
+    if (!user.userId || !user.role) {
+      return false;
+    }
 
     if (requiredRoles && requiredRoles.length > 0) {
-      if (!requiredRoles.includes(user.role)) { console.log("User role not in required roles:", user.role, requiredRoles);
+      if (!requiredRoles.includes(user.role)) {
         return false;
       }
     }
 
-    if (user.role === 'ADMIN') {
-      return true;
-    }
 
     if (requiredPermissions && requiredPermissions.length > 0) {
       const cacheKey = `user_permissions:${user.userId}`;
@@ -86,7 +85,9 @@ export class RolesGuard implements CanActivate {
       const hasPermissions = requiredPermissions.every((permission) =>
         userPermissions.includes(permission),
       );
-      if (!hasPermissions) { console.log("Missing permissions. Required:", requiredPermissions, "User has:", userPermissions); return false; }
+      if (!hasPermissions) {
+        return false;
+      }
     }
 
     return true;

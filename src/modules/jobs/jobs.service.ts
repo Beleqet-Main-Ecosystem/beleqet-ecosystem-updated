@@ -71,9 +71,7 @@ export class JobsService {
         salaryMax: job.salaryMax ? Number(job.salaryMax) : undefined,
         currency: job.currency,
       })
-      .catch((err) =>
-        this.logger.error(`Telegram job broadcast failed: ${err.message}`),
-      );
+      .catch((err) => this.logger.error(`Telegram job broadcast failed: ${err.message}`));
 
     return job;
   }

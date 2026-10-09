@@ -171,13 +171,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
         // bot.launch() only resolves when the bot stops polling, so it
         this.bot.launch().catch((err) => {
-          this.logger.warn(`Telegram polling stopped: ${(err as Error).message}. (Outbound broadcasting remains operational via Telegram HTTP API)`);
+          this.logger.warn(
+            `Telegram polling stopped: ${(err as Error).message}. (Outbound broadcasting remains operational via Telegram HTTP API)`,
+          );
         });
 
         this.logger.log('Telegram bot listener started in Long Polling mode (background).');
       }
     } catch (err) {
-      this.logger.warn(`Telegram bot listener setup error: ${(err as Error).message}. Outbound broadcasts will still proceed if token is valid.`);
+      this.logger.warn(
+        `Telegram bot listener setup error: ${(err as Error).message}. Outbound broadcasts will still proceed if token is valid.`,
+      );
     }
   }
 
@@ -264,13 +268,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     salaryMax?: number;
     currency?: string;
   }): Promise<boolean> {
-    const channelId = this.config.get<string>('TELEGRAM_CHANNEL_ID') || process.env.TELEGRAM_CHANNEL_ID;
+    const channelId =
+      this.config.get<string>('TELEGRAM_CHANNEL_ID') || process.env.TELEGRAM_CHANNEL_ID;
     if (!this.enabled || !this.bot || !channelId) {
-      this.logger.log(`Telegram job broadcast skipped: enabled=${this.enabled}, bot=${Boolean(this.bot)}, channelId=${channelId}`);
+      this.logger.log(
+        `Telegram job broadcast skipped: enabled=${this.enabled}, bot=${Boolean(this.bot)}, channelId=${channelId}`,
+      );
       return false;
     }
 
-    let frontendUrl = this.config.get<string>('FRONTEND_URL', 'https://beleqetjobs.com')
+    let frontendUrl = this.config
+      .get<string>('FRONTEND_URL', 'https://beleqetjobs.com')
       .split(',')[0]
       .trim();
     if (frontendUrl.includes('localhost') || frontendUrl.includes('127.0.0.1')) {
@@ -282,8 +290,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       job.salaryMin && job.salaryMax
         ? `💰 Salary: ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()} ${job.currency || 'ETB'}\n`
         : job.salaryMin
-        ? `💰 Salary: From ${job.salaryMin.toLocaleString()} ${job.currency || 'ETB'}\n`
-        : '';
+          ? `💰 Salary: From ${job.salaryMin.toLocaleString()} ${job.currency || 'ETB'}\n`
+          : '';
 
     const message =
       `📢 <b>New Job Vacancy on Beleqet!</b>\n\n` +
@@ -308,10 +316,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           ],
         },
       });
-      this.logger.log(`Job [${job.id}] "${job.title}" successfully broadcast to Telegram channel ${channelId}`);
+      this.logger.log(
+        `Job [${job.id}] "${job.title}" successfully broadcast to Telegram channel ${channelId}`,
+      );
       return true;
     } catch (err) {
-      this.logger.error(`Failed to broadcast job to Telegram channel ${channelId}: ${(err as Error).message}`);
+      this.logger.error(
+        `Failed to broadcast job to Telegram channel ${channelId}: ${(err as Error).message}`,
+      );
       return false;
     }
   }
@@ -348,9 +360,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       select: { telegramId: true },
     });
 
-    const ids = users
-      .map((u) => Number(u.telegramId))
-      .filter((id) => !isNaN(id) && id > 0);
+    const ids = users.map((u) => Number(u.telegramId)).filter((id) => !isNaN(id) && id > 0);
 
     return { telegram_ids: ids };
   }

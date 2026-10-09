@@ -20,7 +20,7 @@ app.add_middleware(
 
 DB_FILE = "referrals.db"
 PROMO_BOT_API_URL = os.getenv("PROMO_BOT_API_URL", "https://beleqet-promo-miniapp.beleqet.com/api/internal/transfer_points")
-TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "a2ddc744ab3225e69982818d59cfb8eefc2f323891358a637636e2c8ebaa52b2")
+TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "synthetic_transfer_secret_key_please_change_in_production")
 MIN_TRANSFER_AMOUNT = 1
 
 class WithdrawRequest(BaseModel):

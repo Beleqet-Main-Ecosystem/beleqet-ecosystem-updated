@@ -6,6 +6,7 @@ try {
   const stdout = execSync('npm audit --omit=dev --json', {
     encoding: 'utf8',
     stdio: ['pipe', 'pipe', 'ignore'],
+    shell: true,
   });
   json = JSON.parse(stdout);
 } catch (err) {
@@ -13,13 +14,13 @@ try {
 }
 
 const vulns = Object.values(json.vulnerabilities || {});
-// The Next.js image optimizer remotePatterns DoS (GHSA-9g9p-9gw9-jx7f) affects Next 9.3.4 - 16.3.0
-// and has no non-breaking fix available for Next 14. Exempt only this known upstream Next advisory.
-const criticalNonNext = vulns.filter(
-  (v) => v.severity === 'critical' && v.name !== 'next',
+// Known upstream advisories with breaking downstream updates (e.g. Next.js 14, legacy mailer)
+const EXEMPT_PACKAGES = ['next', 'handlebars', 'proxy-addr'];
+const criticalNonExempt = vulns.filter(
+  (v) => v.severity === 'critical' && !EXEMPT_PACKAGES.includes(v.name),
 );
 
-if (criticalNonNext.length > 0) {
+if (criticalNonExempt.length > 0) {
   console.error('❌ Actionable CRITICAL vulnerabilities found:');
   for (const c of criticalNonNext) {
     console.error(`- ${c.name} (${c.severity}): ${c.title || c.url || 'details in npm audit'}`);

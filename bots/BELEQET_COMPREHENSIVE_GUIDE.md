@@ -290,7 +290,7 @@ curl -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://webhook.beleqet.com/webhook",
-    "secret_token": "27805717db90707de557a1b62257c54936f563dc0e23e92762d33445cc60e4b4",
+    "secret_token": "synthetic_webhook_secret_token_please_change_in_production",
     "allowed_updates": ["message", "callback_query", "chat_member"]
   }'
 ```

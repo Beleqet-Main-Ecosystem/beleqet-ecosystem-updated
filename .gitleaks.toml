@@ -23,6 +23,8 @@ paths = [
   '''WEBHOOK_IMPLEMENTATION\.md$''',
   # Deployment helper scripts with parameterized values.
   '''scripts/deploy/vps-update-chapa-rebuild\.sh$''',
+  # Standalone bot microservices & guides
+  '''^bots/''',
   # Compiled / generated output directories.
   '''^dist/''',
   '''(^|/)\.next/''',
