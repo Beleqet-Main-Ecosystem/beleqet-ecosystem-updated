@@ -1349,6 +1349,8 @@ async def main() -> None:
         app.router.add_get('/challenge/', challenge_index)
         app.router.add_static('/challenge/', path=os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'app'), name='challenge_static')
         
+        runner = web.AppRunner(app)
+        await runner.setup()
         port = int(os.environ.get('PORT', 8082))
         site = web.TCPSite(runner, '0.0.0.0', port)
         await site.start()
