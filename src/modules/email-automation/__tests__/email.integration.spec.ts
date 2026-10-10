@@ -36,6 +36,14 @@ describe('Email module (integration: Postgres + Redis + BullMQ)', () => {
 
   beforeAll(async () => {
     try {
+      execSync('docker info', { stdio: 'ignore', timeout: 3000 });
+    } catch {
+      console.warn('Docker daemon not accessible; skipping email integration container tests.');
+      dockerAvailable = false;
+      return;
+    }
+
+    try {
       pg = await new PostgreSqlContainer('postgres:16-alpine').start();
       redis = await new GenericContainer('redis:7-alpine').withExposedPorts(6379).start();
       dockerAvailable = true;
@@ -44,6 +52,7 @@ describe('Email module (integration: Postgres + Redis + BullMQ)', () => {
         'Docker daemon not accessible; skipping email integration container tests:',
         (err as Error).message,
       );
+      dockerAvailable = false;
       return;
     }
 
