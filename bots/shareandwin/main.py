@@ -248,11 +248,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Mini App ይክፈቱ 📱", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
 
-    await update.message.reply_photo(
-        photo=WELCOME_PHOTO_FILE_ID, 
-        caption=amharic_welcome_text, 
-        reply_markup=join_button_markup
-    )
+    try:
+        if os.path.exists(WELCOME_PHOTO_FILE_ID):
+            with open(WELCOME_PHOTO_FILE_ID, 'rb') as photo_file:
+                await update.message.reply_photo(
+                    photo=photo_file,
+                    caption=amharic_welcome_text,
+                    reply_markup=join_button_markup
+                )
+        else:
+            await update.message.reply_text(
+                amharic_welcome_text,
+                reply_markup=join_button_markup
+            )
+    except Exception as e:
+        logging.warning(f"Failed sending welcome photo, falling back to text: {e}")
+        await update.message.reply_text(
+            amharic_welcome_text,
+            reply_markup=join_button_markup
+        )
 
     await update.message.reply_text(
         "👇 Use the menu button below to open your Mini App Dashboard:",
