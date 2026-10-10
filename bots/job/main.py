@@ -508,24 +508,44 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
         return NAME
     
 async def get_company_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data['company_name'] = update.message.text.strip()
-    context.user_data['name'] = update.message.text.strip() 
-    lang = context.user_data['language']
-    await bot_context.rate_limiter.send_message(update.message.chat_id, TRANSLATIONS[lang]['enter_phone'])
+    message = update.effective_message
+    if not message or not message.text:
+        return COMPANY_NAME
+    context.user_data['company_name'] = message.text.strip()
+    context.user_data['name'] = message.text.strip() 
+    lang = context.user_data.get('language', 'en')
+    await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['enter_phone'])
     return PHONE
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data['name'] = update.message.text.strip()
-    lang = context.user_data['language']
+    message = update.effective_message
+    if not message or not message.text:
+        return NAME
+    context.user_data['name'] = message.text.strip()
+    lang = context.user_data.get('language', 'en')
     await bot_context.rate_limiter.send_message(
-        update.message.chat_id,
+        message.chat_id,
         TRANSLATIONS[lang]['enter_phone']
     )
     return PHONE
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    phone_input = update.message.text.strip()
-    lang = context.user_data['language']
+    message = update.effective_message
+    if not message:
+        return PHONE
+
+    lang = context.user_data.get('language', 'en')
+    phone_input = None
+
+    if message.contact and message.contact.phone_number:
+        phone_input = message.contact.phone_number.strip()
+        if phone_input.startswith('251') and not phone_input.startswith('+251'):
+            phone_input = '+' + phone_input
+    elif message.text:
+        phone_input = message.text.strip()
+
+    if not phone_input:
+        return PHONE
 
     ethiopian_phone_pattern = r'^(\+251|0)[79][0-9]{8}$'
     
@@ -535,71 +555,75 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             if lang == 'en' else 
             "ልክ ያልሆነ ቅርጸት። እባክዎ በ 09... ወይም 07... የሚጀምር ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ"
         )
-        await bot_context.rate_limiter.send_message(update.message.chat_id, error_msg)
+        await bot_context.rate_limiter.send_message(message.chat_id, error_msg)
         return PHONE
 
     context.user_data['phone'] = phone_input
     await bot_context.rate_limiter.send_message(
-        update.message.chat_id,
+        message.chat_id,
         TRANSLATIONS[lang]['enter_name']
     )
     return EMAIL
 
 async def check_email_exists(email: str) -> dict:
-    async with bot_context.session.get(
-        f"{CONFIG['wp_api_url']}/../check-user?email={email}",
-        timeout=aiohttp.ClientTimeout(total=30)
-    ) as response:
-        return await response.json() if response.status == 200 else None
+    try:
+        url = f"{CONFIG['wp_api_url']}/../check-user?email={email}"
+        async with bot_context.session.get(
+            url,
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as response:
+            if response.status == 200:
+                return await response.json()
+            logger.warning(f"Email check returned HTTP status {response.status} from {url}")
+            return None
+    except Exception as e:
+        logger.error(f"Error checking email availability for {email}: {e}")
+        return None
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-
-    if not update.message or not update.message.text:
+    message = update.effective_message
+    if not message or not message.text:
         if update.callback_query:
             await update.callback_query.answer()
         return EMAIL
 
-    email = update.message.text.strip()
-    lang = context.user_data['language']
+    email = message.text.strip().lower()
+    lang = context.user_data.get('language', 'en')
 
     if not re.match(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$', email):
         await bot_context.rate_limiter.send_message(
-            update.message.chat_id,
+            message.chat_id,
             TRANSLATIONS[lang]['invalid_email']
         )
         return EMAIL
 
     result = await check_email_exists(email)
     
-    if result is None:
-        await bot_context.rate_limiter.send_message(
-            update.message.chat_id,
-            TRANSLATIONS[lang]['email_error']
-        )
-        return EMAIL
+    if result is not None:
+        is_registered = result.get('email_registered', False)
+        can_proceed = result.get('can_reregister', False)
 
-    is_registered = result.get('email_registered', False)
-    can_proceed = result.get('can_reregister', False)
-
-    if is_registered and not can_proceed:
-        await bot_context.rate_limiter.send_message(
-            update.message.chat_id,
-            TRANSLATIONS[lang]['email_exists']
-        )
-        return EMAIL
+        if is_registered and not can_proceed:
+            await bot_context.rate_limiter.send_message(
+                message.chat_id,
+                TRANSLATIONS[lang]['email_exists']
+            )
+            return EMAIL
+    else:
+        logger.warning(f"Could not verify email {email} availability upfront; proceeding with registration.")
 
     context.user_data['email'] = email
     
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(TRANSLATIONS[lang]['skip'], callback_data='skip_tg')]])
     await bot_context.rate_limiter.send_message(
-        update.message.chat_id,
+        message.chat_id,
         TRANSLATIONS[lang]['enter_tg_username'],
         reply_markup=keyboard
     )
     return TG_USERNAME
 
 async def get_tg_username(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    lang = context.user_data['language']
+    lang = context.user_data.get('language', 'en')
     
     if update.callback_query:
         await update.callback_query.answer()
@@ -609,48 +633,62 @@ async def get_tg_username(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             TRANSLATIONS[lang]['enter_password']
         )
     else:
-        context.user_data['tg_username'] = update.message.text.strip()
+        message = update.effective_message
+        if not message or not message.text:
+            return TG_USERNAME
+        context.user_data['tg_username'] = message.text.strip()
         await bot_context.rate_limiter.send_message(
-            update.message.chat_id, 
+            message.chat_id, 
             TRANSLATIONS[lang]['enter_password']
         )
         
     return PASSWORD
 
 async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.effective_message
+    if not message or not message.text:
+        return PASSWORD
+
     user_data = context.user_data
-    user_data['password'] = update.message.text
+    user_data['password'] = message.text
     lang = user_data.get('language', 'en')
     role_input = user_data.get('role_input', '')
 
     if role_input == 'employer':
         await bot_context.rate_limiter.send_message(
-            update.message.chat_id,
+            message.chat_id,
             TRANSLATIONS[lang]['enter_trade_license'],
             parse_mode='HTML'
         )
         return TRADE_LICENSE
     
     await bot_context.rate_limiter.send_message(
-        update.message.chat_id,
+        message.chat_id,
         TRANSLATIONS[lang]['enter_job_title']
     )
     return JOB_TITLE
 
 async def get_job_title(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    context.user_data['job_title'] = update.message.text.strip()
+    message = update.effective_message
+    if not message or not message.text:
+        return JOB_TITLE
+    context.user_data['job_title'] = message.text.strip()
     return await submit_registration(update, context)
 
 async def get_trade_license(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.effective_message
+    if not message:
+        return TRADE_LICENSE
     user_data = context.user_data
     lang = user_data.get('language', 'en')
     telegram_id = str(update.effective_user.id)
+    chat_id = message.chat_id
     
     import time
     timestamp = int(time.time())
     
-    document = update.message.document
-    photo = update.message.photo
+    document = message.document
+    photo = message.photo
     
     if document:
         original_ext = document.file_name.lower().split('.')[-1]
@@ -660,10 +698,10 @@ async def get_trade_license(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         file_name = f"TG_{telegram_id}_{timestamp}.jpg"
         file_obj = await photo[-1].get_file()
     else:
-        await bot_context.rate_limiter.send_message(update.message.chat_id, TRANSLATIONS[lang]['invalid_file_type'])
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['invalid_file_type'])
         return TRADE_LICENSE
 
-    await bot_context.rate_limiter.send_message(update.message.chat_id, TRANSLATIONS[lang]['processing_registration'])
+    await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['processing_registration'])
 
     # Download as bytes (no Base64 encoding needed)
     file_bytes = await file_obj.download_as_bytearray()
@@ -677,30 +715,39 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     """Submits the final registration data to the WordPress API."""
     user_data = context.user_data
     lang = user_data.get('language', 'en')
+    chat_id = update.effective_chat.id if update.effective_chat else (update.effective_message.chat_id if update.effective_message else None)
+    backend_role = ROLE_BACKEND.get(user_data.get('role_input', ''), user_data.get('role', 'candidate'))
 
-    form_data = aiohttp.FormData()
-    form_data.add_field('telegram_id', str(update.effective_user.id))
-    form_data.add_field('name', user_data.get('name'))
-    form_data.add_field('email', user_data.get('email'))
-    form_data.add_field('password', user_data.get('password'))
-    form_data.add_field('username', f"tg_{update.effective_user.id}")
-    backend_role = ROLE_BACKEND.get(user_data.get('role_input', ''), user_data.get('role', ''))
-    form_data.add_field('role', backend_role)
-    form_data.add_field('language', lang)
-    form_data.add_field('phone', user_data.get('phone', ''))
-    form_data.add_field('tg_username', user_data.get('tg_username', '')),
-    form_data.add_field('job_title', user_data.get('job_title', '')),
-    form_data.add_field('company_name', user_data.get('company_name', ''))
-
-    if 'trade_license_bytes' in user_data:
-        form_data.add_field('trade_license_file', 
-                           user_data['trade_license_bytes'],
-                           filename=user_data['trade_license_name'],
-                           content_type='application/octet-stream')
+    payload = {
+        'telegram_id': str(update.effective_user.id),
+        'name': user_data.get('name'),
+        'email': user_data.get('email'),
+        'password': user_data.get('password'),
+        'username': f"tg_{update.effective_user.id}",
+        'role': backend_role,
+        'language': lang,
+        'phone': user_data.get('phone', ''),
+        'tg_username': user_data.get('tg_username', ''),
+        'job_title': user_data.get('job_title', ''),
+        'company_name': user_data.get('company_name', '')
+    }
 
     try:
-        
-        async with bot_context.session.post(CONFIG['wp_api_url'], data=form_data, timeout=60) as response:
+        if 'trade_license_bytes' in user_data:
+            form_data = aiohttp.FormData()
+            for k, v in payload.items():
+                form_data.add_field(k, str(v or ''))
+            form_data.add_field(
+                'trade_license_file',
+                user_data['trade_license_bytes'],
+                filename=user_data.get('trade_license_name', 'license.jpg'),
+                content_type='application/octet-stream'
+            )
+            req_kwargs = {'data': form_data}
+        else:
+            req_kwargs = {'json': payload}
+
+        async with bot_context.session.post(CONFIG['wp_api_url'], **req_kwargs, timeout=60) as response:
             if response.status == 201 or response.status == 200:
                 data = await response.json()
                 context.user_data['role'] = normalize_role(data.get('role'))
@@ -716,14 +763,15 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
                     name=user_data.get('name'), email=user_data.get('email'), role=role
                 )
                 
-                await bot_context.rate_limiter.send_message(
-                    update.message.chat_id, text=msg + details,
-                    reply_markup=get_keyboard(role, lang, update.effective_user.id in CONFIG['admin_ids']) if status != 'pending' else None
-                )
+                if chat_id:
+                    await bot_context.rate_limiter.send_message(
+                        chat_id, text=msg + details,
+                        reply_markup=get_keyboard(role, lang, update.effective_user.id in CONFIG['admin_ids']) if status != 'pending' else None
+                    )
 
                 # Post-registration redirect logic
                 post_reg_job = context.user_data.get('post_registration_job')
-                if post_reg_job:
+                if post_reg_job and chat_id:
                     clean_slug = post_reg_job.replace('job-', '')
                     mini_app_job_url = f"{CONFIG['mini_app_url']}/jobs/{clean_slug}"
                     
@@ -736,7 +784,7 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
                         
                     keyboard = [[InlineKeyboardButton(btn_text, web_app=WebAppInfo(url=mini_app_job_url))]]
                     await bot_context.rate_limiter.send_message(
-                        update.message.chat_id,
+                        chat_id,
                         text=success_txt,
                         reply_markup=InlineKeyboardMarkup(keyboard)
                     )
@@ -747,16 +795,18 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
                 except Exception:
                     error_message = f"Could not parse server response. Status: {response.status}"
 
-                await bot_context.rate_limiter.send_message(
-                    update.message.chat_id,
-                    TRANSLATIONS[lang]['registration_failed'].format(error=error_message, status=response.status)
-                )
+                if chat_id:
+                    await bot_context.rate_limiter.send_message(
+                        chat_id,
+                        TRANSLATIONS[lang]['registration_failed'].format(error=error_message, status=response.status)
+                    )
 
     except Exception as e:
         logger.error(f"Error during registration submission: {e}", exc_info=True)
-        await bot_context.rate_limiter.send_message(
-            update.message.chat_id, TRANSLATIONS[lang]['server_error'].format(error="an unexpected issue")
-        )
+        if chat_id:
+            await bot_context.rate_limiter.send_message(
+                chat_id, TRANSLATIONS[lang]['server_error'].format(error="an unexpected issue")
+            )
     finally:
         keys_to_remove = ['trade_license_bytes', 'trade_license_name', 'password', 'role_input']
         for key in keys_to_remove:
@@ -820,8 +870,8 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
 ➡️ለኢንተርቪ ከመጠራቶት በፊት፣ <b>እንዴት</b> እና <b>በምን</b> መልኩ ልዘጋጅ ብለው እንዳይጨነቁ በማሰብ፣ ዓለማቀፋዊ ዕይታ ያላቸውን ምክረ-ሐሳቦች በማቅረብ ጭንቀቶን እናቀላለል፣\n
 ➡️<b>የዜሮ</b> እና <b>የተለያዩ ዓመታት</b>፣ የሥራ ቅጥር ማስታወቂያዎችን በብዛት በቴሌግራም እና በዌብሳይታችን ላይ፣በሰፊው ተደራሽ እንዲሆኑ በመልቀቅ የስራ ባለቤት እናደርጎታለን።\n       
 ለፈጣን የስራ ማስታወቂያዎች <b>የቴሌግራም ቻናላችንን ይቀላቀሉ</b> እና <b>አሁኑኑ ለማመልከት ድረገጻችንን ይጎብኙ!</b>በቀላሉ በእጅ ስልኮትያገኛሉ።\n
-https:t.me/BeleqetJobs <b>እና</b>\n
-https://beleqet.com/vacancy/ ላይማስታወቂያዎችን በመመልከት <b>አሁኑኑ</b> ያመልክቱ"""
+https://t.me/BeleqetJobs <b>እና</b>\n
+https://beleqetjobs.com ላይማስታወቂያዎችን በመመልከት <b>አሁኑኑ</b> ያመልክቱ"""
 
         if photo_id:
             await bot_context.rate_limiter.send_photo(
@@ -847,7 +897,7 @@ https://beleqet.com/vacancy/ ላይማስታወቂያዎችን በመመልከ�
 
 ዛሬውኑ የ<b>Beleqet Jobs</b>ን
 ➡️የቴሌግራም(https://t.me/BeleqetJobs) እና
-➡️የዌብሳይት(https://beleqet.com/vacancy/) ገፆቻችንን በመቀላቀልይመልከቱ!
+➡️የዌብሳይት(https://beleqetjobs.com) ገፆቻችንን በመቀላቀልይመልከቱ!
 
 <b>Beleqet Jobs</b> ለንግድዎ፣ ለቤተሰብዎና ለጓደኞችዎ ተጨማሪ ትርፍ ጊዜ በመስጠት የቅጥር ጊዜዎን ይቀንሳል፣ ጭንቀትዎን ያቀላል፣ ለእርሶም የሚገባዎትን እረፍት ይሰጥዎታል"""
 
@@ -882,10 +932,12 @@ async def get_user_role(telegram_id: str) -> str:
     return 'unknown'
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await bot_context.rate_limiter.send_message(
-        update.message.chat_id,
-        TRANSLATIONS[context.user_data.get('language', 'en')]['cancel']
-    )
+    chat_id = update.effective_chat.id if update.effective_chat else (update.effective_message.chat_id if update.effective_message else None)
+    if chat_id:
+        await bot_context.rate_limiter.send_message(
+            chat_id,
+            TRANSLATIONS[context.user_data.get('language', 'en')]['cancel']
+        )
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -1349,6 +1401,8 @@ async def main() -> None:
         app.router.add_get('/challenge/', challenge_index)
         app.router.add_static('/challenge/', path=os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'app'), name='challenge_static')
         
+        runner = web.AppRunner(app)
+        await runner.setup()
         port = int(os.environ.get('PORT', 8082))
         site = web.TCPSite(runner, '0.0.0.0', port)
         await site.start()
@@ -1359,6 +1413,19 @@ async def main() -> None:
 
         await bot_context.application.initialize()
         await bot_context.application.start()
+
+        try:
+            from telegram import MenuButtonWebApp
+            await bot_context.application.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Open App",
+                    web_app=WebAppInfo(url=CONFIG['mini_app_url'])
+                )
+            )
+            logger.info(f">>> Telegram Chat Menu Button set to {CONFIG['mini_app_url']} <<<")
+        except Exception as e:
+            logger.warning(f"Could not set chat menu button: {e}")
+
         await bot_context.application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
         logger.info(">>> Telegram bot started polling <<<")
 
