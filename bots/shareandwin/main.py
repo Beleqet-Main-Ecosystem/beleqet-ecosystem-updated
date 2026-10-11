@@ -127,7 +127,7 @@ async def post_init(application: Application):
         from telegram import MenuButtonWebApp
         await application.bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
-                text="Launch Beleqet",
+                text="Launch Beleqet Go",
                 web_app=WebAppInfo(url=WEBAPP_URL)
             )
         )
