@@ -79,7 +79,7 @@ export default function ProfileScreen() {
               <View className="bg-brandGreen/20 px-2 py-0.5 rounded-full">
                 <Text className="text-brandGreen text-xs font-bold">{roleLabel}</Text>
               </View>
-              {user.isEmailVerified && (
+              {user.emailVerified && (
                 <View className="bg-blue-500/20 px-2 py-0.5 rounded-full flex-row items-center gap-1">
                   <Shield color="#60a5fa" size={10} />
                   <Text className="text-blue-400 text-xs font-bold">Verified</Text>
