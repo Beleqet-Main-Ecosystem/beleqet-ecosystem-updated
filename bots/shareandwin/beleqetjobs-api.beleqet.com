@@ -14,12 +14,9 @@ server {
         proxy_set_header Connection "upgrade";
     }
 
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-
+    listen 443 ssl;
+    ssl_certificate /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/privkey.pem;
 }
 server {
     if ($host = beleqetjobs-api.beleqet.com) {
