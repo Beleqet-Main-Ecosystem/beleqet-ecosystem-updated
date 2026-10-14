@@ -69,7 +69,7 @@ const DRAWER_LINKS: DrawerNavLink[] = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard },
   { href: "/applications", labelKey: "nav.applications", icon: FileText, roles: ["JOB_SEEKER", "FREELANCER"] },
   { href: "/employer", labelKey: "nav.employer", icon: Building2, roles: ["EMPLOYER", "ADMIN"] },
-  { href: "/saved-jobs", labelKey: "nav.savedJobs", icon: Bookmark, roles: ["JOB_SEEKER"] },
+  { href: "/applications?tab=saved", labelKey: "nav.savedJobs", icon: Bookmark, roles: ["JOB_SEEKER"] },
   { href: "/profile", labelKey: "nav.profile", icon: User },
   { href: "/admin", labelKey: "nav.admin", icon: ShieldCheck, roles: ["ADMIN"] },
 ];
@@ -240,7 +240,7 @@ export default function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-sm font-semibold text-ink dark:text-slate-200 transition-colors hover:bg-pageBg dark:hover:bg-slate-800"
           >
             <Globe className="h-5 w-5 text-brandGreen" />
-            {locale === "en" ? "\u12A0\u121B\u122D\u1275 / Amharic" : "English / \u12E5\u1293\u130D\u139B\u128D"}
+            English / አማርኛ
           </button>
         </div>
       </aside>

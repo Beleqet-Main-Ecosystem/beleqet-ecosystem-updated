@@ -43,13 +43,13 @@ export default function HeaderAuth() {
       <div className="flex items-center gap-1.5">
         <Link
           href="/login"
-          className="inline-block rounded-full px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:text-brandGreen"
+          className="inline-block rounded-full border border-white/20 px-3.5 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
         >
           Login
         </Link>
         <Link
           href="/register"
-          className="inline-block rounded-full border border-border px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:border-brandGreen hover:text-brandGreen"
+          className="inline-block rounded-full border border-white/20 px-3.5 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-white hover:bg-white/10 hover:text-white"
         >
           Sign Up
         </Link>

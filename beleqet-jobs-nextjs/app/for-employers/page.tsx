@@ -125,7 +125,7 @@ export default function ForEmployersPage() {
               key={item.label}
               className="border-primary/10 p-7 even:border-l dark:border-slate-800 md:border-l first:md:border-l-0"
             >
-              <item.icon className="h-5 w-5 text-[#d8ff3e]" />
+              <item.icon className="h-5 w-5 text-brandGreen" />
               <p className="mt-5 text-3xl font-black tracking-tight text-primary dark:text-white">
                 {item.value}
               </p>
@@ -139,7 +139,7 @@ export default function ForEmployersPage() {
 
       {/* ── Why Beleqet ── */}
       <section className="container-page py-20">
-        <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+        <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
           Why Beleqet for hiring
         </p>
         <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-primary dark:text-white">
@@ -151,7 +151,7 @@ export default function ForEmployersPage() {
               key={title}
               className="rounded-[24px] border border-primary/10 bg-white p-7 dark:border-slate-800 dark:bg-slate-900"
             >
-              <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#d8ff3e]/15 text-[#d8ff3e]">
+              <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#d8ff3e]/15 text-brandGreen">
                 <Icon className="h-5 w-5" />
               </span>
               <h3 className="mb-2 text-base font-bold text-primary dark:text-white">{title}</h3>
@@ -164,7 +164,7 @@ export default function ForEmployersPage() {
       {/* ── How it works ── */}
       <section className="border-y border-primary/10 bg-white py-20 dark:border-slate-800 dark:bg-slate-900">
         <div className="container-page">
-          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
+          <p className="text-xs font-extrabold uppercase tracking-[.2em] text-brandGreen">
             How it works
           </p>
           <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-primary dark:text-white">

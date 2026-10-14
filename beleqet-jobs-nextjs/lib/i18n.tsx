@@ -105,7 +105,10 @@ type TranslationDictionary = Record<string, string>;
  */
 const en: TranslationDictionary = {
   /* Navigation */
+  "nav.home": "Home",
   "nav.findJobs": "Find Jobs",
+  "nav.freelance": "Freelance",
+  "nav.signIn": "Sign In",
   "nav.employers": "For Employers",
   "nav.cvMaker": "CV Maker",
   "nav.pricing": "Pricing",
@@ -173,7 +176,10 @@ const en: TranslationDictionary = {
  */
 const am: TranslationDictionary = {
   /* Navigation */
+  "nav.home": "መነሻ",
   "nav.findJobs": "ስራዎችን ፈልግ",
+  "nav.freelance": "ፍሪላንስ",
+  "nav.signIn": "ግባ",
   "nav.employers": "ለአሰሪዎች",
   "nav.cvMaker": "ሲቪ አዘጋጅ",
   "nav.pricing": "ዋጋዎች",

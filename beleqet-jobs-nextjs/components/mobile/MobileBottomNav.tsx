@@ -22,7 +22,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Home,
   Briefcase,
+  Laptop,
+  LogIn,
   LayoutDashboard,
   Plus,
   Bell,
@@ -53,6 +56,14 @@ const NAV_TABS: NavTab[] = [
   { href: "/post-job", labelKey: "action.postJob", icon: Plus, requiresAuth: true },
   { href: "/applications", labelKey: "nav.applications", icon: Bell, requiresAuth: true },
   { href: "/profile", labelKey: "nav.profile", icon: User, requiresAuth: true },
+];
+
+const GUEST_TABS: NavTab[] = [
+  { href: "/", labelKey: "nav.home", icon: Home, requiresAuth: false },
+  { href: "/jobs", labelKey: "nav.findJobs", icon: Briefcase, requiresAuth: false },
+  { href: "/freelance", labelKey: "nav.freelance", icon: Laptop, requiresAuth: false },
+  { href: "/post-job", labelKey: "action.postJob", icon: Plus, requiresAuth: false },
+  { href: "/login", labelKey: "nav.signIn", icon: LogIn, requiresAuth: false },
 ];
 
 /**
@@ -162,10 +173,8 @@ export default function MobileBottomNav() {
 
   const isAuthenticated = ready && !!user;
 
-  /** Filter tabs that the current user is allowed to see. */
-  const visibleTabs = NAV_TABS.filter(
-    (tab) => !tab.requiresAuth || isAuthenticated,
-  );
+  /** Authenticated users keep their account tabs; guests get public destinations. */
+  const visibleTabs = isAuthenticated ? NAV_TABS : GUEST_TABS;
 
   return (
     <nav
