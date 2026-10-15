@@ -134,9 +134,12 @@ export default function JobDetailScreen() {
           ) : null}
 
           {/* Requirements */}
-          {job.requirements && job.requirements.length > 0 ? (
+          {job.requirements && (typeof job.requirements === 'string' ? job.requirements.length > 0 : true) ? (
             <Section title="Requirements">
-              {job.requirements.split('\n').filter(Boolean).map((req, i) => (
+              {(typeof job.requirements === 'string'
+                ? job.requirements.split('\n').filter(Boolean)
+                : Array.isArray(job.requirements) ? job.requirements : []
+              ).map((req: string, i: number) => (
                 <View key={i} className="flex-row gap-2 mb-1.5">
                   <Text className="text-brandGreen font-bold text-sm">•</Text>
                   <Text className="text-ink text-sm leading-6 flex-1">{req}</Text>

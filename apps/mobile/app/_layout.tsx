@@ -11,8 +11,11 @@ import { useAuthStore } from '../store/auth.store';
 SplashScreen.preventAutoHideAsync();
 
 /**
- * Guards navigation so unauthenticated users always end up on the
- * auth stack, and authenticated users land on the main tabs.
+ * Guards navigation so that:
+ *  - Authenticated users in the auth group get redirected to tabs.
+ *  - Unauthenticated users can freely browse jobs/freelance/detail screens.
+ *  - Unauthenticated users accessing protected screens (profile, chat,
+ *    notifications) are redirected to login.
  */
 function AuthGuard() {
   const { status } = useAuthStore();
@@ -24,11 +27,13 @@ function AuthGuard() {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (status === 'unauthenticated' && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (status === 'authenticated' && inAuthGroup) {
+    if (status === 'authenticated' && inAuthGroup) {
+      // Already logged in — go to main tabs
       router.replace('/(tabs)/jobs');
     }
+    // NOTE: We no longer force guests to login. Individual screens
+    // (profile, chat, notifications) check auth state themselves
+    // and redirect to login when the user tries a protected action.
   }, [status, segments]);
 
   return null;
@@ -73,6 +78,17 @@ export default function RootLayout() {
           options={{
             headerShown: true,
             headerTitle: 'Gig Detail',
+            headerBackTitle: 'Back',
+            headerStyle: { backgroundColor: '#041603' },
+            headerTintColor: '#d8ff3e',
+            headerTitleStyle: { color: '#ffffff' },
+          }}
+        />
+        <Stack.Screen
+          name="notifications"
+          options={{
+            headerShown: true,
+            headerTitle: 'Notifications',
             headerBackTitle: 'Back',
             headerStyle: { backgroundColor: '#041603' },
             headerTintColor: '#d8ff3e',

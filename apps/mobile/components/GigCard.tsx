@@ -57,8 +57,7 @@ export default function GigCard({ gig, onPress }: Props) {
         </View>
 
         <TouchableOpacity
-          onPress={(e) => {
-            e.stopPropagation();
+          onPress={() => {
             setSaved((v) => !v);
           }}
           className="w-8 h-8 items-center justify-center"

@@ -8,13 +8,17 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import { Mic, MicOff, Copy, Trash2 } from 'lucide-react-native';
+import { Mic, MicOff, Copy, Trash2, MessageSquare } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
+import { useRouter } from 'expo-router';
 import { apiClient } from '../../api/client';
+import { useAuthStore } from '../../store/auth.store';
 
 type Transcript = { id: string; text: string; createdAt: Date };
 
 export default function ChatScreen() {
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
   const [recording, setRecording] = useState(false);
   const [loading, setLoading] = useState(false);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
@@ -59,6 +63,22 @@ export default function ChatScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear', style: 'destructive', onPress: () => setTranscripts([]) },
     ]);
+  }
+
+  if (!user) {
+    return (
+      <View className="flex-1 bg-surface items-center justify-center px-8">
+        <MessageSquare color="#6b7280" size={48} />
+        <Text className="text-ink text-lg font-bold mt-4">Sign in to use Chat-to-Text</Text>
+        <Text className="text-muted text-sm text-center mt-2">Record voice notes and convert them to text. Sign in to get started.</Text>
+        <TouchableOpacity
+          className="bg-primary px-6 py-3 rounded-full mt-6"
+          onPress={() => router.push('/(auth)/login')}
+        >
+          <Text className="text-brandGreen font-bold text-base">Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (

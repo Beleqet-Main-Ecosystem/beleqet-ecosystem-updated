@@ -51,7 +51,12 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status !== 401 || original._retry) {
+    // Skip refresh logic for auth endpoints — a 401 from login/register
+    // means bad credentials, not an expired token.
+    const url = original.url ?? '';
+    const isAuthRoute = /\/auth\/(login|register|refresh|2fa)/.test(url);
+
+    if (error.response?.status !== 401 || original._retry || isAuthRoute) {
       return Promise.reject(error);
     }
 

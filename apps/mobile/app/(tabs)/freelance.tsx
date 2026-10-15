@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,38 +12,47 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Search, Shield, PlusCircle } from 'lucide-react-native';
+import Toast from 'react-native-toast-message';
 import { fetchGigs, type FreelanceJob } from '../../api/freelance';
 import GigCard from '../../components/GigCard';
 import CategoryPill from '../../components/CategoryPill';
 
 const CATEGORIES = [
   { slug: '__all__', label: 'All Gigs' },
-  { slug: 'web-app-dev', label: 'Web & App Dev' },
-  { slug: 'design-creative', label: 'Design' },
-  { slug: 'writing-translation', label: 'Writing' },
-  { slug: 'marketing-seo', label: 'Marketing' },
-  { slug: 'data-analytics', label: 'Data' },
+  { slug: 'web-development', label: 'Web Dev' },
+  { slug: 'graphic-design', label: 'Design' },
+  { slug: 'writing', label: 'Writing' },
+  { slug: 'digital-marketing', label: 'Marketing' },
   { slug: 'video-animation', label: 'Video' },
-  { slug: 'finance-accounting', label: 'Finance' },
 ];
+
+const DEBOUNCE_MS = 300;
 
 export default function FreelanceScreen() {
   const router = useRouter();
   const [gigs, setGigs] = useState<FreelanceJob[]>([]);
   const [activeCategory, setActiveCategory] = useState('__all__');
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Debounce search input
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
+    return () => clearTimeout(debounceRef.current);
+  }, [query]);
 
   const load = useCallback(
     async (opts?: { refresh?: boolean }) => {
       if (opts?.refresh) setRefreshing(true);
-      else setLoading(true);
+      else if (gigs.length === 0) setLoading(true);
       try {
         const data = await fetchGigs({
           limit: 40,
           ...(activeCategory !== '__all__' ? { category: activeCategory } : {}),
-          ...(query.trim() ? { q: query.trim() } : {}),
+          ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
         });
         setGigs(data);
       } finally {
@@ -51,7 +60,7 @@ export default function FreelanceScreen() {
         setRefreshing(false);
       }
     },
-    [activeCategory, query],
+    [activeCategory, debouncedQuery],
   );
 
   useEffect(() => {
@@ -75,7 +84,7 @@ export default function FreelanceScreen() {
           </View>
           <TouchableOpacity
             className="flex-row items-center gap-1.5 bg-brandGreen px-3 py-2 rounded-full"
-            onPress={() => router.push('/post-gig')}
+            onPress={() => Toast.show({ type: 'info', text1: 'Coming soon', text2: 'Post a project from the web dashboard' })}
             accessibilityLabel="Post a project"
           >
             <PlusCircle color="#041603" size={14} />

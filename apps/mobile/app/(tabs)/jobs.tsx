@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import JobCard from '../../components/JobCard';
 import CategoryPill from '../../components/CategoryPill';
 
 const ALL_SLUG = '__all__';
+const DEBOUNCE_MS = 300;
 
 export default function JobsScreen() {
   const router = useRouter();
@@ -27,19 +28,27 @@ export default function JobsScreen() {
   const [categories, setCategories] = useState<JobCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState(ALL_SLUG);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Debounce search input
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
+    return () => clearTimeout(debounceRef.current);
+  }, [query]);
 
   const load = useCallback(
     async (opts?: { refresh?: boolean }) => {
       if (opts?.refresh) setRefreshing(true);
-      else setLoading(true);
+      else if (jobs.length === 0) setLoading(true);
       try {
         const [jobData, catData] = await Promise.all([
           fetchJobs({
             limit: 40,
             ...(activeCategory !== ALL_SLUG ? { category: activeCategory } : {}),
-            ...(query.trim() ? { q: query.trim() } : {}),
+            ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
           }),
           fetchCategories(),
         ]);
@@ -50,7 +59,7 @@ export default function JobsScreen() {
         setRefreshing(false);
       }
     },
-    [activeCategory, query],
+    [activeCategory, debouncedQuery],
   );
 
   useEffect(() => {

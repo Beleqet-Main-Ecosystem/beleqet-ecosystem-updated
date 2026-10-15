@@ -9,8 +9,9 @@
 
 import { create } from 'zustand';
 import type { AuthUser, LoginDto, RegisterDto } from '../api/auth';
-import { loginUser, registerUser, fetchMe } from '../api/auth';
-import { clearTokens } from '../api/client';
+import { loginUser, registerUser, fetchMe, type TwoFactorRequired } from '../api/auth';
+import { clearTokens, ACCESS_TOKEN_KEY, apiClient } from '../api/client';
+import * as SecureStore from 'expo-secure-store';
 
 type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -39,9 +40,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   hydrate: async () => {
     set({ status: 'loading', error: null });
     try {
+      // Check if we have stored tokens before making a network call
+      const storedToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+      if (!storedToken) {
+        set({ user: null, status: 'unauthenticated' });
+        return;
+      }
+
       const user = await fetchMe();
       set({ user: user ?? null, status: user ? 'authenticated' : 'unauthenticated' });
     } catch {
+      // Network failure or server error — don't wipe tokens.
+      // Let the user proceed as unauthenticated; the 401 interceptor
+      // will attempt token refresh on the next API call.
       set({ user: null, status: 'unauthenticated' });
     }
   },
@@ -49,8 +60,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (input) => {
     set({ status: 'loading', error: null });
     try {
-      const user = await loginUser(input);
-      set({ user, status: 'authenticated', error: null });
+      const result = await loginUser(input);
+
+      // Handle 2FA challenge — full 2FA screen to be built later
+      if ('requires2fa' in result && result.requires2fa) {
+        set({ status: 'unauthenticated', error: 'Two-factor authentication is required. Please use the web app to complete login.' });
+        return;
+      }
+
+      set({ user: result as AuthUser, status: 'authenticated', error: null });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed';
       set({ status: 'unauthenticated', error: msg });
@@ -71,6 +89,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    // Revoke refresh token server-side (fire-and-forget — don't block logout on network failure)
+    try { await apiClient.post('/auth/logout'); } catch { /* best effort */ }
     await clearTokens();
     set({ user: null, status: 'unauthenticated', error: null });
   },
