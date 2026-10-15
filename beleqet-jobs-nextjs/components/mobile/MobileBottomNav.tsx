@@ -170,7 +170,6 @@ export default function MobileBottomNav() {
     { href: "/", labelKey: "nav.home", icon: Home, requiresAuth: false },
     { href: "/jobs", labelKey: "nav.findJobs", icon: Briefcase, requiresAuth: false },
     { href: "/freelance", labelKey: "nav.freelance", icon: Laptop, requiresAuth: false },
-    { href: "/post-job", labelKey: "action.postJob", icon: Plus, requiresAuth: false },
     { href: "/login", labelKey: "nav.signIn", icon: LogIn, requiresAuth: false },
   ];
   const visibleTabs = isAuthenticated ? NAV_TABS : GUEST_TABS;
