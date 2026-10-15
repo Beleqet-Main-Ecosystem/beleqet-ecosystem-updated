@@ -385,7 +385,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/post-job?type=freelance"
-                className="inline-flex items-center gap-2 rounded-full bg-brandGreen px-5 py-2.5 text-sm font-bold text-primary transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-brandGreen px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Post a project <ArrowRight className="h-4 w-4" />
               </Link>
@@ -424,7 +424,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
                 ['4', 'Payout to your account'],
               ].map(([n, label]) => (
                 <div key={n} className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brandGreen text-[11px] font-black text-primary">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brandGreen text-[11px] font-black text-white">
                     {n}
                   </span>
                   <span className="text-xs font-semibold text-white/70">{label}</span>
@@ -590,7 +590,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/register?role=freelancer"
-              className="rounded-full bg-brandGreen px-8 py-3.5 text-sm font-bold text-primary transition-opacity hover:opacity-90"
+              className="rounded-full bg-brandGreen px-8 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Join as a freelancer
             </Link>

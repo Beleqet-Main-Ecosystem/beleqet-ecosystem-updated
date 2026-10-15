@@ -44,6 +44,11 @@ export default function ApplicationsPage() {
   useEffect(() => {
     if (user) load();
   }, [user, load]);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "saved") {
+      setTab("saved");
+    }
+  }, []);
   if (!ready || !user)
     return (
       <div className="container-page py-24 text-center text-muted">
