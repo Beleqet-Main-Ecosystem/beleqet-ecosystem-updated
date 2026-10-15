@@ -41,7 +41,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-primary text-white">
-      <div className="container-page grid grid-cols-1 gap-12 py-16 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+      <div className="container-page grid grid-cols-1 gap-12 py-16 pb-24 md:grid-cols-[1.4fr_1fr_1fr_1fr] lg:pb-0">
         <div>
           <Link
             href="/"

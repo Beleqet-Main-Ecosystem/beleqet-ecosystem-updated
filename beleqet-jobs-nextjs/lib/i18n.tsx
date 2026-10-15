@@ -130,7 +130,9 @@ function flattenMessages(
  */
 const en: TranslationDictionary = {
   /* Navigation */
+  "nav.home": "Home",
   "nav.findJobs": "Find Jobs",
+  "nav.signIn": "Sign In",
   "nav.freelance": "Freelance",
   "nav.employers": "For Employers",
   "nav.cvMaker": "CV Maker",
@@ -201,7 +203,9 @@ const en: TranslationDictionary = {
  */
 const am: TranslationDictionary = {
   /* Navigation */
+  "nav.home": "መነሻ",
   "nav.findJobs": "ስራዎችን ፈልግ",
+  "nav.signIn": "ግባ",
   "nav.freelance": "ፍሪላንስ",
   "nav.employers": "ለአሰሪዎች",
   "nav.cvMaker": "ሲቪ አዘጋጅ",
