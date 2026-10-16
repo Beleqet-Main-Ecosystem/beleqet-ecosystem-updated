@@ -28,11 +28,27 @@ interface Gig {
   budget: string;
   budgetUnit: string;
   type: 'Fixed' | 'Hourly' | 'Retainer';
-  client: string;
+  client: string | {
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+  };
   skills: string[];
   posted: string;
   escrow: boolean;
   rating?: number;
+}
+
+function getClientName(client: Gig["client"]): string {
+  if (typeof client === "string") {
+    return client.trim() || "Verified Client";
+  }
+
+  return (
+    client?.name?.trim() ||
+    `${client?.firstName ?? ""} ${client?.lastName ?? ""}`.trim() ||
+    "Verified Client"
+  );
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -201,6 +217,17 @@ const FEATURES = [
 function GigCard({ gig }: { gig: Gig }) {
   const [saved, setSaved] = useState(false);
 
+  const clientName = getClientName(gig.client);
+
+  const clientInitials =
+    clientName
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "VC";
+
   const typeBadgeClass = {
     Fixed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     Hourly: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
@@ -212,17 +239,18 @@ function GigCard({ gig }: { gig: Gig }) {
       {/* Header row */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-xs font-black text-brandGreen">
-          {gig.client
-            .split(' ')
-            .map((w) => w[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase()}
+          {clientInitials}
         </div>
         <button
-          onClick={() => setSaved((s) => !s)}
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setSaved((s) => !s);
+          }}
           aria-label={saved ? 'Unsave gig' : 'Save gig'}
-          className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:text-brandGreen dark:text-slate-500 dark:hover:text-brandGreen"
+          aria-pressed={saved}
+          className="relative z-10 shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:text-brandGreen dark:text-slate-500 dark:hover:text-brandGreen"
         >
           {saved ? (
             <BookmarkCheck className="h-5 w-5 text-brandGreen" />
@@ -236,7 +264,7 @@ function GigCard({ gig }: { gig: Gig }) {
       <h3 className="mt-4 text-sm font-bold leading-snug text-primary dark:text-white">
         {gig.title}
       </h3>
-      <p className="mt-1 text-xs text-muted dark:text-slate-400">{gig.client}</p>
+      <p className="mt-1 text-xs text-muted dark:text-slate-400">{clientName}</p>
 
       {/* Skills */}
       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -288,7 +316,7 @@ function GigCard({ gig }: { gig: Gig }) {
 
       {/* Full-card link overlay */}
       <Link
-        href={`/feed?type=freelance&gig=${gig.id}`}
+        href={`/freelance/${gig.id}`}
         className="absolute inset-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brandGreen"
         aria-label={`View gig: ${gig.title}`}
       />
@@ -312,9 +340,45 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
     const matchQ =
       !q ||
       g.title.toLowerCase().includes(q) ||
-      g.client.toLowerCase().includes(q) ||
+      getClientName(g.client).toLowerCase().includes(q) ||
       g.skills.some((s) => s.toLowerCase().includes(q));
     return matchCat && matchQ;
+  });
+
+  const getBudgetBounds = (budget: string): [number, number] => {
+    const amounts = budget.match(/[\d,]+(?:\.\d+)?/g) ?? [];
+    const values = amounts
+      .map((amount) => Number(amount.replace(/,/g, "")))
+      .filter(Number.isFinite);
+
+    if (values.length === 0) return [0, 0];
+    return [Math.min(...values), Math.max(...values)];
+  };
+
+  const getPostedAge = (posted: string): number => {
+    const match = posted.trim().toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|week|weeks)\s*ago$/);
+    if (!match) return Number.POSITIVE_INFINITY;
+
+    const amount = Number(match[1]);
+    const unit = match[2];
+    const multiplier =
+      /^(m|min|mins|minute|minutes)$/.test(unit) ? 1 :
+      /^(h|hr|hrs|hour|hours)$/.test(unit) ? 60 :
+      /^(d|day|days)$/.test(unit) ? 1440 : 10080;
+
+    return amount * multiplier;
+  };
+
+  const sortedGigs = [...filtered].sort((a, b) => {
+    if (sortBy === 'budget-high') {
+      return getBudgetBounds(b.budget)[1] - getBudgetBounds(a.budget)[1];
+    }
+
+    if (sortBy === 'budget-low') {
+      return getBudgetBounds(a.budget)[0] - getBudgetBounds(b.budget)[0];
+    }
+
+    return getPostedAge(a.posted) - getPostedAge(b.posted);
   });
 
   function handleSearch(e: React.FormEvent) {
@@ -501,7 +565,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
           {/* Grid */}
           {filtered.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((gig) => (
+              {sortedGigs.map((gig) => (
                 <GigCard key={gig.id} gig={gig} />
               ))}
             </div>

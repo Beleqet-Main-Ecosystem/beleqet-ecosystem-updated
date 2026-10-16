@@ -63,7 +63,22 @@ export default function JobsListing({
     };
   }, [query, location, category, type, initialJobs]);
 
-  const filtered = jobs;
+  const filtered = useMemo(() => {
+    const normalizeType = (value: string) =>
+      value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+
+    return jobs.filter((job) => {
+      const matchesType =
+        !type ||
+        normalizeType(job.type) === normalizeType(typeToEnum[type] ?? type);
+
+      const matchesCategory =
+        !category ||
+        job.category.trim().toLowerCase() === category.trim().toLowerCase();
+
+      return matchesType && matchesCategory;
+    });
+  }, [jobs, type, category]);
 
   const categoryLabel = categories.find((c) => c.id === category)?.label;
   const hasFilters = Boolean(query || location || category || type);
@@ -139,7 +154,7 @@ export default function JobsListing({
             <h3 className="flex items-center gap-2 text-sm font-semibold text-ink mb-4">
               <SlidersHorizontal className="h-4 w-4" /> Category
             </h3>
-            <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
+            <div className="jobs-category-scrollbar space-y-1 max-h-80 overflow-y-auto pr-2">
               <FilterButton active={category === ''} onClick={() => setCategory('')}>
                 All Categories
               </FilterButton>

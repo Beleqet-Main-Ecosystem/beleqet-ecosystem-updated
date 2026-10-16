@@ -131,11 +131,11 @@ export default function EmployerPage() {
           <table className="w-full min-w-[650px] text-left text-sm">
             <thead>
               <tr className="bg-primary/5 text-xs uppercase text-muted">
-                <th className="p-4">Job</th>
-                <th>Status</th>
-                <th>Applications</th>
-                <th>Posted</th>
-                <th />
+                <th className="px-4 py-3 text-left">Job</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Applications</th>
+                <th className="px-4 py-3 text-left">Posted</th>
+                <th className="px-4 py-3 text-left" />
               </tr>
             </thead>
             <tbody>
