@@ -16,6 +16,8 @@ export default function JobActions({ jobId }: { jobId: string }) {
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState('');
+  const [resumeConsent, setResumeConsent] = useState(false);
+  const [resumeSelected, setResumeSelected] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -24,6 +26,26 @@ export default function JobActions({ jobId }: { jobId: string }) {
         setSaved((await response.json()).some((item: { jobId: string }) => item.jobId === jobId));
     });
   }, [jobId, user]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !applying) {
+        setOpen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open, applying]);
 
   async function toggleSaved() {
     if (!user) {
@@ -43,10 +65,15 @@ export default function JobActions({ jobId }: { jobId: string }) {
       return;
     }
     setError('');
+    setResumeConsent(false);
+    setResumeSelected(false);
     setOpen(true);
   }
 
-  async function uploadResume(file: File): Promise<string> {
+  async function uploadResume(
+    file: File,
+    hasConsentedToProcessing: boolean,
+  ): Promise<string> {
     const allowed = [
       'application/pdf',
       'application/msword',
@@ -57,7 +84,10 @@ export default function JobActions({ jobId }: { jobId: string }) {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('hasConsentedToProcessing', 'true');
+    formData.append(
+      'hasConsentedToProcessing',
+      String(hasConsentedToProcessing),
+    );
 
     const response = await authenticatedFetch(`${API_URL}/uploads/file`, {
       method: 'POST',
@@ -75,7 +105,15 @@ export default function JobActions({ jobId }: { jobId: string }) {
     const form = new FormData(event.currentTarget);
     try {
       const file = form.get('resume');
-      const resumeUrl = file instanceof File && file.size ? await uploadResume(file) : undefined;
+      let resumeUrl: string | undefined;
+      if (file instanceof File && file.size > 0) {
+        if (!resumeConsent) {
+          throw new Error(
+            'Please consent to resume data processing before uploading your resume.',
+          );
+        }
+        resumeUrl = await uploadResume(file, resumeConsent);
+      }
       const salary = form.get('expectedSalary')?.toString();
       const response = await authenticatedFetch(`${API_URL}/applications`, {
         method: 'POST',
@@ -174,12 +212,31 @@ export default function JobActions({ jobId }: { jobId: string }) {
                     type="file"
                     accept=".pdf,.doc,.docx"
                     className="min-w-0 text-xs"
+                    onChange={(event) => {
+                      setResumeSelected(Boolean(event.target.files?.[0]));
+                      setResumeConsent(false);
+                    }}
                   />
                 </span>
                 <span className="mt-1 block font-normal text-muted">
                   PDF, DOC, or DOCX; maximum 5 MB.
                 </span>
               </label>
+              {resumeSelected && (
+                <div className="flex items-start gap-3 rounded-xl border border-primary/10 bg-white p-4">
+                  <input
+                    id="resume-consent"
+                    type="checkbox"
+                    checked={resumeConsent}
+                    onChange={(event) => setResumeConsent(event.target.checked)}
+                    className="mt-1 h-4 w-4 accent-brandGreen"
+                    required
+                  />
+                  <label htmlFor="resume-consent" className="text-sm leading-6 text-ink">
+                    I consent to the processing of my resume and personal data for this job application.
+                  </label>
+                </div>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs font-bold text-ink">
                   Portfolio URL
@@ -212,7 +269,7 @@ export default function JobActions({ jobId }: { jobId: string }) {
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={() => !applying && setOpen(false)}
                   disabled={applying}
                   className="rounded-full border border-primary/15 px-5 py-3 text-sm font-bold text-primary"
                 >
