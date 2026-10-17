@@ -25,15 +25,26 @@ export default function JobsListing({
   const [type, setType] = useState<string>('');
 
   const filtered = useMemo(() => {
+    const normalizeType = (value: string) =>
+      value.trim().toUpperCase().replace(/[\s-]+/g, '_');
+
     return initialJobs.filter((job) => {
       const matchesQuery =
         !query ||
         job.title.toLowerCase().includes(query.toLowerCase()) ||
         job.company.toLowerCase().includes(query.toLowerCase());
+
       const matchesLocation =
-        !location || job.location.toLowerCase().includes(location.toLowerCase());
-      const matchesCategory = !category || job.category === category;
-      const matchesType = !type || job.type === type;
+        !location ||
+        job.location.toLowerCase().includes(location.toLowerCase());
+
+      const matchesCategory =
+        !category ||
+        job.category.trim().toLowerCase() === category.trim().toLowerCase();
+
+      const matchesType =
+        !type || normalizeType(job.type) === normalizeType(type);
+
       return matchesQuery && matchesLocation && matchesCategory && matchesType;
     });
   }, [initialJobs, query, location, category, type]);
@@ -112,7 +123,7 @@ export default function JobsListing({
             <h3 className="flex items-center gap-2 text-sm font-semibold text-ink mb-4">
               <SlidersHorizontal className="h-4 w-4" /> {t('jobs.categories')}
             </h3>
-            <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
+            <div className="jobs-category-scrollbar space-y-1 max-h-80 overflow-y-auto pr-2">
               <FilterButton active={category === ''} onClick={() => setCategory('')}>
                 {t('jobs.allCategories')}
               </FilterButton>
