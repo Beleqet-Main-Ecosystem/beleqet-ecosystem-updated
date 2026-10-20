@@ -11,7 +11,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search, Bell } from 'lucide-react-native';
+import { Search, Bell, X } from 'lucide-react-native';
 import { fetchJobs, fetchCategories, type NormalizedJob, type JobCategory } from '../../api/jobs';
 import { useAuthStore } from '../../store/auth.store';
 import JobCard from '../../components/JobCard';
@@ -103,7 +103,21 @@ export default function JobsScreen() {
             onSubmitEditing={() => load()}
             returnKeyType="search"
             accessibilityLabel="Search jobs"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
+          {query !== debouncedQuery && (
+            <ActivityIndicator size="small" color="#d8ff3e" />
+          )}
+          {query.length > 0 && query === debouncedQuery && (
+            <TouchableOpacity
+              onPress={() => setQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Clear search"
+            >
+              <X color="rgba(255,255,255,0.6)" size={16} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Category pills */}
@@ -130,15 +144,22 @@ export default function JobsScreen() {
       </View>
 
       {/* ── Feed ── */}
-      {loading ? (
+      {loading && jobs.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#041603" size="large" />
+          <Text className="text-muted text-sm mt-3">Finding opportunities…</Text>
         </View>
       ) : (
         <FlatList
           data={jobs}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
+          contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -147,9 +168,26 @@ export default function JobsScreen() {
             />
           }
           ListEmptyComponent={
-            <View className="items-center py-20">
-              <Text className="text-muted text-base">No jobs found</Text>
-              <Text className="text-muted/60 text-sm mt-1">Try a different category or search term</Text>
+            <View className="flex-1 items-center justify-center py-20 px-6">
+              <View className="w-16 h-16 rounded-full bg-primary/5 items-center justify-center mb-4">
+                <Search color="#64748b" size={28} />
+              </View>
+              <Text className="text-slate-800 text-lg font-bold text-center">No jobs found</Text>
+              <Text className="text-muted text-sm text-center mt-1 mb-5">
+                We couldn't find any opportunities matching your filters.
+              </Text>
+              {(query.length > 0 || activeCategory !== ALL_SLUG) && (
+                <TouchableOpacity
+                  className="bg-primary px-5 py-2.5 rounded-full"
+                  onPress={() => {
+                    setQuery('');
+                    setActiveCategory(ALL_SLUG);
+                  }}
+                  accessibilityLabel="Clear all filters"
+                >
+                  <Text className="text-brandGreen text-sm font-bold">Clear Filters</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
           renderItem={({ item }) => (

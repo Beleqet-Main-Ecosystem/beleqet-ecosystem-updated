@@ -10,7 +10,7 @@
 import { create } from 'zustand';
 import type { AuthUser, LoginDto, RegisterDto } from '../api/auth';
 import { loginUser, registerUser, fetchMe, type TwoFactorRequired } from '../api/auth';
-import { clearTokens, ACCESS_TOKEN_KEY, apiClient } from '../api/client';
+import { clearTokens, ACCESS_TOKEN_KEY, USER_CACHE_KEY, apiClient } from '../api/client';
 import * as SecureStore from 'expo-secure-store';
 
 type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
@@ -47,12 +47,45 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
-      const user = await fetchMe();
-      set({ user: user ?? null, status: user ? 'authenticated' : 'unauthenticated' });
+      // Check if we have a locally cached user profile for instant offline display
+      let cachedUser: AuthUser | null = null;
+      try {
+        const raw = await SecureStore.getItemAsync(USER_CACHE_KEY);
+        if (raw) cachedUser = JSON.parse(raw) as AuthUser;
+      } catch {
+        // ignore parse error
+      }
+
+      if (cachedUser) {
+        set({ user: cachedUser, status: 'authenticated' });
+      }
+
+      // Attempt background profile refresh
+      try {
+        const freshUser = await fetchMe();
+        if (freshUser) {
+          try {
+            await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(freshUser));
+          } catch {
+            // ignore cache write error
+          }
+          set({ user: freshUser, status: 'authenticated' });
+        } else if (!cachedUser) {
+          set({ user: null, status: 'unauthenticated' });
+        }
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 401) {
+          await clearTokens();
+          set({ user: null, status: 'unauthenticated' });
+        } else if (cachedUser) {
+          // Offline or network timeout — stay authenticated with cached profile!
+          set({ user: cachedUser, status: 'authenticated' });
+        } else {
+          set({ user: null, status: 'unauthenticated' });
+        }
+      }
     } catch {
-      // Network failure or server error — don't wipe tokens.
-      // Let the user proceed as unauthenticated; the 401 interceptor
-      // will attempt token refresh on the next API call.
       set({ user: null, status: 'unauthenticated' });
     }
   },
@@ -68,7 +101,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
-      set({ user: result as AuthUser, status: 'authenticated', error: null });
+      const authUser = result as AuthUser;
+      try {
+        await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(authUser));
+      } catch {
+        // ignore cache write error
+      }
+      set({ user: authUser, status: 'authenticated', error: null });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed';
       set({ status: 'unauthenticated', error: msg });
@@ -80,6 +119,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'loading', error: null });
     try {
       const user = await registerUser(input);
+      try {
+        await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(user));
+      } catch {
+        // ignore cache write error
+      }
       set({ user, status: 'authenticated', error: null });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Registration failed';

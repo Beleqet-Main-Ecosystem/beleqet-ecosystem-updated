@@ -11,6 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 
 export const ACCESS_TOKEN_KEY = 'beleqet_access_token';
 export const REFRESH_TOKEN_KEY = 'beleqet_refresh_token';
+export const USER_CACHE_KEY = 'beleqet_cached_user';
 
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
@@ -116,4 +117,5 @@ export async function persistTokens(access: string, refresh?: string | null) {
 export async function clearTokens() {
   await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
   await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await SecureStore.deleteItemAsync(USER_CACHE_KEY);
 }

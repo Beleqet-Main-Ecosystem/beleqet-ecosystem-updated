@@ -23,7 +23,7 @@
         "backgroundColor": "#041603"
       },
       "package": "com.beleqet.jobs",
-      "versionCode": 16,
+      "versionCode": 17,
       "permissions": [
         "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
