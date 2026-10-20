@@ -87,12 +87,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="notifications"
           options={{
-            headerShown: true,
-            headerTitle: 'Notifications',
-            headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: '#041603' },
-            headerTintColor: '#d8ff3e',
-            headerTitleStyle: { color: '#ffffff' },
+            headerShown: false,
           }}
         />
       </Stack>

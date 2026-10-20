@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Clock, Shield, Star, Bookmark, BookmarkCheck } from 'lucide-react-native';
 import type { FreelanceJob } from '../api/freelance';
@@ -31,7 +31,7 @@ const TYPE_TEXT_COLORS: Record<string, string> = {
 /**
  * Freelance gig card with budget, type badge, escrow badge, and save toggle.
  */
-export default function GigCard({ gig, onPress }: Props) {
+function GigCard({ gig, onPress }: Props) {
   // TODO: FreelanceJob DTO is missing type/clientName/escrowEnabled/rating —
   // needs to be added to @beleqet/common. Casting to any as a stopgap.
   const g = gig as any;
@@ -127,3 +127,5 @@ export default function GigCard({ gig, onPress }: Props) {
     </TouchableOpacity>
   );
 }
+
+export default memo(GigCard);
