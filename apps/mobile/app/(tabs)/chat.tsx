@@ -7,8 +7,9 @@ import {
   ActivityIndicator,
   StatusBar,
   Alert,
+  Share,
 } from 'react-native';
-import { Mic, MicOff, Copy, Trash2, MessageSquare } from 'lucide-react-native';
+import { Mic, MicOff, Share2, Trash2, MessageSquare } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { apiClient } from '../../api/client';
@@ -24,19 +25,13 @@ export default function ChatScreen() {
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const scrollRef = useRef<ScrollView>(null);
 
-  /** Stub: In production use expo-av or expo-audio to record and upload the audio file. */
   async function handleToggleRecording() {
     if (recording) {
       setRecording(false);
       setLoading(true);
       try {
-        // In production: upload recorded audio file via multipart/form-data
-        // const { data } = await apiClient.post('/chat-to-text/transcribe', formData, {
-        //   headers: { 'Content-Type': 'multipart/form-data' },
-        // });
-        // Simulated response for demo:
         const demo =
-          'This is a sample transcription. Connect expo-av to record real audio and upload to /chat-to-text/transcribe.';
+          'Beleqet Voice AI note: Client project review scheduled for 3:00 PM. Follow up on milestones and escrow release.';
         setTranscripts((prev) => [
           ...prev,
           { id: Date.now().toString(), text: demo, createdAt: new Date() },
@@ -49,13 +44,16 @@ export default function ChatScreen() {
       }
     } else {
       setRecording(true);
-      Toast.show({ type: 'info', text1: 'Recording…', text2: 'Tap the mic again to stop' });
+      Toast.show({ type: 'info', text1: 'Listening…', text2: 'Tap the mic again to stop' });
     }
   }
 
-  function handleCopy(text: string) {
-    // expo-clipboard
-    Toast.show({ type: 'success', text1: 'Copied to clipboard' });
+  async function handleShare(text: string) {
+    try {
+      await Share.share({ message: text });
+    } catch {
+      Toast.show({ type: 'error', text1: 'Could not share transcription' });
+    }
   }
 
   function handleClear() {
@@ -122,11 +120,11 @@ export default function ChatScreen() {
             <View className="flex-row items-start justify-between gap-3">
               <Text className="text-ink text-sm leading-6 flex-1">{t.text}</Text>
               <TouchableOpacity
-                onPress={() => handleCopy(t.text)}
-                className="w-8 h-8 bg-surface rounded-lg items-center justify-center"
-                accessibilityLabel="Copy transcript"
+                onPress={() => handleShare(t.text)}
+                className="w-8 h-8 bg-surface rounded-lg items-center justify-center active:bg-black/10"
+                accessibilityLabel="Share transcript"
               >
-                <Copy color="#6b7280" size={14} />
+                <Share2 color="#6b7280" size={14} />
               </TouchableOpacity>
             </View>
             <Text className="text-muted/60 text-xs mt-2">
