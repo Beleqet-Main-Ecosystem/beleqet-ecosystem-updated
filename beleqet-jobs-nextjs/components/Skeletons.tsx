@@ -18,9 +18,9 @@ export function JobCardSkeleton() {
 
 export function FeaturedJobsSkeleton() {
   return (
-    <section className="bg-white border-y border-border">
-      <div className="container-page py-14">
-        <div className="h-6 w-48 rounded bg-pageBg mb-6 animate-pulse" />
+    <section className="bg-primary text-white">
+      <div className="container-page py-20">
+        <div className="h-6 w-48 rounded bg-white/20 mb-6 animate-pulse" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
             <JobCardSkeleton key={i} />

@@ -28,11 +28,27 @@ interface Gig {
   budget: string;
   budgetUnit: string;
   type: 'Fixed' | 'Hourly' | 'Retainer';
-  client: string | any;
+  client: string | {
+    name?: string;
+    firstName?: string;
+    lastName?: string;
+  };
   skills: string[];
   posted: string;
   escrow: boolean;
   rating?: number;
+}
+
+function getClientName(client: Gig["client"]): string {
+  if (typeof client === "string") {
+    return client.trim() || "Verified Client";
+  }
+
+  return (
+    client?.name?.trim() ||
+    `${client?.firstName ?? ""} ${client?.lastName ?? ""}`.trim() ||
+    "Verified Client"
+  );
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -201,24 +217,23 @@ const FEATURES = [
 function GigCard({ gig }: { gig: Gig }) {
   const [saved, setSaved] = useState(false);
 
+  const clientName = getClientName(gig.client);
+
+  const clientInitials =
+    clientName
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "VC";
+
   const typeBadgeClass = {
     Fixed: 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
     Hourly: 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
     Retainer: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   }[gig.type] ?? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
 
-  const rawClient = gig.client as any;
-  const clientName = typeof rawClient === 'string'
-    ? rawClient
-    : (rawClient?.name ?? `${rawClient?.firstName ?? ''} ${rawClient?.lastName ?? ''}`.trim()) || 'Verified Client';
-
-  const clientInitials = clientName
-    .split(' ')
-    .filter(Boolean)
-    .map((w: string) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'VC';
 
   return (
     <article className="group relative flex flex-col rounded-2xl border border-primary/10 bg-white p-6 transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
@@ -228,9 +243,15 @@ function GigCard({ gig }: { gig: Gig }) {
           {clientInitials}
         </div>
         <button
-          onClick={() => setSaved((s) => !s)}
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setSaved((s) => !s);
+          }}
           aria-label={saved ? 'Unsave gig' : 'Save gig'}
-          className="shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:text-brandGreen dark:text-slate-500 dark:hover:text-brandGreen"
+          aria-pressed={saved}
+          className="relative z-10 shrink-0 rounded-lg p-1.5 text-muted transition-colors hover:text-brandGreen dark:text-slate-500 dark:hover:text-brandGreen"
         >
           {saved ? (
             <BookmarkCheck className="h-5 w-5 text-brandGreen" />
@@ -296,7 +317,7 @@ function GigCard({ gig }: { gig: Gig }) {
 
       {/* Full-card link overlay */}
       <Link
-        href={`/feed?type=freelance&gig=${gig.id}`}
+        href={`/freelance/${gig.id}`}
         className="absolute inset-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brandGreen"
         aria-label={`View gig: ${gig.title}`}
       />
@@ -320,9 +341,45 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
     const matchQ =
       !q ||
       g.title.toLowerCase().includes(q) ||
-      g.client.toLowerCase().includes(q) ||
+      getClientName(g.client).toLowerCase().includes(q) ||
       g.skills.some((s) => s.toLowerCase().includes(q));
     return matchCat && matchQ;
+  });
+
+  const getBudgetBounds = (budget: string): [number, number] => {
+    const amounts = budget.match(/[\d,]+(?:\.\d+)?/g) ?? [];
+    const values = amounts
+      .map((amount) => Number(amount.replace(/,/g, "")))
+      .filter(Number.isFinite);
+
+    if (values.length === 0) return [0, 0];
+    return [Math.min(...values), Math.max(...values)];
+  };
+
+  const getPostedAge = (posted: string): number => {
+    const match = posted.trim().toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|week|weeks)\s*ago$/);
+    if (!match) return Number.POSITIVE_INFINITY;
+
+    const amount = Number(match[1]);
+    const unit = match[2];
+    const multiplier =
+      /^(m|min|mins|minute|minutes)$/.test(unit) ? 1 :
+      /^(h|hr|hrs|hour|hours)$/.test(unit) ? 60 :
+      /^(d|day|days)$/.test(unit) ? 1440 : 10080;
+
+    return amount * multiplier;
+  };
+
+  const sortedGigs = [...filtered].sort((a, b) => {
+    if (sortBy === 'budget-high') {
+      return getBudgetBounds(b.budget)[1] - getBudgetBounds(a.budget)[1];
+    }
+
+    if (sortBy === 'budget-low') {
+      return getBudgetBounds(a.budget)[0] - getBudgetBounds(b.budget)[0];
+    }
+
+    return getPostedAge(a.posted) - getPostedAge(b.posted);
   });
 
   function handleSearch(e: React.FormEvent) {
@@ -385,7 +442,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/post-job?type=freelance"
-                className="inline-flex items-center gap-2 rounded-full bg-brandGreen px-5 py-2.5 text-sm font-bold text-primary transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-brandGreen px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Post a project <ArrowRight className="h-4 w-4" />
               </Link>
@@ -424,7 +481,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
                 ['4', 'Payout to your account'],
               ].map(([n, label]) => (
                 <div key={n} className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brandGreen text-[11px] font-black text-primary">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brandGreen text-[11px] font-black text-white">
                     {n}
                   </span>
                   <span className="text-xs font-semibold text-white/70">{label}</span>
@@ -509,7 +566,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
           {/* Grid */}
           {filtered.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((gig) => (
+              {sortedGigs.map((gig) => (
                 <GigCard key={gig.id} gig={gig} />
               ))}
             </div>
@@ -590,7 +647,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/register?role=freelancer"
-              className="rounded-full bg-brandGreen px-8 py-3.5 text-sm font-bold text-primary transition-opacity hover:opacity-90"
+              className="rounded-full bg-brandGreen px-8 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
             >
               Join as a freelancer
             </Link>

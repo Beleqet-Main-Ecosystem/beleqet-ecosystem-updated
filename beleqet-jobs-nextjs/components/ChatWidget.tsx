@@ -198,7 +198,7 @@ export default function ChatWidget() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? 'Close support chat' : 'Open support chat'}
-        className="fixed bottom-5 right-5 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brandGreen to-darkGreen text-white shadow-[0_10px_30px_-8px_rgba(0,101,59,0.6)] ring-4 ring-brandGreen/10 hover:scale-105 active:scale-95 transition-transform duration-200"
+        className="fixed bottom-20 right-4 z-50 inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brandGreen to-darkGreen text-white shadow-[0_10px_30px_-8px_rgba(0,101,59,0.6)] ring-4 ring-brandGreen/10 hover:scale-105 active:scale-95 transition-transform duration-200"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>

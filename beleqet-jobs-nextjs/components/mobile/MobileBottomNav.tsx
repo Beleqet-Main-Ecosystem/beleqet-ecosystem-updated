@@ -27,6 +27,9 @@ import {
   Plus,
   Bell,
   User,
+  Home,
+  Laptop,
+  LogIn,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useTranslation } from "@/lib/i18n";
@@ -162,10 +165,14 @@ export default function MobileBottomNav() {
 
   const isAuthenticated = ready && !!user;
 
-  /** Filter tabs that the current user is allowed to see. */
-  const visibleTabs = NAV_TABS.filter(
-    (tab) => !tab.requiresAuth || isAuthenticated,
-  );
+  /** Guest navigation keeps public destinations visible before sign-in. */
+  const GUEST_TABS: NavTab[] = [
+    { href: "/", labelKey: "nav.home", icon: Home, requiresAuth: false },
+    { href: "/jobs", labelKey: "nav.findJobs", icon: Briefcase, requiresAuth: false },
+    { href: "/freelance", labelKey: "nav.freelance", icon: Laptop, requiresAuth: false },
+    { href: "/login", labelKey: "nav.signIn", icon: LogIn, requiresAuth: false },
+  ];
+  const visibleTabs = isAuthenticated ? NAV_TABS : GUEST_TABS;
 
   return (
     <nav
