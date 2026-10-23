@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MapPin, Clock, Briefcase, Star } from 'lucide-react-native';
 import type { NormalizedJob } from '../api/jobs';
@@ -10,7 +11,7 @@ interface Props {
 /**
  * Compact job listing card for use in FlatList feeds.
  */
-export default function JobCard({ job, onPress }: Props) {
+function JobCard({ job, onPress }: Props) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -76,3 +77,5 @@ function Tag({ icon, label }: { icon: React.ReactNode; label: string }) {
     </View>
   );
 }
+
+export default memo(JobCard);

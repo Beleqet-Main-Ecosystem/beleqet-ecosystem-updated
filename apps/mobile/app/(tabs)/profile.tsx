@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -31,6 +32,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function ProfileScreen() {
   const { user, logout, status } = useAuthStore();
   const [loggingOut, setLoggingOut] = useState(false);
+  const router = useRouter();
 
   async function handleLogout() {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -52,9 +54,23 @@ export default function ProfileScreen() {
     ]);
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <View className="flex-1 bg-surface items-center justify-center px-8">
+        <User color="#6b7280" size={48} />
+        <Text className="text-ink text-lg font-bold mt-4">Sign in to view your profile</Text>
+        <Text className="text-muted text-sm text-center mt-2">Create an account or sign in to access your profile, applications, and settings.</Text>
+        <TouchableOpacity
+          className="bg-primary px-6 py-3 rounded-full mt-6"
+          onPress={() => router.push('/(auth)/login')}
+        >
+          <Text className="text-brandGreen font-bold text-base">Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
-  const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase();
+  const initials = `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'U';
   const roleLabel = ROLE_LABELS[user.role] ?? user.role;
 
   return (
@@ -79,7 +95,7 @@ export default function ProfileScreen() {
               <View className="bg-brandGreen/20 px-2 py-0.5 rounded-full">
                 <Text className="text-brandGreen text-xs font-bold">{roleLabel}</Text>
               </View>
-              {user.isEmailVerified && (
+              {user.emailVerified && (
                 <View className="bg-blue-500/20 px-2 py-0.5 rounded-full flex-row items-center gap-1">
                   <Shield color="#60a5fa" size={10} />
                   <Text className="text-blue-400 text-xs font-bold">Verified</Text>

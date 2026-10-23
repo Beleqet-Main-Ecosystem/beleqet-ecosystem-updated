@@ -134,9 +134,12 @@ export default function JobDetailScreen() {
           ) : null}
 
           {/* Requirements */}
-          {job.requirements && job.requirements.length > 0 ? (
+          {job.requirements && (typeof job.requirements === 'string' ? job.requirements.length > 0 : true) ? (
             <Section title="Requirements">
-              {job.requirements.map((req, i) => (
+              {(typeof job.requirements === 'string'
+                ? job.requirements.split('\n').filter(Boolean)
+                : Array.isArray(job.requirements) ? job.requirements : []
+              ).map((req: string, i: number) => (
                 <View key={i} className="flex-row gap-2 mb-1.5">
                   <Text className="text-brandGreen font-bold text-sm">•</Text>
                   <Text className="text-ink text-sm leading-6 flex-1">{req}</Text>
@@ -146,9 +149,9 @@ export default function JobDetailScreen() {
           ) : null}
 
           {/* Benefits */}
-          {job.benefits && job.benefits.length > 0 ? (
+          {(job as any).benefits && (job as any).benefits.length > 0 ? (
             <Section title="Benefits">
-              {job.benefits.map((b, i) => (
+              {(job as any).benefits.map((b: string, i: number) => (
                 <View key={i} className="flex-row gap-2 mb-1.5">
                   <Text className="text-brandGreen font-bold text-sm">✓</Text>
                   <Text className="text-ink text-sm leading-6 flex-1">{b}</Text>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,39 +11,48 @@ import {
   StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search, Shield, PlusCircle } from 'lucide-react-native';
-import { fetchGigs, type Gig } from '../../api/freelance';
+import { Search, Shield, PlusCircle, X } from 'lucide-react-native';
+import Toast from 'react-native-toast-message';
+import { fetchGigs, type FreelanceJob } from '../../api/freelance';
 import GigCard from '../../components/GigCard';
 import CategoryPill from '../../components/CategoryPill';
 
 const CATEGORIES = [
   { slug: '__all__', label: 'All Gigs' },
-  { slug: 'web-app-dev', label: 'Web & App Dev' },
-  { slug: 'design-creative', label: 'Design' },
-  { slug: 'writing-translation', label: 'Writing' },
-  { slug: 'marketing-seo', label: 'Marketing' },
-  { slug: 'data-analytics', label: 'Data' },
+  { slug: 'web-development', label: 'Web Dev' },
+  { slug: 'graphic-design', label: 'Design' },
+  { slug: 'writing', label: 'Writing' },
+  { slug: 'digital-marketing', label: 'Marketing' },
   { slug: 'video-animation', label: 'Video' },
-  { slug: 'finance-accounting', label: 'Finance' },
 ];
+
+const DEBOUNCE_MS = 300;
 
 export default function FreelanceScreen() {
   const router = useRouter();
-  const [gigs, setGigs] = useState<Gig[]>([]);
+  const [gigs, setGigs] = useState<FreelanceJob[]>([]);
   const [activeCategory, setActiveCategory] = useState('__all__');
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Debounce search input
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    debounceRef.current = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
+    return () => clearTimeout(debounceRef.current);
+  }, [query]);
 
   const load = useCallback(
     async (opts?: { refresh?: boolean }) => {
       if (opts?.refresh) setRefreshing(true);
-      else setLoading(true);
+      else if (gigs.length === 0) setLoading(true);
       try {
         const data = await fetchGigs({
           limit: 40,
           ...(activeCategory !== '__all__' ? { category: activeCategory } : {}),
-          ...(query.trim() ? { q: query.trim() } : {}),
+          ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
         });
         setGigs(data);
       } finally {
@@ -51,7 +60,7 @@ export default function FreelanceScreen() {
         setRefreshing(false);
       }
     },
-    [activeCategory, query],
+    [activeCategory, debouncedQuery],
   );
 
   useEffect(() => {
@@ -75,7 +84,7 @@ export default function FreelanceScreen() {
           </View>
           <TouchableOpacity
             className="flex-row items-center gap-1.5 bg-brandGreen px-3 py-2 rounded-full"
-            onPress={() => router.push('/post-gig')}
+            onPress={() => Toast.show({ type: 'info', text1: 'Coming soon', text2: 'Post a project from the web dashboard' })}
             accessibilityLabel="Post a project"
           >
             <PlusCircle color="#041603" size={14} />
@@ -104,7 +113,21 @@ export default function FreelanceScreen() {
             onSubmitEditing={() => load()}
             returnKeyType="search"
             accessibilityLabel="Search gigs"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
+          {query !== debouncedQuery && (
+            <ActivityIndicator size="small" color="#d8ff3e" />
+          )}
+          {query.length > 0 && query === debouncedQuery && (
+            <TouchableOpacity
+              onPress={() => setQuery('')}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Clear search"
+            >
+              <X color="rgba(255,255,255,0.6)" size={16} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Category pills */}
@@ -126,22 +149,34 @@ export default function FreelanceScreen() {
       </View>
 
       {/* ── Gig count ── */}
-      <View className="px-4 py-3 border-b border-black/5">
+      <View className="px-4 py-3 border-b border-black/5 bg-white flex-row items-center justify-between">
         <Text className="text-muted text-xs font-semibold">
           {gigs.length} project{gigs.length !== 1 ? 's' : ''} available
         </Text>
+        {activeCategory !== '__all__' && (
+          <TouchableOpacity onPress={() => setActiveCategory('__all__')}>
+            <Text className="text-primary text-xs font-bold">Reset Category</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ── Feed ── */}
-      {loading ? (
+      {loading && gigs.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#041603" size="large" />
+          <Text className="text-muted text-sm mt-3">Finding projects…</Text>
         </View>
       ) : (
         <FlatList
           data={gigs}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, gap: 12 }}
+          contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -150,9 +185,26 @@ export default function FreelanceScreen() {
             />
           }
           ListEmptyComponent={
-            <View className="items-center py-20">
-              <Text className="text-muted text-base">No gigs found</Text>
-              <Text className="text-muted/60 text-sm mt-1">Try a different category</Text>
+            <View className="flex-1 items-center justify-center py-20 px-6">
+              <View className="w-16 h-16 rounded-full bg-primary/5 items-center justify-center mb-4">
+                <Search color="#64748b" size={28} />
+              </View>
+              <Text className="text-slate-800 text-lg font-bold text-center">No projects found</Text>
+              <Text className="text-muted text-sm text-center mt-1 mb-5">
+                Try a different keyword or category filter.
+              </Text>
+              {(query.length > 0 || activeCategory !== '__all__') && (
+                <TouchableOpacity
+                  className="bg-primary px-5 py-2.5 rounded-full"
+                  onPress={() => {
+                    setQuery('');
+                    setActiveCategory('__all__');
+                  }}
+                  accessibilityLabel="Clear all filters"
+                >
+                  <Text className="text-brandGreen text-sm font-bold">Clear Filters</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
           renderItem={({ item }) => (

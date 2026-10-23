@@ -12,13 +12,12 @@ import {
 import { Link } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useAuthStore } from '../../store/auth.store';
+import { UserRole } from '@beleqet/common';
 
-type Role = 'JOB_SEEKER' | 'EMPLOYER' | 'FREELANCER';
-
-const ROLES: { value: Role; label: string; description: string }[] = [
-  { value: 'JOB_SEEKER', label: 'Job Seeker', description: 'Find full-time & part-time jobs' },
-  { value: 'FREELANCER', label: 'Freelancer', description: 'Offer skills & find gig projects' },
-  { value: 'EMPLOYER', label: 'Employer', description: 'Post jobs & hire talent' },
+const ROLES: { value: UserRole; label: string; description: string }[] = [
+  { value: UserRole.JOB_SEEKER, label: 'Job Seeker', description: 'Find full-time & part-time jobs' },
+  { value: UserRole.FREELANCER, label: 'Freelancer', description: 'Offer skills & find gig projects' },
+  { value: UserRole.EMPLOYER, label: 'Employer', description: 'Post jobs & hire talent' },
 ];
 
 export default function RegisterScreen() {
@@ -30,7 +29,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<Role>('JOB_SEEKER');
+  const [role, setRole] = useState<UserRole>(UserRole.JOB_SEEKER);
 
   async function handleRegister() {
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {

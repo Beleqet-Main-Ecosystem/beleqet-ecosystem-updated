@@ -32,14 +32,31 @@ function extractMessage(error: unknown): string {
 // ── API functions ─────────────────────────────────────────────────────────────
 
 /**
+ * Response when 2FA is required before full authentication.
+ */
+export interface TwoFactorRequired {
+  requires2fa: true;
+  tempToken: string;
+  factorId: string;
+}
+
+/**
  * Authenticate with email + password.
  * Persists tokens to SecureStore on success.
+ * Returns a TwoFactorRequired object if the account has 2FA enabled.
  */
-export async function loginUser(input: LoginDto): Promise<AuthUser> {
+export async function loginUser(input: LoginDto): Promise<AuthUser | TwoFactorRequired> {
   try {
-    const { data } = await apiClient.post<AuthResponse>('/auth/login', input);
-    await persistTokens(data.accessToken, data.refreshToken);
-    return data.user;
+    const { data } = await apiClient.post<AuthResponse | TwoFactorRequired>('/auth/login', input);
+
+    // Handle 2FA challenge response
+    if ('requires2fa' in data && data.requires2fa) {
+      return data as TwoFactorRequired;
+    }
+
+    const authData = data as AuthResponse;
+    await persistTokens(authData.accessToken, authData.refreshToken);
+    return authData.user;
   } catch (error) {
     throw new Error(extractMessage(error));
   }

@@ -107,9 +107,9 @@ export async function fetchGig(id: string): Promise<FreelanceJob | null> {
 export async function submitProposal(
   gigId: string,
   payload: SubmitBidDto,
-): Promise<{ proposalId: string }> {
-  const { data } = await apiClient.post<{ proposalId: string }>(
-    `/freelance/jobs/${gigId}/proposals`,
+): Promise<{ id: string }> {
+  const { data } = await apiClient.post<{ id: string }>(
+    `/freelance/jobs/${gigId}/bids`,
     payload,
   );
   return data;

@@ -104,9 +104,9 @@ export async function fetchPlatformStats(): Promise<JobStats> {
 export async function applyToJob(
   jobId: string,
   payload: Omit<CreateApplicationDto, 'jobId'>,
-): Promise<{ applicationId: string }> {
-  const { data } = await apiClient.post<{ applicationId: string }>(
-    `/jobs/${jobId}/apply`,
+): Promise<{ id: string }> {
+  const { data } = await apiClient.post<{ id: string }>(
+    '/applications',
     { ...payload, jobId },
   );
   return data;

@@ -11,6 +11,7 @@ import * as SecureStore from 'expo-secure-store';
 
 export const ACCESS_TOKEN_KEY = 'beleqet_access_token';
 export const REFRESH_TOKEN_KEY = 'beleqet_refresh_token';
+export const USER_CACHE_KEY = 'beleqet_cached_user';
 
 const BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
@@ -51,7 +52,12 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
-    if (error.response?.status !== 401 || original._retry) {
+    // Skip refresh logic for auth endpoints — a 401 from login/register
+    // means bad credentials, not an expired token.
+    const url = original.url ?? '';
+    const isAuthRoute = /\/auth\/(login|register|refresh|2fa)/.test(url);
+
+    if (error.response?.status !== 401 || original._retry || isAuthRoute) {
       return Promise.reject(error);
     }
 
@@ -111,4 +117,5 @@ export async function persistTokens(access: string, refresh?: string | null) {
 export async function clearTokens() {
   await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
   await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await SecureStore.deleteItemAsync(USER_CACHE_KEY);
 }

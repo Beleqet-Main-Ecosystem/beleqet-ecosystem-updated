@@ -7,12 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "beleqet",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#041603"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.beleqet.jobs",
@@ -29,7 +23,7 @@
         "backgroundColor": "#041603"
       },
       "package": "com.beleqet.jobs",
-      "versionCode": 1,
+      "versionCode": 17,
       "permissions": [
         "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE",
@@ -62,16 +56,31 @@
           "image": "./assets/splash.png",
           "imageWidth": 200
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "targetSdkVersion": 36,
+            "compileSdkVersion": 36,
+            "buildToolsVersion": "36.0.0"
+          }
+        }
+      ],
+      "expo-font",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "router": {
+        "origin": false
+      },
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "2697453b-4fd8-4577-9ef3-b3ea7e465747"
       }
     },
-    "owner": "beleqet"
+    "owner": "beleqet-jobs"
   }
 }
