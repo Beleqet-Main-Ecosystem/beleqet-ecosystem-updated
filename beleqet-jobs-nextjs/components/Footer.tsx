@@ -29,6 +29,7 @@ const footerColumns = [
     title: 'Contact',
     links: [
       { label: 'Addis Ababa, Ethiopia', href: '/contact' },
+      { label: 'Privacy Policy', href: '/privacy' },
       { label: 'beleqet.com', href: 'https://beleqet.com' },
       { label: 'Telegram Channel', href: 'https://t.me/BeleqetJobs' },
       { label: 'Support Center', href: '/contact' },
@@ -101,7 +102,13 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container-page flex flex-col items-center justify-between gap-2 py-6 text-xs text-white/40 sm:flex-row">
           <p>© {new Date().getFullYear()} Beleqet Vacancy Platform. All rights reserved.</p>
-          <p>Addis Ababa · Built for Ethiopian talent.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="hover:text-white transition-colors underline">
+              Privacy Policy
+            </Link>
+            <span>·</span>
+            <span>Addis Ababa · Built for Ethiopian talent.</span>
+          </div>
         </div>
       </div>
     </footer>
