@@ -11,7 +11,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Search, Shield, PlusCircle, X } from 'lucide-react-native';
+import { Search, Shield, PlusCircle, X, Briefcase, RotateCcw } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { fetchGigs, type FreelanceJob } from '../../api/freelance';
 import GigCard from '../../components/GigCard';
@@ -185,24 +185,46 @@ export default function FreelanceScreen() {
             />
           }
           ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-20 px-6">
-              <View className="w-16 h-16 rounded-full bg-primary/5 items-center justify-center mb-4">
-                <Search color="#64748b" size={28} />
+            <View className="flex-1 items-center justify-center py-16 px-6">
+              <View className="w-16 h-16 rounded-2xl bg-primary/10 items-center justify-center mb-4">
+                {query.length > 0 || activeCategory !== '__all__' ? (
+                  <Search color="#041603" size={28} />
+                ) : (
+                  <Briefcase color="#041603" size={28} />
+                )}
               </View>
-              <Text className="text-slate-800 text-lg font-bold text-center">No projects found</Text>
-              <Text className="text-muted text-sm text-center mt-1 mb-5">
-                Try a different keyword or category filter.
+              <Text className="text-slate-900 text-lg font-bold text-center">
+                {query.trim().length > 0
+                  ? `No projects matching "${query.trim()}"`
+                  : activeCategory !== '__all__'
+                  ? `No ${CATEGORIES.find((c) => c.slug === activeCategory)?.label ?? ''} projects yet`
+                  : 'No open freelance projects'}
               </Text>
-              {(query.length > 0 || activeCategory !== '__all__') && (
+              <Text className="text-muted text-sm text-center mt-1.5 mb-6 max-w-xs leading-5">
+                {query.length > 0 || activeCategory !== '__all__'
+                  ? 'Try checking for spelling errors, using broader keywords, or clearing your category filters.'
+                  : 'New client gigs are posted frequently. Check back soon or pull down to refresh.'}
+              </Text>
+              {query.length > 0 || activeCategory !== '__all__' ? (
                 <TouchableOpacity
-                  className="bg-primary px-5 py-2.5 rounded-full"
+                  className="flex-row items-center gap-2 bg-primary px-5 py-3 rounded-full shadow-sm"
                   onPress={() => {
                     setQuery('');
                     setActiveCategory('__all__');
                   }}
                   accessibilityLabel="Clear all filters"
                 >
-                  <Text className="text-brandGreen text-sm font-bold">Clear Filters</Text>
+                  <RotateCcw color="#d8ff3e" size={14} />
+                  <Text className="text-brandGreen text-sm font-bold">Clear All Filters</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  className="flex-row items-center gap-2 bg-primary px-5 py-3 rounded-full shadow-sm"
+                  onPress={() => load({ refresh: true })}
+                  accessibilityLabel="Refresh listings"
+                >
+                  <RotateCcw color="#d8ff3e" size={14} />
+                  <Text className="text-brandGreen text-sm font-bold">Refresh Feed</Text>
                 </TouchableOpacity>
               )}
             </View>
