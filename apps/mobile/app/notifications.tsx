@@ -9,7 +9,16 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, Briefcase, Zap, MessageSquare, ArrowLeft, CheckCheck } from 'lucide-react-native';
+import {
+  Bell,
+  Briefcase,
+  Zap,
+  MessageSquare,
+  ArrowLeft,
+  CheckCheck,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react-native';
 import {
   fetchNotifications,
   markNotificationAsRead,
@@ -69,27 +78,33 @@ export default function NotificationsScreen() {
     <View className="flex-1 bg-surface">
       <StatusBar barStyle="light-content" backgroundColor="#041603" />
 
-      {/* Header */}
-      <View className="bg-primary px-5 pt-14 pb-5">
+      {/* ── Top Header ── */}
+      <View className="bg-primary px-5 pt-14 pb-5 shadow-md">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
             <TouchableOpacity
               onPress={() => router.back()}
-              className="w-8 h-8 items-center justify-center rounded-full bg-white/10"
+              className="w-10 h-10 items-center justify-center rounded-2xl bg-white/10 active:opacity-75"
               accessibilityLabel="Go back"
             >
-              <ArrowLeft color="#ffffff" size={18} />
+              <ArrowLeft color="#ffffff" size={20} />
             </TouchableOpacity>
-            <Text className="text-white text-xl font-black">Notifications</Text>
+            <View>
+              <Text className="text-white text-xl font-black">Notifications</Text>
+              <Text className="text-white/50 text-xs">
+                {unreadCount > 0 ? `${unreadCount} unread update${unreadCount !== 1 ? 's' : ''}` : 'All caught up'}
+              </Text>
+            </View>
           </View>
+
           {unreadCount > 0 && (
             <TouchableOpacity
               onPress={handleMarkAllRead}
-              className="flex-row items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-full"
+              className="flex-row items-center gap-1.5 bg-brandGreen px-3.5 py-2 rounded-2xl shadow-sm active:opacity-85"
               accessibilityLabel="Mark all notifications as read"
             >
-              <CheckCheck color="#d8ff3e" size={14} />
-              <Text className="text-brandGreen text-xs font-bold">Mark all read</Text>
+              <CheckCheck color="#041603" size={15} />
+              <Text className="text-primary text-xs font-black">Mark all read</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -98,13 +113,13 @@ export default function NotificationsScreen() {
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#041603" size="large" />
-          <Text className="text-muted text-sm mt-3">Loading notifications…</Text>
+          <Text className="text-slate-500 text-sm mt-3 font-semibold">Loading notifications…</Text>
         </View>
       ) : (
         <FlatList
           data={notifications}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1 }}
+          contentContainerStyle={{ padding: 16, gap: 12, flexGrow: 1 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -114,46 +129,48 @@ export default function NotificationsScreen() {
           }
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center py-24 px-6">
-              <View className="w-16 h-16 bg-primary/5 rounded-full items-center justify-center mb-4">
-                <Bell color="#6b7280" size={28} />
+              <View className="w-16 h-16 bg-primary/10 rounded-2xl items-center justify-center mb-4">
+                <Bell color="#041603" size={28} />
               </View>
-              <Text className="text-slate-800 text-lg font-bold">No notifications</Text>
-              <Text className="text-muted text-sm text-center mt-1">
-                You're all caught up! New job alerts, bids, and updates will appear here.
+              <Text className="text-slate-900 text-lg font-bold text-center">No Notifications Yet</Text>
+              <Text className="text-slate-500 text-sm text-center mt-1.5 max-w-xs leading-5">
+                You're all caught up! Updates regarding your job applications, client proposals, and escrow releases will appear here.
               </Text>
             </View>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
               onPress={() => handleMarkRead(item.id)}
-              className={`flex-row items-start gap-3 bg-white rounded-2xl p-4 border ${
-                item.read ? 'border-black/5 opacity-80' : 'border-brandGreen/40 shadow-xs'
+              className={`flex-row items-start gap-3.5 bg-white rounded-2xl p-4 border transition-all ${
+                item.read ? 'border-slate-100 opacity-75' : 'border-brandGreen/50 shadow-xs'
               }`}
               accessibilityRole="button"
             >
               <View
-                className={`w-10 h-10 rounded-full items-center justify-center ${
-                  item.read ? 'bg-primary/5' : 'bg-brandGreen'
+                className={`w-11 h-11 rounded-2xl items-center justify-center ${
+                  item.read ? 'bg-slate-100' : 'bg-brandGreen'
                 }`}
               >
-                {item.type === 'job' && <Briefcase color="#041603" size={16} />}
-                {item.type === 'gig' && <Zap color="#041603" size={16} />}
-                {item.type === 'message' && <MessageSquare color="#041603" size={16} />}
+                {item.type === 'job' && <Briefcase color="#041603" size={18} />}
+                {item.type === 'gig' && <Zap color="#041603" size={18} />}
+                {item.type === 'message' && <MessageSquare color="#041603" size={18} />}
                 {item.type !== 'job' && item.type !== 'gig' && item.type !== 'message' && (
-                  <Bell color="#041603" size={16} />
+                  <Bell color="#041603" size={18} />
                 )}
               </View>
+
               <View className="flex-1">
                 <View className="flex-row items-center justify-between">
                   <Text className={`text-sm font-bold ${item.read ? 'text-slate-600' : 'text-slate-900'}`}>
                     {item.title}
                   </Text>
-                  <Text className="text-muted/60 text-xs">
+                  <Text className="text-slate-400 text-[11px] font-medium">
                     {formatRelativeTime(item.createdAt)}
                   </Text>
                 </View>
-                <Text className="text-muted text-xs mt-1 leading-5">{item.body}</Text>
+                <Text className="text-slate-500 text-xs mt-1 leading-5">{item.body}</Text>
               </View>
+
               {!item.read && <View className="w-2.5 h-2.5 rounded-full bg-brandGreen mt-1.5" />}
             </TouchableOpacity>
           )}

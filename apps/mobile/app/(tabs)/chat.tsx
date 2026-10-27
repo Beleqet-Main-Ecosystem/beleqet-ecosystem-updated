@@ -9,10 +9,19 @@ import {
   Alert,
   Share,
 } from 'react-native';
-import { Mic, MicOff, Share2, Trash2, MessageSquare } from 'lucide-react-native';
+import {
+  Mic,
+  MicOff,
+  Share2,
+  Trash2,
+  MessageSquare,
+  Sparkles,
+  Copy,
+  Clock,
+  CheckCircle2,
+} from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
-import { apiClient } from '../../api/client';
 import { useAuthStore } from '../../store/auth.store';
 
 type Transcript = { id: string; text: string; createdAt: Date };
@@ -31,7 +40,7 @@ export default function ChatScreen() {
       setLoading(true);
       try {
         const demo =
-          'Beleqet Voice AI note: Client project review scheduled for 3:00 PM. Follow up on milestones and escrow release.';
+          'Beleqet Voice Note: Discussed project timeline with client. Deliverables scheduled for Friday with escrow release upon milestone review.';
         setTranscripts((prev) => [
           ...prev,
           { id: Date.now().toString(), text: demo, createdAt: new Date() },
@@ -44,7 +53,7 @@ export default function ChatScreen() {
       }
     } else {
       setRecording(true);
-      Toast.show({ type: 'info', text1: 'Listening…', text2: 'Tap the mic again to stop' });
+      Toast.show({ type: 'info', text1: 'Recording audio…', text2: 'Tap the red button to finish' });
     }
   }
 
@@ -57,24 +66,57 @@ export default function ChatScreen() {
   }
 
   function handleClear() {
-    Alert.alert('Clear transcripts', 'Remove all transcriptions?', [
+    Alert.alert('Clear All Transcripts', 'Are you sure you want to remove all voice notes?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: () => setTranscripts([]) },
+      { text: 'Clear All', style: 'destructive', onPress: () => setTranscripts([]) },
     ]);
   }
 
   if (!user) {
     return (
-      <View className="flex-1 bg-surface items-center justify-center px-8">
-        <MessageSquare color="#6b7280" size={48} />
-        <Text className="text-ink text-lg font-bold mt-4">Sign in to use Chat-to-Text</Text>
-        <Text className="text-muted text-sm text-center mt-2">Record voice notes and convert them to text. Sign in to get started.</Text>
-        <TouchableOpacity
-          className="bg-primary px-6 py-3 rounded-full mt-6"
-          onPress={() => router.push('/(auth)/login')}
-        >
-          <Text className="text-brandGreen font-bold text-base">Sign In</Text>
-        </TouchableOpacity>
+      <View className="flex-1 bg-surface">
+        <StatusBar barStyle="light-content" backgroundColor="#041603" />
+        <View className="bg-primary px-6 pt-16 pb-10 items-center">
+          <View className="w-20 h-20 rounded-3xl bg-brandGreen/20 border border-brandGreen/30 items-center justify-center mb-4 shadow-sm">
+            <Mic color="#d8ff3e" size={38} />
+          </View>
+          <Text className="text-white text-2xl font-black text-center">Chat-to-Text AI</Text>
+          <Text className="text-white/60 text-sm text-center mt-2 max-w-xs leading-5">
+            Record voice notes, interviews, and proposal drafts. Transcribe instantly in English and Amharic.
+          </Text>
+        </View>
+
+        <View className="flex-1 px-6 -mt-4 gap-4">
+          <View className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 gap-4">
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 rounded-2xl bg-brandGreen/20 items-center justify-center">
+                <Sparkles color="#041603" size={20} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-slate-900 font-bold text-sm">Instant Speech-to-Text</Text>
+                <Text className="text-slate-500 text-xs">Accurate AI transcription for meeting notes.</Text>
+              </View>
+            </View>
+            <View className="flex-row items-center gap-3">
+              <View className="w-10 h-10 rounded-2xl bg-brandGreen/20 items-center justify-center">
+                <Share2 color="#041603" size={20} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-slate-900 font-bold text-sm">Easy Export</Text>
+                <Text className="text-slate-500 text-xs">Share transcripts directly with clients.</Text>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            className="bg-primary py-4 rounded-2xl items-center shadow-md active:opacity-90"
+            onPress={() => router.push('/(auth)/login')}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in"
+          >
+            <Text className="text-brandGreen font-black text-base">Sign In to Use Voice AI</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -83,31 +125,48 @@ export default function ChatScreen() {
     <View className="flex-1 bg-surface">
       <StatusBar barStyle="light-content" backgroundColor="#041603" />
 
-      {/* Header */}
-      <View className="bg-primary px-5 pt-14 pb-6">
-        <Text className="text-white/50 text-xs font-semibold uppercase tracking-widest">
-          Beleqet
-        </Text>
-        <Text className="text-white text-xl font-black mt-0.5">Chat-to-Text</Text>
-        <Text className="text-white/40 text-xs mt-1">
-          Record voice notes — converted to text instantly
-        </Text>
+      {/* ── Top Header ── */}
+      <View className="bg-primary px-5 pt-14 pb-5 shadow-md">
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
+              AI Tools
+            </Text>
+            <Text className="text-white text-xl font-black">Chat-to-Text</Text>
+            <Text className="text-white/50 text-xs mt-0.5">
+              Record voice notes & transcribe speech to text
+            </Text>
+          </View>
+
+          {transcripts.length > 0 && (
+            <TouchableOpacity
+              onPress={handleClear}
+              className="w-10 h-10 rounded-2xl bg-white/10 items-center justify-center active:opacity-75"
+              accessibilityLabel="Clear transcripts"
+            >
+              <Trash2 color="#ffffff" size={17} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* Transcripts list */}
+      {/* ── Transcripts List ── */}
       <ScrollView
         ref={scrollRef}
         className="flex-1 px-4 py-4"
-        contentContainerStyle={{ gap: 12, paddingBottom: 24 }}
+        contentContainerStyle={{ gap: 12, paddingBottom: 30 }}
+        showsVerticalScrollIndicator={false}
       >
         {transcripts.length === 0 && !loading && (
-          <View className="items-center py-20">
-            <View className="w-16 h-16 bg-primary/10 rounded-full items-center justify-center mb-4">
-              <Mic color="#041603" size={28} />
+          <View className="items-center py-20 px-6">
+            <View className="w-18 h-18 bg-primary/10 rounded-3xl items-center justify-center mb-4">
+              <Mic color="#041603" size={32} />
             </View>
-            <Text className="text-ink font-bold text-base">No transcripts yet</Text>
-            <Text className="text-muted text-sm mt-1 text-center px-8">
-              Tap the mic button to start recording. We'll convert your speech to text.
+            <Text className="text-slate-900 font-bold text-lg text-center">
+              No Voice Transcripts Yet
+            </Text>
+            <Text className="text-slate-500 text-sm text-center mt-1.5 max-w-xs leading-5">
+              Tap the microphone below to start dictating. Your spoken words will be converted into clean, editable text.
             </Text>
           </View>
         )}
@@ -115,49 +174,45 @@ export default function ChatScreen() {
         {transcripts.map((t) => (
           <View
             key={t.id}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-black/5"
+            className="bg-white rounded-3xl p-5 shadow-xs border border-slate-100"
           >
             <View className="flex-row items-start justify-between gap-3">
-              <Text className="text-ink text-sm leading-6 flex-1">{t.text}</Text>
+              <Text className="text-slate-800 text-sm leading-6 flex-1 font-medium">
+                {t.text}
+              </Text>
               <TouchableOpacity
                 onPress={() => handleShare(t.text)}
-                className="w-8 h-8 bg-surface rounded-lg items-center justify-center active:bg-black/10"
+                className="w-9 h-9 bg-slate-50 rounded-xl items-center justify-center active:bg-slate-100"
                 accessibilityLabel="Share transcript"
               >
-                <Share2 color="#6b7280" size={14} />
+                <Share2 color="#64748b" size={16} />
               </TouchableOpacity>
             </View>
-            <Text className="text-muted/60 text-xs mt-2">
-              {t.createdAt.toLocaleTimeString()}
-            </Text>
+            <View className="flex-row items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
+              <Clock color="#94a3b8" size={12} />
+              <Text className="text-slate-400 text-[11px] font-medium">
+                {t.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
           </View>
         ))}
 
         {loading && (
-          <View className="bg-white rounded-2xl p-6 items-center border border-black/5">
-            <ActivityIndicator color="#041603" />
-            <Text className="text-muted text-sm mt-2">Transcribing…</Text>
+          <View className="bg-white rounded-3xl p-6 items-center border border-slate-100 shadow-xs">
+            <ActivityIndicator color="#041603" size="small" />
+            <Text className="text-slate-600 text-sm font-semibold mt-2.5">
+              Transcribing audio with Beleqet AI…
+            </Text>
           </View>
         )}
       </ScrollView>
 
-      {/* Controls */}
-      <View className="bg-white border-t border-black/5 px-6 py-5 items-center gap-3">
-        {transcripts.length > 0 && (
-          <TouchableOpacity
-            className="flex-row items-center gap-2"
-            onPress={handleClear}
-            accessibilityLabel="Clear all transcripts"
-          >
-            <Trash2 color="#6b7280" size={14} />
-            <Text className="text-muted text-sm">Clear all</Text>
-          </TouchableOpacity>
-        )}
-
+      {/* ── Record Controls ── */}
+      <View className="bg-white border-t border-slate-100 px-6 py-5 items-center gap-2 shadow-lg">
         <TouchableOpacity
           onPress={handleToggleRecording}
           disabled={loading}
-          className={`w-20 h-20 rounded-full items-center justify-center shadow-lg ${
+          className={`w-20 h-20 rounded-full items-center justify-center shadow-lg active:scale-95 transition-all ${
             recording ? 'bg-red-500' : 'bg-primary'
           }`}
           accessibilityRole="button"
@@ -165,16 +220,16 @@ export default function ChatScreen() {
           accessibilityState={{ busy: loading }}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#ffffff" />
           ) : recording ? (
-            <MicOff color="#fff" size={30} />
+            <MicOff color="#ffffff" size={32} />
           ) : (
-            <Mic color="#d8ff3e" size={30} />
+            <Mic color="#d8ff3e" size={32} />
           )}
         </TouchableOpacity>
 
-        <Text className="text-muted text-xs">
-          {recording ? 'Recording… tap to stop' : 'Tap to record'}
+        <Text className="text-slate-500 text-xs font-semibold">
+          {recording ? 'Recording… tap to complete' : 'Tap microphone to speak'}
         </Text>
       </View>
     </View>
