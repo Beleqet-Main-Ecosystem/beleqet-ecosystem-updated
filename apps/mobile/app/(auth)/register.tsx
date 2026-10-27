@@ -26,7 +26,7 @@ import {
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { useAuthStore } from '../../store/auth.store';
-import { UserRole } from '@beleqet/common';
+import type { UserRole } from '@beleqet/common';
 
 interface RoleOption {
   value: UserRole;
@@ -37,19 +37,19 @@ interface RoleOption {
 
 const ROLES: RoleOption[] = [
   {
-    value: UserRole.JOB_SEEKER,
+    value: 'JOB_SEEKER' as UserRole,
     title: 'Job Seeker',
     subtitle: 'Search and apply for full-time & remote careers',
     icon: Briefcase,
   },
   {
-    value: UserRole.FREELANCER,
+    value: 'FREELANCER' as UserRole,
     title: 'Freelancer',
     subtitle: 'Submit proposals & earn with secure escrow milestones',
     icon: Sparkles,
   },
   {
-    value: UserRole.EMPLOYER,
+    value: 'EMPLOYER' as UserRole,
     title: 'Employer',
     subtitle: 'Post vacancies, review applicants, and hire talent',
     icon: Building2,
@@ -66,7 +66,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<UserRole>(UserRole.JOB_SEEKER);
+  const [role, setRole] = useState<UserRole>('JOB_SEEKER' as UserRole);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   async function handleRegister() {

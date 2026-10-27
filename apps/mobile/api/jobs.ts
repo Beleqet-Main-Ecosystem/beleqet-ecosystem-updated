@@ -11,8 +11,8 @@ import type {
   JobStats,
   QueryJobsDto,
   CreateApplicationDto,
+  JobType,
 } from '@beleqet/common';
-import { JobType } from '@beleqet/common';
 import { apiClient } from './client';
 
 // Re-export for consumers.
@@ -21,11 +21,11 @@ export type { Job, JobCategory, QueryJobsDto };
 // ── Display helpers ───────────────────────────────────────────────────────────
 
 const TYPE_LABELS: Record<string, string> = {
-  [JobType.FULL_TIME]: 'Full Time',
-  [JobType.PART_TIME]: 'Part Time',
-  [JobType.REMOTE]:    'Remote',
-  [JobType.HYBRID]:    'Hybrid',
-  [JobType.CONTRACT]:  'Contract',
+  FULL_TIME: 'Full Time',
+  PART_TIME: 'Part Time',
+  REMOTE:    'Remote',
+  HYBRID:    'Hybrid',
+  CONTRACT:  'Contract',
 };
 
 function relativeTime(iso?: string | null): string {
