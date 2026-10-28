@@ -94,13 +94,9 @@ export async function requestPasswordReset(email: string): Promise<{ message?: s
  * NOTE: `GET /auth/me` only returns the JWT payload { userId, email, role }.
  * Use `GET /users/profile` for the full AuthUser shape.
  */
-export async function fetchMe(): Promise<AuthUser | null> {
-  try {
-    const { data } = await apiClient.get<AuthUser>('/users/profile');
-    return data;
-  } catch {
-    return null;
-  }
+export async function fetchMe(): Promise<AuthUser> {
+  const { data } = await apiClient.get<AuthUser>('/users/profile');
+  return data;
 }
 
 /**

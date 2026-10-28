@@ -17,10 +17,7 @@ import {
   X,
   Briefcase,
   RotateCcw,
-  SlidersHorizontal,
   Sparkles,
-  MapPin,
-  Building2,
 } from 'lucide-react-native';
 import { fetchJobs, fetchCategories, type NormalizedJob, type JobCategory } from '../../api/jobs';
 import { useAuthStore } from '../../store/auth.store';
@@ -69,6 +66,7 @@ export default function JobsScreen() {
             limit: 40,
             ...(activeCategory !== ALL_SLUG ? { category: activeCategory } : {}),
             ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
+            ...(activeWorkType !== 'all' ? { type: activeWorkType as any } : {}),
           }),
           fetchCategories(),
         ]);
@@ -84,12 +82,14 @@ export default function JobsScreen() {
 
         setJobs(filtered);
         setCategories(catData);
+      } catch {
+        // preserve existing jobs on error
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [activeCategory, debouncedQuery, activeWorkType],
+    [activeCategory, debouncedQuery, activeWorkType, jobs.length],
   );
 
   useEffect(() => {

@@ -11,7 +11,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Mail, ArrowLeft, CheckCircle2, ShieldAlert } from 'lucide-react-native';
+import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { requestPasswordReset } from '../../api/auth';
 
@@ -70,7 +70,7 @@ export default function ForgotPasswordScreen() {
           {/* Top Back Button */}
           <View className="flex-row items-center mb-8">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/(auth)/login'))}
               className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/10 active:opacity-75"
               accessibilityRole="button"
               accessibilityLabel="Back to sign in"

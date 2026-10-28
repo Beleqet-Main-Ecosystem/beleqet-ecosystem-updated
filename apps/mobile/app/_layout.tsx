@@ -8,7 +8,7 @@ import Toast from 'react-native-toast-message';
 import { useAuthStore } from '../store/auth.store';
 
 // Keep the splash visible until we finish hydrating auth
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /**
  * Guards navigation so that:
@@ -31,10 +31,7 @@ function AuthGuard() {
       // Already logged in — go to main tabs
       router.replace('/(tabs)/jobs');
     }
-    // NOTE: We no longer force guests to login. Individual screens
-    // (profile, chat, notifications) check auth state themselves
-    // and redirect to login when the user tries a protected action.
-  }, [status, segments]);
+  }, [status, segments, router]);
 
   return null;
 }
@@ -46,18 +43,18 @@ export default function RootLayout() {
   // Hydrate auth on first mount
   useEffect(() => {
     hydrate();
-  }, []);
+  }, [hydrate]);
 
   // Hide splash once we know the auth state
   useEffect(() => {
     if (status !== 'idle' && status !== 'loading') {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [status]);
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <AuthGuard />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
@@ -65,23 +62,13 @@ export default function RootLayout() {
         <Stack.Screen
           name="job/[id]"
           options={{
-            headerShown: true,
-            headerTitle: 'Job Detail',
-            headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: '#041603' },
-            headerTintColor: '#d8ff3e',
-            headerTitleStyle: { color: '#ffffff' },
+            headerShown: false,
           }}
         />
         <Stack.Screen
           name="gig/[id]"
           options={{
-            headerShown: true,
-            headerTitle: 'Gig Detail',
-            headerBackTitle: 'Back',
-            headerStyle: { backgroundColor: '#041603' },
-            headerTintColor: '#d8ff3e',
-            headerTitleStyle: { color: '#ffffff' },
+            headerShown: false,
           }}
         />
         <Stack.Screen

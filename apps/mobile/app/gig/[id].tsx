@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ShieldCheck,
   Clock,
@@ -28,8 +29,6 @@ import {
   CheckCircle2,
   X,
   FileText,
-  DollarSign,
-  AlertCircle,
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import {
@@ -40,7 +39,6 @@ import {
   type FreelanceJob,
 } from '../../api/freelance';
 import { useAuthStore } from '../../store/auth.store';
-import EscrowBadge from '../../components/EscrowBadge';
 
 const TYPE_LABELS: Record<string, string> = {
   FIXED: 'Fixed Price',
@@ -53,6 +51,7 @@ const SUGGESTED_DAYS = [3, 7, 14, 21, 30];
 export default function GigDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
 
   const [gig, setGig] = useState<FreelanceJob | null>(null);
@@ -69,16 +68,20 @@ export default function GigDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    fetchGig(id).then((g) => {
-      setGig(g);
-      if (g?.budgetMin) {
-        setProposedBudget(String(g.budgetMin));
-      }
-      if (g?.deadlineDays) {
-        setTimelineDays(String(g.deadlineDays));
-      }
-      setLoading(false);
-    });
+    fetchGig(id)
+      .then((g) => {
+        setGig(g);
+        if (g?.budgetMin) {
+          setProposedBudget(String(g.budgetMin));
+        }
+        if (g?.deadlineDays) {
+          setTimelineDays(String(g.deadlineDays));
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [id]);
 
   async function handleShare() {
@@ -191,7 +194,10 @@ export default function GigDetailScreen() {
   }
 
   const g = gig as any;
-  const clientName = g.clientName ?? 'Verified Client';
+  const clientName =
+    (g.client?.firstName && g.client?.lastName
+      ? `${g.client.firstName} ${g.client.lastName}`
+      : g.client?.firstName ?? g.clientName) || 'Verified Client';
   const clientInitials = clientName.substring(0, 2).toUpperCase();
   const bidCount = g.bidCount ?? g.proposalCount ?? 0;
   const deliveryDays = gig.deadlineDays ? `${gig.deadlineDays} days` : 'Flexible';
@@ -207,7 +213,7 @@ export default function GigDetailScreen() {
       {/* ── Top Navigation Bar ── */}
       <View className="bg-primary pt-12 pb-3 px-4 flex-row items-center justify-between border-b border-white/10">
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/freelance'))}
           className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -501,7 +507,10 @@ export default function GigDetailScreen() {
 
       {/* ── Fixed Bottom CTA Bar ── */}
       {!showProposalForm && (
-        <View className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-5 py-4 flex-row items-center justify-between shadow-lg">
+        <View
+          className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-5 pt-3.5 flex-row items-center justify-between shadow-lg"
+          style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        >
           <View>
             <Text className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
               Project Budget

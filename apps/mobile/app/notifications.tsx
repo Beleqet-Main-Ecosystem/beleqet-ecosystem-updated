@@ -16,9 +16,8 @@ import {
   MessageSquare,
   ArrowLeft,
   CheckCheck,
-  ShieldCheck,
-  CheckCircle2,
 } from 'lucide-react-native';
+import { useAuthStore } from '../store/auth.store';
 import {
   fetchNotifications,
   markNotificationAsRead,
@@ -40,37 +39,89 @@ function formatRelativeTime(iso?: string): string {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
+    if (!user) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
       const data = await fetchNotifications();
       setNotifications(data);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const handleMarkRead = async (id: string) => {
+  const handleMarkRead = async (item: AppNotification) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)),
     );
-    await markNotificationAsRead(id);
+    await markNotificationAsRead(item.id);
+
+    // Navigate to target if relevant
+    const targetId = (item.data as any)?.jobId ?? (item.data as any)?.gigId ?? (item.data as any)?.id;
+    const typeUpper = (item.type || '').toUpperCase();
+    if (typeUpper.includes('JOB') && targetId) {
+      router.push(`/job/${targetId}`);
+    } else if ((typeUpper.includes('GIG') || typeUpper.includes('BID')) && targetId) {
+      router.push(`/gig/${targetId}`);
+    }
   };
 
   const handleMarkAllRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     await markAllNotificationsAsRead();
   };
+
+  if (!user) {
+    return (
+      <View className="flex-1 bg-surface">
+        <StatusBar barStyle="light-content" backgroundColor="#041603" />
+        <View className="bg-primary px-5 pt-14 pb-5 flex-row items-center gap-3">
+          <TouchableOpacity
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/jobs'))}
+            className="w-10 h-10 items-center justify-center rounded-2xl bg-white/10 active:opacity-75"
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <ArrowLeft color="#ffffff" size={20} />
+          </TouchableOpacity>
+          <Text className="text-white text-xl font-black">Notifications</Text>
+        </View>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-16 h-16 bg-primary/10 rounded-2xl items-center justify-center mb-4">
+            <Bell color="#041603" size={28} />
+          </View>
+          <Text className="text-slate-900 font-bold text-lg text-center">Sign in for Notifications</Text>
+          <Text className="text-slate-500 text-sm text-center mt-1.5 mb-6 max-w-xs leading-5">
+            Log in to your account to receive alerts on application status, bid updates, and messages.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/login')}
+            className="bg-primary px-7 py-3.5 rounded-full shadow-sm"
+            accessibilityRole="button"
+          >
+            <Text className="text-brandGreen font-bold text-sm">Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -83,8 +134,9 @@ export default function NotificationsScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/jobs'))}
               className="w-10 h-10 items-center justify-center rounded-2xl bg-white/10 active:opacity-75"
+              accessibilityRole="button"
               accessibilityLabel="Go back"
             >
               <ArrowLeft color="#ffffff" size={20} />
@@ -140,7 +192,7 @@ export default function NotificationsScreen() {
           }
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => handleMarkRead(item.id)}
+              onPress={() => handleMarkRead(item)}
               className={`flex-row items-start gap-3.5 bg-white rounded-2xl p-4 border transition-all ${
                 item.read ? 'border-slate-100 opacity-75' : 'border-brandGreen/50 shadow-xs'
               }`}

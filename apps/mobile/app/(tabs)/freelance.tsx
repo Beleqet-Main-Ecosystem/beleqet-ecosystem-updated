@@ -19,7 +19,6 @@ import {
   Briefcase,
   RotateCcw,
   Bell,
-  Sparkles,
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { fetchGigs, type FreelanceJob } from '../../api/freelance';
@@ -81,12 +80,14 @@ export default function FreelanceScreen() {
         }
 
         setGigs(filtered);
+      } catch {
+        // preserve existing on failure
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [activeCategory, debouncedQuery, activePricingType],
+    [activeCategory, debouncedQuery, activePricingType, gigs.length],
   );
 
   useEffect(() => {

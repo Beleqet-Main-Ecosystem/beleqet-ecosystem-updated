@@ -14,12 +14,10 @@ import {
   MicOff,
   Share2,
   Trash2,
-  MessageSquare,
   Sparkles,
-  Copy,
   Clock,
-  CheckCircle2,
 } from 'lucide-react-native';
+import { format } from 'date-fns';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../store/auth.store';
@@ -191,7 +189,7 @@ export default function ChatScreen() {
             <View className="flex-row items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
               <Clock color="#94a3b8" size={12} />
               <Text className="text-slate-400 text-[11px] font-medium">
-                {t.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {format(t.createdAt, 'hh:mm a')}
               </Text>
             </View>
           </View>

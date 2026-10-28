@@ -15,8 +15,7 @@ interface Props {
 function JobCard({ job, onPress }: Props) {
   const [saved, setSaved] = useState(false);
 
-  function toggleSave(e: any) {
-    e?.stopPropagation?.();
+  function toggleSave() {
     const next = !saved;
     setSaved(next);
     Toast.show({
@@ -51,7 +50,7 @@ function JobCard({ job, onPress }: Props) {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.88}
-      className="bg-white rounded-3xl p-4.5 border border-black/5 shadow-sm shadow-black/5 mb-3"
+      className="bg-white rounded-3xl p-4 border border-black/5 shadow-sm shadow-black/5 mb-3"
       accessibilityRole="button"
       accessibilityLabel={`${job.title} at ${job.companyDisplay}`}
     >

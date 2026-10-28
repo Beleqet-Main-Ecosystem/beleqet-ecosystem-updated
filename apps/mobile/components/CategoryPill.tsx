@@ -12,12 +12,12 @@ interface Props {
 /**
  * Horizontal filter pill used in Jobs and Freelance tab headers.
  */
-export default function CategoryPill({ label, active, onPress, icon, count }: Props) {
+function CategoryPill({ label, active, onPress, icon, count }: Props) {
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      className={`flex-row items-center gap-1.5 px-4 py-2.5 rounded-full border transition-all ${
+      className={`flex-row items-center gap-1.5 px-4 py-2.5 rounded-full border ${
         active
           ? 'bg-brandGreen border-brandGreen shadow-sm shadow-brandGreen/30'
           : 'bg-white/10 border-white/15'
@@ -36,7 +36,7 @@ export default function CategoryPill({ label, active, onPress, icon, count }: Pr
       </Text>
       {typeof count === 'number' && count > 0 && (
         <View
-          className={`px-1.5 py-0.2 rounded-full ${
+          className={`px-1.5 py-0.5 rounded-full ${
             active ? 'bg-primary/20' : 'bg-white/20'
           }`}
         >
@@ -52,3 +52,5 @@ export default function CategoryPill({ label, active, onPress, icon, count }: Pr
     </TouchableOpacity>
   );
 }
+
+export default React.memo(CategoryPill);

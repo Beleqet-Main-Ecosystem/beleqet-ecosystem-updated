@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import {
@@ -127,7 +128,7 @@ export default function RegisterScreen() {
           {/* Top navigation row */}
           <View className="flex-row items-center justify-between mb-6">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/jobs'))}
               className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/10 active:opacity-75"
               accessibilityRole="button"
               accessibilityLabel="Go back"
@@ -381,8 +382,21 @@ export default function RegisterScreen() {
           {/* Legal agreement disclaimer */}
           <Text className="text-white/40 text-xs text-center mb-5 px-4 leading-4">
             By creating an account, you agree to the{' '}
-            <Text className="text-white/70 underline">Terms of Service</Text> and{' '}
-            <Text className="text-white/70 underline">Privacy Policy</Text>.
+            <Text
+              className="text-white/70 underline"
+              accessibilityRole="link"
+              onPress={() => Linking.openURL('https://beleqetjobs.com/terms').catch(() => {})}
+            >
+              Terms of Service
+            </Text>{' '}
+            and{' '}
+            <Text
+              className="text-white/70 underline"
+              accessibilityRole="link"
+              onPress={() => Linking.openURL('https://beleqetjobs.com/privacy').catch(() => {})}
+            >
+              Privacy Policy
+            </Text>.
           </Text>
 
           {/* Create Account Button */}

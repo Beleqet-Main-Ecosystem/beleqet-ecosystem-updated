@@ -1,10 +1,9 @@
 import { useState, memo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { Clock, Shield, Star, Bookmark, BookmarkCheck, Calendar, Users, ChevronRight } from 'lucide-react-native';
+import { Clock, Bookmark, BookmarkCheck, Calendar, Users, ChevronRight } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import type { FreelanceJob } from '../api/freelance';
 import { formatBudget, gigPostedAgo } from '../api/freelance';
-import EscrowBadge from './EscrowBadge';
 
 interface Props {
   gig: FreelanceJob;
@@ -17,8 +16,7 @@ interface Props {
 function GigCard({ gig, onPress }: Props) {
   const [saved, setSaved] = useState(false);
 
-  function toggleSave(e: any) {
-    e?.stopPropagation?.();
+  function toggleSave() {
     const next = !saved;
     setSaved(next);
     Toast.show({
@@ -40,7 +38,7 @@ function GigCard({ gig, onPress }: Props) {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.88}
-      className="bg-white rounded-3xl p-4.5 border border-black/5 shadow-sm shadow-black/5 mb-3"
+      className="bg-white rounded-3xl p-4 border border-black/5 shadow-sm shadow-black/5 mb-3"
       accessibilityRole="button"
       accessibilityLabel={`Gig: ${gig.title}`}
     >

@@ -18,15 +18,13 @@ import {
   Briefcase,
   ChevronRight,
   ShieldCheck,
-  FileText,
-  Bookmark,
   Bell,
   HelpCircle,
-  ExternalLink,
   Lock,
   Sparkles,
   CheckCircle2,
 } from 'lucide-react-native';
+import { Linking } from 'react-native';
 import { useAuthStore } from '../../store/auth.store';
 import Toast from 'react-native-toast-message';
 
@@ -255,13 +253,15 @@ export default function ProfileScreen() {
           <ActionRow
             icon={<HelpCircle color="#64748b" size={18} />}
             label="Help & Support"
-            onPress={() =>
-              Toast.show({
-                type: 'info',
-                text1: 'Beleqet Support',
-                text2: 'Email us at support@beleqetjobs.com for 24/7 assistance.',
-              })
-            }
+            onPress={() => {
+              Linking.openURL('mailto:support@beleqetjobs.com').catch(() => {
+                Toast.show({
+                  type: 'info',
+                  text1: 'Beleqet Support',
+                  text2: 'Email us at support@beleqetjobs.com for assistance.',
+                });
+              });
+            }}
             last
           />
         </View>

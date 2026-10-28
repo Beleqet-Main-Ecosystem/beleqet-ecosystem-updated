@@ -10,6 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   MapPin,
   Clock,
@@ -22,7 +23,6 @@ import {
   BookmarkCheck,
   CheckCircle2,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react-native';
 import Toast from 'react-native-toast-message';
 import { fetchJob, applyToJob, type NormalizedJob } from '../../api/jobs';
@@ -31,6 +31,7 @@ import { useAuthStore } from '../../store/auth.store';
 export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
 
   const [job, setJob] = useState<NormalizedJob | null>(null);
@@ -40,10 +41,14 @@ export default function JobDetailScreen() {
 
   useEffect(() => {
     if (!id) return;
-    fetchJob(id).then((j) => {
-      setJob(j);
-      setLoading(false);
-    });
+    fetchJob(id)
+      .then((j) => {
+        setJob(j);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [id]);
 
   async function handleShare() {
@@ -158,7 +163,7 @@ export default function JobDetailScreen() {
       {/* ── Top Floating Navigation Bar ── */}
       <View className="bg-primary px-5 pt-14 pb-3 flex-row items-center justify-between border-b border-white/10">
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/jobs'))}
           className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/10 active:opacity-75"
           accessibilityRole="button"
           accessibilityLabel="Back to jobs feed"
@@ -196,7 +201,10 @@ export default function JobDetailScreen() {
       </View>
 
       {/* ── Scrollable Body ── */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 130 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 130 + insets.bottom }}
+        showsVerticalScrollIndicator={false}
+      >
         
         {/* Hero Section */}
         <View className="bg-primary px-5 pt-4 pb-8">
@@ -298,7 +306,10 @@ export default function JobDetailScreen() {
       </ScrollView>
 
       {/* ── Fixed Bottom Bar ── */}
-      <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200/80 px-5 py-4 shadow-lg shadow-black/10">
+      <View
+        className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200/80 px-5 pt-3.5 shadow-lg shadow-black/10"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+      >
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
             onPress={handleToggleSave}

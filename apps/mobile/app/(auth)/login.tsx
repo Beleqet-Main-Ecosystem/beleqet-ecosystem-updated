@@ -64,7 +64,7 @@ export default function LoginScreen() {
           {/* Top navigation row */}
           <View className="flex-row items-center justify-between mb-8">
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/jobs'))}
               className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/10 active:opacity-75"
               accessibilityRole="button"
               accessibilityLabel="Go back"

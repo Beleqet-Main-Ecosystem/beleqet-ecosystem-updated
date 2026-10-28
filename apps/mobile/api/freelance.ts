@@ -26,11 +26,13 @@ function relativeTime(iso?: string | null): string {
 }
 
 export function formatBudget(gig: FreelanceJob): string {
-  const { currency, budgetMin, budgetMax } = gig;
+  const currency = gig.currency || 'ETB';
+  const { budgetMin, budgetMax } = gig;
   if (budgetMin && budgetMax && budgetMin !== budgetMax)
     return `${budgetMin.toLocaleString()}–${budgetMax.toLocaleString()} ${currency}`;
   if (budgetMin) return `${budgetMin.toLocaleString()}+ ${currency}`;
-  return currency;
+  if (budgetMax) return `Up to ${budgetMax.toLocaleString()} ${currency}`;
+  return `Negotiable (${currency})`;
 }
 
 export function gigPostedAgo(gig: FreelanceJob): string {
