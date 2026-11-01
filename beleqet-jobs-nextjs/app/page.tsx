@@ -1,45 +1,55 @@
-import { Suspense } from 'react';
-import Hero from '@/components/home/Hero';
-import FeaturedJobs from '@/components/home/FeaturedJobs';
-import CategorySection from '@/components/CategorySection';
-import WhyChoose from '@/components/WhyChoose';
-import CTABanner from '@/components/CTABanner';
-import { CategoryGridSkeleton } from '@/components/Skeletons';
+import LandingHero from '@/components/landing/LandingHero';
+import {
+  AppAndTelegram,
+  CategoryLinks,
+  CtaBand,
+  EscrowSection,
+  FeatureTabs,
+  HowItWorks,
+  LatestJobs,
+  TrustStrip,
+  WhyBeleqet,
+} from '@/components/landing/LandingSections';
 import { homePageMetadata } from '@/lib/seo/generate-metadata';
-import { fetchJobs, fetchPlatformStats, type Job } from '@/lib/api';
+import { fetchCategories, fetchJobs, fetchOpenGigs, type Gig, type Job } from '@/lib/api';
 
 export const revalidate = 60;
 export const metadata = homePageMetadata();
 
-export default async function HomePage() {
-  const stats = await fetchPlatformStats().catch((err) => {
-    console.error('[HomePage] fetchPlatformStats failed:', err);
-    return null;
-  });
-
-  let jobs: Job[] = [];
+/**
+ * During `next build` there may be no API, so render empty states; at runtime
+ * rethrow so ISR keeps serving the last good page instead of caching empties.
+ */
+async function load<T>(label: string, fn: () => Promise<T>, empty: T): Promise<T> {
   try {
-    jobs = await fetchJobs({ limit: 9 });
+    return await fn();
   } catch (err) {
-    console.error('[HomePage] fetchJobs failed:', err);
-    // During next build static generation, allow fallback to empty array so build passes without live DB;
-    // at runtime under ISR, rethrow so Next.js preserves the previous good cache rather than caching empty!
-    if (process.env.NEXT_PHASE === 'phase-production-build') {
-      jobs = [];
-    } else {
-      throw err;
-    }
+    console.error(`[HomePage] ${label} failed:`, err);
+    if (process.env.NEXT_PHASE === 'phase-production-build') return empty;
+    throw err;
   }
+}
+
+export default async function HomePage() {
+  const [jobs, gigs, categories] = await Promise.all([
+    load<Job[]>('fetchJobs', () => fetchJobs({ limit: 6 }), []),
+    // Gigs only feed the hero's freelance preview, so a failure there shouldn't take the page down.
+    fetchOpenGigs(4).catch((): Gig[] => []),
+    fetchCategories(),
+  ]);
 
   return (
     <>
-      <Hero stats={stats} />
-      <Suspense fallback={<CategoryGridSkeleton />}>
-        <CategorySection />
-      </Suspense>
-      <FeaturedJobs jobs={jobs} />
-      <WhyChoose />
-      <CTABanner />
+      <LandingHero jobs={jobs} gigs={gigs} />
+      <TrustStrip />
+      <LatestJobs jobs={jobs} />
+      <WhyBeleqet />
+      <HowItWorks />
+      <EscrowSection />
+      <CategoryLinks categories={categories} />
+      <FeatureTabs />
+      <AppAndTelegram />
+      <CtaBand />
     </>
   );
 }

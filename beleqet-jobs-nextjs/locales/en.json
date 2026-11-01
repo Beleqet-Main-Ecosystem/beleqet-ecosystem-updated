@@ -168,22 +168,29 @@
     "contract": "Contract"
   },
   "footer": {
-    "tagline": "Beleqet helps job seekers discover opportunities and employers connect with the right talent across Ethiopia.",
-    "jobSeekers": "For Job Seekers",
-    "employers": "For Employers",
+    "tagline": "Jobs and freelance work for Ethiopia, in English and አማርኛ.",
+    "jobSeekers": "Job seekers",
+    "employers": "Employers",
     "contact": "Contact",
     "findJobs": "Find Jobs",
     "browseCategories": "Browse Categories",
     "cvMaker": "CV Maker",
     "portfolioBuilder": "Portfolio Builder",
-    "telegramAlerts": "Telegram Alerts",
-    "postJob": "Post a Job",
+    "telegramAlerts": "Telegram alerts",
+    "postJob": "Post a job",
     "findCandidates": "Find Candidates",
     "pricing": "Pricing",
     "support": "Support",
     "addisAbaba": "Addis Ababa, Ethiopia",
     "supportCenter": "Support Center",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "company": "Company",
+    "employerDashboard": "Employer dashboard",
+    "browseProjects": "Browse projects",
+    "postProject": "Post a project",
+    "howEscrowWorks": "How escrow works",
+    "privacy": "Privacy policy",
+    "location": "Addis Ababa, Ethiopia."
   },
   "homeSections": {
     "exploreField": "Explore your field",
@@ -210,5 +217,299 @@
     "ctaSub": "Join our Telegram community for curated job alerts, career resources, and updates delivered directly to you.",
     "joinTelegram": "Join Telegram",
     "browseJobs": "Browse jobs"
+  },
+  "prefs": {
+    "label": "Language and display settings",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "header": {
+    "home": "Beleqet home",
+    "primaryNav": "Main navigation",
+    "postJob": "Post a job",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu",
+    "browse": "Browse",
+    "account": "Your account"
+  },
+  "nav": {
+    "careerTools": "Career tools",
+    "feed": "Jobs for you",
+    "feedHint": "Matched to your skills and searches",
+    "cvMakerHint": "Build a CV and download it as a PDF",
+    "resumeBrain": "Resume Brain",
+    "resumeBrainHint": "Fill your profile from your CV",
+    "taxCalculator": "Salary tax calculator",
+    "taxCalculatorHint": "Take-home pay after tax and pension",
+    "voiceToText": "Voice to text",
+    "voiceToTextHint": "Speak in Amharic or English, get text",
+    "forum": "Community forum",
+    "forumHint": "Questions about work in Ethiopia"
+  },
+  "landing": {
+    "salaryNotListed": "Salary not listed",
+    "viewAll": "View all",
+    "bid": "bid",
+    "bids": "bids",
+    "escrowFixed": "Escrow · Fixed price",
+    "escrowHourly": "Escrow · Hourly",
+    "hero": {
+      "badge": "Ethiopia’s jobs and freelance marketplace",
+      "modeLabel": "What are you here for?",
+      "tabJobs": "Find a job",
+      "tabFreelance": "Hire a freelancer",
+      "popular": "Popular:",
+      "jobs": {
+        "lead": "The trusted way to find work in ",
+        "accent": "Ethiopia.",
+        "tail": "",
+        "sub": "Browse salaried roles from employers across the country, apply directly in minutes, and get new-job alerts on Telegram.",
+        "kwLabel": "Job title, keyword or company",
+        "kwPlaceholder": "Job title, keyword or company",
+        "locLabel": "Location",
+        "locPlaceholder": "City, e.g. Addis Ababa",
+        "searchBtn": "Search jobs",
+        "previewTitle": "Live job listings",
+        "previewEmpty": "New jobs will show here as soon as employers post them."
+      },
+      "freelance": {
+        "lead": "Hire skilled freelancers. Pay safely through ",
+        "accent": "escrow.",
+        "tail": "",
+        "sub": "Post a project, compare bids, and pay per milestone. Funds stay in BeleqetSafe escrow until you approve the work.",
+        "kwLabel": "Skill or service",
+        "kwPlaceholder": "What do you need done?",
+        "locLabel": "",
+        "locPlaceholder": "",
+        "searchBtn": "Find projects",
+        "previewTitle": "Open freelance projects",
+        "previewEmpty": "Open projects will show here as soon as clients post them."
+      }
+    },
+    "trust": {
+      "label": "Why people use Beleqet",
+      "payWith": "Pay and get paid with",
+      "escrow": "Escrow-protected freelance contracts",
+      "languages": "English and አማርኛ",
+      "telegram": "New-job alerts on Telegram"
+    },
+    "latest": {
+      "eyebrow": "Latest jobs",
+      "title": "Fresh openings from employers across Ethiopia",
+      "browseAll": "Browse all jobs",
+      "emptyTitle": "No open jobs right now",
+      "emptyText": "New vacancies are posted every day. Join the Telegram channel to hear about them first.",
+      "emptyCta": "Get alerts on Telegram"
+    },
+    "why": {
+      "eyebrow": "Why Beleqet",
+      "titleA": "Less searching.",
+      "titleB": "More progress.",
+      "sub": "Beleqet removes the noise between finding an opportunity and making your move.",
+      "cta": "Create your free profile",
+      "trust": {
+        "title": "Moderated listings",
+        "text": "Our team moderates job posts and takes down anything that isn’t genuine, so you spend time on real opportunities."
+      },
+      "profile": {
+        "title": "A profile that works for you",
+        "text": "Upload your CV once. Your skills and experience go with every application."
+      },
+      "alerts": {
+        "title": "The right alert, on time",
+        "text": "Hear about new openings in your field on Telegram or by email."
+      },
+      "local": {
+        "title": "Built for Ethiopia",
+        "text": "Salaries in birr, local payment methods, and the site in English and Amharic."
+      }
+    },
+    "how": {
+      "eyebrow": "How it works",
+      "title": "One platform, three ways to work",
+      "sub": "Look for a salaried role, hire for your team, or get a project done by a freelancer. Each has its own simple path.",
+      "seekers": {
+        "who": "For job seekers",
+        "title": "Land your next role",
+        "cta": "Find jobs",
+        "step1": "Create your profile and build a CV with the free CV Maker.",
+        "step2": "Search by title, field or city and apply directly to the employer.",
+        "step3": "Track every application and get new matches on Telegram."
+      },
+      "employers": {
+        "who": "For employers",
+        "title": "Hire for your team",
+        "cta": "Post a job",
+        "step1": "Post a vacancy in minutes, in English or Amharic.",
+        "step2": "Review applicants and their CVs in one dashboard.",
+        "step3": "Shortlist, message and hire."
+      },
+      "clients": {
+        "who": "For freelance clients",
+        "title": "Get a project done",
+        "cta": "Post a project",
+        "step1": "Describe the project and set a budget.",
+        "step2": "Compare bids from freelancers and accept one.",
+        "step3": "Fund escrow and release payment milestone by milestone."
+      }
+    },
+    "escrow": {
+      "badge": "BeleqetSafe escrow",
+      "title": "Money moves only when the work does.",
+      "sub": "Clients fund the contract up front, so freelancers can start knowing the money is there. Each milestone is paid out only after the client approves the work.",
+      "step1": {
+        "title": "Fund",
+        "text": "The client pays the agreed amount into escrow."
+      },
+      "step2": {
+        "title": "Deliver",
+        "text": "The freelancer submits work for each milestone."
+      },
+      "step3": {
+        "title": "Approve",
+        "text": "The client approves the work or asks for changes."
+      },
+      "step4": {
+        "title": "Get paid",
+        "text": "Funds reach the freelancer’s wallet after a 3-day hold."
+      },
+      "termsTitle": "Fees and protection, upfront",
+      "termsSub": "Everything you pay and every safeguard you get.",
+      "terms": {
+        "fee": {
+          "k": "Platform fee",
+          "v": "10% of each milestone, taken from the freelancer’s payout"
+        },
+        "client": {
+          "k": "Client pays",
+          "v": "The agreed contract amount, nothing more"
+        },
+        "timing": {
+          "k": "Payout timing",
+          "v": "After client approval, plus a 3-day hold"
+        },
+        "disputes": {
+          "k": "Disputes",
+          "v": "Either side can open one. Escrow is frozen until Beleqet reviews the case."
+        }
+      },
+      "cta": "Post a freelance project"
+    },
+    "categories": {
+      "eyebrow": "Categories",
+      "title": "Browse by field",
+      "all": "All {count} fields",
+      "accounting-and-finance": "Accounting & finance",
+      "software-design-and-development": "Software & IT",
+      "sales-and-promotion": "Sales & promotion",
+      "creative-art-and-design": "Design & creative",
+      "human-resource-and-talent-management": "HR & talent",
+      "construction-and-civil-engineering": "Construction & civil engineering",
+      "health-care": "Healthcare",
+      "teaching-and-tutor": "Teaching & tutoring"
+    },
+    "features": {
+      "eyebrow": "Everything in one place",
+      "title": "More than a job board",
+      "sub": "Tools to get hired, hire, or get paid: on the web and in Telegram.",
+      "groupLabel": "Show features for",
+      "tabs": {
+        "seekers": "Job seekers",
+        "employers": "Employers",
+        "freelance": "Freelance",
+        "tools": "Community & tools"
+      },
+      "items": {
+        "feed": {
+          "name": "Jobs for you",
+          "text": "Openings matched to your skills and recent searches, with the reason for each match."
+        },
+        "resumeBrain": {
+          "name": "Resume Brain",
+          "text": "Upload your CV and we fill in your contact details and skills. Check them and you’re done."
+        },
+        "cvMaker": {
+          "name": "CV Maker",
+          "text": "Build a clean, one-page CV and download it as a PDF."
+        },
+        "tracker": {
+          "name": "Application tracker",
+          "text": "Every application in one list, with its current stage."
+        },
+        "interviews": {
+          "name": "Interview planner",
+          "text": "Share when you’re free so employers can book an interview without back-and-forth."
+        },
+        "alerts": {
+          "name": "Telegram job alerts",
+          "text": "New openings delivered where you already chat."
+        },
+        "postJobs": {
+          "name": "Post jobs in minutes",
+          "text": "Job posts that reach seekers on the web and in Telegram."
+        },
+        "applicants": {
+          "name": "Applicant dashboard",
+          "text": "Review applications and CVs, and move candidates through each stage."
+        },
+        "messaging": {
+          "name": "Direct messages",
+          "text": "Talk to candidates without leaving Beleqet."
+        },
+        "plans": {
+          "name": "Plans for every team",
+          "text": "From a single post to ongoing hiring. Choose what fits."
+        },
+        "bids": {
+          "name": "Bids and proposals",
+          "text": "Compare freelancer bids on price and timeline, then accept one."
+        },
+        "escrow": {
+          "name": "BeleqetSafe escrow",
+          "text": "Money held safely and released per approved milestone."
+        },
+        "workspace": {
+          "name": "Contract workspace",
+          "text": "Milestones, deliverables and chat for every contract."
+        },
+        "wallet": {
+          "name": "Freelancer wallet",
+          "text": "See pending and available earnings from released milestones."
+        },
+        "forum": {
+          "name": "Community forum",
+          "text": "Ask about salaries, interviews and freelancing. Post anonymously if you like."
+        },
+        "voice": {
+          "name": "Voice to text",
+          "text": "Speak in Amharic or English and get text you can copy."
+        },
+        "tax": {
+          "name": "Salary tax calculator",
+          "text": "Your take-home pay after income tax and pension."
+        }
+      }
+    },
+    "channels": {
+      "label": "Beleqet on your phone",
+      "androidTitle": "Beleqet for Android",
+      "androidText": "Search, apply and manage contracts on the go, with notifications for new matches and messages.",
+      "androidCta": "Get it on Google Play",
+      "telegramTitle": "Beleqet in Telegram",
+      "telegramText": "Join the channel for new job alerts as soon as they’re posted.",
+      "telegramTextMiniApp": "Join the channel for job alerts, or open Beleqet right inside Telegram. No download needed.",
+      "joinChannel": "Join the channel",
+      "openMiniApp": "Open the mini app"
+    },
+    "cta": {
+      "title": "Hiring or looking? Start in minutes.",
+      "sub": "Create a free account to apply, post jobs, or launch your first escrow-protected project.",
+      "findJobs": "Find jobs",
+      "postJob": "Post a job"
+    }
   }
 }
