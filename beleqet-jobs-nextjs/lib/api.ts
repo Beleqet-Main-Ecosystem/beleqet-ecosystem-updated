@@ -174,6 +174,46 @@ export async function fetchJob(id: string): Promise<Job | null> {
   }
 }
 
+/** Open freelance project, trimmed to what listing cards show. */
+export type Gig = {
+  id: string;
+  title: string;
+  categoryLabel: string;
+  budgetMin: number;
+  budgetMax: number;
+  currency: string;
+  pricingType: string;
+  bidCount: number;
+  postedAgo: string;
+  categorySlug: string;
+  skills: string[];
+};
+
+/** Fetch open freelance projects, newest first. */
+export async function fetchOpenGigs(limit = 4): Promise<Gig[]> {
+  try {
+    const { data } = await api.get<{ items?: any[] }>('/freelance/jobs', {
+      params: { limit, status: 'OPEN' },
+    });
+    return (data.items ?? []).map((raw) => ({
+      id: raw.id,
+      title: raw.title,
+      categoryLabel: raw.category?.label ?? '',
+      budgetMin: raw.budgetMin ?? 0,
+      budgetMax: raw.budgetMax ?? 0,
+      currency: raw.currency ?? 'ETB',
+      pricingType: raw.pricingType ?? 'FIXED',
+      bidCount: raw._count?.bids ?? 0,
+      postedAgo: relativeTime(raw.createdAt),
+      categorySlug: raw.category?.slug ?? '',
+      skills: raw.skills ?? [],
+    }));
+  } catch (err) {
+    console.error('[api] fetchOpenGigs failed:', err);
+    throw err;
+  }
+}
+
 /** Fetch all job categories. */
 export async function fetchCategories(): Promise<Category[]> {
   try {

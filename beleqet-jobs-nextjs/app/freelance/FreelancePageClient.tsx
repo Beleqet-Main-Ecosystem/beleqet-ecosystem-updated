@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -332,6 +332,12 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
   const [query, setQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [sortBy, setSortBy] = useState<'recent' | 'budget-high' | 'budget-low'>('recent');
+
+  // Pick up ?q= from links such as the landing page's freelance search.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) setQuery(q);
+  }, []);
 
   const allGigs: Gig[] = gigs.length > 0 ? gigs : FALLBACK_GIGS;
 
