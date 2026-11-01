@@ -9,6 +9,17 @@ const BASE =
   process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.beleqetjobs.com/api/v1';
 
 /**
+ * During `next build` there may be no live API, so fall back to `value` and let
+ * the build pass. At runtime rethrow instead: an ISR revalidation that throws
+ * keeps serving the last good page, whereas a returned fallback would replace
+ * it in the cache.
+ */
+function buildTimeFallback(err, value) {
+  if (process.env.NEXT_PHASE === 'phase-production-build') return value;
+  throw err;
+}
+
+/**
  * Fetch job listings from GET /api/v1/jobs.
  * Used in Server Components with ISR (revalidate every 60 s).
  *
@@ -30,7 +41,7 @@ export async function fetchJobs(params = {}) {
     return res.json();
   } catch (err) {
     console.error(`[api] fetchJobs failed: ${err.message}`);
-    return { items: [], total: 0 };
+    return buildTimeFallback(err, { items: [], total: 0 });
   }
 }
 
@@ -50,13 +61,8 @@ export async function fetchStats() {
     return res.json();
   } catch (err) {
     console.error(`[api] fetchStats failed: ${err.message}`);
-    // Fallback values so the page still renders
-    return {
-      activeJobs: 10000,
-      hiringCompanies: 5000,
-      registeredJobSeekers: 50000,
-      satisfactionRate: 98,
-    };
+    // Empty object, not invented figures: the homepage renders 0 / hides counts.
+    return buildTimeFallback(err, {});
   }
 }
 
@@ -73,6 +79,7 @@ export function buildSearchUrl(q, location, mode) {
   const base = mode === 'freelance' ? `${APP_URL}/freelance` : `${APP_URL}/jobs`;
   const params = new URLSearchParams();
   if (q?.trim()) params.set('q', q.trim());
-  if (location?.trim()) params.set('location', location.trim());
+  // The portal's JobsListing reads `loc`, not `location`.
+  if (location?.trim()) params.set('loc', location.trim());
   return params.toString() ? `${base}?${params}` : base;
 }
