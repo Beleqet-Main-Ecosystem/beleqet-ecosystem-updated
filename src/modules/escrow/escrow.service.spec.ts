@@ -262,6 +262,89 @@ describe('EscrowService milestone confirmations', () => {
     expect(tx.milestone.update).not.toHaveBeenCalled();
   });
 
+  it('refuses to release a milestone that is not submitted', async () => {
+    const { service, tx } = buildService({ status: 'APPROVED' });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Only submitted milestones can be approved and released.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to release when escrow is not funded', async () => {
+    const { service, tx } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'PENDING', grossAmount: 1000 } },
+      },
+    });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Escrow must be funded before releasing a milestone.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('credits the wallet once when a concurrent approval already won', async () => {
+    const { service, tx } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'FUNDED', grossAmount: 1000 } },
+      },
+    });
+    tx.milestone.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Milestone has already been approved.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to release beyond the funded escrow amount', async () => {
+    const { service, tx } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'FUNDED', grossAmount: 1000 } },
+      },
+    });
+    (tx.milestone as any).aggregate = jest.fn().mockResolvedValue({ _sum: { amount: 1500 } });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Released milestones would exceed the funded escrow amount.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('approves a submitted milestone, credits net amount, and queues a deterministic release', async () => {
+    const { service, tx, escrowQueue } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'FUNDED', grossAmount: 1000 } },
+      },
+    });
+    (tx.milestone as any).aggregate = jest.fn().mockResolvedValue({ _sum: { amount: 1000 } });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).resolves.toEqual({
+      success: true,
+    });
+    expect(tx.freelancerWallet.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: { pendingBalance: { increment: 900 } } }),
+    );
+    expect(escrowQueue.add).toHaveBeenCalledWith(
+      ESCROW_JOBS.AUTO_RELEASE,
+      expect.objectContaining({ milestoneId: 'milestone-1', amount: 900 }),
+      expect.objectContaining({ jobId: 'auto-release-milestone-1' }),
+    );
+  });
+
   it('re-enqueues the deterministic release job when an approved milestone is retried', async () => {
     const { service, prisma, escrowQueue } = buildService({
       status: 'APPROVED',

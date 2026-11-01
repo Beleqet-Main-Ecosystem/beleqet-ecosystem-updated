@@ -9,6 +9,7 @@ import {
   CreateBidDto,
   CreateMilestoneDto,
   SubmitDeliverableDto,
+  RaiseDisputeDto,
 } from './freelance.service';
 import { EscrowService } from '../escrow/escrow.service';
 
@@ -79,8 +80,19 @@ export class FreelanceController {
   @Get('contracts/:id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  contract(@Param('id') id: string) {
-    return this.svc.getContract(id);
+  contract(@Param('id') id: string, @CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getContract(id, u.userId);
+  }
+
+  @Post('contracts/:id/dispute')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  raiseDispute(
+    @Param('id') id: string,
+    @CurrentUser() u: CurrentUserPayload,
+    @Body() dto: RaiseDisputeDto,
+  ) {
+    return this.svc.raiseDispute(u.userId, id, dto);
   }
 
   @Post('contracts/:id/milestones')

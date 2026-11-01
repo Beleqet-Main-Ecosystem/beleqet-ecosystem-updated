@@ -42,7 +42,9 @@ export class EscrowService {
       }
       return {
         escrowId: existingEscrow.id,
-        checkoutUrl: `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${existingEscrow.id}`,
+        checkoutUrl: job.contract
+          ? `${this.config.get('FRONTEND_URL')}/freelance/contracts/${job.contract.id}`
+          : `${this.config.get('FRONTEND_URL')}/freelance/${freelanceJobId}`,
         grossAmount: existingEscrow.grossAmount,
         platformFee: existingEscrow.platformFee,
         netAmount: existingEscrow.netAmount,
@@ -181,7 +183,12 @@ export class EscrowService {
     }
 
     // ── Route checkout through Beleqet Pay ───────────────────────────────────
-    let checkoutUrl = `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${escrow.id}`;
+    // The contract page shows live escrow status, so payers return there (or to
+    // the gig page when funding happens before a bid is accepted).
+    const returnUrl = job.contract
+      ? `${this.config.get('FRONTEND_URL')}/freelance/contracts/${job.contract.id}`
+      : `${this.config.get('FRONTEND_URL')}/freelance/${freelanceJobId}`;
+    let checkoutUrl = returnUrl;
 
     try {
       const session = await this.paySwitch.createCheckoutSession({
@@ -189,9 +196,7 @@ export class EscrowService {
         currency: job.currency ?? 'ETB',
         customerEmail: job.client.email,
         preferredProvider: 'CHAPA',
-        successRedirectUrl:
-          this.config.get<string>('CHAPA_RETURN_URL') ??
-          `${this.config.get('FRONTEND_URL')}/freelance/payment-success`,
+        successRedirectUrl: this.config.get<string>('CHAPA_RETURN_URL') ?? returnUrl,
         externalRef: escrow.id,
       });
 
@@ -246,10 +251,51 @@ export class EscrowService {
     });
     if (!milestone) throw new NotFoundException('Milestone not found');
 
+    if (milestone.status !== 'SUBMITTED') {
+      throw new BadRequestException('Only submitted milestones can be approved and released.');
+    }
+
+    const escrow = milestone.contract.freelanceJob?.escrowTx;
+    if (!escrow || escrow.status !== 'FUNDED') {
+      throw new BadRequestException('Escrow must be funded before releasing a milestone.');
+    }
+
+    const contractCurrency = milestone.contract.currency || 'ETB';
+    const grossAmountInETB = this.walletSvc.convertCurrency(
+      milestone.amount,
+      contractCurrency,
+      'ETB',
+    );
+    const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
+    const netAmountInETB = grossAmountInETB - platformFee;
+
     await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.milestone.update({
-        where: { id: milestoneId },
+      // Conditional update: a concurrent or repeated approval matches zero rows
+      // and aborts, so the wallet is credited at most once per milestone.
+      const { count } = await tx.milestone.updateMany({
+        where: { id: milestoneId, status: 'SUBMITTED' },
         data: { status: 'APPROVED', approvedAt: new Date() },
+      });
+      if (count === 0) {
+        throw new BadRequestException('Milestone has already been approved.');
+      }
+
+      const released = await tx.milestone.aggregate({
+        where: { contractId: milestone.contractId, status: 'APPROVED' },
+        _sum: { amount: true },
+      });
+      if ((released._sum.amount ?? 0) > escrow.grossAmount) {
+        throw new BadRequestException('Released milestones would exceed the funded escrow amount.');
+      }
+
+      await tx.freelancerWallet.upsert({
+        where: { userId: milestone.contract.freelancerId },
+        update: { pendingBalance: { increment: netAmountInETB } },
+        create: {
+          userId: milestone.contract.freelancerId,
+          pendingBalance: netAmountInETB,
+          availableBalance: 0,
+        },
       });
 
       await tx.eventLog.create({
@@ -268,31 +314,17 @@ export class EscrowService {
     });
 
     try {
-      const contractCurrency = milestone.contract.currency || 'ETB';
-      const grossAmountInETB = this.walletSvc.convertCurrency(
-        milestone.amount,
-        contractCurrency,
-        'ETB',
-      );
-      const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
-      const netAmountInETB = grossAmountInETB - platformFee;
-
-      await this.prisma.freelancerWallet.upsert({
-        where: { userId: milestone.contract.freelancerId },
-        update: { pendingBalance: { increment: netAmountInETB } },
-        create: {
-          userId: milestone.contract.freelancerId,
-          pendingBalance: netAmountInETB,
-          availableBalance: 0,
+      const releaseAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      await this.escrowQueue.add(
+        ESCROW_JOBS.AUTO_RELEASE,
+        {
+          milestoneId,
+          freelancerId: milestone.contract.freelancerId,
+          amount: netAmountInETB,
+          releaseAt,
         },
-      });
-
-      await this.escrowQueue.add(ESCROW_JOBS.AUTO_RELEASE, {
-        milestoneId,
-        freelancerId: milestone.contract.freelancerId,
-        amount: netAmountInETB,
-        releaseAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      });
+        { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release-${milestoneId}` },
+      );
     } catch (err) {
       this.logger.error(
         `Failed to enqueue auto-release for milestone ${milestoneId}`,

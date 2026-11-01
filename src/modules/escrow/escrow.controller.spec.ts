@@ -76,7 +76,7 @@ describe('EscrowController webhook signature checks', () => {
 
     await expect(
       controller.webhook({}, { method: 'GET', query: { trx_ref: 'tx-1' } } as never, {}),
-    ).resolves.toEqual({ url: 'http://localhost:3000/freelance/payment-success' });
+    ).resolves.toEqual({ url: 'http://localhost:3000/dashboard' });
 
     expect(signatures.verifyWebhook).not.toHaveBeenCalled();
     expect(svc.handleWebhook).toHaveBeenCalledWith(expect.objectContaining({ tx_ref: 'tx-1' }));

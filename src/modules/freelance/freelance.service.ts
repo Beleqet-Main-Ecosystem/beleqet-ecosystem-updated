@@ -7,7 +7,15 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
-import { IsString, IsNumber, IsOptional, IsArray, Min, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+  Min,
+  MinLength,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateFreelanceJobDto {
@@ -113,6 +121,19 @@ export class SubmitDeliverableDto {
   notes?: string;
 }
 
+export class RaiseDisputeDto {
+  @ApiProperty({ example: 'The delivered work does not match the agreed milestone scope.' })
+  @IsString()
+  @MinLength(20)
+  reason: string;
+
+  @ApiProperty({ example: ['https://storage.beleqet.com/files/evidence.png'], required: false })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  evidenceUrls?: string[];
+}
+
 @Injectable()
 export class FreelanceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -193,12 +214,21 @@ export class FreelanceService {
   async acceptBid(bidId: string, clientId: string) {
     const bid = await this.prisma.bid.findFirst({
       where: { id: bidId, freelanceJob: { clientId } },
+      include: { freelanceJob: { select: { status: true } } },
     });
     if (!bid) throw new NotFoundException('Bid not found');
+    if (bid.status !== 'PENDING' || !['OPEN', 'FUNDED'].includes(bid.freelanceJob.status)) {
+      throw new ConflictException('This bid can no longer be accepted.');
+    }
 
     const contract = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Accept chosen bid, reject others
-      await tx.bid.update({ where: { id: bidId }, data: { status: 'ACCEPTED' } });
+      // Accept chosen bid, reject others. The status guard makes a concurrent
+      // second acceptance match zero rows instead of creating another contract.
+      const { count } = await tx.bid.updateMany({
+        where: { id: bidId, status: 'PENDING' },
+        data: { status: 'ACCEPTED' },
+      });
+      if (count === 0) throw new ConflictException('This bid can no longer be accepted.');
       await tx.bid.updateMany({
         where: { freelanceJobId: bid.freelanceJobId, id: { not: bidId } },
         data: { status: 'REJECTED' },
@@ -220,9 +250,10 @@ export class FreelanceService {
         data: { status: 'IN_PROGRESS' },
       });
 
-      // Refund excess escrow if needed
+      // Refund excess escrow if needed. Only a FUNDED escrow holds real money;
+      // crediting the excess of an unpaid PENDING escrow would mint balance.
       const escrow = await tx.escrowTransaction.findFirst({
-        where: { freelanceJobId: bid.freelanceJobId, status: { in: ['FUNDED', 'PENDING'] } },
+        where: { freelanceJobId: bid.freelanceJobId, status: 'FUNDED' },
       });
 
       if (escrow && escrow.grossAmount > bid.amount) {
@@ -306,9 +337,11 @@ export class FreelanceService {
     });
   }
 
-  async getContract(id: string) {
-    const c = await this.prisma.contract.findUnique({
-      where: { id },
+  async getContract(id: string, userId: string) {
+    // Only the two parties may read a contract; others get the same 404 as a
+    // missing contract so contract IDs can't be probed.
+    const c = await this.prisma.contract.findFirst({
+      where: { id, OR: [{ clientId: userId }, { freelancerId: userId }] },
       include: {
         milestones: { include: { deliverables: true } },
         freelanceJob: true,
@@ -318,6 +351,40 @@ export class FreelanceService {
     });
     if (!c) throw new NotFoundException('Contract not found');
     return c;
+  }
+
+  /**
+   * Either party may open one dispute per active contract. The contract and any
+   * funded escrow move to DISPUTED, which blocks milestone releases until an
+   * admin resolves it.
+   */
+  async raiseDispute(userId: string, contractId: string, dto: RaiseDisputeDto) {
+    const contract = await this.prisma.contract.findFirst({
+      where: { id: contractId, OR: [{ clientId: userId }, { freelancerId: userId }] },
+      include: { dispute: true },
+    });
+    if (!contract) throw new NotFoundException('Contract not found');
+    if (contract.dispute) throw new ConflictException('A dispute is already open for this contract.');
+    if (contract.status !== 'ACTIVE') {
+      throw new ConflictException('Only active contracts can be disputed.');
+    }
+
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const dispute = await tx.dispute.create({
+        data: {
+          contractId,
+          raisedById: userId,
+          reason: dto.reason,
+          evidenceUrls: dto.evidenceUrls ?? [],
+        },
+      });
+      await tx.contract.update({ where: { id: contractId }, data: { status: 'DISPUTED' } });
+      await tx.escrowTransaction.updateMany({
+        where: { freelanceJobId: contract.freelanceJobId, status: 'FUNDED' },
+        data: { status: 'DISPUTED' },
+      });
+      return dispute;
+    });
   }
 
   async createMilestone(freelancerId: string, contractId: string, dto: CreateMilestoneDto) {
