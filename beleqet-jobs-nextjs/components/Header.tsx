@@ -137,7 +137,7 @@ export default function Header() {
               </button>
 
               {toolsOpen && (
-                <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[320px] rounded-xl border border-border bg-white p-1.5 shadow-[0_16px_40px_rgba(4,22,3,0.28)] dark:border-slate-700 dark:bg-slate-900">
+                <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[320px] rounded-xl border border-ink-200 bg-surface p-1.5 shadow-[0_16px_40px_rgba(4,22,3,0.28)] dark:border-slate-700 dark:bg-slate-900">
                   {toolsNavItems.map((item) => {
                     const active = isActive(item.href);
                     return (
@@ -147,11 +147,11 @@ export default function Header() {
                         onClick={() => setToolsOpen(false)}
                         aria-current={active ? "page" : undefined}
                         className={`flex flex-col gap-0.5 rounded-md px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandGreen ${
-                          active ? "bg-[#F1F7EC] dark:bg-slate-800" : "hover:bg-pageBg dark:hover:bg-slate-800"
+                          active ? "bg-[#F1F7EC] dark:bg-slate-800" : "hover:bg-canvas dark:hover:bg-slate-800"
                         }`}
                       >
-                        <span className="text-sm font-bold text-ink dark:text-slate-100">{item.label}</span>
-                        <span className="text-[13px] text-muted dark:text-slate-400">{item.hint}</span>
+                        <span className="text-sm font-bold text-ink-900 dark:text-slate-100">{item.label}</span>
+                        <span className="text-[13px] text-ink-600 dark:text-slate-400">{item.hint}</span>
                       </Link>
                     );
                   })}
@@ -170,7 +170,7 @@ export default function Header() {
             </div>
             <Link
               href="/post-job"
-              className="hidden min-h-11 items-center rounded-md bg-limeAccent px-4 text-sm font-bold text-primary transition-colors hover:bg-[#c8ef2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex"
+              className="hidden min-h-11 items-center rounded-md bg-limeAccent px-4 text-sm font-bold text-obsidian transition-colors hover:bg-[#c8ef2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex"
             >
               {t("header.postJob")}
             </Link>

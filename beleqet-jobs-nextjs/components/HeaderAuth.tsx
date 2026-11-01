@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 export const roleMeta: Record<string, { label: string; className: string }> = {
   JOB_SEEKER: {
     label: 'Job Seeker',
-    className: 'bg-brandGreen/10 text-brandGreen',
+    className: 'bg-brandGreen/10 text-forest',
   },
   EMPLOYER: {
     label: 'Employer',
@@ -38,7 +38,7 @@ export default function HeaderAuth() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  if (!ready) return <div className="h-9 w-9 rounded-full bg-pageBg animate-pulse" />;
+  if (!ready) return <div className="h-9 w-9 rounded-full bg-canvas animate-pulse" />;
 
   if (!user) {
     return (
@@ -46,7 +46,7 @@ export default function HeaderAuth() {
         href="/login"
         className="inline-flex min-h-11 items-center rounded-md px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
       >
-        {t('auth.login')}
+        {t('nav.signIn')}
       </Link>
     );
   }
@@ -54,7 +54,7 @@ export default function HeaderAuth() {
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
   const role = roleMeta[user.role] ?? {
     label: user.role,
-    className: 'bg-muted/10 text-muted',
+    className: 'bg-muted/10 text-ink-600',
   };
 
   return (
@@ -66,7 +66,7 @@ export default function HeaderAuth() {
         aria-label={`${user.firstName} ${user.lastName}`}
         className="flex min-h-11 items-center gap-2 rounded-full border border-white/20 py-1 pl-1 pr-2 transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
       >
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-limeAccent text-xs font-extrabold uppercase text-primary">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-limeAccent text-xs font-extrabold uppercase text-obsidian">
           {initials}
         </span>
         <span className="hidden max-w-[7rem] truncate text-sm font-semibold text-white sm:block">
@@ -79,17 +79,17 @@ export default function HeaderAuth() {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-white shadow-card-hover">
-          <div className="border-b border-border p-4">
+        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-ink-200 bg-surface shadow-card-hover">
+          <div className="border-b border-ink-200 p-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brandGreen to-darkGreen text-sm font-bold uppercase text-white">
                 {initials}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-ink">
+                <p className="truncate text-sm font-semibold text-ink-900">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="truncate text-xs text-muted">{user.email}</p>
+                <p className="truncate text-xs text-ink-600">{user.email}</p>
               </div>
             </div>
             <span
@@ -156,9 +156,9 @@ function MenuLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-pageBg transition-colors"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-900 hover:bg-canvas transition-colors"
     >
-      <Icon className="h-4 w-4 text-muted" />
+      <Icon className="h-4 w-4 text-ink-600" />
       {children}
     </Link>
   );

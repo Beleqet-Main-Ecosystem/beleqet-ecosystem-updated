@@ -58,7 +58,7 @@ export default function PreferencesMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-50 flex w-[280px] flex-col gap-4 rounded-xl border border-border bg-white p-4 text-ink shadow-[0_16px_40px_rgba(4,22,3,0.28)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-50 flex w-[280px] flex-col gap-4 rounded-xl border border-ink-200 bg-surface p-4 text-ink-900 shadow-[0_16px_40px_rgba(4,22,3,0.28)] dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
           <Segmented
             label={t("prefs.language")}
             options={languages}
@@ -90,7 +90,7 @@ function Segmented<T extends string>({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-bold uppercase tracking-[0.04em] text-muted dark:text-slate-400">{label}</span>
+      <span className="text-xs font-bold uppercase tracking-[0.04em] text-ink-600 dark:text-slate-400">{label}</span>
       <div
         role="group"
         aria-label={label}
@@ -107,8 +107,8 @@ function Segmented<T extends string>({
               onClick={() => onChange(o.id)}
               className={`min-h-10 rounded-[6px] px-2 text-[13px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandGreen ${
                 active
-                  ? "bg-primary text-white dark:bg-limeAccent dark:text-primary"
-                  : "text-ink-700 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700"
+                  ? "bg-primary text-white dark:bg-limeAccent dark:text-obsidian"
+                  : "text-ink-700 hover:bg-surface dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
               {o.label}

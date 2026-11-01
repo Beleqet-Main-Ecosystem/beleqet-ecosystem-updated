@@ -31,6 +31,15 @@ const config: Config = {
         orangeAccent: "#F97316",
         redAccent: "#EF4444",
         purpleAccent: "#7C3AED",
+        /*
+         * Redesign tokens. Legacy dark-mode overrides in globals.css target
+         * .bg-white, .text-ink, .text-primary etc.; these names are untouched
+         * by them, so redesigned components render exactly as designed.
+         */
+        surface: "#FFFFFF",
+        canvas: "#F6F7F4",
+        obsidian: "#041603",
+        forest: "#00653B",
         pageBg: "#F6F7F4",
         muted: "#4D5967",
         border: "#E3E8EC",

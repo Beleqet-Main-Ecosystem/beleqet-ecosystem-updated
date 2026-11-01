@@ -114,28 +114,29 @@ export default function GdprConsentBanner() {
       className={`
         fixed bottom-20 left-0 right-0 z-50 p-4
         transition-transform duration-300
-        lg:bottom-4
+        lg:bottom-4 lg:right-auto lg:w-[400px]
         ${visible ? "translate-y-0" : "translate-y-[200%]"}
       `}
     >
-      <div className="mx-auto max-w-lg rounded-2xl border border-primary/10 bg-white p-5 shadow-xl">
+      {/* Desktop: a corner card so it doesn't sit on top of page content. */}
+      <div className="mx-auto max-w-lg rounded-2xl border border-ink-200 bg-surface p-5 shadow-[0_16px_40px_rgba(4,22,3,0.18)]">
         {/* Header row */}
         <div className="flex items-start gap-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brandGreen/10 text-brandGreen">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brandGreen/10 text-forest">
             <ShieldCheck className="h-4.5 w-4.5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold text-primary">
+            <p className="text-sm font-extrabold text-obsidian">
               {t("gdpr.title")}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">
+            <p className="mt-1 text-xs leading-relaxed text-ink-600">
               {t("gdpr.description")}
             </p>
           </div>
           <button
             onClick={() => handleChoice("rejected")}
             aria-label="Dismiss"
-            className="shrink-0 text-muted hover:text-ink"
+            className="shrink-0 text-ink-600 hover:text-ink-900"
           >
             <X className="h-4 w-4" />
           </button>
@@ -143,7 +144,7 @@ export default function GdprConsentBanner() {
 
         {/* Action buttons */}
         {showSaved ? (
-          <p className="mt-3 text-center text-xs font-semibold text-brandGreen">
+          <p className="mt-3 text-center text-xs font-semibold text-forest">
             {t("gdpr.saved")}
           </p>
         ) : (
@@ -156,7 +157,7 @@ export default function GdprConsentBanner() {
             </button>
             <button
               onClick={() => handleChoice("rejected")}
-              className="flex-1 rounded-xl border border-border px-4 py-3 text-xs font-bold text-ink active:scale-[0.97] transition-transform"
+              className="flex-1 rounded-xl border border-ink-200 px-4 py-3 text-xs font-bold text-ink-900 active:scale-[0.97] transition-transform"
             >
               {t("gdpr.rejectOptional")}
             </button>

@@ -248,7 +248,10 @@
     "voiceToText": "Voice to text",
     "voiceToTextHint": "Speak in Amharic or English, get text",
     "forum": "Community forum",
-    "forumHint": "Questions about work in Ethiopia"
+    "forumHint": "Questions about work in Ethiopia",
+    "findJobs": "Find jobs",
+    "employers": "For employers",
+    "signIn": "Sign in"
   },
   "landing": {
     "salaryNotListed": "Salary not listed",
