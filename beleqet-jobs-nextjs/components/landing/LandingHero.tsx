@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, MapPin, Search, ShieldCheck } from 'lucide-react';
 import { buildSearchUrl, type Gig, type Job } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
-import { formatBudget, formatSalary, initials } from './format';
+import { formatBudget, formatSalary, initials } from '@/features/jobs/format';
 
 type Mode = 'jobs' | 'freelance';
 
@@ -147,6 +147,7 @@ export default function LandingHero({ jobs, gigs }: { jobs: Job[]; gigs: Gig[] }
                 <Link
                   key={row.href}
                   href={row.href}
+                  prefetch={false}
                   className={`items-center gap-3 rounded-xl border border-white/[0.08] bg-primary2 p-3 text-left transition-colors hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent md:flex md:flex-col md:items-stretch md:gap-3.5 md:p-4 ${
                     i >= 3 ? 'hidden' : 'flex'
                   }`}

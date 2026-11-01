@@ -19,6 +19,20 @@ export function formatBudget(gig: Pick<Gig, 'budgetMin' | 'budgetMax' | 'currenc
   return `${cur} ${(gig.budgetMax || gig.budgetMin).toLocaleString('en-US')}`;
 }
 
+/** "2 hours ago" / "ከ2 ሰዓታት በፊት", from an ISO timestamp. */
+export function postedAgo(iso: string | null | undefined, locale: string, fallback: string): string {
+  if (!iso) return fallback;
+  const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale === 'am' ? 'am' : 'en', { numeric: 'auto' });
+  const steps: [Intl.RelativeTimeFormatUnit, number][] = [
+    ['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60],
+  ];
+  for (const [unit, size] of steps) {
+    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
+  }
+  return rtf.format(0, 'minute');
+}
+
 /** Two-letter monogram for listings without a logo. */
 export function initials(name: string): string {
   const words = name.trim().split(/[\s\-–—&,.()/]+/).filter(Boolean);

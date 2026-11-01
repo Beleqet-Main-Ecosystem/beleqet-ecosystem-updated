@@ -51,24 +51,6 @@ export function CategoryGridSkeleton() {
   );
 }
 
-export function JobsListingSkeleton() {
-  return (
-    <div className="container-page py-10">
-      <div className="h-8 w-2/3 rounded bg-pageBg animate-pulse" />
-      <div className="h-4 w-24 rounded bg-pageBg mt-3 animate-pulse" />
-      <div className="h-16 rounded-2xl border border-border bg-white mt-6 mb-8 animate-pulse" />
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-8">
-        <div className="h-72 rounded-xl border border-border bg-white animate-pulse" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <JobCardSkeleton key={i} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function JobDetailSkeleton() {
   return (
     <div className="container-page py-10">

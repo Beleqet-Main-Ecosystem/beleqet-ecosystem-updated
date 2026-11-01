@@ -41,7 +41,19 @@ async function fetchSavedJobs(): Promise<Array<{ jobId: string }>> {
   return savedJobsPromise;
 }
 
-export default function SaveJobButton({ jobId, light = true }: { jobId: string; light?: boolean }) {
+export default function SaveJobButton({
+  jobId,
+  light = true,
+  variant = 'round',
+  label,
+}: {
+  jobId: string;
+  light?: boolean;
+  /** `outline` = the redesign's 44px square button. */
+  variant?: 'round' | 'outline';
+  /** Accessible name, e.g. "Save Senior Accountant". */
+  label?: string;
+}) {
   const { user, ready } = useAuth();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
@@ -83,6 +95,25 @@ export default function SaveJobButton({ jobId, light = true }: { jobId: string; 
       lastFetchTime = 0;
     }
     setLoading(false);
+  }
+
+  if (variant === 'outline') {
+    return (
+      <button
+        type="button"
+        onClick={toggleSaved}
+        disabled={!ready || loading}
+        aria-pressed={saved}
+        aria-label={label ?? 'Save job'}
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-ink-200 bg-surface text-ink-600 transition-colors hover:border-forest/40 hover:text-forest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest disabled:cursor-wait aria-pressed:text-forest dark:border-slate-700 dark:bg-slate-900"
+      >
+        {loading ? (
+          <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden="true" />
+        ) : (
+          <Bookmark className={`h-[18px] w-[18px] ${saved ? 'fill-current' : ''}`} aria-hidden="true" />
+        )}
+      </button>
+    );
   }
 
   return (

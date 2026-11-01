@@ -51,6 +51,8 @@ export type Job = {
   location: string;
   /** Human-readable job type (e.g. "Full Time"). */
   type: string;
+  /** API job type code (e.g. "FULL_TIME"), for translated labels. */
+  typeCode?: string;
   /** Category slug for routing. */
   category: string;
   categoryLabel?: string;
@@ -118,6 +120,7 @@ function toDisplayJob(raw: any): Job {
     companySize: raw.company?.size ?? null,
     location: raw.location ?? '',
     type: (raw.type && typeLabels[raw.type]) ?? raw.type ?? '',
+    typeCode: raw.type ?? undefined,
     category: raw.category?.slug ?? raw.categoryId ?? '',
     categoryLabel: raw.category?.label ?? raw.category?.slug ?? '',
     postedAgo: relativeTime(raw.createdAt),
@@ -146,15 +149,54 @@ function toDisplayJob(raw: any): Job {
 
 // ── API functions ─────────────────────────────────────────────────────────────
 
+/**
+ * A 200 response is not always data: a proxy (e.g. a Cloudflare challenge) can
+ * answer with an HTML page. Treating that as "no items" would show an empty
+ * list as if it were true, so anything without an `items` array is an error.
+ */
+function assertListResponse<T extends { items?: unknown }>(data: T, label: string): T & { items: unknown[] } {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
+    const preview = typeof data === 'string' ? (data as string).slice(0, 80).replace(/\s+/g, ' ') : typeof data;
+    throw new Error(`${label}: unexpected response (${preview})`);
+  }
+  return data as T & { items: unknown[] };
+}
+
 /** Fetch paginated job listings. */
 export async function fetchJobs(params?: QueryJobsDto): Promise<Job[]> {
   try {
     const { data } = await api.get<JobsResponse>('/jobs', {
       params: { limit: 9, ...params },
     });
-    return (data.items ?? []).map(toDisplayJob);
+    return assertListResponse(data, 'GET /jobs').items.map(toDisplayJob);
   } catch (err) {
     console.error(`[api] fetchJobs failed: ${describeError(err)}`);
+    throw err;
+  }
+}
+
+export type JobSearchResult = {
+  jobs: Job[];
+  total: number;
+  page: number;
+  totalPages: number;
+};
+
+/** Search published jobs with server-side filters and pagination (featured first, then newest). */
+export async function searchJobs(params: QueryJobsDto): Promise<JobSearchResult> {
+  try {
+    const { data: raw } = await api.get<JobsResponse & { page?: number; totalPages?: number }>('/jobs', { params });
+    const data = assertListResponse(raw, 'GET /jobs');
+    const limit = params.limit ?? 20;
+    const total = data.total ?? data.items.length;
+    return {
+      jobs: data.items.map(toDisplayJob),
+      total,
+      page: data.page ?? params.page ?? 1,
+      totalPages: data.totalPages ?? Math.max(1, Math.ceil(total / limit)),
+    };
+  } catch (err) {
+    console.error(`[api] searchJobs failed: ${describeError(err)}`);
     throw err;
   }
 }
@@ -216,17 +258,26 @@ export async function fetchOpenGigs(limit = 4): Promise<Gig[]> {
 }
 
 /** Fetch all job categories. */
+// Categories change rarely and every listing page needs them, so the server
+// keeps them for an hour and serves the last good list if a refresh fails.
+const CATEGORIES_TTL_MS = 60 * 60 * 1000;
+let categoriesCache: { at: number; value: Category[] } | null = null;
+
 export async function fetchCategories(): Promise<Category[]> {
+  if (categoriesCache && Date.now() - categoriesCache.at < CATEGORIES_TTL_MS) return categoriesCache.value;
   try {
     const { data } = await api.get<JobCategory[]>('/jobs/categories');
-    return (data ?? []).map((c) => ({
+    if (!Array.isArray(data)) throw new Error('GET /jobs/categories: unexpected response');
+    const value = data.map((c) => ({
       id: c.slug ?? c.id,
       label: c.label,
       icon: c.icon ?? 'briefcase',
     }));
+    if (value.length > 0) categoriesCache = { at: Date.now(), value };
+    return value;
   } catch (err) {
     console.error(`[api] fetchCategories failed: ${describeError(err)}`);
-    return [];
+    return categoriesCache?.value ?? [];
   }
 }
 

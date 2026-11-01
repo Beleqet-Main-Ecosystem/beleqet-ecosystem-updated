@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import type { Category, Job } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
-import { formatSalary, initials } from './format';
+import { categoryLabel, featuredCategories } from '@/features/jobs/categories';
+import { formatSalary, initials } from '@/features/jobs/format';
 
 const TELEGRAM_CHANNEL = 'https://t.me/BeleqetJobs';
 const ANDROID_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL;
@@ -86,6 +87,7 @@ export function LatestJobs({ jobs }: { jobs: Job[] }) {
                 <Link
                   key={job.id}
                   href={`/jobs/${job.id}`}
+                  prefetch={false}
                   className={`${card} ${i >= 3 ? 'hidden md:flex' : 'flex'} flex-col gap-3.5 p-[18px] text-ink-900 transition-shadow hover:shadow-card-hover md:gap-4 md:p-[22px] dark:text-white ${focusRing}`}
                 >
                   <span className="flex items-start gap-3 md:gap-3.5">
@@ -282,31 +284,27 @@ export function EscrowSection() {
 
 /* ─────────────────────────────── Categories ─────────────────────────────── */
 
-/** Fields shown on the landing page, in order, when the API has them. */
-const FEATURED_CATEGORIES: { slug: string; icon: LucideIcon }[] = [
-  { slug: 'accounting-and-finance', icon: BarChart3 },
-  { slug: 'software-design-and-development', icon: Code2 },
-  { slug: 'sales-and-promotion', icon: Megaphone },
-  { slug: 'creative-art-and-design', icon: Palette },
-  { slug: 'human-resource-and-talent-management', icon: Users },
-  { slug: 'construction-and-civil-engineering', icon: HardHat },
-  { slug: 'health-care', icon: HeartPulse },
-  { slug: 'teaching-and-tutor', icon: GraduationCap },
-];
+/** Icons for the featured fields; which fields and their order live in features/jobs/categories. */
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  'accounting-and-finance': BarChart3,
+  'software-design-and-development': Code2,
+  'sales-and-promotion': Megaphone,
+  'creative-art-and-design': Palette,
+  'human-resource-and-talent-management': Users,
+  'construction-and-civil-engineering': HardHat,
+  'health-care': HeartPulse,
+  'teaching-and-tutor': GraduationCap,
+};
 
 export function CategoryLinks({ categories }: { categories: Category[] }) {
   const { t } = useTranslation();
-  const byId = new Map(categories.map((c) => [c.id, c]));
-  const featured = FEATURED_CATEGORIES.filter((f) => byId.has(f.slug)).map((f) => ({ ...byId.get(f.slug)!, Icon: f.icon }));
-  const shown = featured.length >= 4 ? featured : categories.slice(0, 8).map((c) => ({ ...c, Icon: BriefcaseBusiness }));
+  const featured = featuredCategories(categories);
+  const shown = (featured.length >= 4 ? featured : categories.slice(0, 8)).map((c) => ({
+    ...c,
+    Icon: CATEGORY_ICONS[c.id] ?? BriefcaseBusiness,
+  }));
   if (shown.length === 0) return null;
-
-  // Prefer a translated label; fall back to the API's English label.
-  const label = (c: Category) => {
-    const key = `landing.categories.${c.id}`;
-    const translated = t(key);
-    return translated === key ? c.label : translated;
-  };
+  const label = (c: Category) => categoryLabel(c, t);
 
   return (
     <section aria-labelledby="cat-h" className={`${wrap} ${sectionGap}`}>
