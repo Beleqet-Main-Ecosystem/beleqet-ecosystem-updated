@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import JobsListing from '@/components/JobsListing';
-import { fetchCategories, fetchJobs } from '@/lib/api';
+import { fetchCategories, fetchJobs, type Job } from '@/lib/api';
+import { loadForPage } from '@/lib/build-safe';
 import { jobsPageMetadata } from '@/lib/seo/generate-metadata';
 
 export const revalidate = 60;
@@ -8,7 +9,10 @@ export const revalidate = 60;
 export const metadata = jobsPageMetadata();
 
 export default async function JobsPage() {
-  const [jobs, categories] = await Promise.all([fetchJobs(), fetchCategories()]);
+  const [jobs, categories] = await Promise.all([
+    loadForPage<Job[]>('JobsPage fetchJobs', () => fetchJobs(), []),
+    fetchCategories(),
+  ]);
 
   return (
     <Suspense

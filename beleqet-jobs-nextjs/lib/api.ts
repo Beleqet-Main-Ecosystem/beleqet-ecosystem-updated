@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios';
+import { describeError } from './build-safe';
 import type {
   Job as CommonJob,
   JobCategory,
@@ -153,7 +154,7 @@ export async function fetchJobs(params?: QueryJobsDto): Promise<Job[]> {
     });
     return (data.items ?? []).map(toDisplayJob);
   } catch (err) {
-    console.error('[api] fetchJobs failed:', err);
+    console.error(`[api] fetchJobs failed: ${describeError(err)}`);
     throw err;
   }
 }
@@ -169,7 +170,7 @@ export async function fetchJob(id: string): Promise<Job | null> {
     return toDisplayJob(data);
   } catch (err) {
     if (axios.isAxiosError(err) && err.response?.status === 404) return null;
-    console.error(`[api] fetchJob(${id}) failed:`, err);
+    console.error(`[api] fetchJob(${id}) failed: ${describeError(err)}`);
     throw err;
   }
 }
@@ -209,7 +210,7 @@ export async function fetchOpenGigs(limit = 4): Promise<Gig[]> {
       skills: raw.skills ?? [],
     }));
   } catch (err) {
-    console.error('[api] fetchOpenGigs failed:', err);
+    console.error(`[api] fetchOpenGigs failed: ${describeError(err)}`);
     throw err;
   }
 }
@@ -224,7 +225,7 @@ export async function fetchCategories(): Promise<Category[]> {
       icon: c.icon ?? 'briefcase',
     }));
   } catch (err) {
-    console.error('[api] fetchCategories failed:', err);
+    console.error(`[api] fetchCategories failed: ${describeError(err)}`);
     return [];
   }
 }
@@ -235,7 +236,7 @@ export async function fetchPlans(): Promise<CommonPlan[]> {
     const { data } = await api.get<CommonPlan[]>('/plans');
     return data ?? [];
   } catch (err) {
-    console.error('[api] fetchPlans failed:', err);
+    console.error(`[api] fetchPlans failed: ${describeError(err)}`);
     return [];
   }
 }
@@ -246,7 +247,7 @@ export async function fetchPlatformStats(): Promise<PlatformStats | null> {
     const { data } = await api.get<PlatformStats>('/jobs/stats');
     return data;
   } catch (err) {
-    console.error('[api] fetchPlatformStats failed:', err);
+    console.error(`[api] fetchPlatformStats failed: ${describeError(err)}`);
     return null;
   }
 }
