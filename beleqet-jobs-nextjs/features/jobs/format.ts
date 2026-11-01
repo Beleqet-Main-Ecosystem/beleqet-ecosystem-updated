@@ -33,6 +33,37 @@ export function postedAgo(iso: string | null | undefined, locale: string, fallba
   return rtf.format(0, 'minute');
 }
 
+/**
+ * Listing-supplied links are only used when they are http(s); anything else
+ * (javascript:, data:, relative paths) is dropped rather than rendered.
+ */
+export function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const candidate = /^[a-z][a-z0-9+.-]*:/i.test(value.trim()) ? value.trim() : `https://${value.trim()}`;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function safeEmail(value: string | null | undefined): string | null {
+  const email = value?.trim() ?? '';
+  // No ? & = , ; so the address can't add fields to the mailto: link.
+  return /^[^\s@<>"'?&=,;]+@[^\s@<>"'?&=,;]+\.[^\s@<>"'?&=,;]+$/.test(email) ? email : null;
+}
+
+/** Days until an ISO date (negative once it has passed), or null. */
+export function daysUntil(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const end = new Date(iso);
+  if (Number.isNaN(end.getTime())) return null;
+  // Applications stay open through the whole closing day.
+  end.setHours(23, 59, 59, 999);
+  return Math.ceil((end.getTime() - Date.now()) / 86400000) - 1;
+}
+
 /** Two-letter monogram for listings without a logo. */
 export function initials(name: string): string {
   const words = name.trim().split(/[\s\-–—&,.()/]+/).filter(Boolean);

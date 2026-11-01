@@ -1,5 +1,6 @@
 import React from 'react';
 import { getSeoConfig } from '../config';
+import { jsonLd } from './json-ld';
 
 /**
  * `<script type="application/ld+json">` fragment describing the organisation
@@ -30,6 +31,6 @@ export function OrganizationSchema(): React.ReactElement {
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(json) }} />
   );
 }

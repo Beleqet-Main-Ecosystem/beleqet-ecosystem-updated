@@ -6,6 +6,7 @@
  */
 
 import axios from 'axios';
+import { cache } from 'react';
 import { describeError } from './build-safe';
 import type {
   Job as CommonJob,
@@ -73,6 +74,12 @@ export type Job = {
   relevanceScore?: number;
   createdAt?: string | null;
   applicantCount?: number;
+  /** How candidates apply: on Beleqet, on the employer's site, or by email. */
+  applyMethod?: 'internal' | 'external' | 'email';
+  applyUrl?: string | null;
+  applyEmail?: string | null;
+  /** ISO date applications close (deadline, else expiry), if any. */
+  closesAt?: string | null;
 };
 
 /** Platform subscription plan — re-exported from @beleqet/common. */
@@ -104,6 +111,14 @@ function relativeTime(iso?: string | null): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+/** Imported jobs use "external" / "with_email"; jobs posted on Beleqet leave applyType empty. */
+function toApplyMethod(raw: any): 'internal' | 'external' | 'email' {
+  const type = String(raw.applyType ?? '').toLowerCase();
+  if ((type === 'external' || type === 'url') && raw.applyUrl) return 'external';
+  if ((type === 'with_email' || type === 'email') && raw.applyEmail) return 'email';
+  return 'internal';
 }
 
 /** Map a canonical backend Job to the web display Job. */
@@ -144,6 +159,10 @@ function toDisplayJob(raw: any): Job {
     currency: raw.currency ?? 'ETB',
     createdAt: raw.createdAt,
     applicantCount: raw._count?.applications ?? 0,
+    applyMethod: toApplyMethod(raw),
+    applyUrl: raw.applyUrl ?? null,
+    applyEmail: raw.applyEmail ?? null,
+    closesAt: raw.deadline ?? raw.expiryDate ?? null,
   };
 }
 
@@ -206,7 +225,7 @@ export async function searchJobs(params: QueryJobsDto): Promise<JobSearchResult>
  * not exist; other failures rethrow so ISR keeps the cached page instead of
  * caching a 404 for a job that is still live.
  */
-export async function fetchJob(id: string): Promise<Job | null> {
+export const fetchJob = cache(async function fetchJob(id: string): Promise<Job | null> {
   try {
     const { data } = await api.get<CommonJob>(`/jobs/${id}`);
     return toDisplayJob(data);
@@ -215,7 +234,7 @@ export async function fetchJob(id: string): Promise<Job | null> {
     console.error(`[api] fetchJob(${id}) failed: ${describeError(err)}`);
     throw err;
   }
-}
+});
 
 /** Open freelance project, trimmed to what listing cards show. */
 export type Gig = {

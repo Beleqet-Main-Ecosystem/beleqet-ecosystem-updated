@@ -51,23 +51,3 @@ export function CategoryGridSkeleton() {
   );
 }
 
-export function JobDetailSkeleton() {
-  return (
-    <div className="container-page py-10">
-      <div className="h-4 w-32 rounded bg-pageBg animate-pulse mb-6" />
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
-        <div className="rounded-2xl border border-border bg-white p-7 animate-pulse">
-          <div className="flex items-start gap-4">
-            <div className="h-14 w-14 rounded-xl bg-pageBg" />
-            <div className="flex-1">
-              <div className="h-6 w-2/3 rounded bg-pageBg" />
-              <div className="h-4 w-1/3 rounded bg-pageBg mt-3" />
-            </div>
-          </div>
-          <div className="h-40 rounded bg-pageBg mt-7" />
-        </div>
-        <div className="h-40 rounded-2xl border border-border bg-white animate-pulse" />
-      </div>
-    </div>
-  );
-}

@@ -321,3 +321,11 @@ html.dark .jobs-category-scrollbar::-webkit-scrollbar-thumb {
     scroll-behavior: auto !important;
   }
 }
+
+/* Pages with a sticky mobile action bar (e.g. job detail): lift the chat
+   button above the bar so it never covers the main action. */
+@media (max-width: 767px) {
+  body:has([data-mobile-action-bar]) .chat-fab {
+    bottom: 10rem;
+  }
+}
