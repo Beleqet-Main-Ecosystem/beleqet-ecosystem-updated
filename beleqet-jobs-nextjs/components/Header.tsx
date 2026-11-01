@@ -177,7 +177,7 @@ export default function Header() {
             <HeaderAuth />
             <button
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 text-white dark:border-slate-700"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-white/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent dark:border-slate-700"
               aria-label="Open menu"
               aria-expanded={drawerOpen}
               aria-controls="mobile-drawer"

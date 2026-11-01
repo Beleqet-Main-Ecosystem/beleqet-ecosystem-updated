@@ -83,6 +83,10 @@ export default function ContractDetailPage() {
   const [fileUrl, setFileUrl] = useState('');
   const [deliverableNotes, setDeliverableNotes] = useState('');
 
+  // Dispute form state
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('');
+
   const currentUser = getStoredUser();
   const isClient = currentUser?.id === contract?.clientId;
   const isFreelancer = currentUser?.id === contract?.freelancerId;
@@ -250,6 +254,42 @@ export default function ContractDetailPage() {
     }
   };
 
+  // Either party raises a dispute; escrow is frozen until an admin resolves it
+  const handleRaiseDispute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contract) return;
+
+    try {
+      setActionLoading('dispute');
+      const token = getToken();
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+
+      const res = await fetch(`${apiUrl}/freelance/contracts/${contract.id}/dispute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: disputeReason.trim() }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(
+          Array.isArray(errData.message) ? errData.message.join(', ') : errData.message || 'Dispute failed',
+        );
+      }
+
+      setDisputeOpen(false);
+      setDisputeReason('');
+      fetchContract();
+    } catch (err: any) {
+      alert(err.message || 'Failed to raise dispute');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 py-16 flex items-center justify-center">
@@ -334,6 +374,10 @@ export default function ContractDetailPage() {
               <p className="mt-0.5 text-[11px] text-white/70">
                 Released: {approvedMilestonesAmount.toLocaleString()} {contract.currency}
               </p>
+              <p className="mt-0.5 text-[11px] text-white/70">
+                10% platform fee is deducted from each payout · Freelancer receives{' '}
+                {Math.round(contract.agreedAmount * 0.9).toLocaleString()} {contract.currency}
+              </p>
             </div>
           </div>
 
@@ -371,6 +415,68 @@ export default function ContractDetailPage() {
               >
                 {actionLoading === 'funding' ? 'Connecting to Gateway...' : 'Fund Escrow (Chapa / Telebirr)'}
               </button>
+            </div>
+          )}
+
+          {contract.status === 'DISPUTED' && (
+            <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4">
+              <p className="text-xs font-bold uppercase text-rose-900">Dispute under review</p>
+              <p className="mt-0.5 text-xs text-rose-700">
+                Escrowed funds are frozen and no milestone can be released until a Beleqet admin reviews
+                the contract, its deliverables and the contract chat, and records a resolution.
+              </p>
+            </div>
+          )}
+
+          {/* Either party: raise a dispute */}
+          {(isClient || isFreelancer) && contract.status === 'ACTIVE' && (
+            <div className="mt-4">
+              {!disputeOpen ? (
+                <button
+                  onClick={() => setDisputeOpen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 hover:text-rose-800"
+                >
+                  <AlertCircle className="h-3.5 w-3.5" /> Raise a dispute
+                </button>
+              ) : (
+                <form
+                  onSubmit={handleRaiseDispute}
+                  className="rounded-xl border border-rose-200 bg-white p-4"
+                >
+                  <label htmlFor="dispute-reason" className="text-xs font-bold text-slate-900">
+                    What went wrong?
+                  </label>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Opening a dispute freezes escrow for both parties until an admin resolves it.
+                  </p>
+                  <textarea
+                    id="dispute-reason"
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                    minLength={20}
+                    required
+                    rows={3}
+                    className="mt-2 w-full rounded-lg border border-slate-200 p-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                    placeholder="Describe the issue (at least 20 characters)"
+                  />
+                  <div className="mt-2 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDisputeOpen(false)}
+                      className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={actionLoading === 'dispute' || disputeReason.trim().length < 20}
+                      className="rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50"
+                    >
+                      {actionLoading === 'dispute' ? 'Submitting...' : 'Submit dispute'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           )}
         </div>

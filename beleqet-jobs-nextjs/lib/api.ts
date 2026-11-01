@@ -158,14 +158,19 @@ export async function fetchJobs(params?: QueryJobsDto): Promise<Job[]> {
   }
 }
 
-/** Fetch a single job by ID. */
+/**
+ * Fetch a single job by ID. Returns null only when the API says the job does
+ * not exist; other failures rethrow so ISR keeps the cached page instead of
+ * caching a 404 for a job that is still live.
+ */
 export async function fetchJob(id: string): Promise<Job | null> {
   try {
     const { data } = await api.get<CommonJob>(`/jobs/${id}`);
     return toDisplayJob(data);
   } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) return null;
     console.error(`[api] fetchJob(${id}) failed:`, err);
-    return null;
+    throw err;
   }
 }
 

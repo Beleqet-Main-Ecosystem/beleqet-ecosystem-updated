@@ -194,7 +194,7 @@ function MessagesPageContent() {
                 <input
                   type="text"
                   placeholder="Filter chats..."
-                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 outline-none"
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-brandGreen/50"
                 />
               </div>
             </div>

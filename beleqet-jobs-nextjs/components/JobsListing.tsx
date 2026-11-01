@@ -73,7 +73,7 @@ export default function JobsListing({
         onSubmit={(e) => e.preventDefault()}
         className="bg-white rounded-2xl border border-border p-2 flex flex-col sm:flex-row gap-2 mb-4 shadow-card"
       >
-        <div className="flex items-center flex-1 gap-2 px-3 py-2.5 rounded-xl">
+        <div className="flex items-center flex-1 gap-2 px-3 py-2.5 rounded-xl focus-within:ring-2 focus-within:ring-brandGreen/50">
           <Search className="h-4 w-4 text-muted shrink-0" />
           <input
             value={query}
@@ -83,7 +83,7 @@ export default function JobsListing({
           />
         </div>
         <div className="hidden sm:block w-px bg-border my-1" />
-        <div className="flex items-center flex-1 gap-2 px-3 py-2.5 rounded-xl">
+        <div className="flex items-center flex-1 gap-2 px-3 py-2.5 rounded-xl focus-within:ring-2 focus-within:ring-brandGreen/50">
           <MapPin className="h-4 w-4 text-muted shrink-0" />
           <input
             value={location}

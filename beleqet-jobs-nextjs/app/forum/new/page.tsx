@@ -278,7 +278,7 @@ export default function NewThreadPage() {
                       onBlur={() => tagInput && addTag(tagInput)}
                       maxLength={FORUM_CONFIG.VALIDATION.MAX_TAG_LENGTH}
                       disabled={tags.length >= FORUM_CONFIG.VALIDATION.MAX_TAGS}
-                      className="flex-1 bg-transparent px-1 py-2.5 text-sm text-ink placeholder:text-muted/40 outline-none disabled:opacity-40"
+                      className="flex-1 bg-transparent px-1 py-2.5 text-sm text-ink placeholder:text-muted/40 outline-none focus-visible:ring-2 focus-visible:ring-brandGreen/50 rounded-lg disabled:opacity-40"
                       placeholder={
                         tags.length >= FORUM_CONFIG.VALIDATION.MAX_TAGS
                           ? 'Max 10 tags reached'

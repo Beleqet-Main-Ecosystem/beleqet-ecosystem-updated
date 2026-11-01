@@ -20,7 +20,7 @@ const footerColumns = [
     title: 'For Employers',
     links: [
       { label: 'Post a Job', href: '/post-job' },
-      { label: 'Find Candidates', href: '/post-job' },
+      { label: 'Find Candidates', href: '/employer' },
       { label: 'Pricing', href: '/pricing' },
       { label: 'Support', href: '/contact' },
     ],

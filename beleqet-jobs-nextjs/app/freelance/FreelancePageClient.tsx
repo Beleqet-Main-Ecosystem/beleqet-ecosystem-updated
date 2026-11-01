@@ -421,7 +421,7 @@ export default function FreelancePageClient({ gigs = [] }: { gigs?: Gig[] }) {
               onSubmit={handleSearch}
               className="mt-9 flex max-w-2xl gap-2 rounded-[22px] border border-primary/10 bg-white p-2.5 shadow-[0_20px_70px_rgba(4,22,3,.12)] dark:border-slate-700 dark:bg-slate-900"
             >
-              <label className="flex flex-1 items-center gap-3 rounded-2xl px-3 py-3">
+              <label className="flex flex-1 items-center gap-3 rounded-2xl px-3 py-3 focus-within:ring-2 focus-within:ring-brandGreen/50">
                 <Search className="h-5 w-5 shrink-0 text-brandGreen" />
                 <span className="sr-only">Search freelance projects or skills</span>
                 <input

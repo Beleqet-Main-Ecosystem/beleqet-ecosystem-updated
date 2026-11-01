@@ -214,7 +214,7 @@ export default function ChatToTextPage() {
               >
                 Language
               </label>
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900">
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 focus-within:ring-2 focus-within:ring-brandGreen/50">
                 <Languages size={16} className="text-slate-500" />
                 <select
                   id="language-select"
