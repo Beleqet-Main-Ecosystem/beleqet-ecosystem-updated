@@ -13,6 +13,7 @@ import { homePageMetadata } from '@/lib/seo/generate-metadata';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/lib/i18n';
 import { TelegramInitializer } from '@/components/TelegramInitializer';
+import { inter, ethiopic } from './fonts';
 
 /* Dynamically-load non-critical client modules — not needed on first paint */
 const ChatWidget = dynamic(() => import('@/components/ChatWidget'), { ssr: false });
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const { themeColor, defaultLocale } = getSeoConfig();
 
   return (
-    <html lang={defaultLocale} suppressHydrationWarning>
+    <html lang={defaultLocale} className={`${inter.variable} ${ethiopic.variable}`} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content={themeColor} />
         <meta name="color-scheme" content="light dark" />

@@ -21,6 +21,7 @@ import {
   IsArray,
 } from 'class-validator';
 import * as bcrypt from 'bcryptjs';
+import { JobStatus, FreelanceJobStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -53,6 +54,13 @@ class UpdateUserDto {
   @IsOptional() @IsString() @MinLength(2) lastName?: string;
   @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
   @IsOptional() @IsBoolean() isActive?: boolean;
+  @IsOptional() @IsBoolean() kycVerified?: boolean;
+}
+class UpdateJobModerationStatusDto {
+  @IsEnum(JobStatus) status!: JobStatus;
+}
+class UpdateGigModerationStatusDto {
+  @IsEnum(FreelanceJobStatus) status!: FreelanceJobStatus;
 }
 class BroadcastDto {
   @IsString() @MinLength(3) title!: string;
@@ -71,8 +79,10 @@ const safeUserSelect = {
   lastName: true,
   role: true,
   isActive: true,
+  kycVerified: true,
   emailVerified: true,
   createdAt: true,
+  twoFactor: { select: { enabled: true } },
 } as const;
 
 @ApiTags('admin')
@@ -92,15 +102,19 @@ export class AdminController {
   @RequirePermissions('manage:users')
   @Get('users')
   @ApiOperation({ summary: 'List all users' })
-  getUsers() {
-    return this.prisma.user.findMany({ select: safeUserSelect, orderBy: { createdAt: 'desc' } });
+  async getUsers() {
+    const users = await this.prisma.user.findMany({ select: safeUserSelect, orderBy: { createdAt: 'desc' } });
+    return users.map((u) => ({
+      ...u,
+      twoFactorEnabled: u.twoFactor?.enabled ?? false,
+    }));
   }
 
   @RequirePermissions('manage:users')
   @Post('users')
   @ApiOperation({ summary: 'Create a user' })
   async createUser(@Body() dto: CreateUserDto) {
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         email: dto.email.toLowerCase().trim(),
         firstName: dto.firstName.trim(),
@@ -110,13 +124,148 @@ export class AdminController {
       },
       select: safeUserSelect,
     });
+    return {
+      ...user,
+      twoFactorEnabled: user.twoFactor?.enabled ?? false,
+    };
   }
 
   @RequirePermissions('manage:users')
   @Patch('users/:id')
-  @ApiOperation({ summary: 'Update a user' })
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.prisma.user.update({ where: { id }, data: dto, select: safeUserSelect });
+  @ApiOperation({ summary: 'Update a user (role, isActive ban/activate, kyc)' })
+  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    const user = await this.prisma.user.update({ where: { id }, data: dto, select: safeUserSelect });
+    return {
+      ...user,
+      twoFactorEnabled: user.twoFactor?.enabled ?? false,
+    };
+  }
+
+  @RequirePermissions('manage:jobs')
+  @Get('moderation/items')
+  @ApiOperation({ summary: 'List public postings (jobs and gigs) for moderation queue' })
+  async getModerationItems(
+    @Query('type') type?: 'ALL' | 'JOB' | 'GIG',
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    const selectedType = type || 'ALL';
+    const items: Array<{
+      id: string;
+      type: 'JOB' | 'GIG';
+      title: string;
+      description: string;
+      creatorName: string;
+      creatorEmail?: string;
+      category?: string;
+      location?: string;
+      compensation: string;
+      status: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }> = [];
+
+    if (selectedType === 'ALL' || selectedType === 'JOB') {
+      const jobs = await this.prisma.job.findMany({
+        include: { company: true, category: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      for (const job of jobs) {
+        items.push({
+          id: job.id,
+          type: 'JOB',
+          title: job.title,
+          description: job.description,
+          creatorName: job.company?.name || job.companyName || 'Independent Employer',
+          creatorEmail: job.applyEmail || undefined,
+          category: job.category?.label,
+          location: job.location,
+          compensation: job.salaryMin
+            ? `${job.salaryMin.toLocaleString()} - ${job.salaryMax?.toLocaleString() ?? job.salaryMin.toLocaleString()} ${job.currency || 'ETB'}`
+            : 'Negotiable',
+          status: job.status,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+        });
+      }
+    }
+
+    if (selectedType === 'ALL' || selectedType === 'GIG') {
+      const gigs = await this.prisma.freelanceJob.findMany({
+        include: {
+          client: { select: { id: true, firstName: true, lastName: true, email: true } },
+          category: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      for (const gig of gigs) {
+        items.push({
+          id: gig.id,
+          type: 'GIG',
+          title: gig.title,
+          description: gig.description,
+          creatorName: gig.client ? `${gig.client.firstName} ${gig.client.lastName}`.trim() : 'Client',
+          creatorEmail: gig.client?.email,
+          category: gig.category?.label,
+          location: gig.locationPreference || 'Remote',
+          compensation: gig.budgetMin
+            ? `${gig.budgetMin.toLocaleString()} - ${gig.budgetMax.toLocaleString()} ${gig.currency || 'ETB'}`
+            : `${gig.budgetMax.toLocaleString()} ${gig.currency || 'ETB'}`,
+          status: gig.status,
+          createdAt: gig.createdAt,
+          updatedAt: gig.updatedAt,
+        });
+      }
+    }
+
+    let filtered = items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    if (status && status !== 'ALL') {
+      filtered = filtered.filter((i) => i.status.toUpperCase() === status.toUpperCase());
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          i.creatorName.toLowerCase().includes(q) ||
+          (i.category && i.category.toLowerCase().includes(q)) ||
+          (i.location && i.location.toLowerCase().includes(q)),
+      );
+    }
+
+    return filtered;
+  }
+
+  @RequirePermissions('manage:jobs')
+  @Patch('moderation/jobs/:id/status')
+  @ApiOperation({ summary: 'Approve, archive, or update job status' })
+  async updateJobStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateJobModerationStatusDto,
+  ) {
+    const job = await this.prisma.job.update({
+      where: { id },
+      data: { status: dto.status },
+      include: { company: true, category: true },
+    });
+    return job;
+  }
+
+  @RequirePermissions('manage:jobs')
+  @Patch('moderation/gigs/:id/status')
+  @ApiOperation({ summary: 'Approve, cancel, or update freelance gig status' })
+  async updateGigStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateGigModerationStatusDto,
+  ) {
+    const gig = await this.prisma.freelanceJob.update({
+      where: { id },
+      data: { status: dto.status },
+      include: { client: { select: safeUserSelect }, category: true },
+    });
+    return gig;
   }
 
   @RequirePermissions('manage:users')

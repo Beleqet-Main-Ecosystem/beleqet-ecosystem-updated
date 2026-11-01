@@ -16,6 +16,8 @@ import {
   ShieldAlert,
   Mail,
   ExternalLink,
+  Users,
+  Briefcase,
 } from 'lucide-react';
 import { NotificationBell } from '@/components/Notifications';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -81,6 +83,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       title: 'Analytics & Overview',
       items: [
         { href: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+        { href: '/admin/users', label: 'User Management', icon: <Users size={18} /> },
+        { href: '/admin/jobs', label: 'Job Moderation', icon: <Briefcase size={18} /> },
       ],
     },
     {

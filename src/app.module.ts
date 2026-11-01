@@ -58,6 +58,9 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
+import { MatchingModule } from './modules/matching/matching.module';
+import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
 
 @Module({
   imports: [
@@ -164,6 +167,9 @@ import { RbacModule } from './modules/rbac/rbac.module';
     BeleqetPayModule,
     CommunityForumModule,
     RbacModule,
+    FaqBotModule,
+    MatchingModule,
+    PromotedEngineModule,
   ],
   providers: [
     {

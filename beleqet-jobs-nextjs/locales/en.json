@@ -123,14 +123,18 @@
     "button": "Post a Job"
   },
   "hero": {
+    "title": "Find your next job in Ethiopia",
     "badge": "Ethiopia's career marketplace",
     "titleLine1": "Work that",
     "titleLine2": "moves you",
     "titleAccent": "forward",
-    "subtitle": "Find meaningful roles from verified Ethiopian employers, build a standout profile, and take your next career step with confidence.",
-    "searchPlaceholder": "Job title or skill",
-    "locationPlaceholder": "Addis Ababa or remote",
+    "subtitle": "Search verified openings, apply directly to employers, and get alerts the moment new jobs are posted.",
+    "searchLabel": "Job title, keyword or company",
+    "searchPlaceholder": "Job title, keyword or company",
+    "locationLabel": "Location",
+    "locationPlaceholder": "City, e.g. Addis Ababa",
     "searchButton": "Search jobs",
+    "popular": "Popular:",
     "trending": "Trending:",
     "recommended": "RECOMMENDED FOR YOU",
     "freshOpportunities": "Fresh opportunities",
@@ -142,6 +146,7 @@
   "stats": {
     "activeJobs": "Active Jobs",
     "hiringCompanies": "Hiring Companies",
+    "companies": "Companies",
     "registeredJobSeekers": "Registered Job Seekers",
     "satisfactionRate": "Satisfaction Rate"
   },

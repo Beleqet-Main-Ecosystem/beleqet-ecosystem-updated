@@ -534,3 +534,78 @@ export async function updateFraudRule(id: string, data: Partial<FraudRule>): Pro
   const res = await apiClient.patch<FraudRule>(`/admin/fraud/rules/${id}`, data);
   return res.data;
 }
+
+// ── Admin User Management & Moderation ────────────────────────────────────────
+
+export interface AdminUserRecord {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'ADMIN' | 'EMPLOYER' | 'JOB_SEEKER' | 'FREELANCER';
+  isActive: boolean;
+  kycVerified?: boolean;
+  twoFactorEnabled?: boolean;
+  createdAt: string;
+}
+
+export async function fetchAdminUsers(): Promise<AdminUserRecord[]> {
+  const res = await apiClient.get<AdminUserRecord[]>('/admin/users');
+  return res.data;
+}
+
+export async function updateAdminUser(
+  id: string,
+  data: Partial<AdminUserRecord>,
+): Promise<AdminUserRecord> {
+  const res = await apiClient.patch<AdminUserRecord>(`/admin/users/${id}`, data);
+  return res.data;
+}
+
+export async function deleteAdminUser(id: string): Promise<{ deleted: boolean; reason?: string }> {
+  const res = await apiClient.delete(`/admin/users/${id}`);
+  return res.data;
+}
+
+export interface ModerationItemRecord {
+  id: string;
+  type: 'JOB' | 'GIG';
+  title: string;
+  description: string;
+  creatorName: string;
+  creatorEmail?: string;
+  category?: string;
+  location?: string;
+  compensation: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchModerationItems(params?: {
+  type?: 'ALL' | 'JOB' | 'GIG';
+  status?: string;
+  search?: string;
+}): Promise<ModerationItemRecord[]> {
+  const res = await apiClient.get<ModerationItemRecord[]>('/admin/moderation/items', {
+    params,
+  });
+  return res.data;
+}
+
+export async function updateJobModerationStatus(
+  id: string,
+  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED',
+): Promise<any> {
+  const res = await apiClient.patch(`/admin/moderation/jobs/${id}/status`, { status });
+  return res.data;
+}
+
+export async function updateGigModerationStatus(
+  id: string,
+  status: 'DRAFT' | 'FUNDED' | 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED',
+): Promise<any> {
+  const res = await apiClient.patch(`/admin/moderation/gigs/${id}/status`, { status });
+  return res.data;
+}
+

@@ -15,6 +15,7 @@ export const revalidate = 300;
 
 export default async function StatsBar() {
   const stats = await fetchPlatformStats();
+  if (!stats) return null;
 
   return (
     <section className="border-y border-primary/10 bg-[#d8ff3e]">

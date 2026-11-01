@@ -77,4 +77,51 @@ export class ChatService {
       },
     });
   }
+
+  /** List user chat rooms */
+  async getUserRooms(userId: string) {
+    const participants = await this.prisma.chatParticipant.findMany({
+      where: { userId },
+      include: {
+        room: {
+          include: {
+            participants: {
+              include: {
+                user: {
+                  select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+                },
+              },
+            },
+            messages: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+      orderBy: { joinedAt: 'desc' },
+    });
+
+    const rooms = participants.map((p) => p.room);
+    const contractIds = rooms
+      .map((r) => r.contractId)
+      .filter((id): id is string => Boolean(id));
+
+    if (contractIds.length > 0) {
+      const contracts = await this.prisma.contract.findMany({
+        where: { id: { in: contractIds } },
+        select: {
+          id: true,
+          freelanceJob: { select: { title: true } },
+        },
+      });
+      const contractMap = new Map(contracts.map((c) => [c.id, c]));
+      return rooms.map((r) => ({
+        ...r,
+        contract: r.contractId ? contractMap.get(r.contractId) ?? null : null,
+      }));
+    }
+
+    return rooms;
+  }
 }

@@ -5,7 +5,7 @@ import { timeAgo } from '@/lib/utils/time';
 
 export default function ThreadCard({ thread }: { thread: ForumThread }) {
   return (
-    <article className="group flex min-h-[280px] flex-col rounded-[22px] border border-primary/10 bg-white p-5 shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-brandGreen/30 hover:shadow-cardHover">
+    <article className="group flex min-h-[280px] flex-col rounded-[22px] border border-primary/10 bg-white p-5 shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-brandGreen/30 hover:shadow-card-hover">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-1 flex-col">
           {thread.isPinned && (

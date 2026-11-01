@@ -123,14 +123,18 @@
     "button": "ስራ ፖስት አድርግ"
   },
   "hero": {
+    "title": "በኢትዮጵያ ውስጥ የሚቀጥለውን ስራዎን ያግኙ",
     "badge": "የኢትዮጵያ የስራ እና የሙያ ገበያ",
     "titleLine1": "የወደፊት ህይወትዎን",
     "titleLine2": "የሚያራምድ",
     "titleAccent": "ስራ",
-    "subtitle": "ከተረጋገጡ የኢትዮጵያ አሰሪዎች አስተማማኝ ስራዎችን ያግኙ፣ ጠንካራ ፕሮፋይል ይገንቡ፣ እና የቀጣዩን የስራ ደረጃዎን በልበ ሙሉነት ይጀምሩ።",
-    "searchPlaceholder": "የስራ መጠሪያ ወይም ሙያ",
-    "locationPlaceholder": "አዲስ አበባ ወይም በርቀት",
-    "searchButton": "ስራዎችን ፈልግ",
+    "subtitle": "የተረጋገጡ የስራ ክፍት ቦታዎችን ይፈልጉ፣ በቀጥታ ለአሠሪው ያመልክቱ፣ አዳዲስ ስራዎች ሲለጠፉ ወዲያው ማሳወቂያ ያግኙ።",
+    "searchLabel": "የስራ ርዕስ፣ ቁልፍ ቃል ወይም ኩባንያ",
+    "searchPlaceholder": "የስራ ርዕስ፣ ቁልፍ ቃል ወይም ኩባንያ",
+    "locationLabel": "አካባቢ",
+    "locationPlaceholder": "ከተማ፣ ለምሳሌ አዲስ አበባ",
+    "searchButton": "ስራ ፈልግ",
+    "popular": "ተወዳጅ፦",
     "trending": "ተፈላጊ:",
     "recommended": "ለእርስዎ የተመረጡ",
     "freshOpportunities": "አዳዲስ የስራ እድሎች",
@@ -141,7 +145,8 @@
   },
   "stats": {
     "activeJobs": "ክፍት ስራዎች",
-    "hiringCompanies": "ቀጣሪ ድрጅቶች",
+    "hiringCompanies": "ቀጣሪ ድርጅቶች",
+    "companies": "ቀጣሪ ድርጅቶች",
     "registeredJobSeekers": "የተመዘገቡ ስራ ፈላጊዎች",
     "satisfactionRate": "የእርካታ መጠን"
   },

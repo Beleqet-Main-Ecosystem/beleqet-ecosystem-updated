@@ -175,7 +175,7 @@ export default function NewThreadPage() {
             {/* Main column */}
             <div className="space-y-7">
               {/* Title card */}
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-cardHover overflow-hidden">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-card-hover overflow-hidden">
                 <div className="flex items-center gap-2.5 border-b border-primary/5 bg-gradient-to-r from-primary/[0.02] to-transparent px-5 py-3.5 sm:px-6">
                   <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brandGreen to-darkGreen text-white shadow-sm">
                     <Edit3 className="h-4 w-4" />
@@ -206,7 +206,7 @@ export default function NewThreadPage() {
               </div>
 
               {/* Content card */}
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-cardHover overflow-hidden">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-card-hover overflow-hidden">
                 <div className="flex items-center gap-2.5 border-b border-primary/5 bg-gradient-to-r from-brandGreen/[0.03] to-transparent px-5 py-3.5 sm:px-6">
                   <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyanAccent to-blue-600 text-white shadow-sm">
                     <MessageSquare className="h-4 w-4" />
@@ -236,7 +236,7 @@ export default function NewThreadPage() {
               </div>
 
               {/* Tags card */}
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-cardHover overflow-hidden">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-card-hover overflow-hidden">
                 <div className="flex items-center gap-2.5 border-b border-primary/5 bg-gradient-to-r from-purple-500/[0.04] to-transparent px-5 py-3.5 sm:px-6">
                   <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purpleAccent to-purple-700 text-white shadow-sm">
                     <Hash className="h-4 w-4" />
@@ -293,7 +293,7 @@ export default function NewThreadPage() {
               </div>
 
               {/* Anonymous card */}
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-cardHover overflow-hidden">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-2xl border border-border bg-white shadow-card transition-all duration-300 hover:shadow-card-hover overflow-hidden">
                 <div className="flex items-center gap-2.5 border-b border-primary/5 bg-gradient-to-r from-amber-500/[0.05] to-transparent px-5 py-3.5 sm:px-6">
                   <div className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-sm">
                     {isAnonymous ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

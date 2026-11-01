@@ -111,7 +111,7 @@ export default function TaxCalculatorPage() {
       <div className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_1fr] lg:py-16">
         <form
           onSubmit={handleSubmit}
-          className="rounded-[28px] border border-primary/10 bg-white p-6 shadow-card transition-all hover:-translate-y-1 hover:shadow-cardHover sm:p-8"
+          className="rounded-[28px] border border-primary/10 bg-white p-6 shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover sm:p-8"
         >
           <div className="mb-6 flex items-center gap-3">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brandGreen/10 text-brandGreen">
@@ -216,7 +216,7 @@ export default function TaxCalculatorPage() {
         <div
           className={`rounded-[28px] border border-primary/10 bg-white p-6 shadow-card transition-all duration-500 sm:p-8 ${
             result
-              ? 'translate-y-0 opacity-100 hover:-translate-y-1 hover:shadow-cardHover'
+              ? 'translate-y-0 opacity-100 hover:-translate-y-1 hover:shadow-card-hover'
               : 'opacity-90'
           }`}
         >

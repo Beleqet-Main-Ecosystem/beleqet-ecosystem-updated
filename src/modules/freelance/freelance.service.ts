@@ -101,6 +101,18 @@ export class CreateMilestoneDto {
   deadline: string;
 }
 
+export class SubmitDeliverableDto {
+  @ApiProperty({ example: 'https://storage.beleqet.com/files/work.zip', required: false })
+  @IsOptional()
+  @IsString()
+  fileUrl?: string;
+
+  @ApiProperty({ example: 'Milestone work completed and attached.', required: false })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
 @Injectable()
 export class FreelanceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -323,6 +335,55 @@ export class FreelanceService {
         ...dto,
         contractId,
         deadline: new Date(dto.deadline),
+      },
+    });
+  }
+
+  async submitDeliverable(freelancerId: string, milestoneId: string, dto: SubmitDeliverableDto) {
+    const milestone = await this.prisma.milestone.findUnique({
+      where: { id: milestoneId },
+      include: { contract: true },
+    });
+    if (!milestone) throw new NotFoundException('Milestone not found');
+    if (milestone.contract.freelancerId !== freelancerId) {
+      throw new ForbiddenException('Only the assigned freelancer can submit deliverables for this milestone');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const deliverable = await tx.deliverable.create({
+        data: {
+          milestoneId,
+          fileUrl: dto.fileUrl,
+          notes: dto.notes,
+        },
+      });
+
+      await tx.milestone.update({
+        where: { id: milestoneId },
+        data: {
+          status: 'SUBMITTED',
+          freelancerApprovedAt: new Date(),
+        },
+      });
+
+      return deliverable;
+    });
+  }
+
+  async requestRevision(clientId: string, milestoneId: string, reason?: string) {
+    const milestone = await this.prisma.milestone.findUnique({
+      where: { id: milestoneId },
+      include: { contract: true },
+    });
+    if (!milestone) throw new NotFoundException('Milestone not found');
+    if (milestone.contract.clientId !== clientId) {
+      throw new ForbiddenException('Only the client can request milestone revision');
+    }
+
+    return this.prisma.milestone.update({
+      where: { id: milestoneId },
+      data: {
+        status: 'REVISION_REQUESTED',
       },
     });
   }

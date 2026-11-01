@@ -206,27 +206,6 @@ export default async function PricingPage() {
         )}
       </section>
 
-      {/* Trusted by strip */}
-      <section className="border-y border-border bg-white py-10">
-        <div className="container-page text-center">
-          <p className="text-xs font-extrabold uppercase tracking-widest text-muted">
-            Trusted by leading Ethiopian employers
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-8 text-sm font-extrabold text-primary/40">
-            {[
-              'ethio telecom',
-              'Dashen Bank',
-              'Safaricom Ethiopia',
-              'TakaCash',
-              'Zemen Bank',
-              'BN Star Trading',
-            ].map((name) => (
-              <span key={name}>{name}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQ */}
       <section className="container-page py-16">
         <div className="mx-auto max-w-2xl">

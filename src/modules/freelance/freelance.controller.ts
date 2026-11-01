@@ -8,6 +8,7 @@ import {
   CreateFreelanceJobDto,
   CreateBidDto,
   CreateMilestoneDto,
+  SubmitDeliverableDto,
 } from './freelance.service';
 import { EscrowService } from '../escrow/escrow.service';
 
@@ -98,5 +99,27 @@ export class FreelanceController {
   @ApiBearerAuth()
   approveMilestone(@Param('id') id: string, @CurrentUser() u: CurrentUserPayload) {
     return this.escrowSvc.releaseMilestone(id, u.userId);
+  }
+
+  @Post('milestones/:id/deliverables')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  submitDeliverable(
+    @Param('id') id: string,
+    @CurrentUser() u: CurrentUserPayload,
+    @Body() dto: SubmitDeliverableDto,
+  ) {
+    return this.svc.submitDeliverable(u.userId, id, dto);
+  }
+
+  @Patch('milestones/:id/request-revision')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  requestRevision(
+    @Param('id') id: string,
+    @CurrentUser() u: CurrentUserPayload,
+    @Body('reason') reason?: string,
+  ) {
+    return this.svc.requestRevision(u.userId, id, reason);
   }
 }

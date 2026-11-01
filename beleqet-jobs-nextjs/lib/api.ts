@@ -149,11 +149,12 @@ function toDisplayJob(raw: any): Job {
 export async function fetchJobs(params?: QueryJobsDto): Promise<Job[]> {
   try {
     const { data } = await api.get<JobsResponse>('/jobs', {
-      params: { limit: 60, ...params },
+      params: { limit: 9, ...params },
     });
     return (data.items ?? []).map(toDisplayJob);
-  } catch {
-    return [];
+  } catch (err) {
+    console.error('[api] fetchJobs failed:', err);
+    throw err;
   }
 }
 
@@ -162,7 +163,8 @@ export async function fetchJob(id: string): Promise<Job | null> {
   try {
     const { data } = await api.get<CommonJob>(`/jobs/${id}`);
     return toDisplayJob(data);
-  } catch {
+  } catch (err) {
+    console.error(`[api] fetchJob(${id}) failed:`, err);
     return null;
   }
 }
@@ -176,7 +178,8 @@ export async function fetchCategories(): Promise<Category[]> {
       label: c.label,
       icon: c.icon ?? 'briefcase',
     }));
-  } catch {
+  } catch (err) {
+    console.error('[api] fetchCategories failed:', err);
     return [];
   }
 }
@@ -186,22 +189,33 @@ export async function fetchPlans(): Promise<CommonPlan[]> {
   try {
     const { data } = await api.get<CommonPlan[]>('/plans');
     return data ?? [];
-  } catch {
+  } catch (err) {
+    console.error('[api] fetchPlans failed:', err);
     return [];
   }
 }
 
 /** Fetch live platform statistics from `GET /jobs/stats`. */
-export async function fetchPlatformStats(): Promise<PlatformStats> {
+export async function fetchPlatformStats(): Promise<PlatformStats | null> {
   try {
     const { data } = await api.get<PlatformStats>('/jobs/stats');
     return data;
-  } catch {
-    return {
-      activeJobs: 10000,
-      hiringCompanies: 5000,
-      registeredJobSeekers: 50000,
-      satisfactionRate: 98,
-    };
+  } catch (err) {
+    console.error('[api] fetchPlatformStats failed:', err);
+    return null;
   }
+}
+
+
+/**
+ * Builds a clean search URL with query parameters.
+ * Used by search forms and popular-search link chips.
+ */
+export function buildSearchUrl(q: string = '', loc: string = '', type: 'jobs' | 'freelance' = 'jobs'): string {
+  const params = new URLSearchParams();
+  if (q.trim()) params.set('q', q.trim());
+  if (loc.trim()) params.set('loc', loc.trim());
+  const queryString = params.toString();
+  const basePath = type === 'freelance' ? '/freelance' : '/jobs';
+  return queryString ? `${basePath}?${queryString}` : basePath;
 }
