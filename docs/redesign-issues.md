@@ -72,6 +72,9 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U43 | Settings | There's no screen to turn on two-step sign-in anywhere, though sign-in supports it | Open |
 | U44 | Settings | Delete account sends people to Contact: only admins can erase an account (A40) | Open |
 | U45 | Interviews | Time only; no place, video link or notes until A19 | Open |
+| U46 | Employer dashboard | Company profile is read-only and verification shows "on the way": both need A16 and A17 | Open |
+| U47 | Employer dashboard | No "Edit job" yet: Post a job only creates. The API can update, so this is a UI gap | Open |
+| U48 | Employer dashboard | Billing history and bank-transfer payment not shown (A20) | Open |
 
 ## Blocked: needs a decision or content
 
