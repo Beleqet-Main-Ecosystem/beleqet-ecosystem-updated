@@ -1,32 +1,24 @@
 import type { Metadata } from 'next';
+import GigSearchPage from '@/features/freelance/components/GigSearchPage';
+import { GIG_PAGE_SIZE, parseGigSearch } from '@/features/freelance/search-params';
+import { searchGigs, type GigSearchResult } from '@/lib/api';
 import { freelancePageMetadata } from '@/lib/seo/generate-metadata';
-import { fetchOpenGigs } from '@/lib/api';
-import FreelancePageClient from './FreelancePageClient';
 
 export const metadata: Metadata = freelancePageMetadata();
 
-export const revalidate = 60;
+type Props = { searchParams: Record<string, string | string[] | undefined> };
 
-export default async function FreelancePage() {
-  // Live gigs from the API — FreelancePageClient falls back to built-in sample gigs when empty.
-  const gigs = await fetchOpenGigs(24).catch(() => []);
+export default async function FreelancePage({ searchParams }: Props) {
+  const search = parseGigSearch(searchParams);
+  const result = await searchGigs({
+    q: search.q || undefined,
+    category: search.category || undefined,
+    page: 1,
+    limit: GIG_PAGE_SIZE,
+  })
+    // An unreachable API shows an error state with a retry, not a crash page.
+    .catch((): GigSearchResult | null => null);
 
-  // Map to the card shape the client component renders; raw API records lack these display fields.
-  const cards = gigs.map((g) => ({
-    id: g.id,
-    title: g.title,
-    categorySlug: g.categorySlug,
-    budget:
-      g.budgetMin && g.budgetMax && g.budgetMin !== g.budgetMax
-        ? `${g.budgetMin.toLocaleString('en-US')}–${g.budgetMax.toLocaleString('en-US')}`
-        : (g.budgetMax || g.budgetMin).toLocaleString('en-US'),
-    budgetUnit: g.currency,
-    type: g.pricingType === 'HOURLY' ? ('Hourly' as const) : ('Fixed' as const),
-    client: '',
-    skills: g.skills,
-    posted: g.postedAgo,
-    escrow: true,
-  }));
-
-  return <FreelancePageClient gigs={cards} />;
+  // Keyed so a new search starts again from its first page of results.
+  return <GigSearchPage key={`${search.q}|${search.category}`} search={search} result={result} />;
 }

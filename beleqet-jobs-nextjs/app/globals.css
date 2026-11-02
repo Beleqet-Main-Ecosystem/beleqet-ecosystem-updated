@@ -12,12 +12,12 @@ body {
 }
 
 html.dark body {
-  background: #020617;
+  background: #06130A;
   color: #f8fafc;
 }
 
 html.dark .bg-white {
-  background-color: #0f172a;
+  background-color: #0D1E13;
 }
 
 html.dark .border-primary\/10,
@@ -40,7 +40,7 @@ html.dark .text-muted {
 
 html.dark .bg-pageBg,
 html.dark .hover\:bg-pageBg:hover {
-  background-color: #1e293b;
+  background-color: #172C1D;
 }
 
 html.dark .bg-primary\/5 {
@@ -290,16 +290,16 @@ body.in-telegram input[type='radio'] {
 }
 
 html.dark .jobs-category-scrollbar {
-  scrollbar-color: #94a3b8 #1e293b;
+  scrollbar-color: #94a3b8 #172C1D;
 }
 
 html.dark .jobs-category-scrollbar::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #172C1D;
 }
 
 html.dark .jobs-category-scrollbar::-webkit-scrollbar-thumb {
   background-color: #94a3b8;
-  border-color: #1e293b;
+  border-color: #172C1D;
 }
 
 

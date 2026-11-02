@@ -249,29 +249,61 @@ export type Gig = {
   postedAgo: string;
   categorySlug: string;
   skills: string[];
+  description: string;
+  deadlineDays: number | null;
+  featured: boolean;
+  /** Status FUNDED: the client's money is already in escrow. */
+  funded: boolean;
+  createdAt: string | null;
 };
 
-/** Fetch open freelance projects, newest first. */
+function toGig(raw: any): Gig {
+  return {
+    id: raw.id,
+    title: raw.title,
+    categoryLabel: raw.category?.label ?? '',
+    budgetMin: raw.budgetMin ?? 0,
+    budgetMax: raw.budgetMax ?? 0,
+    currency: raw.currency ?? 'ETB',
+    pricingType: raw.pricingType ?? 'FIXED',
+    bidCount: raw._count?.bids ?? 0,
+    postedAgo: relativeTime(raw.createdAt),
+    categorySlug: raw.category?.slug ?? '',
+    skills: raw.skills ?? [],
+    description: raw.description ?? '',
+    deadlineDays: raw.deadlineDays ?? null,
+    featured: Boolean(raw.featured),
+    funded: raw.status === 'FUNDED',
+    createdAt: raw.createdAt ?? null,
+  };
+}
+
+/** Fetch open freelance projects, featured first, then newest. */
 export async function fetchOpenGigs(limit = 4): Promise<Gig[]> {
+  return (await searchGigs({ limit })).gigs;
+}
+
+export type GigSearchResult = {
+  gigs: Gig[];
+  total: number;
+  page: number;
+  totalPages: number;
+};
+
+/** Search open projects with the API's filters (featured first, then newest). */
+export async function searchGigs(params: { q?: string; category?: string; page?: number; limit?: number }): Promise<GigSearchResult> {
   try {
-    const { data } = await api.get<{ items?: any[] }>('/freelance/jobs', {
-      params: { limit, status: 'OPEN' },
-    });
-    return (data.items ?? []).map((raw) => ({
-      id: raw.id,
-      title: raw.title,
-      categoryLabel: raw.category?.label ?? '',
-      budgetMin: raw.budgetMin ?? 0,
-      budgetMax: raw.budgetMax ?? 0,
-      currency: raw.currency ?? 'ETB',
-      pricingType: raw.pricingType ?? 'FIXED',
-      bidCount: raw._count?.bids ?? 0,
-      postedAgo: relativeTime(raw.createdAt),
-      categorySlug: raw.category?.slug ?? '',
-      skills: raw.skills ?? [],
-    }));
+    const { data: raw } = await api.get<{ items?: any[]; total?: number; page?: number; totalPages?: number }>('/freelance/jobs', { params });
+    const data = assertListResponse(raw, 'GET /freelance/jobs');
+    const total = data.total ?? data.items.length;
+    return {
+      gigs: data.items.map(toGig),
+      total,
+      page: data.page ?? params.page ?? 1,
+      totalPages: data.totalPages ?? 1,
+    };
   } catch (err) {
-    console.error(`[api] fetchOpenGigs failed: ${describeError(err)}`);
+    console.error(`[api] searchGigs failed: ${describeError(err)}`);
     throw err;
   }
 }

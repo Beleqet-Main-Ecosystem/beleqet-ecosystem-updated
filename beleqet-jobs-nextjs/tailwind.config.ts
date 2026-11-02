@@ -37,6 +37,11 @@ const config: Config = {
          * .bg-white, .text-ink, .text-primary etc.; these names are untouched
          * by them, so redesigned components render exactly as designed.
          */
+        /* Dark surfaces: green-black in place of default navy, so every dark:*-slate-* class fits the brand. */
+        slate: {
+          50: "#F8FAFC", 100: "#F1F5F9", 200: "#E2E8F0", 300: "#CBD5E1", 400: "#94A3B8", 500: "#64748B", 600: "#475569",
+          700: "#26402D", 800: "#172C1D", 900: "#0D1E13", 950: "#06130A",
+        },
         surface: "#FFFFFF",
         canvas: "#F6F7F4",
         obsidian: "#041603",

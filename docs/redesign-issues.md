@@ -24,10 +24,24 @@ Status: **Open**, **Fixed**, **Blocked** (needs something from outside the code)
 | U13 | All | "up to" in salaries is English only | Fixed |
 | U14 | Search, detail, sign in | Dark mode not checked | Fixed |
 | U15 | Job detail, all pages | Dark mode: Apply button dark on dark, bright deadline banner, mixed page backgrounds | Fixed |
-| U16 | All | Dark mode: page background is navy under a green header; the brand's dark is green-black | Open |
-| U17 | Sign in | Backup-code sign-in is built but has not been tested end to end | Open |
+| U16 | All | Dark mode: page background is navy under a green header; the brand's dark is green-black | Fixed |
+| U17 | Sign in | Backup-code sign-in is built but has not been tested end to end | Fixed |
 
 Checked 2026-11-02: 16 browser checks on the running dev server, 193 unit tests, production build. Amharic strings still need review (B5).
+
+## UI/UX: Tier 2 freelance
+
+| # | Page | Issue | Status |
+|---|---|---|---|
+| U18 | Freelance list | Showed nine made-up sample projects when the API had none | Fixed |
+| U19 | Freelance list | Invented claims: 98% on-time payouts, 0% disputes lost, 24/7 monitoring, "thousands" of users, verified talent, skill badges, AI matching, star ratings | Fixed |
+| U20 | Freelance list | Category filters used slugs that match no real category, so they returned nothing | Fixed |
+| U21 | Freelance list | Search sent people to the feed page instead of searching projects | Fixed |
+| U22 | Freelance list | Save button on cards was removed: it never saved anything and was lost on reload. Needs A29 before it can return | Open |
+| U23 | Freelance list | Client name was removed from cards: every card said "Verified Client". Needs A30 | Open |
+| U24 | Freelance list | Budget sort only covers projects already loaded. Needs A27 | Open |
+
+Kept beyond the design: budget sort, the four escrow steps, "Join as a freelancer".
 
 ## Blocked: needs a decision or content
 
@@ -86,3 +100,9 @@ Put secrets in `.env` or a password manager, not in chat.
 | A23 | CV Maker upload calls an endpoint that doesn't exist | Small |
 | A24 | Tax calculator: brackets out of date, no pension | Medium |
 | A25 | Imported jobs have no real company name or salary | Data |
+| A26 | No public list of freelance categories; the portal mirrors the five in the database, so production must be checked | Small |
+| A27 | Freelance list has no server-side sort | Small |
+| A28 | Project search doesn't search skills; the list also has no budget, pricing type or experience filters | Small |
+| A29 | No saved projects endpoints | Medium |
+| A30 | Project list doesn't return the client's name | Small |
+| A31 | Test runs leave "GDPR Test Category" rows in the database | Small |
