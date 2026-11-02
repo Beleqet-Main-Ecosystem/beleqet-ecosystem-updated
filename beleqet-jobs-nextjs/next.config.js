@@ -11,6 +11,9 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // A separate folder lets a verification build run beside `next dev` without
+  // the two overwriting each other's files.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@beleqet/common"],
   images: {
     remotePatterns: [

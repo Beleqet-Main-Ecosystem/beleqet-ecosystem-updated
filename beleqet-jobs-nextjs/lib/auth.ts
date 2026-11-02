@@ -147,14 +147,64 @@ export async function registerUser(input: RegisterDto): Promise<AuthUser> {
 }
 
 /**
- * Authenticate with email + password.
- * Persists tokens to localStorage on success.
+ * Result of a password sign-in: either signed in, or the account has
+ * two-step verification and needs a code before tokens are issued.
  */
-export async function loginUser(input: LoginDto): Promise<AuthUser> {
+export type LoginResult =
+  | { status: 'signed-in'; user: AuthUser }
+  | { status: 'needs-code'; tempToken: string };
+
+/**
+ * Authenticate with email + password.
+ * Persists tokens on success; accounts with two-step verification get a
+ * temporary token to finish with `completeTwoFactor`.
+ */
+export async function loginUser(input: LoginDto): Promise<LoginResult> {
   try {
-    const { data } = await authApi.post<AuthResponse>('/auth/login', input);
+    const { data } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/auth/login', input);
+    if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
+    const auth = data as AuthResponse;
+    persist(auth.accessToken, auth.user, auth.refreshToken);
+    return { status: 'signed-in', user: auth.user };
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+/** Finish a two-step sign-in with a 6-digit app code or a 10-character backup code. */
+export async function completeTwoFactor(tempToken: string, code: string, kind: 'app' | 'backup'): Promise<AuthUser> {
+  try {
+    const { data } = await authApi.post<AuthResponse>(
+      kind === 'app' ? '/auth/2fa/verify' : '/auth/2fa/backup-code',
+      kind === 'app' ? { tempToken, code } : { tempToken, backupCode: code },
+    );
     persist(data.accessToken, data.user, data.refreshToken);
     return data.user;
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+/** Always resolves the same way whether or not the email exists, like the API. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  try {
+    await authApi.post('/auth/forgot-password', { email });
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  try {
+    await authApi.post('/auth/reset-password', { token, newPassword });
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+export async function verifyEmail(token: string): Promise<void> {
+  try {
+    await authApi.post('/auth/verify-email', { token });
   } catch (error) {
     throw new Error(messageFrom(error));
   }
