@@ -4,20 +4,20 @@ import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Search, SearchX, ShieldCheck, TriangleAlert } from 'lucide-react';
-import { searchGigs, type Gig, type GigSearchResult } from '@/lib/api';
+import { searchGigs, type Gig, type GigCategory, type GigSearchResult } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
-import { GIG_CATEGORIES, GIG_PAGE_SIZE, gigSearchHref, type GigSearch } from '../search-params';
+import { categoryLabel, GIG_PAGE_SIZE, gigSearchHref, type GigSearch } from '../search-params';
 import GigCard from './GigCard';
 
-const POST_HREF = '/post-job?type=freelance';
+const POST_HREF = '/freelance/post';
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest';
 const onDarkRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-limeAccent';
 const ESCROW_STEPS = ['post', 'fund', 'approve', 'paid'] as const;
 
 type Sort = 'default' | 'high' | 'low';
-type Props = { search: GigSearch; result: GigSearchResult | null };
+type Props = { search: GigSearch; result: GigSearchResult | null; categories: GigCategory[] };
 
-export default function GigSearchPage({ search, result }: Props) {
+export default function GigSearchPage({ search, result, categories }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const [refreshing, startTransition] = useTransition();
@@ -134,7 +134,7 @@ export default function GigSearchPage({ search, result }: Props) {
           className="flex gap-2 overflow-x-auto border-b border-ink-200 px-4 py-3.5 md:flex-wrap md:overflow-visible md:border-0 md:p-0 dark:border-slate-800"
         >
           {chip(t('freelance.allProjects'), '')}
-          {GIG_CATEGORIES.map((slug) => chip(t(`freelance.cats.${slug}`), slug))}
+          {categories.map((category) => chip(categoryLabel(category, t), category.slug))}
         </nav>
 
         <div className="flex flex-col gap-3 px-4 md:gap-[18px] md:px-0">

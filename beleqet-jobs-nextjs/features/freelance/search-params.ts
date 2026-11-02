@@ -5,9 +5,6 @@
 
 export const GIG_PAGE_SIZE = 12;
 
-/** The API has no public category list yet, so these mirror the freelance categories in the database. */
-export const GIG_CATEGORIES = ['web-development', 'graphic-design', 'writing', 'digital-marketing', 'video-animation'] as const;
-
 export type GigSearch = { q: string; category: string };
 
 type RawParams = Record<string, string | string[] | undefined>;
@@ -17,11 +14,7 @@ function first(value: string | string[] | undefined): string {
 }
 
 export function parseGigSearch(raw: RawParams): GigSearch {
-  const category = first(raw.category);
-  return {
-    q: first(raw.q).slice(0, 100),
-    category: (GIG_CATEGORIES as readonly string[]).includes(category) ? category : '',
-  };
+  return { q: first(raw.q).slice(0, 100), category: first(raw.category).slice(0, 80) };
 }
 
 export function gigSearchHref(search: GigSearch, change: Partial<GigSearch> = {}): string {
@@ -31,4 +24,11 @@ export function gigSearchHref(search: GigSearch, change: Partial<GigSearch> = {}
   if (next.category) params.set('category', next.category);
   const query = params.toString();
   return query ? `/freelance?${query}` : '/freelance';
+}
+
+/** Translated name when we have one, otherwise the name from the API. */
+export function categoryLabel(category: { slug: string; label: string }, t: (key: string) => string): string {
+  const key = `freelance.cats.${category.slug}`;
+  const translated = t(key);
+  return translated === key ? category.label : translated;
 }

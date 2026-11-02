@@ -188,7 +188,7 @@ export function WhyBeleqet() {
 const PATHS = [
   { key: 'seekers', href: '/jobs' },
   { key: 'employers', href: '/post-job' },
-  { key: 'clients', href: '/post-job?type=freelance' },
+  { key: 'clients', href: '/freelance/post' },
 ];
 
 export function HowItWorks() {
@@ -271,7 +271,7 @@ export function EscrowSection() {
             ))}
           </dl>
           <Link
-            href="/post-job?type=freelance"
+            href="/freelance/post"
             className={`mt-[18px] hidden min-h-12 items-center justify-center rounded-md bg-primary text-[15px] font-bold text-limeAccent hover:bg-primary2 md:flex ${focusRing}`}
           >
             {t('landing.escrow.cta')}

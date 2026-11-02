@@ -21,6 +21,11 @@ export class FreelanceController {
     private readonly escrowSvc: EscrowService,
   ) {}
 
+  @Get('categories')
+  findCategories() {
+    return this.svc.findCategories();
+  }
+
   @Get('jobs')
   findJobs(@Query() q: { q?: string; category?: string; page?: number; limit?: number }) {
     return this.svc.findJobs(q);

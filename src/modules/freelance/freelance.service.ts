@@ -148,6 +148,13 @@ export class FreelanceService {
     });
   }
 
+  findCategories() {
+    return this.prisma.freelanceCategory.findMany({
+      select: { id: true, slug: true, label: true },
+      orderBy: { label: 'asc' },
+    });
+  }
+
   async findJobs(query: { q?: string; category?: string; page?: number; limit?: number }) {
     const pageNum = Number(query.page) || 1;
     const limitNum = Number(query.limit) || 20;

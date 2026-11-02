@@ -41,6 +41,11 @@ Checked 2026-11-02: 16 browser checks on the running dev server, 193 unit tests,
 | U23 | Freelance list | Client name was removed from cards: every card said "Verified Client". Needs A30 | Open |
 | U24 | Freelance list | Budget sort only covers projects already loaded. Needs A27 | Open |
 
+| U25 | Project detail | Made-up demo projects shown when the API failed or the project was missing | Fixed |
+| U26 | Post a project | "Post a project" opened the job form, which cannot create a project; new page at /freelance/post | Fixed |
+| U27 | Project detail | Design shows freelancer "completed contracts", client "member since" and "View portfolio"; hidden until A35 | Open |
+| U28 | Post a project | Design says attachments up to 10 MB; the upload limit is 5 MB, so the page says 5 MB | Open |
+
 Kept beyond the design: budget sort, the four escrow steps, "Join as a freelancer".
 
 ## Blocked: needs a decision or content
@@ -100,9 +105,13 @@ Put secrets in `.env` or a password manager, not in chat.
 | A23 | CV Maker upload calls an endpoint that doesn't exist | Small |
 | A24 | Tax calculator: brackets out of date, no pension | Medium |
 | A25 | Imported jobs have no real company name or salary | Data |
-| A26 | No public list of freelance categories; the portal mirrors the five in the database, so production must be checked | Small |
+| A26 | Done early: added public GET /freelance/categories, which Post a project needs | Done |
 | A27 | Freelance list has no server-side sort | Small |
 | A28 | Project search doesn't search skills; the list also has no budget, pricing type or experience filters | Small |
 | A29 | No saved projects endpoints | Medium |
 | A30 | Project list doesn't return the client's name | Small |
 | A31 | Test runs leave "GDPR Test Category" rows in the database | Small |
+| A32 | **Privacy:** GET /freelance/jobs/:id is public and returns every bid, with price and cover letter, to anyone. The website hides them, but the API must too | Small |
+| A33 | Any account can bid, including a client on their own project | Small |
+| A34 | "Fund escrow" must be reachable from the contract; check the amount after a bid is accepted | Small |
+| A35 | Bids and projects need completed-contract count, member-since date and portfolio link | Small |

@@ -308,6 +308,55 @@ export async function searchGigs(params: { q?: string; category?: string; page?:
   }
 }
 
+export type GigDetail = Gig & {
+  clientId: string;
+  clientName: string;
+  experienceLevel: string | null;
+  locationPreference: string | null;
+  attachments: string[];
+  /** Still taking bids. */
+  open: boolean;
+};
+
+/**
+ * Fetch one project, or null when the API says it does not exist. The API's
+ * bids are left out on purpose: they hold cover letters and prices that must
+ * not reach the public page.
+ */
+export const fetchGig = cache(async function fetchGig(id: string): Promise<GigDetail | null> {
+  try {
+    const { data: raw } = await api.get<any>(`/freelance/jobs/${encodeURIComponent(id)}`);
+    const first = raw.client?.firstName ?? '';
+    const last = raw.client?.lastName ?? '';
+    return {
+      ...toGig({ ...raw, _count: { bids: raw.bids?.length ?? 0 } }),
+      clientId: raw.clientId,
+      clientName: `${first} ${last ? `${last.charAt(0)}.` : ''}`.trim(),
+      experienceLevel: raw.experienceLevel ?? null,
+      locationPreference: raw.locationPreference ?? null,
+      attachments: raw.attachments ?? [],
+      open: raw.status === 'OPEN' || raw.status === 'FUNDED',
+    };
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response?.status === 404) return null;
+    console.error(`[api] fetchGig failed: ${describeError(err)}`);
+    throw err;
+  }
+});
+
+export type GigCategory = { id: string; slug: string; label: string };
+
+/** Freelance categories, without the rows test runs leave behind. */
+export async function fetchGigCategories(): Promise<GigCategory[]> {
+  try {
+    const { data } = await api.get<GigCategory[]>('/freelance/categories');
+    return Array.isArray(data) ? data.filter((c) => !c.slug.startsWith('gdpr-test')) : [];
+  } catch (err) {
+    console.error(`[api] fetchGigCategories failed: ${describeError(err)}`);
+    return [];
+  }
+}
+
 /** Fetch all job categories. */
 // Categories change rarely and every listing page needs them, so the server
 // keeps them for an hour and serves the last good list if a refresh fails.

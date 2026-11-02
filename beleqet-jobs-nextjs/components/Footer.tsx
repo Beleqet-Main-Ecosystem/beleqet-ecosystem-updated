@@ -30,7 +30,7 @@ const footerColumns = [
     titleKey: 'nav.freelance',
     links: [
       { labelKey: 'footer.browseProjects', href: '/freelance' },
-      { labelKey: 'footer.postProject', href: '/post-job?type=freelance' },
+      { labelKey: 'footer.postProject', href: '/freelance/post' },
       { labelKey: 'footer.howEscrowWorks', href: '/#escrow' },
     ],
   },
