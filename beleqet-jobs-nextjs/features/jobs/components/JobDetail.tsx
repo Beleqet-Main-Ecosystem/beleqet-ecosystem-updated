@@ -228,6 +228,11 @@ export default function JobDetail({ job, description, requirements, similar }: P
                 {t('job.website')} <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
               </a>
             )}
+            {job.companyId && (
+              <Link href={`/jobs?company=${encodeURIComponent(job.companyId)}`} className="self-start text-sm font-bold text-forest hover:underline dark:text-limeAccent">
+                {t('job.moreFromEmployer')} →
+              </Link>
+            )}
           </section>
         </main>
 

@@ -1,4 +1,3 @@
-import type { JobType } from '@beleqet/common';
 import JobSearch from '@/features/jobs/components/JobSearch';
 import { PAGE_SIZE, parseJobSearch } from '@/features/jobs/search-params';
 import { fetchCategories, searchJobs, type JobSearchResult } from '@/lib/api';
@@ -21,8 +20,9 @@ export default async function JobsPage({ searchParams }: Props) {
       q: search.q || undefined,
       location: search.loc || undefined,
       category: search.category || undefined,
-      // parseJobSearch only lets through values that are JobType members.
-      type: (search.type || undefined) as JobType | undefined,
+      company: search.company || undefined,
+      // The API takes several types, comma-separated.
+      type: search.types.join(',') || undefined,
       page: search.page,
       limit: PAGE_SIZE,
     })

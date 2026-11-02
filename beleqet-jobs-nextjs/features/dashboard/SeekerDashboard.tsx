@@ -13,6 +13,7 @@ import Overview from './sections/Overview';
 import ProfileSection from './sections/ProfileSection';
 import SavedJobs from './sections/SavedJobs';
 import SettingsSection from './sections/SettingsSection';
+import VerifyEmailBanner from './VerifyEmailBanner';
 
 type Item = { id: string; icon: LucideIcon; href?: string };
 
@@ -77,6 +78,7 @@ export default function SeekerDashboard() {
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <VerifyEmailBanner />
         {tab === 'overview' && <Overview firstName={user.firstName} />}
         {tab === 'applications' && <Applications />}
         {tab === 'saved' && <SavedJobs />}

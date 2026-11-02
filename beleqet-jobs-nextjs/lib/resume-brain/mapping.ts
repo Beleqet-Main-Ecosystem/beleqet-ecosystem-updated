@@ -164,3 +164,45 @@ export function extractErrorMessage(status: number, data: { message?: string }):
       return data?.message || 'Could not read that resume.';
   }
 }
+
+// What Resume Brain read, in the shape CV Maker's merge takes, for "Use these in CV Maker".
+export function resumeToCvImport(resume: {
+  personalInfo: { fullName: string | null; email: string | null; phone: string | null; location: string | null };
+  education: { institution: string | null; degree: string | null; fieldOfStudy: string | null; endDate: string | null }[];
+  workExperience: { company: string | null; title: string | null; startDate: string | null; endDate: string | null; description: string | null }[];
+  skills: string[];
+  certifications: string[];
+  languages: { language: string | null; proficiency: string | null }[];
+}): ExtractedProfile {
+  const [firstName = '', ...rest] = (resume.personalInfo.fullName ?? '').trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName,
+    lastName: rest.join(' '),
+    email: resume.personalInfo.email ?? '',
+    phone: resume.personalInfo.phone ?? '',
+    location: resume.personalInfo.location ?? '',
+    summary: '',
+    headline: resume.workExperience.find((job) => job.title)?.title ?? '',
+    skills: resume.skills.filter(Boolean),
+    certifications: resume.certifications.filter(Boolean),
+    languages: resume.languages
+      .filter((item) => item.language)
+      .map((item) => (item.proficiency ? `${item.language} (${item.proficiency})` : item.language!)),
+    education: resume.education
+      .filter((item) => item.institution || item.degree)
+      .map((item) => ({
+        school: item.institution ?? '',
+        qualification: [item.degree, item.fieldOfStudy].filter(Boolean).join(', '),
+        year: item.endDate ?? '',
+      })),
+    experience: resume.workExperience
+      .filter((job) => job.title || job.company)
+      .map((job) => ({
+        role: job.title ?? '',
+        company: job.company ?? '',
+        start: job.startDate ?? '',
+        end: job.endDate ?? '',
+        description: job.description ?? '',
+      })),
+  };
+}

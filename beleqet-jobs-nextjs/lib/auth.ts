@@ -231,3 +231,22 @@ export async function verifyEmail(token: string): Promise<void> {
     throw new Error(messageFrom(error));
   }
 }
+
+// ── Google and LinkedIn sign-in ───────────────────────────────────────────────
+
+/** Where to go after a provider sign-in; the API's redirect can't carry it. */
+export const OAUTH_NEXT_KEY = 'beleqet_oauth_next';
+/** A two-step challenge from a provider sign-in, picked up by the sign-in page. */
+export const OAUTH_TWO_FACTOR_KEY = 'beleqet_oauth_2fa';
+
+export function oauthStartUrl(provider: 'google' | 'linkedin'): string {
+  return `${authApi.defaults.baseURL}/auth/${provider}`;
+}
+
+/** Store the session the API handed back after Google or LinkedIn. */
+export async function completeOAuth(accessToken: string, refreshToken: string): Promise<AuthUser> {
+  const { data } = await authApi.get<AuthUser>('/users/profile', { headers: { Authorization: `Bearer ${accessToken}` } });
+  const user = { id: data.id, email: data.email, firstName: data.firstName, lastName: data.lastName, role: data.role } as AuthUser;
+  persist(accessToken, user, refreshToken);
+  return user;
+}

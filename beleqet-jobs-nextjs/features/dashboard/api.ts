@@ -28,7 +28,7 @@ export type Application = {
   status: ApplicationStatus;
   interviewSlot: string | null;
   createdAt: string;
-  job: { id: string; title: string; location?: string; company?: { name?: string } | null };
+  job: { id: string; title: string; location?: string; company?: { name?: string; userId?: string } | null };
 };
 
 export type Profile = {
@@ -43,6 +43,8 @@ export type Profile = {
   githubUrl: string | null;
   linkedinUrl: string | null;
   skills: string[];
+  gdprConsent: boolean;
+  emailVerified: boolean;
 };
 
 export const fetchApplications = () => apiGet<Application[]>('/applications/my');

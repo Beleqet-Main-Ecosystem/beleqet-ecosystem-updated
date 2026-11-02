@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/components/ThemeProvider';
 import { useTranslation } from '@/lib/i18n';
-import { apiGet, apiSend } from '../api';
+import { apiGet, apiSend, fetchProfile } from '../api';
 import { card, Confirm, Failed, Field, Heading, input, link, muted, outline, shortDate, Toggle } from '../ui';
+import TwoStep from './TwoStep';
 
 type Prefs = { emailEnabled: boolean; telegramEnabled: boolean; inAppEnabled: boolean };
 type Subscription = { id: string; status: string; cancelAtPeriodEnd?: boolean; currentPeriodEnd?: string | null; plan?: { name?: string } | null };
@@ -21,12 +22,26 @@ export default function SettingsSection() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [feedOn, setFeedOn] = useState<boolean | null>(null);
 
   const load = useCallback(() => {
     setFailed(false);
     apiGet<Prefs>('/users/notification-preferences').then(setPrefs).catch(() => setFailed(true));
     apiGet<Subscription | null>('/subscriptions/me').then(setSubscription).catch(() => setSubscription(null));
+    fetchProfile().then((profile) => setFeedOn(profile.gdprConsent)).catch(() => setFeedOn(null));
   }, []);
+
+  async function toggleFeed() {
+    const next = !feedOn;
+    setFeedOn(next);
+    setError('');
+    try {
+      await apiSend('PATCH', '/users/profile', { gdprConsent: next });
+    } catch {
+      setFeedOn(!next);
+      setError(t('dash.saveFailed'));
+    }
+  }
   useEffect(load, [load]);
 
   if (failed) return <Failed onRetry={load} />;
@@ -96,7 +111,18 @@ export default function SettingsSection() {
             </select>
           </Field>
         </div>
+        {feedOn !== null && (
+          <div className="flex items-center justify-between gap-3 border-t border-[#F1F4F6] pt-3 dark:border-slate-800">
+            <span className="flex flex-col gap-0.5">
+              <b className="text-[15px] text-ink-900 dark:text-white">{t('dash.feedToggle')}</b>
+              <span className={muted}>{t('dash.feedToggleText')}</span>
+            </span>
+            <Toggle on={feedOn} label={t('dash.feedToggle')} onChange={toggleFeed} />
+          </div>
+        )}
       </section>
+
+      <TwoStep />
 
       <section className={`${card} flex flex-col gap-3`}>
         <h2 className={title}>{t('dash.planTitle')}</h2>

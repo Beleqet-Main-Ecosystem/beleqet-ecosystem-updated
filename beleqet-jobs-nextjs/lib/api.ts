@@ -43,6 +43,7 @@ export type Job = {
   title: string;
   /** Resolved company display name. */
   company: string;
+  companyId?: string | null;
   companyLogo?: string | null;
   companyWebsite?: string | null;
   companyDescription?: string | null;
@@ -127,6 +128,7 @@ export function toDisplayJob(raw: any): Job {
     id: raw.id,
     title: raw.title,
     company: raw.company?.name ?? raw.companyName ?? 'Confidential',
+    companyId: raw.companyId ?? raw.company?.id ?? null,
     companyLogo: raw.companyLogo ?? raw.company?.logoUrl ?? null,
     companyWebsite: raw.company?.website ?? null,
     companyDescription: raw.company?.description ?? null,

@@ -11,6 +11,7 @@ import { useTranslation } from '@/lib/i18n';
 import { homeFor, safeNextPath } from '../redirect';
 import AuthLayout, { type BrandVariant } from './AuthLayout';
 import { focusRing, FormError, Heading, PasswordField, SubmitButton, TextField } from './fields';
+import SocialButtons from './SocialButtons';
 import { friendly } from './SignInForm';
 
 type Role = BrandVariant;
@@ -176,6 +177,8 @@ export default function RegisterFlow() {
           </>
         }
       />
+      {/* Google and LinkedIn accounts start as job seekers, so only offer them for that role. */}
+      {role === 'JOB_SEEKER' && <SocialButtons />}
       <form onSubmit={submit} className="flex flex-col gap-3.5" noValidate>
         <div className="grid grid-cols-2 gap-2.5">
           <TextField label={t('auth.firstName')} autoComplete="given-name" required value={form.firstName} onChange={set('firstName')} error={touched && !form.firstName.trim() ? t('auth.required') : undefined} />

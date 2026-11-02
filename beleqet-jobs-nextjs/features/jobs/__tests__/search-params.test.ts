@@ -1,4 +1,4 @@
-import { jobSearchHref, pageWindow, parseJobSearch } from '../search-params';
+import { jobSearchHref, pageWindow, parseJobSearch, toggleType } from '../search-params';
 
 describe('parseJobSearch', () => {
   it('reads every supported parameter', () => {
@@ -6,16 +6,21 @@ describe('parseJobSearch', () => {
       q: 'accountant',
       loc: 'Addis Ababa',
       category: 'health-care',
-      type: 'REMOTE',
+      types: ['REMOTE'],
+      company: '',
       page: 3,
     });
   });
 
   it('drops values the API would reject', () => {
     const search = parseJobSearch({ type: 'INTERNSHIP', page: '-2' });
-    expect(search.type).toBe('');
+    expect(search.types).toEqual([]);
     expect(search.page).toBe(1);
     expect(parseJobSearch({ page: 'abc' }).page).toBe(1);
+  });
+
+  it('reads several job types, in a fixed order, without repeats', () => {
+    expect(parseJobSearch({ type: 'remote,full_time,REMOTE,bogus' }).types).toEqual(['FULL_TIME', 'REMOTE']);
   });
 
   it('takes the first value of a repeated parameter', () => {
@@ -35,6 +40,10 @@ describe('jobSearchHref', () => {
     expect(jobSearchHref(parseJobSearch({}))).toBe('/jobs');
   });
 
+  it('writes several job types as one parameter', () => {
+    expect(jobSearchHref(parseJobSearch({}), { types: ['REMOTE', 'FULL_TIME'] })).toBe('/jobs?type=FULL_TIME%2CREMOTE');
+  });
+
   it('encodes user input', () => {
     expect(jobSearchHref(parseJobSearch({ q: 'R&D lead' }))).toBe('/jobs?q=R%26D+lead');
   });
@@ -49,5 +58,12 @@ describe('pageWindow', () => {
     expect(pageWindow(5, 170)).toEqual([1, 'gap', 4, 5, 6, 'gap', 170]);
     expect(pageWindow(1, 170)).toEqual([1, 2, 'gap', 170]);
     expect(pageWindow(170, 170)).toEqual([1, 'gap', 169, 170]);
+  });
+});
+
+describe('toggleType', () => {
+  it('adds and removes a type, keeping the order', () => {
+    expect(toggleType(['REMOTE'], 'FULL_TIME')).toEqual(['FULL_TIME', 'REMOTE']);
+    expect(toggleType(['FULL_TIME', 'REMOTE'], 'REMOTE')).toEqual(['FULL_TIME']);
   });
 });

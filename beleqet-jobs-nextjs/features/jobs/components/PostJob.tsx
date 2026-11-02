@@ -25,14 +25,42 @@ const outline = 'inline-flex min-h-12 items-center justify-center rounded-lg bor
 
 type Category = { id: string; label: string };
 type Plan = { name: string; maxPosts: number | null; canFeature: boolean };
+type SavedJob = {
+  id: string;
+  title: string;
+  categoryId: string;
+  location: string;
+  vacancies: number | null;
+  type: JobTypeCode;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryType: string | null;
+  description: string;
+  requirements: string | null;
+  experienceLevel: string | null;
+  yearsOfExperience: string | null;
+  qualification: string | null;
+  tags: string[];
+  applyType: string | null;
+  applyUrl: string | null;
+  applyEmail: string | null;
+  deadline: string | null;
+  featured: boolean;
+  urgent: boolean;
+};
 
-export default function PostJob({ categories }: { categories: Category[] }) {
+/** With editId the form loads one of the employer's own jobs and saves changes to it. */
+export default function PostJob({ categories, editId }: { categories: Category[]; editId?: string }) {
   const { t } = useTranslation();
   const { user, ready } = useAuth();
+  const editing = Boolean(editId);
   const [company, setCompany] = useState<{ name: string } | null | undefined>(undefined);
   const [companyFailed, setCompanyFailed] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [used, setUsed] = useState<number | null>(null);
+  // undefined while loading, null when the job isn't one of the employer's.
+  const [saved, setSaved] = useState<SavedJob | null | undefined>(undefined);
+  const [jobFailed, setJobFailed] = useState(false);
 
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -61,8 +89,49 @@ export default function PostJob({ categories }: { categories: Category[] }) {
 
   const canPost = user?.role === 'EMPLOYER' || user?.role === 'ADMIN';
 
+  const fill = useCallback((job: SavedJob) => {
+    setTitle(job.title);
+    setCategoryId(job.categoryId);
+    setLocation(job.location);
+    setVacancies(String(job.vacancies ?? 1));
+    setType(job.type);
+    setSalaryMin(job.salaryMin ? String(job.salaryMin) : '');
+    setSalaryMax(job.salaryMax ? String(job.salaryMax) : '');
+    const period = PAY_PERIODS.find((item) => item === job.salaryType?.toLowerCase());
+    setSalaryType(period ?? 'monthly');
+    setDescription(job.description);
+    setRequirements(job.requirements ?? '');
+    setExperienceLevel(job.experienceLevel ?? '');
+    setYears(job.yearsOfExperience ?? '');
+    setQualification(job.qualification ?? '');
+    setTags(job.tags ?? []);
+    setMethod(job.applyType === 'external' || job.applyType === 'with_email' ? job.applyType : 'internal');
+    setApplyUrl(job.applyUrl ?? '');
+    setApplyEmail(job.applyEmail ?? '');
+    setDeadline(job.deadline ? job.deadline.slice(0, 10) : '');
+    setFeatured(job.featured);
+    setUrgent(job.urgent);
+  }, []);
+
+  const loadJob = useCallback(async () => {
+    if (!editId) return;
+    setJobFailed(false);
+    try {
+      // The employer's own list, so nobody can open someone else's job in the form.
+      const response = await authenticatedFetch(`${API_URL}/jobs/my`);
+      if (!response.ok) throw new Error('jobs');
+      const jobs: SavedJob[] = await response.json();
+      const job = jobs.find((item) => item.id === editId) ?? null;
+      if (job) fill(job);
+      setSaved(job);
+    } catch {
+      setJobFailed(true);
+    }
+  }, [editId, fill]);
+
   const load = useCallback(async () => {
     setCompanyFailed(false);
+    void loadJob();
     try {
       const response = await authenticatedFetch(`${API_URL}/users/company`);
       if (!response.ok) throw new Error('company');
@@ -79,7 +148,7 @@ export default function PostJob({ categories }: { categories: Category[] }) {
         setUsed(quota ? quota.used : null);
       })
       .catch(() => setPlan(null));
-  }, []);
+  }, [loadJob]);
 
   useEffect(() => {
     if (ready && canPost) void load();
@@ -94,7 +163,7 @@ export default function PostJob({ categories }: { categories: Category[] }) {
         title={t(signedOut ? 'postJob.gateTitle' : 'postJob.roleTitle')}
         text={t(signedOut ? 'postJob.gateText' : 'postJob.roleText')}
         action={t(signedOut ? 'postJob.signIn' : 'postJob.createEmployer')}
-        href={signedOut ? '/login?next=/post-job' : '/register?role=employer'}
+        href={signedOut ? `/login?next=${encodeURIComponent(editId ? `/post-job?edit=${editId}` : '/post-job')}` : '/register?role=employer'}
       />
     );
   }
@@ -110,13 +179,26 @@ export default function PostJob({ categories }: { categories: Category[] }) {
   if (company === undefined) return <div className="min-h-[60vh]" />;
   if (company === null) return <CompanySetup onCreated={setCompany} />;
 
+  if (editing && jobFailed) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-[560px] flex-col items-center justify-center gap-3 px-4 text-center">
+        <p role="alert" className="text-[15px] font-semibold text-ink-900 dark:text-white">{t('postJob.editLoadFailed')}</p>
+        <button type="button" onClick={loadJob} className={solid}>{t('freelance.retry')}</button>
+      </div>
+    );
+  }
+  if (editing && saved === undefined) return <div className="min-h-[60vh]" />;
+  if (editing && saved === null) {
+    return <Gate title={t('postJob.editMissing')} text={t('postJob.editMissingText')} action={t('postJob.dashboard')} href="/employer?tab=jobs" />;
+  }
+
   if (publishedId) {
     return (
       <div className="mx-auto max-w-[720px] px-4 py-8 md:py-14">
         <section className="flex flex-col items-center gap-3 rounded-xl border border-ink-200 bg-surface px-5 py-12 text-center dark:border-slate-800 dark:bg-slate-900">
           <CheckCircle2 className="h-10 w-10 text-forest dark:text-limeAccent" aria-hidden="true" />
-          <h1 className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900 dark:text-white">{t('postJob.liveTitle')}</h1>
-          <p className="max-w-[460px] text-[15px] leading-relaxed text-ink-500 dark:text-slate-300">{t('postJob.liveText').replace('{title}', title.trim())}</p>
+          <h1 className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900 dark:text-white">{t(editing ? 'postJob.savedTitle' : 'postJob.liveTitle')}</h1>
+          <p className="max-w-[460px] text-[15px] leading-relaxed text-ink-500 dark:text-slate-300">{t(editing ? 'postJob.savedText' : 'postJob.liveText').replace('{title}', title.trim())}</p>
           <div className="mt-1.5 flex flex-wrap justify-center gap-2.5">
             <Link href={`/jobs/${publishedId}`} className={solid}>{t('postJob.view')}</Link>
             <Link href="/employer" className={outline}>{t('postJob.dashboard')}</Link>
@@ -129,7 +211,9 @@ export default function PostJob({ categories }: { categories: Category[] }) {
   const min = Number(salaryMin);
   const max = Number(salaryMax);
   const pay = min && max ? `ETB ${min.toLocaleString('en-US')}–${max.toLocaleString('en-US')}` : max || min ? `ETB ${(max || min).toLocaleString('en-US')}` : '';
-  const atLimit = plan?.maxPosts != null && used != null && used >= plan.maxPosts;
+  // Editing doesn't use a post, and a job that is already featured may stay featured.
+  const atLimit = !editing && plan?.maxPosts != null && used != null && used >= plan.maxPosts;
+  const canFeature = Boolean(plan?.canFeature || saved?.featured);
   const percent = plan?.maxPosts && used != null ? Math.min(100, Math.round((used / plan.maxPosts) * 100)) : null;
 
   function addTag() {
@@ -162,30 +246,32 @@ export default function PostJob({ categories }: { categories: Category[] }) {
     setError(issue);
     if (issue) return;
     setPublishing(true);
+    // An edit sends null so a field the employer emptied is cleared, not left as it was.
+    const empty = editing ? null : undefined;
     try {
-      const response = await authenticatedFetch(`${API_URL}/jobs`, {
-        method: 'POST',
+      const response = await authenticatedFetch(editing ? `${API_URL}/jobs/${editId}` : `${API_URL}/jobs`, {
+        method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim(),
-          requirements: requirements.trim() || undefined,
+          requirements: requirements.trim() || empty,
           location: location.trim(),
           type,
           categoryId,
-          salaryMin: min || undefined,
-          salaryMax: max || undefined,
+          salaryMin: min || empty,
+          salaryMax: max || empty,
           salaryType,
           vacancies: Number(vacancies) || 1,
-          experienceLevel: experienceLevel || undefined,
-          yearsOfExperience: years.trim() || undefined,
-          qualification: qualification.trim() || undefined,
+          experienceLevel: experienceLevel || empty,
+          yearsOfExperience: years.trim() || empty,
+          qualification: qualification.trim() || empty,
           tags,
-          deadline: deadline || undefined,
-          applyType: method === 'internal' ? undefined : method,
-          applyUrl: method === 'external' ? safeHttpUrl(applyUrl) ?? undefined : undefined,
-          applyEmail: method === 'with_email' ? applyEmail.trim() : undefined,
-          featured: plan?.canFeature ? featured : undefined,
+          deadline: deadline || empty,
+          applyType: method === 'internal' ? empty : method,
+          applyUrl: method === 'external' ? safeHttpUrl(applyUrl) ?? empty : empty,
+          applyEmail: method === 'with_email' ? applyEmail.trim() : empty,
+          featured: canFeature ? featured : undefined,
           urgent,
         }),
       });
@@ -199,7 +285,7 @@ export default function PostJob({ categories }: { categories: Category[] }) {
       setPublishedId(job.id);
       window.scrollTo({ top: 0 });
     } catch {
-      setError(t('postJob.publishFailed'));
+      setError(t(editing ? 'postJob.saveFailed' : 'postJob.publishFailed'));
     } finally {
       setPublishing(false);
     }
@@ -208,7 +294,7 @@ export default function PostJob({ categories }: { categories: Category[] }) {
   return (
     <form noValidate onSubmit={publish} className="mx-auto flex max-w-[1200px] flex-wrap items-start gap-6 px-4 py-6 md:px-[clamp(16px,4vw,40px)] md:py-10">
       <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-        <h1 className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900 dark:text-white">{t('postJob.title')}</h1>
+        <h1 className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900 dark:text-white">{t(editing ? 'postJob.editTitle' : 'postJob.title')}</h1>
 
         <Section title={t('postJob.basics')}>
           <Field label={t('postJob.jobTitle')}>
@@ -281,6 +367,8 @@ export default function PostJob({ categories }: { categories: Category[] }) {
                 {LEVELS.map((level) => (
                   <option key={level} value={level}>{t(`postJob.levels.${level}`)}</option>
                 ))}
+                {/* Older and imported jobs may use a level outside the list; keep it selectable. */}
+                {experienceLevel && !(LEVELS as readonly string[]).includes(experienceLevel) && <option value={experienceLevel}>{experienceLevel}</option>}
               </select>
             </Field>
             <Field label={t('postJob.years')}>
@@ -344,13 +432,13 @@ export default function PostJob({ categories }: { categories: Category[] }) {
         </Section>
 
         <Section title={t('postJob.visibility')}>
-          <label className={`flex items-start gap-3 ${plan?.canFeature ? 'cursor-pointer' : 'opacity-70'}`}>
-            <input type="checkbox" disabled={!plan?.canFeature} checked={featured} onChange={(event) => setFeatured(event.target.checked)} className="mt-0.5 h-5 w-5 accent-primary" />
+          <label className={`flex items-start gap-3 ${canFeature ? 'cursor-pointer' : 'opacity-70'}`}>
+            <input type="checkbox" disabled={!canFeature} checked={featured} onChange={(event) => setFeatured(event.target.checked)} className="mt-0.5 h-5 w-5 accent-primary" />
             <span className="flex flex-col gap-0.5">
               <b className="text-[15px] text-ink-900 dark:text-white">
                 {t('postJob.feature')} <span className="ml-1 rounded bg-limeAccent px-1.5 py-0.5 text-[11px] font-extrabold text-obsidian">PRO</span>
               </b>
-              <span className={hint}>{t(plan?.canFeature ? 'postJob.featureText' : 'postJob.featureLocked')}</span>
+              <span className={hint}>{t(canFeature ? 'postJob.featureText' : 'postJob.featureLocked')}</span>
             </span>
           </label>
           <label className="flex cursor-pointer items-start gap-3">
@@ -380,7 +468,7 @@ export default function PostJob({ categories }: { categories: Category[] }) {
         </section>
 
         <section className={card}>
-          {plan && (
+          {plan && !editing && (
             <div className="flex flex-col gap-2">
               <span className="flex justify-between gap-3 text-sm">
                 <span className="text-ink-500 dark:text-slate-400">{t('postJob.planName').replace('{plan}', plan.name)}</span>
@@ -401,8 +489,17 @@ export default function PostJob({ categories }: { categories: Category[] }) {
             </p>
           )}
           {error && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{error}</p>}
-          <button type="submit" disabled={publishing || atLimit} className={solid}>{t(publishing ? 'freelance.post2.publishing' : 'postJob.publish')}</button>
-          <span className={hint}>{t('postJob.editNote')}</span>
+          {editing ? (
+            <>
+              <button type="submit" disabled={publishing} className={solid}>{t(publishing ? 'postJob.saving' : 'postJob.save')}</button>
+              <Link href="/employer?tab=jobs" className={outline}>{t('postJob.cancel')}</Link>
+            </>
+          ) : (
+            <>
+              <button type="submit" disabled={publishing || atLimit} className={solid}>{t(publishing ? 'freelance.post2.publishing' : 'postJob.publish')}</button>
+              <span className={hint}>{t('postJob.editNote')}</span>
+            </>
+          )}
         </section>
       </aside>
     </form>

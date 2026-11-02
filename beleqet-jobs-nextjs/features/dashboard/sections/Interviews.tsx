@@ -37,7 +37,7 @@ export default function Interviews() {
               <span className={muted}>{[app.job.company?.name, app.job.location].filter(Boolean).join(' · ')}</span>
               <span className="text-sm font-semibold text-ink-900 dark:text-white">{when(app.interviewSlot!)}</span>
             </span>
-            <Link href="/messages" className={outline}>{t('dash.messageEmployer')}</Link>
+            {app.job.company?.userId && <Link href={`/messages?to=${app.job.company.userId}`} prefetch={false} className={outline}>{t('dash.messageEmployer')}</Link>}
           </article>
         ))
       )}

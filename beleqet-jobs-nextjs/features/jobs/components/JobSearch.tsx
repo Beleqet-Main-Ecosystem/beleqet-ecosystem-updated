@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, MapPin, Search, SearchX, Send, SlidersHorizo
 import type { Category, JobSearchResult } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { categoryLabel, featuredCategories } from '../categories';
-import { JOB_TYPES, QUICK_LOCATIONS, hasFilters, jobSearchHref, pageWindow, type JobSearch as SearchState } from '../search-params';
+import { JOB_TYPES, QUICK_LOCATIONS, hasFilters, jobSearchHref, pageWindow, toggleType, type JobSearch as SearchState } from '../search-params';
 import JobResultCard from './JobResultCard';
 
 const TELEGRAM_CHANNEL = 'https://t.me/BeleqetJobs';
@@ -40,11 +40,13 @@ export default function JobSearch({ search, result, categories }: Props) {
 
   const activeCategory = categories.find((c) => c.id === search.category);
   const chips = [
-    search.type && { key: 'type', label: t(`search.types.${search.type}`), clear: { type: '' as const } },
+    ...search.types.map((code) => ({ key: `type-${code}`, label: t(`search.types.${code}`), clear: { types: search.types.filter((item) => item !== code) } })),
     activeCategory && { key: 'category', label: categoryLabel(activeCategory, t), clear: { category: '' } },
     search.loc && { key: 'loc', label: placeLabel(search.loc, t), clear: { loc: '' } },
+    // The company name comes from the results; every result is from that one employer.
+    search.company && { key: 'company', label: t('search.fromEmployer').replace('{company}', result?.jobs[0]?.company ?? t('search.oneEmployer')), clear: { company: '' } },
   ].filter(Boolean) as { key: string; label: string; clear: Partial<SearchState> }[];
-  const clearAll = () => go({ type: '', category: '', loc: '' });
+  const clearAll = () => go({ types: [], category: '', loc: '', company: '' });
 
   const total = result?.total ?? 0;
   // No count when the API couldn't be reached: '0 jobs' would be a false statement.
@@ -145,7 +147,7 @@ export default function JobSearch({ search, result, categories }: Props) {
                     {(hasFilters(search) || search.q) && (
                       <button
                         type="button"
-                        onClick={() => go({ q: '', type: '', category: '', loc: '' })}
+                        onClick={() => go({ q: '', types: [], category: '', loc: '', company: '' })}
                         className={`min-h-12 rounded-md border border-ink-300 bg-surface px-[18px] text-[15px] font-bold text-ink-900 ${focusRing}`}
                       >
                         {t('search.clearSearch')}
@@ -301,9 +303,9 @@ function FilterPanel({
             <button
               key={type}
               type="button"
-              aria-pressed={search.type === type}
-              onClick={() => onChange({ type: search.type === type ? '' : type })}
-              className={pill(search.type === type)}
+              aria-pressed={search.types.includes(type)}
+              onClick={() => onChange({ types: toggleType(search.types, type) })}
+              className={pill(search.types.includes(type))}
             >
               {t(`search.types.${type}`)}
             </button>
@@ -337,7 +339,7 @@ function FilterPanel({
       <div role="group" aria-labelledby={`${idPrefix}filter-location`} className="flex flex-col gap-2 border-t border-ink-200 pt-3.5 dark:border-slate-800">
         <h3 id={`${idPrefix}filter-location`} className={legend}>{t('search.location')}</h3>
         <div className="flex flex-wrap gap-1.5">
-          <button type="button" aria-pressed={search.type === 'REMOTE'} onClick={() => onChange({ type: search.type === 'REMOTE' ? '' : 'REMOTE' })} className={pill(search.type === 'REMOTE')}>
+          <button type="button" aria-pressed={search.types.includes('REMOTE')} onClick={() => onChange({ types: toggleType(search.types, 'REMOTE') })} className={pill(search.types.includes('REMOTE'))}>
             {t('search.types.REMOTE')}
           </button>
           {QUICK_LOCATIONS.map((place) => {

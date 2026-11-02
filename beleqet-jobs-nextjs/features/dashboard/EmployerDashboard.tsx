@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Building2, CreditCard, FileCheck2, LayoutGrid, ListChecks, MessageSquare, type LucideIcon } from 'lucide-react';
+import { Building2, CreditCard, FileCheck2, LayoutGrid, ListChecks, MessageSquare, Settings, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from '@/lib/i18n';
 import { daysUntil } from '@/features/jobs/format';
 import { apiGet, apiSend } from './api';
+import VerifyEmailBanner from './VerifyEmailBanner';
 import ApplicantsSection from './sections/ApplicantsSection';
 import CompanySection from './sections/CompanySection';
 import PlanSection from './sections/PlanSection';
+import TwoStep from './sections/TwoStep';
 import { card, Confirm, Empty, Failed, Heading, muted, outline, shortDate, solid } from './ui';
 
 export type EmployerJob = {
@@ -29,6 +31,7 @@ const NAV: { id: string; icon: LucideIcon; href?: string }[] = [
   { id: 'messages', icon: MessageSquare, href: '/messages' },
   { id: 'company', icon: Building2 },
   { id: 'plan', icon: CreditCard },
+  { id: 'settings', icon: Settings },
 ];
 const FILTERS = ['all', 'PUBLISHED', 'DRAFT', 'CLOSED'] as const;
 
@@ -105,6 +108,7 @@ export default function EmployerDashboard() {
       </nav>
 
       <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <VerifyEmailBanner />
         {error && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{error}</p>}
         {failed && <Failed onRetry={load} />}
 
@@ -174,6 +178,7 @@ export default function EmployerDashboard() {
                     <span className="rounded-md bg-[#F1F4F6] px-2 py-0.5 text-xs font-bold text-ink-700 dark:bg-slate-800 dark:text-slate-200">{t(`emp.filters.${job.status}`)}</span>
                     <span className="flex flex-wrap gap-2">
                       {applicants(job) > 0 && review(job)}
+                      <Link href={`/post-job?edit=${job.id}`} prefetch={false} className={outline}>{t('emp.edit')}</Link>
                       {job.status === 'PUBLISHED' && <button type="button" onClick={() => setClosing(job)} className={outline}>{t('emp.close')}</button>}
                       {job.status === 'DRAFT' && <button type="button" onClick={() => setStatus(job, 'PUBLISHED')} className={solid}>{t('emp.publish')}</button>}
                       {job.status === 'CLOSED' && <button type="button" onClick={() => setStatus(job, 'PUBLISHED')} className={outline}>{t('emp.reopen')}</button>}
@@ -188,6 +193,12 @@ export default function EmployerDashboard() {
         {!failed && tab === 'applicants' && jobs && <ApplicantsSection jobs={list} selectedId={selectedJob} />}
         {tab === 'company' && <CompanySection openJobs={open.length} />}
         {tab === 'plan' && <PlanSection />}
+        {tab === 'settings' && (
+          <>
+            <Heading title={t('emp.tabs.settings')} />
+            <TwoStep />
+          </>
+        )}
       </div>
 
       {closing && (

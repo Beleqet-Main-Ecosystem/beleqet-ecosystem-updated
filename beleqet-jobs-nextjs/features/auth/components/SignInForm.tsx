@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { completeTwoFactor, loginUser, setKeepSignedIn, type AuthUser } from '@/lib/auth';
+import { completeTwoFactor, loginUser, OAUTH_TWO_FACTOR_KEY, setKeepSignedIn, type AuthUser } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 import { homeFor, safeNextPath } from '../redirect';
 import AuthLayout from './AuthLayout';
+import SocialButtons from './SocialButtons';
 import { focusRing, FormError, Heading, PasswordField, SubmitButton, TextField } from './fields';
 
 export default function SignInForm() {
@@ -36,6 +37,23 @@ export default function SignInForm() {
     if (ready && user && !busy) router.replace(next() ?? homeFor(user));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, user]);
+
+  // Back from Google or LinkedIn: say why, or ask for the two-step code it needs.
+  const [notice, setNotice] = useState('');
+  useEffect(() => {
+    const oauth = new URLSearchParams(window.location.search).get('oauth');
+    if (oauth === 'failed') setError(t('auth.oauthFailed'));
+    if (oauth === 'confirm') setNotice(t('auth.oauthConfirm'));
+    try {
+      const pending = sessionStorage.getItem(OAUTH_TWO_FACTOR_KEY);
+      if (pending) {
+        sessionStorage.removeItem(OAUTH_TWO_FACTOR_KEY);
+        setTempToken(pending);
+      }
+    } catch {
+      // Storage blocked: they can sign in with email instead.
+    }
+  }, [t]);
 
   useEffect(() => {
     if (tempToken) codeRef.current?.focus();
@@ -141,6 +159,8 @@ export default function SignInForm() {
   return (
     <AuthLayout>
       <Heading title={t('auth.welcomeBack')} sub={t('auth.signInSub')} />
+      {notice && <p role="status" className="rounded-lg border border-[#B9D88A] bg-[#F1F7EC] px-4 py-3 text-sm text-ink-900 dark:border-limeAccent/40 dark:bg-slate-900 dark:text-white">{notice}</p>}
+      <SocialButtons />
       <form onSubmit={signIn} className="flex flex-col gap-4">
         <TextField
           label={t('auth.email')}

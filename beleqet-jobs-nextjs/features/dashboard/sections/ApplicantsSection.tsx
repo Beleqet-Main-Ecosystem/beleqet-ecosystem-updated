@@ -16,7 +16,7 @@ type Applicant = {
   coverLetter?: string;
   resumeUrl?: string;
   expectedSalary?: number;
-  user: { firstName: string; lastName: string; email: string; skills?: string[] };
+  user: { id: string; firstName: string; lastName: string; email: string; skills?: string[] };
   score?: { overallScore: number; summary?: string };
 };
 
@@ -115,7 +115,7 @@ export default function ApplicantsSection({ jobs, selectedId }: { jobs: Employer
             {row.coverLetter && <p className="whitespace-pre-line text-sm leading-relaxed text-ink-700 dark:text-slate-300">{row.coverLetter}</p>}
             <div className="flex flex-wrap items-end gap-2">
               {cv && <a href={cv} target="_blank" rel="noopener noreferrer" className={outline}>CV</a>}
-              <Link href="/messages" className={outline}>{t('emp.message')}</Link>
+              <Link href={`/messages?to=${row.user.id}`} prefetch={false} className={outline}>{t('emp.message')}</Link>
               {row.status === 'SHORTLISTED' && <button type="button" onClick={() => schedule(row.id)} className={outline}>{t('emp.autoSchedule')}</button>}
               <label className="ml-auto flex min-w-[180px] flex-col gap-1">
                 <span className={muted}>{t('emp.stageFor').replace('{name}', name)}</span>
