@@ -1153,5 +1153,62 @@
       "errMilestone": "Enter a title and a due date.",
       "errAmount": "Enter an amount up to {left}."
     }
+  },
+  "pricing": {
+    "title": "Simple plans, priced in birr",
+    "sub": "Searching and applying for jobs is free. Plans are for posting jobs and bidding on more freelance projects.",
+    "unavailable": "Plans aren't available right now. Try again soon.",
+    "recommended": "Recommended",
+    "month": "month",
+    "createFree": "Create free account",
+    "subscribe": "Subscribe to {plan}",
+    "unlimited": "Unlimited",
+    "included": "Included",
+    "jobPosts": "{count} job posts",
+    "bids": "{count} freelance bids",
+    "featuredListings": "Featured listings",
+    "api": "API access",
+    "supportLine": "{level} support",
+    "support": {
+      "community": "Community",
+      "email": "Email",
+      "dedicated": "Dedicated"
+    },
+    "compare": "Compare plans",
+    "feature": "Feature",
+    "rowPosts": "Job posts",
+    "rowBids": "Freelance bids",
+    "rowFeatured": "Featured listings",
+    "rowApi": "API access",
+    "rowSupport": "Support",
+    "rowFee": "Escrow fee on released milestones",
+    "escrowTitle": "Freelance escrow is pay-as-you-go",
+    "escrowText": "Posting a project is free on every plan. Beleqet keeps 10% of each milestone when it's released to the freelancer. Clients pay only the agreed amount.",
+    "escrowLink": "How escrow works",
+    "questions": "Questions",
+    "moreQuestions": "Need something else?",
+    "contact": "Contact us",
+    "faq": {
+      "needPlan": {
+        "q": "Do I need a plan to apply for jobs?",
+        "a": "No. Searching, saving and applying for jobs is free for everyone."
+      },
+      "howPay": {
+        "q": "How do I pay for a plan?",
+        "a": "Paid plans renew automatically every month through PayPal. You can cancel anytime from your profile, and access continues until the end of the period you already paid for."
+      },
+      "cancel": {
+        "q": "What happens if I cancel?",
+        "a": "Your subscription stays active until the current billing period ends, then it won't renew. You can subscribe again at any time."
+      },
+      "expires": {
+        "q": "What happens when a subscription expires?",
+        "a": "You lose that plan's paid features. We notify you a few days before it expires, and again once it has."
+      },
+      "escrow": {
+        "q": "Is the escrow fee included in my plan?",
+        "a": "No. The 10% escrow fee applies only when a freelance milestone is released, on every plan."
+      }
+    }
   }
 }

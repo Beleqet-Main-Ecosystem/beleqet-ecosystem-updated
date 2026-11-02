@@ -76,9 +76,11 @@ export default function PostJob({ categories }: { categories: Category[] }) {
       .then((response) => (response.ok ? response.text() : ''))
       .then((text) => {
         const features = text ? JSON.parse(text)?.plan : null;
+        const maxPosts: number | undefined = features?.features?.maxJobPosts;
         setPlan({
           name: features?.name ?? 'Free',
-          maxPosts: features?.features?.maxJobPosts ?? (features ? null : 1),
+          // -1 means unlimited.
+          maxPosts: maxPosts != null && maxPosts < 0 ? null : maxPosts ?? (features ? null : 1),
           canFeature: Boolean(features?.features?.featuredListing),
         });
       })

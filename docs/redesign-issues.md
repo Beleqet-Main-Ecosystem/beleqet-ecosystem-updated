@@ -61,6 +61,8 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 |---|---|---|---|
 | U33 | Post a job | Salary period, years of experience, qualification, own website link and urgent were missing; all now saved | Fixed |
 | U34 | Post a job | Company logo upload not in this form; set on the company profile instead (A16) | Open |
+| U35 | Pricing | Design's question about reaching the job-post limit left out: the limit isn't enforced yet (A39). Add it back once it is | Open |
+| U36 | Pricing | "Subscribe" can't complete until PayPal plan IDs are set or another payment route is chosen (A21, C4) | Blocked |
 
 ## Blocked: needs a decision or content
 
