@@ -100,14 +100,14 @@ export function CvUpload({
   const isBusy = phase === 'uploading' || phase === 'parsing';
 
   return (
-    <section className="rounded-[24px] border border-primary/10 bg-white p-5 sm:p-6">
+    <section className="rounded-xl border border-ink-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-5 sm:p-6">
       <div className="mb-5 flex gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d8ff3e] text-primary">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-limeAccent text-ink-900 dark:text-white-900 dark:text-white">
           <UploadCloud className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="font-extrabold text-primary">{t('uploadTitle')}</h2>
-          <p className="mt-0.5 text-xs text-muted">{t('uploadSubtitle', { maxSizeMb })}</p>
+          <h2 className="font-extrabold text-ink-900 dark:text-white-900 dark:text-white">{t('uploadTitle')}</h2>
+          <p className="mt-0.5 text-xs text-ink-900 dark:text-white-500 dark:text-slate-300">{t('uploadSubtitle', { maxSizeMb })}</p>
         </div>
       </div>
 
@@ -119,8 +119,8 @@ export function CvUpload({
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={cn(
-          'flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-5 py-7 text-center text-sm font-bold text-primary transition',
-          isDragging ? 'border-brandGreen bg-brandGreen/5' : 'border-primary/15 bg-[#f7f5ef]',
+          'flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-5 py-7 text-center text-sm font-bold text-ink-900 dark:text-white-900 dark:text-white transition',
+          isDragging ? 'border-brandGreen bg-obsidian dark:bg-limeAccent dark:text-obsidian/5' : 'border-ink-200 dark:border-slate-800 bg-canvas dark:bg-slate-950',
         )}
       >
         <input
@@ -130,9 +130,9 @@ export function CvUpload({
           onChange={handleFileInputChange}
           className="hidden"
         />
-        <FileText className="h-6 w-6 text-brandGreen" />
+        <FileText className="h-6 w-6 text-forest dark:text-limeAccent" />
         {file ? (
-          <div className="flex items-center gap-2 text-xs font-semibold text-ink">
+          <div className="flex items-center gap-2 text-xs font-semibold text-ink-900 dark:text-white">
             <span>
               {t('selectedFile')}: {file.name}
             </span>
@@ -151,18 +151,18 @@ export function CvUpload({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center gap-2 rounded-full border border-primary/20 px-4 py-2 text-xs font-bold text-primary hover:border-brandGreen hover:text-brandGreen"
+          className="inline-flex items-center gap-2 rounded-full border border-ink-200 dark:border-slate-800 px-4 py-2 text-xs font-bold text-ink-900 dark:text-white-900 dark:text-white hover:border-brandGreen hover:text-forest dark:text-limeAccent"
         >
           {t('browseButton')}
         </button>
       </div>
 
-      <label className="mt-4 flex items-start gap-2 text-xs font-semibold text-ink">
+      <label className="mt-4 flex items-start gap-2 text-xs font-semibold text-ink-900 dark:text-white">
         <input
           type="checkbox"
           checked={consent}
           onChange={(event) => setConsent(event.target.checked)}
-          className="mt-0.5 h-4 w-4 rounded border-primary/30 text-brandGreen focus:ring-brandGreen/40"
+          className="mt-0.5 h-4 w-4 rounded border-ink-200 dark:border-slate-800 text-forest dark:text-limeAccent focus:ring-brandGreen/40"
         />
         <span>{t('consentLabel')}</span>
       </label>
@@ -177,7 +177,7 @@ export function CvUpload({
       )}
 
       {phase === 'success' && (
-        <p className="mt-3 rounded-xl bg-brandGreen/10 px-4 py-3 text-sm font-semibold text-brandGreen">
+        <p className="mt-3 rounded-xl bg-obsidian dark:bg-limeAccent dark:text-obsidian/10 px-4 py-3 text-sm font-semibold text-forest dark:text-limeAccent">
           {t('uploadSuccess')}
         </p>
       )}
@@ -186,7 +186,7 @@ export function CvUpload({
         type="button"
         onClick={handleUpload}
         disabled={!file || isBusy}
-        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-white transition hover:bg-brandGreen disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-obsidian px-4 py-2.5 text-xs font-bold text-white transition hover:bg-obsidian dark:bg-limeAccent dark:text-obsidian disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
         {phase === 'uploading' && `${t('uploading')} ${progress}%`}

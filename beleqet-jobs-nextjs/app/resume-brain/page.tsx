@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { CvUpload } from '@/components/resume-brain/CvUpload';
 import { ParsedResumePreview } from '@/components/resume-brain/ParsedResumePreview';
@@ -10,66 +9,49 @@ import { translate } from '@/components/resume-brain/i18n';
 import { UploadResumeResponse } from '@/components/resume-brain/types';
 import { useTranslation } from '@/lib/i18n';
 
+const STEPS = ['upload', 'review', 'done'] as const;
+
 export default function ResumeBrainPage() {
   const { user, ready } = useAuth();
   const router = useRouter();
-  const { locale, setLocale } = useTranslation();
+  const { t, locale } = useTranslation();
   const [uploaded, setUploaded] = useState<UploadResumeResponse | null>(null);
 
   useEffect(() => {
-    if (ready && !user) router.replace('/login');
+    if (ready && !user) router.replace(`/login?next=${encodeURIComponent('/resume-brain')}`);
   }, [ready, user, router]);
 
-  if (!ready || !user) {
-    return <div className="container-page py-24 text-center text-muted">Loading…</div>;
-  }
+  if (!ready || !user) return <div className="min-h-[60vh]" />;
+
+  const step = uploaded ? 1 : 0;
 
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
-      <section className="border-b border-primary/10 bg-primary text-white">
-        <div className="container-page py-12">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-            <p className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
-              <Sparkles className="h-4 w-4" /> Resume Brain
-            </p>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2 text-xs font-bold text-white">
-              <button
-                type="button"
-                className={locale === 'en' ? 'text-white' : 'text-white/70'}
-                onClick={() => setLocale('en')}
-              >
-                EN
-              </button>
-              <span className="text-white/40">|</span>
-              <button
-                type="button"
-                className={locale === 'am' ? 'text-white' : 'text-white/70'}
-                onClick={() => setLocale('am')}
-              >
-                አማ
-              </button>
-            </div>
-          </div>
-          <h1 className="text-[clamp(2rem,5vw,3.5rem)] font-black leading-none tracking-[-.05em]">
-            {translate(locale, 'pageTitle')}
-          </h1>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-white/60">
-            {translate(locale, 'pageSubtitle')}
-          </p>
+    <>
+      <section className="bg-obsidian text-white">
+        <div className="mx-auto flex max-w-[1100px] flex-col gap-2.5 px-4 pb-8 pt-5 md:px-[clamp(16px,4vw,40px)] md:pb-10 md:pt-8">
+          <h1 className="text-[26px] font-extrabold tracking-[-0.03em] md:text-[clamp(28px,3vw,38px)]">Resume Brain</h1>
+          <p className="max-w-[640px] text-[15px] leading-relaxed text-white/75">{translate(locale, 'pageSubtitle')}</p>
         </div>
       </section>
 
-      <div className="container-page grid gap-8 py-10 lg:grid-cols-2">
-        <CvUpload onUploaded={setUploaded} locale={locale} />
-        {uploaded && (
-          <ParsedResumePreview
-            resume={uploaded.parsedResume}
-            resumeId={uploaded.parsedResume.id}
-            userId={user.id}
-            locale={locale}
-          />
-        )}
+      <div className="mx-auto flex max-w-[1100px] flex-col gap-5 px-4 pb-14 pt-5 md:px-[clamp(16px,4vw,40px)] md:pb-16 md:pt-8">
+        <ol aria-label={t('freelance.post2.progress')} className="grid grid-cols-3 gap-2.5">
+          {STEPS.map((name, index) => (
+            <li key={name} aria-current={index === step ? 'step' : undefined} className="flex flex-col gap-2">
+              <span className={`h-1 rounded-full ${index <= step ? 'bg-obsidian dark:bg-limeAccent' : 'bg-ink-200 dark:bg-slate-800'}`} />
+              <span className={`text-[13px] font-bold ${index <= step ? 'text-ink-900 dark:text-white' : 'text-ink-500 dark:text-slate-400'}`}>
+                {index + 1}. {t(`resumeBrain.steps.${name}`)}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <CvUpload onUploaded={setUploaded} locale={locale} />
+          {uploaded && (
+            <ParsedResumePreview resume={uploaded.parsedResume} resumeId={uploaded.parsedResume.id} userId={user.id} locale={locale} />
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

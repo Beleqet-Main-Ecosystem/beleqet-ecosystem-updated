@@ -23,7 +23,7 @@ import {
 } from './types';
 
 const inputClass =
-  'mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10';
+  'mt-1.5 w-full rounded-xl border border-ink-200 dark:border-slate-800 bg-surface dark:bg-slate-900 px-3.5 py-3 text-sm text-ink-900 dark:text-white outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10';
 
 export interface ParsedResumePreviewProps {
   /** The extracted resume data to review, as returned by the upload endpoint. */
@@ -123,8 +123,8 @@ export function ParsedResumePreview({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-extrabold text-primary">{t('previewTitle')}</h2>
-        <p className="mt-1 text-xs text-muted">{t('previewSubtitle')}</p>
+        <h2 className="text-lg font-extrabold text-ink-900 dark:text-white-900 dark:text-white">{t('previewTitle')}</h2>
+        <p className="mt-1 text-xs text-ink-900 dark:text-white-500 dark:text-slate-300">{t('previewSubtitle')}</p>
       </div>
 
       <Section icon={UserRound} title={t('personalInfoSection')}>
@@ -160,7 +160,7 @@ export function ParsedResumePreview({
             {education.map((entry, index) => (
               <div
                 key={index}
-                className="grid gap-3 rounded-2xl border border-primary/10 bg-[#f7f5ef] p-4 sm:grid-cols-2"
+                className="grid gap-3 rounded-2xl border border-ink-200 dark:border-slate-800 bg-canvas dark:bg-slate-950 p-4 sm:grid-cols-2"
               >
                 <Field
                   label={t('institutionLabel')}
@@ -201,7 +201,7 @@ export function ParsedResumePreview({
         ) : (
           <div className="space-y-4">
             {workExperience.map((entry, index) => (
-              <div key={index} className="rounded-2xl border border-primary/10 bg-[#f7f5ef] p-4">
+              <div key={index} className="rounded-2xl border border-ink-200 dark:border-slate-800 bg-canvas dark:bg-slate-950 p-4">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field
                     label={t('companyLabel')}
@@ -224,7 +224,7 @@ export function ParsedResumePreview({
                     onChange={(v) => updateExperience(index, 'endDate', v)}
                   />
                 </div>
-                <label className="mt-3 block text-xs font-bold text-ink">
+                <label className="mt-3 block text-xs font-bold text-ink-900 dark:text-white">
                   {t('descriptionLabel')}
                   <textarea
                     rows={3}
@@ -234,7 +234,7 @@ export function ParsedResumePreview({
                   />
                 </label>
                 {entry.compensation?.amount && entry.compensation.currencyCode && (
-                  <p className="mt-3 text-[11px] text-muted/90">
+                  <p className="mt-3 text-[11px] text-ink-900 dark:text-white-500 dark:text-slate-300/90">
                     <span className="font-semibold">{t('compensationLabel')}:</span>{' '}
                     {entry.compensation.amount} {entry.compensation.currencyCode}
                   </p>
@@ -291,12 +291,12 @@ export function ParsedResumePreview({
         </p>
       )}
       {success && (
-        <p className="rounded-xl bg-brandGreen/10 px-4 py-3 text-sm font-semibold text-brandGreen">
+        <p className="rounded-xl bg-obsidian dark:bg-limeAccent dark:text-obsidian/10 px-4 py-3 text-sm font-semibold text-forest dark:text-limeAccent">
           {t('autofillSuccess')}
         </p>
       )}
       {deleteSuccess && (
-        <p className="rounded-xl bg-brandGreen/10 px-4 py-3 text-sm font-semibold text-brandGreen">
+        <p className="rounded-xl bg-obsidian dark:bg-limeAccent dark:text-obsidian/10 px-4 py-3 text-sm font-semibold text-forest dark:text-limeAccent">
           {t('deleteSuccess')}
         </p>
       )}
@@ -306,7 +306,7 @@ export function ParsedResumePreview({
           type="button"
           onClick={handleConfirm}
           disabled={isSubmitting || isDeleting}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-white transition hover:bg-brandGreen disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-obsidian px-4 py-2.5 text-xs font-bold text-white transition hover:bg-obsidian dark:bg-limeAccent dark:text-obsidian disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -319,7 +319,7 @@ export function ParsedResumePreview({
           type="button"
           onClick={handleDelete}
           disabled={isSubmitting || isDeleting}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-redAccent/20 bg-white px-4 py-2.5 text-xs font-bold text-redAccent transition hover:bg-redAccent/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-redAccent/20 bg-surface dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-redAccent transition hover:bg-redAccent/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isDeleting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -343,12 +343,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[24px] border border-primary/10 bg-white p-5 sm:p-6">
+    <section className="rounded-xl border border-ink-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-5 sm:p-6">
       <div className="mb-4 flex items-center gap-3">
-        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#d8ff3e] text-primary">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-limeAccent text-ink-900 dark:text-white-900 dark:text-white">
           <Icon className="h-4 w-4" />
         </span>
-        <h3 className="font-extrabold text-primary">{title}</h3>
+        <h3 className="font-extrabold text-ink-900 dark:text-white-900 dark:text-white">{title}</h3>
       </div>
       {children}
     </section>
@@ -365,7 +365,7 @@ function Field({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="block text-xs font-bold text-ink">
+    <label className="block text-xs font-bold text-ink-900 dark:text-white">
       {label}
       <input
         type="text"
@@ -378,7 +378,7 @@ function Field({
 }
 
 function EmptyState({ text }: { text: string }) {
-  return <p className="text-xs italic text-muted/60">{text}</p>;
+  return <p className="text-xs italic text-ink-900 dark:text-white-500 dark:text-slate-300/60">{text}</p>;
 }
 
 function TagList({
@@ -400,14 +400,14 @@ function TagList({
         {items.map((item, index) => (
           <span
             key={`${item}-${index}`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-brandGreen/10 px-3 py-1 text-[11px] font-bold text-brandGreen"
+            className="inline-flex items-center gap-1.5 rounded-full bg-obsidian dark:bg-limeAccent dark:text-obsidian/10 px-3 py-1 text-[11px] font-bold text-forest dark:text-limeAccent"
           >
             {item}
             <button
               type="button"
               aria-label={t('removeEntry')}
               onClick={() => onChange(items.filter((_, i) => i !== index))}
-              className="text-brandGreen/70 hover:text-redAccent"
+              className="text-forest dark:text-limeAccent/70 hover:text-redAccent"
             >
               <Trash2 className="h-3 w-3" />
             </button>
@@ -417,7 +417,7 @@ function TagList({
       <button
         type="button"
         onClick={() => onChange([...items, ''])}
-        className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-brandGreen"
+        className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-forest dark:text-limeAccent"
       >
         <Plus className="h-3.5 w-3.5" /> {t('addEntry')}
       </button>

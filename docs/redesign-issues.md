@@ -88,6 +88,9 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U54 | Forum | Report, pin and lock actions, and most-voted sort, not offered yet (A9) | Open |
 | U55 | Voice to text | Removed the "Conversation ID" box; a conversation is now created silently. Actual speech wasn't tested: it needs the Whisper service running | Fixed |
 | U56 | Voice to text | Amharic transcripts are still discarded by the backend (A22) | Open |
+| U57 | CV Maker | "Upload an existing CV" always fails: it calls an endpoint that doesn't exist (A23). "Fill from my old CV" opens Resume Brain instead | Open |
+| U58 | CV Maker | Design's collapsible sections not built; the page uses the new styling on its existing layout. Text is still English only, and it names "Groq" | Open |
+| U59 | Resume Brain | Styling and steps match the design; the Done step isn't shown as its own screen. Real CV reading not tested: it needs the OpenAI key | Open |
 
 ## Blocked: needs a decision or content
 

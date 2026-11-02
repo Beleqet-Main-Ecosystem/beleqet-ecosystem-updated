@@ -1543,5 +1543,12 @@
     "none": "Your transcripts will appear here.",
     "delete": "Delete",
     "privacy": "Recordings are turned into text on Beleqet's own servers. You can delete a transcript at any time."
+  },
+  "resumeBrain": {
+    "steps": {
+      "upload": "Upload",
+      "review": "Review",
+      "done": "Done"
+    }
   }
 }

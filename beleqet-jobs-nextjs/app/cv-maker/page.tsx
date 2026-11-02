@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   Award,
   Briefcase,
@@ -32,7 +33,7 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 const inputClass =
-  'mt-1.5 w-full rounded-xl border border-primary/10 bg-white px-3.5 py-3 text-sm text-ink outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10';
+  'mt-1.5 w-full rounded-xl border border-ink-200 dark:border-slate-800 bg-surface dark:bg-slate-900 px-3.5 py-3 text-sm text-ink-900 dark:text-white outline-none transition focus:border-brandGreen focus:ring-2 focus:ring-brandGreen/10';
 
 export default function CvMakerPage() {
   const { user, ready } = useAuth();
@@ -239,66 +240,38 @@ export default function CvMakerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f5ef]">
-      <section className="border-b border-primary/10 bg-primary text-white print:hidden">
-        <div className="container-page flex flex-col justify-between gap-8 py-12 lg:flex-row lg:items-end">
-          <div>
-            <p className="mb-3 flex items-center gap-2 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
-              <Sparkles className="h-4 w-4" /> Free CV builder
-            </p>
-            <h1 className="text-[clamp(2.5rem,6vw,5rem)] font-black leading-none tracking-[-.055em]">
-              Build a CV that
-              <br />
-              gets you noticed.
-            </h1>
-            <p className="mt-5 max-w-xl text-sm leading-6 text-white/60">
-              Complete each section, preview your CV instantly, save your draft, and export a clean
-              PDF—no payment required.
-            </p>
+    <div className="min-h-screen bg-canvas dark:bg-slate-950">
+      <section className="bg-obsidian text-white print:hidden">
+        <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-4 px-4 pb-6 pt-5 md:px-[clamp(16px,4vw,40px)] md:pt-8">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-[26px] font-extrabold tracking-[-0.03em] md:text-[clamp(28px,3vw,38px)]">CV Maker</h1>
+            <span role="status" className="text-[13px] text-white/70">
+              {saved ? 'Draft saved' : profileSaved ? 'Saved to your profile' : 'Your draft saves when you press Save draft'}
+            </span>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={saveDraft}
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-bold hover:bg-white/10"
-            >
-              {saved ? <Check className="h-4 w-4 text-[#d8ff3e]" /> : <Save className="h-4 w-4" />}
-              {saved ? 'Draft saved' : 'Save draft'}
+          <div className="flex flex-wrap gap-2">
+            <Link href="/resume-brain" className="inline-flex min-h-11 items-center rounded-lg border border-white/20 px-4 text-sm font-bold text-white">
+              Fill from my old CV
+            </Link>
+            <button type="button" onClick={saveDraft} className="inline-flex min-h-11 items-center rounded-lg border border-white/20 px-4 text-sm font-bold text-white">
+              Save draft
             </button>
-            <button
-              onClick={saveToProfile}
-              disabled={savingProfile}
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-bold hover:bg-white/10 disabled:cursor-wait disabled:opacity-70"
-            >
-              {savingProfile ? (
-                <Sparkles className="h-4 w-4 animate-pulse text-[#d8ff3e]" />
-              ) : profileSaved ? (
-                <Check className="h-4 w-4 text-[#d8ff3e]" />
-              ) : (
-                <UserRound className="h-4 w-4" />
-              )}
-              {savingProfile ? 'Saving…' : profileSaved ? 'Saved to profile' : 'Save to profile'}
+            <button type="button" onClick={saveToProfile} disabled={savingProfile} className="inline-flex min-h-11 items-center rounded-lg border border-white/20 px-4 text-sm font-bold text-white disabled:opacity-60">
+              {savingProfile ? 'Saving…' : 'Save to my profile'}
             </button>
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-full bg-[#d8ff3e] px-5 py-3 text-sm font-extrabold text-primary hover:bg-white"
-            >
-              <Download className="h-4 w-4" /> Download PDF
+            <button type="button" onClick={() => window.print()} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-limeAccent px-4 text-sm font-extrabold text-obsidian">
+              <Download className="h-4 w-4" aria-hidden="true" /> Download PDF
             </button>
           </div>
           {profileError && (
-            <p role="alert" className="mt-3 text-sm font-semibold text-[#ff8a8a]">
+            <p role="alert" className="w-full text-sm font-semibold text-red-300">
               {profileError}
-            </p>
-          )}
-          {profileSaved && !profileError && (
-            <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#d8ff3e]">
-              <Check className="h-4 w-4" /> Your details were saved to your profile.
             </p>
           )}
         </div>
       </section>
 
-      <div className="container-page grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(420px,.82fr)] print:block print:p-0">
+      <div className="mx-auto grid max-w-[1320px] gap-6 px-4 py-6 md:px-[clamp(16px,4vw,40px)] md:py-8 lg:grid-cols-[minmax(0,1fr)_minmax(420px,.82fr)] print:block print:max-w-none print:p-0">
         <div className="space-y-5 print:hidden">
           <Section
             icon={UploadCloud}
@@ -317,22 +290,22 @@ export default function CvMakerPage() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={extracting}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary/15 bg-[#f7f5ef] px-5 py-7 text-sm font-bold text-primary transition hover:border-brandGreen hover:bg-brandGreen/5 disabled:cursor-wait disabled:opacity-70"
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-ink-200 dark:border-slate-800 bg-canvas dark:bg-slate-950 px-5 py-7 text-sm font-bold text-ink-900 dark:text-white-900 dark:text-white transition hover:border-brandGreen hover:bg-obsidian dark:bg-limeAccent dark:text-obsidian/5 disabled:cursor-wait disabled:opacity-70"
             >
               {extracting ? (
                 <>
-                  <Sparkles className="h-6 w-6 animate-pulse text-brandGreen" />
+                  <Sparkles className="h-6 w-6 animate-pulse text-forest dark:text-limeAccent" />
                   Reading your resume…
                 </>
               ) : (
                 <>
-                  <FileText className="h-6 w-6 text-brandGreen" />
+                  <FileText className="h-6 w-6 text-forest dark:text-limeAccent" />
                   {uploadedFile || 'Choose PDF or DOCX (max 5 MB)'}
                 </>
               )}
             </button>
             {extractNotice && (
-              <p className="mt-3 flex items-start gap-2 rounded-xl bg-brandGreen/10 px-4 py-3 text-sm font-semibold text-brandGreen">
+              <p className="mt-3 flex items-start gap-2 rounded-xl bg-obsidian dark:bg-limeAccent dark:text-obsidian/10 px-4 py-3 text-sm font-semibold text-forest dark:text-limeAccent">
                 <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
                 {extractNotice}
               </p>
@@ -418,7 +391,7 @@ export default function CvMakerPage() {
                 type="button"
                 onClick={generateSummary}
                 disabled={aiLoading}
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-white transition hover:bg-brandGreen disabled:cursor-wait disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-full bg-obsidian px-4 py-2.5 text-xs font-bold text-white transition hover:bg-obsidian dark:bg-limeAccent dark:text-obsidian disabled:cursor-wait disabled:opacity-60"
               >
                 <Sparkles className="h-4 w-4" />{' '}
                 {aiLoading ? 'Writing summary…' : 'Write with Groq AI'}
@@ -437,10 +410,10 @@ export default function CvMakerPage() {
               {cv.experience.map((item, index) => (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-primary/10 bg-[#f7f5ef] p-4"
+                  className="rounded-2xl border border-ink-200 dark:border-slate-800 bg-canvas dark:bg-slate-950 p-4"
                 >
                   <div className="mb-3 flex items-center justify-between">
-                    <p className="text-xs font-extrabold uppercase tracking-wider text-brandGreen">
+                    <p className="text-xs font-extrabold uppercase tracking-wider text-forest dark:text-limeAccent">
                       Position {index + 1}
                     </p>
                     {cv.experience.length > 1 && (
@@ -483,7 +456,7 @@ export default function CvMakerPage() {
                       onChange={(v) => updateExperience(item.id, 'end', v)}
                     />
                   </div>
-                  <label className="mt-4 block text-xs font-bold text-ink">
+                  <label className="mt-4 block text-xs font-bold text-ink-900 dark:text-white">
                     Key achievements
                     <textarea
                       rows={3}
@@ -524,7 +497,7 @@ export default function CvMakerPage() {
               {cv.education.map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid gap-3 rounded-2xl border border-primary/10 bg-[#f7f5ef] p-4 sm:grid-cols-[1fr_1fr_.5fr_auto]"
+                  className="grid gap-3 rounded-2xl border border-ink-200 dark:border-slate-800 bg-canvas dark:bg-slate-950 p-4 sm:grid-cols-[1fr_1fr_.5fr_auto]"
                 >
                   <Input
                     label="School"
@@ -629,17 +602,17 @@ function Section({
   highlighted?: boolean;
 }) {
   return (
-    <section className="rounded-[24px] border border-primary/10 bg-white p-5 sm:p-6">
+    <section className="rounded-xl border border-ink-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-5 sm:p-6">
       <div className="mb-5 flex gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#d8ff3e] text-primary">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-limeAccent text-ink-900 dark:text-white-900 dark:text-white">
           <Icon className="h-5 w-5" />
         </span>
         <div>
-          <h2 className="flex items-center gap-2 font-extrabold text-primary">
+          <h2 className="flex items-center gap-2 font-extrabold text-ink-900 dark:text-white-900 dark:text-white">
             {title}
             {highlighted && <AiBadge />}
           </h2>
-          <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
+          <p className="mt-0.5 text-xs text-ink-900 dark:text-white-500 dark:text-slate-300">{subtitle}</p>
         </div>
       </div>
       {children}
@@ -662,7 +635,7 @@ function Input({
   highlighted?: boolean;
 }) {
   return (
-    <label className="block text-xs font-bold text-ink">
+    <label className="block text-xs font-bold text-ink-900 dark:text-white">
       <span className="inline-flex items-center gap-1.5">
         {label}
         {highlighted && <AiBadge />}
@@ -681,7 +654,7 @@ function Input({
 }
 function AiBadge() {
   return (
-    <span className="inline-flex items-center gap-0.5 rounded-full bg-brandGreen/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-brandGreen">
+    <span className="inline-flex items-center gap-0.5 rounded-full bg-obsidian dark:bg-limeAccent dark:text-obsidian/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-forest dark:text-limeAccent">
       <Sparkles className="h-2.5 w-2.5" /> AI
     </span>
   );
@@ -691,7 +664,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-brandGreen"
+      className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-forest dark:text-limeAccent"
     >
       <Plus className="h-4 w-4" /> {label}
     </button>
@@ -704,7 +677,7 @@ function CvPreview({ cv }: { cv: CvData }) {
     .map((x) => x.trim())
     .filter(Boolean);
   return (
-    <div className="min-h-[760px] overflow-hidden bg-white shadow-[0_20px_60px_rgba(4,22,3,.12)] print:min-h-0 print:shadow-none">
+    <div className="min-h-[760px] overflow-hidden bg-surface shadow-[0_20px_60px_rgba(4,22,3,.12)] print:min-h-0 print:shadow-none">
       <div className="bg-primary px-8 py-9 text-white">
         <p className="text-3xl font-black tracking-tight">{cv.fullName || 'Your Name'}</p>
         <p className="mt-1 text-sm font-bold text-[#d8ff3e]">{cv.title || 'Professional title'}</p>
@@ -721,10 +694,10 @@ function CvPreview({ cv }: { cv: CvData }) {
             ))}
         </div>
       </div>
-      <div className="space-y-7 p-8 text-primary">
+      <div className="space-y-7 p-8 text-obsidian">
         {cv.summary && (
           <PreviewSection title="Profile">
-            <p className="text-xs leading-5 text-muted">{cv.summary}</p>
+            <p className="text-xs leading-5 text-ink-900-600">{cv.summary}</p>
           </PreviewSection>
         )}
         <PreviewSection title="Experience">
@@ -738,14 +711,14 @@ function CvPreview({ cv }: { cv: CvData }) {
                       <p className="text-sm font-extrabold">{x.role || 'Role'}</p>
                       <p className="text-xs font-semibold text-brandGreen">{x.company}</p>
                     </div>
-                    <p className="text-[10px] text-muted">
+                    <p className="text-[10px] text-ink-900-600">
                       {x.start}
                       {x.start && x.end && ' – '}
                       {x.end}
                     </p>
                   </div>
                   {x.description && (
-                    <p className="mt-2 whitespace-pre-line text-xs leading-5 text-muted">
+                    <p className="mt-2 whitespace-pre-line text-xs leading-5 text-ink-900-600">
                       {x.description}
                     </p>
                   )}
@@ -763,9 +736,9 @@ function CvPreview({ cv }: { cv: CvData }) {
                 <div key={x.id} className="mb-3 flex justify-between gap-3">
                   <div>
                     <p className="text-xs font-extrabold">{x.qualification}</p>
-                    <p className="text-[11px] text-muted">{x.school}</p>
+                    <p className="text-[11px] text-ink-900-600">{x.school}</p>
                   </div>
-                  <p className="text-[10px] text-muted">{x.year}</p>
+                  <p className="text-[10px] text-ink-900-600">{x.year}</p>
                 </div>
               ))
           ) : (
@@ -788,7 +761,7 @@ function CvPreview({ cv }: { cv: CvData }) {
         )}
         {cv.languages && (
           <PreviewSection title="Languages">
-            <p className="text-xs text-muted">{cv.languages}</p>
+            <p className="text-xs text-ink-900-600">{cv.languages}</p>
           </PreviewSection>
         )}
       </div>
@@ -798,7 +771,7 @@ function CvPreview({ cv }: { cv: CvData }) {
 function PreviewSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="mb-3 border-b-2 border-[#d8ff3e] pb-1 text-[11px] font-black uppercase tracking-[.18em]">
+      <h3 className="mb-3 border-b-2 border-limeAccent pb-1 text-[11px] font-black uppercase tracking-[.18em]">
         {title}
       </h3>
       {children}
@@ -806,5 +779,5 @@ function PreviewSection({ title, children }: { title: string; children: React.Re
   );
 }
 function EmptyPreview({ text }: { text: string }) {
-  return <p className="text-xs italic text-muted/60">{text}</p>;
+  return <p className="text-xs italic text-ink-900-600/60">{text}</p>;
 }
