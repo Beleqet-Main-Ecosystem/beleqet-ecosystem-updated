@@ -38,7 +38,7 @@ export default function HeaderAuth() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  if (!ready) return <div className="h-9 w-9 rounded-full bg-canvas animate-pulse" />;
+  if (!ready) return <div className="h-9 w-9 animate-pulse rounded-full bg-white/15" />;
 
   if (!user) {
     return (
