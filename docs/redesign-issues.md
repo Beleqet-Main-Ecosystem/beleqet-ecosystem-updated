@@ -66,14 +66,14 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U37 | Seeker dashboard | Old "Your opportunities", profile and dashboard pages merged into one; subscription cancel and interview availability moved in | Fixed |
 | U38 | Seeker dashboard | Freelancers had no page for My bids or Contracts; added both | Fixed |
 | U39 | Messages | Page claimed "Encrypted socket transmission", which isn't true; removed | Fixed |
-| U40 | Messages | Still the old page, opened from the dashboard; not rebuilt to the design yet | Open |
+| U40 | Messages | Rebuilt to the design: conversation list and thread, phone layout, unread dots, Amharic. "Message" on applicants and interviews now opens a chat with that person (A44). Live chat not re-tested end to end: Docker was down | Fixed |
 | U41 | Seeker dashboard | "Jobs for you" shows newest jobs and says so, until matching returns reasons (A12) | Open |
 | U42 | Seeker dashboard | Job alerts, photo upload and "Preview as employer" from the design not built: alerts need A18, photo needs an upload for avatars | Open |
-| U43 | Settings | There's no screen to turn on two-step sign-in anywhere, though sign-in supports it | Open |
+| U43 | Settings | Two-step sign-in card in Settings (job seekers) and a new Settings tab (employers): turn on with a QR code, backup codes to download, turn off, new codes (A45) | Fixed |
 | U44 | Settings | Delete account sends people to Contact: only admins can erase an account (A40) | Open |
 | U45 | Interviews | Time only; no place, video link or notes until A19 | Open |
 | U46 | Employer dashboard | Company profile is read-only and verification shows "on the way": both need A16 and A17 | Open |
-| U47 | Employer dashboard | No "Edit job" yet: Post a job only creates. The API can update, so this is a UI gap | Open |
+| U47 | Employer dashboard | No "Edit job" yet: Post a job only creates. Added an Edit button on each job; it opens the Post a job form filled in, at /post-job?edit=id. Needed A43 | Fixed |
 | U48 | Employer dashboard | Billing history and bank-transfer payment not shown (A20) | Open |
 
 ## UI/UX: Tier 4 career tools
@@ -82,15 +82,15 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 |---|---|---|---|
 | U49 | Tax calculator | United States option removed to match the design (decided 2026-11-02: Ethiopia only) | Fixed |
 | U50 | Tax calculator | Works in the browser with 7% pension; shows a warning until the current bands are confirmed (C9, A24) | Open |
-| U51 | Feed | No "why this job" reasons (A12); Hide is remembered only on this device (A11); turning the feed off isn't in Settings yet | Open |
+| U51 | Feed | No "why this job" reasons (A12); Hide is remembered only on this device (A11). The personalised feed switch is now in Settings (A46) | Open |
 | U52 | Forum | Nobody could post, reply or vote: the page read the wrong token name, and a helper dropped the request's content type. Both fixed | Fixed |
 | U53 | Forum | Anonymous posts showed "Deleted User"; they now show "Anonymous" | Fixed |
 | U54 | Forum | Report, pin and lock actions, and most-voted sort, not offered yet (A9) | Open |
 | U55 | Voice to text | Removed the "Conversation ID" box; a conversation is now created silently. Actual speech wasn't tested: it needs the Whisper service running | Fixed |
 | U56 | Voice to text | Amharic transcripts are still discarded by the backend (A22) | Open |
-| U57 | CV Maker | "Upload an existing CV" always fails: it calls an endpoint that doesn't exist (A23). "Fill from my old CV" opens Resume Brain instead | Open |
-| U58 | CV Maker | Design's collapsible sections not built; the page uses the new styling on its existing layout. Text is still English only, and it names "Groq" | Open |
-| U59 | Resume Brain | Styling and steps match the design; the Done step isn't shown as its own screen. Real CV reading not tested: it needs the OpenAI key | Open |
+| U57 | CV Maker | The broken "Upload an existing CV" box is gone, as in the design; "Fill from my old CV" opens Resume Brain, whose "Use these in CV Maker" now fills the CV | Fixed |
+| U58 | CV Maker | Rebuilt to the design: collapsible sections with a summary of each, all text in English and Amharic, no "Groq". Several broken dark-mode classes removed | Fixed |
+| U59 | Resume Brain | Rebuilt to the design with Upload, Reading, Review and Done screens, and "Use these in CV Maker". "Delete the uploaded file" always failed (it sent the wrong id); fixed. Light mode showed green text on near-black; fixed. Real CV reading not tested: it needs the OpenAI key | Fixed |
 
 ## Blocked: needs a decision or content
 
@@ -124,13 +124,13 @@ Put secrets in `.env` or a password manager, not in chat.
 
 | # | Issue | Size |
 |---|---|---|
-| A1 | Google and LinkedIn sign-in never return to the website | Medium |
-| A2 | No "resend verification email" endpoint | Small |
-| A3 | Search: salary, experience and date filters, sorting, several job types | Medium |
-| A4 | Expired jobs still listed; applications accepted after the deadline | Small |
+| A1 | Google and LinkedIn sign-in now return to the website (tokens in the URL fragment, /auth/callback stores them) and the sign-in and job-seeker sign-up pages have the buttons. Disabled accounts are refused, and accounts with two-step sign-in must still enter their code (OAuth used to skip it). Not tried with real providers: needs C1, C2 | Done |
+| A2 | New POST /auth/resend-verification (signed in, 3 an hour, old links stop working); dashboards remind unverified people with a resend button | Done |
+| A3 | Search takes several job types (the website now uses checkboxes, as designed), minimum salary, experience level, posted within N days, sort by salary, and matches tags. The design has no salary, experience, date or sort controls, so those are API-only for now | Done |
+| A4 | Jobs past their deadline or expiry date are left out of search, the feed and the homepage count, and applications to them are refused | Done |
 | A5 | No "Report this job" endpoint or admin review | Medium |
-| A6 | No filter for "More jobs from this employer" | Small |
-| A7 | Job lists send full descriptions (76 KB per 20 jobs) | Small |
+| A6 | Search takes company (and exclude); the job page has "More jobs from this employer", as designed | Done |
+| A7 | Job lists no longer send descriptions or requirements; the page size is capped at 500 (the sitemap uses 500) | Done |
 | A8 | Portfolio builder has no save or load endpoints | Medium |
 | A9 | Forum: report, pin and lock need endpoints and an admin view | Medium |
 | A10 | Salary insights invent figures when data is thin | Medium |
@@ -146,7 +146,7 @@ Put secrets in `.env` or a password manager, not in chat.
 | A20 | Bank-transfer payments don't activate a plan; plan limits unconfirmed | Medium |
 | A21 | PayPal plan IDs are empty, so nobody can subscribe | Small |
 | A22 | Voice to text discards Amharic transcripts | Small |
-| A23 | CV Maker upload calls an endpoint that doesn't exist | Small |
+| A23 | CV Maker upload called an endpoint that doesn't exist; the upload now lives only in Resume Brain, which works | Done |
 | A24 | Tax calculator: brackets out of date, no pension | Medium |
 | A25 | Imported jobs have no real company name or salary | Data |
 | A26 | Done early: added public GET /freelance/categories, which Post a project needs | Done |
@@ -166,3 +166,7 @@ Put secrets in `.env` or a password manager, not in chat.
 | A40 | No way for people to delete their own account; the erase endpoint is admin-only | Medium |
 | A41 | Profile links can't be cleared: the API rejects an empty link | Small |
 | A42 | **Privacy:** anonymous threads and replies now return userId as null | Done |
+| A43 | **Security:** PATCH /jobs/:id skipped validation, so an employer could set any column, including companyId to move a job to another company. Now validated and whitelisted; dates are converted as on create (a date-only deadline used to fail), optional fields can be cleared with null, and required ones can't | Done |
+| A44 | **Chat never worked:** the socket read `userId` from the token, which carries `sub`, so joining a room and sending always failed. Fixed. Also: rooms can only be opened between contract parties or an applicant and the employer they applied to (anyone could message anyone, and attach any contract); a second request reuses the room; history returns the latest 50 messages, not the first 50; rooms carry the job, sort by last message and report unread; new POST /chat/rooms/:id/read | Done |
+| A45 | Two-step sign-in: new GET /auth/2fa/status; enrolment also returns a QR image so the website needs no QR library | Done |
+| A46 | Personalised feed switch: PATCH /users/profile takes gdprConsent and records when it was given or withdrawn; GET returns it | Done |
