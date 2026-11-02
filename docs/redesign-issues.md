@@ -63,6 +63,15 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U34 | Post a job | Company logo upload not in this form; set on the company profile instead (A16) | Open |
 | U35 | Pricing | Design's question about reaching the job-post limit left out: the limit isn't enforced yet (A39). Add it back once it is | Open |
 | U36 | Pricing | "Subscribe" can't complete until PayPal plan IDs are set or another payment route is chosen (A21, C4) | Blocked |
+| U37 | Seeker dashboard | Old "Your opportunities", profile and dashboard pages merged into one; subscription cancel and interview availability moved in | Fixed |
+| U38 | Seeker dashboard | Freelancers had no page for My bids or Contracts; added both | Fixed |
+| U39 | Messages | Page claimed "Encrypted socket transmission", which isn't true; removed | Fixed |
+| U40 | Messages | Still the old page, opened from the dashboard; not rebuilt to the design yet | Open |
+| U41 | Seeker dashboard | "Jobs for you" shows newest jobs and says so, until matching returns reasons (A12) | Open |
+| U42 | Seeker dashboard | Job alerts, photo upload and "Preview as employer" from the design not built: alerts need A18, photo needs an upload for avatars | Open |
+| U43 | Settings | There's no screen to turn on two-step sign-in anywhere, though sign-in supports it | Open |
+| U44 | Settings | Delete account sends people to Contact: only admins can erase an account (A40) | Open |
+| U45 | Interviews | Time only; no place, video link or notes until A19 | Open |
 
 ## Blocked: needs a decision or content
 
@@ -135,3 +144,5 @@ Put secrets in `.env` or a password manager, not in chat.
 | A37 | **Revision requests drop the reason:** the client's note is never saved, so the freelancer can't see what to change | Small |
 | A38 | Contract needs an activity feed from EventLog | Small |
 | A39 | Plan limits aren't enforced: POST /jobs ignores maxJobPosts and accepts featured from any plan, so the limit on the page is only a display | Medium |
+| A40 | No way for people to delete their own account; the erase endpoint is admin-only | Medium |
+| A41 | Profile links can't be cleared: the API rejects an empty link | Small |

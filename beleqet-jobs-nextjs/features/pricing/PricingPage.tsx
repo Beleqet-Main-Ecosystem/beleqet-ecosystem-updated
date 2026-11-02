@@ -30,7 +30,7 @@ export default function PricingPage({ plans }: { plans: Plan[] }) {
   const featureList = (plan: Plan) => {
     const features = featuresOf(plan);
     return [
-      t('pricing.jobPosts').replace('{count}', limit(features.maxJobPosts)),
+      (features.maxJobPosts === 1 ? t('pricing.jobPost') : t('pricing.jobPosts')).replace('{count}', limit(features.maxJobPosts)),
       t('pricing.bids').replace('{count}', limit(features.maxFreelanceBids)),
       features.featuredListing && t('pricing.featuredListings'),
       features.apiAccess && t('pricing.api'),

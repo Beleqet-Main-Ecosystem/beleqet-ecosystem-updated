@@ -168,7 +168,7 @@ function MessagesPageContent() {
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-800">Direct Contract Chat</span>
             <span className="text-slate-400">•</span>
-            <span className="text-slate-500">Encrypted socket transmission</span>
+            
           </div>
           <div className="flex items-center gap-2">
             {status === 'connected' ? (
