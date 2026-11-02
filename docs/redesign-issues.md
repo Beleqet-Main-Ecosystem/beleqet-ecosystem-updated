@@ -39,16 +39,16 @@ Checked 2026-11-02: 16 browser checks on the running dev server, 193 unit tests,
 
 ## Credentials and access (from the CTO)
 
-Put secrets in  or a password manager, not in chat.
+Put secrets in `.env` or a password manager, not in chat.
 
 | # | Needed for | What | Status |
 |---|---|---|---|
-| C1 | Google sign-in (A1) | Confirm the client ID and secret in  are valid; add the production callback URL in Google Cloud | Values present, not verified |
+| C1 | Google sign-in (A1) | Confirm the client ID and secret in `.env` are valid; add the production callback URL in Google Cloud | Values present, not verified |
 | C2 | LinkedIn sign-in (A1) | Same, in the LinkedIn developer app | Values present, not verified |
 | C3 | Verification and reset emails (A2) | Confirm the SMTP account can send from the production domain | Values present, not verified |
 | C4 | Paid plans (A21) | PayPal plan IDs for Pro and Enterprise, or a decision to use Chapa or Telebirr | Missing |
 | C5 | Escrow testing | Chapa test keys and webhook secret for staging | Values present, not verified |
-| C6 | CV and file uploads | Production storage details;  isn't set under that name, to be checked | Unknown |
+| C6 | CV and file uploads | Production storage details; `S3_BUCKET` isn't set under that name, to be checked | Unknown |
 | C7 | Android card (B2) | Public Google Play link | Missing |
 | C8 | Telegram (B3) | Mini app link | Missing |
 | C9 | Tax calculator (A24) | Current employment tax bands from the Ministry of Revenue | Missing |
