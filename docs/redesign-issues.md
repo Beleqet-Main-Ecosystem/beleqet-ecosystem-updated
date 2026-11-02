@@ -24,6 +24,8 @@ Status: **Open**, **Fixed**, **Blocked** (needs something from outside the code)
 | U13 | All | "up to" in salaries is English only | Fixed |
 | U14 | Search, detail, sign in | Dark mode not checked | Fixed |
 | U15 | Job detail, all pages | Dark mode: Apply button dark on dark, bright deadline banner, mixed page backgrounds | Fixed |
+| U16 | All | Dark mode: page background is navy under a green header; the brand's dark is green-black | Open |
+| U17 | Sign in | Backup-code sign-in is built but has not been tested end to end | Open |
 
 Checked 2026-11-02: 16 browser checks on the running dev server, 193 unit tests, production build. Amharic strings still need review (B5).
 
