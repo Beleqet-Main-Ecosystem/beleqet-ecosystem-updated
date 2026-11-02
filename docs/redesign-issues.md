@@ -83,6 +83,9 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U49 | Tax calculator | **Your decision:** the United States option was removed to match the design, which is Ethiopia only. Say if you want it back | Open |
 | U50 | Tax calculator | Works in the browser with 7% pension; shows a warning until the current bands are confirmed (C9, A24) | Open |
 | U51 | Feed | No "why this job" reasons (A12); Hide is remembered only on this device (A11); turning the feed off isn't in Settings yet | Open |
+| U52 | Forum | Nobody could post, reply or vote: the page read the wrong token name, and a helper dropped the request's content type. Both fixed | Fixed |
+| U53 | Forum | Anonymous posts showed "Deleted User"; they now show "Anonymous" | Fixed |
+| U54 | Forum | Report, pin and lock actions, and most-voted sort, not offered yet (A9) | Open |
 
 ## Blocked: needs a decision or content
 
@@ -157,3 +160,4 @@ Put secrets in `.env` or a password manager, not in chat.
 | A39 | Plan limits aren't enforced: POST /jobs ignores maxJobPosts and accepts featured from any plan, so the limit on the page is only a display | Medium |
 | A40 | No way for people to delete their own account; the erase endpoint is admin-only | Medium |
 | A41 | Profile links can't be cleared: the API rejects an empty link | Small |
+| A42 | **Privacy:** anonymous forum posts still return the real userId from the public API | Small |
