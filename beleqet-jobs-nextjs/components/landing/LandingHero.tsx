@@ -33,7 +33,7 @@ export default function LandingHero({ jobs, gigs }: { jobs: Job[]; gigs: Gig[] }
           mark: initials(j.company),
           title: j.title,
           meta: [j.company, j.location].filter(Boolean).join(' · '),
-          pay: formatSalary(j) ?? t('landing.salaryNotListed'),
+          pay: formatSalary(j, t('search.upTo')) ?? t('landing.salaryNotListed'),
           tag: j.type,
         }))
       : gigs.slice(0, 4).map((g) => ({
@@ -125,7 +125,7 @@ export default function LandingHero({ jobs, gigs }: { jobs: Job[]; gigs: Gig[] }
                 href={buildSearchUrl(term, '', mode)}
                 className="inline-flex min-h-8 items-center rounded-full border border-white/15 px-3 text-white/85 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
               >
-                {term}
+                {t(`landing.popular.${term}`)}
               </Link>
             ))}
           </div>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { completeTwoFactor, loginUser, type AuthUser } from '@/lib/auth';
+import { completeTwoFactor, loginUser, setKeepSignedIn, type AuthUser } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 import { homeFor, safeNextPath } from '../redirect';
 import AuthLayout from './AuthLayout';
@@ -16,6 +16,7 @@ export default function SignInForm() {
   const { user, ready, setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [keep, setKeep] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [tempToken, setTempToken] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export default function SignInForm() {
 
   const next = () => safeNextPath(new URLSearchParams(window.location.search).get('next'));
   const finish = (signedIn: AuthUser) => {
+    setKeepSignedIn(keep);
     setUser(signedIn);
     router.replace(next() ?? homeFor(signedIn));
   };
@@ -78,14 +80,30 @@ export default function SignInForm() {
         <form onSubmit={verify} className="flex flex-col gap-4" noValidate>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink-900 dark:text-white">{t(app ? 'auth.codeLabel' : 'auth.backupLabel')}</span>
-            <input
-              ref={codeRef}
-              value={code}
-              onChange={(e) => setCode(app ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value.replace(/\s/g, '').slice(0, 10))}
-              inputMode={app ? 'numeric' : 'text'}
-              autoComplete="one-time-code"
-              className="min-h-14 rounded-md border border-ink-300 bg-surface px-4 text-center font-mono text-2xl font-bold tracking-[0.4em] text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-            />
+            {/* One real input (paste, autofill, screen readers) drawn as six boxes for app codes. */}
+            <span className="relative block">
+              <input
+                ref={codeRef}
+                value={code}
+                onChange={(e) => setCode(app ? e.target.value.replace(/\D/g, '').slice(0, 6) : e.target.value.replace(/\s/g, '').slice(0, 10))}
+                inputMode={app ? 'numeric' : 'text'}
+                autoComplete="one-time-code"
+                className={
+                  app
+                    ? 'peer absolute inset-0 z-10 h-14 w-full cursor-text opacity-0'
+                    : 'min-h-14 w-full rounded-md border border-ink-300 bg-surface px-4 text-center font-mono text-2xl font-bold tracking-[0.3em] text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-900 dark:text-white'
+                }
+              />
+              {app && (
+                <span aria-hidden="true" className="grid grid-cols-6 gap-2 rounded-md peer-focus:ring-2 peer-focus:ring-forest peer-focus:ring-offset-2">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <span key={i} className="grid h-14 place-items-center rounded-md border border-ink-300 bg-surface text-[22px] font-bold text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+                      {code[i] ?? ''}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </span>
           </label>
           <FormError message={error} />
           <SubmitButton busy={busy} busyLabel={t('auth.checking')} disabled={code.length !== (app ? 6 : 10)}>
@@ -145,6 +163,10 @@ export default function SignInForm() {
             </Link>
           }
         />
+        <label className="flex items-center gap-2.5 text-sm text-ink-700 dark:text-slate-300">
+          <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} className="h-5 w-5 accent-primary" />
+          {t('auth.keepSignedIn')}
+        </label>
         <FormError message={error} />
         <SubmitButton busy={busy} busyLabel={t('auth.signingIn')}>{t('auth.signIn')}</SubmitButton>
       </form>

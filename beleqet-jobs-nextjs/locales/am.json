@@ -229,7 +229,8 @@
     "errTooMany": "በጣም ብዙ ሙከራዎች። ጥቂት ደቂቃዎች ቆይተው እንደገና ይሞክሩ።",
     "errNetwork": "በለቀትን ማግኘት አልቻልንም። ግንኙነትዎን አረጋግጠው እንደገና ይሞክሩ።",
     "errDisabled": "ይህ መለያ ታግዷል። ስህተት ነው ብለው ካሰቡ ድጋፍን ያግኙ።",
-    "errGeneric": "የሆነ ችግር ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።"
+    "errGeneric": "የሆነ ችግር ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።",
+    "keepSignedIn": "እንደገባሁ አቆየኝ"
   },
   "postJob": {
     "button": "ስራ ፖስት አድርግ"
@@ -346,7 +347,18 @@
     "closeMenu": "ማውጫ ዝጋ",
     "menu": "ማውጫ",
     "browse": "ያስሱ",
-    "account": "የእርስዎ መለያ"
+    "account": "የእርስዎ መለያ",
+    "myProfile": "የእኔ ፕሮፋይል",
+    "hiringDashboard": "የቅጥር ዳሽቦርድ",
+    "myApplications": "የእኔ ማመልከቻዎች",
+    "browseJobs": "ስራዎችን ያስሱ",
+    "adminDashboard": "የአስተዳዳሪ ዳሽቦርድ",
+    "roles": {
+      "JOB_SEEKER": "ስራ ፈላጊ",
+      "EMPLOYER": "አሰሪ",
+      "FREELANCER": "ፍሪላንሰር",
+      "ADMIN": "አስተዳዳሪ"
+    }
   },
   "nav": {
     "careerTools": "የሙያ መሣሪያዎች",
@@ -360,7 +372,8 @@
     "voiceToText": "ድምፅ ወደ ጽሑፍ",
     "voiceToTextHint": "በአማርኛ ወይም በእንግሊዝኛ ይናገሩ፣ ጽሑፍ ያግኙ",
     "forum": "የማህበረሰብ መድረክ",
-    "forumHint": "በኢትዮጵያ ስላለ ስራ ጥያቄዎች"
+    "forumHint": "በኢትዮጵያ ስላለ ስራ ጥያቄዎች",
+    "portfolioHint": "ምርጥ ስራዎን በአንድ ገጽ ያሳዩ"
   },
   "landing": {
     "salaryNotListed": "ደመወዝ አልተገለጸም",
@@ -603,6 +616,18 @@
         "tax": {
           "name": "የደመወዝ ግብር ማስያ",
           "text": "ከገቢ ግብርና ከጡረታ በኋላ የሚደርስዎ ደመወዝ።"
+        },
+        "scheduling": {
+          "name": "የቃለ መጠይቅ ቀጠሮ",
+          "text": "እጩዎች ነፃ የሆኑበትን ጊዜ አይተው ቃለ መጠይቅ በፍጥነት ይያዙ።"
+        },
+        "portfolio": {
+          "name": "ፖርትፎሊዮ ገንቢ",
+          "text": "ምርጥ ስራዎን ለደንበኞች በአንድ ገጽ ያሳዩ።"
+        },
+        "assistant": {
+          "name": "የበለቀት ረዳት",
+          "text": "ስለ ስራዎች፣ ማመልከቻዎች እና በለቀትን ስለመጠቀም ይጠይቁ።"
         }
       }
     },
@@ -622,6 +647,16 @@
       "sub": "ለማመልከት፣ ስራ ለመለጠፍ ወይም የመጀመሪያ በEscrow የተጠበቀ ፕሮጀክትዎን ለመጀመር ነፃ መለያ ይፍጠሩ።",
       "findJobs": "ስራ ፈልግ",
       "postJob": "ስራ ለጥፍ"
+    },
+    "popular": {
+      "Accountant": "ሂሳብ ባለሙያ",
+      "Software developer": "ሶፍትዌር ገንቢ",
+      "Sales": "ሽያጭ",
+      "Nurse": "ነርስ",
+      "Logo design": "የሎጎ ዲዛይን",
+      "Web development": "ድረ ገጽ ልማት",
+      "Translation": "ትርጉም",
+      "Bookkeeping": "የሂሳብ መዝገብ"
     }
   },
   "search": {
@@ -668,7 +703,20 @@
     "pagination": "ገጾች",
     "previous": "ቀዳሚ ገጽ",
     "next": "ቀጣይ ገጽ",
-    "done": "ተከናውኗል"
+    "done": "ተከናውኗል",
+    "upTo": "እስከ",
+    "saved": "ተቀምጧል",
+    "pastEndTitle": "ተጨማሪ ውጤቶች የሉም",
+    "pastEndText": "ይህ ገጽ ከፍለጋዎ መጨረሻ በላይ ነው።",
+    "firstPage": "ወደ መጀመሪያው ገጽ ይሂዱ",
+    "places": {
+      "Addis Ababa": "አዲስ አበባ",
+      "Adama": "አዳማ",
+      "Hawassa": "ሀዋሳ",
+      "Bahir Dar": "ባሕር ዳር",
+      "Dire Dawa": "ድሬ ዳዋ",
+      "Mekelle": "መቐለ"
+    }
   },
   "job": {
     "verified": "የተረጋገጠ አሰሪ",
@@ -732,7 +780,10 @@
       "errSize": "ሲቪዎ ከ5 MB ያነሰ መሆን አለበት።",
       "errUpload": "ሲቪዎን መጫን አልቻልንም። እባክዎ እንደገና ይሞክሩ።",
       "errClosed": "ይህ ስራ ከአሁን በኋላ ማመልከቻ አይቀበልም።",
-      "errGeneric": "ማመልከቻዎን መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።"
+      "errGeneric": "ማመልከቻዎን መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+      "portfolio": "የፖርትፎሊዮ ሊንክ",
+      "portfolioInvalid": "ሙሉ የድረ ገጽ አድራሻ ያስገቡ፣ ለምሳሌ https://example.com",
+      "expectedSalary": "የሚጠበቅ ደመወዝ (ብር)"
     }
   }
 }

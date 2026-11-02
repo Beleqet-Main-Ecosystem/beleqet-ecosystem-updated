@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="min-h-screen bg-pageBg font-sans text-ink antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+      <body className="min-h-screen bg-canvas font-sans text-ink antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
         <I18nProvider>
         <ThemeProvider>
           <AuthProvider>

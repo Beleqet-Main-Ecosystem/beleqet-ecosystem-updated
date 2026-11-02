@@ -9,7 +9,7 @@ import { formatSalary, initials, postedAgo } from '../format';
 
 export default function JobResultCard({ job }: { job: Job }) {
   const { t, locale } = useTranslation();
-  const pay = formatSalary(job);
+  const pay = formatSalary(job, t('search.upTo'));
   const monthly = !job.salaryType || job.salaryType.toLowerCase() === 'monthly';
   const typeLabel = job.typeCode ? t(`search.types.${job.typeCode}`) : job.type;
 

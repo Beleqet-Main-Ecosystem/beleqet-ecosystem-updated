@@ -1,13 +1,13 @@
 import type { Gig, Job } from '@/lib/api';
 
 /** "ETB 28,000–35,000", "ETB 28,000+", or null when the post has no salary. */
-export function formatSalary(job: Pick<Job, 'salaryMin' | 'salaryMax' | 'currency'>): string | null {
+export function formatSalary(job: Pick<Job, 'salaryMin' | 'salaryMax' | 'currency'>, upTo = 'up to'): string | null {
   const cur = job.currency || 'ETB';
   const min = job.salaryMin ?? null;
   const max = job.salaryMax ?? null;
   if (min && max) return `${cur} ${min.toLocaleString('en-US')}–${max.toLocaleString('en-US')}`;
   if (min) return `${cur} ${min.toLocaleString('en-US')}+`;
-  if (max) return `${cur} up to ${max.toLocaleString('en-US')}`;
+  if (max) return `${cur} ${upTo} ${max.toLocaleString('en-US')}`;
   return null;
 }
 

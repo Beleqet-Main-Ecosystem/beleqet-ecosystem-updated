@@ -33,6 +33,10 @@ const authApi = axios.create({
 const TOKEN_KEY = 'beleqet_token';
 const REFRESH_KEY = 'beleqet_refresh';
 const USER_KEY = 'beleqet_user';
+/** Set when someone unticks "Keep me signed in". */
+const SESSION_ONLY_KEY = 'beleqet_session_only';
+/** Browser-session cookie: shared by all tabs, gone when the browser closes. */
+const SESSION_COOKIE = 'beleqet_session';
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
 
@@ -74,6 +78,24 @@ export function clearAuth(): void {
   if (typeof document !== 'undefined') {
     document.cookie = 'beleqet_token=; path=/; max-age=0; SameSite=Lax';
     document.cookie = 'beleqet_user=; path=/; max-age=0; SameSite=Lax';
+  }
+}
+
+/** Records the sign-in choice. Unticked means signing out when the browser closes. */
+export function setKeepSignedIn(keep: boolean): void {
+  if (keep) {
+    localStorage.removeItem(SESSION_ONLY_KEY);
+    return;
+  }
+  localStorage.setItem(SESSION_ONLY_KEY, '1');
+  document.cookie = `${SESSION_COOKIE}=1; path=/; SameSite=Lax`;
+}
+
+/** Call on load: ends a "not kept" session once its browser session is over. */
+export function enforceKeepSignedIn(): void {
+  if (localStorage.getItem(SESSION_ONLY_KEY) && !document.cookie.includes(`${SESSION_COOKIE}=1`)) {
+    localStorage.removeItem(SESSION_ONLY_KEY);
+    clearAuth();
   }
 }
 

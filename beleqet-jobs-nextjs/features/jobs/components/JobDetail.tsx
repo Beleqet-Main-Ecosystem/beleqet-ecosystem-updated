@@ -52,7 +52,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
     : '';
   const externalUrl = job.applyMethod === 'external' ? safeHttpUrl(job.applyUrl) : null;
   const email = job.applyMethod === 'email' ? safeEmail(job.applyEmail) : null;
-  const pay = formatSalary(job);
+  const pay = formatSalary(job, t('search.upTo'));
   const monthly = !job.salaryType || job.salaryType.toLowerCase() === 'monthly';
   const typeLabel = job.typeCode ? t(`search.types.${job.typeCode}`) : job.type;
   const category = job.category ? { id: job.category, label: job.categoryLabel || job.category, icon: '' } : null;
@@ -85,7 +85,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
   /** The apply control for this job's method, in a given visual style. */
   const applyControl = (tone: 'lime' | 'dark') => {
     const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-6 text-base font-extrabold ${focusRing}`;
-    const style = tone === 'lime' ? 'bg-limeAccent text-obsidian hover:bg-[#c8ef2e]' : 'bg-primary text-limeAccent hover:bg-primary2';
+    const style = tone === 'lime' ? 'bg-limeAccent text-obsidian hover:bg-[#c8ef2e]' : 'bg-primary text-limeAccent hover:bg-primary2 dark:bg-limeAccent dark:text-obsidian dark:hover:bg-[#c8ef2e]';
     if (closed) return null;
     if (externalUrl) {
       return (
@@ -178,7 +178,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
               </div>
             </div>
             <div className="hidden shrink-0 flex-wrap items-center gap-2.5 md:flex">
-              <SaveJobButton jobId={job.id} variant="outline" label={`${t('search.save')} ${job.title}`} />
+              <SaveJobButton jobId={job.id} variant="onDark" label={`${t('search.save')} ${job.title}`} />
               <button type="button" onClick={share} aria-label={t('job.share')} className={`grid h-11 w-11 place-items-center rounded-md border border-white/25 text-white hover:bg-white/10 ${focusRing}`}>
                 <Share2 className="h-[18px] w-[18px]" aria-hidden="true" />
               </button>
@@ -245,7 +245,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
             {days !== null && (
               <p
                 className={`mt-3.5 rounded-md px-3.5 py-3 text-sm font-semibold ${
-                  closed ? 'bg-ink-100 text-ink-700 dark:bg-slate-800 dark:text-slate-300' : 'bg-[#FFF7E6] text-[#7A4B00]'
+                  closed ? 'bg-ink-100 text-ink-700 dark:bg-slate-800 dark:text-slate-300' : 'bg-[#FFF7E6] text-[#7A4B00] dark:bg-amber-950/40 dark:text-amber-200'
                 }`}
                 suppressHydrationWarning
               >
@@ -296,7 +296,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
           </div>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))] gap-3.5">
             {similar.map((s) => {
-              const sPay = formatSalary(s);
+              const sPay = formatSalary(s, t('search.upTo'));
               return (
                 <Link
                   key={s.id}

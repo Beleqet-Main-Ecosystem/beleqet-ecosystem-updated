@@ -229,7 +229,8 @@
     "errTooMany": "Too many attempts. Wait a few minutes and try again.",
     "errNetwork": "We couldn’t reach Beleqet. Check your connection and try again.",
     "errDisabled": "This account is disabled. Contact support if you think this is a mistake.",
-    "errGeneric": "Something went wrong. Please try again."
+    "errGeneric": "Something went wrong. Please try again.",
+    "keepSignedIn": "Keep me signed in"
   },
   "postJob": {
     "button": "Post a Job"
@@ -346,7 +347,18 @@
     "closeMenu": "Close menu",
     "menu": "Menu",
     "browse": "Browse",
-    "account": "Your account"
+    "account": "Your account",
+    "myProfile": "My profile",
+    "hiringDashboard": "Hiring dashboard",
+    "myApplications": "My applications",
+    "browseJobs": "Browse jobs",
+    "adminDashboard": "Admin dashboard",
+    "roles": {
+      "JOB_SEEKER": "Job seeker",
+      "EMPLOYER": "Employer",
+      "FREELANCER": "Freelancer",
+      "ADMIN": "Admin"
+    }
   },
   "nav": {
     "careerTools": "Career tools",
@@ -363,7 +375,8 @@
     "forumHint": "Questions about work in Ethiopia",
     "findJobs": "Find jobs",
     "employers": "For employers",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "portfolioHint": "Show your best work on one page"
   },
   "landing": {
     "salaryNotListed": "Salary not listed",
@@ -606,6 +619,18 @@
         "tax": {
           "name": "Salary tax calculator",
           "text": "Your take-home pay after income tax and pension."
+        },
+        "scheduling": {
+          "name": "Interview scheduling",
+          "text": "See when candidates are free and book interviews faster."
+        },
+        "portfolio": {
+          "name": "Portfolio builder",
+          "text": "Show clients your best work on one page."
+        },
+        "assistant": {
+          "name": "Beleqet Assistant",
+          "text": "Ask questions about jobs, applications and using Beleqet."
         }
       }
     },
@@ -625,6 +650,16 @@
       "sub": "Create a free account to apply, post jobs, or launch your first escrow-protected project.",
       "findJobs": "Find jobs",
       "postJob": "Post a job"
+    },
+    "popular": {
+      "Accountant": "Accountant",
+      "Software developer": "Software developer",
+      "Sales": "Sales",
+      "Nurse": "Nurse",
+      "Logo design": "Logo design",
+      "Web development": "Web development",
+      "Translation": "Translation",
+      "Bookkeeping": "Bookkeeping"
     }
   },
   "search": {
@@ -671,7 +706,20 @@
     "pagination": "Pages",
     "previous": "Previous page",
     "next": "Next page",
-    "done": "Done"
+    "done": "Done",
+    "upTo": "up to",
+    "saved": "Saved",
+    "pastEndTitle": "There are no more results",
+    "pastEndText": "This page is past the end of your search.",
+    "firstPage": "Go to the first page",
+    "places": {
+      "Addis Ababa": "Addis Ababa",
+      "Adama": "Adama",
+      "Hawassa": "Hawassa",
+      "Bahir Dar": "Bahir Dar",
+      "Dire Dawa": "Dire Dawa",
+      "Mekelle": "Mekelle"
+    }
   },
   "job": {
     "verified": "Verified employer",
@@ -735,7 +783,10 @@
       "errSize": "Your CV must be smaller than 5 MB.",
       "errUpload": "We couldn’t upload your CV. Please try again.",
       "errClosed": "This job is no longer accepting applications.",
-      "errGeneric": "Your application couldn’t be sent. Please try again."
+      "errGeneric": "Your application couldn’t be sent. Please try again.",
+      "portfolio": "Portfolio link",
+      "portfolioInvalid": "Enter a full web address, like https://example.com",
+      "expectedSalary": "Expected salary (ETB)"
     }
   }
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, BarChart3, Bell, BriefcaseBusiness, Building2, Calculator, CalendarDays, Code2, FileScan,
-  FileText, Globe, GraduationCap, HardHat, HeartPulse, LayoutGrid, Megaphone, MessageSquare,
+  FileText, FolderOpen, Globe, GraduationCap, HardHat, HeartPulse, LayoutGrid, Megaphone, MessageSquare,
   MessagesSquare, Mic, Palette, Play, Send, ShieldCheck, Sparkles, UserRound, Users, Wallet,
   type LucideIcon,
 } from 'lucide-react';
@@ -82,7 +82,7 @@ export function LatestJobs({ jobs }: { jobs: Job[] }) {
         <>
           <div className="flex flex-col gap-3 md:grid md:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] md:gap-4">
             {jobs.map((job, i) => {
-              const pay = formatSalary(job) ?? t('landing.salaryNotListed');
+              const pay = formatSalary(job, t('search.upTo')) ?? t('landing.salaryNotListed');
               return (
                 <Link
                   key={job.id}
@@ -353,16 +353,19 @@ const FEATURES: Record<string, Feature[]> = {
     { key: 'postJobs', icon: BriefcaseBusiness, href: '/post-job' },
     { key: 'applicants', icon: Users, href: '/employer' },
     { key: 'messaging', icon: MessageSquare, href: '/messages' },
+    { key: 'scheduling', icon: CalendarDays, href: '/employer' },
     { key: 'plans', icon: Building2, href: '/pricing' },
   ],
   freelance: [
     { key: 'bids', icon: Megaphone, href: '/freelance' },
     { key: 'escrow', icon: ShieldCheck, href: '/#escrow' },
     { key: 'workspace', icon: LayoutGrid, href: '/freelance' },
+    { key: 'portfolio', icon: FolderOpen, href: '/portfolio' },
     { key: 'wallet', icon: Wallet, href: '/dashboard' },
   ],
   tools: [
     { key: 'forum', icon: MessagesSquare, href: '/forum' },
+    { key: 'assistant', icon: Sparkles, href: '/chat' },
     { key: 'voice', icon: Mic, href: '/chat-to-text' },
     { key: 'tax', icon: Calculator, href: '/tax-calculator' },
   ],

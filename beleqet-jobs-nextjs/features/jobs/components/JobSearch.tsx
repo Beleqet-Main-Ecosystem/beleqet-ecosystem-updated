@@ -14,6 +14,13 @@ const TELEGRAM_CHANNEL = 'https://t.me/BeleqetJobs';
 const wrap = 'mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10';
 const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2';
 
+/** City shortcuts search in English (as listings are written) but display translated. */
+function placeLabel(place: string, t: (key: string) => string): string {
+  const key = `search.places.${place}`;
+  const label = t(key);
+  return label === key ? place : label;
+}
+
 type Props = {
   search: SearchState;
   /** null when the API could not be reached. */
@@ -35,14 +42,14 @@ export default function JobSearch({ search, result, categories }: Props) {
   const chips = [
     search.type && { key: 'type', label: t(`search.types.${search.type}`), clear: { type: '' as const } },
     activeCategory && { key: 'category', label: categoryLabel(activeCategory, t), clear: { category: '' } },
-    search.loc && { key: 'loc', label: search.loc, clear: { loc: '' } },
+    search.loc && { key: 'loc', label: placeLabel(search.loc, t), clear: { loc: '' } },
   ].filter(Boolean) as { key: string; label: string; clear: Partial<SearchState> }[];
   const clearAll = () => go({ type: '', category: '', loc: '' });
 
   const total = result?.total ?? 0;
   // No count when the API couldn't be reached: '0 jobs' would be a false statement.
   const countText = result ? `${total.toLocaleString('en-US')} ${t(total === 1 ? 'search.job' : 'search.jobs')}` : '';
-  const context = [search.q && `“${search.q}”`, search.loc].filter(Boolean);
+  const context = [search.q && `“${search.q}”`, search.loc && placeLabel(search.loc, t)].filter(Boolean);
 
   return (
     <>
@@ -115,6 +122,17 @@ export default function JobSearch({ search, result, categories }: Props) {
                   >
                     {t('search.retry')}
                   </button>
+                }
+              />
+            ) : result.jobs.length === 0 && search.page > 1 ? (
+              <StatePanel
+                icon={<SearchX className="h-[26px] w-[26px]" aria-hidden="true" />}
+                title={t('search.pastEndTitle')}
+                text={t('search.pastEndText')}
+                actions={
+                  <Link href={jobSearchHref(search, { page: 1 })} className={`inline-flex min-h-12 items-center rounded-md bg-primary px-[18px] text-[15px] font-bold text-white ${focusRing}`}>
+                    {t('search.firstPage')}
+                  </Link>
                 }
               />
             ) : result.jobs.length === 0 ? (
@@ -319,11 +337,14 @@ function FilterPanel({
       <div role="group" aria-labelledby={`${idPrefix}filter-location`} className="flex flex-col gap-2 border-t border-ink-200 pt-3.5 dark:border-slate-800">
         <h3 id={`${idPrefix}filter-location`} className={legend}>{t('search.location')}</h3>
         <div className="flex flex-wrap gap-1.5">
+          <button type="button" aria-pressed={search.type === 'REMOTE'} onClick={() => onChange({ type: search.type === 'REMOTE' ? '' : 'REMOTE' })} className={pill(search.type === 'REMOTE')}>
+            {t('search.types.REMOTE')}
+          </button>
           {QUICK_LOCATIONS.map((place) => {
             const on = search.loc.toLowerCase() === place.toLowerCase();
             return (
               <button key={place} type="button" aria-pressed={on} onClick={() => onChange({ loc: on ? '' : place })} className={pill(on)}>
-                {place}
+                {placeLabel(place, t)}
               </button>
             );
           })}

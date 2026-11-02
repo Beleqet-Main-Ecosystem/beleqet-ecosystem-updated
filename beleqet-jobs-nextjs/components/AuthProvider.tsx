@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { AuthUser, clearAuth, getStoredUser } from '@/lib/auth';
+import { AuthUser, clearAuth, enforceKeepSignedIn, getStoredUser } from '@/lib/auth';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    enforceKeepSignedIn();
     setUser(getStoredUser());
     setReady(true);
   }, []);

@@ -64,6 +64,7 @@ export default function Header() {
     { label: t("nav.cvMaker"), href: "/cv-maker", hint: t("nav.cvMakerHint") },
     { label: t("nav.resumeBrain"), href: "/resume-brain", hint: t("nav.resumeBrainHint") },
     { label: t("nav.taxCalculator"), href: "/tax-calculator", hint: t("nav.taxCalculatorHint") },
+    { label: t("nav.portfolio"), href: "/portfolio", hint: t("nav.portfolioHint") },
     { label: t("nav.voiceToText"), href: "/chat-to-text", hint: t("nav.voiceToTextHint") },
     { label: t("nav.forum"), href: "/forum", hint: t("nav.forumHint") },
   ];

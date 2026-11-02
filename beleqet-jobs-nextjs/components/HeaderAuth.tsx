@@ -95,12 +95,12 @@ export default function HeaderAuth() {
             <span
               className={`mt-3 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${role.className}`}
             >
-              {role.label}
+              {t(`header.roles.${user.role}`)}
             </span>
           </div>
           <div className="p-1.5">
             <MenuLink href="/profile" icon={User} onClick={() => setOpen(false)}>
-              My Profile
+              {t('header.myProfile')}
             </MenuLink>
             <MenuLink
               href={
@@ -113,15 +113,17 @@ export default function HeaderAuth() {
               icon={Briefcase}
               onClick={() => setOpen(false)}
             >
-              {user.role === 'EMPLOYER'
-                ? 'Hiring Dashboard'
-                : user.role === 'JOB_SEEKER'
-                  ? 'My Applications'
-                  : 'Browse Jobs'}
+              {t(
+                user.role === 'EMPLOYER'
+                  ? 'header.hiringDashboard'
+                  : user.role === 'JOB_SEEKER'
+                    ? 'header.myApplications'
+                    : 'header.browseJobs',
+              )}
             </MenuLink>
             {user.role === 'ADMIN' && (
               <MenuLink href="/admin" icon={ShieldCheck} onClick={() => setOpen(false)}>
-                Admin Dashboard
+                {t('header.adminDashboard')}
               </MenuLink>
             )}
             <button

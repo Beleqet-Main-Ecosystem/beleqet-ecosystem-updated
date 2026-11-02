@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Check, X } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
+import { safeHttpUrl } from '../format';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const MAX_CV_BYTES = 5 * 1024 * 1024;
@@ -32,6 +33,8 @@ export default function ApplyDialog({ jobId, jobTitle, company, onClose, onAppli
   const [file, setFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
   const [cover, setCover] = useState('');
+  const [portfolio, setPortfolio] = useState('');
+  const [salary, setSalary] = useState('');
   const [status, setStatus] = useState<'form' | 'sending' | 'sent' | 'duplicate'>('form');
   const [error, setError] = useState('');
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +67,9 @@ export default function ApplyDialog({ jobId, jobTitle, company, onClose, onAppli
 
   const coverTooShort = cover.trim().length > 0 && cover.trim().length < COVER_MIN;
   const needsFile = cvChoice === 'upload';
-  const canSend = !busy && !coverTooShort && (!needsFile || (file && consent));
+  const portfolioUrl = portfolio.trim() ? safeHttpUrl(portfolio) : null;
+  const portfolioInvalid = portfolio.trim().length > 0 && !portfolioUrl;
+  const canSend = !busy && !coverTooShort && !portfolioInvalid && (!needsFile || (file && consent));
 
   async function uploadCv(cv: File): Promise<string> {
     if (!CV_TYPES.includes(cv.type)) throw new Error(t('job.apply.errType'));
@@ -88,7 +93,13 @@ export default function ApplyDialog({ jobId, jobTitle, company, onClose, onAppli
       const res = await authenticatedFetch(`${API_URL}/applications`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, resumeUrl, coverLetter: cover.trim() || undefined }),
+        body: JSON.stringify({
+          jobId,
+          resumeUrl,
+          coverLetter: cover.trim() || undefined,
+          portfolioUrl: portfolioUrl ?? undefined,
+          expectedSalary: salary ? Number(salary) : undefined,
+        }),
       });
       if (res.status === 409) {
         setStatus('duplicate');
@@ -209,6 +220,35 @@ export default function ApplyDialog({ jobId, jobTitle, company, onClose, onAppli
                 {coverTooShort ? t('job.apply.coverShort').replace('{n}', String(COVER_MIN - cover.trim().length)) : t('job.apply.coverHint')}
               </span>
             </label>
+
+            <div className="grid gap-3.5 md:grid-cols-2">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-ink-900 dark:text-white">
+                  {t('job.apply.portfolio')} <span className="font-medium text-ink-600 dark:text-slate-400">({t('job.apply.optional')})</span>
+                </span>
+                <input
+                  type="url"
+                  value={portfolio}
+                  onChange={(e) => setPortfolio(e.target.value)}
+                  placeholder="https://"
+                  aria-invalid={portfolioInvalid || undefined}
+                  className="min-h-12 min-w-0 rounded-md border border-ink-300 bg-surface px-3 text-[15px] text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+                {portfolioInvalid && <span className="text-[13px] font-semibold text-[#B42318]">{t('job.apply.portfolioInvalid')}</span>}
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-ink-900 dark:text-white">
+                  {t('job.apply.expectedSalary')} <span className="font-medium text-ink-600 dark:text-slate-400">({t('job.apply.optional')})</span>
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={salary}
+                  onChange={(e) => setSalary(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  className="min-h-12 min-w-0 rounded-md border border-ink-300 bg-surface px-3 text-[15px] text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+              </label>
+            </div>
 
             {error && (
               <p role="alert" className="rounded-md bg-[#FDECEC] px-3.5 py-3 text-sm font-semibold text-[#9B2C2C]">

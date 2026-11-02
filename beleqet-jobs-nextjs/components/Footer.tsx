@@ -14,6 +14,7 @@ const footerColumns = [
       { labelKey: 'nav.feed', href: '/feed' },
       { labelKey: 'nav.resumeBrain', href: '/resume-brain' },
       { labelKey: 'nav.cvMaker', href: '/cv-maker' },
+      { labelKey: 'nav.portfolio', href: '/portfolio' },
       { labelKey: 'footer.telegramAlerts', href: TELEGRAM_URL },
     ],
   },
