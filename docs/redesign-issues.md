@@ -55,6 +55,13 @@ Kept beyond the design: budget sort, the four escrow steps, "Join as a freelance
 
 Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contract tests set "funded" directly in the local database.
 
+## UI/UX: Tier 3 hiring and plans
+
+| # | Page | Issue | Status |
+|---|---|---|---|
+| U33 | Post a job | Salary period, years of experience, qualification, own website link and urgent were missing; all now saved | Fixed |
+| U34 | Post a job | Company logo upload not in this form; set on the company profile instead (A16) | Open |
+
 ## Blocked: needs a decision or content
 
 | # | Issue | Needs |
@@ -125,3 +132,4 @@ Put secrets in `.env` or a password manager, not in chat.
 | A36 | Fund escrow: a second try returns the contract page instead of a payment link, so an abandoned payment can't be resumed | Small |
 | A37 | **Revision requests drop the reason:** the client's note is never saved, so the freelancer can't see what to change | Small |
 | A38 | Contract needs an activity feed from EventLog | Small |
+| A39 | Plan limits aren't enforced: POST /jobs ignores maxJobPosts and accepts featured from any plan, so the limit on the page is only a display | Medium |

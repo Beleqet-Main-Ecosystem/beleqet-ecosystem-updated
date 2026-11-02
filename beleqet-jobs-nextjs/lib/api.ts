@@ -357,6 +357,17 @@ export async function fetchGigCategories(): Promise<GigCategory[]> {
   }
 }
 
+/** Job categories with their database ids, which POST /jobs needs. */
+export async function fetchPostingCategories(): Promise<{ id: string; label: string }[]> {
+  try {
+    const { data } = await api.get<{ id: string; label: string }[]>('/jobs/categories');
+    return Array.isArray(data) ? data.map(({ id, label }) => ({ id, label })) : [];
+  } catch (err) {
+    console.error(`[api] fetchPostingCategories failed: ${describeError(err)}`);
+    return [];
+  }
+}
+
 /** Fetch all job categories. */
 // Categories change rarely and every listing page needs them, so the server
 // keeps them for an hour and serves the last good list if a refresh fails.

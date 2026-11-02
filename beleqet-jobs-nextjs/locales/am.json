@@ -233,7 +233,103 @@
     "keepSignedIn": "እንደገባሁ አቆየኝ"
   },
   "postJob": {
-    "button": "ስራ ፖስት አድርግ"
+    "gateTitle": "ስራ ለመለጠፍ ይግቡ",
+    "gateText": "ስራ ለማተም በአሰሪ መለያዎ ይግቡ።",
+    "signIn": "ይግቡ",
+    "roleTitle": "የአሰሪ መለያ ያስፈልጋል",
+    "roleText": "መለያዎ ስራ ማተም አይችልም። ለመቀጠል እንደ አሰሪ ይመዝገቡ።",
+    "createEmployer": "የአሰሪ መለያ ፍጠር",
+    "companyFailed": "የድርጅት መገለጫዎን ማረጋገጥ አልተቻለም።",
+    "companyTitle": "የድርጅት መገለጫዎን ይፍጠሩ",
+    "companyText": "እያንዳንዱ ስራ የእውነተኛ ድርጅት ነው። ይህን አንዴ ይሙሉ፣ ከዚያ ወደ ስራ መለጠፍ ይቀጥሉ።",
+    "company": {
+      "name": "የድርጅት ስም",
+      "industry": "ዘርፍ",
+      "location": "አካባቢ",
+      "website": "ድረ ገጽ (አማራጭ)",
+      "description": "ስለ ድርጅቱ"
+    },
+    "companySave": "ድርጅቱን አስቀምጥ እና ቀጥል",
+    "saving": "በማስቀመጥ ላይ…",
+    "companySaveFailed": "ድርጅትዎን ማስቀመጥ አልተቻለም። እንደገና ይሞክሩ።",
+    "title": "ስራ ይለጥፉ",
+    "basics": "መሰረታዊ መረጃ",
+    "jobTitle": "የስራ መደብ",
+    "category": "ምድብ",
+    "chooseCategory": "ምድብ ይምረጡ",
+    "location": "አካባቢ",
+    "openings": "ክፍት ቦታዎች",
+    "jobType": "የስራ አይነት",
+    "salary": "ደመወዝ",
+    "paid": "ክፍያ",
+    "periods": {
+      "monthly": "በወር",
+      "daily": "በቀን",
+      "hourly": "በሰዓት"
+    },
+    "units": {
+      "monthly": "ወር",
+      "daily": "ቀን",
+      "hourly": "ሰዓት"
+    },
+    "salaryHint": "የደመወዝ ክልል ማሳየት እጩዎች ለማመልከት እንዲወስኑ ይረዳል። አማራጭ ነው፣ ግን ይመከራል።",
+    "descriptionTitle": "መግለጫ እና መስፈርቶች",
+    "about": "ስለ ስራው",
+    "requirements": "መስፈርቶች",
+    "experience": "የልምድ ደረጃ",
+    "notSpecified": "አልተገለጸም",
+    "levels": {
+      "Entry level": "ጀማሪ",
+      "Junior": "ጁኒየር",
+      "Mid-level": "መካከለኛ",
+      "Senior": "ከፍተኛ"
+    },
+    "years": "የልምድ ዓመታት",
+    "qualification": "የትምህርት ደረጃ",
+    "skills": "ክህሎቶች",
+    "applyTitle": "እጩዎች እንዴት ያመለክታሉ",
+    "applyMethod": "የማመልከቻ ዘዴ",
+    "methods": {
+      "internal": {
+        "label": "በበለቀት ያመልክቱ",
+        "text": "አመልካቾች በዳሽቦርድዎ ይታያሉ"
+      },
+      "external": {
+        "label": "የእርስዎ ድረ ገጽ",
+        "text": "እጩዎችን ወደ ራስዎ የማመልከቻ ገጽ ይላኩ"
+      },
+      "with_email": {
+        "label": "በኢሜይል",
+        "text": "እጩዎች በቀጥታ ኢሜይል ይልኩልዎታል"
+      }
+    },
+    "applyLink": "የማመልከቻ ሊንክ",
+    "applyEmail": "የማመልከቻ ኢሜይል",
+    "deadline": "የማመልከቻ ማብቂያ ቀን",
+    "visibility": "ታይነት",
+    "feature": "ይህን ስራ አጉላ",
+    "featureText": "በፍለጋ ውጤቶች መጀመሪያ ከተመራጭ ምልክት ጋር ይታያል። በእቅድዎ ውስጥ ተካትቷል።",
+    "featureLocked": "በፍለጋ ውጤቶች መጀመሪያ ይታያል። በPro እና Enterprise እቅዶች ይገኛል።",
+    "urgent": "አስቸኳይ አድርግ",
+    "urgentText": "በቅርቡ እየቀጠሩ መሆኑን እጩዎች እንዲያውቁ የአስቸኳይ ምልክት ይጨምራል።",
+    "preview": "በፍለጋ ውስጥ ቅድመ እይታ",
+    "previewTitle": "የስራ መደብዎ",
+    "planName": "{plan} እቅድ",
+    "postsUsed": "ከ{max} ልጥፎች {used} ጥቅም ላይ ውለዋል",
+    "publish": "ስራ አትም",
+    "editNote": "ስራውን በማንኛውም ጊዜ ከዳሽቦርድዎ ማስተካከል ወይም መዝጋት ይችላሉ።",
+    "errTitle": "የስራ መደብ ያስገቡ።",
+    "errCategory": "ምድብ ይምረጡ።",
+    "errLocation": "አካባቢ ያስገቡ።",
+    "errSalary": "ከፍተኛው ደመወዝ ከዝቅተኛው ማነስ የለበትም።",
+    "errDescription": "ስራውን ቢያንስ በ50 ፊደላት ይግለጹ።",
+    "errUrl": "ሙሉ የማመልከቻ ሊንክ ያስገቡ፣ ለምሳሌ https://example.com/apply",
+    "errEmail": "ትክክለኛ ኢሜይል ያስገቡ።",
+    "publishFailed": "ስራዎን ማተም አልተቻለም። እንደገና ይሞክሩ።",
+    "liveTitle": "ስራዎ ታትሟል",
+    "liveText": "{title} አሁን በበለቀት ላይ ነው። አዳዲስ አመልካቾች በዳሽቦርድዎ ይታያሉ፣ ሲደርሱም እናሳውቅዎታለን።",
+    "view": "የስራ ማስታወቂያውን ይመልከቱ",
+    "dashboard": "ወደ ዳሽቦርድ"
   },
   "hero": {
     "title": "በኢትዮጵያ ውስጥ የሚቀጥለውን ስራዎን ያግኙ",

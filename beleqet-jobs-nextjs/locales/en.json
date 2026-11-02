@@ -233,7 +233,103 @@
     "keepSignedIn": "Keep me signed in"
   },
   "postJob": {
-    "button": "Post a Job"
+    "gateTitle": "Sign in to post a job",
+    "gateText": "Sign in with your employer account to publish a job.",
+    "signIn": "Sign in",
+    "roleTitle": "An employer account is required",
+    "roleText": "Your account cannot publish jobs. Register as an employer to continue.",
+    "createEmployer": "Create employer account",
+    "companyFailed": "We couldn't check your company profile.",
+    "companyTitle": "Create your company profile",
+    "companyText": "Every job belongs to a real company. Complete this once, then continue to your job post.",
+    "company": {
+      "name": "Company name",
+      "industry": "Industry",
+      "location": "Location",
+      "website": "Website (optional)",
+      "description": "About the company"
+    },
+    "companySave": "Save company and continue",
+    "saving": "Saving…",
+    "companySaveFailed": "We couldn't save your company. Try again.",
+    "title": "Post a job",
+    "basics": "The basics",
+    "jobTitle": "Job title",
+    "category": "Category",
+    "chooseCategory": "Choose a category",
+    "location": "Location",
+    "openings": "Openings",
+    "jobType": "Job type",
+    "salary": "Salary",
+    "paid": "Paid",
+    "periods": {
+      "monthly": "Monthly",
+      "daily": "Daily",
+      "hourly": "Hourly"
+    },
+    "units": {
+      "monthly": "month",
+      "daily": "day",
+      "hourly": "hour"
+    },
+    "salaryHint": "Showing a salary range helps candidates decide whether to apply. It's optional, but recommended.",
+    "descriptionTitle": "Description and requirements",
+    "about": "About the role",
+    "requirements": "Requirements",
+    "experience": "Experience level",
+    "notSpecified": "Not specified",
+    "levels": {
+      "Entry level": "Entry level",
+      "Junior": "Junior",
+      "Mid-level": "Mid-level",
+      "Senior": "Senior"
+    },
+    "years": "Years of experience",
+    "qualification": "Qualification",
+    "skills": "Skills",
+    "applyTitle": "How candidates apply",
+    "applyMethod": "Application method",
+    "methods": {
+      "internal": {
+        "label": "Apply on Beleqet",
+        "text": "Applicants appear in your dashboard"
+      },
+      "external": {
+        "label": "Your website",
+        "text": "Send candidates to your own application page"
+      },
+      "with_email": {
+        "label": "By email",
+        "text": "Candidates email you directly"
+      }
+    },
+    "applyLink": "Application link",
+    "applyEmail": "Email for applications",
+    "deadline": "Application deadline",
+    "visibility": "Visibility",
+    "feature": "Feature this job",
+    "featureText": "Shown first in search results with a Featured badge. Included in your plan.",
+    "featureLocked": "Shown first in search results. Available on the Pro and Enterprise plans.",
+    "urgent": "Mark as urgent",
+    "urgentText": "Adds an Urgent badge so candidates know you're hiring soon.",
+    "preview": "Preview in search",
+    "previewTitle": "Your job title",
+    "planName": "{plan} plan",
+    "postsUsed": "{used} of {max} posts used",
+    "publish": "Publish job",
+    "editNote": "You can edit or close the job anytime from your dashboard.",
+    "errTitle": "Enter a job title.",
+    "errCategory": "Choose a category.",
+    "errLocation": "Enter a location.",
+    "errSalary": "The maximum salary must not be lower than the minimum.",
+    "errDescription": "Describe the role in at least 50 characters.",
+    "errUrl": "Enter a full application link, like https://example.com/apply",
+    "errEmail": "Enter a valid email address.",
+    "publishFailed": "We couldn't publish your job. Try again.",
+    "liveTitle": "Your job is live",
+    "liveText": "{title} is now on Beleqet. New applicants will show up in your dashboard, and we'll notify you as they arrive.",
+    "view": "View job post",
+    "dashboard": "Go to dashboard"
   },
   "hero": {
     "title": "Find your next job in Ethiopia",
