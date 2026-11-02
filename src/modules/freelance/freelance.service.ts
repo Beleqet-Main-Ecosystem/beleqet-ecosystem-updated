@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -194,14 +195,26 @@ export class FreelanceService {
       include: {
         category: true,
         client: { select: { id: true, firstName: true, lastName: true } },
-        bids: {
-          include: { freelancer: { select: { id: true, firstName: true, lastName: true } } },
-          orderBy: { createdAt: 'desc' },
-        },
+        // Public endpoint: only the count. Prices and cover letters come from findBids.
+        _count: { select: { bids: true } },
       },
     });
     if (!job) throw new NotFoundException('Gig not found');
     return job;
+  }
+
+  /** The project owner sees every bid; anyone else sees only their own. */
+  async findBids(gigId: string, userId: string) {
+    const job = await this.prisma.freelanceJob.findUnique({
+      where: { id: gigId },
+      select: { clientId: true },
+    });
+    if (!job) throw new NotFoundException('Gig not found');
+    return this.prisma.bid.findMany({
+      where: job.clientId === userId ? { freelanceJobId: gigId } : { freelanceJobId: gigId, freelancerId: userId },
+      include: { freelancer: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async submitBid(freelancerId: string, gigId: string, dto: CreateBidDto) {
@@ -359,7 +372,26 @@ export class FreelanceService {
       },
     });
     if (!c) throw new NotFoundException('Contract not found');
-    return c;
+
+    const revisions = await this.prisma.eventLog.findMany({
+      where: { eventType: 'milestone.revision_requested', entityId: { in: c.milestones.map((m) => m.id) } },
+      orderBy: { createdAt: 'desc' },
+      select: { entityId: true, payload: true, createdAt: true },
+    });
+    const latest = new Map<string, { reason: string; at: Date }>();
+    for (const r of revisions) {
+      if (!latest.has(r.entityId)) {
+        latest.set(r.entityId, { reason: String((r.payload as { reason?: string })?.reason ?? ''), at: r.createdAt });
+      }
+    }
+    return {
+      ...c,
+      milestones: c.milestones.map((m) => ({
+        ...m,
+        revisionNote: latest.get(m.id)?.reason ?? null,
+        revisionRequestedAt: latest.get(m.id)?.at ?? null,
+      })),
+    };
   }
 
   /**
@@ -455,12 +487,31 @@ export class FreelanceService {
     if (milestone.contract.clientId !== clientId) {
       throw new ForbiddenException('Only the client can request milestone revision');
     }
+    if (milestone.status !== 'SUBMITTED') {
+      throw new ConflictException('Only submitted work can be sent back for revision.');
+    }
+    const note = reason?.trim() ?? '';
+    if (!note || note.length > 2000) {
+      throw new BadRequestException('Say what should change, in up to 2,000 characters.');
+    }
 
-    return this.prisma.milestone.update({
-      where: { id: milestoneId },
-      data: {
-        status: 'REVISION_REQUESTED',
-      },
+    // The note is kept in the event log, which the contract page reads back.
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const updated = await tx.milestone.update({
+        where: { id: milestoneId },
+        data: { status: 'REVISION_REQUESTED' },
+      });
+      await tx.eventLog.create({
+        data: {
+          eventType: 'milestone.revision_requested',
+          entityId: milestoneId,
+          entityType: 'Milestone',
+          payload: { contractId: milestone.contractId, reason: note },
+          actorUserId: clientId,
+          processedBy: FreelanceService.name,
+        },
+      });
+      return updated;
     });
   }
 }

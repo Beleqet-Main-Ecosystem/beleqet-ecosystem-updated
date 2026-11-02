@@ -11,6 +11,9 @@ export type Milestone = {
   deadline: string;
   status: MilestoneStatus;
   approvedAt?: string | null;
+  /** The client's latest "what should change" note. */
+  revisionNote?: string | null;
+  revisionRequestedAt?: string | null;
   deliverables?: Deliverable[];
 };
 

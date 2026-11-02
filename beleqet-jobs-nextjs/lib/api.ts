@@ -319,9 +319,8 @@ export type GigDetail = Gig & {
 };
 
 /**
- * Fetch one project, or null when the API says it does not exist. The API's
- * bids are left out on purpose: they hold cover letters and prices that must
- * not reach the public page.
+ * Fetch one project, or null when the API says it does not exist. The public
+ * response carries only the bid count; bids load separately for signed-in viewers.
  */
 export const fetchGig = cache(async function fetchGig(id: string): Promise<GigDetail | null> {
   try {
@@ -329,7 +328,7 @@ export const fetchGig = cache(async function fetchGig(id: string): Promise<GigDe
     const first = raw.client?.firstName ?? '';
     const last = raw.client?.lastName ?? '';
     return {
-      ...toGig({ ...raw, _count: { bids: raw.bids?.length ?? 0 } }),
+      ...toGig(raw),
       clientId: raw.clientId,
       clientName: `${first} ${last ? `${last.charAt(0)}.` : ''}`.trim(),
       experienceLevel: raw.experienceLevel ?? null,

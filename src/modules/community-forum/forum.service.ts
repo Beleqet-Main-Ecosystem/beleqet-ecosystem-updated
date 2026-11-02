@@ -82,6 +82,7 @@ export class ForumService {
       items: items.map(({ _count, ...thread }) => ({
         ...thread,
         user: thread.isAnonymous ? null : thread.user,
+        userId: thread.isAnonymous ? null : thread.userId,
         replyCount: _count.replies,
       })),
       pagination: {
@@ -106,7 +107,12 @@ export class ForumService {
       throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     const { _count, ...data } = thread;
-    return { ...data, user: data.isAnonymous ? null : data.user, replyCount: _count.replies };
+    return {
+      ...data,
+      user: data.isAnonymous ? null : data.user,
+      userId: data.isAnonymous ? null : data.userId,
+      replyCount: _count.replies,
+    };
   }
 
   async createReply(userId: string, threadId: string, dto: CreateReplyDto, lang = 'en') {
@@ -177,9 +183,11 @@ export class ForumService {
     return replies.map((reply) => ({
       ...reply,
       user: reply.isAnonymous ? null : reply.user,
+      userId: reply.isAnonymous ? null : reply.userId,
       childReplies: reply.childReplies.map((child) => ({
         ...child,
         user: child.isAnonymous ? null : child.user,
+        userId: child.isAnonymous ? null : child.userId,
       })),
     }));
   }

@@ -187,7 +187,7 @@ export default function EmployerDashboard() {
 
         {!failed && tab === 'applicants' && jobs && <ApplicantsSection jobs={list} selectedId={selectedJob} />}
         {tab === 'company' && <CompanySection openJobs={open.length} />}
-        {tab === 'plan' && <PlanSection used={list.length} />}
+        {tab === 'plan' && <PlanSection />}
       </div>
 
       {closing && (

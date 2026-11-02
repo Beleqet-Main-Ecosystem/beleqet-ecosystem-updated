@@ -31,6 +31,13 @@ export class FreelanceController {
     return this.svc.findJobs(q);
   }
 
+  @Get('jobs/:id/bids')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  findBids(@Param('id') id: string, @CurrentUser() u: CurrentUserPayload) {
+    return this.svc.findBids(id, u.userId);
+  }
+
   @Get('jobs/:id')
   findJob(@Param('id') id: string) {
     return this.svc.findJobById(id);

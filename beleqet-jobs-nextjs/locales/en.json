@@ -329,7 +329,8 @@
     "liveTitle": "Your job is live",
     "liveText": "{title} is now on Beleqet. New applicants will show up in your dashboard, and we'll notify you as they arrive.",
     "view": "View job post",
-    "dashboard": "Go to dashboard"
+    "dashboard": "Go to dashboard",
+    "limitReached": "You've used all the job posts in your plan for this period."
   },
   "hero": {
     "title": "Find your next job in Ethiopia",
@@ -1151,7 +1152,9 @@
       "left": "{left} left to plan",
       "dueDate": "Due date",
       "errMilestone": "Enter a title and a due date.",
-      "errAmount": "Enter an amount up to {left}."
+      "errAmount": "Enter an amount up to {left}.",
+      "revisionAsked": "What the client asked to change",
+      "logRevision": "Revision requested for \"{title}\""
     }
   },
   "pricing": {
@@ -1208,6 +1211,10 @@
       "escrow": {
         "q": "Is the escrow fee included in my plan?",
         "a": "No. The 10% escrow fee applies only when a freelance milestone is released, on every plan."
+      },
+      "limit": {
+        "q": "What happens when I reach my job-post limit?",
+        "a": "You can upgrade at any time to post more. Your existing posts stay live, and the count starts again at the next billing period."
       }
     },
     "jobPost": "{count} job post"

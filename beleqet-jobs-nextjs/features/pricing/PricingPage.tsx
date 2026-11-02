@@ -6,7 +6,7 @@ import { Check, ShieldCheck } from 'lucide-react';
 import type { Plan } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 
-const FAQS = ['needPlan', 'howPay', 'cancel', 'expires', 'escrow'] as const;
+const FAQS = ['needPlan', 'howPay', 'limit', 'cancel', 'expires', 'escrow'] as const;
 
 type Features = { maxJobPosts?: number; maxFreelanceBids?: number; featuredListing?: boolean; apiAccess?: boolean; support?: string };
 

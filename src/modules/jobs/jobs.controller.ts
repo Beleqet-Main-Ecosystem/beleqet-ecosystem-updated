@@ -29,6 +29,16 @@ export class JobsController {
     return this.svc.findAll(query);
   }
 
+  @Get('my/quota')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Job posts allowed and used in the caller's billing period" })
+  myQuota(@CurrentUser() user: CurrentUserPayload) {
+    return this.svc.getQuota(user.userId);
+  }
+
   @Get('my')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER', 'ADMIN')

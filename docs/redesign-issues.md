@@ -61,7 +61,7 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 |---|---|---|---|
 | U33 | Post a job | Salary period, years of experience, qualification, own website link and urgent were missing; all now saved | Fixed |
 | U34 | Post a job | Company logo upload not in this form; set on the company profile instead (A16) | Open |
-| U35 | Pricing | Design's question about reaching the job-post limit left out: the limit isn't enforced yet (A39). Add it back once it is | Open |
+| U35 | Pricing | Question about reaching the job-post limit is back now that the limit is enforced (A39) | Fixed |
 | U36 | Pricing | "Subscribe" can't complete until PayPal plan IDs are set or another payment route is chosen (A21, C4) | Blocked |
 | U37 | Seeker dashboard | Old "Your opportunities", profile and dashboard pages merged into one; subscription cancel and interview availability moved in | Fixed |
 | U38 | Seeker dashboard | Freelancers had no page for My bids or Contracts; added both | Fixed |
@@ -80,7 +80,7 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 
 | # | Page | Issue | Status |
 |---|---|---|---|
-| U49 | Tax calculator | **Your decision:** the United States option was removed to match the design, which is Ethiopia only. Say if you want it back | Open |
+| U49 | Tax calculator | United States option removed to match the design (decided 2026-11-02: Ethiopia only) | Fixed |
 | U50 | Tax calculator | Works in the browser with 7% pension; shows a warning until the current bands are confirmed (C9, A24) | Open |
 | U51 | Feed | No "why this job" reasons (A12); Hide is remembered only on this device (A11); turning the feed off isn't in Settings yet | Open |
 | U52 | Forum | Nobody could post, reply or vote: the page read the wrong token name, and a helper dropped the request's content type. Both fixed | Fixed |
@@ -155,14 +155,14 @@ Put secrets in `.env` or a password manager, not in chat.
 | A29 | No saved projects endpoints | Medium |
 | A30 | Project list doesn't return the client's name | Small |
 | A31 | Test runs leave "GDPR Test Category" rows in the database | Small |
-| A32 | **Privacy:** GET /freelance/jobs/:id is public and returns every bid, with price and cover letter, to anyone. The website hides them, but the API must too | Small |
+| A32 | **Privacy:** bids are no longer in the public project API. New GET /freelance/jobs/:id/bids (sign-in): the owner sees every bid, a bidder only their own | Done |
 | A33 | Any account can bid, including a client on their own project | Small |
 | A34 | "Fund escrow" must be reachable from the contract; check the amount after a bid is accepted | Small |
 | A35 | Bids and projects need completed-contract count, member-since date and portfolio link | Small |
 | A36 | Fund escrow: a second try returns the contract page instead of a payment link, so an abandoned payment can't be resumed | Small |
-| A37 | **Revision requests drop the reason:** the client's note is never saved, so the freelancer can't see what to change | Small |
+| A37 | **Revision requests drop the reason:** the note is now required, saved in the event log and shown on the contract. Only submitted work can be sent back | Done |
 | A38 | Contract needs an activity feed from EventLog | Small |
-| A39 | Plan limits aren't enforced: POST /jobs ignores maxJobPosts and accepts featured from any plan, so the limit on the page is only a display | Medium |
+| A39 | Plan limits enforced: POST /jobs counts posts made in the billing period (calendar month on Free) against maxJobPosts and refuses Featured without the plan. New GET /jobs/my/quota feeds the page. Admins are exempt | Done |
 | A40 | No way for people to delete their own account; the erase endpoint is admin-only | Medium |
 | A41 | Profile links can't be cleared: the API rejects an empty link | Small |
-| A42 | **Privacy:** anonymous forum posts still return the real userId from the public API | Small |
+| A42 | **Privacy:** anonymous threads and replies now return userId as null | Done |

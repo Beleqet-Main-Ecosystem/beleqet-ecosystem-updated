@@ -71,24 +71,14 @@ export default function PostJob({ categories }: { categories: Category[] }) {
     } catch {
       setCompanyFailed(true);
     }
-    // Plan usage is a helpful extra: the form still works if these fail.
-    authenticatedFetch(`${API_URL}/subscriptions/me`)
-      .then((response) => (response.ok ? response.text() : ''))
-      .then((text) => {
-        const features = text ? JSON.parse(text)?.plan : null;
-        const maxPosts: number | undefined = features?.features?.maxJobPosts;
-        setPlan({
-          name: features?.name ?? 'Free',
-          // -1 means unlimited.
-          maxPosts: maxPosts != null && maxPosts < 0 ? null : maxPosts ?? (features ? null : 1),
-          canFeature: Boolean(features?.features?.featuredListing),
-        });
+    // Plan usage is a helpful extra: the form still works if it fails.
+    authenticatedFetch(`${API_URL}/jobs/my/quota`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((quota: { plan: string; used: number; max: number | null; canFeature: boolean } | null) => {
+        setPlan(quota ? { name: quota.plan, maxPosts: quota.max, canFeature: quota.canFeature } : null);
+        setUsed(quota ? quota.used : null);
       })
       .catch(() => setPlan(null));
-    authenticatedFetch(`${API_URL}/jobs/my`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((jobs) => setUsed(Array.isArray(jobs) ? jobs.length : null))
-      .catch(() => setUsed(null));
   }, []);
 
   useEffect(() => {
@@ -139,6 +129,7 @@ export default function PostJob({ categories }: { categories: Category[] }) {
   const min = Number(salaryMin);
   const max = Number(salaryMax);
   const pay = min && max ? `ETB ${min.toLocaleString('en-US')}–${max.toLocaleString('en-US')}` : max || min ? `ETB ${(max || min).toLocaleString('en-US')}` : '';
+  const atLimit = plan?.maxPosts != null && used != null && used >= plan.maxPosts;
   const percent = plan?.maxPosts && used != null ? Math.min(100, Math.round((used / plan.maxPosts) * 100)) : null;
 
   function addTag() {
@@ -198,6 +189,11 @@ export default function PostJob({ categories }: { categories: Category[] }) {
           urgent,
         }),
       });
+      if (response.status === 403) {
+        const body = await response.json().catch(() => ({}));
+        setError(typeof body.message === 'string' ? body.message : t('postJob.limitReached'));
+        return;
+      }
       if (!response.ok) throw new Error('publish');
       const job = await response.json();
       setPublishedId(job.id);
@@ -399,8 +395,13 @@ export default function PostJob({ categories }: { categories: Category[] }) {
               )}
             </div>
           )}
+          {atLimit && (
+            <p className="text-sm text-ink-700 dark:text-slate-300">
+              {t('postJob.limitReached')} <Link href="/pricing" className="font-bold text-forest hover:underline dark:text-limeAccent">{t('dash.seePlans')}</Link>
+            </p>
+          )}
           {error && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{error}</p>}
-          <button type="submit" disabled={publishing} className={solid}>{t(publishing ? 'freelance.post2.publishing' : 'postJob.publish')}</button>
+          <button type="submit" disabled={publishing || atLimit} className={solid}>{t(publishing ? 'freelance.post2.publishing' : 'postJob.publish')}</button>
           <span className={hint}>{t('postJob.editNote')}</span>
         </section>
       </aside>

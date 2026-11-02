@@ -96,6 +96,7 @@ export default function ContractWorkspace({ id }: { id: string }) {
     escrow?.fundedAt ? { text: t('freelance.contract.logFunded').replace('{amount}', money(escrow.grossAmount)), at: escrow.fundedAt } : null,
     ...contract.milestones.flatMap((item) => [
       ...(item.deliverables ?? []).map((work) => ({ text: t('freelance.contract.logSubmitted').replace('{title}', item.title), at: work.submittedAt })),
+      item.revisionRequestedAt ? { text: t('freelance.contract.logRevision').replace('{title}', item.title), at: item.revisionRequestedAt } : null,
       item.approvedAt ? { text: t('freelance.contract.logReleased').replace('{amount}', money(item.amount)).replace('{title}', item.title), at: item.approvedAt } : null,
     ]),
   ]
@@ -241,6 +242,13 @@ export default function ContractWorkspace({ id }: { id: string }) {
                         <a href={link} target="_blank" rel="noopener noreferrer nofollow" className="break-all text-sm font-semibold text-forest hover:underline dark:text-limeAccent">{link} ↗</a>
                       )}
                       {work.notes && <p className="whitespace-pre-line text-sm leading-normal text-ink-700 dark:text-slate-300">{work.notes}</p>}
+                    </div>
+                  )}
+
+                  {item.status === 'REVISION_REQUESTED' && item.revisionNote && (
+                    <div className="flex flex-col gap-1 rounded-lg bg-[#FDECEC] p-3 dark:bg-red-900/20">
+                      <span className="text-[13px] font-bold text-[#9B2C2C] dark:text-red-200">{t('freelance.contract.revisionAsked')}</span>
+                      <p className="whitespace-pre-line text-sm leading-normal text-ink-900 dark:text-slate-200">{item.revisionNote}</p>
                     </div>
                   )}
 

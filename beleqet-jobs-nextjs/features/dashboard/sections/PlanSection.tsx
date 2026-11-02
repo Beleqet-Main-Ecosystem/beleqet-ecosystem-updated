@@ -14,23 +14,28 @@ type Subscription = {
   plan?: { name?: string; priceAmount?: number; currency?: string; features?: { maxJobPosts?: number } } | null;
 };
 
-export default function PlanSection({ used }: { used: number }) {
+type Quota = { used: number; max: number | null };
+
+export default function PlanSection() {
   const { t, locale } = useTranslation();
   const [subscription, setSubscription] = useState<Subscription | null | undefined>(undefined);
   const [cancelling, setCancelling] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [quota, setQuota] = useState<Quota | null>(null);
 
   const load = useCallback(() => {
     apiGet<Subscription | null>('/subscriptions/me').then(setSubscription).catch(() => setSubscription(null));
+    apiGet<Quota>('/jobs/my/quota').then(setQuota).catch(() => setQuota(null));
   }, []);
   useEffect(load, [load]);
 
   if (subscription === undefined) return <div className="min-h-[40vh]" />;
 
   const plan = subscription?.plan;
-  const maxPosts = subscription ? plan?.features?.maxJobPosts : 1;
-  const limited = maxPosts != null && maxPosts >= 0;
+  const used = quota?.used ?? 0;
+  const maxPosts = quota?.max ?? null;
+  const limited = maxPosts !== null;
   const percent = limited && maxPosts ? Math.min(100, Math.round((used / maxPosts) * 100)) : 0;
   const active = subscription && !subscription.cancelAtPeriodEnd && subscription.status === 'ACTIVE';
 

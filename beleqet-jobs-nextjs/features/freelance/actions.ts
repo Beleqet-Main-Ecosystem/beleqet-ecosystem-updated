@@ -27,10 +27,9 @@ export async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json();
 }
 
-/** Loaded only for signed-in viewers, so bids never end up in the public page. */
-export async function fetchGigBids(gigId: string): Promise<GigBid[]> {
-  const gig = await call<{ bids?: GigBid[] }>(`/freelance/jobs/${encodeURIComponent(gigId)}`);
-  return gig.bids ?? [];
+/** The owner gets every bid, anyone else only their own. Signed-in only. */
+export function fetchGigBids(gigId: string): Promise<GigBid[]> {
+  return call(`/freelance/jobs/${encodeURIComponent(gigId)}/bids`);
 }
 
 export function submitBid(gigId: string, bid: { amount: number; timelineDays: number; coverLetter: string }): Promise<GigBid> {

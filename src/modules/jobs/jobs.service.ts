@@ -19,13 +19,56 @@ export class JobsService {
     private readonly telegramService: TelegramService,
   ) {}
 
+  /**
+   * Job posts allowed and used in the current billing period. Without an active
+   * subscription the Free plan applies, counted per calendar month. Every post
+   * created in the period counts, so deleting one doesn't give a post back.
+   */
+  async getQuota(employerId: string) {
+    const now = new Date();
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { userId: employerId, status: { in: ['ACTIVE', 'PAST_DUE'] }, currentPeriodEnd: { gt: now } },
+      orderBy: { currentPeriodStart: 'desc' },
+      include: { plan: true },
+    });
+    const plan =
+      subscription?.plan ??
+      (await this.prisma.plan.findFirst({ where: { priceAmount: 0, isActive: true }, orderBy: { createdAt: 'asc' } }));
+    const features = (plan?.features ?? {}) as { maxJobPosts?: number; featuredListing?: boolean };
+    const since = subscription?.currentPeriodStart ?? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const used = await this.prisma.job.count({
+      where: { company: { userId: employerId }, createdAt: { gte: since } },
+    });
+    const limit = features.maxJobPosts ?? (plan ? null : 1);
+    return {
+      plan: plan?.name ?? 'Free',
+      used,
+      // -1 or a missing limit means unlimited.
+      max: limit === null || limit < 0 ? null : limit,
+      canFeature: Boolean(features.featuredListing),
+      periodStart: since,
+    };
+  }
+
   async create(employerId: string, dto: CreateJobDto) {
     const employer = await this.prisma.user.findUnique({
       where: { id: employerId },
-      select: { firstName: true, email: true },
+      select: { firstName: true, email: true, role: true },
     });
     const company = await this.prisma.company.findUnique({ where: { userId: employerId } });
     if (!company) throw new ForbiddenException('Create a company profile before posting jobs');
+
+    if (employer?.role !== 'ADMIN') {
+      const quota = await this.getQuota(employerId);
+      if (quota.max !== null && quota.used >= quota.max) {
+        throw new ForbiddenException(
+          `You've used ${quota.max === 1 ? 'your 1 job post' : `all ${quota.max} job posts`} on the ${quota.plan} plan this period. Upgrade to post more.`,
+        );
+      }
+      if (dto.featured && !quota.canFeature) {
+        throw new ForbiddenException('Featured listings are included in the Pro and Enterprise plans.');
+      }
+    }
 
     const data: any = { ...dto, companyId: company.id, status: dto.status || 'PUBLISHED' };
     if (data.deadline) data.deadline = new Date(data.deadline);
@@ -163,6 +206,9 @@ export class JobsService {
   async update(id: string, employerId: string, dto: Partial<CreateJobDto>) {
     const job = await this.prisma.job.findFirst({ where: { id, company: { userId: employerId } } });
     if (!job) throw new NotFoundException('Job not found or access denied');
+    if (dto.featured && !job.featured && !(await this.getQuota(employerId)).canFeature) {
+      throw new ForbiddenException('Featured listings are included in the Pro and Enterprise plans.');
+    }
     return this.prisma.job.update({ where: { id }, data: dto as never });
   }
 

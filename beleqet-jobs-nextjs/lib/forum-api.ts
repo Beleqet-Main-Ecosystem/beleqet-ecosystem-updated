@@ -5,7 +5,8 @@ export interface ForumThread {
   title: string;
   content: string;
   tags: string[];
-  userId: string;
+  /** Null on anonymous posts. */
+  userId: string | null;
   userDisplayName: string;
   isAnonymous: boolean;
   upvoteCount: number;
@@ -22,7 +23,8 @@ export interface ForumReply {
   content: string;
   threadId: string;
   parentReplyId: string | null;
-  userId: string;
+  /** Null on anonymous replies. */
+  userId: string | null;
   userDisplayName: string;
   isAnonymous: boolean;
   upvoteCount: number;
