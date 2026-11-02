@@ -1515,5 +1515,33 @@
     "errContent": "Add at least 20 characters of detail.",
     "postFailed": "We couldn't post your discussion. Try again.",
     "anonymous": "Anonymous"
+  },
+  "voice": {
+    "title": "Voice to text",
+    "sub": "Speak and get the text back. Handy for drafting a cover letter or a project description when typing is slow.",
+    "signInTitle": "Sign in to use voice to text",
+    "language": "Language",
+    "start": "Start recording",
+    "stop": "Stop recording",
+    "recording": "Recording · {time}",
+    "speaking": "Speaking {language}. Tap stop when you're done.",
+    "working": "Turning your speech into text…",
+    "workingHint": "Longer recordings take longer.",
+    "tapStart": "Tap to start recording",
+    "micAsk": "Your browser will ask to use the microphone.",
+    "or": "Or",
+    "upload": "upload an audio file",
+    "upTo": "up to 25 MB",
+    "yourText": "Your text · {language}",
+    "failed": "We couldn't read this recording. Try again.",
+    "transcript": "Transcript",
+    "check": "Check names and numbers. You can edit the text before copying.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download .txt",
+    "recent": "Recent",
+    "none": "Your transcripts will appear here.",
+    "delete": "Delete",
+    "privacy": "Recordings are turned into text on Beleqet's own servers. You can delete a transcript at any time."
   }
 }

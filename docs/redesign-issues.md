@@ -86,6 +86,8 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U52 | Forum | Nobody could post, reply or vote: the page read the wrong token name, and a helper dropped the request's content type. Both fixed | Fixed |
 | U53 | Forum | Anonymous posts showed "Deleted User"; they now show "Anonymous" | Fixed |
 | U54 | Forum | Report, pin and lock actions, and most-voted sort, not offered yet (A9) | Open |
+| U55 | Voice to text | Removed the "Conversation ID" box; a conversation is now created silently. Actual speech wasn't tested: it needs the Whisper service running | Fixed |
+| U56 | Voice to text | Amharic transcripts are still discarded by the backend (A22) | Open |
 
 ## Blocked: needs a decision or content
 
