@@ -122,7 +122,7 @@ function toApplyMethod(raw: any): 'internal' | 'external' | 'email' {
 }
 
 /** Map a canonical backend Job to the web display Job. */
-function toDisplayJob(raw: any): Job {
+export function toDisplayJob(raw: any): Job {
   return {
     id: raw.id,
     title: raw.title,

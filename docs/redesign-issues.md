@@ -76,6 +76,14 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U47 | Employer dashboard | No "Edit job" yet: Post a job only creates. The API can update, so this is a UI gap | Open |
 | U48 | Employer dashboard | Billing history and bank-transfer payment not shown (A20) | Open |
 
+## UI/UX: Tier 4 career tools
+
+| # | Page | Issue | Status |
+|---|---|---|---|
+| U49 | Tax calculator | **Your decision:** the United States option was removed to match the design, which is Ethiopia only. Say if you want it back | Open |
+| U50 | Tax calculator | Works in the browser with 7% pension; shows a warning until the current bands are confirmed (C9, A24) | Open |
+| U51 | Feed | No "why this job" reasons (A12); Hide is remembered only on this device (A11); turning the feed off isn't in Settings yet | Open |
+
 ## Blocked: needs a decision or content
 
 | # | Issue | Needs |

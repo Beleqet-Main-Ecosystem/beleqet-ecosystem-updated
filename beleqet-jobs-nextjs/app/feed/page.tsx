@@ -1,16 +1,10 @@
 import FeedClient from './FeedClient';
+import FeedHeading from './FeedHeading';
 
-/**
- * `/feed` route shell.
- *
- * Personalization requires the caller's JWT (stored in the browser), so the
- * actual data fetch happens client-side in `FeedClient`, not here on the
- * server — a server component has no access to `localStorage`.
- */
 export default function FeedPage() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-[#00653B] mb-6">Your Personalized Job Feed</h1>
+    <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-4 pb-14 pt-5 md:px-[clamp(16px,4vw,40px)] md:pb-16 md:pt-8">
+      <FeedHeading />
       <FeedClient />
     </div>
   );
