@@ -351,7 +351,9 @@ export class FreelanceService {
       where: { id, OR: [{ clientId: userId }, { freelancerId: userId }] },
       include: {
         milestones: { include: { deliverables: true } },
-        freelanceJob: true,
+        freelanceJob: {
+          include: { escrowTx: { select: { status: true, grossAmount: true, fundedAt: true } } },
+        },
         client: { select: { id: true, firstName: true, lastName: true } },
         freelancer: { select: { id: true, firstName: true, lastName: true } },
       },

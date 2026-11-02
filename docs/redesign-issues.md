@@ -46,7 +46,14 @@ Checked 2026-11-02: 16 browser checks on the running dev server, 193 unit tests,
 | U27 | Project detail | Design shows freelancer "completed contracts", client "member since" and "View portfolio"; hidden until A35 | Open |
 | U28 | Post a project | Design says attachments up to 10 MB; the upload limit is 5 MB, so the page says 5 MB | Open |
 
+| U29 | Contract | Browser pop-ups replaced with in-page dialogs; added "Add milestone", which the API had but no page offered | Fixed |
+| U30 | Contract | Fund button showed even when escrow was already funded; the contract now returns the escrow status | Fixed |
+| U31 | Contract | Activity is built from contract dates only, so it misses revision requests and disputes (needs A38) | Open |
+| U32 | Contract | Design says fund with Telebirr, CBE Birr or Chapa; wording kept general until the payment route is confirmed | Open |
+
 Kept beyond the design: budget sort, the four escrow steps, "Join as a freelancer".
+
+Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contract tests set "funded" directly in the local database.
 
 ## Blocked: needs a decision or content
 
@@ -115,3 +122,6 @@ Put secrets in `.env` or a password manager, not in chat.
 | A33 | Any account can bid, including a client on their own project | Small |
 | A34 | "Fund escrow" must be reachable from the contract; check the amount after a bid is accepted | Small |
 | A35 | Bids and projects need completed-contract count, member-since date and portfolio link | Small |
+| A36 | Fund escrow: a second try returns the contract page instead of a payment link, so an abandoned payment can't be resumed | Small |
+| A37 | **Revision requests drop the reason:** the client's note is never saved, so the freelancer can't see what to change | Small |
+| A38 | Contract needs an activity feed from EventLog | Small |
