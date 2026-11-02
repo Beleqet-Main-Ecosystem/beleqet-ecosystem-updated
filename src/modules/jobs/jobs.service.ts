@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
+import { Prisma } from '@prisma/client';
+import { openJobs } from './open-jobs';
+import { CreateJobDto, JobType, QueryJobsDto, UpdateJobDto } from './dto/create-job.dto';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { jobPostConfirmationEmail, jobAlertEmail } from '../notifications/email-templates';
 import { TelegramService } from '../telegram/telegram.service';
@@ -147,7 +149,7 @@ export class JobsService {
   /** Public platform statistics shown on the homepage StatsBar. */
   async getPlatformStats() {
     const [activeJobs, hiringCompanies, registeredJobSeekers] = await Promise.all([
-      this.prisma.job.count({ where: { status: 'PUBLISHED' } }),
+      this.prisma.job.count({ where: openJobs() }),
       this.prisma.company.count({ where: { user: { isActive: true } } }),
       this.prisma.user.count({ where: { role: 'JOB_SEEKER', isActive: true } }),
     ]);
@@ -162,27 +164,50 @@ export class JobsService {
   async findAll(query: QueryJobsDto) {
     const pageNum = Number(query.page) || 1;
     const limitNum = Number(query.limit) || 20;
-    const { q, category, location, type } = query;
+    const { q, category, location, experienceLevel, company, exclude } = query;
 
-    const where: Record<string, unknown> = { status: 'PUBLISHED' };
-    if (type) where['type'] = type;
-    if (category) where['category'] = { slug: category };
-    if (location) where['location'] = { contains: location, mode: 'insensitive' };
+    const and: Prisma.JobWhereInput[] = [openJobs()];
+    const types = (query.type ?? '')
+      .split(',')
+      .map((value) => value.trim().toUpperCase())
+      .filter((value): value is JobType => (Object.values(JobType) as string[]).includes(value));
+    if (types.length) and.push({ type: { in: types } });
+    if (category) and.push({ category: { slug: category } });
+    if (location) and.push({ location: { contains: location, mode: 'insensitive' } });
+    if (experienceLevel) and.push({ experienceLevel: { equals: experienceLevel, mode: 'insensitive' } });
+    if (company) and.push({ companyId: company });
+    if (exclude) and.push({ id: { not: exclude } });
+    if (query.salaryMin) {
+      and.push({ OR: [{ salaryMax: { gte: query.salaryMin } }, { salaryMax: null, salaryMin: { gte: query.salaryMin } }] });
+    }
+    if (query.postedWithin) {
+      and.push({ createdAt: { gte: new Date(Date.now() - query.postedWithin * 24 * 60 * 60 * 1000) } });
+    }
     if (q)
-      where['OR'] = [
-        { title: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-      ];
+      and.push({
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { description: { contains: q, mode: 'insensitive' } },
+          { tags: { has: q } },
+        ],
+      });
+    const where: Prisma.JobWhereInput = { AND: and };
+    const orderBy: Prisma.JobOrderByWithRelationInput[] =
+      query.sort === 'salary'
+        ? [{ salaryMax: { sort: 'desc', nulls: 'last' } }, { salaryMin: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }]
+        : [{ featured: 'desc' }, { createdAt: 'desc' }];
 
     const [items, total] = await Promise.all([
       this.prisma.job.findMany({
-        where: where as never,
+        where,
+        // Lists show cards, not the full text: descriptions were most of the payload.
+        omit: { description: true, requirements: true },
         include: { company: true, category: true, _count: { select: { applications: true } } },
-        orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+        orderBy,
         skip: (pageNum - 1) * limitNum,
         take: limitNum,
       }),
-      this.prisma.job.count({ where: where as never }),
+      this.prisma.job.count({ where }),
     ]);
 
     return {
@@ -203,13 +228,20 @@ export class JobsService {
     return job;
   }
 
-  async update(id: string, employerId: string, dto: Partial<CreateJobDto>) {
+  async update(id: string, employerId: string, dto: UpdateJobDto) {
     const job = await this.prisma.job.findFirst({ where: { id, company: { userId: employerId } } });
     if (!job) throw new NotFoundException('Job not found or access denied');
+    // Optional fields can be cleared with null; these can only be changed.
+    for (const field of ['title', 'description', 'location', 'type', 'categoryId'] as const) {
+      if (dto[field] === null) throw new BadRequestException(`${field} can't be empty`);
+    }
     if (dto.featured && !job.featured && !(await this.getQuota(employerId)).canFeature) {
       throw new ForbiddenException('Featured listings are included in the Pro and Enterprise plans.');
     }
-    return this.prisma.job.update({ where: { id }, data: dto as never });
+    const data: any = { ...dto };
+    if (data.deadline) data.deadline = new Date(data.deadline);
+    if (data.expiryDate) data.expiryDate = new Date(data.expiryDate);
+    return this.prisma.job.update({ where: { id }, data });
   }
 
   async remove(id: string, employerId: string) {

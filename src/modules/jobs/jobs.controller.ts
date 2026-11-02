@@ -15,7 +15,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { JobsService } from './jobs.service';
-import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
+import { CreateJobDto, QueryJobsDto, UpdateJobDto } from './dto/create-job.dto';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('jobs')
@@ -83,7 +83,7 @@ export class JobsController {
   update(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: Partial<CreateJobDto>,
+    @Body() dto: UpdateJobDto,
   ) {
     return this.svc.update(id, user.userId, dto);
   }

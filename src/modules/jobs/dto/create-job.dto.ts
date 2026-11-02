@@ -6,8 +6,11 @@ import {
   IsBoolean,
   IsDateString,
   IsArray,
+  IsIn,
+  Max,
+  Min,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 
 // Local enum — mirrors Prisma JobType without requiring generated client
 export enum JobType {
@@ -65,11 +68,26 @@ export class CreateJobDto {
   @ApiProperty({ required: false }) @IsOptional() @IsString() currency?: string;
 }
 
+// A real class so the update body is validated and whitelisted (companyId can't be set).
+export class UpdateJobDto extends PartialType(CreateJobDto) {}
+
 export class QueryJobsDto {
   @IsOptional() @IsString() q?: string;
   @IsOptional() @IsString() category?: string;
   @IsOptional() @IsString() location?: string;
-  @IsOptional() @IsEnum(JobType) type?: JobType;
-  @IsOptional() @IsInt() page?: number;
-  @IsOptional() @IsInt() limit?: number;
+  /** One job type, or several separated by commas: FULL_TIME,REMOTE */
+  @IsOptional() @IsString() type?: string;
+  /** Jobs paying at least this much (either end of the range) */
+  @IsOptional() @IsInt() @Min(0) salaryMin?: number;
+  @IsOptional() @IsString() experienceLevel?: string;
+  /** Posted in the last N days */
+  @IsOptional() @IsInt() @Min(1) @Max(365) postedWithin?: number;
+  /** One employer's jobs, for "More jobs from this employer" */
+  @IsOptional() @IsString() company?: string;
+  /** Leave this job out, e.g. the one being viewed */
+  @IsOptional() @IsString() exclude?: string;
+  @IsOptional() @IsIn(['newest', 'salary']) sort?: 'newest' | 'salary';
+  @IsOptional() @IsInt() @Min(1) page?: number;
+  // The sitemap reads 500 at a time.
+  @IsOptional() @IsInt() @Min(1) @Max(500) limit?: number;
 }

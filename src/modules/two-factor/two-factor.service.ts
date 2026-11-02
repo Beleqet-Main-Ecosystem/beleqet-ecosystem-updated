@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EncryptionService } from '../../common/encryption/encryption.service';
 import { BackupCodeService } from './backup-code.service';
 import { generateSecret, generateURI, verify } from 'otplib';
+import { toDataURL } from 'qrcode';
 import { REDIS_CLIENT } from '../redis/redis.module';
 import Redis from 'ioredis';
 
@@ -122,6 +123,8 @@ export class TwoFactorService {
 
     return {
       provisioningUri: otpauth,
+      // Rendered here so web clients can show the code without a QR library of their own.
+      qrCode: await toDataURL(otpauth, { margin: 1, width: 220 }),
       enrollmentToken,
       secret,
     };
@@ -324,6 +327,15 @@ export class TwoFactorService {
   }
 
   /** Disable 2FA for a user. Deletes the encrypted secret and all backup codes. */
+  /** Whether two-step sign-in is on, and how many unused backup codes are left. */
+  async status(userId: string) {
+    const record = await this.prisma.userTwoFactor.findUnique({
+      where: { userId },
+      select: { enabled: true, _count: { select: { backupCodes: { where: { usedAt: null } } } } },
+    });
+    return { enabled: Boolean(record?.enabled), backupCodesLeft: record?.enabled ? record._count.backupCodes : 0 };
+  }
+
   async disable(userId: string): Promise<void> {
     const record = await this.prisma.userTwoFactor.findUnique({
       where: { userId },

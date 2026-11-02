@@ -11,10 +11,13 @@ import {
   Post,
   Request,
   Req,
+  Res,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { Request as ExpressRequest } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { Request as ExpressRequest, Response as ExpressResponse } from 'express';
 import { AuthService } from './auth.service';
 import {
   RegisterDto,
@@ -36,10 +39,12 @@ import { AccountLinkingService } from './services/account-linking.service';
 import { PreparedOAuthIdentity } from './interfaces/prepared-oauth-identity.interface';
 import { EMAIL_SENDER, IEmailSender } from './interfaces/email-sender.interface';
 import { AUTH_ENV_CONFIG, AuthEnvConfig } from './config/auth.config';
+import { OAuthFailureFilter } from './filters/oauth-failure.filter';
 
 /** Discriminated response shapes returned by the OAuth callback routes. */
 type OAuthCallbackResponse =
   | { status: 'authenticated'; tokens: { accessToken: string; refreshToken: string } }
+  | { status: 'two_factor'; tempToken: string }
   | { status: 'confirmation_required'; message: string };
 
 @ApiTags('auth')
@@ -108,6 +113,16 @@ export class AuthController {
     return this.authService.verifyEmail(dto.token);
   }
 
+  @Post('resend-verification')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 3_600_000 } })
+  @ApiOperation({ summary: 'Email a new verification link to the signed-in user' })
+  resendVerification(@CurrentUser() user: CurrentUserPayload) {
+    return this.authService.resendVerification(user.userId);
+  }
+
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset email' })
@@ -159,8 +174,9 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  async googleCallback(@Req() req: ExpressRequest): Promise<OAuthCallbackResponse> {
-    return this.handleOAuthCallback(req);
+  @UseFilters(OAuthFailureFilter)
+  async googleCallback(@Req() req: ExpressRequest, @Res() res: ExpressResponse): Promise<void> {
+    res.redirect(this.websiteUrl(await this.handleOAuthCallback(req)));
   }
 
   @Get('linkedin')
@@ -172,8 +188,23 @@ export class AuthController {
 
   @Get('linkedin/callback')
   @UseGuards(LinkedInAuthGuard)
-  async linkedinCallback(@Req() req: ExpressRequest): Promise<OAuthCallbackResponse> {
-    return this.handleOAuthCallback(req);
+  @UseFilters(OAuthFailureFilter)
+  async linkedinCallback(@Req() req: ExpressRequest, @Res() res: ExpressResponse): Promise<void> {
+    res.redirect(this.websiteUrl(await this.handleOAuthCallback(req)));
+  }
+
+  /**
+   * Where the browser goes after a provider sign-in. Tokens travel in the URL fragment, which
+   * browsers never send to a server, so they stay out of access logs and Referer headers.
+   */
+  private websiteUrl(outcome: OAuthCallbackResponse): string {
+    const base = this.config.frontendUrl;
+    if (outcome.status === 'confirmation_required') return `${base}/login?oauth=confirm`;
+    const fragment =
+      outcome.status === 'two_factor'
+        ? new URLSearchParams({ twoFactor: outcome.tempToken })
+        : new URLSearchParams({ access: outcome.tokens.accessToken, refresh: outcome.tokens.refreshToken });
+    return `${base}/auth/callback#${fragment.toString()}`;
   }
 
   @Get('google/link')
@@ -199,8 +230,7 @@ export class AuthController {
         identity.encryptedAccessToken,
         identity.encryptedRefreshToken,
       );
-      const tokens = await this.authService.issueTokensForUserId(user.id);
-      return { status: 'authenticated', tokens };
+      return this.session(user.id);
     }
 
     const outcome = await this.accountLinkingService.handleOAuthSignIn(
@@ -235,8 +265,13 @@ export class AuthController {
       };
     }
 
-    const tokens = await this.authService.issueTokensForUserId(outcome.user.id);
-    return { status: 'authenticated', tokens };
+    return this.session(outcome.user.id);
+  }
+
+  private async session(userId: string): Promise<OAuthCallbackResponse> {
+    const result = await this.authService.oauthSession(userId);
+    if ('requires2fa' in result) return { status: 'two_factor', tempToken: result.tempToken };
+    return { status: 'authenticated', tokens: result };
   }
 
   private extractState(req: ExpressRequest): string | undefined {

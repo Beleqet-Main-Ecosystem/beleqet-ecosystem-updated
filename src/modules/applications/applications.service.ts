@@ -12,6 +12,7 @@ import {
 } from '../queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
 import { applicationReceivedEmail, applicationStatusEmail } from '../notifications/email-templates';
+import { openJobs } from '../jobs/open-jobs';
 
 @Injectable()
 export class ApplicationsService {
@@ -31,7 +32,8 @@ export class ApplicationsService {
 
   async submit(userId: string, dto: CreateApplicationDto) {
     const job = await this.prisma.job.findFirst({
-      where: { id: dto.jobId, status: 'PUBLISHED' },
+      // Published and before its deadline: a closed or expired job takes no more applications.
+      where: { id: dto.jobId, ...openJobs() },
       include: { company: true },
     });
     if (!job) {

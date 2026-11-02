@@ -75,6 +75,11 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString({ each: true })
   skills?: string[];
+
+  @ApiProperty({ description: 'Use my profile and searches to personalise my job feed', required: false })
+  @IsOptional()
+  @IsBoolean()
+  gdprConsent?: boolean;
 }
 
 export class UpdateNotificationPreferenceDto {

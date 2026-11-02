@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { openJobs } from '../jobs/open-jobs';
 
 /**
  * Minimal published-job shape this service needs in order to score and
@@ -175,7 +176,7 @@ export class AiFeedService {
     const [keywordJobs, categoryJobs] = await Promise.all([
       keywords.length > 0
         ? this.prisma.job.findMany({
-            where: { status: 'PUBLISHED', OR: this.buildKeywordFilter(keywords) },
+            where: { ...openJobs(), OR: this.buildKeywordFilter(keywords) },
             orderBy: { createdAt: 'desc' },
             take: KEYWORD_POOL_SIZE,
             include: { company: true, category: true },
@@ -183,7 +184,7 @@ export class AiFeedService {
         : Promise.resolve([]),
       savedCategoryIds.size > 0
         ? this.prisma.job.findMany({
-            where: { status: 'PUBLISHED', categoryId: { in: [...savedCategoryIds] } },
+            where: { ...openJobs(), categoryId: { in: [...savedCategoryIds] } },
             orderBy: { createdAt: 'desc' },
             take: CATEGORY_POOL_SIZE,
             include: { company: true, category: true },
@@ -260,7 +261,7 @@ export class AiFeedService {
    */
   private async getGenericFeed(limit: number): Promise<PersonalizedJob[]> {
     const jobs: FeedJob[] = await this.prisma.job.findMany({
-      where: { status: 'PUBLISHED' },
+      where: openJobs(),
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: { company: true, category: true },

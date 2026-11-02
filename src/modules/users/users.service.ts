@@ -33,6 +33,8 @@ export class UsersService {
         githubUrl: true,
         linkedinUrl: true,
         skills: true,
+        gdprConsent: true,
+        emailVerified: true,
       },
     });
     if (!user) throw new NotFoundException('User not found');
@@ -40,9 +42,17 @@ export class UsersService {
   }
 
   async update(id: string, dto: UpdateUserDto) {
+    const now = new Date();
+    // Record when consent to personalisation was given or withdrawn.
+    const consent =
+      dto.gdprConsent === undefined
+        ? {}
+        : dto.gdprConsent
+          ? { gdprConsentDate: now, gdprConsentRevoked: false, gdprConsentRevokedAt: null }
+          : { gdprConsentRevoked: true, gdprConsentRevokedAt: now };
     return this.prisma.user.update({
       where: { id },
-      data: dto,
+      data: { ...dto, ...consent },
       select: {
         id: true,
         email: true,
@@ -62,6 +72,7 @@ export class UsersService {
         githubUrl: true,
         linkedinUrl: true,
         skills: true,
+        gdprConsent: true,
       },
     });
   }

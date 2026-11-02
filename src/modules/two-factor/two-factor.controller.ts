@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   UseGuards,
@@ -51,6 +52,14 @@ export class TwoFactorController {
       throw new Error('TOTP_TEMP_SECRET is required. Set it in your environment variables.');
     }
     this.tempSecret = ts;
+  }
+
+  @Get('status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Whether 2FA is on, and unused backup codes left' })
+  status(@CurrentUser() user: CurrentUserPayload) {
+    return this.svc.status(user.userId);
   }
 
   /** Initiate 2FA enrollment — generates and returns a provisioning URI (otpauth://)

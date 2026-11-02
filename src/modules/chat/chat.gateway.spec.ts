@@ -10,7 +10,7 @@ const mockChatService = {
 };
 
 const mockJwtService = {
-  verify: jest.fn().mockReturnValue({ userId: 'test-user-id', email: 'test@test.com' }),
+  verify: jest.fn().mockReturnValue({ sub: 'test-user-id', email: 'test@test.com', role: 'JOB_SEEKER' }),
 };
 
 const mockI18nService = {
@@ -35,5 +35,19 @@ describe('ChatGateway', () => {
 
   it('should be defined', () => {
     expect(gateway).toBeDefined();
+  });
+
+  it('maps the access token subject to userId on connect', async () => {
+    const client = { id: 'c1', handshake: { auth: { token: 'Bearer abc' }, headers: {} }, data: {} as any, emit: jest.fn(), disconnect: jest.fn() };
+    await gateway.handleConnection(client as any);
+    expect(client.data.user).toEqual({ userId: 'test-user-id', email: 'test@test.com', role: 'JOB_SEEKER' });
+    expect(client.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('disconnects a token without the access claims', async () => {
+    mockJwtService.verify.mockReturnValueOnce({ sub: 'u1', purpose: '2fa_step_up_challenge' });
+    const client = { id: 'c2', handshake: { auth: { token: 'abc' }, headers: {} }, data: {} as any, emit: jest.fn(), disconnect: jest.fn() };
+    await gateway.handleConnection(client as any);
+    expect(client.disconnect).toHaveBeenCalled();
   });
 });

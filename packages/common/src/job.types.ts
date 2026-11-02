@@ -81,7 +81,17 @@ export interface QueryJobsDto {
   q?: string;
   category?: string;
   location?: string;
-  type?: JobType;
+  /** One job type, or several separated by commas */
+  type?: JobType | string;
+  salaryMin?: number;
+  experienceLevel?: string;
+  /** Posted in the last N days */
+  postedWithin?: number;
+  /** A company id: that employer's jobs only */
+  company?: string;
+  /** A job id to leave out */
+  exclude?: string;
+  sort?: 'newest' | 'salary';
   status?: JobStatus;
   page?: number;
   limit?: number;

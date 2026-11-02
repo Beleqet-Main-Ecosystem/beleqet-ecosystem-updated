@@ -12,6 +12,7 @@ const authConfig: AuthEnvConfig = {
   linkedinCallbackUrl: 'http://localhost:4000/api/v1/auth/linkedin/callback',
   jwtAccessSecret: 'test-jwt-secret',
   appBaseUrl: 'http://localhost:3000',
+  frontendUrl: 'http://localhost:4001',
   sessionSecret: 'test-session-secret',
   tokenEncryptionKey: Buffer.alloc(32),
 };

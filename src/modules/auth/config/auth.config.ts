@@ -30,6 +30,8 @@ export interface AuthEnvConfig {
   readonly jwtAccessSecret: string;
   /** Base URL of this API, used to build emailed confirmation links. */
   readonly appBaseUrl: string;
+  /** The website, where Google and LinkedIn sign-in send people back to. */
+  readonly frontendUrl: string;
   /** Secret for express-session, used only as transient CSRF-state storage during the LinkedIn OIDC handshake. */
   readonly sessionSecret: string;
   /** Raw 32-byte AES-256-GCM key, decoded from the base64 env value. */
@@ -84,6 +86,7 @@ export function loadAuthEnvConfig(): AuthEnvConfig {
     linkedinCallbackUrl: requireEnv('LINKEDIN_CALLBACK_URL'),
     jwtAccessSecret: requireEnv('JWT_ACCESS_SECRET'),
     appBaseUrl: requireEnv('APP_BASE_URL'),
+    frontendUrl: (process.env.FRONTEND_URL ?? 'http://localhost:4001').replace(/\/+$/, ''),
     sessionSecret: requireEnv('SESSION_SECRET'),
     tokenEncryptionKey,
   };

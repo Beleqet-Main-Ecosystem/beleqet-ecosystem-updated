@@ -37,9 +37,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const token = tokenString.replace('Bearer ', '').trim();
       const payload = this.jwtService.verify(token);
+      // Access tokens carry the user id as `sub`; map it as JwtStrategy does for HTTP.
+      if (!payload.sub || !payload.email || !payload.role) throw new Error('Missing claims');
 
-      client.data.user = payload;
-      this.logger.log(`[ChatGateway] Client connected: ${client.id} (User: ${payload.userId})`);
+      client.data.user = { userId: payload.sub, email: payload.email, role: payload.role };
+      this.logger.log(`[ChatGateway] Client connected: ${client.id} (User: ${payload.sub})`);
     } catch {
       this.logger.warn(`[ChatGateway] Unauthorized connection attempt: ${client.id}`);
       client.emit('error', { message: this.i18n.t('messages.chat.unauthorized', { lang: 'en' }) });
