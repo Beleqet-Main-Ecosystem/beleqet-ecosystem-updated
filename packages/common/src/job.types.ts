@@ -72,7 +72,6 @@ export interface JobStats {
   activeJobs: number;
   hiringCompanies: number;
   registeredJobSeekers: number;
-  satisfactionRate: number;
 }
 
 // ── Request DTOs ──────────────────────────────────────────────────────────────

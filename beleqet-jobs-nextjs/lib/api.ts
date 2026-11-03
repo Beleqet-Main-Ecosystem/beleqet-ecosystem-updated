@@ -30,6 +30,8 @@ export type Category = {
   label: string;
   icon: string;
   count?: string;
+  /** Open jobs in this category, from the API. */
+  openJobs?: number;
 };
 
 // ── Display-enriched Job (web-specific presentation layer) ────────────────────
@@ -391,6 +393,7 @@ export async function fetchCategories(): Promise<Category[]> {
       id: c.slug ?? c.id,
       label: c.label,
       icon: c.icon ?? 'briefcase',
+      openJobs: (c as { openJobs?: number }).openJobs ?? 0,
     }));
     if (value.length > 0) categoriesCache = { at: Date.now(), value };
     return value;
@@ -434,4 +437,17 @@ export function buildSearchUrl(q: string = '', loc: string = '', type: 'jobs' | 
   const queryString = params.toString();
   const basePath = type === 'freelance' ? '/freelance' : '/jobs';
   return queryString ? `${basePath}?${queryString}` : basePath;
+}
+
+export type PopularSearches = { jobs: string[]; freelance: string[] };
+
+/** Landing-page search suggestions, worked out by the API from real searches and listings. */
+export async function fetchPopularSearches(): Promise<PopularSearches> {
+  try {
+    const { data } = await api.get<PopularSearches>('/jobs/popular');
+    return { jobs: data?.jobs ?? [], freelance: data?.freelance ?? [] };
+  } catch (err) {
+    console.error(`[api] fetchPopularSearches failed: ${describeError(err)}`);
+    return { jobs: [], freelance: [] };
+  }
 }

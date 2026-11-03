@@ -1,24 +1,17 @@
 import type { Category } from '@/lib/api';
 
-/**
- * The fields we put first wherever categories are listed (landing page,
- * search filters), in this order, when the API has them. The API has 55.
- */
-export const FEATURED_CATEGORY_SLUGS = [
-  'accounting-and-finance',
-  'software-design-and-development',
-  'sales-and-promotion',
-  'creative-art-and-design',
-  'human-resource-and-talent-management',
-  'construction-and-civil-engineering',
-  'health-care',
-  'teaching-and-tutor',
-] as const;
+/** How many categories to put first (landing page, search filters). */
+export const FEATURED_COUNT = 8;
 
-/** Featured categories present in `categories`, in featured order. */
+/**
+ * The categories with the most open jobs right now, busiest first, from the database (no fixed
+ * list). Categories without open jobs are left out, so nothing leads to an empty search.
+ */
 export function featuredCategories(categories: Category[]): Category[] {
-  const byId = new Map(categories.map((c) => [c.id, c]));
-  return FEATURED_CATEGORY_SLUGS.flatMap((slug) => (byId.has(slug) ? [byId.get(slug)!] : []));
+  return categories
+    .filter((category) => (category.openJobs ?? 0) > 0)
+    .sort((a, b) => (b.openJobs ?? 0) - (a.openJobs ?? 0) || a.label.localeCompare(b.label))
+    .slice(0, FEATURED_COUNT);
 }
 
 /** Translated label when we have one (`landing.categories.<slug>`), else the API's English label. */

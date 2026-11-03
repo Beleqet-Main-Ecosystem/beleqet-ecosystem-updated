@@ -11,23 +11,24 @@ import {
   WhyBeleqet,
 } from '@/components/landing/LandingSections';
 import { homePageMetadata } from '@/lib/seo/generate-metadata';
-import { fetchCategories, fetchJobs, fetchOpenGigs, type Gig, type Job } from '@/lib/api';
+import { fetchCategories, fetchJobs, fetchOpenGigs, fetchPopularSearches, type Gig, type Job } from '@/lib/api';
 import { loadForPage } from '@/lib/build-safe';
 
 export const revalidate = 60;
 export const metadata = homePageMetadata();
 
 export default async function HomePage() {
-  const [jobs, gigs, categories] = await Promise.all([
+  const [jobs, gigs, categories, popular] = await Promise.all([
     loadForPage<Job[]>('HomePage fetchJobs', () => fetchJobs({ limit: 6 }), []),
     // Gigs only feed the hero's freelance preview, so a failure there shouldn't take the page down.
     fetchOpenGigs(4).catch((): Gig[] => []),
     fetchCategories(),
+    fetchPopularSearches(),
   ]);
 
   return (
     <>
-      <LandingHero jobs={jobs} gigs={gigs} />
+      <LandingHero jobs={jobs} gigs={gigs} popular={popular} />
       <TrustStrip />
       <LatestJobs jobs={jobs} />
       <WhyBeleqet />

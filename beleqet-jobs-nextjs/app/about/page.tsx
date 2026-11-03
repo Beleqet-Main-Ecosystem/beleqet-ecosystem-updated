@@ -10,6 +10,7 @@ import {
   Users,
 } from 'lucide-react';
 import { aboutPageMetadata } from '@/lib/seo/generate-metadata';
+import { fetchPlatformStats } from '@/lib/api';
 import { OrganizationSchema } from '@/lib/seo/schemas';
 
 export const metadata = aboutPageMetadata();
@@ -33,7 +34,13 @@ const values = [
 ];
 
 
-export default function AboutPage() {
+export const revalidate = 300;
+
+const count = (n: number) => n.toLocaleString('en-US');
+
+export default async function AboutPage() {
+  // Live counts from the database; the section is left out if the API can't be reached.
+  const stats = await fetchPlatformStats();
   return (
     <div className="bg-[#f7f5ef]">
       <section className="relative overflow-hidden bg-primary py-20 text-white lg:py-28">
@@ -78,9 +85,13 @@ export default function AboutPage() {
       <section className="border-y border-primary/10 bg-white">
         <div className="container-page grid grid-cols-2 md:grid-cols-4">
           {[
-            { icon: Search, value: '10K+', label: 'Active opportunities' },
-            { icon: Building2, value: '5K+', label: 'Hiring companies' },
-            { icon: Users, value: '50K+', label: 'Career profiles' },
+            ...(stats
+              ? [
+                  { icon: Search, value: count(stats.activeJobs), label: 'Open jobs' },
+                  { icon: Building2, value: count(stats.hiringCompanies), label: 'Hiring companies' },
+                  { icon: Users, value: count(stats.registeredJobSeekers), label: 'Job seekers' },
+                ]
+              : []),
             {
               icon: BriefcaseBusiness,
               value: 'One',

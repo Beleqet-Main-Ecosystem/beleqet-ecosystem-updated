@@ -159,10 +159,38 @@ export class JobsService {
     }
   }
 
+  /**
+   * Search suggestions for the landing page, all from the database. Jobs: terms searched by at
+   * least 3 different people in the last 30 days (so no one person's searches show), topped up
+   * with the most-posted open job titles. Freelance: the commonest skills on open projects.
+   */
+  async popularSearches(limit = 4) {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [searched, titles, skills] = await Promise.all([
+      this.prisma.$queryRaw<{ term: string }[]>`
+        SELECT lower(trim("searchTerm")) AS term FROM "search_histories"
+        WHERE "searchedAt" >= ${since} AND length(trim("searchTerm")) BETWEEN 2 AND 40
+        GROUP BY 1 HAVING count(DISTINCT "userId") >= 3
+        ORDER BY count(*) DESC LIMIT ${limit}`,
+      this.prisma.job.groupBy({ by: ['title'], where: openJobs(), _count: { _all: true }, orderBy: { _count: { title: 'desc' } }, take: limit * 2 }),
+      this.prisma.$queryRaw<{ skill: string }[]>`
+        SELECT skill FROM "freelance_jobs", unnest("skills") AS skill
+        WHERE "status" IN ('OPEN', 'FUNDED')
+        GROUP BY skill ORDER BY count(*) DESC, skill LIMIT ${limit}`,
+    ]);
+    const jobs = [...searched.map((row) => row.term), ...titles.map((row) => row.title)];
+    const unique = [...new Map(jobs.map((term) => [term.trim().toLowerCase(), term.trim()])).values()];
+    return { jobs: unique.slice(0, limit), freelance: skills.map((row) => row.skill) };
+  }
+
+  /** Every category, with how many open jobs it has (the website lists the busiest first). */
   async getCategories() {
-    return this.prisma.jobCategory.findMany({
-      orderBy: { label: 'asc' },
-    });
+    const [categories, counts] = await Promise.all([
+      this.prisma.jobCategory.findMany({ orderBy: { label: 'asc' } }),
+      this.prisma.job.groupBy({ by: ['categoryId'], where: openJobs(), _count: { _all: true } }),
+    ]);
+    const open = new Map(counts.map((row) => [row.categoryId, row._count._all]));
+    return categories.map((category) => ({ ...category, openJobs: open.get(category.id) ?? 0 }));
   }
 
   /** Public platform statistics shown on the homepage StatsBar. */
@@ -176,7 +204,6 @@ export class JobsService {
       activeJobs,
       hiringCompanies,
       registeredJobSeekers,
-      satisfactionRate: 98, // static KPI target
     };
   }
 

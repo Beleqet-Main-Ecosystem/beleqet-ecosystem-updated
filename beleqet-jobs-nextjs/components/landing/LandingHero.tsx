@@ -3,18 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, MapPin, Search, ShieldCheck } from 'lucide-react';
-import { buildSearchUrl, type Gig, type Job } from '@/lib/api';
+import { buildSearchUrl, type Gig, type Job, type PopularSearches } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { formatBudget, formatSalary, initials } from '@/features/jobs/format';
 
 type Mode = 'jobs' | 'freelance';
 
-const POPULAR: Record<Mode, string[]> = {
-  jobs: ['Accountant', 'Software developer', 'Sales', 'Nurse'],
-  freelance: ['Logo design', 'Web development', 'Translation', 'Bookkeeping'],
-};
-
-export default function LandingHero({ jobs, gigs }: { jobs: Job[]; gigs: Gig[] }) {
+/** popular: suggestions from the API (real searches, open jobs, project skills); hidden when empty. */
+export default function LandingHero({ jobs, gigs, popular }: { jobs: Job[]; gigs: Gig[]; popular: PopularSearches }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('jobs');
   const [q, setQ] = useState('');
@@ -117,18 +113,20 @@ export default function LandingHero({ jobs, gigs }: { jobs: Job[]; gigs: Gig[] }
             </form>
           </div>
 
+          {popular[mode].length > 0 && (
           <div className="hidden flex-wrap items-center justify-center gap-2 text-[13px] text-white/65 md:flex">
             <span>{t('landing.hero.popular')}</span>
-            {POPULAR[mode].map((term) => (
+            {popular[mode].map((term) => (
               <Link
                 key={term}
                 href={buildSearchUrl(term, '', mode)}
                 className="inline-flex min-h-8 items-center rounded-full border border-white/15 px-3 text-white/85 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
               >
-                {t(`landing.popular.${term}`)}
+                {term}
               </Link>
             ))}
           </div>
+          )}
         </div>
 
         <div className="mx-auto max-w-[1200px] px-4 pb-10 pt-7 sm:px-6 md:pb-14 md:pt-11 lg:px-10" aria-label={k('previewTitle')}>

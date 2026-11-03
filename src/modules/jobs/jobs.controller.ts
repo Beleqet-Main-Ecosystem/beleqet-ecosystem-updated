@@ -54,6 +54,12 @@ export class JobsController {
     return this.svc.getCategories();
   }
 
+  @Get('popular')
+  @ApiOperation({ summary: 'Search suggestions from real searches, open jobs and project skills' })
+  popularSearches() {
+    return this.svc.popularSearches();
+  }
+
   @Get('stats')
   @ApiOperation({ summary: 'Get public platform statistics (homepage StatsBar)' })
   getPlatformStats() {

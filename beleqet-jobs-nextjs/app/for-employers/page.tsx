@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { fetchPlatformStats } from '@/lib/api';
 import {
   ArrowRight,
   BarChart3,
@@ -76,7 +77,13 @@ const STEPS = [
   },
 ];
 
-export default function ForEmployersPage() {
+export const revalidate = 300;
+
+const count = (n: number) => n.toLocaleString('en-US');
+
+export default async function ForEmployersPage() {
+  // Live counts from the database; the section is left out if the API can't be reached.
+  const stats = await fetchPlatformStats();
   return (
     <div className="bg-[#f7f5ef] dark:bg-slate-950">
       {/* ── Hero ── */}
@@ -112,14 +119,14 @@ export default function ForEmployersPage() {
         </div>
       </section>
 
-      {/* ── Stats ── */}
+      {/* ── Stats (live counts) ── */}
+      {stats && (
       <section className="border-b border-primary/10 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="container-page grid grid-cols-2 md:grid-cols-4">
+        <div className="container-page grid grid-cols-1 sm:grid-cols-3">
           {[
-            { icon: Users, value: '50K+', label: 'Active job seekers' },
-            { icon: BriefcaseBusiness, value: '10K+', label: 'Job listings posted' },
-            { icon: CheckCircle2, value: '98%', label: 'Profile verification rate' },
-            { icon: Zap, value: '<24h', label: 'Average time to first applicant' },
+            { icon: Users, value: count(stats.registeredJobSeekers), label: 'Job seekers' },
+            { icon: BriefcaseBusiness, value: count(stats.activeJobs), label: 'Open jobs' },
+            { icon: CheckCircle2, value: count(stats.hiringCompanies), label: 'Hiring companies' },
           ].map((item) => (
             <div
               key={item.label}
@@ -136,6 +143,7 @@ export default function ForEmployersPage() {
           ))}
         </div>
       </section>
+      )}
 
       {/* ── Why Beleqet ── */}
       <section className="container-page py-20">
