@@ -119,6 +119,8 @@ scripts/*
 !scripts/export-wp-users.ts
 !scripts/import-users.ts
 !scripts/post-build.js
+# Creates the admin, employer and freelancer role permissions; CI and fresh servers need it.
+!scripts/seed-rbac.js
 .agents/
 issue_pr_matches.md
 AGENTS.md
