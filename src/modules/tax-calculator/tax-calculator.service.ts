@@ -23,12 +23,12 @@ export class TaxCalculatorService {
     upToExclusive: number | null;
     rateBps: number;
   }> = [
-    { upToExclusive: 600, rateBps: 0 },
-    { upToExclusive: 1_650, rateBps: 1_000 },
-    { upToExclusive: 3_200, rateBps: 1_500 },
-    { upToExclusive: 5_250, rateBps: 2_000 },
-    { upToExclusive: 7_800, rateBps: 2_500 },
-    { upToExclusive: 10_900, rateBps: 3_000 },
+    // The 2025 monthly schedule: 0% to 2,000, then 15, 20, 25, 30 and 35%.
+    { upToExclusive: 2_000, rateBps: 0 },
+    { upToExclusive: 4_000, rateBps: 1_500 },
+    { upToExclusive: 7_000, rateBps: 2_000 },
+    { upToExclusive: 10_000, rateBps: 2_500 },
+    { upToExclusive: 14_000, rateBps: 3_000 },
     { upToExclusive: null, rateBps: 3_500 },
   ];
 

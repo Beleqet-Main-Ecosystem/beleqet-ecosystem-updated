@@ -32,7 +32,6 @@ export default function TaxCalculatorPage() {
       </section>
 
       <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-4 pb-14 pt-5 md:px-[clamp(16px,4vw,40px)] md:pb-16 md:pt-8">
-        <p role="note" className="rounded-lg border border-[#F0D9A8] bg-[#FFF7E6] p-3.5 text-sm leading-normal text-[#7A4B00] dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-200">{t('tax.bandsWarning')}</p>
 
         <div className="flex flex-wrap items-start gap-4">
           <form onSubmit={(event) => event.preventDefault()} className={`${card} flex min-w-0 flex-[1_1_320px] flex-col gap-4`}>

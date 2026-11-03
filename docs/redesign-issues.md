@@ -81,7 +81,7 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | # | Page | Issue | Status |
 |---|---|---|---|
 | U49 | Tax calculator | United States option removed to match the design (decided 2026-11-02: Ethiopia only) | Fixed |
-| U50 | Tax calculator | Works in the browser with 7% pension; shows a warning until the current bands are confirmed (C9, A24) | Open |
+| U50 | Tax calculator | 2025 bands applied (0% to 2,000, then 15, 20, 25, 30, 35%; deductions 300 to 2,050) with 7% pension; the warning is gone | Fixed |
 | U51 | Feed | Reasons under each job, Hide kept on the server, recent searches shown, feed switch in Settings (A11, A12, A46) | Fixed |
 | U52 | Forum | Nobody could post, reply or vote: the page read the wrong token name, and a helper dropped the request's content type. Both fixed | Fixed |
 | U53 | Forum | Anonymous posts showed "Deleted User"; they now show "Anonymous" | Fixed |
@@ -116,7 +116,7 @@ Put secrets in `.env` or a password manager, not in chat.
 | C6 | CV and file uploads | Production storage details; `S3_BUCKET` isn't set under that name, to be checked | Unknown |
 | C7 | Android card (B2) | Public Google Play link | Missing |
 | C8 | Telegram (B3) | Mini app link | Missing |
-| C9 | Tax calculator (A24) | Current employment tax bands from the Ministry of Revenue | Missing |
+| C9 | Tax calculator (A24) | Current employment tax bands from the Ministry of Revenue | Received |
 | C10 | Testing and release | Staging and VPS access or a deploy contact | Missing |
 | C11 | Imported jobs (A25) | Who owns the job import, to fix company names and salaries | Missing |
 
@@ -147,7 +147,7 @@ Put secrets in `.env` or a password manager, not in chat.
 | A21 | PayPal plan IDs are empty, so nobody can subscribe | Small |
 | A22 | Amharic transcripts were dropped as having "no letters"; fixed | Done |
 | A23 | CV Maker upload called an endpoint that doesn't exist; the upload now lives only in Resume Brain, which works | Done |
-| A24 | Tax calculator: brackets out of date, no pension | Medium |
+| A24 | Website calculator and API use the 2025 bands; tests check them against the official deduction table | Done |
 | A25 | Imported jobs have no real company name or salary | Data |
 | A26 | Done early: added public GET /freelance/categories, which Post a project needs | Done |
 | A27 | The project list sorts by budget on the server | Done |

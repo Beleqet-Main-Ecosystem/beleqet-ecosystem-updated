@@ -1,16 +1,14 @@
 /**
- * Monthly employment income tax bands, matching the tax-calculator module.
- * This is the pre-2025 schedule. Replace it once the current bands are confirmed
- * (docs/redesign-issues.md, C9); the page tells people to check until then.
+ * Monthly employment income tax bands (the 2025 schedule), matching the tax-calculator module.
+ * The published deductions (300, 500, 850, 1,350, 2,050) follow from these bands.
  */
 export const BANDS: readonly [from: number, to: number, rate: number][] = [
-  [0, 600, 0],
-  [600, 1650, 0.1],
-  [1650, 3200, 0.15],
-  [3200, 5250, 0.2],
-  [5250, 7800, 0.25],
-  [7800, 10900, 0.3],
-  [10900, Infinity, 0.35],
+  [0, 2000, 0],
+  [2000, 4000, 0.15],
+  [4000, 7000, 0.2],
+  [7000, 10000, 0.25],
+  [10000, 14000, 0.3],
+  [14000, Infinity, 0.35],
 ];
 
 export const EMPLOYEE_PENSION = 0.07;
