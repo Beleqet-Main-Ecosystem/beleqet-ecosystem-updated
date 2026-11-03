@@ -262,6 +262,89 @@ describe('EscrowService milestone confirmations', () => {
     expect(tx.milestone.update).not.toHaveBeenCalled();
   });
 
+  it('refuses to release a milestone that is not submitted', async () => {
+    const { service, tx } = buildService({ status: 'APPROVED' });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Only submitted milestones can be approved and released.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to release when escrow is not funded', async () => {
+    const { service, tx } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'PENDING', grossAmount: 1000 } },
+      },
+    });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Escrow must be funded before releasing a milestone.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('credits the wallet once when a concurrent approval already won', async () => {
+    const { service, tx } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'FUNDED', grossAmount: 1000 } },
+      },
+    });
+    tx.milestone.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Milestone has already been approved.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('refuses to release beyond the funded escrow amount', async () => {
+    const { service, tx } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'FUNDED', grossAmount: 1000 } },
+      },
+    });
+    (tx.milestone as any).aggregate = jest.fn().mockResolvedValue({ _sum: { amount: 1500 } });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).rejects.toThrow(
+      'Released milestones would exceed the funded escrow amount.',
+    );
+    expect(tx.freelancerWallet.upsert).not.toHaveBeenCalled();
+  });
+
+  it('approves a submitted milestone, credits net amount, and queues a deterministic release', async () => {
+    const { service, tx, escrowQueue } = buildService({
+      contract: {
+        clientId: 'client-1',
+        freelancerId: 'freelancer-1',
+        currency: 'ETB',
+        freelanceJob: { escrowTx: { id: 'escrow-1', status: 'FUNDED', grossAmount: 1000 } },
+      },
+    });
+    (tx.milestone as any).aggregate = jest.fn().mockResolvedValue({ _sum: { amount: 1000 } });
+
+    await expect(service.releaseMilestone('milestone-1', 'client-1')).resolves.toEqual({
+      success: true,
+    });
+    expect(tx.freelancerWallet.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: { pendingBalance: { increment: 900 } } }),
+    );
+    expect(escrowQueue.add).toHaveBeenCalledWith(
+      ESCROW_JOBS.AUTO_RELEASE,
+      expect.objectContaining({ milestoneId: 'milestone-1', amount: 900 }),
+      expect.objectContaining({ jobId: 'auto-release-milestone-1' }),
+    );
+  });
+
   it('re-enqueues the deterministic release job when an approved milestone is retried', async () => {
     const { service, prisma, escrowQueue } = buildService({
       status: 'APPROVED',
@@ -355,7 +438,7 @@ describe('EscrowService initiate wallet funding', () => {
     expect(escrowQueue.add).not.toHaveBeenCalled();
   });
 
-  it('returns an existing pending escrow without reserving wallet funds again', async () => {
+  it('resumes an unpaid escrow with a new checkout, without reserving wallet funds again', async () => {
     const { service, prisma, escrowQueue, eventEmitter, chapaClient } = buildInitiateService({
       existingEscrow: {
         id: 'escrow-pending',
@@ -375,13 +458,50 @@ describe('EscrowService initiate wallet funding', () => {
       grossAmount: 1000,
       walletAppliedAmount: 400,
       amountToPay: 600,
+      checkoutUrl: 'https://pay.test/checkout',
     });
 
     expect(prisma.employerWallet.updateMany).not.toHaveBeenCalled();
     expect(prisma.escrowTransaction.create).not.toHaveBeenCalled();
-    expect(prisma.escrowTransaction.update).not.toHaveBeenCalled();
+    // Only the new checkout reference is stored; the amounts already match the contract.
+    expect(prisma.escrowTransaction.update).toHaveBeenCalledTimes(1);
+    expect(prisma.escrowTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'escrow-pending' },
+      data: { gatewayRef: 'bp-tx-1' },
+    });
     expect(chapaClient.initializePayment).not.toHaveBeenCalled();
     expect(escrowQueue.add).not.toHaveBeenCalled();
     expect(eventEmitter.emit).not.toHaveBeenCalled();
+  });
+});
+
+describe('EscrowService initiate after a bid is accepted', () => {
+  it('charges the agreed amount when the escrow was set up from the budget', async () => {
+    const { service, prisma } = buildInitiateService({
+      existingEscrow: {
+        id: 'escrow-pending',
+        grossAmount: 5000,
+        platformFee: 500,
+        netAmount: 4500,
+        walletAppliedAmount: 0,
+        status: 'PENDING',
+      },
+    });
+    // buildInitiateService's contract agreed 1000.
+    await expect(service.initiate('client-1', 'gig-1')).resolves.toMatchObject({
+      grossAmount: 1000,
+      amountToPay: 1000,
+    });
+    expect(prisma.escrowTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'escrow-pending' },
+      data: { grossAmount: 1000, platformFee: 100, netAmount: 900 },
+    });
+  });
+
+  it('refuses to start paying for an escrow that is disputed or closed', async () => {
+    const { service } = buildInitiateService({
+      existingEscrow: { id: 'e', status: 'DISPUTED', grossAmount: 1000 },
+    });
+    await expect(service.initiate('client-1', 'gig-1')).rejects.toThrow('already funded');
   });
 });

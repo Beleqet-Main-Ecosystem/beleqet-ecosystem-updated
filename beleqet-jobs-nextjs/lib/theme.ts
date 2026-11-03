@@ -7,15 +7,17 @@ export const THEME_STORAGE_KEY = "beleqet-theme";
 
 /**
  * Reads the stored theme preference from browser storage.
+ * Light is the default until the redesign has a designed dark theme;
+ * people who choose Dark or System keep their choice.
  */
 export function getStoredThemePreference(
   value?: string | null,
 ): ThemePreference {
-  if (value === "light" || value === "dark") {
+  if (value === "light" || value === "dark" || value === "system") {
     return value;
   }
 
-  return "system";
+  return "light";
 }
 
 /**

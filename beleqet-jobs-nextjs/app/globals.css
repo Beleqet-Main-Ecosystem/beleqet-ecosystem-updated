@@ -12,12 +12,12 @@ body {
 }
 
 html.dark body {
-  background: #020617;
+  background: #06130A;
   color: #f8fafc;
 }
 
 html.dark .bg-white {
-  background-color: #0f172a;
+  background-color: #0D1E13;
 }
 
 html.dark .border-primary\/10,
@@ -40,7 +40,7 @@ html.dark .text-muted {
 
 html.dark .bg-pageBg,
 html.dark .hover\:bg-pageBg:hover {
-  background-color: #1e293b;
+  background-color: #172C1D;
 }
 
 html.dark .bg-primary\/5 {
@@ -54,18 +54,6 @@ html.dark .text-brandGreen {
 ::selection {
   background: #d8ff3e;
   color: #041603;
-}
-
-.hero-grid::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.38;
-  background-image:
-    linear-gradient(rgba(4, 22, 3, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(4, 22, 3, 0.06) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: linear-gradient(to right, black, transparent 80%);
 }
 
 /* ------------------------------------------------------------------ */
@@ -302,14 +290,42 @@ body.in-telegram input[type='radio'] {
 }
 
 html.dark .jobs-category-scrollbar {
-  scrollbar-color: #94a3b8 #1e293b;
+  scrollbar-color: #94a3b8 #172C1D;
 }
 
 html.dark .jobs-category-scrollbar::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #172C1D;
 }
 
 html.dark .jobs-category-scrollbar::-webkit-scrollbar-thumb {
   background-color: #94a3b8;
-  border-color: #1e293b;
+  border-color: #172C1D;
+}
+
+
+/* ── Claude Redesign Base & Accessibility Tokens ── */
+:lang(am) {
+  line-height: 1.7;
+}
+
+:focus-visible {
+  outline: 2px solid #1f7551;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Pages with a sticky mobile action bar (e.g. job detail): lift the chat
+   button above the bar so it never covers the main action. */
+@media (max-width: 767px) {
+  body:has([data-mobile-action-bar]) .chat-fab {
+    bottom: 10rem;
+  }
 }

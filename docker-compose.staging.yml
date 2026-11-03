@@ -86,6 +86,11 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required (test value)}
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:?PAYPAL_CLIENT_ID is required (sandbox)}
       PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET:?PAYPAL_CLIENT_SECRET is required (sandbox)}
+      PAYPAL_MODE: ${PAYPAL_MODE:-sandbox}
+      # Without it PayPal webhooks are refused, so PayPal plans never start.
+      PAYPAL_WEBHOOK_ID: ${PAYPAL_WEBHOOK_ID:-}
+      PAYPAL_RETURN_URL: ${PAYPAL_RETURN_URL:-https://beleqetjobs.com/payment/success}
+      PAYPAL_CANCEL_URL: ${PAYPAL_CANCEL_URL:-https://beleqetjobs.com/payment/cancel}
       CHAPA_SECRET_KEY: ${CHAPA_SECRET_KEY:-}
       CHAPA_PUBLIC_KEY: ${CHAPA_PUBLIC_KEY:-}
       CHAPA_WEBHOOK_SECRET: ${CHAPA_WEBHOOK_SECRET:-}
@@ -132,7 +137,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/ || exit 1']
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/login || exit 1']
       interval: 15s
       timeout: 5s
       retries: 5

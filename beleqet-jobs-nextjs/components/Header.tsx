@@ -6,12 +6,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, ChevronDown } from "lucide-react";
 import HeaderAuth from "@/components/HeaderAuth";
-import PostJobButton from "@/components/PostJobButton";
 import NotificationBell from "@/components/NotificationBell";
+import PreferencesMenu from "@/components/PreferencesMenu";
 import { useAuth } from "@/components/AuthProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTranslation } from "@/lib/i18n";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 /**
  * Lazy-load the full-screen MobileDrawer — not needed on desktop first paint
@@ -25,18 +23,24 @@ export default function Header() {
   const toolsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { user } = useAuth();
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
 
-  // Close dropdown on outside click
+  // Close the tools menu on outside click or Escape
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
-        setToolsOpen(false);
-      }
+    if (!toolsOpen) return;
+    function onPointer(event: MouseEvent) {
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) setToolsOpen(false);
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setToolsOpen(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [toolsOpen]);
 
   // Context-aware "For employers" link:
   const employerHref =
@@ -49,15 +53,20 @@ export default function Header() {
   const primaryNavItems = [
     { label: t("nav.findJobs"), href: "/jobs" },
     { label: t("nav.freelance"), href: "/freelance" },
+  ];
+  const trailingNavItems = [
     { label: t("nav.employers"), href: employerHref },
     { label: t("nav.pricing"), href: "/pricing" },
   ];
 
   const toolsNavItems = [
-    { label: t("nav.cvMaker"), href: "/cv-maker" },
-    { label: t("nav.portfolio"), href: "/portfolio" },
-    { label: t("nav.chatToText"), href: "/chat-to-text" },
-    { label: t("nav.about"), href: "/about" },
+    { label: t("nav.feed"), href: "/feed", hint: t("nav.feedHint") },
+    { label: t("nav.cvMaker"), href: "/cv-maker", hint: t("nav.cvMakerHint") },
+    { label: t("nav.resumeBrain"), href: "/resume-brain", hint: t("nav.resumeBrainHint") },
+    { label: t("nav.taxCalculator"), href: "/tax-calculator", hint: t("nav.taxCalculatorHint") },
+    { label: t("nav.portfolio"), href: "/portfolio", hint: t("nav.portfolioHint") },
+    { label: t("nav.voiceToText"), href: "/chat-to-text", hint: t("nav.voiceToTextHint") },
+    { label: t("nav.forum"), href: "/forum", hint: t("nav.forumHint") },
   ];
 
   const isActive = (href: string) =>
@@ -65,79 +74,71 @@ export default function Header() {
 
   const isToolsActive = toolsNavItems.some((item) => isActive(item.href));
 
+  const navLink = (item: { label: string; href: string }) => {
+    const active = isActive(item.href);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        className={`rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent ${
+          active
+            ? "bg-white/[0.08] font-semibold text-white"
+            : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white"
+        }`}
+      >
+        {item.label}
+      </Link>
+    );
+  };
+
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-primary/95 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800 dark:bg-slate-950/90">
-        <div className="container-page flex h-[72px] items-center justify-between">
-          {/* Logo — uses the official brand mark */}
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-primary">
+        <div className="mx-auto flex h-[72px] max-w-[1200px] items-center gap-8 px-4 sm:px-6 lg:px-10">
           <Link
             href="/"
-            className="group flex items-center gap-2.5 shrink-0"
-            aria-label="Beleqet Jobs home"
+            className="flex shrink-0 items-center gap-2.5 rounded-md text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+            aria-label={t("header.home")}
           >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] overflow-hidden shadow-sm transition-transform group-hover:-rotate-3">
-              <Image
-                src="/logo-icon.png"
-                alt="Beleqet"
-                width={40}
-                height={40}
-                className="h-full w-full object-contain"
-                priority
-              />
+            <Image
+              src="/logo-icon.png"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-md object-contain"
+              priority
+            />
+            <span className="text-[20px] font-extrabold leading-none tracking-[-0.02em]">
+              Beleqet<span className="text-limeAccent">.</span>
             </span>
-            <div className="flex flex-col">
-              <span className="text-[19px] font-extrabold tracking-[-0.04em] text-white leading-none">
-                Beleqet<span className="text-[#d8ff3e]">.</span>
-              </span>
-              <span className="text-[9px] font-black uppercase tracking-wider text-[#d8ff3e] mt-0.5">
-                Jobs &amp; Freelance
-              </span>
-            </div>
           </Link>
 
           {/* Desktop nav */}
-          <nav
-            className="hidden items-center gap-1 lg:flex"
-            aria-label="Main navigation"
-          >
-            {primaryNavItems.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                    active
-                      ? "bg-white/15 text-white"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+          <nav className="hidden flex-1 items-center gap-1 lg:flex" aria-label={t("header.primaryNav")}>
+            {primaryNavItems.map(navLink)}
 
-            {/* Tools / More dropdown */}
             <div className="relative" ref={toolsRef}>
               <button
                 type="button"
-                onClick={() => setToolsOpen(!toolsOpen)}
-                className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
+                onClick={() => setToolsOpen((v) => !v)}
+                aria-expanded={toolsOpen}
+                aria-haspopup="true"
+                className={`flex items-center gap-1 rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent ${
                   isToolsActive || toolsOpen
-                    ? "bg-white/15 text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                    ? "bg-white/[0.08] font-semibold text-white"
+                    : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
-                <span>{locale === "am" ? "ተጨማሪ" : "Tools"}</span>
+                {t("nav.careerTools")}
                 <ChevronDown
-                  className={`h-4 w-4 transition-transform duration-200 ${
-                    toolsOpen ? "rotate-180 text-[#d8ff3e]" : "text-white/60"
-                  }`}
+                  className={`h-4 w-4 transition-transform duration-200 ${toolsOpen ? "rotate-180" : ""}`}
+                  aria-hidden="true"
                 />
               </button>
 
               {toolsOpen && (
-                <div className="absolute left-0 mt-2 w-48 rounded-2xl border border-white/10 bg-primary/95 p-1.5 shadow-xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 z-50">
+                <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[320px] rounded-xl border border-ink-200 bg-surface p-1.5 shadow-[0_16px_40px_rgba(4,22,3,0.28)] dark:border-slate-700 dark:bg-slate-900">
                   {toolsNavItems.map((item) => {
                     const active = isActive(item.href);
                     return (
@@ -145,44 +146,44 @@ export default function Header() {
                         key={item.href}
                         href={item.href}
                         onClick={() => setToolsOpen(false)}
-                        className={`block rounded-xl px-3.5 py-2.5 text-xs font-bold transition-colors ${
-                          active
-                            ? "bg-white/15 text-[#d8ff3e]"
-                            : "text-white/80 hover:bg-white/10 hover:text-white"
+                        aria-current={active ? "page" : undefined}
+                        className={`flex flex-col gap-0.5 rounded-md px-3 py-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandGreen ${
+                          active ? "bg-[#F1F7EC] dark:bg-slate-800" : "hover:bg-canvas dark:hover:bg-slate-800"
                         }`}
                       >
-                        {item.label}
+                        <span className="text-sm font-bold text-ink-900 dark:text-slate-100">{item.label}</span>
+                        <span className="text-[13px] text-ink-600 dark:text-slate-400">{item.hint}</span>
                       </Link>
                     );
                   })}
                 </div>
               )}
             </div>
+
+            {trailingNavItems.map(navLink)}
           </nav>
 
-          {/* Desktop action area */}
-          <div className="hidden items-center gap-2 lg:flex">
-            <LanguageSwitcher />
-            <ThemeToggle />
-            <NotificationBell />
-            <HeaderAuth />
-            <PostJobButton />
-          </div>
-
-          {/* Mobile: action icons + hamburger that opens MobileDrawer */}
-          <div className="flex items-center gap-1.5 lg:hidden">
-            <LanguageSwitcher />
-            <ThemeToggle />
-            <NotificationBell />
-            <HeaderAuth />
+          <div className="ml-auto flex items-center gap-2">
+            <PreferencesMenu />
+            {user && <NotificationBell />}
+            <div className="hidden lg:block">
+              <HeaderAuth />
+            </div>
+            <Link
+              href="/post-job"
+              className="hidden min-h-11 items-center rounded-md bg-limeAccent px-4 text-sm font-bold text-obsidian transition-colors hover:bg-[#c8ef2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex"
+            >
+              {t("header.postJob")}
+            </Link>
             <button
+              type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 text-white dark:border-slate-700"
-              aria-label="Open menu"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent lg:hidden"
+              aria-label={t("header.openMenu")}
               aria-expanded={drawerOpen}
               aria-controls="mobile-drawer"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
         </div>

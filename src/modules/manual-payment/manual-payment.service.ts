@@ -7,7 +7,8 @@ import { EmailService } from '../email-automation/email.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UploadsService } from '../uploads/uploads.service';
-import { SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
+import { CreateManualPaymentDto, SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
+import { activatePaidPlan, assertNoPaypalAutoRenew } from '../subscriptions/activate-plan';
 
 export interface ManualPaymentRecord {
   id: string;
@@ -18,6 +19,8 @@ export interface ManualPaymentRecord {
   transactionReference: string | null;
   receiptUrl: string | null;
   metadata?: Record<string, unknown> | null;
+  /** Admin list only. */
+  payer?: { firstName: string; lastName: string; email: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,23 +42,47 @@ export class ManualPaymentService {
    */
   async createManualPayment(
     userId: string,
-    amount: number,
-    currency: string,
-    description?: string,
+    input: CreateManualPaymentDto,
   ): Promise<ManualPaymentRecord> {
+    // Paying for a plan: the price is the plan's, never what the browser sends.
+    let plan: { id: string; name: string; priceAmount: number; currency: string } | null = null;
+    if (input.planId) {
+      plan = await this.prisma.plan.findFirst({
+        where: { id: input.planId, isActive: true, priceAmount: { gt: 0 } },
+        select: { id: true, name: true, priceAmount: true, currency: true },
+      });
+      if (!plan) throw new NotFoundException('That plan is not available');
+      await assertNoPaypalAutoRenew(this.prisma, userId);
+    } else if (!input.amount || !input.currency) {
+      throw new BadRequestException('Give a plan, or an amount and currency');
+    }
+
     const payment = await this.prisma.payment.create({
       data: {
         userId,
         provider: PaymentProvider.MANUAL,
         providerPaymentId: `MANUAL-${randomUUID()}`,
-        amount,
-        currency,
+        amount: plan ? plan.priceAmount : input.amount!,
+        currency: plan ? plan.currency : input.currency!,
         status: PaymentStatus.PENDING,
-        description: description ?? 'Manual bank transfer payment',
+        description: plan
+          ? `${plan.name} plan by bank transfer`
+          : (input.description ?? 'Manual bank transfer payment'),
+        metadata: plan ? { planId: plan.id } : undefined,
       },
     });
 
     return this.toRecord(payment);
+  }
+
+  /** The caller's bank-transfer payments, newest first. */
+  async findMine(userId: string): Promise<ManualPaymentRecord[]> {
+    const payments = await this.prisma.payment.findMany({
+      where: { userId, provider: PaymentProvider.MANUAL },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return payments.map((payment) => this.toRecord(payment));
   }
 
   /**
@@ -115,26 +142,28 @@ export class ManualPaymentService {
     return this.toRecord(updated);
   }
 
-  /** Returns a single payment record */
-  async findOne(paymentId: string): Promise<ManualPaymentRecord> {
+  /** One payment; people see only their own (it carries their receipt and bank reference). */
+  async findOne(paymentId: string, userId?: string, isAdmin = false): Promise<ManualPaymentRecord> {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
     });
-    if (!payment) {
+    if (!payment || (!isAdmin && payment.userId !== userId)) {
       throw new NotFoundException(`Payment ${paymentId} not found`);
     }
     return this.toRecord(payment);
   }
 
   /** Lists all manual payments (admin use) */
-  async findAll(page = 1, limit = 20): Promise<ManualPaymentRecord[]> {
+  async findAll(page = 1, limit = 20, status?: PaymentStatus): Promise<ManualPaymentRecord[]> {
     const payments = await this.prisma.payment.findMany({
-      where: { provider: PaymentProvider.MANUAL },
+      where: { provider: PaymentProvider.MANUAL, ...(status ? { status } : {}) },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
+      include: { user: { select: { firstName: true, lastName: true, email: true } } },
     });
-    return payments.map(this.toRecord);
+    // Admins need to see who paid; nothing else about the account is sent.
+    return payments.map((payment) => ({ ...this.toRecord(payment), payer: payment.user }));
   }
 
   /**
@@ -155,16 +184,28 @@ export class ManualPaymentService {
     }
 
     const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
-    const updated = await this.prisma.payment.update({
-      where: { id: paymentId },
-      data: {
-        status: PaymentStatus.SUCCEEDED,
-        metadata: {
-          ...currentMetadata,
-          approvedBy: adminId,
-          approvedAt: new Date().toISOString(),
+    const planId = typeof currentMetadata.planId === 'string' ? currentMetadata.planId : null;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // A second, simultaneous approval matches nothing here, so a plan is never started twice.
+      const { count } = await tx.payment.updateMany({
+        where: { id: paymentId, status: { not: PaymentStatus.SUCCEEDED } },
+        data: { status: PaymentStatus.SUCCEEDED },
+      });
+      if (count === 0) return tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
+      const subscriptionId = planId
+        ? await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.MANUAL)
+        : undefined;
+      return tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          metadata: {
+            ...currentMetadata,
+            ...(subscriptionId ? { subscriptionId } : {}),
+            approvedBy: adminId,
+            approvedAt: new Date().toISOString(),
+          },
         },
-      },
+      });
     });
 
     this.logger.log(`Manual payment ${paymentId} approved by admin ${adminId}`);
@@ -176,7 +217,7 @@ export class ManualPaymentService {
           userId: payment.userId,
           type: 'PAYMENT_RECEIVED',
           title: 'Payment Approved',
-          body: `Your manual payment of ${payment.amount} ${payment.currency} has been approved.`,
+          body: `Your payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} has been approved.`,
           channel: 'IN_APP',
           metadata: { paymentId: payment.id, approvedBy: adminId },
         },
@@ -199,7 +240,7 @@ export class ManualPaymentService {
           variables: {
             name: userName,
             transactionId: payment.id,
-            amount: payment.amount,
+            amount: (payment.amount / 100).toLocaleString('en-US'),
             currency: payment.currency,
             paidAt: new Date().toLocaleDateString('en-US'),
             reference: payment.transactionReference ?? 'N/A',
@@ -253,7 +294,7 @@ export class ManualPaymentService {
           userId: payment.userId,
           type: 'PAYMENT_RECEIVED',
           title: 'Payment Rejected',
-          body: `Your manual payment of ${payment.amount} ${payment.currency} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+          body: `Your payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
           channel: 'IN_APP',
           metadata: { paymentId: payment.id, rejectedBy: adminId, reason },
         },
@@ -334,7 +375,7 @@ export class ManualPaymentService {
         userId: payment.userId,
         variables: {
           paymentId: payment.id,
-          amount: payment.amount,
+          amount: (payment.amount / 100).toLocaleString('en-US'),
           currency: payment.currency,
           reference,
           receiptUrl,
@@ -353,7 +394,7 @@ export class ManualPaymentService {
         await this.postJson(webhookUrl, webhookSecret, {
           action: 'manual_payment_uploaded',
           order_id: payment.id,
-          amount: payment.amount,
+          amount: (payment.amount / 100).toLocaleString('en-US'),
           currency: payment.currency,
           reference,
           receipt_url: receiptUrl,
@@ -437,7 +478,7 @@ export class ManualPaymentService {
           userId: payment.userId,
           type: 'PAYMENT_RECEIVED',
           title: 'Payment Receipt Submitted',
-          body: `Your payment receipt of ${payment.amount} ${payment.currency} (Ref: ${reference}) was received and is under review.`,
+          body: `Your payment receipt of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} (Ref: ${reference}) was received and is under review.`,
           channel: 'IN_APP',
           metadata: { paymentId: payment.id, reference },
         },
@@ -454,7 +495,7 @@ export class ManualPaymentService {
             userId: admin.id,
             type: 'PAYMENT_RECEIVED',
             title: 'New Manual Payment Received',
-            body: `A manual payment of ${payment.amount} ${payment.currency} (Ref: ${reference}) was submitted and requires review.`,
+            body: `A manual payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} (Ref: ${reference}) was submitted and requires review.`,
             channel: 'IN_APP',
             metadata: { paymentId: payment.id, reference },
           },

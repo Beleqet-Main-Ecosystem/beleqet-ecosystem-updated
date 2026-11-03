@@ -82,6 +82,7 @@ export class ForumService {
       items: items.map(({ _count, ...thread }) => ({
         ...thread,
         user: thread.isAnonymous ? null : thread.user,
+        userId: thread.isAnonymous ? null : thread.userId,
         replyCount: _count.replies,
       })),
       pagination: {
@@ -106,7 +107,12 @@ export class ForumService {
       throw new NotFoundException(await this.i18n.t('forum.error.threadNotFound', { lang }));
 
     const { _count, ...data } = thread;
-    return { ...data, user: data.isAnonymous ? null : data.user, replyCount: _count.replies };
+    return {
+      ...data,
+      user: data.isAnonymous ? null : data.user,
+      userId: data.isAnonymous ? null : data.userId,
+      replyCount: _count.replies,
+    };
   }
 
   async createReply(userId: string, threadId: string, dto: CreateReplyDto, lang = 'en') {
@@ -177,9 +183,11 @@ export class ForumService {
     return replies.map((reply) => ({
       ...reply,
       user: reply.isAnonymous ? null : reply.user,
+      userId: reply.isAnonymous ? null : reply.userId,
       childReplies: reply.childReplies.map((child) => ({
         ...child,
         user: child.isAnonymous ? null : child.user,
+        userId: child.isAnonymous ? null : child.userId,
       })),
     }));
   }
@@ -237,6 +245,20 @@ export class ForumService {
         data: { upvoteCount: { increment: 1 } },
       });
       return { upvoted: true, upvoteCount: reply.upvoteCount + 1 };
+    });
+  }
+
+  /** Pinned threads list first; locked threads take no new replies. */
+  async moderateThread(threadId: string, changes: { isPinned?: boolean; isLocked?: boolean }) {
+    const thread = await this.prisma.forumThread.findUnique({
+      where: { id: threadId },
+      select: { id: true },
+    });
+    if (!thread) throw new NotFoundException('Thread not found');
+    return this.prisma.forumThread.update({
+      where: { id: threadId },
+      data: { isPinned: changes.isPinned, isLocked: changes.isLocked },
+      select: { id: true, isPinned: true, isLocked: true },
     });
   }
 

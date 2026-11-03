@@ -2,37 +2,45 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowUpRight } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
+
+const TELEGRAM_URL = 'https://t.me/BeleqetJobs';
 
 const footerColumns = [
   {
-    title: 'For Job Seekers',
+    titleKey: 'footer.jobSeekers',
     links: [
-      { label: 'Find Jobs', href: '/jobs' },
-      { label: 'Browse Categories', href: '/jobs' },
-      { label: 'CV Maker', href: '/cv-maker' },
-      { label: 'Portfolio Builder', href: '/portfolio' },
-      { label: 'Telegram Alerts', href: 'https://t.me/BeleqetJobs' },
+      { labelKey: 'nav.findJobs', href: '/jobs' },
+      { labelKey: 'nav.feed', href: '/feed' },
+      { labelKey: 'nav.resumeBrain', href: '/resume-brain' },
+      { labelKey: 'nav.cvMaker', href: '/cv-maker' },
+      { labelKey: 'nav.portfolio', href: '/portfolio' },
+      { labelKey: 'footer.telegramAlerts', href: TELEGRAM_URL },
     ],
   },
   {
-    title: 'For Employers',
+    titleKey: 'footer.employers',
     links: [
-      { label: 'Post a Job', href: '/post-job' },
-      { label: 'Find Candidates', href: '/post-job' },
-      { label: 'Pricing', href: '/pricing' },
-      { label: 'Support', href: '/contact' },
+      { labelKey: 'footer.postJob', href: '/post-job' },
+      { labelKey: 'footer.employerDashboard', href: '/employer' },
+      { labelKey: 'footer.pricing', href: '/pricing' },
     ],
   },
   {
-    title: 'Contact',
+    titleKey: 'nav.freelance',
     links: [
-      { label: 'Addis Ababa, Ethiopia', href: '/contact' },
-      { label: 'Privacy Policy', href: '/privacy' },
-      { label: 'beleqet.com', href: 'https://beleqet.com' },
-      { label: 'Telegram Channel', href: 'https://t.me/BeleqetJobs' },
-      { label: 'Support Center', href: '/contact' },
+      { labelKey: 'footer.browseProjects', href: '/freelance' },
+      { labelKey: 'footer.postProject', href: '/freelance/post' },
+      { labelKey: 'footer.howEscrowWorks', href: '/#escrow' },
+    ],
+  },
+  {
+    titleKey: 'footer.company',
+    links: [
+      { labelKey: 'nav.about', href: '/about' },
+      { labelKey: 'nav.forum', href: '/forum' },
+      { labelKey: 'footer.contact', href: '/contact' },
+      { labelKey: 'footer.privacy', href: '/privacy' },
     ],
   },
 ];
@@ -41,74 +49,47 @@ export default function Footer() {
   const { t } = useTranslation();
 
   return (
-    <footer className="bg-primary text-white">
-      <div className="container-page grid grid-cols-1 gap-12 py-16 pb-24 md:grid-cols-[1.4fr_1fr_1fr_1fr] lg:pb-0">
-        <div>
+    <footer className="bg-primary pb-24 text-white/75 lg:pb-0">
+      <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-10 px-4 pb-8 pt-16 sm:px-6 md:grid-cols-[1.4fr_repeat(4,1fr)] lg:px-10">
+        <div className="col-span-2 flex flex-col gap-3.5 md:col-span-1">
           <Link
             href="/"
-            className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight"
+            className="flex items-center gap-2.5 self-start rounded-md text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
           >
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] overflow-hidden">
-              <Image
-                src="/logo-icon.png"
-                alt="Beleqet"
-                width={40}
-                height={40}
-                className="h-full w-full object-contain"
-              />
+            <Image src="/logo-icon.png" alt="" width={32} height={32} className="h-8 w-8 rounded-md object-contain" />
+            <span className="text-lg font-extrabold tracking-[-0.02em]">
+              Beleqet<span className="text-limeAccent">.</span>
             </span>
-            <div className="flex flex-col">
-              <span className="text-xl font-extrabold text-white leading-none">
-                Beleqet<span className="text-[#d8ff3e]">.</span>
-              </span>
-              <span className="text-[9px] font-black uppercase tracking-wider text-[#d8ff3e] mt-0.5">
-                Jobs &amp; Freelance
-              </span>
-            </div>
           </Link>
-          <p className="mt-5 max-w-xs text-sm leading-6 text-white/55">
-            {t('footer.tagline')}
-          </p>
+          <p className="max-w-xs text-sm leading-6">{t('footer.tagline')}</p>
         </div>
 
         {footerColumns.map((col) => (
-          <div key={col.title}>
-            <h4 className="mb-5 text-xs font-extrabold uppercase tracking-[.16em] text-[#d8ff3e]">
-              {col.title}
-            </h4>
-            <ul className="space-y-2.5">
-              {col.links.map((link) => {
-                const isExternal =
-                  typeof link.href === 'string' &&
-                  (link.href.startsWith('http') || link.href.startsWith('//'));
-                return (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      {...(isExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
-                      className="group inline-flex items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
-                    >
-                      {link.label}
-                      <ArrowUpRight className="h-3 w-3 opacity-0 transition group-hover:opacity-100" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <nav key={col.titleKey} aria-label={t(col.titleKey)} className="flex flex-col gap-1">
+            <h2 className="mb-2 text-[13px] font-bold text-white">{t(col.titleKey)}</h2>
+            {col.links.map((link) => {
+              const isExternal = link.href.startsWith('http');
+              return (
+                <Link
+                  key={link.labelKey}
+                  href={link.href}
+                  {...(isExternal ? { rel: 'noopener noreferrer', target: '_blank' } : {})}
+                  className="inline-flex min-h-9 items-center self-start rounded text-sm text-white/75 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+                >
+                  {t(link.labelKey)}
+                </Link>
+              );
+            })}
+          </nav>
         ))}
       </div>
 
-      <div className="border-t border-white/10">
-        <div className="container-page flex flex-col items-center justify-between gap-2 py-6 text-xs text-white/40 sm:flex-row">
-          <p>© {new Date().getFullYear()} Beleqet Vacancy Platform. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link href="/privacy" className="hover:text-white transition-colors underline">
-              Privacy Policy
-            </Link>
-            <span>·</span>
-            <span>Addis Ababa · Built for Ethiopian talent.</span>
-          </div>
+      <div className="mx-auto flex max-w-[1200px] flex-wrap justify-between gap-3 border-t border-white/10 px-4 pb-8 pt-5 text-[13px] text-white/60 sm:px-6 lg:px-10">
+        <p>© {new Date().getFullYear()} Beleqet. {t('footer.location')}</p>
+        <div className="flex gap-5">
+          <Link href="/privacy" className="text-white/75 hover:text-white">{t('footer.privacy')}</Link>
+          <Link href="/contact" className="text-white/75 hover:text-white">{t('footer.contact')}</Link>
+          <a href={TELEGRAM_URL} rel="noopener noreferrer" target="_blank" className="text-white/75 hover:text-white">Telegram</a>
         </div>
       </div>
     </footer>

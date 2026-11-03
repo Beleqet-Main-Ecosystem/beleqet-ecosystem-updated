@@ -13,6 +13,7 @@ import { homePageMetadata } from '@/lib/seo/generate-metadata';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/lib/i18n';
 import { TelegramInitializer } from '@/components/TelegramInitializer';
+import { inter, ethiopic } from './fonts';
 
 /* Dynamically-load non-critical client modules — not needed on first paint */
 const ChatWidget = dynamic(() => import('@/components/ChatWidget'), { ssr: false });
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const { themeColor, defaultLocale } = getSeoConfig();
 
   return (
-    <html lang={defaultLocale} suppressHydrationWarning>
+    <html lang={defaultLocale} className={`${inter.variable} ${ethiopic.variable}`} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content={themeColor} />
         <meta name="color-scheme" content="light dark" />
@@ -37,11 +38,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var p=localStorage.getItem('beleqet-theme');var d=p!=='light';document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}})();`,
+            __html: `(function(){try{var p=localStorage.getItem('beleqet-theme');var d=p==='dark'||(p==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`,
           }}
         />
       </head>
-      <body className="min-h-screen bg-pageBg font-sans text-ink antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+      <body className="min-h-screen bg-canvas font-sans text-ink antialiased transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
         <I18nProvider>
         <ThemeProvider>
           <AuthProvider>

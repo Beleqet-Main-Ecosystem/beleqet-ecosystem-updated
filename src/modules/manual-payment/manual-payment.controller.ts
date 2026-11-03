@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   DefaultValuePipe,
@@ -16,13 +17,14 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { PaymentStatus } from '@prisma/client';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UPLOAD_FILE_INTERCEPTOR_OPTIONS } from '../uploads/uploads.controller';
-import { SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
+import { CreateManualPaymentDto, SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
 import { ManualPaymentRecord, ManualPaymentService } from './manual-payment.service';
 
 @ApiTags('manual-payment')
@@ -37,14 +39,9 @@ export class ManualPaymentController {
   async create(
     @Req() req: Request & { user: { userId: string } },
     @Body()
-    body: { amount: number; currency: string; description?: string },
+    body: CreateManualPaymentDto,
   ): Promise<ManualPaymentRecord> {
-    return this.manualPaymentService.createManualPayment(
-      req.user.userId,
-      body.amount,
-      body.currency,
-      body.description,
-    );
+    return this.manualPaymentService.createManualPayment(req.user.userId, body);
   }
 
   @Post('submit-receipt')
@@ -68,8 +65,16 @@ export class ManualPaymentController {
   async list(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('status') status?: string,
   ): Promise<ManualPaymentRecord[]> {
-    return this.manualPaymentService.findAll(page, limit);
+    const known = Object.values(PaymentStatus) as string[];
+    if (status && !known.includes(status))
+      throw new BadRequestException(`status must be one of ${known.join(', ')}`);
+    return this.manualPaymentService.findAll(
+      page,
+      Math.min(limit, 100),
+      status as PaymentStatus | undefined,
+    );
   }
 
   @Patch('admin/:id/approve')
@@ -106,9 +111,19 @@ export class ManualPaymentController {
     return this.manualPaymentService.getReceiptViewUrl(id, admin.userId, true);
   }
 
+  /** The caller's own bank-transfer payments, newest first: their billing history. */
+  @Get('mine')
+  @ApiOperation({ summary: 'My manual payments' })
+  async mine(@Req() req: Request & { user: { userId: string } }): Promise<ManualPaymentRecord[]> {
+    return this.manualPaymentService.findMine(req.user.userId);
+  }
+
   @Get(':id')
-  @ApiOperation({ summary: 'Get a single manual payment by id' })
-  async findOne(@Param('id') id: string): Promise<ManualPaymentRecord> {
-    return this.manualPaymentService.findOne(id);
+  @ApiOperation({ summary: 'Get one of your manual payments by id (admins: any)' })
+  async findOne(
+    @Param('id') id: string,
+    @Req() req: Request & { user: { userId: string; role?: string } },
+  ): Promise<ManualPaymentRecord> {
+    return this.manualPaymentService.findOne(id, req.user.userId, req.user.role === 'ADMIN');
   }
 }

@@ -1,33 +1,30 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
+
+/**
+ * Runs against a live API. Needs an admin account: ADMIN_EMAIL / ADMIN_PASSWORD
+ * (CI creates one with create-admin.js). API_URL defaults to the local API.
+ */
+const API_URL = process.env.API_URL ?? 'http://127.0.0.1:4000/api/v1';
+const PORT = Number(process.env.PORT ?? 3002);
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['step-up-flows.spec.ts'],
-  timeout: 60000,
+  timeout: 60_000,
   retries: 0,
-  use: {
-    baseURL: process.env.BASE_URL || 'http://127.0.0.1:3002',
-    headless: true,
-    viewport: { width: 1280, height: 720 },
+  workers: 1,
+  use: { baseURL: process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`, headless: true,
+    viewport: { width: 1280, height: 800 },
+    // PW_CHANNEL=chrome uses the installed Chrome instead of a downloaded Chromium.
+    channel: process.env.PW_CHANNEL || undefined,
   },
-  projects: [
-    {
-      name: 'chrome',
-      use: {
-        // Use the system-installed Google Chrome to avoid downloading browser binaries
-        channel: 'chrome',
+  webServer: process.env.BASE_URL
+    ? undefined
+    : {
+        // CI tests the production build; locally the dev server is quicker to start.
+        command: process.env.CI ? `npm run build && npx next start -p ${PORT}` : `npx next dev -p ${PORT}`,
+        url: `http://127.0.0.1:${PORT}/login`,
+        reuseExistingServer: true,
+        timeout: 300_000,
+        env: { NEXT_PUBLIC_API_URL: API_URL },
       },
-    },
-  ],
-  webServer: {
-    command: 'npx next dev -p 3002',
-    url: 'http://127.0.0.1:3002',
-    reuseExistingServer: true,
-    cwd: __dirname,
-    timeout: 60000,
-    env: {
-      NEXT_PUBLIC_API_URL: 'http://127.0.0.1:4000/api/v1',
-      PORT: '3002',
-    },
-  },
 });

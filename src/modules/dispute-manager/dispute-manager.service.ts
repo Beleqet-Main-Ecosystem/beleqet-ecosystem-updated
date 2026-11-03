@@ -8,6 +8,9 @@ import type { Dispute } from '@prisma/client';
 /**
  * Manages dispute creation, review, and resolution.
  */
+/** Same as a milestone release (EscrowService). */
+const DISPUTE_PLATFORM_FEE_PCT = 0.1;
+
 @Injectable()
 export class DisputeManagerService {
   constructor(
@@ -64,68 +67,142 @@ export class DisputeManagerService {
   }
 
   /**
-   * Resolves an open dispute and updates the related contract state.
+   * Settles a dispute: what is still held in escrow (funded amount minus milestones already
+   * released) goes to the client, the freelancer, or both, in one transaction. The freelancer's
+   * share pays the same platform fee as a milestone release and is available straight away,
+   * since an admin has decided it.
    */
   async resolveDispute(
     disputeId: string,
     resolveDto: ResolveDisputeDto,
+    adminId?: string,
   ): Promise<{ message: string; dispute: Dispute }> {
     const dispute = await this.prisma.dispute.findUnique({
       where: { id: disputeId },
-      include: { contract: true },
+      include: { contract: { include: { freelanceJob: { include: { escrowTx: true } } } } },
     });
 
     if (!dispute) {
       throw new NotFoundException('Dispute not found');
     }
 
-    if (dispute.resolution) {
+    if (dispute.resolvedAt) {
       throw new BadRequestException('Dispute is already resolved');
     }
 
-    if (resolveDto.refundAmount && resolveDto.refundAmount > dispute.contract.agreedAmount) {
-      throw new BadRequestException('Refund amount cannot exceed the contract agreed amount');
-    }
-
-    const updatedDispute = await this.prisma.dispute.update({
-      where: { id: disputeId },
-      data: {
-        resolution: resolveDto.resolution,
-        resolvedAt: new Date(),
-      },
+    const { contract } = dispute;
+    const escrow = contract.freelanceJob?.escrowTx;
+    // Only money that was actually paid in can be paid out.
+    const holdsMoney = escrow && (escrow.status === 'DISPUTED' || escrow.status === 'FUNDED');
+    const released = await this.prisma.milestone.aggregate({
+      where: { contractId: contract.id, status: 'APPROVED' },
+      _sum: { amount: true },
     });
+    const held = holdsMoney ? Math.max(0, escrow.grossAmount - (released._sum.amount ?? 0)) : 0;
 
-    // Apply any approved refund to the employer wallet.
-    if (resolveDto.refundAmount && resolveDto.refundAmount > 0) {
-      const employerWallet = await this.prisma.employerWallet.findUnique({
-        where: { userId: dispute.contract.clientId },
+    const freelancerGross =
+      resolveDto.outcome === 'REFUND'
+        ? 0
+        : resolveDto.outcome === 'RELEASE'
+          ? held
+          : resolveDto.freelancerAmount;
+    if (freelancerGross === undefined) {
+      throw new BadRequestException("Give the freelancer's share when splitting");
+    }
+    if (freelancerGross > held) {
+      throw new BadRequestException(
+        `The freelancer's share can't be more than the ${held} still held in escrow`,
+      );
+    }
+    const clientRefund = held - freelancerGross;
+    const freelancerNet = freelancerGross - Math.round(freelancerGross * DISPUTE_PLATFORM_FEE_PCT);
+
+    const updatedDispute = await this.prisma.$transaction(async (tx) => {
+      // A second, concurrent resolution matches nothing and stops here, so money moves once.
+      const { count } = await tx.dispute.updateMany({
+        where: { id: disputeId, resolvedAt: null },
+        data: {
+          resolution: resolveDto.resolution,
+          resolvedAt: new Date(),
+          outcome: resolveDto.outcome,
+          clientAmount: clientRefund,
+          freelancerAmount: freelancerGross,
+          resolvedById: adminId ?? null,
+        },
+      });
+      if (count === 0) throw new BadRequestException('Dispute is already resolved');
+
+      if (clientRefund > 0) {
+        const wallet = await tx.employerWallet.upsert({
+          where: { userId: contract.clientId },
+          update: { balance: { increment: clientRefund } },
+          create: { userId: contract.clientId, balance: clientRefund, lockedBalance: 0 },
+        });
+        await tx.employerWalletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            type: 'CREDIT_AVAILABLE',
+            amount: clientRefund,
+            note: `Dispute settlement refund for contract ${contract.id}`,
+            escrowId: escrow?.id,
+          },
+        });
+      }
+
+      if (freelancerNet > 0) {
+        const wallet = await tx.freelancerWallet.upsert({
+          where: { userId: contract.freelancerId },
+          update: { availableBalance: { increment: freelancerNet } },
+          create: {
+            userId: contract.freelancerId,
+            availableBalance: freelancerNet,
+            pendingBalance: 0,
+          },
+        });
+        await tx.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            type: 'CREDIT_AVAILABLE',
+            amount: freelancerNet,
+            note: `Dispute settlement for contract ${contract.id}`,
+          },
+        });
+      }
+
+      if (holdsMoney) {
+        await tx.escrowTransaction.update({
+          where: { id: escrow.id },
+          data:
+            freelancerGross > 0
+              ? { status: 'RELEASED', releasedAt: new Date() }
+              : { status: 'REFUNDED' },
+        });
+      }
+
+      // Nothing to the freelancer means the work was not accepted.
+      await tx.contract.update({
+        where: { id: contract.id },
+        data: { status: freelancerGross === 0 && held > 0 ? 'CANCELLED' : 'COMPLETED' },
       });
 
-      if (employerWallet) {
-        await this.prisma.$transaction([
-          this.prisma.employerWallet.update({
-            where: { id: employerWallet.id },
-            data: { balance: { increment: resolveDto.refundAmount } },
-          }),
-          this.prisma.employerWalletTransaction.create({
-            data: {
-              walletId: employerWallet.id,
-              type: 'CREDIT_AVAILABLE',
-              amount: resolveDto.refundAmount,
-              note: `Admin dispute resolution refund for contract ${dispute.contractId}`,
-            },
-          }),
-        ]);
-      }
-    }
+      await tx.eventLog.create({
+        data: {
+          eventType: 'dispute.resolved',
+          entityId: disputeId,
+          entityType: 'Dispute',
+          payload: {
+            contractId: contract.id,
+            outcome: resolveDto.outcome,
+            held,
+            clientRefund,
+            freelancerGross,
+            freelancerNet,
+          },
+          processedBy: DisputeManagerService.name,
+        },
+      });
 
-    // Choose the final contract state after the dispute resolution.
-    const finalContractStatus =
-      resolveDto.refundAmount && resolveDto.refundAmount > 0 ? 'CANCELLED' : 'COMPLETED';
-
-    await this.prisma.contract.update({
-      where: { id: dispute.contractId },
-      data: { status: finalContractStatus },
+      return tx.dispute.findUniqueOrThrow({ where: { id: disputeId } });
     });
 
     const lang = resolveDto.lang || 'en';

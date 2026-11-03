@@ -33,6 +33,10 @@ const authApi = axios.create({
 const TOKEN_KEY = 'beleqet_token';
 const REFRESH_KEY = 'beleqet_refresh';
 const USER_KEY = 'beleqet_user';
+/** Set when someone unticks "Keep me signed in". */
+const SESSION_ONLY_KEY = 'beleqet_session_only';
+/** Browser-session cookie: shared by all tabs, gone when the browser closes. */
+const SESSION_COOKIE = 'beleqet_session';
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
 
@@ -74,6 +78,24 @@ export function clearAuth(): void {
   if (typeof document !== 'undefined') {
     document.cookie = 'beleqet_token=; path=/; max-age=0; SameSite=Lax';
     document.cookie = 'beleqet_user=; path=/; max-age=0; SameSite=Lax';
+  }
+}
+
+/** Records the sign-in choice. Unticked means signing out when the browser closes. */
+export function setKeepSignedIn(keep: boolean): void {
+  if (keep) {
+    localStorage.removeItem(SESSION_ONLY_KEY);
+    return;
+  }
+  localStorage.setItem(SESSION_ONLY_KEY, '1');
+  document.cookie = `${SESSION_COOKIE}=1; path=/; SameSite=Lax`;
+}
+
+/** Call on load: ends a "not kept" session once its browser session is over. */
+export function enforceKeepSignedIn(): void {
+  if (localStorage.getItem(SESSION_ONLY_KEY) && !document.cookie.includes(`${SESSION_COOKIE}=1`)) {
+    localStorage.removeItem(SESSION_ONLY_KEY);
+    clearAuth();
   }
 }
 
@@ -147,15 +169,84 @@ export async function registerUser(input: RegisterDto): Promise<AuthUser> {
 }
 
 /**
- * Authenticate with email + password.
- * Persists tokens to localStorage on success.
+ * Result of a password sign-in: either signed in, or the account has
+ * two-step verification and needs a code before tokens are issued.
  */
-export async function loginUser(input: LoginDto): Promise<AuthUser> {
+export type LoginResult =
+  | { status: 'signed-in'; user: AuthUser }
+  | { status: 'needs-code'; tempToken: string };
+
+/**
+ * Authenticate with email + password.
+ * Persists tokens on success; accounts with two-step verification get a
+ * temporary token to finish with `completeTwoFactor`.
+ */
+export async function loginUser(input: LoginDto): Promise<LoginResult> {
   try {
-    const { data } = await authApi.post<AuthResponse>('/auth/login', input);
+    const { data } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/auth/login', input);
+    if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
+    const auth = data as AuthResponse;
+    persist(auth.accessToken, auth.user, auth.refreshToken);
+    return { status: 'signed-in', user: auth.user };
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+/** Finish a two-step sign-in with a 6-digit app code or a 10-character backup code. */
+export async function completeTwoFactor(tempToken: string, code: string, kind: 'app' | 'backup'): Promise<AuthUser> {
+  try {
+    const { data } = await authApi.post<AuthResponse>(
+      kind === 'app' ? '/auth/2fa/verify' : '/auth/2fa/backup-code',
+      kind === 'app' ? { tempToken, code } : { tempToken, backupCode: code },
+    );
     persist(data.accessToken, data.user, data.refreshToken);
     return data.user;
   } catch (error) {
     throw new Error(messageFrom(error));
   }
+}
+
+/** Always resolves the same way whether or not the email exists, like the API. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  try {
+    await authApi.post('/auth/forgot-password', { email });
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  try {
+    await authApi.post('/auth/reset-password', { token, newPassword });
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+export async function verifyEmail(token: string): Promise<void> {
+  try {
+    await authApi.post('/auth/verify-email', { token });
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+// ── Google and LinkedIn sign-in ───────────────────────────────────────────────
+
+/** Where to go after a provider sign-in; the API's redirect can't carry it. */
+export const OAUTH_NEXT_KEY = 'beleqet_oauth_next';
+/** A two-step challenge from a provider sign-in, picked up by the sign-in page. */
+export const OAUTH_TWO_FACTOR_KEY = 'beleqet_oauth_2fa';
+
+export function oauthStartUrl(provider: 'google' | 'linkedin'): string {
+  return `${authApi.defaults.baseURL}/auth/${provider}`;
+}
+
+/** Store the session the API handed back after Google or LinkedIn. */
+export async function completeOAuth(accessToken: string, refreshToken: string): Promise<AuthUser> {
+  const { data } = await authApi.get<AuthUser>('/users/profile', { headers: { Authorization: `Bearer ${accessToken}` } });
+  const user = { id: data.id, email: data.email, firstName: data.firstName, lastName: data.lastName, role: data.role } as AuthUser;
+  persist(accessToken, user, refreshToken);
+  return user;
 }

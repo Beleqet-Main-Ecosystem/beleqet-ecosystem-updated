@@ -5,6 +5,13 @@ import { CurrencyService } from './currency/currency.service';
 import { CreateSalaryPredictionDto, ExperienceLevel } from './dto/salary-prediction.dto';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
+// Three real postings: the least the service will base a prediction on.
+const POSTINGS = [
+  { salaryMin: 20000, salaryMax: 30000 },
+  { salaryMin: 25000, salaryMax: 35000 },
+  { salaryMin: 30000, salaryMax: 40000 },
+];
+
 describe('SalaryService', () => {
   let service: SalaryService;
   let _prismaService: PrismaService;
@@ -92,6 +99,7 @@ describe('SalaryService', () => {
       };
 
       mockPrismaService.salaryPrediction.findFirst.mockResolvedValue(null);
+      mockPrismaService.job.findMany.mockResolvedValue(POSTINGS);
       mockPrismaService.salaryPrediction.create.mockResolvedValue(mockPrediction);
       mockPrismaService.salaryHistory.create.mockResolvedValue(null);
 
@@ -104,6 +112,18 @@ describe('SalaryService', () => {
       expect(mockPrismaService.salaryPrediction.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: { lastUpdatedAt: 'desc' } }),
       );
+    });
+
+    it('says there is not enough data instead of inventing a figure', async () => {
+      mockPrismaService.salaryPrediction.findFirst.mockResolvedValue(null);
+      mockPrismaService.job.findMany.mockResolvedValue(POSTINGS.slice(0, 2));
+      await expect(
+        service.predictSalary({
+          jobTitle: 'Pilot',
+          location: 'Adama',
+          experienceLevel: ExperienceLevel.MID,
+        } as CreateSalaryPredictionDto),
+      ).rejects.toMatchObject({ response: { code: 'NOT_ENOUGH_DATA', dataPointsCount: 2 } });
     });
 
     it('should throw BadRequestException when job title is missing', async () => {
@@ -196,7 +216,7 @@ describe('SalaryService', () => {
       mockPrismaService.salaryPrediction.findFirst.mockResolvedValue(null);
       mockPrismaService.salaryPrediction.create.mockResolvedValue(mockResult);
       mockPrismaService.salaryHistory.create.mockResolvedValue(null);
-      mockPrismaService.job.findMany.mockResolvedValue([]);
+      mockPrismaService.job.findMany.mockResolvedValue(POSTINGS);
 
       const result = await service.batchPredict(batchDto as any);
 

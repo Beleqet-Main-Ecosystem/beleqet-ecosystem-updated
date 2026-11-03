@@ -1,5 +1,6 @@
 import React from 'react';
 import { getSeoConfig } from '../config';
+import { jsonLd } from './json-ld';
 
 /**
  * Shape accepted by `JobPostingSchema`.  Only the fields that are safe for
@@ -13,6 +14,11 @@ export interface JobPostingData {
   company: string;
   location: string;
   employmentType: string;
+  /** ISO date applications close. */
+  validThrough?: string | null;
+  /** True only when candidates apply on Beleqet itself. */
+  directApply?: boolean;
+  salary?: { min?: number | null; max?: number | null; currency?: string; unit?: 'MONTH' | 'YEAR' | 'HOUR' } | null;
 }
 
 /**
@@ -49,12 +55,27 @@ export function JobPostingSchema({ job }: { job: JobPostingData }): React.ReactE
       },
     },
     employmentType: normalizeEmploymentType(job.employmentType),
-    directApply: true,
+    directApply: job.directApply ?? true,
     url: `${siteUrl}/jobs/${job.id}`,
+    ...(job.validThrough ? { validThrough: job.validThrough } : {}),
+    ...(job.salary && (job.salary.min || job.salary.max)
+      ? {
+          baseSalary: {
+            '@type': 'MonetaryAmount',
+            currency: job.salary.currency ?? 'ETB',
+            value: {
+              '@type': 'QuantitativeValue',
+              ...(job.salary.min ? { minValue: job.salary.min } : {}),
+              ...(job.salary.max ? { maxValue: job.salary.max } : {}),
+              unitText: job.salary.unit ?? 'MONTH',
+            },
+          },
+        }
+      : {}),
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(json) }} />
   );
 }
 

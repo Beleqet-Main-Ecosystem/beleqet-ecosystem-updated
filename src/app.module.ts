@@ -50,6 +50,9 @@ import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
 import { EncryptedInboxModule } from './modules/encrypted-inbox/encrypted-inbox.module';
 import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { CommunityForumModule } from './modules/community-forum/forum.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { JobAlertsModule } from './modules/job-alerts/job-alerts.module';
+import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
 import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
@@ -58,6 +61,9 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
+import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
+import { MatchingModule } from './modules/matching/matching.module';
+import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
 
 @Module({
   imports: [
@@ -163,7 +169,14 @@ import { RbacModule } from './modules/rbac/rbac.module';
     ManualPaymentModule,
     BeleqetPayModule,
     CommunityForumModule,
+    ReportsModule,
+    JobAlertsModule,
+    // Was never registered, so admin erasure and self-service deletion were unreachable.
+    GdprGuardModule,
     RbacModule,
+    FaqBotModule,
+    MatchingModule,
+    PromotedEngineModule,
   ],
   providers: [
     {

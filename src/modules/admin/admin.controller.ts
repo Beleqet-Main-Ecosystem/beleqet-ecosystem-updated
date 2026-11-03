@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -19,12 +21,20 @@ import {
   IsString,
   MinLength,
   IsArray,
+  IsIn,
+  IsInt,
+  Max,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import * as bcrypt from 'bcryptjs';
+import { JobStatus, FreelanceJobStatus, Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { DisputeManagerService } from '../dispute-manager/dispute-manager.service';
+import { ResolveDisputeDto } from '../dispute-manager/dto/resolve-dispute.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatService } from '../chat/chat.service';
@@ -34,6 +44,12 @@ import { ResolveFraudAlertDto } from '../fraud-alert/dto/resolve-fraud-alert.dto
 import { CreateFraudRuleDto, UpdateFraudRuleDto } from '../fraud-alert/dto/create-fraud-rule.dto';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { AuditLoggingService } from '../audit-logging/audit-logging.service';
+import {
+  assertAccountChangeAllowed,
+  assertGigModeration,
+  assertJobModeration,
+  assertRemovalAllowed,
+} from './admin-rules';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -53,6 +69,20 @@ class UpdateUserDto {
   @IsOptional() @IsString() @MinLength(2) lastName?: string;
   @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
   @IsOptional() @IsBoolean() isActive?: boolean;
+  @IsOptional() @IsBoolean() kycVerified?: boolean;
+}
+class ListUsersQueryDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page: number = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit: number = 25;
+  @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
+  @IsOptional() @IsIn(['active', 'suspended']) status?: 'active' | 'suspended';
+}
+class UpdateJobModerationStatusDto {
+  @IsEnum(JobStatus) status!: JobStatus;
+}
+class UpdateGigModerationStatusDto {
+  @IsEnum(FreelanceJobStatus) status!: FreelanceJobStatus;
 }
 class BroadcastDto {
   @IsString() @MinLength(3) title!: string;
@@ -60,8 +90,9 @@ class BroadcastDto {
   @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
   @IsOptional() @IsArray() @IsString({ each: true }) userIds?: string[];
 }
-class ResolveDisputeDto {
-  @IsString() @MinLength(10) resolution!: string;
+class VerificationDecisionDto {
+  @IsIn(['VERIFIED', 'REJECTED']) decision!: 'VERIFIED' | 'REJECTED';
+  @IsOptional() @IsString() note?: string;
 }
 
 const safeUserSelect = {
@@ -71,8 +102,10 @@ const safeUserSelect = {
   lastName: true,
   role: true,
   isActive: true,
+  kycVerified: true,
   emailVerified: true,
   createdAt: true,
+  twoFactor: { select: { enabled: true } },
 } as const;
 
 @ApiTags('admin')
@@ -87,20 +120,50 @@ export class AdminController {
     private readonly fraudAlertService: FraudAlertService,
     private readonly notificationsService: NotificationsService,
     private readonly auditLoggingService: AuditLoggingService,
+    private readonly disputes: DisputeManagerService,
   ) {}
 
   @RequirePermissions('manage:users')
   @Get('users')
-  @ApiOperation({ summary: 'List all users' })
-  getUsers() {
-    return this.prisma.user.findMany({ select: safeUserSelect, orderBy: { createdAt: 'desc' } });
+  @ApiOperation({ summary: 'List users a page at a time, with search and filters' })
+  async getUsers(@Query() query: ListUsersQueryDto) {
+    const search = query.search?.trim();
+    const where: Prisma.UserWhereInput = {
+      ...(query.role ? { role: query.role } : {}),
+      ...(query.status ? { isActive: query.status === 'active' } : {}),
+      ...(search
+        ? {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: safeUserSelect,
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return {
+      data: users.map((u) => ({ ...u, twoFactorEnabled: u.twoFactor?.enabled ?? false })),
+      total,
+      page: query.page,
+      limit: query.limit,
+    };
   }
 
   @RequirePermissions('manage:users')
   @Post('users')
   @ApiOperation({ summary: 'Create a user' })
   async createUser(@Body() dto: CreateUserDto) {
-    return this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
         email: dto.email.toLowerCase().trim(),
         firstName: dto.firstName.trim(),
@@ -110,23 +173,237 @@ export class AdminController {
       },
       select: safeUserSelect,
     });
+    return {
+      ...user,
+      twoFactorEnabled: user.twoFactor?.enabled ?? false,
+    };
   }
 
   @RequirePermissions('manage:users')
   @Patch('users/:id')
-  @ApiOperation({ summary: 'Update a user' })
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.prisma.user.update({ where: { id }, data: dto, select: safeUserSelect });
+  @ApiOperation({ summary: 'Update a user (role, isActive ban/activate, kyc)' })
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() admin: CurrentUserPayload,
+  ) {
+    const target = await this.findAccount(id);
+    assertAccountChangeAllowed(admin.userId, target, dto, await this.activeAdminCount());
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: dto,
+      select: safeUserSelect,
+    });
+    return {
+      ...user,
+      twoFactorEnabled: user.twoFactor?.enabled ?? false,
+    };
+  }
+
+  @RequirePermissions('manage:jobs')
+  @Get('moderation/items')
+  @ApiOperation({ summary: 'List public postings (jobs and gigs) for moderation queue' })
+  async getModerationItems(
+    @Query('type') type?: 'ALL' | 'JOB' | 'GIG',
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    const selectedType = type || 'ALL';
+    const items: Array<{
+      id: string;
+      type: 'JOB' | 'GIG';
+      title: string;
+      description: string;
+      creatorName: string;
+      creatorEmail?: string;
+      category?: string;
+      location?: string;
+      compensation: string;
+      status: string;
+      createdAt: Date;
+      updatedAt: Date;
+    }> = [];
+
+    if (selectedType === 'ALL' || selectedType === 'JOB') {
+      const jobs = await this.prisma.job.findMany({
+        include: { company: true, category: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      for (const job of jobs) {
+        items.push({
+          id: job.id,
+          type: 'JOB',
+          title: job.title,
+          description: job.description,
+          creatorName: job.company?.name || job.companyName || 'Independent Employer',
+          creatorEmail: job.applyEmail || undefined,
+          category: job.category?.label,
+          location: job.location,
+          compensation: job.salaryMin
+            ? `${job.salaryMin.toLocaleString()} - ${job.salaryMax?.toLocaleString() ?? job.salaryMin.toLocaleString()} ${job.currency || 'ETB'}`
+            : 'Negotiable',
+          status: job.status,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+        });
+      }
+    }
+
+    if (selectedType === 'ALL' || selectedType === 'GIG') {
+      const gigs = await this.prisma.freelanceJob.findMany({
+        include: {
+          client: { select: { id: true, firstName: true, lastName: true, email: true } },
+          category: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      for (const gig of gigs) {
+        items.push({
+          id: gig.id,
+          type: 'GIG',
+          title: gig.title,
+          description: gig.description,
+          creatorName: gig.client
+            ? `${gig.client.firstName} ${gig.client.lastName}`.trim()
+            : 'Client',
+          creatorEmail: gig.client?.email,
+          category: gig.category?.label,
+          location: gig.locationPreference || 'Remote',
+          compensation: gig.budgetMin
+            ? `${gig.budgetMin.toLocaleString()} - ${gig.budgetMax.toLocaleString()} ${gig.currency || 'ETB'}`
+            : `${gig.budgetMax.toLocaleString()} ${gig.currency || 'ETB'}`,
+          status: gig.status,
+          createdAt: gig.createdAt,
+          updatedAt: gig.updatedAt,
+        });
+      }
+    }
+
+    let filtered = items.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+
+    if (status && status !== 'ALL') {
+      filtered = filtered.filter((i) => i.status.toUpperCase() === status.toUpperCase());
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          i.creatorName.toLowerCase().includes(q) ||
+          (i.category && i.category.toLowerCase().includes(q)) ||
+          (i.location && i.location.toLowerCase().includes(q)),
+      );
+    }
+
+    return filtered;
+  }
+
+  @Get('companies/verification')
+  @ApiOperation({ summary: 'Companies waiting for their trade licence to be checked' })
+  companiesToVerify(@Query('status') status?: string) {
+    const wanted = ['PENDING', 'VERIFIED', 'REJECTED'].includes(status ?? '') ? status : 'PENDING';
+    return this.prisma.company.findMany({
+      where: { verificationStatus: wanted as 'PENDING' | 'VERIFIED' | 'REJECTED' },
+      orderBy: { verificationRequestedAt: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        website: true,
+        industry: true,
+        location: true,
+        tradeLicenseUrl: true,
+        verificationStatus: true,
+        verificationRequestedAt: true,
+        verificationNote: true,
+        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+      },
+    });
+  }
+
+  /** Approve or reject a trade licence; a rejection says why so the employer can fix it. */
+  @Patch('companies/:id/verification')
+  async decideVerification(@Param('id') id: string, @Body() dto: VerificationDecisionDto) {
+    if (dto.decision === 'REJECTED' && !dto.note?.trim()) {
+      throw new BadRequestException('Say why the licence was rejected');
+    }
+    const { count } = await this.prisma.company.updateMany({
+      where: { id, verificationStatus: 'PENDING' },
+      data: {
+        verificationStatus: dto.decision,
+        verified: dto.decision === 'VERIFIED',
+        verificationNote: dto.note?.trim() || null,
+      },
+    });
+    if (count === 0) throw new NotFoundException('No licence waiting for review for this company');
+    return { verificationStatus: dto.decision };
+  }
+
+  @RequirePermissions('manage:jobs')
+  @Patch('moderation/jobs/:id/status')
+  @ApiOperation({ summary: 'Approve, archive, or update job status' })
+  async updateJobStatus(@Param('id') id: string, @Body() dto: UpdateJobModerationStatusDto) {
+    const current = await this.prisma.job.findUnique({ where: { id }, select: { status: true } });
+    if (!current) throw new NotFoundException('Job not found');
+    assertJobModeration(current.status, dto.status);
+    const job = await this.prisma.job.update({
+      where: { id },
+      data: { status: dto.status },
+      include: { company: true, category: true },
+    });
+    return job;
+  }
+
+  @RequirePermissions('manage:jobs')
+  @Patch('moderation/gigs/:id/status')
+  @ApiOperation({ summary: 'Approve, cancel, or update freelance gig status' })
+  async updateGigStatus(@Param('id') id: string, @Body() dto: UpdateGigModerationStatusDto) {
+    const current = await this.prisma.freelanceJob.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!current) throw new NotFoundException('Project not found');
+    assertGigModeration(current.status, dto.status);
+    const gig = await this.prisma.freelanceJob.update({
+      where: { id },
+      data: { status: dto.status },
+      include: { client: { select: safeUserSelect }, category: true },
+    });
+    return gig;
   }
 
   @RequirePermissions('manage:users')
   @Delete('users/:id')
   @ApiOperation({ summary: 'Delete a user without dependent records' })
   async deleteUser(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
-    if (id === admin.userId)
-      return { deleted: false, reason: 'You cannot delete your own admin account' };
-    await this.prisma.user.delete({ where: { id } });
+    assertRemovalAllowed(admin.userId, await this.findAccount(id), await this.activeAdminCount());
+    try {
+      await this.prisma.user.delete({ where: { id } });
+    } catch (error) {
+      // Applications, payments, messages and contracts point at the account; keep them intact.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new ConflictException(
+          'This account has activity on the platform, so it can’t be deleted. Suspend it, or erase its personal data.',
+        );
+      }
+      throw error;
+    }
     return { deleted: true };
+  }
+
+  private async findAccount(id: string) {
+    const account = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, isActive: true },
+    });
+    if (!account) throw new NotFoundException('User not found');
+    return account;
+  }
+
+  private activeAdminCount() {
+    return this.prisma.user.count({ where: { role: 'ADMIN', isActive: true } });
   }
 
   @Get('contacts')
@@ -152,16 +429,28 @@ export class AdminController {
   @Get('escrow/disputes')
   getDisputes() {
     return this.prisma.dispute.findMany({
-      include: { contract: { include: { freelanceJob: true, client: true, freelancer: true } } },
+      // Names and emails only: full user rows would send password hashes to the browser.
+      include: {
+        contract: {
+          include: {
+            freelanceJob: { select: { id: true, title: true } },
+            client: { select: { id: true, firstName: true, lastName: true, email: true } },
+            freelancer: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
+  // Same settlement as PATCH /dispute/:id/resolve: recording a decision without moving the money left escrow stuck.
   @Patch('disputes/:id/resolve')
-  resolveDispute(@Param('id') id: string, @Body() dto: ResolveDisputeDto) {
-    return this.prisma.dispute.update({
-      where: { id },
-      data: { resolution: dto.resolution, resolvedAt: new Date() },
-    });
+  resolveDispute(
+    @Param('id') id: string,
+    @Body() dto: ResolveDisputeDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.disputes.resolveDispute(id, dto, user.userId);
   }
 
   @Get('disputes/:id/arbitration')

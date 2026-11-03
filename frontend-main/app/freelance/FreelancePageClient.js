@@ -161,9 +161,9 @@ function GigCard({ gig, i }) {
         </button>
       </div>
       <h3 className="gc-title">{gig.title}</h3>
-      <p className="gc-client">{gig.client}</p>
+      <p className="gc-client">{typeof gig.client === 'string' ? gig.client : ''}</p>
       <div className="gc-skills">
-        {gig.skills.map((s) => (
+        {(gig.skills ?? []).map((s) => (
           <span key={s} className="gc-skill">
             {s}
           </span>
@@ -175,7 +175,9 @@ function GigCard({ gig, i }) {
           <span>{gig.budgetUnit}</span>
         </div>
         <div className="gc-meta">
-          <span className={`gc-type gc-type--${gig.type.toLowerCase()}`}>{gig.type}</span>
+          {gig.type && (
+            <span className={`gc-type gc-type--${String(gig.type).toLowerCase()}`}>{gig.type}</span>
+          )}
           {gig.escrow && (
             <span className="gc-escrow" title="Escrow protected">
               <svg viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -203,8 +205,8 @@ export default function FreelancePageClient({ gigs = [] }) {
     const q = search.toLowerCase();
     const matchQ =
       !q ||
-      g.title.toLowerCase().includes(q) ||
-      g.client.toLowerCase().includes(q) ||
+      (g.title ?? '').toLowerCase().includes(q) ||
+      (typeof g.client === 'string' ? g.client : '').toLowerCase().includes(q) ||
       g.skills?.some((s) => s.toLowerCase().includes(q));
     return matchCat && matchQ;
   });

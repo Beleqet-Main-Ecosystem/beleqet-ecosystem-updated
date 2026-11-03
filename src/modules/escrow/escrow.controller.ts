@@ -82,7 +82,7 @@ export class EscrowController {
           payload as unknown as { reference: string; status: string; [k: string]: unknown },
         );
         const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:4001';
-        return { url: `${frontendUrl}/freelance/payment-success` };
+        return { url: `${frontendUrl}/dashboard` };
       }
 
       await this.svc.handleWebhook(

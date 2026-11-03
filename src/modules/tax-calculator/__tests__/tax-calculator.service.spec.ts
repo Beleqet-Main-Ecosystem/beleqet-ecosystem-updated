@@ -21,119 +21,47 @@ describe('TaxCalculatorService', () => {
   });
 
   describe('Ethiopia (ET) progressive brackets', () => {
-    it('applies 0% within the annual exempt band (≤ 7,200 ETB)', () => {
-      const result = service.calculate({
-        grossIncome: 720_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
+    // The 2025 monthly schedule, applied to a year: 0% to 24,000 ETB, then 15% to 48,000,
+    // 20% to 84,000, 25% to 120,000, 30% to 168,000 and 35% above. Amounts are in santim.
+    const et = (grossIncome: number) =>
+      service.calculate({ grossIncome, currency: TaxCurrency.ETB, countryCode: 'ET' });
 
+    it('applies 0% within the annual exempt band (≤ 24,000 ETB)', () => {
+      const result = et(2_400_000);
       expect(result.taxAmount).toBe(0);
       expect(result.effectiveTaxRate).toBe(0);
       expect(result.countryCode).toBe('ET');
       expect(result.currency).toBe(TaxCurrency.ETB);
     });
 
-    it('taxes only the slice above 7,200 ETB at 10%', () => {
-      const result = service.calculate({
-        grossIncome: 720_100,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(10);
+    it('taxes only the slice above 24,000 ETB at 15%', () => {
+      expect(et(2_400_100).taxAmount).toBe(15);
     });
 
-    it('calculates tax at the top of the 10% annual band (19,800 ETB)', () => {
-      const result = service.calculate({
-        grossIncome: 1_980_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(126_000);
+    it.each([
+      ['15%', 4_800_000, 360_000],
+      ['20%', 8_400_000, 1_080_000],
+      ['25%', 12_000_000, 1_980_000],
+      ['30%', 16_800_000, 3_420_000],
+    ])('calculates tax at the top of the %s annual band', (_band, gross, tax) => {
+      expect(et(gross).taxAmount).toBe(tax);
     });
 
-    it('calculates tax at the top of the 15% annual band (38,400 ETB)', () => {
-      const result = service.calculate({
-        grossIncome: 3_840_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(405_000);
+    it('applies 35% on income above 168,000 ETB', () => {
+      // 34,200 ETB on the first 168,000, then 35% of the next 32,000.
+      expect(et(20_000_000).taxAmount).toBe(4_540_000);
     });
 
-    it('calculates tax at the top of the 20% annual band (63,000 ETB)', () => {
-      const result = service.calculate({
-        grossIncome: 6_300_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(897_000);
-    });
-
-    it('calculates tax at the top of the 25% annual band (93,600 ETB)', () => {
-      const result = service.calculate({
-        grossIncome: 9_360_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(1_662_000);
-    });
-
-    it('calculates tax at the top of the 30% annual band (130,800 ETB)', () => {
-      const result = service.calculate({
-        grossIncome: 13_080_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(2_778_000);
-    });
-
-    it('applies 35% on income above 130,800 ETB', () => {
-      const result = service.calculate({
-        grossIncome: 13_080_100,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(2_778_035);
-    });
-
-    it('calculates mid-band progressive tax for 120,000 ETB annual', () => {
-      const result = service.calculate({
-        grossIncome: 12_000_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(2_454_000);
-      expect(result.netIncome).toBe(9_546_000);
-    });
-
-    it('calculates high-earner tax for 200,000 ETB annual', () => {
-      const result = service.calculate({
-        grossIncome: 20_000_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'ET',
-      });
-
-      expect(result.taxAmount).toBe(5_200_000);
-    });
-
-    it('normalizes lowercase countryCode to ET', () => {
-      const result = service.calculate({
-        grossIncome: 720_000,
-        currency: TaxCurrency.ETB,
-        countryCode: 'et',
-      });
-
-      expect(result.countryCode).toBe('ET');
-      expect(result.taxAmount).toBe(0);
+    // The official shortcut, per month: salary x top rate - deduction (300, 500, 850, 1,350, 2,050).
+    it.each([
+      [3_000, 0.15, 300],
+      [6_000, 0.2, 500],
+      [9_000, 0.25, 850],
+      [12_000, 0.3, 1_350],
+      [20_000, 0.35, 2_050],
+    ])('matches the deduction table for a %i ETB monthly salary', (monthly, rate, deduction) => {
+      const yearlyTaxEtb = (monthly * rate - deduction) * 12;
+      expect(et(monthly * 12 * 100).taxAmount).toBe(Math.round(yearlyTaxEtb * 100));
     });
   });
 

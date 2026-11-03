@@ -57,7 +57,8 @@ export class DisputeManagerController {
   async resolve(
     @Param('id') id: string,
     @Body(new ValidationPipe({ transform: true })) resolveDto: ResolveDisputeDto,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.disputeManagerService.resolveDispute(id, resolveDto);
+    return this.disputeManagerService.resolveDispute(id, resolveDto, user.userId);
   }
 }

@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #f6f7f4;
+  color: #121922;
+}
+html.dark body {
+  background: #06130a;
+  color: #f8fafc;
+}
+html {
+  overflow-x: clip;
+}
+::selection {
+  background: #d8ff3e;
+  color: #041603;
+}

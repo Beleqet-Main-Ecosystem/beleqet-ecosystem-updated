@@ -12,6 +12,8 @@ describe('GDPR Guard & Wallet Integration Test', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let gdprService: GdprGuardService;
+  // Ids of everything this test creates, so cleanup removes exactly that and nothing else.
+  const created: Record<string, string> = {};
 
   const audit = {
     reason: 'Integration test GDPR erasure',
@@ -39,7 +41,30 @@ describe('GDPR Guard & Wallet Integration Test', () => {
   }, 30000);
 
   afterAll(async () => {
-    await prisma.$executeRawUnsafe(`TRUNCATE TABLE "users" CASCADE;`);
+    // This used to TRUNCATE users CASCADE, which emptied every user-linked table of whatever
+    // database the test ran against, and still left the test's freelance category behind.
+    // Never pass undefined to a filter: Prisma treats it as "no filter" and would delete every row.
+    const only = (id?: string) => (id ? [id] : []);
+    const userIds = [created.user, created.counterparty].filter(Boolean);
+    await prisma.$transaction([
+      prisma.deliverable.deleteMany({ where: { id: { in: only(created.deliverable) } } }),
+      prisma.milestone.deleteMany({ where: { id: { in: only(created.milestone) } } }),
+      prisma.dispute.deleteMany({ where: { id: { in: only(created.dispute) } } }),
+      prisma.chatParticipant.deleteMany({ where: { roomId: { in: only(created.chatRoom) } } }),
+      prisma.chatRoom.deleteMany({ where: { id: { in: only(created.chatRoom) } } }),
+      prisma.walletTransaction.deleteMany({ where: { walletId: { in: only(created.wallet) } } }),
+      prisma.freelancerWallet.deleteMany({ where: { id: { in: only(created.wallet) } } }),
+      prisma.contract.deleteMany({ where: { id: { in: only(created.contract) } } }),
+      prisma.escrowTransaction.deleteMany({ where: { id: { in: only(created.escrow) } } }),
+      prisma.freelanceJob.deleteMany({ where: { id: { in: only(created.freelanceJob) } } }),
+      prisma.freelanceCategory.deleteMany({ where: { id: { in: only(created.category) } } }),
+      prisma.contactMessage.deleteMany({ where: { id: { in: only(created.contact) } } }),
+      prisma.searchHistory.deleteMany({ where: { userId: { in: userIds } } }),
+      prisma.cvDraft.deleteMany({ where: { userId: { in: userIds } } }),
+      prisma.oAuthAccount.deleteMany({ where: { userId: { in: userIds } } }),
+      prisma.refreshToken.deleteMany({ where: { userId: { in: userIds } } }),
+      prisma.user.deleteMany({ where: { id: { in: userIds } } }),
+    ]);
     await app.close();
   }, 30000);
 
@@ -59,6 +84,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         skills: ['TypeScript', 'NestJS'],
       },
     });
+    created.user = testUser.id;
 
     await prisma.refreshToken.create({
       data: {
@@ -89,7 +115,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
       data: { userId: testUser.id, searchTerm: 'NestJS developer Addis' },
     });
 
-    await prisma.contactMessage.create({
+    const contactMessage = await prisma.contactMessage.create({
       data: {
         name: 'Bemnet Test',
         email: 'integration-test@beleqet.com',
@@ -97,10 +123,12 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         message: 'Please delete my personal data',
       },
     });
+    created.contact = contactMessage.id;
 
     const category = await prisma.freelanceCategory.create({
       data: { slug: `gdpr-test-${Date.now()}`, label: 'GDPR Test Category' },
     });
+    created.category = category.id;
 
     const freelanceJob = await prisma.freelanceJob.create({
       data: {
@@ -116,6 +144,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         locationPreference: 'Addis Ababa',
       },
     });
+    created.freelanceJob = freelanceJob.id;
 
     const escrow = await prisma.escrowTransaction.create({
       data: {
@@ -146,6 +175,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         },
       },
     });
+    created.escrow = escrow.id;
 
     const counterparty = await prisma.user.create({
       data: {
@@ -155,6 +185,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         passwordHash: 'hashed',
       },
     });
+    created.counterparty = counterparty.id;
 
     const contract = await prisma.contract.create({
       data: {
@@ -164,6 +195,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         agreedAmount: 3000,
       },
     });
+    created.contract = contract.id;
 
     const dispute = await prisma.dispute.create({
       data: {
@@ -174,6 +206,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         resolution: 'Settled offline with Bemnet Test',
       },
     });
+    created.dispute = dispute.id;
 
     const milestone = await prisma.milestone.create({
       data: {
@@ -184,6 +217,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         deadline: new Date(Date.now() + 7 * 86_400_000),
       },
     });
+    created.milestone = milestone.id;
 
     const deliverable = await prisma.deliverable.create({
       data: {
@@ -192,10 +226,12 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         notes: 'File contains Bemnet Test passport scan',
       },
     });
+    created.deliverable = deliverable.id;
 
     const chatRoom = await prisma.chatRoom.create({
       data: { contractId: contract.id },
     });
+    created.chatRoom = chatRoom.id;
     await prisma.chatParticipant.create({
       data: { roomId: chatRoom.id, userId: testUser.id },
     });
@@ -208,6 +244,7 @@ describe('GDPR Guard & Wallet Integration Test', () => {
         currency: 'ETB',
       },
     });
+    created.wallet = wallet.id;
 
     await prisma.walletTransaction.createMany({
       data: [

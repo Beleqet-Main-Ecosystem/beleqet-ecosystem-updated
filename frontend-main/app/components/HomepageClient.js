@@ -21,6 +21,16 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
         .slice(0, 2)
         .join('');
     }
+    // Job titles, company names and locations are employer-written; escape them
+    // before they reach innerHTML so markup in a listing can't run script.
+    function esc(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
     const chipColors = ['#123626', '#1B4A33', '#123626', '#0E2C1E', '#123626'];
     const chipColor = (i) => chipColors[i % chipColors.length];
 
@@ -51,14 +61,14 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
     const fallbackJobs = [
       {
         role: 'Senior Product Designer',
-        co: 'Kifiya Financial Technology',
+        co: 'Fintech Company',
         pay: '12,000–18,000',
         unit: 'ETB',
       },
-      { role: 'Frontend Engineer', co: 'PRAGMA Investment', pay: '25,000–35,000', unit: 'ETB' },
-      { role: 'Marketing Lead', co: 'Dinsi Manufacturing', pay: '14,000–20,000', unit: 'ETB' },
-      { role: 'Full Stack Developer', co: 'TakaCash', pay: '20,000–28,000', unit: 'ETB' },
-      { role: 'HR & Admin Officer', co: 'Safaricom Ethiopia', pay: '11,000–16,000', unit: 'ETB' },
+      { role: 'Frontend Engineer', co: 'Investment Firm', pay: '25,000–35,000', unit: 'ETB' },
+      { role: 'Marketing Lead', co: 'Manufacturer', pay: '14,000–20,000', unit: 'ETB' },
+      { role: 'Full Stack Developer', co: 'Fintech Startup', pay: '20,000–28,000', unit: 'ETB' },
+      { role: 'HR & Admin Officer', co: 'Mobile Network Provider', pay: '11,000–16,000', unit: 'ETB' },
     ];
     const fallbackGigs = [
       {
@@ -78,9 +88,9 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
 
     function rowHtml(item, i) {
       return `<div class="flip-inner">
-        <span class="chip" style="background:${chipColor(i)};">${initials(item.role)}</span>
-        <div class="role"><b>${item.role}</b><span>${item.co}</span></div>
-        <div class="pay"><b>${item.pay}</b><span>${item.unit}</span></div>
+        <span class="chip" style="background:${chipColor(i)};">${esc(initials(item.role))}</span>
+        <div class="role"><b>${esc(item.role)}</b><span>${esc(item.co)}</span></div>
+        <div class="pay"><b>${esc(item.pay)}</b><span>${esc(item.unit)}</span></div>
       </div>`;
     }
 
@@ -173,18 +183,18 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
       const tc = typeClass(item.type);
       const tl = typeLabel(item.type);
       const time = timeAgo(item.createdAt);
-      const jobUrl = item.id ? `${appUrl}/jobs/${item.id}` : `${appUrl}/jobs`;
-      return `<a href="${jobUrl}" class="job-card" style="text-decoration:none;color:inherit;" aria-label="${role} at ${co}">
+      const jobUrl = item.id ? `${appUrl}/jobs/${encodeURIComponent(item.id)}` : `${appUrl}/jobs`;
+      return `<a href="${esc(jobUrl)}" class="job-card" style="text-decoration:none;color:inherit;" aria-label="${esc(role)} at ${esc(co)}">
         <div class="jc-top">
-          <span class="jc-chip" style="background:${chipColor(i)};">${initials(role)}</span>
+          <span class="jc-chip" style="background:${chipColor(i)};">${esc(initials(role))}</span>
           <button class="bookmark" aria-label="Save job" onclick="event.preventDefault();this.classList.toggle('saved')">
             <svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>
           </button>
         </div>
-        <h4>${role}</h4>
-        <p class="co">${co}</p>
-        <p class="loc"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>${loc}</p>
-        <div class="jc-bottom"><span class="type-tag ${tc}">${tl}</span><span class="posted">${time}</span></div>
+        <h4>${esc(role)}</h4>
+        <p class="co">${esc(co)}</p>
+        <p class="loc"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(loc)}</p>
+        <div class="jc-bottom"><span class="type-tag ${tc}">${esc(tl)}</span><span class="posted">${time}</span></div>
       </a>`;
     }
 
@@ -195,35 +205,35 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
         : [
             {
               role: 'Full Stack Developer',
-              companyName: 'TakaCash',
+              companyName: 'Fintech Startup',
               location: 'Addis Ababa',
               type: 'FULL_TIME',
               createdAt: null,
             },
             {
               role: 'Digital Marketing Specialist',
-              companyName: 'ethio telecom',
+              companyName: 'Telecom Operator',
               location: 'Addis Ababa',
               type: 'HYBRID',
               createdAt: null,
             },
             {
               role: 'Customer Service Agent',
-              companyName: 'Dashen Bank',
+              companyName: 'Commercial Bank',
               location: 'Addis Ababa',
               type: 'FULL_TIME',
               createdAt: null,
             },
             {
               role: 'Graphic Designer',
-              companyName: 'System One',
+              companyName: 'Creative Agency',
               location: 'Remote',
               type: 'REMOTE',
               createdAt: null,
             },
             {
               role: 'HR & Admin Officer',
-              companyName: 'Safaricom Ethiopia',
+              companyName: 'Mobile Network Provider',
               location: 'Addis Ababa',
               type: 'FULL_TIME',
               createdAt: null,
@@ -324,7 +334,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
           ['Telegram Notifications', 'Never miss an opportunity'],
         ],
         boardTitle: 'Fresh opportunities',
-        boardBadge: `${stats.activeJobs?.toLocaleString() ?? '24'} new`,
+        boardBadge: stats.activeJobs ? `${stats.activeJobs.toLocaleString()} new` : 'Live',
         boardFoot: 'Explore all openings →',
         fbTitle: 'New Job Alert',
         fbSub: 'UI/UX Designer · Addis Ababa',
@@ -470,9 +480,9 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
 
     /* ---------- stat count-up (uses live values from props) ---------- */
     const statMap = {
-      activeJobs: stats.activeJobs ?? 10000,
-      hiringCompanies: stats.hiringCompanies ?? 5000,
-      registeredJobSeekers: stats.registeredJobSeekers ?? 50000,
+      activeJobs: stats.activeJobs ?? 0,
+      hiringCompanies: stats.hiringCompanies ?? 0,
+      registeredJobSeekers: stats.registeredJobSeekers ?? 0,
       satisfactionRate: stats.satisfactionRate ?? 98,
     };
     const statTargets = [
@@ -739,7 +749,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 <div className="row1">
                   <h4 id="board-title">Fresh opportunities</h4>
                   <span className="new-badge" id="board-new-badge">
-                    {stats.activeJobs ? `${stats.activeJobs.toLocaleString()} new` : '24 new'}
+                    {stats.activeJobs ? `${stats.activeJobs.toLocaleString()} new` : 'Live'}
                   </span>
                 </div>
               </div>
@@ -1142,15 +1152,15 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 <h4>For Freelancers</h4>
                 <a href={`${APP_URL}/freelance`}>Browse Gigs</a>
                 <a href={`${APP_URL}/post-project`}>Post a Project</a>
-                <a href={`${APP_URL}/escrow`}>BeleqetSafe Escrow</a>
-                <a href={`${APP_URL}/freelance/register`}>Become a Freelancer</a>
+                <a href={`${APP_URL}/freelance`}>BeleqetSafe Escrow</a>
+                <a href={`${APP_URL}/register`}>Become a Freelancer</a>
               </div>
               <div className="foot-col">
                 <h4>For Employers</h4>
                 <a href={`${APP_URL}/post-job`}>Post a Job</a>
-                <a href={`${APP_URL}/candidates`}>Find Candidates</a>
+                <a href={`${APP_URL}/employer`}>Find Candidates</a>
                 <a href={`${APP_URL}/pricing`}>Pricing</a>
-                <a href={`${APP_URL}/support`}>Support</a>
+                <a href={`${APP_URL}/contact`}>Support</a>
               </div>
               <div className="foot-col">
                 <h4>Contact</h4>
@@ -1159,7 +1169,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 <a href="https://t.me/BeleqetJobs" target="_blank" rel="noreferrer">
                   Telegram Channel
                 </a>
-                <a href={`${APP_URL}/support`}>Support Center</a>
+                <a href={`${APP_URL}/contact`}>Support Center</a>
               </div>
             </div>
           </div>

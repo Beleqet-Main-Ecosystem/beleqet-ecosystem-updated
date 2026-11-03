@@ -9,8 +9,14 @@
  *   explicitly set for above-the-fold images.
  */
 
+/** Admin lives in its own app (frontend/), on its own address, so admin sessions stay off this site. */
+const ADMIN_URL = (process.env.NEXT_PUBLIC_ADMIN_URL || "https://admin.beleqetjobs.com").replace(/\/$/, "");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // A separate folder lets a verification build run beside `next dev` without
+  // the two overwriting each other's files.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@beleqet/common"],
   images: {
     remotePatterns: [
@@ -43,6 +49,8 @@ const nextConfig = {
       { source: '/applicants-jobs/:path*', destination: '/applications/:path*', permanent: false },
       { source: '/my-jobs-2', destination: '/dashboard', permanent: false },
       { source: '/my-jobs-2/:path*', destination: '/dashboard/:path*', permanent: false },
+      { source: '/admin', destination: `${ADMIN_URL}/dashboard`, permanent: false },
+      { source: '/admin/:path*', destination: `${ADMIN_URL}/:path*`, permanent: false },
     ];
   },
 };

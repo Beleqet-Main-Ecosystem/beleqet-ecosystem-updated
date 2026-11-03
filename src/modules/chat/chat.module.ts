@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatService } from './chat.service';
 import { ChatGateway } from './chat.gateway';
+import { ChatController } from './chat.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { EncryptionModule } from '../../common/encryption/encryption.module';
 
@@ -20,6 +21,7 @@ import { EncryptionModule } from '../../common/encryption/encryption.module';
       }),
     }),
   ],
+  controllers: [ChatController],
   providers: [ChatService, ChatGateway],
   exports: [ChatService],
 })

@@ -37,17 +37,32 @@ export class EscrowService {
       where: { freelanceJobId },
     });
     if (existingEscrow) {
-      if (existingEscrow.status === 'FUNDED') {
+      if (existingEscrow.status !== 'PENDING') {
         throw new BadRequestException('Escrow is already funded or active for this gig.');
       }
+      // An unpaid escrow: start a fresh checkout so an abandoned payment can be finished. If it was
+      // set up from the budget before a bid was accepted, charge the agreed amount instead.
+      let { grossAmount, platformFee, netAmount } = existingEscrow;
+      if (job.contract && job.contract.agreedAmount !== grossAmount) {
+        grossAmount = job.contract.agreedAmount;
+        platformFee = Math.round(grossAmount * PLATFORM_FEE_PCT);
+        netAmount = grossAmount - platformFee;
+        await this.prisma.escrowTransaction.update({
+          where: { id: existingEscrow.id },
+          data: { grossAmount, platformFee, netAmount },
+        });
+      }
+      const walletAppliedAmount = existingEscrow.walletAppliedAmount ?? 0;
+      const amountToPay = Math.max(0, grossAmount - walletAppliedAmount);
+      const checkoutUrl = await this.startCheckout(existingEscrow.id, job, amountToPay);
       return {
         escrowId: existingEscrow.id,
-        checkoutUrl: `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${existingEscrow.id}`,
-        grossAmount: existingEscrow.grossAmount,
-        platformFee: existingEscrow.platformFee,
-        netAmount: existingEscrow.netAmount,
-        walletAppliedAmount: existingEscrow.walletAppliedAmount,
-        amountToPay: existingEscrow.grossAmount - (existingEscrow.walletAppliedAmount ?? 0),
+        checkoutUrl,
+        grossAmount,
+        platformFee,
+        netAmount,
+        walletAppliedAmount,
+        amountToPay,
       };
     }
 
@@ -180,37 +195,7 @@ export class EscrowService {
       );
     }
 
-    // ── Route checkout through Beleqet Pay ───────────────────────────────────
-    let checkoutUrl = `${this.config.get('FRONTEND_URL')}/freelance/pay?escrow=${escrow.id}`;
-
-    try {
-      const session = await this.paySwitch.createCheckoutSession({
-        amount: amountToPay.toString(),
-        currency: job.currency ?? 'ETB',
-        customerEmail: job.client.email,
-        preferredProvider: 'CHAPA',
-        successRedirectUrl:
-          this.config.get<string>('CHAPA_RETURN_URL') ??
-          `${this.config.get('FRONTEND_URL')}/freelance/payment-success`,
-        externalRef: escrow.id,
-      });
-
-      // Persist the Beleqet Pay txRef so the processor can verify it later
-      await this.prisma.escrowTransaction.update({
-        where: { id: escrow.id },
-        data: { gatewayRef: session.txRef },
-      });
-
-      checkoutUrl = session.checkoutUrl;
-      this.logger.log(
-        `[beleqet-pay] Checkout session created: txRef=${session.txRef} provider=${session.provider}`,
-      );
-    } catch (err) {
-      this.logger.error(
-        `[beleqet-pay] Failed to create checkout session — falling back to manual URL: ${(err as Error).message}`,
-      );
-      // Non-fatal: user can still pay via manual-payment module
-    }
+    const checkoutUrl = await this.startCheckout(escrow.id, job, amountToPay);
 
     this.eventEmitter.emit('payment.escrow.initiated', {
       escrowId: escrow.id,
@@ -235,6 +220,51 @@ export class EscrowService {
     };
   }
 
+  /**
+   * Opens a Beleqet Pay checkout for what is left to pay. The contract page shows live escrow
+   * status, so payers return there (or to the gig page when funding happens before a bid is
+   * accepted). If the checkout can't be created, that page is returned instead.
+   */
+  private async startCheckout(
+    escrowId: string,
+    job: {
+      id: string;
+      currency: string | null;
+      client: { email: string };
+      contract: { id: string } | null;
+    },
+    amountToPay: number,
+  ): Promise<string> {
+    const returnUrl = job.contract
+      ? `${this.config.get('FRONTEND_URL')}/freelance/contracts/${job.contract.id}`
+      : `${this.config.get('FRONTEND_URL')}/freelance/${job.id}`;
+    try {
+      const session = await this.paySwitch.createCheckoutSession({
+        amount: amountToPay.toString(),
+        currency: job.currency ?? 'ETB',
+        customerEmail: job.client.email,
+        preferredProvider: 'CHAPA',
+        successRedirectUrl: this.config.get<string>('CHAPA_RETURN_URL') ?? returnUrl,
+        externalRef: escrowId,
+      });
+      // Persist the Beleqet Pay txRef so the processor can verify it later
+      await this.prisma.escrowTransaction.update({
+        where: { id: escrowId },
+        data: { gatewayRef: session.txRef },
+      });
+      this.logger.log(
+        `[beleqet-pay] Checkout session created: txRef=${session.txRef} provider=${session.provider}`,
+      );
+      return session.checkoutUrl;
+    } catch (err) {
+      // Non-fatal: user can still pay via manual-payment module
+      this.logger.error(
+        `[beleqet-pay] Failed to create checkout session — falling back to manual URL: ${(err as Error).message}`,
+      );
+      return returnUrl;
+    }
+  }
+
   async handleWebhook(payload: { reference: string; status: string; [k: string]: unknown }) {
     await this.escrowQueue.add(ESCROW_JOBS.PROCESS_WEBHOOK, payload);
   }
@@ -246,10 +276,51 @@ export class EscrowService {
     });
     if (!milestone) throw new NotFoundException('Milestone not found');
 
+    if (milestone.status !== 'SUBMITTED') {
+      throw new BadRequestException('Only submitted milestones can be approved and released.');
+    }
+
+    const escrow = milestone.contract.freelanceJob?.escrowTx;
+    if (!escrow || escrow.status !== 'FUNDED') {
+      throw new BadRequestException('Escrow must be funded before releasing a milestone.');
+    }
+
+    const contractCurrency = milestone.contract.currency || 'ETB';
+    const grossAmountInETB = this.walletSvc.convertCurrency(
+      milestone.amount,
+      contractCurrency,
+      'ETB',
+    );
+    const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
+    const netAmountInETB = grossAmountInETB - platformFee;
+
     await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      await tx.milestone.update({
-        where: { id: milestoneId },
+      // Conditional update: a concurrent or repeated approval matches zero rows
+      // and aborts, so the wallet is credited at most once per milestone.
+      const { count } = await tx.milestone.updateMany({
+        where: { id: milestoneId, status: 'SUBMITTED' },
         data: { status: 'APPROVED', approvedAt: new Date() },
+      });
+      if (count === 0) {
+        throw new BadRequestException('Milestone has already been approved.');
+      }
+
+      const released = await tx.milestone.aggregate({
+        where: { contractId: milestone.contractId, status: 'APPROVED' },
+        _sum: { amount: true },
+      });
+      if ((released._sum.amount ?? 0) > escrow.grossAmount) {
+        throw new BadRequestException('Released milestones would exceed the funded escrow amount.');
+      }
+
+      await tx.freelancerWallet.upsert({
+        where: { userId: milestone.contract.freelancerId },
+        update: { pendingBalance: { increment: netAmountInETB } },
+        create: {
+          userId: milestone.contract.freelancerId,
+          pendingBalance: netAmountInETB,
+          availableBalance: 0,
+        },
       });
 
       await tx.eventLog.create({
@@ -268,31 +339,17 @@ export class EscrowService {
     });
 
     try {
-      const contractCurrency = milestone.contract.currency || 'ETB';
-      const grossAmountInETB = this.walletSvc.convertCurrency(
-        milestone.amount,
-        contractCurrency,
-        'ETB',
-      );
-      const platformFee = Math.round(grossAmountInETB * PLATFORM_FEE_PCT);
-      const netAmountInETB = grossAmountInETB - platformFee;
-
-      await this.prisma.freelancerWallet.upsert({
-        where: { userId: milestone.contract.freelancerId },
-        update: { pendingBalance: { increment: netAmountInETB } },
-        create: {
-          userId: milestone.contract.freelancerId,
-          pendingBalance: netAmountInETB,
-          availableBalance: 0,
+      const releaseAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      await this.escrowQueue.add(
+        ESCROW_JOBS.AUTO_RELEASE,
+        {
+          milestoneId,
+          freelancerId: milestone.contract.freelancerId,
+          amount: netAmountInETB,
+          releaseAt,
         },
-      });
-
-      await this.escrowQueue.add(ESCROW_JOBS.AUTO_RELEASE, {
-        milestoneId,
-        freelancerId: milestone.contract.freelancerId,
-        amount: netAmountInETB,
-        releaseAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      });
+        { delay: releaseAt.getTime() - Date.now(), jobId: `auto-release-${milestoneId}` },
+      );
     } catch (err) {
       this.logger.error(
         `Failed to enqueue auto-release for milestone ${milestoneId}`,

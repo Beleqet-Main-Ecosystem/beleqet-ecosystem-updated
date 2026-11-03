@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 export const roleMeta: Record<string, { label: string; className: string }> = {
   JOB_SEEKER: {
     label: 'Job Seeker',
-    className: 'bg-brandGreen/10 text-brandGreen',
+    className: 'bg-brandGreen/10 text-forest',
   },
   EMPLOYER: {
     label: 'Employer',
@@ -38,73 +38,69 @@ export default function HeaderAuth() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  if (!ready) return <div className="h-9 w-9 rounded-full bg-pageBg animate-pulse" />;
+  if (!ready) return <div className="h-9 w-9 animate-pulse rounded-full bg-white/15" />;
 
   if (!user) {
     return (
-      <div className="flex items-center gap-1.5">
-        <Link
-          href="/login"
-          className="inline-block rounded-full px-3.5 py-2 text-sm font-medium text-ink transition-colors hover:text-brandGreen"
-        >
-          {t('auth.login')}
-        </Link>
-        <Link
-          href="/register"
-          className="inline-block rounded-full border border-border px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:border-brandGreen hover:text-brandGreen"
-        >
-          {t('auth.signUp')}
-        </Link>
-      </div>
+      <Link
+        href="/login"
+        className="inline-flex min-h-11 items-center rounded-md px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+      >
+        {t('nav.signIn')}
+      </Link>
     );
   }
 
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
   const role = roleMeta[user.role] ?? {
     label: user.role,
-    className: 'bg-muted/10 text-muted',
+    className: 'bg-muted/10 text-ink-600',
   };
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full border border-border py-1 pl-1 pr-2 hover:bg-pageBg transition-colors"
+        aria-expanded={open}
+        aria-haspopup="true"
+        aria-label={`${user.firstName} ${user.lastName}`}
+        className="flex min-h-11 items-center gap-2 rounded-full border border-white/20 py-1 pl-1 pr-2 transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
       >
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brandGreen to-darkGreen text-white text-xs font-bold uppercase">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-limeAccent text-xs font-extrabold uppercase text-obsidian">
           {initials}
         </span>
-        <span className="hidden sm:block max-w-[7rem] truncate text-sm font-medium text-ink">
+        <span className="hidden max-w-[7rem] truncate text-sm font-semibold text-white sm:block">
           {user.firstName}
         </span>
         <ChevronDown
-          className={`h-4 w-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 text-white/70 transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
         />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-white shadow-cardHover">
-          <div className="border-b border-border p-4">
+        <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-ink-200 bg-surface shadow-card-hover">
+          <div className="border-b border-ink-200 p-4">
             <div className="flex items-center gap-3">
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brandGreen to-darkGreen text-sm font-bold uppercase text-white">
                 {initials}
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-ink">
+                <p className="truncate text-sm font-semibold text-ink-900">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="truncate text-xs text-muted">{user.email}</p>
+                <p className="truncate text-xs text-ink-600">{user.email}</p>
               </div>
             </div>
             <span
               className={`mt-3 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold ${role.className}`}
             >
-              {role.label}
+              {t(`header.roles.${user.role}`)}
             </span>
           </div>
           <div className="p-1.5">
             <MenuLink href="/profile" icon={User} onClick={() => setOpen(false)}>
-              My Profile
+              {t('header.myProfile')}
             </MenuLink>
             <MenuLink
               href={
@@ -117,15 +113,17 @@ export default function HeaderAuth() {
               icon={Briefcase}
               onClick={() => setOpen(false)}
             >
-              {user.role === 'EMPLOYER'
-                ? 'Hiring Dashboard'
-                : user.role === 'JOB_SEEKER'
-                  ? 'My Applications'
-                  : 'Browse Jobs'}
+              {t(
+                user.role === 'EMPLOYER'
+                  ? 'header.hiringDashboard'
+                  : user.role === 'JOB_SEEKER'
+                    ? 'header.myApplications'
+                    : 'header.browseJobs',
+              )}
             </MenuLink>
             {user.role === 'ADMIN' && (
               <MenuLink href="/admin" icon={ShieldCheck} onClick={() => setOpen(false)}>
-                Admin Dashboard
+                {t('header.adminDashboard')}
               </MenuLink>
             )}
             <button
@@ -160,9 +158,9 @@ function MenuLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-pageBg transition-colors"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink-900 hover:bg-canvas transition-colors"
     >
-      <Icon className="h-4 w-4 text-muted" />
+      <Icon className="h-4 w-4 text-ink-600" />
       {children}
     </Link>
   );

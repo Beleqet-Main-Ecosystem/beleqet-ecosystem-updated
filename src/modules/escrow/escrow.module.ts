@@ -9,6 +9,7 @@ import { WalletModule } from '../wallet/wallet.module';
 import { ChapaSignatureService } from './chapa-signature.service';
 import { ChapaModule } from '../chapa/chapa.module';
 import { BeleqetPayModule } from '../beleqet-pay/beleqet-pay.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { BeleqetPayModule } from '../beleqet-pay/beleqet-pay.module';
     TwoFactorModule,
     ChapaModule,
     BeleqetPayModule,
+    SubscriptionsModule,
   ],
   providers: [EscrowService, EscrowProcessor, ChapaSignatureService],
   controllers: [EscrowController],

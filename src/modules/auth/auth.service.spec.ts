@@ -9,6 +9,10 @@ import { TwoFactorService } from '../two-factor/two-factor.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 jest.mock('bcryptjs');
+jest.mock('../notifications/email-templates', () => ({
+  ...jest.requireActual('../notifications/email-templates'),
+  verificationEmail: jest.fn().mockResolvedValue({ html: '<p>verify</p>', text: 'verify' }),
+}));
 
 jest.mock('otplib', () => ({
   generateSecret: jest.fn().mockReturnValue('mocked-secret-key'),
@@ -59,7 +63,9 @@ describe('AuthService', () => {
     }),
   };
 
-  const mockTwoFactorSvc = {};
+  const mockTwoFactorSvc = {
+    generateTempToken: jest.fn().mockResolvedValue({ tempToken: 'temp-1', factorId: 'f1' }),
+  };
   const mockNotificationsQueue = { add: jest.fn().mockResolvedValue({ id: 'mock-job-id' }) };
   const mockEventEmitter = { emit: jest.fn() };
 
@@ -97,6 +103,64 @@ describe('AuthService', () => {
 
       expect(result.success).toBe(true);
       expect(bcrypt.hash).toHaveBeenCalledWith('new-pass-123!', 12);
+    });
+  });
+
+  describe('resendVerification', () => {
+    it('does nothing for a verified email', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ emailVerified: true });
+      await expect(svc.resendVerification(userId)).resolves.toEqual({
+        success: true,
+        alreadyVerified: true,
+      });
+      expect(mockPrisma.verificationToken.create).not.toHaveBeenCalled();
+    });
+
+    it('replaces old links and sends a new one', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce({ emailVerified: false })
+        .mockResolvedValueOnce({ id: userId, email: 'a@b.c', firstName: 'A' });
+      await svc.resendVerification(userId);
+      expect(mockPrisma.verificationToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId, type: 'EMAIL_VERIFICATION' },
+      });
+      expect(mockPrisma.verificationToken.create).toHaveBeenCalled();
+      expect(mockNotificationsQueue.add).toHaveBeenCalled();
+    });
+  });
+
+  describe('oauthSession', () => {
+    const active = {
+      id: userId,
+      email: 'a@b.c',
+      firstName: 'A',
+      lastName: 'B',
+      role: 'JOB_SEEKER',
+      isActive: true,
+    };
+
+    it('refuses a disabled account', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ ...active, isActive: false });
+      await expect(svc.oauthSession(userId)).rejects.toThrow('not active');
+      expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('asks for the two-step code instead of issuing tokens', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(active);
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValue({ id: 'f1' });
+      await expect(svc.oauthSession(userId)).resolves.toEqual({
+        requires2fa: true,
+        tempToken: 'temp-1',
+      });
+      expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('issues tokens when two-step sign-in is off', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(active);
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValue(null);
+      mockPrisma.refreshToken.create.mockResolvedValue({ id: 'rt' });
+      const result = await svc.oauthSession(userId);
+      expect(result).toHaveProperty('accessToken');
     });
   });
 

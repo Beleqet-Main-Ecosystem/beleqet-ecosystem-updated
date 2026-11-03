@@ -1,26 +1,25 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Min, MinLength } from 'class-validator';
 
 /**
- * Data Transfer Object for resolving a dispute by an admin.
+ * How an admin settles a dispute. The money still held in escrow goes back to the client
+ * (REFUND), to the freelancer (RELEASE), or is split, with `freelancerAmount` going to the
+ * freelancer and the rest back to the client.
  */
 export class ResolveDisputeDto {
-  /**
-   * Admin's resolution message or decision.
-   */
   @IsNotEmpty()
   @IsString()
+  @MinLength(10)
   resolution: string;
 
-  /**
-   * If a refund is involved, the amount.
-   */
-  @IsOptional()
-  @IsNumber()
-  refundAmount?: number;
+  @IsIn(['REFUND', 'RELEASE', 'SPLIT'])
+  outcome: 'REFUND' | 'RELEASE' | 'SPLIT';
 
-  /**
-   * Language for i18n support in the response
-   */
+  /** Required for SPLIT: the freelancer's share, in the contract's currency, before the platform fee. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  freelancerAmount?: number;
+
   @IsOptional()
   @IsString()
   lang?: string;

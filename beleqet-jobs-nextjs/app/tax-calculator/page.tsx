@@ -1,305 +1,130 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { Calculator, Coins, Globe, Loader2, Percent, TrendingDown, Wallet } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { CurrencyUtil } from '@/lib/currency';
+import { calculateTax, EMPLOYEE_PENSION, EMPLOYER_PENSION } from '@/features/tax/calculate';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
-
-type CountryCode = 'ET' | 'US';
-type Currency = 'ETB' | 'USD';
-
-interface TaxResult {
-  grossIncome: number;
-  taxAmount: number;
-  netIncome: number;
-  currency: Currency;
-  countryCode: CountryCode;
-  effectiveTaxRate: number;
-}
-
-const COUNTRY_CURRENCY: Record<CountryCode, Currency> = {
-  ET: 'ETB',
-  US: 'USD',
-};
+const card = 'rounded-xl border border-ink-200 bg-surface p-5 md:p-6 dark:border-slate-800 dark:bg-slate-900';
 
 export default function TaxCalculatorPage() {
-  const { locale, t } = useTranslation();
-  const formatLocale = locale === 'am' ? 'am-ET' : 'en-US';
+  const { t } = useTranslation();
+  const [raw, setRaw] = useState('');
+  const [pensionOn, setPensionOn] = useState(true);
+  const [yearly, setYearly] = useState(false);
 
-  const [grossInput, setGrossInput] = useState('');
-  const [countryCode, setCountryCode] = useState<CountryCode>('ET');
-  const [currency, setCurrency] = useState<Currency>('ETB');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<TaxResult | null>(null);
+  const gross = Math.max(0, Number(raw.replace(/[^0-9.]/g, '')) || 0);
+  const { rows, tax, pension, net, top } = calculateTax(gross, pensionOn);
+  const money = (value: number) => `ETB ${Math.round(value * (yearly ? 12 : 1)).toLocaleString('en-US')}`;
+  const percent = (value: number) => (gross > 0 ? `${((value / gross) * 100).toFixed(1)}%` : '0%');
+  const share = (value: number) => (gross > 0 ? `${Math.max(0, (value / gross) * 100)}%` : '0%');
+  const range = (from: number, to: number) =>
+    to === Infinity ? t('tax.over').replace('{amount}', from.toLocaleString('en-US')) : `${from.toLocaleString('en-US')} – ${to.toLocaleString('en-US')}`;
 
-  const parsedDecimal = grossInput.trim() === '' ? NaN : Number(grossInput);
-  const previewSmallest =
-    !Number.isNaN(parsedDecimal) && parsedDecimal >= 0
-      ? CurrencyUtil.toSmallestUnit(parsedDecimal)
-      : null;
-
-  function handleCountryChange(next: CountryCode) {
-    setCountryCode(next);
-    setCurrency(COUNTRY_CURRENCY[next]);
-    setResult(null);
-    setError('');
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError('');
-    setResult(null);
-
-    const amount = Number(grossInput);
-    if (Number.isNaN(amount) || amount < 0) {
-      setError(t('taxCalculator.errorInvalidAmount'));
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/tax-calculator/calculate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          grossIncome: CurrencyUtil.toSmallestUnit(amount),
-          currency,
-          countryCode,
-        }),
-      });
-
-      const data = (await response.json()) as TaxResult & {
-        message?: string | string[];
-        errorCode?: string;
-      };
-
-      if (!response.ok) {
-        const message = Array.isArray(data.message)
-          ? data.message.join(', ')
-          : data.message || t('taxCalculator.errorGeneric');
-        throw new Error(message);
-      }
-
-      setResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('taxCalculator.errorGeneric'));
-    } finally {
-      setLoading(false);
-    }
-  }
+  const segment = (on: boolean) => `min-h-[38px] rounded-[7px] px-3.5 text-sm ${on ? 'bg-obsidian font-bold text-white dark:bg-limeAccent dark:text-obsidian' : 'font-semibold text-ink-700 dark:text-slate-300'}`;
 
   return (
-    <div className="min-h-screen bg-pageBg">
-      <section className="bg-primary py-16 text-white lg:py-20">
-        <div className="container-page">
-          <p className="mb-3 text-xs font-extrabold uppercase tracking-[.2em] text-[#d8ff3e]">
-            {t('taxCalculator.badge')}
-          </p>
-          <h1 className="max-w-3xl text-[clamp(2.2rem,6vw,4.5rem)] font-black leading-[.95] tracking-[-.04em]">
-            {t('taxCalculator.title')}
-          </h1>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-white/70">
-            {t('taxCalculator.subtitle')}
-          </p>
+    <>
+      <section className="bg-obsidian text-white">
+        <div className="mx-auto flex max-w-[1100px] flex-col gap-2.5 px-4 pb-8 pt-5 md:px-[clamp(16px,4vw,40px)] md:pb-10 md:pt-8">
+          <h1 className="text-[26px] font-extrabold tracking-[-0.03em] md:text-[clamp(28px,3vw,38px)]">{t('tax.title')}</h1>
+          <p className="max-w-[620px] text-[15px] leading-relaxed text-white/75">{t('tax.sub')}</p>
         </div>
       </section>
 
-      <div className="container-page grid gap-8 py-12 lg:grid-cols-[1fr_1fr] lg:py-16">
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-[28px] border border-primary/10 bg-white p-6 shadow-card transition-all hover:-translate-y-1 hover:shadow-cardHover sm:p-8"
-        >
-          <div className="mb-6 flex items-center gap-3">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brandGreen/10 text-brandGreen">
-              <Calculator className="h-5 w-5" />
-            </span>
-            <div>
-              <h2 className="text-xl font-black tracking-tight text-primary">
-                {t('taxCalculator.formTitle')}
-              </h2>
-              <p className="text-sm text-muted">{t('taxCalculator.annualNote')}</p>
+      <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-4 pb-14 pt-5 md:px-[clamp(16px,4vw,40px)] md:pb-16 md:pt-8">
+
+        <div className="flex flex-wrap items-start gap-4">
+          <form onSubmit={(event) => event.preventDefault()} className={`${card} flex min-w-0 flex-[1_1_320px] flex-col gap-4`}>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-bold text-ink-900 dark:text-white">{t('tax.gross')}</span>
+              <span className="flex min-h-12 items-center gap-2 rounded-lg border border-ink-300 px-3.5 focus-within:ring-2 focus-within:ring-forest dark:border-slate-700">
+                <span className="text-sm font-bold text-ink-500 dark:text-slate-400">ETB</span>
+                <input type="text" inputMode="decimal" value={raw} onChange={(event) => setRaw(event.target.value)} className="w-full min-w-0 bg-transparent text-lg font-bold text-ink-900 outline-none dark:text-white" />
+              </span>
+              <span className="text-[13px] text-ink-500 dark:text-slate-400">{t('tax.grossHint')}</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input type="checkbox" checked={pensionOn} onChange={() => setPensionOn(!pensionOn)} className="mt-0.5 h-5 w-5 accent-primary" />
+              <span className="flex flex-col gap-0.5">
+                <b className="text-[15px] text-ink-900 dark:text-white">{t('tax.pension')}</b>
+                <span className="text-[13px] text-ink-500 dark:text-slate-400">{t('tax.pensionHint')}</span>
+              </span>
+            </label>
+            <p className="text-[13px] leading-normal text-ink-500 dark:text-slate-400">{t('tax.estimate')}</p>
+          </form>
+
+          <section aria-live="polite" className={`${card} flex min-w-0 flex-[1_1_320px] flex-col gap-3`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-bold text-ink-500 dark:text-slate-400">{t('tax.takeHome')}</span>
+              <span className="inline-flex gap-1 rounded-[9px] bg-[#F1F4F6] p-1 dark:bg-slate-800">
+                <button type="button" aria-pressed={!yearly} onClick={() => setYearly(false)} className={segment(!yearly)}>{t('tax.monthly')}</button>
+                <button type="button" aria-pressed={yearly} onClick={() => setYearly(true)} className={segment(yearly)}>{t('tax.yearly')}</button>
+              </span>
             </div>
-          </div>
-
-          <div className="space-y-5">
-            <label className="block">
-              <span className="mb-1.5 flex items-center gap-2 text-sm font-bold text-primary">
-                <Wallet className="h-4 w-4 text-brandGreen" />
-                {t('taxCalculator.grossIncomeLabel')}
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                value={grossInput}
-                onChange={(event) => {
-                  setGrossInput(event.target.value);
-                  setResult(null);
-                  setError('');
-                }}
-                placeholder="0.00"
-                className="control w-full"
-              />
-              <p className="mt-1.5 text-xs text-muted">{t('taxCalculator.grossIncomeHint')}</p>
-              {previewSmallest !== null && (
-                <p className="mt-1 text-xs font-medium text-brandGreen transition-opacity duration-300">
-                  {t('taxCalculator.smallestUnits')}: {previewSmallest} {t('taxCalculator.units')}
-                </p>
-              )}
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 flex items-center gap-2 text-sm font-bold text-primary">
-                <Globe className="h-4 w-4 text-brandGreen" />
-                {t('taxCalculator.countryLabel')}
-              </span>
-              <select
-                value={countryCode}
-                onChange={(event) => handleCountryChange(event.target.value as CountryCode)}
-                className="control w-full cursor-pointer"
-              >
-                <option value="ET">{t('taxCalculator.countryET')}</option>
-                <option value="US">{t('taxCalculator.countryUS')}</option>
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-1.5 flex items-center gap-2 text-sm font-bold text-primary">
-                <Coins className="h-4 w-4 text-brandGreen" />
-                {t('taxCalculator.currencyLabel')}
-              </span>
-              <select
-                value={currency}
-                onChange={(event) => {
-                  setCurrency(event.target.value as Currency);
-                  setResult(null);
-                  setError('');
-                }}
-                className="control w-full cursor-pointer"
-              >
-                <option value="ETB">ETB</option>
-                <option value="USD">USD</option>
-              </select>
-            </label>
-          </div>
-
-          {error && (
-            <p className="mt-5 rounded-xl border border-redAccent/20 bg-redAccent/5 px-4 py-3 text-sm font-medium text-redAccent transition-all duration-300 animate-in fade-in slide-in-from-top-1">
-              {error}
+            <p className="flex flex-wrap items-baseline gap-2">
+              <b className="text-[34px] tracking-[-0.03em] text-ink-900 dark:text-white">{money(net)}</b>
+              <span className="text-sm text-ink-500 dark:text-slate-300">{t(yearly ? 'tax.aYear' : 'tax.aMonth')}</span>
             </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || grossInput.trim() === ''}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-brandGreen px-6 py-3.5 text-sm font-bold text-white transition-all duration-300 hover:bg-darkGreen disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? (
+            {gross > 0 ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                {t('taxCalculator.calculating')}
+                <div className="flex h-3 overflow-hidden rounded-full bg-[#F1F4F6] dark:bg-slate-800" aria-hidden="true">
+                  <span className="bg-forest dark:bg-limeAccent" style={{ width: share(net) }} />
+                  <span className="bg-[#D8A100]" style={{ width: share(tax) }} />
+                  <span className="bg-ink-400" style={{ width: share(pension) }} />
+                </div>
+                <dl className="flex flex-col gap-1.5 text-sm">
+                  <Row label={t('tax.keep')} value={money(net)} />
+                  <Row label={`${t('tax.incomeTax')} · ${percent(tax)}`} value={money(tax)} />
+                  <Row label={`${t('tax.pensionShort')} · ${pensionOn ? `${EMPLOYEE_PENSION * 100}%` : t('tax.off')}`} value={money(pension)} />
+                </dl>
               </>
             ) : (
-              <>
-                <Calculator className="h-4 w-4" />
-                {t('taxCalculator.calculateButton')}
-              </>
+              <span className="text-sm text-ink-500 dark:text-slate-300">{t('tax.enterSalary')}</span>
             )}
-          </button>
-        </form>
-
-        <div
-          className={`rounded-[28px] border border-primary/10 bg-white p-6 shadow-card transition-all duration-500 sm:p-8 ${
-            result
-              ? 'translate-y-0 opacity-100 hover:-translate-y-1 hover:shadow-cardHover'
-              : 'opacity-90'
-          }`}
-        >
-          <h2 className="text-xl font-black tracking-tight text-primary">
-            {t('taxCalculator.resultsTitle')}
-          </h2>
-
-          {!result && !loading && (
-            <div className="mt-8 flex flex-col items-center justify-center rounded-2xl border border-dashed border-primary/15 bg-pageBg px-6 py-14 text-center transition-all duration-300">
-              <Calculator className="mb-4 h-10 w-10 text-muted/40" />
-              <p className="max-w-xs text-sm leading-6 text-muted">
-                {t('taxCalculator.resultsEmpty')}
-              </p>
-            </div>
-          )}
-
-          {loading && (
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 py-14 animate-in fade-in duration-300">
-              <Loader2 className="h-9 w-9 animate-spin text-brandGreen" />
-              <p className="text-sm font-medium text-muted">{t('taxCalculator.calculating')}</p>
-            </div>
-          )}
-
-          {result && !loading && (
-            <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <ResultRow
-                icon={Wallet}
-                label={t('taxCalculator.grossIncome')}
-                value={CurrencyUtil.format(result.grossIncome, result.currency, formatLocale)}
-              />
-              <ResultRow
-                icon={TrendingDown}
-                label={t('taxCalculator.taxAmount')}
-                value={CurrencyUtil.format(result.taxAmount, result.currency, formatLocale)}
-                accent="text-redAccent"
-              />
-              <ResultRow
-                icon={Wallet}
-                label={t('taxCalculator.netIncome')}
-                value={CurrencyUtil.format(result.netIncome, result.currency, formatLocale)}
-                accent="text-brandGreen"
-                highlight
-              />
-              <ResultRow
-                icon={Percent}
-                label={t('taxCalculator.effectiveRate')}
-                value={`${(result.effectiveTaxRate * 100).toFixed(2)}%`}
-                accent="text-primary"
-              />
-            </div>
-          )}
+          </section>
         </div>
+
+        <section aria-labelledby="bands-h" className={`${card} flex flex-col gap-3`}>
+          <div>
+            <h2 id="bands-h" className="text-lg font-bold text-ink-900 dark:text-white">{t('tax.howTitle')}</h2>
+            <p className="text-sm text-ink-500 dark:text-slate-300">
+              {t('tax.howText')} {top && <>{t('tax.topBand')} <b>{Math.round(top.rate * 100)}%</b></>}
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-ink-200 text-left text-ink-500 dark:border-slate-800 dark:text-slate-400">
+                  <th scope="col" className="py-2 pr-3 font-bold">{t('tax.band')}</th>
+                  <th scope="col" className="py-2 pr-3 font-bold">{t('tax.rate')}</th>
+                  <th scope="col" className="py-2 font-bold">{t('tax.taxOnBand')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.from} className={`border-b border-[#F1F4F6] text-ink-900 last:border-0 dark:border-slate-800 dark:text-slate-200 ${row === top ? 'bg-[#F1F7EC] font-bold dark:bg-forest/20' : ''}`}>
+                    <td className="py-2 pr-3">{range(row.from, row.to)}</td>
+                    <td className="py-2 pr-3">{Math.round(row.rate * 100)}%</td>
+                    <td className="py-2">{row.slice > 0 ? money(row.tax) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {gross > 0 && pensionOn && (
+            <p className="text-[13px] text-ink-500 dark:text-slate-400">{t('tax.employerPension').replace('{amount}', money(gross * EMPLOYER_PENSION))}</p>
+          )}
+        </section>
       </div>
-    </div>
+    </>
   );
 }
 
-function ResultRow({
-  icon: Icon,
-  label,
-  value,
-  accent = 'text-primary',
-  highlight = false,
-}: {
-  icon: typeof Wallet;
-  label: string;
-  value: string;
-  accent?: string;
-  highlight?: boolean;
-}) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div
-      className={`flex items-center justify-between rounded-2xl border px-4 py-4 transition-all duration-300 ${
-        highlight ? 'border-brandGreen/20 bg-brandGreen/5' : 'border-primary/10 bg-pageBg'
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brandGreen shadow-card">
-          <Icon className="h-4 w-4" />
-        </span>
-        <span className="text-sm font-semibold text-muted">{label}</span>
-      </div>
-      <span className={`text-base font-black ${accent}`}>{value}</span>
+    <div className="flex justify-between gap-3">
+      <dt className="text-ink-500 dark:text-slate-300">{label}</dt>
+      <dd className="font-bold text-ink-900 dark:text-white">{value}</dd>
     </div>
   );
 }

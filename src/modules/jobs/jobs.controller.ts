@@ -15,7 +15,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { JobsService } from './jobs.service';
-import { CreateJobDto, QueryJobsDto } from './dto/create-job.dto';
+import { CreateJobDto, QueryJobsDto, UpdateJobDto } from './dto/create-job.dto';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('jobs')
@@ -27,6 +27,16 @@ export class JobsController {
   @ApiOperation({ summary: 'Search & browse job listings (public)' })
   findAll(@Query() query: QueryJobsDto) {
     return this.svc.findAll(query);
+  }
+
+  @Get('my/quota')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Job posts allowed and used in the caller's billing period" })
+  myQuota(@CurrentUser() user: CurrentUserPayload) {
+    return this.svc.getQuota(user.userId);
   }
 
   @Get('my')
@@ -42,6 +52,12 @@ export class JobsController {
   @ApiOperation({ summary: 'Get all job categories' })
   getCategories() {
     return this.svc.getCategories();
+  }
+
+  @Get('popular')
+  @ApiOperation({ summary: 'Search suggestions from real searches, open jobs and project skills' })
+  popularSearches() {
+    return this.svc.popularSearches();
   }
 
   @Get('stats')
@@ -73,7 +89,7 @@ export class JobsController {
   update(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: Partial<CreateJobDto>,
+    @Body() dto: UpdateJobDto,
   ) {
     return this.svc.update(id, user.userId, dto);
   }

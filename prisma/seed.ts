@@ -347,6 +347,150 @@ async function main() {
   );
   console.log('✅ Demo jobs created');
 
+  // ── Demo Freelance Jobs ───────────────────────────────────────────────────
+  const fCats = await prisma.freelanceCategory.findMany();
+  const fCatBySlug = Object.fromEntries(fCats.map((c) => [c.slug, c.id]));
+
+  const demoFreelanceJobs = [
+    {
+      id: '22222222-2222-2222-2222-222222222201',
+      title: 'React Native Mobile App — Fintech MVP',
+      description: 'Build a cross-platform fintech MVP in React Native with secure authentication, local state management, and real-time transaction history.',
+      slug: 'web-development',
+      budgetMin: 15000,
+      budgetMax: 30000,
+      deadlineDays: 30,
+      skills: ['React Native', 'TypeScript', 'REST API', 'Tailwind'],
+      featured: true,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222202',
+      title: 'Next.js E-Commerce Storefront with Payment Gateway',
+      description: 'Develop a modern responsive e-commerce web application using Next.js 14 and TailwindCSS, including cart checkout and Telebirr/Chapa payment integration.',
+      slug: 'web-development',
+      budgetMin: 20000,
+      budgetMax: 45000,
+      deadlineDays: 21,
+      skills: ['Next.js', 'React', 'Chapa API', 'TailwindCSS'],
+      featured: true,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222203',
+      title: 'Complete Brand Identity & Logo Package for Coffee Exporter',
+      description: 'Create a premium corporate visual identity including logo mark, typography guidelines, packaging mockups, and business stationery.',
+      slug: 'graphic-design',
+      budgetMin: 8000,
+      budgetMax: 18000,
+      deadlineDays: 14,
+      skills: ['Figma', 'Illustrator', 'Branding', 'Packaging'],
+      featured: true,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222204',
+      title: 'UI/UX Mobile App Redesign in Figma',
+      description: 'Design high-fidelity interactive Figma prototypes, component library, and user flows for an on-demand logistics mobile application.',
+      slug: 'graphic-design',
+      budgetMin: 12000,
+      budgetMax: 22000,
+      deadlineDays: 15,
+      skills: ['Figma', 'Mobile UI', 'Design System', 'Prototyping'],
+      featured: false,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222205',
+      title: 'English to Amharic Legal & Business Contract Translation',
+      description: 'Accurate technical translation of commercial agreements, NDA contracts, and company bylaws from English to Amharic with legal terminology precision.',
+      slug: 'writing',
+      budgetMin: 5000,
+      budgetMax: 10000,
+      deadlineDays: 7,
+      skills: ['Amharic', 'English', 'Legal Translation', 'Proofreading'],
+      featured: true,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222206',
+      title: 'Tech & Startup Blog Writer (Weekly Articles)',
+      description: 'Write well-researched, SEO-optimized articles and technical guides exploring fintech, software development, and digital entrepreneurship in Ethiopia.',
+      slug: 'writing',
+      budgetMin: 6000,
+      budgetMax: 12000,
+      deadlineDays: 30,
+      skills: ['SEO Writing', 'Copywriting', 'Tech Content', 'English'],
+      featured: false,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222207',
+      title: 'Telegram Channel & TikTok Growth Specialist',
+      description: 'Develop and execute an organic growth and engagement strategy for our Telegram announcement channel and official TikTok profile.',
+      slug: 'digital-marketing',
+      budgetMin: 7500,
+      budgetMax: 15000,
+      deadlineDays: 30,
+      skills: ['Telegram Marketing', 'TikTok Ads', 'Content Strategy'],
+      featured: true,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222208',
+      title: 'Google Ads & Meta Performance Marketing Campaign',
+      description: 'Set up, optimize, and manage conversion campaigns across Meta Ads Manager and Google Ads for our e-commerce product launch.',
+      slug: 'digital-marketing',
+      budgetMin: 10000,
+      budgetMax: 20000,
+      deadlineDays: 14,
+      skills: ['Meta Ads', 'Google Ads', 'Analytics', 'Conversion Optimization'],
+      featured: false,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222209',
+      title: '60-Second 2D Animated Explainer Video with Voiceover',
+      description: 'Produce a professional 60-second animated explainer video covering scriptwriting, custom character animation, and background music integration.',
+      slug: 'video-animation',
+      budgetMin: 14000,
+      budgetMax: 25000,
+      deadlineDays: 10,
+      skills: ['2D Animation', 'After Effects', 'Motion Graphics', 'Storyboarding'],
+      featured: true,
+    },
+    {
+      id: '22222222-2222-2222-2222-222222222210',
+      title: 'Short-Form Video Editor (Reels, TikTok & Shorts)',
+      description: 'Edit high-retention short-form videos with dynamic captions, sound effects, transitions, and pacing designed for viral social media distribution.',
+      slug: 'video-animation',
+      budgetMin: 8000,
+      budgetMax: 16000,
+      deadlineDays: 20,
+      skills: ['Premiere Pro', 'CapCut', 'Color Grading', 'Sound Design'],
+      featured: false,
+    },
+  ];
+
+  await Promise.all(
+    demoFreelanceJobs.map((fj) => {
+      const catId = fCatBySlug[fj.slug];
+      if (!catId) return Promise.resolve();
+      return prisma.freelanceJob.upsert({
+        where: { id: fj.id },
+        update: {},
+        create: {
+          id: fj.id,
+          title: fj.title,
+          description: fj.description,
+          categoryId: catId,
+          clientId: employer.id,
+          budgetMin: fj.budgetMin,
+          budgetMax: fj.budgetMax,
+          currency: 'ETB',
+          pricingType: 'FIXED',
+          deadlineDays: fj.deadlineDays,
+          skills: fj.skills,
+          status: 'OPEN',
+          featured: fj.featured,
+        },
+      });
+    }),
+  );
+  console.log('✅ Demo freelance jobs created');
+
   // ── Subscription Plans ─────────────────────────────────────────────────────
   await Promise.all([
     prisma.plan.upsert({

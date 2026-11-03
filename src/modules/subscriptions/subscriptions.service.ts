@@ -48,7 +48,7 @@ export interface SyncFromProviderEventInput {
   rawPayload?: Record<string, unknown>;
 }
 
-function addInterval(date: Date, interval: BillingInterval): Date {
+export function addInterval(date: Date, interval: BillingInterval): Date {
   const next = new Date(date);
   if (interval === 'YEARLY') {
     next.setFullYear(next.getFullYear() + 1);

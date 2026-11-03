@@ -1,26 +1,35 @@
 import type { Metadata } from 'next';
+import GigSearchPage from '@/features/freelance/components/GigSearchPage';
+import { API_SORT, GIG_PAGE_SIZE, parseGigSearch } from '@/features/freelance/search-params';
+import { fetchGigCategories, searchGigs, type GigSearchResult } from '@/lib/api';
 import { freelancePageMetadata } from '@/lib/seo/generate-metadata';
-import FreelancePageClient from './FreelancePageClient';
 
 export const metadata: Metadata = freelancePageMetadata();
 
-export const revalidate = 60;
+type Props = { searchParams: Record<string, string | string[] | undefined> };
 
-export default async function FreelancePage() {
-  // Fetch live gigs from the API — falls back to built-in static data in FreelancePageClient
-  let gigs: object[] = [];
-  try {
-    const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
-    const res = await fetch(`${API}/freelance/jobs?limit=24&status=OPEN`, {
-      next: { revalidate: 60 },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      gigs = data.items ?? [];
-    }
-  } catch {
-    // Network unreachable in dev/build — FreelancePageClient uses FALLBACK_GIGS
-  }
+export default async function FreelancePage({ searchParams }: Props) {
+  const search = parseGigSearch(searchParams);
+  const [result, categories] = await Promise.all([
+    searchGigs({
+      q: search.q || undefined,
+      category: search.category || undefined,
+      sort: API_SORT[search.sort],
+      page: 1,
+      limit: GIG_PAGE_SIZE,
+    })
+      // An unreachable API shows an error state with a retry, not a crash page.
+      .catch((): GigSearchResult | null => null),
+    fetchGigCategories(),
+  ]);
 
-  return <FreelancePageClient gigs={gigs as never} />;
+  // Keyed so a new search or sort starts again from its first page of results.
+  return (
+    <GigSearchPage
+      key={`${search.q}|${search.category}|${search.sort}`}
+      search={search}
+      result={result}
+      categories={categories}
+    />
+  );
 }

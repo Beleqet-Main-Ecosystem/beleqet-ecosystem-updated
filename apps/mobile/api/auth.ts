@@ -77,18 +77,26 @@ export async function registerUser(input: RegisterDto): Promise<AuthUser> {
 }
 
 /**
+ * Request password reset email.
+ */
+export async function requestPasswordReset(email: string): Promise<{ message?: string }> {
+  try {
+    const { data } = await apiClient.post<{ message?: string }>('/auth/forgot-password', { email });
+    return data;
+  } catch (error) {
+    throw new Error(extractMessage(error));
+  }
+}
+
+/**
  * Fetch the full authenticated user profile from `GET /users/profile`.
  *
  * NOTE: `GET /auth/me` only returns the JWT payload { userId, email, role }.
  * Use `GET /users/profile` for the full AuthUser shape.
  */
-export async function fetchMe(): Promise<AuthUser | null> {
-  try {
-    const { data } = await apiClient.get<AuthUser>('/users/profile');
-    return data;
-  } catch {
-    return null;
-  }
+export async function fetchMe(): Promise<AuthUser> {
+  const { data } = await apiClient.get<AuthUser>('/users/profile');
+  return data;
 }
 
 /**

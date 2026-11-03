@@ -17,6 +17,7 @@ const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./features/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -31,21 +32,85 @@ const config: Config = {
         orangeAccent: "#F97316",
         redAccent: "#EF4444",
         purpleAccent: "#7C3AED",
-        pageBg: "#F5F7FA",
-        muted: "#64748B",
-        border: "#E2E8F0",
-        ink: "#1E293B",
+        /*
+         * Redesign tokens. Legacy dark-mode overrides in globals.css target
+         * .bg-white, .text-ink, .text-primary etc.; these names are untouched
+         * by them, so redesigned components render exactly as designed.
+         */
+        /* Dark surfaces: green-black in place of default navy, so every dark:*-slate-* class fits the brand. */
+        slate: {
+          50: "#F8FAFC", 100: "#F1F5F9", 200: "#E2E8F0", 300: "#CBD5E1", 400: "#94A3B8", 500: "#64748B", 600: "#475569",
+          700: "#26402D", 800: "#172C1D", 900: "#0D1E13", 950: "#06130A",
+        },
+        surface: "#FFFFFF",
+        canvas: "#F6F7F4",
+        obsidian: "#041603",
+        forest: "#00653B",
+        pageBg: "#F6F7F4",
+        muted: "#4D5967",
+        border: "#E3E8EC",
+        ink: {
+          DEFAULT: "#121922",
+          0: '#ffffff',
+          50: '#f8fafb',
+          100: '#f1f4f6',
+          200: '#e3e8ec',
+          300: '#cbd3da',
+          400: '#9aa6b2',
+          500: '#6b7885',
+          600: '#4d5967',
+          700: '#364250',
+          800: '#212a35',
+          900: '#121922',
+        },
+
+        /* ── Claude Redesign Design Tokens ── */
+        brand: {
+          50: '#f0f9f4',
+          100: '#daf1e4',
+          200: '#b6e3ca',
+          300: '#85cca7',
+          400: '#4fae80',
+          500: '#2d9065',
+          600: '#1f7551',
+          700: '#1a5d42',
+          800: '#164a36',
+          900: '#123626',
+          950: '#0b2118',
+        },
+        accent: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          700: '#b45309',
+        },
+        'ink-scale': {
+          0: '#ffffff',
+          50: '#f8fafb',
+          100: '#f1f4f6',
+          200: '#e3e8ec',
+          300: '#cbd3da',
+          400: '#9aa6b2',
+          500: '#6b7885',
+          600: '#4d5967',
+          700: '#364250',
+          800: '#212a35',
+          900: '#121922',
+        },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "var(--font-ethiopic)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        xl: "1rem",
+        md: "8px",
+        xl: "12px",
         "2xl": "1.25rem",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(4,22,3,0.06), 0 1px 1px rgba(4,22,3,0.04)",
-        cardHover: "0 8px 24px rgba(4,22,3,0.10)",
+        card: "0 1px 2px rgb(18 25 34 / 0.05)",
+        "card-hover": "0 4px 12px rgb(18 25 34 / 0.08)",
+        search: "0 8px 24px rgb(11 33 24 / 0.18)",
       },
       /* ── Mobile Dashboard module animations ──────────────── */
       keyframes: {

@@ -1,28 +1,43 @@
-import { Suspense } from 'react';
-import Hero from '@/components/Hero';
-import StatsBar from '@/components/StatsBar';
-import CategorySection from '@/components/CategorySection';
-import FeaturedSection from '@/components/FeaturedSection';
-import WhyChoose from '@/components/WhyChoose';
-import CTABanner from '@/components/CTABanner';
-import { CategoryGridSkeleton, FeaturedJobsSkeleton } from '@/components/Skeletons';
+import LandingHero from '@/components/landing/LandingHero';
+import {
+  AppAndTelegram,
+  CategoryLinks,
+  CtaBand,
+  EscrowSection,
+  FeatureTabs,
+  HowItWorks,
+  LatestJobs,
+  TrustStrip,
+  WhyBeleqet,
+} from '@/components/landing/LandingSections';
 import { homePageMetadata } from '@/lib/seo/generate-metadata';
+import { fetchCategories, fetchJobs, fetchOpenGigs, fetchPopularSearches, type Gig, type Job } from '@/lib/api';
+import { loadForPage } from '@/lib/build-safe';
 
 export const revalidate = 60;
+export const metadata = homePageMetadata();
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [jobs, gigs, categories, popular] = await Promise.all([
+    loadForPage<Job[]>('HomePage fetchJobs', () => fetchJobs({ limit: 6 }), []),
+    // Gigs only feed the hero's freelance preview, so a failure there shouldn't take the page down.
+    fetchOpenGigs(4).catch((): Gig[] => []),
+    fetchCategories(),
+    fetchPopularSearches(),
+  ]);
+
   return (
     <>
-      <Hero />
-      <StatsBar />
-      <Suspense fallback={<CategoryGridSkeleton />}>
-        <CategorySection />
-      </Suspense>
-      <Suspense fallback={<FeaturedJobsSkeleton />}>
-        <FeaturedSection />
-      </Suspense>
-      <WhyChoose />
-      <CTABanner />
+      <LandingHero jobs={jobs} gigs={gigs} popular={popular} />
+      <TrustStrip />
+      <LatestJobs jobs={jobs} />
+      <WhyBeleqet />
+      <HowItWorks />
+      <EscrowSection />
+      <CategoryLinks categories={categories} />
+      <FeatureTabs />
+      <AppAndTelegram />
+      <CtaBand />
     </>
   );
 }

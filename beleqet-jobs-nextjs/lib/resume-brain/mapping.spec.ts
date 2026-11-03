@@ -12,6 +12,7 @@ import {
   emptyCv,
   extractErrorMessage,
   mergeExtractedProfile,
+  resumeToCvImport,
   type CvData,
   type ExtractedProfile,
 } from './mapping';
@@ -222,5 +223,44 @@ describe('extractErrorMessage', () => {
 
   it('uses a generic fallback when no backend message is present', () => {
     expect(extractErrorMessage(500, {})).toBe('Could not read that resume.');
+  });
+});
+
+describe('resumeToCvImport', () => {
+  const resume = {
+    personalInfo: { fullName: 'Abebe  Kebede Tesfaye', email: 'a@example.com', phone: null, location: 'Adama' },
+    education: [
+      { institution: 'Addis Ababa University', degree: 'BA', fieldOfStudy: 'Accounting', endDate: '2018' },
+      { institution: null, degree: null, fieldOfStudy: null, endDate: null },
+    ],
+    workExperience: [
+      { company: 'Sample PLC', title: null, startDate: '2021', endDate: null, description: null },
+      { company: 'Audit firm', title: 'Audit Associate', startDate: '2018', endDate: '2021', description: 'Audits' },
+    ],
+    skills: ['IFRS', ''],
+    certifications: [],
+    languages: [{ language: 'Amharic', proficiency: 'Native' }, { language: 'English', proficiency: null }],
+  };
+
+  it('maps what Resume Brain read onto what CV Maker merges', () => {
+    const profile = resumeToCvImport(resume);
+    expect(profile).toMatchObject({
+      firstName: 'Abebe',
+      lastName: 'Kebede Tesfaye',
+      phone: '',
+      headline: 'Audit Associate',
+      skills: ['IFRS'],
+      languages: ['Amharic (Native)', 'English'],
+      education: [{ school: 'Addis Ababa University', qualification: 'BA, Accounting', year: '2018' }],
+    });
+    expect(profile.experience).toHaveLength(2);
+    expect(profile.experience[0]).toEqual({ role: '', company: 'Sample PLC', start: '2021', end: '', description: '' });
+  });
+
+  it('feeds mergeExtractedProfile so the CV is filled in', () => {
+    const { next, filled } = mergeExtractedProfile(emptyCv, resumeToCvImport(resume), 1);
+    expect(next.fullName).toBe('Abebe Kebede Tesfaye');
+    expect(next.title).toBe('Audit Associate');
+    expect(filled.has('experience')).toBe(true);
   });
 });

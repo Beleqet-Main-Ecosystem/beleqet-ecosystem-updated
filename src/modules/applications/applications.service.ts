@@ -12,6 +12,7 @@ import {
 } from '../queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
 import { applicationReceivedEmail, applicationStatusEmail } from '../notifications/email-templates';
+import { openJobs } from '../jobs/open-jobs';
 
 @Injectable()
 export class ApplicationsService {
@@ -31,7 +32,8 @@ export class ApplicationsService {
 
   async submit(userId: string, dto: CreateApplicationDto) {
     const job = await this.prisma.job.findFirst({
-      where: { id: dto.jobId, status: 'PUBLISHED' },
+      // Published and before its deadline: a closed or expired job takes no more applications.
+      where: { id: dto.jobId, ...openJobs() },
       include: { company: true },
     });
     if (!job) {
@@ -170,10 +172,30 @@ export class ApplicationsService {
     });
   }
 
-  async findOne(id: string) {
-    const application = await this.prisma.application.findUnique({
-      where: { id },
-      include: { user: true, job: { include: { company: true } }, score: true },
+  /**
+   * One application, for the person who applied or the employer hiring for the job; anyone else
+   * gets the same 404 as a missing id. (It used to be open to every signed-in user, with the
+   * applicant's whole account row, password hash included.)
+   */
+  async findOne(id: string, viewerId: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { id, OR: [{ userId: viewerId }, { job: { company: { userId: viewerId } } }] },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            avatarUrl: true,
+            headline: true,
+            skills: true,
+          },
+        },
+        job: { include: { company: true } },
+        score: true,
+      },
     });
     if (!application) throw new NotFoundException(`Application ${id} not found`);
     return application;

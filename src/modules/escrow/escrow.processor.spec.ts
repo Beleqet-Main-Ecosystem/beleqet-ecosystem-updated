@@ -93,12 +93,14 @@ function buildProcessor() {
     }),
   };
 
+  const planPayments = { handlePaymentEvent: jest.fn().mockResolvedValue(false) };
   const notificationsQueue = { add: jest.fn() };
   const escrowQueue = { add: jest.fn() };
   const processor = new EscrowProcessor(
     prisma as never,
     { get: jest.fn(() => 'http://localhost:3000') } as never,
     paySwitch as never,
+    planPayments as never,
     notificationsQueue as never,
     escrowQueue as never,
   );

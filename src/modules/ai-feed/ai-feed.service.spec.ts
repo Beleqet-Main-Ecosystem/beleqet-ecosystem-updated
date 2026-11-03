@@ -55,8 +55,14 @@ describe('AiFeedService', () => {
     savedJob: {
       findMany: jest.fn().mockResolvedValue([]),
     },
+    hiddenJob: {
+      findMany: jest.fn().mockResolvedValue([]),
+      upsert: jest.fn(),
+      deleteMany: jest.fn(),
+    },
     job: {
       findMany: jest.fn().mockResolvedValue(mockJobs),
+      findUnique: jest.fn(),
     },
   };
 
@@ -69,6 +75,7 @@ describe('AiFeedService', () => {
     ]);
     mockPrismaService.savedJob.findMany.mockResolvedValue([]);
     mockPrismaService.job.findMany.mockResolvedValue(mockJobs);
+    mockPrismaService.hiddenJob.findMany.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [AiFeedService, { provide: PrismaService, useValue: mockPrismaService }],
@@ -262,5 +269,77 @@ describe('AiFeedService', () => {
       expect(titleKeywords).toEqual(expect.arrayContaining(searchWords));
       expect(titleKeywords).not.toEqual(expect.arrayContaining(['zuluskill']));
     });
+  });
+});
+
+describe('AiFeedService reasons and hiding', () => {
+  const job = {
+    id: 'j1',
+    title: 'Senior Accountant',
+    description: 'IFRS reporting and Excel models',
+    tags: [],
+    categoryId: 'finance',
+    salaryMin: null,
+    salaryMax: null,
+    currency: 'ETB',
+    createdAt: new Date('2026-10-01'),
+    company: null,
+    category: null,
+  };
+  const prisma = {
+    user: { findUnique: jest.fn() },
+    searchHistory: { findMany: jest.fn() },
+    savedJob: { findMany: jest.fn() },
+    job: { findMany: jest.fn(), findUnique: jest.fn() },
+    hiddenJob: { findMany: jest.fn(), upsert: jest.fn(), deleteMany: jest.fn() },
+  };
+  let service: AiFeedService;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const module = await Test.createTestingModule({
+      providers: [AiFeedService, { provide: PrismaService, useValue: prisma }],
+    }).compile();
+    service = module.get(AiFeedService);
+    prisma.user.findUnique.mockResolvedValue({
+      gdprConsent: true,
+      skills: ['IFRS', 'Excel', 'Python'],
+    });
+    prisma.searchHistory.findMany.mockResolvedValue([
+      { searchTerm: 'accountant' },
+      { searchTerm: 'senior accountant' },
+    ]);
+    prisma.savedJob.findMany.mockResolvedValue([{ job: { categoryId: 'finance' } }]);
+    prisma.job.findMany.mockResolvedValue([job]);
+    prisma.hiddenJob.findMany.mockResolvedValue([]);
+  });
+
+  it("says which skills, searches and saved categories matched, in the person's words", async () => {
+    const [result] = await service.getPersonalizedFeed('u1', 5);
+    expect(result.reasons).toEqual([
+      { kind: 'skills', terms: ['IFRS', 'Excel'] },
+      { kind: 'search', terms: ['accountant', 'senior accountant'] },
+      { kind: 'saved' },
+    ]);
+  });
+
+  it('leaves hidden jobs out of both candidate pools', async () => {
+    prisma.hiddenJob.findMany.mockResolvedValue([{ jobId: 'j9' }]);
+    await service.getPersonalizedFeed('u1', 5);
+    for (const [args] of prisma.job.findMany.mock.calls) {
+      expect(args.where.id).toEqual({ notIn: ['j9'] });
+    }
+  });
+
+  it('leaves hidden jobs out of the newest-jobs fallback too', async () => {
+    prisma.user.findUnique.mockResolvedValue({ gdprConsent: false, skills: [] });
+    prisma.hiddenJob.findMany.mockResolvedValue([{ jobId: 'j9' }]);
+    await service.getPersonalizedFeed('u1', 5);
+    expect(prisma.job.findMany.mock.calls[0][0].where.id).toEqual({ notIn: ['j9'] });
+  });
+
+  it('refuses to hide a job that does not exist', async () => {
+    prisma.job.findUnique.mockResolvedValue(null);
+    await expect(service.hide('u1', 'nope')).rejects.toThrow('Job not found');
   });
 });

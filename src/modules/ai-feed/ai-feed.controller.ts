@@ -1,4 +1,14 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
@@ -41,5 +51,23 @@ export class AiFeedController {
     @CurrentUser() user: CurrentUserPayload,
   ): Promise<PersonalizedJob[]> {
     return this.aiFeedService.getPersonalizedFeed(user.userId, query.limit);
+  }
+
+  /** Skills and recent searches the feed matches on, and whether it is personalised at all. */
+  @Get('signals')
+  signals(@CurrentUser() user: CurrentUserPayload) {
+    return this.aiFeedService.signals(user.userId);
+  }
+
+  /** "Not interested": stop showing this job in the caller's feed. */
+  @Post('hidden/:jobId')
+  @HttpCode(HttpStatus.OK)
+  hide(@Param('jobId') jobId: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.aiFeedService.hide(user.userId, jobId);
+  }
+
+  @Delete('hidden/:jobId')
+  unhide(@Param('jobId') jobId: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.aiFeedService.unhide(user.userId, jobId);
   }
 }

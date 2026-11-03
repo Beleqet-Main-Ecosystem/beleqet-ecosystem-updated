@@ -35,8 +35,8 @@ export class ApplicationsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.svc.findOne(id, user.userId);
   }
 
   @Patch(':id/status')

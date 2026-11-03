@@ -1,27 +1,14 @@
 'use client';
+
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Root page - redirects to the admin dashboard if the user is logged in,
- * or to the login page if not.
+ * Sends people to the dashboard (which sends them to sign in if needed). Done in the
+ * browser so `/` answers 200: health checks and load balancers probe this address.
  */
-export default function HomePage() {
+export default function Home() {
   const router = useRouter();
-
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      router.replace('/admin/dashboard');
-    } else {
-      router.replace('/login');
-    }
-  }, [router]);
-
-  return (
-    <div className="loading-spinner">
-      <div className="spinner" />
-      <span>Loading…</span>
-    </div>
-  );
+  useEffect(() => router.replace('/dashboard'), [router]);
+  return <div className="min-h-screen" />;
 }

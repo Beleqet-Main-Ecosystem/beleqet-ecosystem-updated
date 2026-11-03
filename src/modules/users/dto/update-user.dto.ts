@@ -1,11 +1,12 @@
 // dto/update-user.dto.ts
-import { IsString, IsOptional, IsUrl, IsObject, IsBoolean, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsObject, IsUrl, IsBoolean, IsIn } from 'class-validator';
+import { ClearableUrl } from '../../../common/decorators/clearable-url.decorator';
 
 export class SaveCvDraftDto {
   @IsObject() data: Record<string, unknown>;
 }
 
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
 
 export class UpdateUserDto {
   @ApiProperty({ example: 'John', required: false })
@@ -24,9 +25,8 @@ export class UpdateUserDto {
   phone?: string;
 
   @ApiProperty({ example: 'https://example.com/avatar.png', required: false })
-  @IsOptional()
-  @IsUrl()
-  avatarUrl?: string;
+  @ClearableUrl()
+  avatarUrl?: string | null;
 
   @ApiProperty({ example: '123456789', required: false })
   @IsOptional()
@@ -52,29 +52,33 @@ export class UpdateUserDto {
   location?: string;
 
   @ApiProperty({ example: 'https://drive.google.com/resume.pdf', required: false })
-  @IsOptional()
-  @IsUrl()
-  defaultResumeUrl?: string;
+  @ClearableUrl()
+  defaultResumeUrl?: string | null;
 
   @ApiProperty({ example: 'https://myportfolio.com', required: false })
-  @IsOptional()
-  @IsUrl()
-  portfolioUrl?: string;
+  @ClearableUrl()
+  portfolioUrl?: string | null;
 
   @ApiProperty({ example: 'https://github.com/johndoe', required: false })
-  @IsOptional()
-  @IsUrl()
-  githubUrl?: string;
+  @ClearableUrl()
+  githubUrl?: string | null;
 
   @ApiProperty({ example: 'https://linkedin.com/in/johndoe', required: false })
-  @IsOptional()
-  @IsUrl()
-  linkedinUrl?: string;
+  @ClearableUrl()
+  linkedinUrl?: string | null;
 
   @ApiProperty({ example: ['React', 'Node.js', 'TypeScript'], required: false })
   @IsOptional()
   @IsString({ each: true })
   skills?: string[];
+
+  @ApiProperty({
+    description: 'Use my profile and searches to personalise my job feed',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  gdprConsent?: boolean;
 }
 
 export class UpdateNotificationPreferenceDto {
@@ -113,17 +117,24 @@ export class UpdateNotificationPreferenceDto {
 export class CreateCompanyDto {
   @IsString() name: string;
   @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsUrl() logoUrl?: string;
-  @IsOptional() @IsUrl() website?: string;
+  @ClearableUrl() logoUrl?: string | null;
+  @ClearableUrl() website?: string | null;
   @IsOptional() @IsString() industry?: string;
   @IsOptional() @IsString() size?: string;
 
   // New Company fields
   @IsOptional() @IsString() location?: string;
-  @IsOptional() @IsUrl() linkedinUrl?: string;
-  @IsOptional() @IsUrl() twitterUrl?: string;
-  @IsOptional() @IsUrl() facebookUrl?: string;
+  @ClearableUrl() linkedinUrl?: string | null;
+  @ClearableUrl() twitterUrl?: string | null;
+  @ClearableUrl() facebookUrl?: string | null;
   @IsOptional() @IsString() coverImageUrl?: string;
   @IsOptional() @IsString({ each: true }) benefits?: string[];
   @IsOptional() foundedYear?: number;
+}
+
+/** Editing the company profile: every field optional, and links can be cleared. */
+export class UpdateCompanyDto extends PartialType(CreateCompanyDto) {}
+
+export class RequestVerificationDto {
+  @IsUrl({ require_tld: false }) tradeLicenseUrl: string;
 }

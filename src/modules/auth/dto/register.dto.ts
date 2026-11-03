@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsIn, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 // Local enum — avoids dependency on generated Prisma client at compile time.
@@ -8,6 +8,13 @@ export enum UserRole {
   JOB_SEEKER = 'JOB_SEEKER',
   FREELANCER = 'FREELANCER',
 }
+
+/** Roles anyone may pick when signing up. Admins are made by an admin, never by sign-up. */
+export const SELF_SERVICE_ROLES = [
+  UserRole.JOB_SEEKER,
+  UserRole.EMPLOYER,
+  UserRole.FREELANCER,
+] as const;
 
 export class RegisterDto {
   @ApiProperty({ example: 'bisrat@beleqet.com' })
@@ -27,9 +34,9 @@ export class RegisterDto {
   @MinLength(8)
   password: string;
 
-  @ApiProperty({ enum: UserRole, default: UserRole.JOB_SEEKER })
+  @ApiProperty({ enum: SELF_SERVICE_ROLES, default: UserRole.JOB_SEEKER })
   @IsOptional()
-  @IsEnum(UserRole)
+  @IsIn(SELF_SERVICE_ROLES, { message: 'role must be JOB_SEEKER, EMPLOYER or FREELANCER' })
   role?: UserRole;
 }
 

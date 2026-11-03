@@ -18,6 +18,19 @@ describe('AuditInterceptor', () => {
     expect(interceptor.shouldSkip('/api/v1/jobs')).toBe(false);
   });
 
+  it('records changes and sensitive reads, not ordinary page loads', () => {
+    expect(interceptor.isWorthRecording('POST', '/api/v1/jobs')).toBe(true);
+    expect(interceptor.isWorthRecording('DELETE', '/api/v1/admin/users/1')).toBe(true);
+    expect(interceptor.isWorthRecording('GET', '/api/v1/users/notifications')).toBe(false);
+    expect(interceptor.isWorthRecording('GET', '/api/v1/user-preferences/theme')).toBe(false);
+    expect(interceptor.isWorthRecording('GET', '/api/v1/admin/compliance/gdpr/export/u1')).toBe(
+      true,
+    );
+    expect(interceptor.isWorthRecording('GET', '/api/v1/manual-payment/admin/p1/receipt')).toBe(
+      true,
+    );
+  });
+
   it('persists an HTTP_REQUEST audit on success', (done) => {
     const req = {
       method: 'POST',
@@ -76,7 +89,7 @@ describe('AuditInterceptor', () => {
 
   it('records status from thrown errors', (done) => {
     const req = {
-      method: 'GET',
+      method: 'PATCH',
       originalUrl: '/api/v1/users',
       url: '/api/v1/users',
       path: '/api/v1/users',

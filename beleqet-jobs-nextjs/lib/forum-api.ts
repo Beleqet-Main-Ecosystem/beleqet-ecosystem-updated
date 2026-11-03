@@ -5,7 +5,8 @@ export interface ForumThread {
   title: string;
   content: string;
   tags: string[];
-  userId: string;
+  /** Null on anonymous posts. */
+  userId: string | null;
   userDisplayName: string;
   isAnonymous: boolean;
   upvoteCount: number;
@@ -22,7 +23,8 @@ export interface ForumReply {
   content: string;
   threadId: string;
   parentReplyId: string | null;
-  userId: string;
+  /** Null on anonymous replies. */
+  userId: string | null;
   userDisplayName: string;
   isAnonymous: boolean;
   upvoteCount: number;
@@ -44,8 +46,8 @@ export interface PaginatedResponse<T> {
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
     ...options,
+    headers: { "Content-Type": "application/json", ...options?.headers },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

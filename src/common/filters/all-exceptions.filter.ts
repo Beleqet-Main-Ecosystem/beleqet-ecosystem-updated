@@ -25,6 +25,7 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { Request } from 'express';
+import * as https from 'https';
 import { ErrorRecurrenceTrackerService } from './error-recurrence-tracker.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,6 +153,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (logEntry.level === 'error') {
       this.logger.error(JSON.stringify(logEntry));
+      this.sendTelegramAlert(logEntry);
     } else {
       this.logger.warn(JSON.stringify(logEntry));
     }
@@ -373,5 +375,56 @@ export class AllExceptionsFilter implements ExceptionFilter {
   /** Produce a short, unique trace ID without external dependencies. */
   private generateTraceId(): string {
     return (Date.now().toString(36) + Math.random().toString(36).substring(2, 8)).toUpperCase();
+  }
+
+  /**
+   * Dispatch real-time Telegram alert for 5xx critical system faults.
+   * Completely non-blocking and fire-and-forget.
+   */
+  private sendTelegramAlert(logEntry: StructuredErrorLog): void {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const channelId = process.env.TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_ALERT_CHAT_ID;
+    if (!botToken || !channelId) return;
+
+    try {
+      const message = [
+        `🚨 <b>[CRITICAL BACKEND FAULT]</b>`,
+        `<b>Trace ID:</b> <code>${logEntry.traceId}</code>`,
+        `<b>Endpoint:</b> <code>${logEntry.method} ${logEntry.path}</code>`,
+        `<b>Status:</b> ${logEntry.statusCode} (${logEntry.errorCode})`,
+        `<b>Message:</b> ${logEntry.internalMessage.substring(0, 250)}`,
+        `<b>Time:</b> ${logEntry.timestamp}`,
+      ].join('\n');
+
+      const payload = JSON.stringify({
+        chat_id: channelId,
+        text: message,
+        parse_mode: 'HTML',
+      });
+
+      const req = https.request(
+        {
+          hostname: 'api.telegram.org',
+          port: 443,
+          path: `/bot${botToken}/sendMessage`,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+          },
+          timeout: 5_000,
+        },
+        () => {},
+      );
+
+      req.on('error', () => {
+        // Silently swallow webhook errors to never block main error handling
+      });
+
+      req.write(payload);
+      req.end();
+    } catch {
+      // Safe fallback
+    }
   }
 }

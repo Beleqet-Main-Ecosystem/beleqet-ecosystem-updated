@@ -7,6 +7,8 @@ import { UsersService } from './users.service';
 import {
   UpdateUserDto,
   CreateCompanyDto,
+  UpdateCompanyDto,
+  RequestVerificationDto,
   SaveCvDraftDto,
   UpdateNotificationPreferenceDto,
 } from './dto/update-user.dto';
@@ -36,6 +38,16 @@ export class UsersController {
   @Post('company')
   createCompany(@CurrentUser() u: CurrentUserPayload, @Body() dto: CreateCompanyDto) {
     return this.svc.createCompany(u.userId, dto);
+  }
+
+  @Post('company/verification')
+  requestVerification(@CurrentUser() u: CurrentUserPayload, @Body() dto: RequestVerificationDto) {
+    return this.svc.requestCompanyVerification(u.userId, dto.tradeLicenseUrl);
+  }
+
+  @Patch('company')
+  updateCompany(@CurrentUser() u: CurrentUserPayload, @Body() dto: UpdateCompanyDto) {
+    return this.svc.updateCompany(u.userId, dto);
   }
 
   @Throttle({ default: { limit: 120, ttl: 60_000 } })
@@ -91,5 +103,15 @@ export class UsersController {
   @Put('cv-draft')
   saveCvDraft(@Body() dto: SaveCvDraftDto, @CurrentUser() u: CurrentUserPayload) {
     return this.svc.saveCvDraft(u.userId, dto.data);
+  }
+
+  @Get('portfolio')
+  portfolio(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getPortfolio(u.userId);
+  }
+
+  @Put('portfolio')
+  savePortfolio(@Body() dto: SaveCvDraftDto, @CurrentUser() u: CurrentUserPayload) {
+    return this.svc.savePortfolio(u.userId, dto.data);
   }
 }

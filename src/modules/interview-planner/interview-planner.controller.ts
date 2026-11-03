@@ -14,6 +14,7 @@ import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AutoScheduleInterviewDto } from './dto/auto-schedule-interview.dto';
+import { InterviewDetailsDto, RespondInterviewDto } from './dto/interview-response.dto';
 @ApiTags('Interview Planner')
 @ApiBearerAuth()
 @Controller('interview-planner')
@@ -133,5 +134,37 @@ export class InterviewPlannerController {
     dto: AutoScheduleInterviewDto,
   ) {
     return this.interviewPlannerService.autoScheduleInterview(req.user.userId, dto.applicationId);
+  }
+
+  /** The caller's interviews, as candidate or as employer, soonest first. */
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'My interviews' })
+  @Get('interviews')
+  myInterviews(@Request() req: Express.Request & { user: { userId: string } }) {
+    return this.interviewPlannerService.myInterviews(req.user.userId);
+  }
+
+  /** The candidate confirms, or declines with an optional note (e.g. asking for another time). */
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Confirm or decline an interview (candidate)' })
+  @Patch('interviews/:id/respond')
+  respond(
+    @Request() req: Express.Request & { user: { userId: string } },
+    @Param('id') id: string,
+    @Body() dto: RespondInterviewDto,
+  ) {
+    return this.interviewPlannerService.respond(req.user.userId, id, dto);
+  }
+
+  /** The employer says where it happens: a place, a video link, and notes for the candidate. */
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Set interview place, link and notes (employer)' })
+  @Patch('interviews/:id')
+  updateDetails(
+    @Request() req: Express.Request & { user: { userId: string } },
+    @Param('id') id: string,
+    @Body() dto: InterviewDetailsDto,
+  ) {
+    return this.interviewPlannerService.updateDetails(req.user.userId, id, dto);
   }
 }

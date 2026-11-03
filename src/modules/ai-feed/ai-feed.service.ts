@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { openJobs } from '../jobs/open-jobs';
 
 /**
  * Minimal published-job shape this service needs in order to score and
@@ -29,7 +30,12 @@ interface FeedJob {
  * user. `relevanceScore` is always in the 0-100 range, where 100 means the
  * job matched every known signal for that user.
  */
-export type PersonalizedJob = FeedJob & { relevanceScore: number };
+/** Why a job is in someone's feed, shown under it as "Matches your skills: IFRS, Excel". */
+export type FeedReason = { kind: 'skills' | 'search'; terms: string[] } | { kind: 'saved' };
+
+export type PersonalizedJob = FeedJob & { relevanceScore: number; reasons: FeedReason[] };
+
+type Signals = { skills: string[]; searches: string[]; savedCategoryIds: Set<string> };
 
 /** Search-history rows are only considered "recent" within this window. */
 const SEARCH_HISTORY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -129,8 +135,9 @@ export class AiFeedService {
       select: { gdprConsent: true, skills: true },
     });
 
+    const hidden = await this.getHiddenJobIds(userId);
     if (!user?.gdprConsent) {
-      return this.getGenericFeed(limit);
+      return this.getGenericFeed(limit, hidden);
     }
 
     const [searchTerms, savedCategoryIds] = await Promise.all([
@@ -142,7 +149,7 @@ export class AiFeedService {
 
     // No personalization signal at all yet (new user) -> generic feed.
     if (keywords.length === 0 && savedCategoryIds.size === 0) {
-      return this.getGenericFeed(limit);
+      return this.getGenericFeed(limit, hidden);
     }
 
     // Bound keyword volume before it ever reaches a query — see MAX_KEYWORDS.
@@ -150,9 +157,10 @@ export class AiFeedService {
     // keeps recent search intent over static declared skills when truncating.
     const boundedKeywords = keywords.slice(0, MAX_KEYWORDS);
 
-    const jobs = await this.fetchCandidatePool(boundedKeywords, savedCategoryIds);
+    const jobs = await this.fetchCandidatePool(boundedKeywords, savedCategoryIds, hidden);
+    const signals = { skills: user.skills ?? [], searches: searchTerms, savedCategoryIds };
 
-    return this.rankJobs(jobs, boundedKeywords, savedCategoryIds).slice(0, limit);
+    return this.rankJobs(jobs, boundedKeywords, signals).slice(0, limit);
   }
 
   /**
@@ -171,11 +179,13 @@ export class AiFeedService {
   private async fetchCandidatePool(
     keywords: string[],
     savedCategoryIds: Set<string>,
+    hidden: string[] = [],
   ): Promise<FeedJob[]> {
+    const notHidden = hidden.length ? { id: { notIn: hidden } } : {};
     const [keywordJobs, categoryJobs] = await Promise.all([
       keywords.length > 0
         ? this.prisma.job.findMany({
-            where: { status: 'PUBLISHED', OR: this.buildKeywordFilter(keywords) },
+            where: { ...openJobs(), ...notHidden, OR: this.buildKeywordFilter(keywords) },
             orderBy: { createdAt: 'desc' },
             take: KEYWORD_POOL_SIZE,
             include: { company: true, category: true },
@@ -183,7 +193,7 @@ export class AiFeedService {
         : Promise.resolve([]),
       savedCategoryIds.size > 0
         ? this.prisma.job.findMany({
-            where: { status: 'PUBLISHED', categoryId: { in: [...savedCategoryIds] } },
+            where: { ...openJobs(), ...notHidden, categoryId: { in: [...savedCategoryIds] } },
             orderBy: { createdAt: 'desc' },
             take: CATEGORY_POOL_SIZE,
             include: { company: true, category: true },
@@ -258,14 +268,14 @@ export class AiFeedService {
    * users with no usable signal yet. Every job still gets a `relevanceScore`
    * of 0 so the response shape is consistent for the frontend.
    */
-  private async getGenericFeed(limit: number): Promise<PersonalizedJob[]> {
+  private async getGenericFeed(limit: number, hidden: string[] = []): Promise<PersonalizedJob[]> {
     const jobs: FeedJob[] = await this.prisma.job.findMany({
-      where: { status: 'PUBLISHED' },
+      where: hidden.length ? { ...openJobs(), id: { notIn: hidden } } : openJobs(),
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: { company: true, category: true },
     });
-    return jobs.map((job: FeedJob) => ({ ...job, relevanceScore: 0 }));
+    return jobs.map((job: FeedJob) => ({ ...job, relevanceScore: 0, reasons: [] }));
   }
 
   /**
@@ -278,14 +288,33 @@ export class AiFeedService {
    *   - a flat `CATEGORY_AFFINITY_WEIGHT` bonus if the job's category
    *     matches one the user has previously saved a job from
    */
-  private rankJobs(
-    jobs: FeedJob[],
-    keywords: string[],
-    savedCategoryIds: Set<string>,
-  ): PersonalizedJob[] {
+  private rankJobs(jobs: FeedJob[], keywords: string[], signals: Signals): PersonalizedJob[] {
     return jobs
-      .map((job) => ({ ...job, relevanceScore: this.scoreJob(job, keywords, savedCategoryIds) }))
+      .map((job) => ({
+        ...job,
+        relevanceScore: this.scoreJob(job, keywords, signals.savedCategoryIds),
+        reasons: this.reasonsFor(job, signals),
+      }))
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
+  }
+
+  /**
+   * The skills and searches (as the person wrote them) that matched this job's text, and
+   * whether it is in a category they saved jobs from. Matching uses the same tokens as scoring.
+   */
+  private reasonsFor(job: FeedJob, signals: Signals): FeedReason[] {
+    const tokens = this.tokenize(`${job.title} ${job.description} ${(job.tags ?? []).join(' ')}`);
+    const matches = (terms: string[]) =>
+      [...new Set(terms.map((term) => term.trim()).filter(Boolean))].filter((term) =>
+        this.extractKeywords([term]).some((word) => tokens.has(word)),
+      );
+    const reasons: FeedReason[] = [];
+    const skills = matches(signals.skills).slice(0, 3);
+    if (skills.length) reasons.push({ kind: 'skills', terms: skills });
+    const searches = matches(signals.searches).slice(0, 2);
+    if (searches.length) reasons.push({ kind: 'search', terms: searches });
+    if (signals.savedCategoryIds.has(job.categoryId)) reasons.push({ kind: 'saved' });
+    return reasons;
   }
 
   /**
@@ -348,5 +377,47 @@ export class AiFeedService {
   private extractKeywords(terms: string[]): string[] {
     const words = this.tokenize(terms.join(' '));
     return [...words].filter((word) => word.length > 2 && !STOP_WORDS.has(word));
+  }
+
+  /** "Not interested": the job leaves this person's feed on every device. */
+  async hide(userId: string, jobId: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId }, select: { id: true } });
+    if (!job) throw new NotFoundException('Job not found');
+    await this.prisma.hiddenJob.upsert({
+      where: { userId_jobId: { userId, jobId } },
+      update: {},
+      create: { userId, jobId },
+    });
+    return { hidden: true };
+  }
+
+  async unhide(userId: string, jobId: string) {
+    await this.prisma.hiddenJob.deleteMany({ where: { userId, jobId } });
+    return { hidden: false };
+  }
+
+  /** What the feed matches on, for the "What we match on" panel. */
+  async signals(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { gdprConsent: true, skills: true },
+    });
+    const searches = user?.gdprConsent ? await this.getRecentSearchTerms(userId) : [];
+    const distinct = [
+      ...new Map(searches.map((term) => [term.trim().toLowerCase(), term.trim()])).values(),
+    ];
+    return {
+      personalised: Boolean(user?.gdprConsent),
+      skills: user?.skills ?? [],
+      searches: distinct.filter(Boolean).slice(0, 8),
+    };
+  }
+
+  private async getHiddenJobIds(userId: string): Promise<string[]> {
+    const rows: Array<{ jobId: string }> = await this.prisma.hiddenJob.findMany({
+      where: { userId },
+      select: { jobId: true },
+    });
+    return rows.map((row) => row.jobId);
   }
 }

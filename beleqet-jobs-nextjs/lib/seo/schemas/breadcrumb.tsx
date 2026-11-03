@@ -1,5 +1,6 @@
 import React from 'react';
 import { getSeoConfig } from '../config';
+import { jsonLd } from './json-ld';
 
 /** A single breadcrumb list item. */
 export interface BreadcrumbItem {
@@ -31,6 +32,6 @@ export function BreadcrumbSchema({ items }: { items: BreadcrumbItem[] }): React.
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(json) }} />
   );
 }

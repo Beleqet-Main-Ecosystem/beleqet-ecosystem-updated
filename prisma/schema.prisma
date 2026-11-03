@@ -52,6 +52,10 @@ model User {
   verificationTokens    VerificationToken[]
   savedJobs             SavedJob[]
   cvDraft               CvDraft?
+  portfolioDraft        PortfolioDraft?
+  hiddenJobs            HiddenJob[]
+  savedFreelanceJobs    SavedFreelanceJob[]
+  contentReports        ContentReport[]       @relation("ReportReporter")
   clientFeedback        Json?
   skillVerified         Boolean               @default(false)
   availabilities        UserAvailability[]    @relation("UserAvailabilities")
@@ -334,26 +338,31 @@ model VerificationToken {
 }
 
 model Company {
-  id            String   @id @default(uuid())
-  name          String
-  description   String?
-  logoUrl       String?
-  website       String?
-  industry      String?
-  size          String?
-  verified      Boolean  @default(false)
-  userId        String   @unique
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  benefits      String[] @default([])
-  coverImageUrl String?
-  facebookUrl   String?
-  foundedYear   Int?
-  linkedinUrl   String?
-  location      String?
-  twitterUrl    String?
-  user          User     @relation(fields: [userId], references: [id])
-  jobs          Job[]
+  id                      String                    @id @default(uuid())
+  name                    String
+  description             String?
+  logoUrl                 String?
+  website                 String?
+  industry                String?
+  size                    String?
+  verified                Boolean                   @default(false)
+  /// Trade licence review: NONE until the employer sends one, then PENDING until an admin decides.
+  verificationStatus      CompanyVerificationStatus @default(NONE)
+  tradeLicenseUrl         String?
+  verificationNote        String?
+  verificationRequestedAt DateTime?
+  userId                  String                    @unique
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  benefits                String[]                  @default([])
+  coverImageUrl           String?
+  facebookUrl             String?
+  foundedYear             Int?
+  linkedinUrl             String?
+  location                String?
+  twitterUrl              String?
+  user                    User                      @relation(fields: [userId], references: [id])
+  jobs                    Job[]
 
   @@map("companies")
 }
@@ -406,6 +415,7 @@ model Job {
   applications             Application[]
   questions                JobQuestion[]
   savedBy                  SavedJob[]
+  hiddenBy                 HiddenJob[]
   category                 JobCategory   @relation(fields: [categoryId], references: [id])
   company                  Company       @relation(fields: [companyId], references: [id])
 
@@ -507,6 +517,7 @@ model FreelanceJob {
   experienceLevel    String?
   locationPreference String?
   bids               Bid[]
+  savedBy            SavedFreelanceJob[]
   matchScores        FreelanceMatchScore[]
   contract           Contract?
   escrowTx           EscrowTransaction?
@@ -666,16 +677,21 @@ model EmployerWalletTransaction {
 }
 
 model Dispute {
-  id           String    @id @default(uuid())
-  contractId   String    @unique
-  raisedById   String
-  reason       String
-  evidenceUrls String[]
-  resolution   String?
-  resolvedAt   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  contract     Contract  @relation(fields: [contractId], references: [id])
+  id               String          @id @default(uuid())
+  contractId       String          @unique
+  raisedById       String
+  reason           String
+  evidenceUrls     String[]
+  resolution       String?
+  resolvedAt       DateTime?
+  /// How the escrow was settled: refunded to the client, released to the freelancer, or split.
+  outcome          DisputeOutcome?
+  clientAmount     Int?
+  freelancerAmount Int?
+  resolvedById     String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  contract         Contract        @relation(fields: [contractId], references: [id])
 
   @@map("disputes")
 }
@@ -792,7 +808,13 @@ model Interview {
 
   meetingLink String?
 
+  /// Where the interview happens when it is in person.
+  location String?
+
   notes String?
+
+  /// What the candidate said when declining or asking for another time.
+  candidateNote String?
 
   status InterviewStatus @default(SCHEDULED)
 
@@ -1040,6 +1062,8 @@ enum ContractStatus {
 }
 
 enum MilestoneStatus {
+  /// Added by the freelancer, waiting for the client to accept it into the contract.
+  PROPOSED
   PENDING
   IN_PROGRESS
   SUBMITTED
@@ -1144,6 +1168,8 @@ model InterviewEvaluation {
 
 enum InterviewStatus {
   SCHEDULED
+  CONFIRMED
+  DECLINED
   COMPLETED
   CANCELLED
   RESCHEDULED
@@ -1290,6 +1316,8 @@ enum PaymentProvider {
   STRIPE
   PAYPAL
   MANUAL
+  /// Chapa through Beleqet Pay: Telebirr, CBE Birr, banks and cards.
+  CHAPA
 }
 
 enum PaymentStatus {
@@ -1960,21 +1988,21 @@ enum ResumeUploadStatus {
 
 /// Tracks a CV file uploaded by a professional for the Resume Brain pipeline.
 model ResumeUpload {
-  id                String             @id @default(uuid())
-  userId            String
-  originalFilename  String
-  storageKey        String
-  storageUrl        String
-  mimeType          String
-  fileSizeBytes     Int
-  status            ResumeUploadStatus @default(PARSING)
-  failureReason     String?
-  consentGiven      Boolean            @default(false)
-  consentAt         DateTime?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id               String             @id @default(uuid())
+  userId           String
+  originalFilename String
+  storageKey       String
+  storageUrl       String
+  mimeType         String
+  fileSizeBytes    Int
+  status           ResumeUploadStatus @default(PARSING)
+  failureReason    String?
+  consentGiven     Boolean            @default(false)
+  consentAt        DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  parsedResume      ParsedResume?
+  parsedResume ParsedResume?
 
   @@index([userId])
   @@map("resume_uploads")
@@ -1982,21 +2010,103 @@ model ResumeUpload {
 
 /// Structured data extracted from a parsed CV.
 model ParsedResume {
-  id               String       @id @default(uuid())
-  resumeUploadId   String       @unique
+  id               String   @id @default(uuid())
+  resumeUploadId   String   @unique
   userId           String
   personalInfo     Json
   education        Json
   workExperience   Json
-  skills           String[]     @default([])
-  certifications   String[]     @default([])
+  skills           String[] @default([])
+  certifications   String[] @default([])
   languages        Json
   extractionEngine String
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  resumeUpload     ResumeUpload @relation(fields: [resumeUploadId], references: [id], onDelete: Cascade)
+  resumeUpload ResumeUpload @relation(fields: [resumeUploadId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("parsed_resumes")
+}
+
+/// A job someone chose "Not interested" on, so the feed stops showing it.
+model HiddenJob {
+  id        String   @id @default(uuid())
+  userId    String
+  jobId     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId])
+  @@map("hidden_jobs")
+}
+
+model SavedFreelanceJob {
+  id             String       @id @default(uuid())
+  userId         String
+  freelanceJobId String
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  freelanceJob   FreelanceJob @relation(fields: [freelanceJobId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, freelanceJobId])
+  @@map("saved_freelance_jobs")
+}
+
+/// The portfolio builder's saved data, like CvDraft for CV Maker.
+model PortfolioDraft {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_drafts")
+}
+
+/// Someone flagging a job or forum post for an admin to review.
+model ContentReport {
+  id             String       @id @default(uuid())
+  targetType     ReportTarget
+  targetId       String
+  reporterId     String
+  reason         String
+  details        String?
+  status         ReportStatus @default(OPEN)
+  resolvedById   String?
+  resolvedAt     DateTime?
+  resolutionNote String?
+  createdAt      DateTime     @default(now())
+  reporter       User         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([targetType, targetId, reporterId])
+  @@index([status, createdAt])
+  @@map("content_reports")
+}
+
+enum ReportTarget {
+  JOB
+  FORUM_THREAD
+  FORUM_REPLY
+}
+
+enum ReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+enum CompanyVerificationStatus {
+  NONE
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DisputeOutcome {
+  REFUND
+  RELEASE
+  SPLIT
 }

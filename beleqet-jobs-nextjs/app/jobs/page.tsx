@@ -1,20 +1,35 @@
-import { Suspense } from 'react';
-import JobsListing from '@/components/JobsListing';
-import { fetchCategories, fetchJobs } from '@/lib/api';
+import JobSearch from '@/features/jobs/components/JobSearch';
+import { PAGE_SIZE, parseJobSearch } from '@/features/jobs/search-params';
+import { fetchCategories, searchJobs, type JobSearchResult } from '@/lib/api';
 import { jobsPageMetadata } from '@/lib/seo/generate-metadata';
-
-export const revalidate = 60;
 
 export const metadata = jobsPageMetadata();
 
-export default async function JobsPage() {
-  const [jobs, categories] = await Promise.all([fetchJobs(), fetchCategories()]);
+type Props = { searchParams: Record<string, string | string[] | undefined> };
 
-  return (
-    <Suspense
-      fallback={<div className="container-page py-20 text-center text-muted">Loading jobs…</div>}
-    >
-      <JobsListing initialJobs={jobs} categories={categories} />
-    </Suspense>
-  );
+/**
+ * Server-rendered per search: the query string decides the results, so every
+ * filter, page and shared link hits the API's search rather than filtering a
+ * small prefetched list in the browser.
+ */
+export default async function JobsPage({ searchParams }: Props) {
+  const search = parseJobSearch(searchParams);
+
+  const [result, categories] = await Promise.all([
+    searchJobs({
+      q: search.q || undefined,
+      location: search.loc || undefined,
+      category: search.category || undefined,
+      company: search.company || undefined,
+      // The API takes several types, comma-separated.
+      type: search.types.join(',') || undefined,
+      page: search.page,
+      limit: PAGE_SIZE,
+    })
+      // An unreachable API shows an error state with a retry, not a crash page.
+      .catch((): JobSearchResult | null => null),
+    fetchCategories(),
+  ]);
+
+  return <JobSearch search={search} result={result} categories={categories} />;
 }

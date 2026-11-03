@@ -257,6 +257,21 @@ export class AuthService {
     });
   }
 
+  /** A new verification link; earlier ones stop working so only the latest email counts. */
+  async resendVerification(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (user.emailVerified) return { success: true, alreadyVerified: true };
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId, type: 'EMAIL_VERIFICATION' },
+    });
+    await this.sendVerificationEmail(userId);
+    return { success: true, alreadyVerified: false };
+  }
+
   async verifyEmail(token: string) {
     const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
     if (
@@ -455,6 +470,41 @@ export class AuthService {
     });
 
     if (!user) throw new UnauthorizedException('User not found');
+    await this.touchLastLogin(user.id);
+    return this.issueTokens(user);
+  }
+
+  /**
+   * Session for someone who just signed in with Google or LinkedIn. A disabled account is
+   * refused, and an account with two-step sign-in still has to enter its code.
+   */
+  async oauthSession(
+    userId: string,
+  ): Promise<
+    { requires2fa: true; tempToken: string } | Awaited<ReturnType<AuthService['issueTokens']>>
+  > {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
+    });
+    if (!user || !user.isActive) throw new UnauthorizedException('This account is not active');
+
+    const twoFactor = await this.prisma.userTwoFactor.findUnique({
+      where: { userId, enabled: true },
+      select: { id: true },
+    });
+    if (twoFactor) {
+      const { tempToken } = await this.twoFactorService.generateTempToken(userId);
+      return { requires2fa: true, tempToken };
+    }
+
     await this.touchLastLogin(user.id);
     return this.issueTokens(user);
   }

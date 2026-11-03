@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Bookmark, Loader2 } from 'lucide-react';
 import { authenticatedFetch } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
+import { useTranslation } from '@/lib/i18n';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
@@ -41,8 +42,21 @@ async function fetchSavedJobs(): Promise<Array<{ jobId: string }>> {
   return savedJobsPromise;
 }
 
-export default function SaveJobButton({ jobId, light = true }: { jobId: string; light?: boolean }) {
+export default function SaveJobButton({
+  jobId,
+  light = true,
+  variant = 'round',
+  label,
+}: {
+  jobId: string;
+  light?: boolean;
+  /** `outline` = 44px square button; `onDark` = labelled button for dark headers. */
+  variant?: 'round' | 'outline' | 'onDark';
+  /** Accessible name, e.g. "Save Senior Accountant". */
+  label?: string;
+}) {
   const { user, ready } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -68,7 +82,8 @@ export default function SaveJobButton({ jobId, light = true }: { jobId: string; 
   async function toggleSaved() {
     if (!ready || loading) return;
     if (!user) {
-      router.push(`/login?next=${encodeURIComponent(`/jobs/${jobId}`)}`);
+      // Come back to this page, so search results keep their filters.
+      router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
 
@@ -83,6 +98,45 @@ export default function SaveJobButton({ jobId, light = true }: { jobId: string; 
       lastFetchTime = 0;
     }
     setLoading(false);
+  }
+
+  if (variant === 'onDark') {
+    return (
+      <button
+        type="button"
+        onClick={toggleSaved}
+        disabled={!ready || loading}
+        aria-pressed={saved}
+        aria-label={label}
+        className="inline-flex min-h-12 items-center gap-2 rounded-md border border-white/25 px-4 text-[15px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent disabled:cursor-wait"
+      >
+        {loading ? (
+          <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden="true" />
+        ) : (
+          <Bookmark className={`h-[18px] w-[18px] ${saved ? 'fill-current' : ''}`} aria-hidden="true" />
+        )}
+        {t(saved ? 'search.saved' : 'search.save')}
+      </button>
+    );
+  }
+
+  if (variant === 'outline') {
+    return (
+      <button
+        type="button"
+        onClick={toggleSaved}
+        disabled={!ready || loading}
+        aria-pressed={saved}
+        aria-label={label ?? 'Save job'}
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-ink-200 bg-surface text-ink-600 transition-colors hover:border-forest/40 hover:text-forest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest disabled:cursor-wait aria-pressed:text-forest dark:border-slate-700 dark:bg-slate-900"
+      >
+        {loading ? (
+          <Loader2 className="h-[18px] w-[18px] animate-spin" aria-hidden="true" />
+        ) : (
+          <Bookmark className={`h-[18px] w-[18px] ${saved ? 'fill-current' : ''}`} aria-hidden="true" />
+        )}
+      </button>
+    );
   }
 
   return (

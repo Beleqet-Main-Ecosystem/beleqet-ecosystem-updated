@@ -268,13 +268,13 @@ export class PaypalService {
     this.logger.log(`PayPal webhook received: ${body.event_type} (${body.id})`);
     this.logger.debug(`PayPal webhook headers: ${JSON.stringify(headers)}`);
 
-    if (this.webhookId) {
-      await this.verifyWebhookSignature(body, headers);
-    } else {
-      this.logger.warn(
-        'PAYPAL_WEBHOOK_ID not set — skipping signature verification (unsafe for production)',
-      );
+    // An unverified BILLING.SUBSCRIPTION.ACTIVATED would start a paid plan for free, so events
+    // are refused until PAYPAL_WEBHOOK_ID is set.
+    if (!this.webhookId) {
+      this.logger.error('PAYPAL_WEBHOOK_ID not set — refusing unverifiable PayPal webhook');
+      throw new UnprocessableEntityException('PayPal webhook verification is not configured.');
     }
+    await this.verifyWebhookSignature(body, headers);
 
     await this.processWebhookEvent(body);
     return body;

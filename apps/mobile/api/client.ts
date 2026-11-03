@@ -48,9 +48,13 @@ function drainQueue(token: string | null) {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const original = error.config as InternalAxiosRequestConfig & {
+    const original = error.config as (InternalAxiosRequestConfig & {
       _retry?: boolean;
-    };
+    }) | undefined;
+
+    if (!original) {
+      return Promise.reject(error);
+    }
 
     // Skip refresh logic for auth endpoints — a 401 from login/register
     // means bad credentials, not an expired token.
@@ -68,7 +72,11 @@ apiClient.interceptors.response.use(
       return new Promise((resolve, reject) => {
         refreshQueue.push((token) => {
           if (!token) return reject(error);
-          original.headers.Authorization = `Bearer ${token}`;
+          if (original.headers?.set) {
+            original.headers.set('Authorization', `Bearer ${token}`);
+          } else {
+            original.headers.Authorization = `Bearer ${token}`;
+          }
           resolve(apiClient(original));
         });
       });
@@ -93,13 +101,18 @@ apiClient.interceptors.response.use(
       }
 
       drainQueue(newAccess);
-      original.headers.Authorization = `Bearer ${newAccess}`;
+      if (original.headers?.set) {
+        original.headers.set('Authorization', `Bearer ${newAccess}`);
+      } else {
+        original.headers.Authorization = `Bearer ${newAccess}`;
+      }
       return apiClient(original);
     } catch {
       drainQueue(null);
-      // Tokens invalid — clear storage and let the auth store log the user out
+      // Tokens invalid — clear storage
       await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
       await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+      await SecureStore.deleteItemAsync(USER_CACHE_KEY);
       return Promise.reject(error);
     } finally {
       isRefreshing = false;
