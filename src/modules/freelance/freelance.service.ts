@@ -16,8 +16,53 @@ import {
   Min,
   MinLength,
   IsDateString,
+  IsIn,
+  IsInt,
+  Max,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+
+/** Search, filters and sort for the public project list. */
+export class FreelanceQueryDto {
+  /** Sent by the mobile app and landing site; the public list only ever shows open projects. */
+  @IsOptional() @IsString() status?: string;
+  @IsOptional() @IsString() q?: string;
+  @IsOptional() @IsString() category?: string;
+  @IsOptional() @IsIn(['FIXED', 'HOURLY']) pricingType?: 'FIXED' | 'HOURLY';
+  @IsOptional() @IsString() experienceLevel?: string;
+  /** Projects whose budget reaches at least this much */
+  @IsOptional() @IsInt() @Min(0) budgetMin?: number;
+  /** Projects whose budget starts at or below this */
+  @IsOptional() @IsInt() @Min(0) budgetMax?: number;
+  @IsOptional() @IsIn(['newest', 'budget_high', 'budget_low']) sort?: 'newest' | 'budget_high' | 'budget_low';
+  @IsOptional() @IsInt() @Min(1) page?: number;
+  @IsOptional() @IsInt() @Min(1) @Max(100) limit?: number;
+}
+
+/** Event types shown in a contract's activity feed. */
+const CONTRACT_EVENTS = [
+  'milestone.proposed',
+  'milestone.accepted',
+  'milestone.submitted',
+  'milestone.revision_requested',
+  'milestone.approved',
+  'milestone.dual_confirmed',
+  'escrow.funded',
+  'dispute.raised',
+  'dispute.resolved',
+];
+
+/** One line in a contract's activity feed (EventLog is the record both sides read from). */
+function activity(eventType: string, entityType: string, entityId: string, payload: Record<string, unknown>) {
+  return { data: { eventType, entityType, entityId, payload: payload as Prisma.InputJsonValue, processedBy: 'FreelanceService' } };
+}
+
+/** "Abebe K." on public lists: enough to recognise a client without publishing a full name. */
+function shortName(user: { firstName: string; lastName: string } | null): string | null {
+  if (!user) return null;
+  const initial = user.lastName?.trim().charAt(0);
+  return initial ? `${user.firstName} ${initial}.` : user.firstName;
+}
 
 export class CreateFreelanceJobDto {
   @ApiProperty({ example: 'Build a Modern E-commerce Website' })
@@ -156,29 +201,52 @@ export class FreelanceService {
     });
   }
 
-  async findJobs(query: { q?: string; category?: string; page?: number; limit?: number }) {
+  async findJobs(query: FreelanceQueryDto) {
     const pageNum = Number(query.page) || 1;
     const limitNum = Number(query.limit) || 20;
-    const { q, category } = query;
+    const { q, category, pricingType, experienceLevel, budgetMin, budgetMax } = query;
 
-    const where: Record<string, unknown> = { status: { in: ['OPEN', 'FUNDED'] } };
-    if (category) where['category'] = { slug: category };
-    if (q)
-      where['OR'] = [
-        { title: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-      ];
+    const and: Prisma.FreelanceJobWhereInput[] = [{ status: { in: ['OPEN', 'FUNDED'] } }];
+    if (category) and.push({ category: { slug: category } });
+    if (pricingType) and.push({ pricingType });
+    if (experienceLevel) and.push({ experienceLevel: { equals: experienceLevel, mode: 'insensitive' } });
+    if (budgetMin !== undefined) and.push({ budgetMax: { gte: budgetMin } });
+    if (budgetMax !== undefined) and.push({ budgetMin: { lte: budgetMax } });
+    if (q) {
+      const term = q.trim();
+      // Skills are stored as written ("Logo design"), so try the common spellings of the term.
+      const spellings = [...new Set([term, term.toLowerCase(), term.charAt(0).toUpperCase() + term.slice(1).toLowerCase()])];
+      and.push({
+        OR: [
+          { title: { contains: term, mode: 'insensitive' } },
+          { description: { contains: term, mode: 'insensitive' } },
+          { skills: { hasSome: spellings } },
+        ],
+      });
+    }
+    const where: Prisma.FreelanceJobWhereInput = { AND: and };
+    const orderBy: Prisma.FreelanceJobOrderByWithRelationInput[] =
+      query.sort === 'budget_high'
+        ? [{ budgetMax: 'desc' }, { createdAt: 'desc' }]
+        : query.sort === 'budget_low'
+          ? [{ budgetMin: 'asc' }, { createdAt: 'desc' }]
+          : [{ featured: 'desc' }, { createdAt: 'desc' }];
 
-    const [items, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.freelanceJob.findMany({
-        where: where as never,
-        include: { category: true, _count: { select: { bids: true } } },
-        orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+        where,
+        include: {
+          category: true,
+          client: { select: { firstName: true, lastName: true } },
+          _count: { select: { bids: true } },
+        },
+        orderBy,
         skip: (pageNum - 1) * limitNum,
         take: limitNum,
       }),
-      this.prisma.freelanceJob.count({ where: where as never }),
+      this.prisma.freelanceJob.count({ where }),
     ]);
+    const items = rows.map(({ client, ...job }) => ({ ...job, clientName: shortName(client) }));
 
     return {
       items,
@@ -194,13 +262,22 @@ export class FreelanceService {
       where: { id },
       include: {
         category: true,
-        client: { select: { id: true, firstName: true, lastName: true } },
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            createdAt: true,
+            _count: { select: { contractsAsClient: { where: { status: 'COMPLETED' } } } },
+          },
+        },
         // Public endpoint: only the count. Prices and cover letters come from findBids.
         _count: { select: { bids: true } },
       },
     });
     if (!job) throw new NotFoundException('Gig not found');
-    return job;
+    const { _count: clientCounts, createdAt: memberSince, ...client } = job.client;
+    return { ...job, client: { ...client, memberSince, completedContracts: clientCounts.contractsAsClient } };
   }
 
   /** The project owner sees every bid; anyone else sees only their own. */
@@ -210,11 +287,27 @@ export class FreelanceService {
       select: { clientId: true },
     });
     if (!job) throw new NotFoundException('Gig not found');
-    return this.prisma.bid.findMany({
+    const bids = await this.prisma.bid.findMany({
       where: job.clientId === userId ? { freelanceJobId: gigId } : { freelanceJobId: gigId, freelancerId: userId },
-      include: { freelancer: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        freelancer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            createdAt: true,
+            portfolioUrl: true,
+            _count: { select: { contractsAsFreelancer: { where: { status: 'COMPLETED' } } } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
+    // What the client weighs bids by: track record, time on Beleqet, and past work.
+    return bids.map(({ freelancer: { _count, createdAt, ...freelancer }, ...bid }) => ({
+      ...bid,
+      freelancer: { ...freelancer, memberSince: createdAt, completedContracts: _count.contractsAsFreelancer },
+    }));
   }
 
   async submitBid(freelancerId: string, gigId: string, dto: CreateBidDto) {
@@ -222,13 +315,27 @@ export class FreelanceService {
       where: { id: gigId, status: { in: ['OPEN', 'FUNDED'] } },
     });
     if (!gig) throw new NotFoundException('Gig not found or no longer accepting bids');
+    if (gig.clientId === freelancerId) throw new ForbiddenException('You cannot bid on your own project');
+
+    const bidder = await this.prisma.user.findUnique({ where: { id: freelancerId }, select: { role: true } });
+    if (!bidder || bidder.role === 'EMPLOYER' || bidder.role === 'ADMIN') {
+      throw new ForbiddenException('Only freelancer and job seeker accounts can bid');
+    }
 
     const existing = await this.prisma.bid.findUnique({
       where: { freelanceJobId_freelancerId: { freelanceJobId: gigId, freelancerId } },
     });
     if (existing) throw new ConflictException('You have already submitted a bid');
 
-    return this.prisma.bid.create({ data: { ...dto, freelanceJobId: gigId, freelancerId } });
+    try {
+      return await this.prisma.bid.create({ data: { ...dto, freelanceJobId: gigId, freelancerId } });
+    } catch (error) {
+      // Two submits at once: the unique index stops the second one.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException('You have already submitted a bid');
+      }
+      throw error;
+    }
   }
 
   async acceptBid(bidId: string, clientId: string) {
@@ -365,7 +472,7 @@ export class FreelanceService {
       include: {
         milestones: { include: { deliverables: true } },
         freelanceJob: {
-          include: { escrowTx: { select: { status: true, grossAmount: true, fundedAt: true } } },
+          include: { escrowTx: { select: { id: true, status: true, grossAmount: true, fundedAt: true } } },
         },
         client: { select: { id: true, firstName: true, lastName: true } },
         freelancer: { select: { id: true, firstName: true, lastName: true } },
@@ -391,7 +498,37 @@ export class FreelanceService {
         revisionNote: latest.get(m.id)?.reason ?? null,
         revisionRequestedAt: latest.get(m.id)?.at ?? null,
       })),
+      activity: await this.contractActivity(c),
     };
+  }
+
+  /**
+   * What happened on a contract, newest first: milestones proposed, accepted, submitted, sent
+   * back and approved; escrow funded; a dispute opened and resolved. Read from EventLog.
+   */
+  private async contractActivity(c: {
+    id: string;
+    milestones: { id: string; title: string }[];
+    freelanceJob: { escrowTx: { id: string } | null } | null;
+  }) {
+    const dispute = await this.prisma.dispute.findUnique({ where: { contractId: c.id }, select: { id: true } });
+    const titles = new Map(c.milestones.map((m) => [m.id, m.title]));
+    const ids = [...titles.keys(), c.freelanceJob?.escrowTx?.id, dispute?.id].filter((id): id is string => Boolean(id));
+    const events = await this.prisma.eventLog.findMany({
+      where: { entityId: { in: ids }, eventType: { in: CONTRACT_EVENTS } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: { eventType: true, entityId: true, payload: true, createdAt: true },
+    });
+    return events.map((event) => {
+      const payload = (event.payload ?? {}) as { reason?: string; outcome?: string };
+      return {
+        type: event.eventType,
+        at: event.createdAt,
+        milestone: titles.get(event.entityId) ?? null,
+        note: payload.reason ?? payload.outcome ?? null,
+      };
+    });
   }
 
   /**
@@ -420,6 +557,7 @@ export class FreelanceService {
         },
       });
       await tx.contract.update({ where: { id: contractId }, data: { status: 'DISPUTED' } });
+      await tx.eventLog.create(activity('dispute.raised', 'Dispute', dispute.id, { contractId, raisedById: userId }));
       await tx.escrowTransaction.updateMany({
         where: { freelanceJobId: contract.freelanceJobId, status: 'FUNDED' },
         data: { status: 'DISPUTED' },
@@ -438,13 +576,46 @@ export class FreelanceService {
       );
     }
 
-    return this.prisma.milestone.create({
+    if (contract.status !== 'ACTIVE') throw new ConflictException('Milestones can only be added to an active contract.');
+
+    // All milestones together can't ask for more than the client agreed to pay.
+    const planned = await this.prisma.milestone.aggregate({ where: { contractId }, _sum: { amount: true } });
+    const left = contract.agreedAmount - (planned._sum.amount ?? 0);
+    if (dto.amount > left) {
+      throw new BadRequestException(`Milestones would add up to more than the contract amount; ${left} is left to plan.`);
+    }
+
+    // The client accepts a milestone before work on it counts.
+    const milestone = await this.prisma.milestone.create({
       data: {
         ...dto,
         contractId,
         deadline: new Date(dto.deadline),
+        status: 'PROPOSED',
       },
     });
+    await this.prisma.eventLog.create(activity('milestone.proposed', 'Milestone', milestone.id, { contractId, title: milestone.title }));
+    return milestone;
+  }
+
+  /** The client agrees to a milestone the freelancer proposed. */
+  async acceptMilestone(clientId: string, milestoneId: string) {
+    const { count } = await this.prisma.milestone.updateMany({
+      where: { id: milestoneId, status: 'PROPOSED', contract: { clientId } },
+      data: { status: 'PENDING' },
+    });
+    if (count === 0) throw new NotFoundException('No proposed milestone to accept');
+    await this.prisma.eventLog.create(activity('milestone.accepted', 'Milestone', milestoneId, {}));
+    return { status: 'PENDING' };
+  }
+
+  /** The client turns a proposed milestone down; it is removed so the freelancer can propose another. */
+  async declineMilestone(clientId: string, milestoneId: string) {
+    const { count } = await this.prisma.milestone.deleteMany({
+      where: { id: milestoneId, status: 'PROPOSED', contract: { clientId } },
+    });
+    if (count === 0) throw new NotFoundException('No proposed milestone to decline');
+    return { declined: true };
   }
 
   async submitDeliverable(freelancerId: string, milestoneId: string, dto: SubmitDeliverableDto) {
@@ -456,6 +627,10 @@ export class FreelanceService {
     if (milestone.contract.freelancerId !== freelancerId) {
       throw new ForbiddenException('Only the assigned freelancer can submit deliverables for this milestone');
     }
+    if (milestone.status === 'PROPOSED') {
+      throw new ConflictException('The client has not accepted this milestone yet.');
+    }
+    if (milestone.status === 'APPROVED') throw new ConflictException('This milestone is already approved.');
 
     return this.prisma.$transaction(async (tx) => {
       const deliverable = await tx.deliverable.create({
@@ -473,6 +648,7 @@ export class FreelanceService {
           freelancerApprovedAt: new Date(),
         },
       });
+      await tx.eventLog.create(activity('milestone.submitted', 'Milestone', milestoneId, { contractId: milestone.contractId }));
 
       return deliverable;
     });
@@ -513,5 +689,35 @@ export class FreelanceService {
       });
       return updated;
     });
+  }
+
+  /** Projects the person saved to come back to, newest save first. */
+  async savedProjects(userId: string) {
+    const rows = await this.prisma.savedFreelanceJob.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        freelanceJob: {
+          include: { category: true, client: { select: { firstName: true, lastName: true } }, _count: { select: { bids: true } } },
+        },
+      },
+    });
+    return rows.map(({ freelanceJob: { client, ...job }, createdAt }) => ({ ...job, clientName: shortName(client), savedAt: createdAt }));
+  }
+
+  async saveProject(userId: string, freelanceJobId: string) {
+    const job = await this.prisma.freelanceJob.findUnique({ where: { id: freelanceJobId }, select: { id: true } });
+    if (!job) throw new NotFoundException('Project not found');
+    await this.prisma.savedFreelanceJob.upsert({
+      where: { userId_freelanceJobId: { userId, freelanceJobId } },
+      update: {},
+      create: { userId, freelanceJobId },
+    });
+    return { saved: true };
+  }
+
+  async unsaveProject(userId: string, freelanceJobId: string) {
+    await this.prisma.savedFreelanceJob.deleteMany({ where: { userId, freelanceJobId } });
+    return { saved: false };
   }
 }

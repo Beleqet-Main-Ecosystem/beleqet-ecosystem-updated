@@ -117,6 +117,13 @@ export interface QueryFreelanceJobsDto {
   q?: string;
   category?: string;
   status?: FreelanceJobStatus;
+  pricingType?: 'FIXED' | 'HOURLY';
+  experienceLevel?: string;
+  /** Budget reaches at least this much */
+  budgetMin?: number;
+  /** Budget starts at or below this */
+  budgetMax?: number;
+  sort?: 'newest' | 'budget_high' | 'budget_low';
   page?: number;
   limit?: number;
 }

@@ -11,13 +11,18 @@ import { ManualPaymentService } from './manual-payment.service';
 describe('ManualPaymentService', () => {
   let service: ManualPaymentService;
 
-  const mockPrismaService = {
+  const mockPrismaService: Record<string, any> = {
     payment: {
       create: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
       findMany: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      findUniqueOrThrow: jest.fn(),
     },
+    plan: { findFirst: jest.fn(), findUniqueOrThrow: jest.fn() },
+    subscription: { findFirst: jest.fn(), update: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(mockPrismaService)),
     notification: {
       create: jest.fn().mockResolvedValue({ id: 'notif-1' }),
     },
@@ -90,7 +95,7 @@ describe('ManualPaymentService', () => {
       const dummy = createDummyPayment();
       mockPrismaService.payment.create.mockResolvedValue(dummy);
 
-      const record = await service.createManualPayment('user-uuid-1', 150000, 'ETB');
+      const record = await service.createManualPayment('user-uuid-1', { amount: 150000, currency: 'ETB' });
 
       expect(record.id).toBe(dummy.id);
       expect(record.status).toBe(PaymentStatus.PENDING);
@@ -227,14 +232,11 @@ describe('ManualPaymentService', () => {
       const result = await service.approvePayment('pay-uuid-1', 'admin-1');
 
       expect(result.status).toBe(PaymentStatus.SUCCEEDED);
-      expect(mockPrismaService.payment.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'pay-uuid-1' },
-          data: expect.objectContaining({
-            status: PaymentStatus.SUCCEEDED,
-          }),
-        }),
-      );
+      expect(mockPrismaService.payment.updateMany).toHaveBeenCalledWith({
+        where: { id: 'pay-uuid-1', status: { not: PaymentStatus.SUCCEEDED } },
+        data: { status: PaymentStatus.SUCCEEDED },
+      });
+      expect(mockPrismaService.subscription.create).not.toHaveBeenCalled();
       expect(mockEmailService.dispatch).toHaveBeenCalledWith(
         expect.objectContaining({
           recipient: 'client@example.com',
@@ -304,5 +306,92 @@ describe('ManualPaymentService', () => {
         'manual-receipts/11111111-2222-3333-4444-555555555555.webp',
       );
     });
+  });
+});
+
+describe('ManualPaymentService plans and privacy', () => {
+  const prisma: Record<string, any> = {
+    payment: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
+      findMany: jest.fn(),
+    },
+    plan: { findFirst: jest.fn(), findUniqueOrThrow: jest.fn() },
+    subscription: { findFirst: jest.fn(), update: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
+    notification: { create: jest.fn().mockResolvedValue({}) },
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma)),
+  };
+  const now = new Date();
+  const record = (extra: Record<string, unknown> = {}) => ({
+    id: 'p1', userId: 'u1', amount: 500, currency: 'ETB', status: 'PROCESSING', metadata: { planId: 'pro' },
+    createdAt: now, updatedAt: now, user: { email: '' }, ...extra,
+  });
+  let service: ManualPaymentService;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const module = await Test.createTestingModule({
+      providers: [
+        ManualPaymentService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: UploadsService, useValue: {} },
+        { provide: EmailService, useValue: { dispatch: jest.fn().mockResolvedValue(undefined) } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get(ManualPaymentService);
+    prisma.payment.updateMany.mockResolvedValue({ count: 1 });
+    prisma.payment.update.mockResolvedValue(record({ status: 'SUCCEEDED' }));
+    prisma.plan.findUniqueOrThrow.mockResolvedValue({ id: 'pro', interval: 'MONTHLY' });
+    prisma.subscription.create.mockResolvedValue({ id: 'sub1' });
+  });
+
+  it('charges the plan price, whatever amount is sent', async () => {
+    prisma.plan.findFirst.mockResolvedValue({ id: 'pro', name: 'Pro', priceAmount: 1500, currency: 'ETB' });
+    prisma.payment.create.mockResolvedValue(record());
+    await service.createManualPayment('u1', { planId: 'pro', amount: 1, currency: 'ETB' });
+    expect(prisma.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ amount: 1500, metadata: { planId: 'pro' } }) }),
+    );
+  });
+
+  it('starts the plan when the transfer is approved', async () => {
+    prisma.payment.findUnique.mockResolvedValue(record());
+    prisma.subscription.findFirst.mockResolvedValue(null);
+    await service.approvePayment('p1', 'admin');
+    expect(prisma.subscription.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'u1', status: { in: ['ACTIVE', 'PAST_DUE'] } } }),
+    );
+    expect(prisma.subscription.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: 'u1', planId: 'pro', status: 'ACTIVE', provider: 'MANUAL' }) }),
+    );
+  });
+
+  it('adds a period when the same plan is already running', async () => {
+    const end = new Date('2026-12-15T00:00:00Z');
+    prisma.payment.findUnique.mockResolvedValue(record());
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub0', currentPeriodEnd: end });
+    await service.approvePayment('p1', 'admin');
+    expect(prisma.subscription.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'sub0' }, data: expect.objectContaining({ currentPeriodEnd: new Date('2027-01-15T00:00:00Z') }) }),
+    );
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+  });
+
+  it('does not start a plan twice when two admins approve together', async () => {
+    prisma.payment.findUnique.mockResolvedValue(record());
+    prisma.payment.updateMany.mockResolvedValue({ count: 0 });
+    prisma.payment.findUniqueOrThrow.mockResolvedValue(record({ status: 'SUCCEEDED' }));
+    await service.approvePayment('p1', 'admin');
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+  });
+
+  it("hides someone else's payment", async () => {
+    prisma.payment.findUnique.mockResolvedValue(record({ userId: 'owner' }));
+    await expect(service.findOne('p1', 'intruder')).rejects.toThrow('not found');
+    await expect(service.findOne('p1', 'admin', true)).resolves.toMatchObject({ id: 'p1' });
   });
 });

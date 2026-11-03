@@ -151,7 +151,8 @@ export class ChatToTextService {
       return true;
     }
 
-    const containsLetters = /[a-zA-Z]/.test(normalized);
+    // Any script's letters: [a-zA-Z] alone dropped every Amharic (Ge'ez) transcript.
+    const containsLetters = /\p{L}/u.test(normalized);
     if (!containsLetters) {
       return true;
     }
@@ -417,10 +418,12 @@ export class ChatToTextService {
       trimmed.charAt(0).toUpperCase() +
       trimmed
         .slice(1)
-        .replace(/([.!?])\1+/g, '$1')
-        .replace(/([.!?])([a-zA-Z])/g, '$1 $2');
+        .replace(/([.!?።፧])\1+/gu, '$1')
+        .replace(/([.!?።፧])(\p{L})/gu, '$1 $2');
 
-    return /[.!?]$/.test(normalized) ? normalized : `${normalized}.`;
+    // Ethiopic sentences end with ። (or ፧ for a question), not a full stop.
+    if (/[.!?።፧]$/u.test(normalized)) return normalized;
+    return /\p{Script=Ethiopic}/u.test(normalized) ? `${normalized}።` : `${normalized}.`;
   }
 
   async getStatistics(conversationId: string, userId: string): Promise<IConversationStatistics> {

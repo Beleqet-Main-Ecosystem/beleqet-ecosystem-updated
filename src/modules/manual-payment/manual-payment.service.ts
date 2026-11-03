@@ -1,13 +1,14 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PaymentProvider, PaymentStatus } from '@prisma/client';
+import { PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as https from 'https';
 import { EmailService } from '../email-automation/email.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UploadsService } from '../uploads/uploads.service';
-import { SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
+import { CreateManualPaymentDto, SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
+import { addInterval } from '../subscriptions/subscriptions.service';
 
 export interface ManualPaymentRecord {
   id: string;
@@ -37,25 +38,78 @@ export class ManualPaymentService {
    * Creates a new PENDING manual payment record that the customer will
    * complete by uploading a receipt.
    */
-  async createManualPayment(
-    userId: string,
-    amount: number,
-    currency: string,
-    description?: string,
-  ): Promise<ManualPaymentRecord> {
+  async createManualPayment(userId: string, input: CreateManualPaymentDto): Promise<ManualPaymentRecord> {
+    // Paying for a plan: the price is the plan's, never what the browser sends.
+    let plan: { id: string; name: string; priceAmount: number; currency: string } | null = null;
+    if (input.planId) {
+      plan = await this.prisma.plan.findFirst({
+        where: { id: input.planId, isActive: true, priceAmount: { gt: 0 } },
+        select: { id: true, name: true, priceAmount: true, currency: true },
+      });
+      if (!plan) throw new NotFoundException('That plan is not available');
+    } else if (!input.amount || !input.currency) {
+      throw new BadRequestException('Give a plan, or an amount and currency');
+    }
+
     const payment = await this.prisma.payment.create({
       data: {
         userId,
         provider: PaymentProvider.MANUAL,
         providerPaymentId: `MANUAL-${randomUUID()}`,
-        amount,
-        currency,
+        amount: plan ? plan.priceAmount : input.amount!,
+        currency: plan ? plan.currency : input.currency!,
         status: PaymentStatus.PENDING,
-        description: description ?? 'Manual bank transfer payment',
+        description: plan ? `${plan.name} plan by bank transfer` : input.description ?? 'Manual bank transfer payment',
+        metadata: plan ? { planId: plan.id } : undefined,
       },
     });
 
     return this.toRecord(payment);
+  }
+
+  /** The caller's bank-transfer payments, newest first. */
+  async findMine(userId: string): Promise<ManualPaymentRecord[]> {
+    const payments = await this.prisma.payment.findMany({
+      where: { userId, provider: PaymentProvider.MANUAL },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return payments.map((payment) => this.toRecord(payment));
+  }
+
+  /**
+   * After an admin approves a plan payment: start the plan, or add a period to the same plan
+   * if it is already running. Any other running plan ends, so there is one subscription at a time.
+   */
+  private async activatePlan(tx: Prisma.TransactionClient, userId: string, planId: string): Promise<string> {
+    const plan = await tx.plan.findUniqueOrThrow({ where: { id: planId } });
+    const now = new Date();
+    const running = await tx.subscription.findFirst({
+      where: { userId, planId, status: 'ACTIVE', currentPeriodEnd: { gt: now } },
+      orderBy: { currentPeriodEnd: 'desc' },
+    });
+    if (running) {
+      await tx.subscription.update({
+        where: { id: running.id },
+        data: { currentPeriodEnd: addInterval(running.currentPeriodEnd, plan.interval), cancelAtPeriodEnd: false },
+      });
+      return running.id;
+    }
+    await tx.subscription.updateMany({
+      where: { userId, status: { in: ['ACTIVE', 'PAST_DUE'] } },
+      data: { status: 'CANCELLED' },
+    });
+    const created = await tx.subscription.create({
+      data: {
+        userId,
+        planId,
+        status: 'ACTIVE',
+        provider: PaymentProvider.MANUAL,
+        currentPeriodStart: now,
+        currentPeriodEnd: addInterval(now, plan.interval),
+      },
+    });
+    return created.id;
   }
 
   /**
@@ -115,12 +169,12 @@ export class ManualPaymentService {
     return this.toRecord(updated);
   }
 
-  /** Returns a single payment record */
-  async findOne(paymentId: string): Promise<ManualPaymentRecord> {
+  /** One payment; people see only their own (it carries their receipt and bank reference). */
+  async findOne(paymentId: string, userId?: string, isAdmin = false): Promise<ManualPaymentRecord> {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
     });
-    if (!payment) {
+    if (!payment || (!isAdmin && payment.userId !== userId)) {
       throw new NotFoundException(`Payment ${paymentId} not found`);
     }
     return this.toRecord(payment);
@@ -155,16 +209,26 @@ export class ManualPaymentService {
     }
 
     const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
-    const updated = await this.prisma.payment.update({
-      where: { id: paymentId },
-      data: {
-        status: PaymentStatus.SUCCEEDED,
-        metadata: {
-          ...currentMetadata,
-          approvedBy: adminId,
-          approvedAt: new Date().toISOString(),
+    const planId = typeof currentMetadata.planId === 'string' ? currentMetadata.planId : null;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      // A second, simultaneous approval matches nothing here, so a plan is never started twice.
+      const { count } = await tx.payment.updateMany({
+        where: { id: paymentId, status: { not: PaymentStatus.SUCCEEDED } },
+        data: { status: PaymentStatus.SUCCEEDED },
+      });
+      if (count === 0) return tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
+      const subscriptionId = planId ? await this.activatePlan(tx, payment.userId, planId) : undefined;
+      return tx.payment.update({
+        where: { id: paymentId },
+        data: {
+          metadata: {
+            ...currentMetadata,
+            ...(subscriptionId ? { subscriptionId } : {}),
+            approvedBy: adminId,
+            approvedAt: new Date().toISOString(),
+          },
         },
-      },
+      });
     });
 
     this.logger.log(`Manual payment ${paymentId} approved by admin ${adminId}`);

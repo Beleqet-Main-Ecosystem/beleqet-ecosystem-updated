@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CurrencyService, CurrencyCode } from './currency/currency.service';
 import {
@@ -10,37 +10,12 @@ import {
   SalaryPredictionQueryDto,
 } from './dto/salary-prediction.dto';
 
+/** Fewer matching salary postings than this and there is nothing honest to report. */
+const MIN_SALARY_DATA_POINTS = 3;
+
 @Injectable()
 export class SalaryService {
   private readonly logger = new Logger(SalaryService.name);
-
-  private readonly locationMultipliers: Record<string, number> = {
-    'Addis Ababa': 1.3,
-    'Dire Dawa': 1.0,
-    Hawassa: 0.9,
-    Mekelle: 0.85,
-    Adama: 0.95,
-    'Bahir Dar': 0.9,
-  };
-
-  private readonly industryMultipliers: Record<string, number> = {
-    Technology: 1.5,
-    Finance: 1.4,
-    Healthcare: 1.2,
-    Education: 0.9,
-    Retail: 0.7,
-    Manufacturing: 0.95,
-    Telecommunications: 1.3,
-    Consulting: 1.35,
-  };
-
-  private readonly experienceLevelMultipliers: Record<string, number> = {
-    JUNIOR: 0.7,
-    MID: 1.0,
-    SENIOR: 1.4,
-    LEAD: 1.8,
-    PRINCIPAL: 2.2,
-  };
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -397,7 +372,16 @@ export class SalaryService {
 
     const dataPointsCount = matchingJobs.length;
 
-    if (dataPointsCount > 0) {
+    // Too few real postings to say anything honest: report that instead of a made-up figure.
+    if (dataPointsCount < MIN_SALARY_DATA_POINTS) {
+      throw new UnprocessableEntityException({
+        code: 'NOT_ENOUGH_DATA',
+        message: `Only ${dataPointsCount} job postings with a salary match this title and location; at least ${MIN_SALARY_DATA_POINTS} are needed.`,
+        dataPointsCount,
+      });
+    }
+
+    {
       const midpoints = matchingJobs.map((j) =>
         Math.round(((j.salaryMin ?? 0) + (j.salaryMax ?? 0)) / 2),
       );
@@ -435,34 +419,6 @@ export class SalaryService {
       };
     }
 
-    const locationMultiplier = this.locationMultipliers[dto.location] || 1.0;
-    const industryMultiplier = this.industryMultipliers[dto.industry || 'Technology'] || 1.0;
-    const experienceMultiplier = this.experienceLevelMultipliers[dto.experienceLevel] || 1.0;
-
-    const fallbackBase = 80000;
-    const adjustedSalary =
-      fallbackBase * locationMultiplier * industryMultiplier * experienceMultiplier;
-
-    const variance = adjustedSalary * 0.25;
-    const minSalary = Math.round(adjustedSalary - variance);
-    const maxSalary = Math.round(adjustedSalary + variance);
-    const averageSalary = Math.round(adjustedSalary);
-    const medianSalary = Math.round(adjustedSalary);
-    const standardDeviation = Math.round(variance * 0.5);
-
-    this.logger.debug(
-      `No job postings found — using fallback estimate: ${averageSalary} (confidence: 0.30)`,
-    );
-
-    return {
-      minSalary,
-      maxSalary,
-      averageSalary,
-      medianSalary,
-      dataPointsCount: 0,
-      standardDeviation,
-      confidenceScore: 0.3,
-    };
   }
 
   /**

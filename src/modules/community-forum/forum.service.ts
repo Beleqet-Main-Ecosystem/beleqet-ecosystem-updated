@@ -248,6 +248,17 @@ export class ForumService {
     });
   }
 
+  /** Pinned threads list first; locked threads take no new replies. */
+  async moderateThread(threadId: string, changes: { isPinned?: boolean; isLocked?: boolean }) {
+    const thread = await this.prisma.forumThread.findUnique({ where: { id: threadId }, select: { id: true } });
+    if (!thread) throw new NotFoundException('Thread not found');
+    return this.prisma.forumThread.update({
+      where: { id: threadId },
+      data: { isPinned: changes.isPinned, isLocked: changes.isLocked },
+      select: { id: true, isPinned: true, isLocked: true },
+    });
+  }
+
   async anonymizeUserData(userId: string) {
     const deletedName = 'Deleted User';
     await this.prisma.forumThread.updateMany({

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Delete,
+  Patch,
   Body,
   Param,
   Query,
@@ -18,6 +19,9 @@ import { ForumService } from './forum.service';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { CreateReplyDto } from './dto/create-reply.dto';
 import { ForumQueryDto } from './dto/forum-query.dto';
+import { ModerateThreadDto } from './dto/moderate-thread.dto';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('community-forum')
 @Controller('forum')
@@ -81,6 +85,15 @@ export class ForumController {
     @Headers('accept-language') lang = 'en',
   ) {
     return this.forumService.upvoteReply(user.userId, replyId, lang);
+  }
+
+  @Patch('threads/:id/moderation')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pin or lock a thread (admins)' })
+  async moderateThread(@Param('id', ParseUUIDPipe) threadId: string, @Body() dto: ModerateThreadDto) {
+    return this.forumService.moderateThread(threadId, dto);
   }
 
   @Delete('my-data')

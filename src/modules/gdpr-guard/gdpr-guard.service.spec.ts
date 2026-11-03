@@ -15,6 +15,9 @@ const mockTx = {
   searchHistory: { deleteMany: jest.fn() },
   jobAlert: { deleteMany: jest.fn() },
   savedJob: { deleteMany: jest.fn() },
+  savedFreelanceJob: { deleteMany: jest.fn() },
+  hiddenJob: { deleteMany: jest.fn() },
+  portfolioDraft: { deleteMany: jest.fn() },
   notification: { deleteMany: jest.fn() },
   skillAssessmentSession: { deleteMany: jest.fn() },
   application: { updateMany: jest.fn() },
@@ -172,6 +175,10 @@ describe('GdprGuardService', () => {
       expect(mockTx.oAuthAccount.deleteMany).toHaveBeenCalledWith({
         where: { userId: mockUuid },
       });
+      // Portfolio, hidden jobs and saved projects hold personal data too.
+      for (const table of [mockTx.portfolioDraft, mockTx.hiddenJob, mockTx.savedFreelanceJob]) {
+        expect(table.deleteMany).toHaveBeenCalledWith({ where: { userId: mockUuid } });
+      }
       expect(mockTx.userTwoFactor.deleteMany).toHaveBeenCalledWith({
         where: { userId: mockUuid },
       });

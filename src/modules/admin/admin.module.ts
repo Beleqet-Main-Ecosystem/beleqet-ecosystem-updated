@@ -5,9 +5,10 @@ import { ChatModule } from '../chat/chat.module';
 import { FraudAlertModule } from '../fraud-alert/fraud-alert.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuditLoggingModule } from '../audit-logging/audit-logging.module';
+import { DisputeManagerModule } from '../dispute-manager/dispute-manager.module';
 
 @Module({
-  imports: [QueuesModule, ChatModule, FraudAlertModule, NotificationsModule, AuditLoggingModule],
+  imports: [QueuesModule, ChatModule, FraudAlertModule, NotificationsModule, AuditLoggingModule, DisputeManagerModule],
   controllers: [AdminController],
 })
 export class AdminModule {}

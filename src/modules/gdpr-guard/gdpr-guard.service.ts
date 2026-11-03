@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 
 export interface DataErasureAuditContext {
@@ -166,6 +167,9 @@ export class GdprGuardService {
       await tx.searchHistory.deleteMany({ where: { userId: userUuid } });
       await tx.jobAlert.deleteMany({ where: { userId: userUuid } });
       await tx.savedJob.deleteMany({ where: { userId: userUuid } });
+      await tx.savedFreelanceJob.deleteMany({ where: { userId: userUuid } });
+      await tx.hiddenJob.deleteMany({ where: { userId: userUuid } });
+      await tx.portfolioDraft.deleteMany({ where: { userId: userUuid } });
       await tx.notification.deleteMany({ where: { userId: userUuid } });
       await tx.skillAssessmentSession.deleteMany({ where: { userId: userUuid } });
 
@@ -392,5 +396,36 @@ export class GdprGuardService {
     });
 
     return { success: true, scrubbedAt, referenceId };
+  }
+
+  /**
+   * Someone deleting their own account. Password accounts confirm with the password; accounts
+   * that only sign in with Google or LinkedIn have none to give. While money is held on a
+   * contract (open, disputed or funded escrow) the account stays, so neither side loses track
+   * of it.
+   */
+  async eraseOwnAccount(userId: string, password?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Accounts created through Google or LinkedIn have no password hash; every other account must give it.
+    if (user.passwordHash && !(password && (await bcrypt.compare(password, user.passwordHash)))) {
+      throw new UnauthorizedException('That password is not right');
+    }
+
+    const open = await this.prisma.contract.count({
+      where: {
+        OR: [{ clientId: userId }, { freelancerId: userId }],
+        status: { in: ['ACTIVE', 'DISPUTED'] },
+      },
+    });
+    if (open > 0) {
+      throw new ConflictException('Finish or settle your open contracts before deleting your account');
+    }
+
+    return this.executeDataErasure(userId, { reason: 'Deleted by the account holder', actorUserId: userId });
   }
 }

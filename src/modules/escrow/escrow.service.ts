@@ -37,20 +37,25 @@ export class EscrowService {
       where: { freelanceJobId },
     });
     if (existingEscrow) {
-      if (existingEscrow.status === 'FUNDED') {
+      if (existingEscrow.status !== 'PENDING') {
         throw new BadRequestException('Escrow is already funded or active for this gig.');
       }
-      return {
-        escrowId: existingEscrow.id,
-        checkoutUrl: job.contract
-          ? `${this.config.get('FRONTEND_URL')}/freelance/contracts/${job.contract.id}`
-          : `${this.config.get('FRONTEND_URL')}/freelance/${freelanceJobId}`,
-        grossAmount: existingEscrow.grossAmount,
-        platformFee: existingEscrow.platformFee,
-        netAmount: existingEscrow.netAmount,
-        walletAppliedAmount: existingEscrow.walletAppliedAmount,
-        amountToPay: existingEscrow.grossAmount - (existingEscrow.walletAppliedAmount ?? 0),
-      };
+      // An unpaid escrow: start a fresh checkout so an abandoned payment can be finished. If it was
+      // set up from the budget before a bid was accepted, charge the agreed amount instead.
+      let { grossAmount, platformFee, netAmount } = existingEscrow;
+      if (job.contract && job.contract.agreedAmount !== grossAmount) {
+        grossAmount = job.contract.agreedAmount;
+        platformFee = Math.round(grossAmount * PLATFORM_FEE_PCT);
+        netAmount = grossAmount - platformFee;
+        await this.prisma.escrowTransaction.update({
+          where: { id: existingEscrow.id },
+          data: { grossAmount, platformFee, netAmount },
+        });
+      }
+      const walletAppliedAmount = existingEscrow.walletAppliedAmount ?? 0;
+      const amountToPay = Math.max(0, grossAmount - walletAppliedAmount);
+      const checkoutUrl = await this.startCheckout(existingEscrow.id, job, amountToPay);
+      return { escrowId: existingEscrow.id, checkoutUrl, grossAmount, platformFee, netAmount, walletAppliedAmount, amountToPay };
     }
 
     const grossAmount = job.contract ? job.contract.agreedAmount : job.budgetMax;
@@ -182,40 +187,7 @@ export class EscrowService {
       );
     }
 
-    // ── Route checkout through Beleqet Pay ───────────────────────────────────
-    // The contract page shows live escrow status, so payers return there (or to
-    // the gig page when funding happens before a bid is accepted).
-    const returnUrl = job.contract
-      ? `${this.config.get('FRONTEND_URL')}/freelance/contracts/${job.contract.id}`
-      : `${this.config.get('FRONTEND_URL')}/freelance/${freelanceJobId}`;
-    let checkoutUrl = returnUrl;
-
-    try {
-      const session = await this.paySwitch.createCheckoutSession({
-        amount: amountToPay.toString(),
-        currency: job.currency ?? 'ETB',
-        customerEmail: job.client.email,
-        preferredProvider: 'CHAPA',
-        successRedirectUrl: this.config.get<string>('CHAPA_RETURN_URL') ?? returnUrl,
-        externalRef: escrow.id,
-      });
-
-      // Persist the Beleqet Pay txRef so the processor can verify it later
-      await this.prisma.escrowTransaction.update({
-        where: { id: escrow.id },
-        data: { gatewayRef: session.txRef },
-      });
-
-      checkoutUrl = session.checkoutUrl;
-      this.logger.log(
-        `[beleqet-pay] Checkout session created: txRef=${session.txRef} provider=${session.provider}`,
-      );
-    } catch (err) {
-      this.logger.error(
-        `[beleqet-pay] Failed to create checkout session — falling back to manual URL: ${(err as Error).message}`,
-      );
-      // Non-fatal: user can still pay via manual-payment module
-    }
+    const checkoutUrl = await this.startCheckout(escrow.id, job, amountToPay);
 
     this.eventEmitter.emit('payment.escrow.initiated', {
       escrowId: escrow.id,
@@ -238,6 +210,39 @@ export class EscrowService {
       walletAppliedAmount,
       amountToPay,
     };
+  }
+
+  /**
+   * Opens a Beleqet Pay checkout for what is left to pay. The contract page shows live escrow
+   * status, so payers return there (or to the gig page when funding happens before a bid is
+   * accepted). If the checkout can't be created, that page is returned instead.
+   */
+  private async startCheckout(
+    escrowId: string,
+    job: { id: string; currency: string | null; client: { email: string }; contract: { id: string } | null },
+    amountToPay: number,
+  ): Promise<string> {
+    const returnUrl = job.contract
+      ? `${this.config.get('FRONTEND_URL')}/freelance/contracts/${job.contract.id}`
+      : `${this.config.get('FRONTEND_URL')}/freelance/${job.id}`;
+    try {
+      const session = await this.paySwitch.createCheckoutSession({
+        amount: amountToPay.toString(),
+        currency: job.currency ?? 'ETB',
+        customerEmail: job.client.email,
+        preferredProvider: 'CHAPA',
+        successRedirectUrl: this.config.get<string>('CHAPA_RETURN_URL') ?? returnUrl,
+        externalRef: escrowId,
+      });
+      // Persist the Beleqet Pay txRef so the processor can verify it later
+      await this.prisma.escrowTransaction.update({ where: { id: escrowId }, data: { gatewayRef: session.txRef } });
+      this.logger.log(`[beleqet-pay] Checkout session created: txRef=${session.txRef} provider=${session.provider}`);
+      return session.checkoutUrl;
+    } catch (err) {
+      // Non-fatal: user can still pay via manual-payment module
+      this.logger.error(`[beleqet-pay] Failed to create checkout session — falling back to manual URL: ${(err as Error).message}`);
+      return returnUrl;
+    }
   }
 
   async handleWebhook(payload: { reference: string; status: string; [k: string]: unknown }) {

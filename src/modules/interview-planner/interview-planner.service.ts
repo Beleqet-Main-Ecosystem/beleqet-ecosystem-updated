@@ -350,4 +350,64 @@ export class InterviewPlannerService {
       timezone: selectedSlot.timezone,
     });
   }
+
+  async myInterviews(userId: string) {
+    return this.prisma.interview.findMany({
+      where: { OR: [{ candidateId: userId }, { employerId: userId }] },
+      orderBy: { startTime: 'asc' },
+      include: {
+        application: {
+          select: {
+            id: true,
+            job: { select: { id: true, title: true, location: true, company: { select: { name: true, userId: true } } } },
+          },
+        },
+        candidate: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+  }
+
+  async respond(candidateId: string, interviewId: string, dto: { response: 'CONFIRMED' | 'DECLINED'; note?: string }) {
+    const interview = await this.prisma.interview.findFirst({ where: { id: interviewId, candidateId } });
+    if (!interview) throw new NotFoundException('Interview not found');
+    if (!['SCHEDULED', 'RESCHEDULED', 'CONFIRMED'].includes(interview.status)) {
+      throw new BadRequestException('This interview can no longer be answered');
+    }
+    if (interview.startTime < new Date()) throw new BadRequestException('This interview has already started');
+    const updated = await this.prisma.interview.update({
+      where: { id: interviewId },
+      data: { status: dto.response, candidateNote: dto.note?.trim() || null },
+    });
+    // Let the employer know; a failed notification must not undo the answer.
+    this.prisma.notification
+      .create({
+        data: {
+          userId: interview.employerId,
+          type: 'INTERVIEW',
+          title: dto.response === 'CONFIRMED' ? 'Interview confirmed' : 'Interview declined',
+          body: dto.note?.trim() || (dto.response === 'CONFIRMED' ? 'The candidate will attend.' : 'The candidate cannot attend.'),
+          channel: 'IN_APP',
+          metadata: { interviewId },
+        },
+      })
+      .catch(() => undefined);
+    return updated;
+  }
+
+  async updateDetails(
+    employerId: string,
+    interviewId: string,
+    dto: { location?: string | null; meetingLink?: string | null; notes?: string | null },
+  ) {
+    const { count } = await this.prisma.interview.updateMany({
+      where: { id: interviewId, employerId },
+      data: {
+        location: dto.location === undefined ? undefined : dto.location?.trim() || null,
+        meetingLink: dto.meetingLink,
+        notes: dto.notes === undefined ? undefined : dto.notes?.trim() || null,
+      },
+    });
+    if (count === 0) throw new NotFoundException('Interview not found');
+    return this.prisma.interview.findUnique({ where: { id: interviewId } });
+  }
 }

@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   UpdateUserDto,
   CreateCompanyDto,
+  UpdateCompanyDto,
   UpdateNotificationPreferenceDto,
 } from './dto/update-user.dto';
 
@@ -106,6 +108,38 @@ export class UsersService {
     return this.prisma.company.create({ data: { ...dto, userId } });
   }
 
+  /**
+   * Edit the employer's company. Verification checked the name on the trade licence, so a new
+   * name drops the badge until it is checked again.
+   */
+  async updateCompany(userId: string, dto: UpdateCompanyDto) {
+    const company = await this.prisma.company.findUnique({ where: { userId } });
+    if (!company) throw new NotFoundException('Create your company profile first');
+    const renamed = dto.name !== undefined && dto.name.trim() !== company.name;
+    if (dto.name !== undefined && !dto.name.trim()) throw new BadRequestException('Company name cannot be empty');
+    return this.prisma.company.update({
+      where: { userId },
+      data: {
+        ...dto,
+        name: dto.name?.trim(),
+        ...(renamed && company.verified ? { verified: false, verificationStatus: 'NONE' as const } : {}),
+      },
+    });
+  }
+
+  /** Send the trade licence (already uploaded) for an admin to check. */
+  async requestCompanyVerification(userId: string, tradeLicenseUrl: string) {
+    const company = await this.prisma.company.findUnique({ where: { userId } });
+    if (!company) throw new NotFoundException('Create your company profile first');
+    if (company.verified) throw new BadRequestException('Your company is already verified');
+    if (company.verificationStatus === 'PENDING') throw new BadRequestException('Your licence is already being checked');
+    return this.prisma.company.update({
+      where: { userId },
+      data: { tradeLicenseUrl, verificationStatus: 'PENDING', verificationRequestedAt: new Date(), verificationNote: null },
+      select: { verified: true, verificationStatus: true, verificationRequestedAt: true, verificationNote: true },
+    });
+  }
+
   async getCompany(userId: string) {
     return this.prisma.company.findUnique({
       where: { userId },
@@ -204,5 +238,24 @@ export class UsersService {
       ON CONFLICT ("userId") DO UPDATE SET "data" = EXCLUDED."data", "updatedAt" = NOW()
     `;
     return { id, userId, data };
+  }
+
+  /** The portfolio builder's data; null when nothing has been saved yet. */
+  async getPortfolio(userId: string) {
+    const draft = await this.prisma.portfolioDraft.findUnique({
+      where: { userId },
+      select: { data: true, updatedAt: true },
+    });
+    return draft ?? null;
+  }
+
+  async savePortfolio(userId: string, data: Record<string, unknown>) {
+    const json = data as Prisma.InputJsonValue;
+    return this.prisma.portfolioDraft.upsert({
+      where: { userId },
+      update: { data: json },
+      create: { userId, data: json },
+      select: { data: true, updatedAt: true },
+    });
   }
 }

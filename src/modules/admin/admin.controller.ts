@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -19,6 +20,7 @@ import {
   IsString,
   MinLength,
   IsArray,
+  IsIn,
 } from 'class-validator';
 import * as bcrypt from 'bcryptjs';
 import { JobStatus, FreelanceJobStatus } from '@prisma/client';
@@ -26,6 +28,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { DisputeManagerService } from '../dispute-manager/dispute-manager.service';
+import { ResolveDisputeDto } from '../dispute-manager/dto/resolve-dispute.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatService } from '../chat/chat.service';
@@ -68,8 +72,9 @@ class BroadcastDto {
   @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
   @IsOptional() @IsArray() @IsString({ each: true }) userIds?: string[];
 }
-class ResolveDisputeDto {
-  @IsString() @MinLength(10) resolution!: string;
+class VerificationDecisionDto {
+  @IsIn(['VERIFIED', 'REJECTED']) decision!: 'VERIFIED' | 'REJECTED';
+  @IsOptional() @IsString() note?: string;
 }
 
 const safeUserSelect = {
@@ -97,6 +102,7 @@ export class AdminController {
     private readonly fraudAlertService: FraudAlertService,
     private readonly notificationsService: NotificationsService,
     private readonly auditLoggingService: AuditLoggingService,
+    private readonly disputes: DisputeManagerService,
   ) {}
 
   @RequirePermissions('manage:users')
@@ -238,6 +244,39 @@ export class AdminController {
     return filtered;
   }
 
+  @Get('companies/verification')
+  @ApiOperation({ summary: 'Companies waiting for their trade licence to be checked' })
+  companiesToVerify(@Query('status') status?: string) {
+    const wanted = ['PENDING', 'VERIFIED', 'REJECTED'].includes(status ?? '') ? status : 'PENDING';
+    return this.prisma.company.findMany({
+      where: { verificationStatus: wanted as 'PENDING' | 'VERIFIED' | 'REJECTED' },
+      orderBy: { verificationRequestedAt: 'asc' },
+      select: {
+        id: true, name: true, website: true, industry: true, location: true, tradeLicenseUrl: true,
+        verificationStatus: true, verificationRequestedAt: true, verificationNote: true,
+        user: { select: { id: true, email: true, firstName: true, lastName: true } },
+      },
+    });
+  }
+
+  /** Approve or reject a trade licence; a rejection says why so the employer can fix it. */
+  @Patch('companies/:id/verification')
+  async decideVerification(@Param('id') id: string, @Body() dto: VerificationDecisionDto) {
+    if (dto.decision === 'REJECTED' && !dto.note?.trim()) {
+      throw new BadRequestException('Say why the licence was rejected');
+    }
+    const { count } = await this.prisma.company.updateMany({
+      where: { id, verificationStatus: 'PENDING' },
+      data: {
+        verificationStatus: dto.decision,
+        verified: dto.decision === 'VERIFIED',
+        verificationNote: dto.note?.trim() || null,
+      },
+    });
+    if (count === 0) throw new NotFoundException('No licence waiting for review for this company');
+    return { verificationStatus: dto.decision };
+  }
+
   @RequirePermissions('manage:jobs')
   @Patch('moderation/jobs/:id/status')
   @ApiOperation({ summary: 'Approve, archive, or update job status' })
@@ -301,16 +340,24 @@ export class AdminController {
   @Get('escrow/disputes')
   getDisputes() {
     return this.prisma.dispute.findMany({
-      include: { contract: { include: { freelanceJob: true, client: true, freelancer: true } } },
+      // Names and emails only: full user rows would send password hashes to the browser.
+      include: {
+        contract: {
+          include: {
+            freelanceJob: { select: { id: true, title: true } },
+            client: { select: { id: true, firstName: true, lastName: true, email: true } },
+            freelancer: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
+  // Same settlement as PATCH /dispute/:id/resolve: recording a decision without moving the money left escrow stuck.
   @Patch('disputes/:id/resolve')
-  resolveDispute(@Param('id') id: string, @Body() dto: ResolveDisputeDto) {
-    return this.prisma.dispute.update({
-      where: { id },
-      data: { resolution: dto.resolution, resolvedAt: new Date() },
-    });
+  resolveDispute(@Param('id') id: string, @Body() dto: ResolveDisputeDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.disputes.resolveDispute(id, dto, user.userId);
   }
 
   @Get('disputes/:id/arbitration')

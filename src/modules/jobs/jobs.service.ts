@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { openJobs } from './open-jobs';
+import { alertMatches } from '../job-alerts/job-alert-match';
 import { CreateJobDto, JobType, QueryJobsDto, UpdateJobDto } from './dto/create-job.dto';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { jobPostConfirmationEmail, jobAlertEmail } from '../notifications/email-templates';
@@ -99,8 +100,9 @@ export class JobsService {
         );
     }
 
-    // Send Job Alerts to matching job seekers
-    this.sendJobAlerts(job, jobUrl).catch((err) =>
+    // Send Job Alerts to matching job seekers; a draft isn't public yet.
+    if (job.status === 'PUBLISHED')
+      this.sendJobAlerts(job, jobUrl).catch((err) =>
       this.logger.error(`Failed to send job alerts: ${err.message}`),
     );
 
@@ -121,13 +123,30 @@ export class JobsService {
     return job;
   }
 
+  /**
+   * Email the people whose job alerts match this job, once each, skipping anyone who turned
+   * email off. (This used to email every job seeker about every job.)
+   */
   private async sendJobAlerts(job: any, jobUrl: string) {
-    const seekers = await this.prisma.user.findMany({
-      where: { role: 'JOB_SEEKER', isActive: true },
-      select: { email: true, firstName: true },
+    const alerts = await this.prisma.jobAlert.findMany({
+      where: {
+        isActive: true,
+        user: { isActive: true, NOT: { notificationPreference: { emailEnabled: false } } },
+      },
+      include: { user: { select: { id: true, email: true, firstName: true } } },
     });
+    const recipients = new Map<string, { email: string; firstName: string }>();
+    const matched: string[] = [];
+    for (const alert of alerts) {
+      if (alert.userId === job.company?.userId || !alertMatches(alert, job)) continue;
+      matched.push(alert.id);
+      recipients.set(alert.user.id, alert.user);
+    }
+    if (matched.length) {
+      await this.prisma.jobAlert.updateMany({ where: { id: { in: matched } }, data: { lastSentAt: new Date() } });
+    }
 
-    for (const seeker of seekers) {
+    for (const seeker of recipients.values()) {
       jobAlertEmail(seeker.firstName, job.title, job.company.name, jobUrl)
         .then((email) =>
           this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
