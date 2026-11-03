@@ -141,14 +141,29 @@ describe('TwoFactorService', () => {
   describe('status', () => {
     it('reports off when there is no record', async () => {
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue(null);
-      await expect(service.status('user-1')).resolves.toEqual({ enabled: false, backupCodesLeft: 0 });
+      await expect(service.status('user-1')).resolves.toEqual({
+        enabled: false,
+        backupCodesLeft: 0,
+      });
     });
 
     it('ignores a pending enrollment and counts unused codes when on', async () => {
-      mockPrisma.userTwoFactor.findUnique.mockResolvedValueOnce({ enabled: false, _count: { backupCodes: 0 } });
-      await expect(service.status('user-1')).resolves.toEqual({ enabled: false, backupCodesLeft: 0 });
-      mockPrisma.userTwoFactor.findUnique.mockResolvedValueOnce({ enabled: true, _count: { backupCodes: 7 } });
-      await expect(service.status('user-1')).resolves.toEqual({ enabled: true, backupCodesLeft: 7 });
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValueOnce({
+        enabled: false,
+        _count: { backupCodes: 0 },
+      });
+      await expect(service.status('user-1')).resolves.toEqual({
+        enabled: false,
+        backupCodesLeft: 0,
+      });
+      mockPrisma.userTwoFactor.findUnique.mockResolvedValueOnce({
+        enabled: true,
+        _count: { backupCodes: 7 },
+      });
+      await expect(service.status('user-1')).resolves.toEqual({
+        enabled: true,
+        backupCodesLeft: 7,
+      });
     });
   });
 

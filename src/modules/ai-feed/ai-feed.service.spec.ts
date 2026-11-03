@@ -301,14 +301,20 @@ describe('AiFeedService reasons and hiding', () => {
       providers: [AiFeedService, { provide: PrismaService, useValue: prisma }],
     }).compile();
     service = module.get(AiFeedService);
-    prisma.user.findUnique.mockResolvedValue({ gdprConsent: true, skills: ['IFRS', 'Excel', 'Python'] });
-    prisma.searchHistory.findMany.mockResolvedValue([{ searchTerm: 'accountant' }, { searchTerm: 'senior accountant' }]);
+    prisma.user.findUnique.mockResolvedValue({
+      gdprConsent: true,
+      skills: ['IFRS', 'Excel', 'Python'],
+    });
+    prisma.searchHistory.findMany.mockResolvedValue([
+      { searchTerm: 'accountant' },
+      { searchTerm: 'senior accountant' },
+    ]);
     prisma.savedJob.findMany.mockResolvedValue([{ job: { categoryId: 'finance' } }]);
     prisma.job.findMany.mockResolvedValue([job]);
     prisma.hiddenJob.findMany.mockResolvedValue([]);
   });
 
-  it('says which skills, searches and saved categories matched, in the person\'s words', async () => {
+  it("says which skills, searches and saved categories matched, in the person's words", async () => {
     const [result] = await service.getPersonalizedFeed('u1', 5);
     expect(result.reasons).toEqual([
       { kind: 'skills', terms: ['IFRS', 'Excel'] },

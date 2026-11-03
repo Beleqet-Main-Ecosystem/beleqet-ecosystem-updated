@@ -48,7 +48,11 @@ export class ReportsController {
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Dismiss a report, or remove what was reported' })
-  resolve(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload, @Body() dto: ResolveReportDto) {
+  resolve(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ResolveReportDto,
+  ) {
     return this.reports.resolve(id, user.userId, dto);
   }
 }

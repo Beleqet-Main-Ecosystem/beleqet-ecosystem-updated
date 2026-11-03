@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, NotFoundException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
@@ -99,8 +105,12 @@ export class GdprGuardService {
 
   /** An admin erasing someone else: never themselves, never the last active admin. */
   async assertAdminMayErase(actorUserId: string, userUuid: string): Promise<void> {
-    const target = await this.prisma.user.findUnique({ where: { id: userUuid }, select: { id: true, role: true, isActive: true } });
-    if (!target) throw new NotFoundException(`User with ID ${userUuid} was not found in the ecosystem.`);
+    const target = await this.prisma.user.findUnique({
+      where: { id: userUuid },
+      select: { id: true, role: true, isActive: true },
+    });
+    if (!target)
+      throw new NotFoundException(`User with ID ${userUuid} was not found in the ecosystem.`);
     const activeAdmins = await this.prisma.user.count({ where: { role: 'ADMIN', isActive: true } });
     assertRemovalAllowed(actorUserId, target, activeAdmins);
   }
@@ -432,9 +442,14 @@ export class GdprGuardService {
       },
     });
     if (open > 0) {
-      throw new ConflictException('Finish or settle your open contracts before deleting your account');
+      throw new ConflictException(
+        'Finish or settle your open contracts before deleting your account',
+      );
     }
 
-    return this.executeDataErasure(userId, { reason: 'Deleted by the account holder', actorUserId: userId });
+    return this.executeDataErasure(userId, {
+      reason: 'Deleted by the account holder',
+      actorUserId: userId,
+    });
   }
 }

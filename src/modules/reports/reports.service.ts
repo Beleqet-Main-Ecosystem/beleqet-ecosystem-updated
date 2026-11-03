@@ -1,8 +1,20 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma, ReportStatus, ReportTarget } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
-export const REPORT_REASONS = ['scam', 'asks_for_payment', 'misleading', 'offensive', 'spam', 'other'] as const;
+export const REPORT_REASONS = [
+  'scam',
+  'asks_for_payment',
+  'misleading',
+  'offensive',
+  'spam',
+  'other',
+] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number];
 
 /**
@@ -55,14 +67,26 @@ export class ReportsService {
     }));
   }
 
-  async resolve(reportId: string, adminId: string, input: { action: 'dismiss' | 'remove'; note?: string }) {
+  async resolve(
+    reportId: string,
+    adminId: string,
+    input: { action: 'dismiss' | 'remove'; note?: string },
+  ) {
     const report = await this.prisma.contentReport.findUnique({ where: { id: reportId } });
     if (!report) throw new NotFoundException('Report not found');
-    if (report.status !== 'OPEN') throw new ConflictException('This report has already been handled');
+    if (report.status !== 'OPEN')
+      throw new ConflictException('This report has already been handled');
 
-    const resolved = { resolvedById: adminId, resolvedAt: new Date(), resolutionNote: input.note?.trim() || null };
+    const resolved = {
+      resolvedById: adminId,
+      resolvedAt: new Date(),
+      resolutionNote: input.note?.trim() || null,
+    };
     if (input.action === 'dismiss') {
-      await this.prisma.contentReport.update({ where: { id: reportId }, data: { status: 'DISMISSED', ...resolved } });
+      await this.prisma.contentReport.update({
+        where: { id: reportId },
+        data: { status: 'DISMISSED', ...resolved },
+      });
       return { status: 'DISMISSED' as const };
     }
 
@@ -87,7 +111,10 @@ export class ReportsService {
       // Answers to this reply go with it, so count them before deleting.
       const removed = 1 + (await tx.forumReply.count({ where: { parentReplyId: id } }));
       await tx.forumReply.delete({ where: { id } });
-      await tx.forumThread.update({ where: { id: reply.threadId }, data: { replyCount: { decrement: removed } } });
+      await tx.forumThread.update({
+        where: { id: reply.threadId },
+        data: { replyCount: { decrement: removed } },
+      });
     }
   }
 
@@ -102,11 +129,21 @@ export class ReportsService {
   }
 
   private async titles(reports: Array<{ targetType: ReportTarget; targetId: string }>) {
-    const ids = (type: ReportTarget) => reports.filter((r) => r.targetType === type).map((r) => r.targetId);
+    const ids = (type: ReportTarget) =>
+      reports.filter((r) => r.targetType === type).map((r) => r.targetId);
     const [jobs, threads, replies] = await Promise.all([
-      this.prisma.job.findMany({ where: { id: { in: ids('JOB') } }, select: { id: true, title: true } }),
-      this.prisma.forumThread.findMany({ where: { id: { in: ids('FORUM_THREAD') } }, select: { id: true, title: true } }),
-      this.prisma.forumReply.findMany({ where: { id: { in: ids('FORUM_REPLY') } }, select: { id: true, content: true } }),
+      this.prisma.job.findMany({
+        where: { id: { in: ids('JOB') } },
+        select: { id: true, title: true },
+      }),
+      this.prisma.forumThread.findMany({
+        where: { id: { in: ids('FORUM_THREAD') } },
+        select: { id: true, title: true },
+      }),
+      this.prisma.forumReply.findMany({
+        where: { id: { in: ids('FORUM_REPLY') } },
+        select: { id: true, content: true },
+      }),
     ]);
     const entries: [string, string][] = [
       ...jobs.map((j): [string, string] => [`JOB:${j.id}`, j.title]),

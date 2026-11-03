@@ -27,7 +27,10 @@ export class PlanPaymentsService {
     if (!plan) throw new NotFoundException('Plan not found or inactive');
     if (plan.priceAmount <= 0) throw new BadRequestException('The free plan needs no payment');
     await assertNoPaypalAutoRenew(this.prisma, userId);
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true },
+    });
 
     // Plan prices are kept in santim; Beleqet Pay takes birr.
     const payment = await this.prisma.payment.create({
@@ -52,7 +55,10 @@ export class PlanPaymentsService {
       successRedirectUrl: `${frontend}/employer?tab=plan&payment=${payment.id}`,
       externalRef: payment.id,
     });
-    await this.prisma.payment.update({ where: { id: payment.id }, data: { providerPaymentId: session.txRef } });
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { providerPaymentId: session.txRef },
+    });
     return { paymentId: payment.id, checkoutUrl: session.checkoutUrl };
   }
 
@@ -61,11 +67,18 @@ export class PlanPaymentsService {
    * either. A success is re-checked with Beleqet Pay (status and amount) before the plan starts,
    * and a payment starts its plan only once however often the event arrives.
    */
-  async handlePaymentEvent(event: { txRef: string; externalRef?: string; successful: boolean }): Promise<boolean> {
+  async handlePaymentEvent(event: {
+    txRef: string;
+    externalRef?: string;
+    successful: boolean;
+  }): Promise<boolean> {
     const payment = await this.prisma.payment.findFirst({
       where: {
         provider: PaymentProvider.CHAPA,
-        OR: [{ providerPaymentId: event.txRef }, ...(event.externalRef ? [{ id: event.externalRef }] : [])],
+        OR: [
+          { providerPaymentId: event.txRef },
+          ...(event.externalRef ? [{ id: event.externalRef }] : []),
+        ],
       },
     });
     if (!payment) return false;
@@ -81,8 +94,14 @@ export class PlanPaymentsService {
 
     const verified = await this.paySwitch.getTransaction(payment.providerPaymentId);
     const paid = Number(verified.amount);
-    if (verified.status !== 'SUCCESS' || !Number.isFinite(paid) || Math.abs(paid - payment.amount / 100) >= 0.01) {
-      throw new Error(`Plan payment ${payment.id} not confirmed: status=${verified.status} amount=${verified.amount}`);
+    if (
+      verified.status !== 'SUCCESS' ||
+      !Number.isFinite(paid) ||
+      Math.abs(paid - payment.amount / 100) >= 0.01
+    ) {
+      throw new Error(
+        `Plan payment ${payment.id} not confirmed: status=${verified.status} amount=${verified.amount}`,
+      );
     }
 
     const planId = (payment.metadata as { planId?: string } | null)?.planId;
@@ -93,13 +112,26 @@ export class PlanPaymentsService {
         data: { status: PaymentStatus.SUCCEEDED },
       });
       if (count === 0) return;
-      const subscriptionId = await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.CHAPA);
+      const subscriptionId = await activatePaidPlan(
+        tx,
+        payment.userId,
+        planId,
+        PaymentProvider.CHAPA,
+      );
       await tx.payment.update({
         where: { id: payment.id },
-        data: { metadata: { planId, subscriptionId, verifiedAt: new Date().toISOString() } as Prisma.InputJsonValue },
+        data: {
+          metadata: {
+            planId,
+            subscriptionId,
+            verifiedAt: new Date().toISOString(),
+          } as Prisma.InputJsonValue,
+        },
       });
     });
-    this.logger.log(`Plan payment ${payment.id} confirmed; plan ${planId} active for ${payment.userId}`);
+    this.logger.log(
+      `Plan payment ${payment.id} confirmed; plan ${planId} active for ${payment.userId}`,
+    );
     return true;
   }
 

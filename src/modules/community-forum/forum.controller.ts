@@ -92,7 +92,10 @@ export class ForumController {
   @Roles('ADMIN')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Pin or lock a thread (admins)' })
-  async moderateThread(@Param('id', ParseUUIDPipe) threadId: string, @Body() dto: ModerateThreadDto) {
+  async moderateThread(
+    @Param('id', ParseUUIDPipe) threadId: string,
+    @Body() dto: ModerateThreadDto,
+  ) {
     return this.forumService.moderateThread(threadId, dto);
   }
 

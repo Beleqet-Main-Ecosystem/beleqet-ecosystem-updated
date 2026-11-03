@@ -11,11 +11,18 @@ export async function assertNoPaypalAutoRenew(
   userId: string,
 ): Promise<void> {
   const renewing = await db.subscription.findFirst({
-    where: { userId, provider: PaymentProvider.PAYPAL, status: { in: ['ACTIVE', 'PAST_DUE'] }, cancelAtPeriodEnd: false },
+    where: {
+      userId,
+      provider: PaymentProvider.PAYPAL,
+      status: { in: ['ACTIVE', 'PAST_DUE'] },
+      cancelAtPeriodEnd: false,
+    },
     select: { id: true },
   });
   if (renewing) {
-    throw new ConflictException('Your plan renews through PayPal. Cancel it first, then pay another way.');
+    throw new ConflictException(
+      'Your plan renews through PayPal. Cancel it first, then pay another way.',
+    );
   }
 }
 
@@ -39,7 +46,11 @@ export async function activatePaidPlan(
   if (running) {
     await tx.subscription.update({
       where: { id: running.id },
-      data: { currentPeriodEnd: addInterval(running.currentPeriodEnd, plan.interval), cancelAtPeriodEnd: false, reminderSentAt: null },
+      data: {
+        currentPeriodEnd: addInterval(running.currentPeriodEnd, plan.interval),
+        cancelAtPeriodEnd: false,
+        reminderSentAt: null,
+      },
     });
     return running.id;
   }
@@ -48,7 +59,14 @@ export async function activatePaidPlan(
     data: { status: 'CANCELLED' },
   });
   const created = await tx.subscription.create({
-    data: { userId, planId, status: 'ACTIVE', provider, currentPeriodStart: now, currentPeriodEnd: addInterval(now, plan.interval) },
+    data: {
+      userId,
+      planId,
+      status: 'ACTIVE',
+      provider,
+      currentPeriodStart: now,
+      currentPeriodEnd: addInterval(now, plan.interval),
+    },
   });
   return created.id;
 }

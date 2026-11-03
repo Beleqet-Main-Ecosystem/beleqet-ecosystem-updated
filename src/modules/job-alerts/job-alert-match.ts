@@ -24,10 +24,13 @@ export type AlertableJob = {
  */
 export function alertMatches(alert: AlertCriteria, job: AlertableJob): boolean {
   if (alert.keywords.length) {
-    const text = `${job.title} ${(job.tags ?? []).join(' ')} ${job.description ?? ''}`.toLowerCase();
-    if (!alert.keywords.some((word) => word.trim() && text.includes(word.trim().toLowerCase()))) return false;
+    const text =
+      `${job.title} ${(job.tags ?? []).join(' ')} ${job.description ?? ''}`.toLowerCase();
+    if (!alert.keywords.some((word) => word.trim() && text.includes(word.trim().toLowerCase())))
+      return false;
   }
-  if (alert.location && !job.location.toLowerCase().includes(alert.location.trim().toLowerCase())) return false;
+  if (alert.location && !job.location.toLowerCase().includes(alert.location.trim().toLowerCase()))
+    return false;
   if (alert.jobType && alert.jobType !== job.type) return false;
   if (alert.minSalary) {
     const top = job.salaryMax ?? job.salaryMin;

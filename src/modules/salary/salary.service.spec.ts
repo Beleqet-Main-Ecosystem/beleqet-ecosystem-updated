@@ -118,7 +118,11 @@ describe('SalaryService', () => {
       mockPrismaService.salaryPrediction.findFirst.mockResolvedValue(null);
       mockPrismaService.job.findMany.mockResolvedValue(POSTINGS.slice(0, 2));
       await expect(
-        service.predictSalary({ jobTitle: 'Pilot', location: 'Adama', experienceLevel: ExperienceLevel.MID } as CreateSalaryPredictionDto),
+        service.predictSalary({
+          jobTitle: 'Pilot',
+          location: 'Adama',
+          experienceLevel: ExperienceLevel.MID,
+        } as CreateSalaryPredictionDto),
       ).rejects.toMatchObject({ response: { code: 'NOT_ENOUGH_DATA', dataPointsCount: 2 } });
     });
 

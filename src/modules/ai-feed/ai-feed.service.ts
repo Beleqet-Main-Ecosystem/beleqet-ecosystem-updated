@@ -403,7 +403,9 @@ export class AiFeedService {
       select: { gdprConsent: true, skills: true },
     });
     const searches = user?.gdprConsent ? await this.getRecentSearchTerms(userId) : [];
-    const distinct = [...new Map(searches.map((term) => [term.trim().toLowerCase(), term.trim()])).values()];
+    const distinct = [
+      ...new Map(searches.map((term) => [term.trim().toLowerCase(), term.trim()])).values(),
+    ];
     return {
       personalised: Boolean(user?.gdprConsent),
       skills: user?.skills ?? [],

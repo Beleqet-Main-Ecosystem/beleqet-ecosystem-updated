@@ -116,13 +116,16 @@ export class UsersService {
     const company = await this.prisma.company.findUnique({ where: { userId } });
     if (!company) throw new NotFoundException('Create your company profile first');
     const renamed = dto.name !== undefined && dto.name.trim() !== company.name;
-    if (dto.name !== undefined && !dto.name.trim()) throw new BadRequestException('Company name cannot be empty');
+    if (dto.name !== undefined && !dto.name.trim())
+      throw new BadRequestException('Company name cannot be empty');
     return this.prisma.company.update({
       where: { userId },
       data: {
         ...dto,
         name: dto.name?.trim(),
-        ...(renamed && company.verified ? { verified: false, verificationStatus: 'NONE' as const } : {}),
+        ...(renamed && company.verified
+          ? { verified: false, verificationStatus: 'NONE' as const }
+          : {}),
       },
     });
   }
@@ -132,11 +135,22 @@ export class UsersService {
     const company = await this.prisma.company.findUnique({ where: { userId } });
     if (!company) throw new NotFoundException('Create your company profile first');
     if (company.verified) throw new BadRequestException('Your company is already verified');
-    if (company.verificationStatus === 'PENDING') throw new BadRequestException('Your licence is already being checked');
+    if (company.verificationStatus === 'PENDING')
+      throw new BadRequestException('Your licence is already being checked');
     return this.prisma.company.update({
       where: { userId },
-      data: { tradeLicenseUrl, verificationStatus: 'PENDING', verificationRequestedAt: new Date(), verificationNote: null },
-      select: { verified: true, verificationStatus: true, verificationRequestedAt: true, verificationNote: true },
+      data: {
+        tradeLicenseUrl,
+        verificationStatus: 'PENDING',
+        verificationRequestedAt: new Date(),
+        verificationNote: null,
+      },
+      select: {
+        verified: true,
+        verificationStatus: true,
+        verificationRequestedAt: true,
+        verificationNote: true,
+      },
     });
   }
 

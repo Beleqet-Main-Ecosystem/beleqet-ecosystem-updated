@@ -333,7 +333,10 @@ export class TwoFactorService {
       where: { userId },
       select: { enabled: true, _count: { select: { backupCodes: { where: { usedAt: null } } } } },
     });
-    return { enabled: Boolean(record?.enabled), backupCodesLeft: record?.enabled ? record._count.backupCodes : 0 };
+    return {
+      enabled: Boolean(record?.enabled),
+      backupCodesLeft: record?.enabled ? record._count.backupCodes : 0,
+    };
   }
 
   async disable(userId: string): Promise<void> {

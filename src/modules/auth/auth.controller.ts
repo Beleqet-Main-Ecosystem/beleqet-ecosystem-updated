@@ -203,7 +203,10 @@ export class AuthController {
     const fragment =
       outcome.status === 'two_factor'
         ? new URLSearchParams({ twoFactor: outcome.tempToken })
-        : new URLSearchParams({ access: outcome.tokens.accessToken, refresh: outcome.tokens.refreshToken });
+        : new URLSearchParams({
+            access: outcome.tokens.accessToken,
+            refresh: outcome.tokens.refreshToken,
+          });
     return `${base}/auth/callback#${fragment.toString()}`;
   }
 

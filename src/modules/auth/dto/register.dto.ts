@@ -10,7 +10,11 @@ export enum UserRole {
 }
 
 /** Roles anyone may pick when signing up. Admins are made by an admin, never by sign-up. */
-export const SELF_SERVICE_ROLES = [UserRole.JOB_SEEKER, UserRole.EMPLOYER, UserRole.FREELANCER] as const;
+export const SELF_SERVICE_ROLES = [
+  UserRole.JOB_SEEKER,
+  UserRole.EMPLOYER,
+  UserRole.FREELANCER,
+] as const;
 
 export class RegisterDto {
   @ApiProperty({ example: 'bisrat@beleqet.com' })

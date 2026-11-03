@@ -21,8 +21,15 @@ describe('ManualPaymentService', () => {
       findUniqueOrThrow: jest.fn(),
     },
     plan: { findFirst: jest.fn(), findUniqueOrThrow: jest.fn() },
-    subscription: { findFirst: jest.fn(), update: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
-    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(mockPrismaService)),
+    subscription: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      create: jest.fn(),
+    },
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> =>
+      fn(mockPrismaService),
+    ),
     notification: {
       create: jest.fn().mockResolvedValue({ id: 'notif-1' }),
     },
@@ -95,7 +102,10 @@ describe('ManualPaymentService', () => {
       const dummy = createDummyPayment();
       mockPrismaService.payment.create.mockResolvedValue(dummy);
 
-      const record = await service.createManualPayment('user-uuid-1', { amount: 150000, currency: 'ETB' });
+      const record = await service.createManualPayment('user-uuid-1', {
+        amount: 150000,
+        currency: 'ETB',
+      });
 
       expect(record.id).toBe(dummy.id);
       expect(record.status).toBe(PaymentStatus.PENDING);
@@ -320,14 +330,27 @@ describe('ManualPaymentService plans and privacy', () => {
       findMany: jest.fn(),
     },
     plan: { findFirst: jest.fn(), findUniqueOrThrow: jest.fn() },
-    subscription: { findFirst: jest.fn(), update: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
+    subscription: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      create: jest.fn(),
+    },
     notification: { create: jest.fn().mockResolvedValue({}) },
     $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma)),
   };
   const now = new Date();
   const record = (extra: Record<string, unknown> = {}) => ({
-    id: 'p1', userId: 'u1', amount: 500, currency: 'ETB', status: 'PROCESSING', metadata: { planId: 'pro' },
-    createdAt: now, updatedAt: now, user: { email: '' }, ...extra,
+    id: 'p1',
+    userId: 'u1',
+    amount: 500,
+    currency: 'ETB',
+    status: 'PROCESSING',
+    metadata: { planId: 'pro' },
+    createdAt: now,
+    updatedAt: now,
+    user: { email: '' },
+    ...extra,
   });
   let service: ManualPaymentService;
 
@@ -350,18 +373,32 @@ describe('ManualPaymentService plans and privacy', () => {
   });
 
   it('charges the plan price, whatever amount is sent', async () => {
-    prisma.plan.findFirst.mockResolvedValue({ id: 'pro', name: 'Pro', priceAmount: 1500, currency: 'ETB' });
+    prisma.plan.findFirst.mockResolvedValue({
+      id: 'pro',
+      name: 'Pro',
+      priceAmount: 1500,
+      currency: 'ETB',
+    });
     prisma.payment.create.mockResolvedValue(record());
     await service.createManualPayment('u1', { planId: 'pro', amount: 1, currency: 'ETB' });
     expect(prisma.payment.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ amount: 1500, metadata: { planId: 'pro' } }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ amount: 1500, metadata: { planId: 'pro' } }),
+      }),
     );
   });
 
   it('refuses a plan transfer while a PayPal subscription is still renewing', async () => {
-    prisma.plan.findFirst.mockResolvedValue({ id: 'pro', name: 'Pro', priceAmount: 1500, currency: 'ETB' });
+    prisma.plan.findFirst.mockResolvedValue({
+      id: 'pro',
+      name: 'Pro',
+      priceAmount: 1500,
+      currency: 'ETB',
+    });
     prisma.subscription.findFirst.mockResolvedValueOnce({ id: 'sub-pp' });
-    await expect(service.createManualPayment('u1', { planId: 'pro' })).rejects.toThrow('renews through PayPal');
+    await expect(service.createManualPayment('u1', { planId: 'pro' })).rejects.toThrow(
+      'renews through PayPal',
+    );
     expect(prisma.payment.create).not.toHaveBeenCalled();
   });
 
@@ -373,7 +410,14 @@ describe('ManualPaymentService plans and privacy', () => {
       expect.objectContaining({ where: { userId: 'u1', status: { in: ['ACTIVE', 'PAST_DUE'] } } }),
     );
     expect(prisma.subscription.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ userId: 'u1', planId: 'pro', status: 'ACTIVE', provider: 'MANUAL' }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'u1',
+          planId: 'pro',
+          status: 'ACTIVE',
+          provider: 'MANUAL',
+        }),
+      }),
     );
   });
 
@@ -383,7 +427,10 @@ describe('ManualPaymentService plans and privacy', () => {
     prisma.subscription.findFirst.mockResolvedValue({ id: 'sub0', currentPeriodEnd: end });
     await service.approvePayment('p1', 'admin');
     expect(prisma.subscription.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'sub0' }, data: expect.objectContaining({ currentPeriodEnd: new Date('2027-01-15T00:00:00Z') }) }),
+      expect.objectContaining({
+        where: { id: 'sub0' },
+        data: expect.objectContaining({ currentPeriodEnd: new Date('2027-01-15T00:00:00Z') }),
+      }),
     );
     expect(prisma.subscription.create).not.toHaveBeenCalled();
   });

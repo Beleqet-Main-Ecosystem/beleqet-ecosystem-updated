@@ -63,7 +63,9 @@ describe('AuthService', () => {
     }),
   };
 
-  const mockTwoFactorSvc = { generateTempToken: jest.fn().mockResolvedValue({ tempToken: 'temp-1', factorId: 'f1' }) };
+  const mockTwoFactorSvc = {
+    generateTempToken: jest.fn().mockResolvedValue({ tempToken: 'temp-1', factorId: 'f1' }),
+  };
   const mockNotificationsQueue = { add: jest.fn().mockResolvedValue({ id: 'mock-job-id' }) };
   const mockEventEmitter = { emit: jest.fn() };
 
@@ -107,7 +109,10 @@ describe('AuthService', () => {
   describe('resendVerification', () => {
     it('does nothing for a verified email', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ emailVerified: true });
-      await expect(svc.resendVerification(userId)).resolves.toEqual({ success: true, alreadyVerified: true });
+      await expect(svc.resendVerification(userId)).resolves.toEqual({
+        success: true,
+        alreadyVerified: true,
+      });
       expect(mockPrisma.verificationToken.create).not.toHaveBeenCalled();
     });
 
@@ -116,14 +121,23 @@ describe('AuthService', () => {
         .mockResolvedValueOnce({ emailVerified: false })
         .mockResolvedValueOnce({ id: userId, email: 'a@b.c', firstName: 'A' });
       await svc.resendVerification(userId);
-      expect(mockPrisma.verificationToken.deleteMany).toHaveBeenCalledWith({ where: { userId, type: 'EMAIL_VERIFICATION' } });
+      expect(mockPrisma.verificationToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId, type: 'EMAIL_VERIFICATION' },
+      });
       expect(mockPrisma.verificationToken.create).toHaveBeenCalled();
       expect(mockNotificationsQueue.add).toHaveBeenCalled();
     });
   });
 
   describe('oauthSession', () => {
-    const active = { id: userId, email: 'a@b.c', firstName: 'A', lastName: 'B', role: 'JOB_SEEKER', isActive: true };
+    const active = {
+      id: userId,
+      email: 'a@b.c',
+      firstName: 'A',
+      lastName: 'B',
+      role: 'JOB_SEEKER',
+      isActive: true,
+    };
 
     it('refuses a disabled account', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ ...active, isActive: false });
@@ -134,7 +148,10 @@ describe('AuthService', () => {
     it('asks for the two-step code instead of issuing tokens', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(active);
       mockPrisma.userTwoFactor.findUnique.mockResolvedValue({ id: 'f1' });
-      await expect(svc.oauthSession(userId)).resolves.toEqual({ requires2fa: true, tempToken: 'temp-1' });
+      await expect(svc.oauthSession(userId)).resolves.toEqual({
+        requires2fa: true,
+        tempToken: 'temp-1',
+      });
       expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
     });
 

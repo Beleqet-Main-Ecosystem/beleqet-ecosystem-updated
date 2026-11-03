@@ -206,7 +206,12 @@ describe('Subscription checkout -> webhook -> active flow (integration)', () => 
     });
 
     // New checkouts go through Chapa; PayPal webhooks still serve subscriptions set up through PayPal.
-    const subscription = await subscriptionsService.createPendingCheckout({ userId: 'user-1', planId: 'plan-pro', provider: 'PAYPAL', providerSubscriptionId: 'I-AGREEMENT-1' });
+    const subscription = await subscriptionsService.createPendingCheckout({
+      userId: 'user-1',
+      planId: 'plan-pro',
+      provider: 'PAYPAL',
+      providerSubscriptionId: 'I-AGREEMENT-1',
+    });
     expect(subscription.status).toBe('PENDING');
 
     // Simulate PayPal's webhook controller delivering BILLING.SUBSCRIPTION.ACTIVATED —
@@ -230,7 +235,12 @@ describe('Subscription checkout -> webhook -> active flow (integration)', () => 
       cb(null, { id: 'I-AGREEMENT-2', state: 'Pending', links: [] });
     });
 
-    await subscriptionsService.createPendingCheckout({ userId: 'user-2', planId: 'plan-pro', provider: 'PAYPAL', providerSubscriptionId: 'I-AGREEMENT-2' });
+    await subscriptionsService.createPendingCheckout({
+      userId: 'user-2',
+      planId: 'plan-pro',
+      provider: 'PAYPAL',
+      providerSubscriptionId: 'I-AGREEMENT-2',
+    });
     const paypalService = moduleRef.get(PaypalService);
     const event = {
       id: 'webhook-evt-2',
@@ -260,7 +270,12 @@ describe('Subscription checkout -> webhook -> active flow (integration)', () => 
     });
     (paypal.billingAgreement.cancel as jest.Mock).mockImplementation((_id, _opts, cb) => cb(null));
 
-    await subscriptionsService.createPendingCheckout({ userId: 'user-4', planId: 'plan-pro', provider: 'PAYPAL', providerSubscriptionId: 'I-AGREEMENT-3' });
+    await subscriptionsService.createPendingCheckout({
+      userId: 'user-4',
+      planId: 'plan-pro',
+      provider: 'PAYPAL',
+      providerSubscriptionId: 'I-AGREEMENT-3',
+    });
     const paypalService = moduleRef.get(PaypalService);
     await (paypalService as any).processWebhookEvent({
       id: 'webhook-evt-3',

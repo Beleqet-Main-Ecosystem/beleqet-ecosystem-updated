@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 /** Structured metadata attached to non-plain-text chat messages */
@@ -17,7 +23,8 @@ export class ChatService {
    */
   async createOrGetRoom(userId1: string, userId2: string, contractId?: string) {
     let jobId: string | undefined;
-    if (!userId2 || userId1 === userId2) throw new BadRequestException('Choose someone else to message');
+    if (!userId2 || userId1 === userId2)
+      throw new BadRequestException('Choose someone else to message');
 
     if (contractId) {
       const contract = await this.prisma.contract.findUnique({
@@ -43,12 +50,18 @@ export class ChatService {
         },
         select: { jobId: true },
       });
-      if (!applied) throw new ForbiddenException('You can message employers you applied to, and their applicants');
+      if (!applied)
+        throw new ForbiddenException(
+          'You can message employers you applied to, and their applicants',
+        );
       jobId = applied.jobId;
       const existing = await this.prisma.chatRoom.findFirst({
         where: {
           contractId: null,
-          AND: [{ participants: { some: { userId: userId1 } } }, { participants: { some: { userId: userId2 } } }],
+          AND: [
+            { participants: { some: { userId: userId1 } } },
+            { participants: { some: { userId: userId2 } } },
+          ],
         },
         include: { participants: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } },
       });
@@ -125,7 +138,13 @@ export class ChatService {
             participants: {
               include: {
                 user: {
-                  select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true },
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    avatarUrl: true,
+                    role: true,
+                  },
                 },
               },
             },
@@ -143,9 +162,7 @@ export class ChatService {
     const latest = (r: (typeof participants)[number]['room']) =>
       (r.messages[0]?.createdAt ?? r.createdAt).getTime();
     const rooms = participants.map((p) => p.room).sort((a, b) => latest(b) - latest(a));
-    const contractIds = rooms
-      .map((r) => r.contractId)
-      .filter((id): id is string => Boolean(id));
+    const contractIds = rooms.map((r) => r.contractId).filter((id): id is string => Boolean(id));
     const jobIds = rooms.map((r) => r.jobId).filter((id): id is string => Boolean(id));
 
     const [contracts, jobs] = await Promise.all([
@@ -156,7 +173,10 @@ export class ChatService {
           })
         : [],
       jobIds.length
-        ? this.prisma.job.findMany({ where: { id: { in: jobIds } }, select: { id: true, title: true } })
+        ? this.prisma.job.findMany({
+            where: { id: { in: jobIds } },
+            select: { id: true, title: true },
+          })
         : [],
     ]);
     const contractMap = new Map(contracts.map((c) => [c.id, c]));
@@ -167,8 +187,8 @@ export class ChatService {
       const readAt = lastRead.get(r.id);
       return {
         ...r,
-        contract: r.contractId ? contractMap.get(r.contractId) ?? null : null,
-        job: r.jobId ? jobMap.get(r.jobId) ?? null : null,
+        contract: r.contractId ? (contractMap.get(r.contractId) ?? null) : null,
+        job: r.jobId ? (jobMap.get(r.jobId) ?? null) : null,
         unread: Boolean(last && last.senderId !== userId && (!readAt || last.createdAt > readAt)),
       };
     });

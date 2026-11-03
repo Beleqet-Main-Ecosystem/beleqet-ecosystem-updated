@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
@@ -30,15 +36,24 @@ export class JobsService {
   async getQuota(employerId: string) {
     const now = new Date();
     const subscription = await this.prisma.subscription.findFirst({
-      where: { userId: employerId, status: { in: ['ACTIVE', 'PAST_DUE'] }, currentPeriodEnd: { gt: now } },
+      where: {
+        userId: employerId,
+        status: { in: ['ACTIVE', 'PAST_DUE'] },
+        currentPeriodEnd: { gt: now },
+      },
       orderBy: { currentPeriodStart: 'desc' },
       include: { plan: true },
     });
     const plan =
       subscription?.plan ??
-      (await this.prisma.plan.findFirst({ where: { priceAmount: 0, isActive: true }, orderBy: { createdAt: 'asc' } }));
+      (await this.prisma.plan.findFirst({
+        where: { priceAmount: 0, isActive: true },
+        orderBy: { createdAt: 'asc' },
+      }));
     const features = (plan?.features ?? {}) as { maxJobPosts?: number; featuredListing?: boolean };
-    const since = subscription?.currentPeriodStart ?? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const since =
+      subscription?.currentPeriodStart ??
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     const used = await this.prisma.job.count({
       where: { company: { userId: employerId }, createdAt: { gte: since } },
     });
@@ -69,7 +84,9 @@ export class JobsService {
         );
       }
       if (dto.featured && !quota.canFeature) {
-        throw new ForbiddenException('Featured listings are included in the Pro and Enterprise plans.');
+        throw new ForbiddenException(
+          'Featured listings are included in the Pro and Enterprise plans.',
+        );
       }
     }
 
@@ -103,8 +120,8 @@ export class JobsService {
     // Send Job Alerts to matching job seekers; a draft isn't public yet.
     if (job.status === 'PUBLISHED')
       this.sendJobAlerts(job, jobUrl).catch((err) =>
-      this.logger.error(`Failed to send job alerts: ${err.message}`),
-    );
+        this.logger.error(`Failed to send job alerts: ${err.message}`),
+      );
 
     // Broadcast Job to Telegram Channel
     this.telegramService
@@ -143,7 +160,10 @@ export class JobsService {
       recipients.set(alert.user.id, alert.user);
     }
     if (matched.length) {
-      await this.prisma.jobAlert.updateMany({ where: { id: { in: matched } }, data: { lastSentAt: new Date() } });
+      await this.prisma.jobAlert.updateMany({
+        where: { id: { in: matched } },
+        data: { lastSentAt: new Date() },
+      });
     }
 
     for (const seeker of recipients.values()) {
@@ -172,14 +192,22 @@ export class JobsService {
         WHERE "searchedAt" >= ${since} AND length(trim("searchTerm")) BETWEEN 2 AND 40
         GROUP BY 1 HAVING count(DISTINCT "userId") >= 3
         ORDER BY count(*) DESC LIMIT ${limit}`,
-      this.prisma.job.groupBy({ by: ['title'], where: openJobs(), _count: { _all: true }, orderBy: { _count: { title: 'desc' } }, take: limit * 2 }),
+      this.prisma.job.groupBy({
+        by: ['title'],
+        where: openJobs(),
+        _count: { _all: true },
+        orderBy: { _count: { title: 'desc' } },
+        take: limit * 2,
+      }),
       this.prisma.$queryRaw<{ skill: string }[]>`
         SELECT skill FROM "freelance_jobs", unnest("skills") AS skill
         WHERE "status" IN ('OPEN', 'FUNDED')
         GROUP BY skill ORDER BY count(*) DESC, skill LIMIT ${limit}`,
     ]);
     const jobs = [...searched.map((row) => row.term), ...titles.map((row) => row.title)];
-    const unique = [...new Map(jobs.map((term) => [term.trim().toLowerCase(), term.trim()])).values()];
+    const unique = [
+      ...new Map(jobs.map((term) => [term.trim().toLowerCase(), term.trim()])).values(),
+    ];
     return { jobs: unique.slice(0, limit), freelance: skills.map((row) => row.skill) };
   }
 
@@ -220,14 +248,22 @@ export class JobsService {
     if (types.length) and.push({ type: { in: types } });
     if (category) and.push({ category: { slug: category } });
     if (location) and.push({ location: { contains: location, mode: 'insensitive' } });
-    if (experienceLevel) and.push({ experienceLevel: { equals: experienceLevel, mode: 'insensitive' } });
+    if (experienceLevel)
+      and.push({ experienceLevel: { equals: experienceLevel, mode: 'insensitive' } });
     if (company) and.push({ companyId: company });
     if (exclude) and.push({ id: { not: exclude } });
     if (query.salaryMin) {
-      and.push({ OR: [{ salaryMax: { gte: query.salaryMin } }, { salaryMax: null, salaryMin: { gte: query.salaryMin } }] });
+      and.push({
+        OR: [
+          { salaryMax: { gte: query.salaryMin } },
+          { salaryMax: null, salaryMin: { gte: query.salaryMin } },
+        ],
+      });
     }
     if (query.postedWithin) {
-      and.push({ createdAt: { gte: new Date(Date.now() - query.postedWithin * 24 * 60 * 60 * 1000) } });
+      and.push({
+        createdAt: { gte: new Date(Date.now() - query.postedWithin * 24 * 60 * 60 * 1000) },
+      });
     }
     if (q)
       and.push({
@@ -240,7 +276,11 @@ export class JobsService {
     const where: Prisma.JobWhereInput = { AND: and };
     const orderBy: Prisma.JobOrderByWithRelationInput[] =
       query.sort === 'salary'
-        ? [{ salaryMax: { sort: 'desc', nulls: 'last' } }, { salaryMin: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }]
+        ? [
+            { salaryMax: { sort: 'desc', nulls: 'last' } },
+            { salaryMin: { sort: 'desc', nulls: 'last' } },
+            { createdAt: 'desc' },
+          ]
         : [{ featured: 'desc' }, { createdAt: 'desc' }];
 
     const [items, total] = await Promise.all([
@@ -282,7 +322,9 @@ export class JobsService {
       if (dto[field] === null) throw new BadRequestException(`${field} can't be empty`);
     }
     if (dto.featured && !job.featured && !(await this.getQuota(employerId)).canFeature) {
-      throw new ForbiddenException('Featured listings are included in the Pro and Enterprise plans.');
+      throw new ForbiddenException(
+        'Featured listings are included in the Pro and Enterprise plans.',
+      );
     }
     const data: any = { ...dto };
     if (data.deadline) data.deadline = new Date(data.deadline);

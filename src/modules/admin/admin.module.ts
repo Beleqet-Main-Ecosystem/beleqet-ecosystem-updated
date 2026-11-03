@@ -8,7 +8,14 @@ import { AuditLoggingModule } from '../audit-logging/audit-logging.module';
 import { DisputeManagerModule } from '../dispute-manager/dispute-manager.module';
 
 @Module({
-  imports: [QueuesModule, ChatModule, FraudAlertModule, NotificationsModule, AuditLoggingModule, DisputeManagerModule],
+  imports: [
+    QueuesModule,
+    ChatModule,
+    FraudAlertModule,
+    NotificationsModule,
+    AuditLoggingModule,
+    DisputeManagerModule,
+  ],
   controllers: [AdminController],
 })
 export class AdminModule {}

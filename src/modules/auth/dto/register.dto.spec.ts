@@ -3,7 +3,12 @@ import { validate } from 'class-validator';
 import { RegisterDto } from './register.dto';
 
 describe('RegisterDto', () => {
-  const base = { email: 'new@example.com', firstName: 'New', lastName: 'User', password: 'Password123!' };
+  const base = {
+    email: 'new@example.com',
+    firstName: 'New',
+    lastName: 'User',
+    password: 'Password123!',
+  };
   const errorsFor = async (body: object) => validate(plainToInstance(RegisterDto, body));
 
   it.each(['JOB_SEEKER', 'EMPLOYER', 'FREELANCER'])('accepts the %s role', async (role) => {

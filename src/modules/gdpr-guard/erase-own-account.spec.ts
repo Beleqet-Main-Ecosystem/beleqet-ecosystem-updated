@@ -2,10 +2,13 @@ import * as bcrypt from 'bcryptjs';
 import { GdprGuardService } from './gdpr-guard.service';
 
 describe('GdprGuardService.eraseOwnAccount', () => {
-  process.env.GDPR_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  process.env.GDPR_ENCRYPTION_KEY =
+    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
   const prisma = { user: { findUnique: jest.fn() }, contract: { count: jest.fn() } };
   const service = new GdprGuardService(prisma as never);
-  const erase = jest.spyOn(service, 'executeDataErasure').mockResolvedValue({ success: true } as never);
+  const erase = jest
+    .spyOn(service, 'executeDataErasure')
+    .mockResolvedValue({ success: true } as never);
   let hash: string;
 
   beforeAll(async () => {
@@ -45,8 +48,14 @@ describe('GdprGuardService.eraseOwnAccount', () => {
 
 describe('GdprGuardService.eraseOwnAccount with a linked Google account', () => {
   it('still asks for the password when the account has one', async () => {
-    process.env.GDPR_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-    const prisma = { user: { findUnique: jest.fn().mockResolvedValue({ passwordHash: await bcrypt.hash('pw', 4) }) }, contract: { count: jest.fn() } };
+    process.env.GDPR_ENCRYPTION_KEY =
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ passwordHash: await bcrypt.hash('pw', 4) }),
+      },
+      contract: { count: jest.fn() },
+    };
     const service = new GdprGuardService(prisma as never);
     await expect(service.eraseOwnAccount('u1')).rejects.toThrow('not right');
   });

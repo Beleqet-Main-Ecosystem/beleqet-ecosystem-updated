@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException, Logger, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CurrencyService, CurrencyCode } from './currency/currency.service';
 import {
@@ -418,7 +424,6 @@ export class SalaryService {
         confidenceScore,
       };
     }
-
   }
 
   /**

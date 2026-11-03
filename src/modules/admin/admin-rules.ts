@@ -18,9 +18,16 @@ export function removesAdmin(target: Account, change: Change): boolean {
  * Admins can't lock themselves out, and the platform always keeps one active admin.
  * `activeAdmins` counts active admins including the target.
  */
-export function assertAccountChangeAllowed(actorId: string, target: Account, change: Change, activeAdmins: number): void {
+export function assertAccountChangeAllowed(
+  actorId: string,
+  target: Account,
+  change: Change,
+  activeAdmins: number,
+): void {
   if (target.id === actorId && removesAdmin(target, change)) {
-    throw new BadRequestException('You can’t remove your own admin access or suspend yourself. Ask another admin.');
+    throw new BadRequestException(
+      'You can’t remove your own admin access or suspend yourself. Ask another admin.',
+    );
   }
   if (removesAdmin(target, change) && activeAdmins <= 1) {
     throw new ConflictException('This is the last active admin. Make someone else an admin first.');
@@ -63,6 +70,8 @@ export function assertGigModeration(current: string, next: string): void {
   }
   // Funded and in-progress projects hold escrow money; cancelling would strand it.
   if (current === 'FUNDED' || current === 'IN_PROGRESS') {
-    throw new ConflictException('This project holds money in escrow. Settle it through a dispute instead.');
+    throw new ConflictException(
+      'This project holds money in escrow. Settle it through a dispute instead.',
+    );
   }
 }

@@ -91,7 +91,10 @@ describe('AuthController', () => {
           provide: EMAIL_SENDER,
           useValue: { sendAccountLinkConfirmation: jest.fn().mockResolvedValue({}) },
         },
-        { provide: AUTH_ENV_CONFIG, useValue: { appBaseUrl: 'http://localhost:3000', frontendUrl: 'https://web.test' } },
+        {
+          provide: AUTH_ENV_CONFIG,
+          useValue: { appBaseUrl: 'http://localhost:3000', frontendUrl: 'https://web.test' },
+        },
       ],
     }).compile();
 
@@ -157,9 +160,21 @@ describe('AuthController OAuth callbacks', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: { oauthSession } },
-        { provide: AccountLinkingService, useValue: { confirmPendingLink: jest.fn(), handleOAuthSignIn: jest.fn().mockResolvedValue(outcome) } },
-        { provide: EMAIL_SENDER, useValue: { sendAccountLinkConfirmation: jest.fn().mockResolvedValue({}) } },
-        { provide: AUTH_ENV_CONFIG, useValue: { appBaseUrl: 'http://api.test', frontendUrl: 'https://web.test' } },
+        {
+          provide: AccountLinkingService,
+          useValue: {
+            confirmPendingLink: jest.fn(),
+            handleOAuthSignIn: jest.fn().mockResolvedValue(outcome),
+          },
+        },
+        {
+          provide: EMAIL_SENDER,
+          useValue: { sendAccountLinkConfirmation: jest.fn().mockResolvedValue({}) },
+        },
+        {
+          provide: AUTH_ENV_CONFIG,
+          useValue: { appBaseUrl: 'http://api.test', frontendUrl: 'https://web.test' },
+        },
       ],
     }).compile();
     const controller = module.get<AuthController>(AuthController);
@@ -170,17 +185,27 @@ describe('AuthController OAuth callbacks', () => {
   }
 
   it('sends a signed-in person to the website with tokens in the fragment', async () => {
-    const url = await setup({ accessToken: 'a.b.c', refreshToken: 'r1', user: {} }, { kind: 'LOGIN', user: { id: 'u1' } });
+    const url = await setup(
+      { accessToken: 'a.b.c', refreshToken: 'r1', user: {} },
+      { kind: 'LOGIN', user: { id: 'u1' } },
+    );
     expect(url).toBe('https://web.test/auth/callback#access=a.b.c&refresh=r1');
   });
 
   it('asks for the two-step code when the account has it on', async () => {
-    const url = await setup({ requires2fa: true, tempToken: 't1' }, { kind: 'LOGIN', user: { id: 'u1' } });
+    const url = await setup(
+      { requires2fa: true, tempToken: 't1' },
+      { kind: 'LOGIN', user: { id: 'u1' } },
+    );
     expect(url).toBe('https://web.test/auth/callback#twoFactor=t1');
   });
 
   it('sends a pending link to the sign-in page to check email', async () => {
-    const url = await setup(null, { kind: 'PENDING_CONFIRMATION', candidateEmail: 'a@b.c', confirmationToken: 'x' });
+    const url = await setup(null, {
+      kind: 'PENDING_CONFIRMATION',
+      candidateEmail: 'a@b.c',
+      confirmationToken: 'x',
+    });
     expect(url).toBe('https://web.test/login?oauth=confirm');
   });
 });

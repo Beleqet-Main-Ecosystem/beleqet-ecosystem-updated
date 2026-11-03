@@ -13,20 +13,32 @@ describe('admin rules', () => {
 
   describe('changing an account', () => {
     it('stops admins demoting or suspending themselves', () => {
-      expect(() => assertAccountChangeAllowed('me', me, { role: 'EMPLOYER' }, 3)).toThrow(BadRequestException);
-      expect(() => assertAccountChangeAllowed('me', me, { isActive: false }, 3)).toThrow(BadRequestException);
+      expect(() => assertAccountChangeAllowed('me', me, { role: 'EMPLOYER' }, 3)).toThrow(
+        BadRequestException,
+      );
+      expect(() => assertAccountChangeAllowed('me', me, { isActive: false }, 3)).toThrow(
+        BadRequestException,
+      );
     });
 
     it('keeps the last active admin', () => {
-      expect(() => assertAccountChangeAllowed('me', other, { role: 'EMPLOYER' }, 1)).toThrow(ConflictException);
-      expect(() => assertAccountChangeAllowed('me', other, { isActive: false }, 1)).toThrow(ConflictException);
+      expect(() => assertAccountChangeAllowed('me', other, { role: 'EMPLOYER' }, 1)).toThrow(
+        ConflictException,
+      );
+      expect(() => assertAccountChangeAllowed('me', other, { isActive: false }, 1)).toThrow(
+        ConflictException,
+      );
     });
 
     it('allows other changes', () => {
       expect(() => assertAccountChangeAllowed('me', other, { role: 'EMPLOYER' }, 2)).not.toThrow();
       expect(() => assertAccountChangeAllowed('me', seeker, { role: 'ADMIN' }, 1)).not.toThrow();
-      expect(() => assertAccountChangeAllowed('me', me, { role: 'ADMIN', isActive: true }, 1)).not.toThrow();
-      expect(() => assertAccountChangeAllowed('me', { ...other, isActive: false }, { role: 'EMPLOYER' }, 1)).not.toThrow();
+      expect(() =>
+        assertAccountChangeAllowed('me', me, { role: 'ADMIN', isActive: true }, 1),
+      ).not.toThrow();
+      expect(() =>
+        assertAccountChangeAllowed('me', { ...other, isActive: false }, { role: 'EMPLOYER' }, 1),
+      ).not.toThrow();
     });
   });
 

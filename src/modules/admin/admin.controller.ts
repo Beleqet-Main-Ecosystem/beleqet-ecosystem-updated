@@ -44,7 +44,12 @@ import { ResolveFraudAlertDto } from '../fraud-alert/dto/resolve-fraud-alert.dto
 import { CreateFraudRuleDto, UpdateFraudRuleDto } from '../fraud-alert/dto/create-fraud-rule.dto';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { AuditLoggingService } from '../audit-logging/audit-logging.service';
-import { assertAccountChangeAllowed, assertGigModeration, assertJobModeration, assertRemovalAllowed } from './admin-rules';
+import {
+  assertAccountChangeAllowed,
+  assertGigModeration,
+  assertJobModeration,
+  assertRemovalAllowed,
+} from './admin-rules';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -177,10 +182,18 @@ export class AdminController {
   @RequirePermissions('manage:users')
   @Patch('users/:id')
   @ApiOperation({ summary: 'Update a user (role, isActive ban/activate, kyc)' })
-  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() admin: CurrentUserPayload) {
+  async updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() admin: CurrentUserPayload,
+  ) {
     const target = await this.findAccount(id);
     assertAccountChangeAllowed(admin.userId, target, dto, await this.activeAdminCount());
-    const user = await this.prisma.user.update({ where: { id }, data: dto, select: safeUserSelect });
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: dto,
+      select: safeUserSelect,
+    });
     return {
       ...user,
       twoFactorEnabled: user.twoFactor?.enabled ?? false,
@@ -250,7 +263,9 @@ export class AdminController {
           type: 'GIG',
           title: gig.title,
           description: gig.description,
-          creatorName: gig.client ? `${gig.client.firstName} ${gig.client.lastName}`.trim() : 'Client',
+          creatorName: gig.client
+            ? `${gig.client.firstName} ${gig.client.lastName}`.trim()
+            : 'Client',
           creatorEmail: gig.client?.email,
           category: gig.category?.label,
           location: gig.locationPreference || 'Remote',
@@ -264,7 +279,9 @@ export class AdminController {
       }
     }
 
-    let filtered = items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    let filtered = items.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
 
     if (status && status !== 'ALL') {
       filtered = filtered.filter((i) => i.status.toUpperCase() === status.toUpperCase());
@@ -292,8 +309,15 @@ export class AdminController {
       where: { verificationStatus: wanted as 'PENDING' | 'VERIFIED' | 'REJECTED' },
       orderBy: { verificationRequestedAt: 'asc' },
       select: {
-        id: true, name: true, website: true, industry: true, location: true, tradeLicenseUrl: true,
-        verificationStatus: true, verificationRequestedAt: true, verificationNote: true,
+        id: true,
+        name: true,
+        website: true,
+        industry: true,
+        location: true,
+        tradeLicenseUrl: true,
+        verificationStatus: true,
+        verificationRequestedAt: true,
+        verificationNote: true,
         user: { select: { id: true, email: true, firstName: true, lastName: true } },
       },
     });
@@ -320,10 +344,7 @@ export class AdminController {
   @RequirePermissions('manage:jobs')
   @Patch('moderation/jobs/:id/status')
   @ApiOperation({ summary: 'Approve, archive, or update job status' })
-  async updateJobStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateJobModerationStatusDto,
-  ) {
+  async updateJobStatus(@Param('id') id: string, @Body() dto: UpdateJobModerationStatusDto) {
     const current = await this.prisma.job.findUnique({ where: { id }, select: { status: true } });
     if (!current) throw new NotFoundException('Job not found');
     assertJobModeration(current.status, dto.status);
@@ -338,11 +359,11 @@ export class AdminController {
   @RequirePermissions('manage:jobs')
   @Patch('moderation/gigs/:id/status')
   @ApiOperation({ summary: 'Approve, cancel, or update freelance gig status' })
-  async updateGigStatus(
-    @Param('id') id: string,
-    @Body() dto: UpdateGigModerationStatusDto,
-  ) {
-    const current = await this.prisma.freelanceJob.findUnique({ where: { id }, select: { status: true } });
+  async updateGigStatus(@Param('id') id: string, @Body() dto: UpdateGigModerationStatusDto) {
+    const current = await this.prisma.freelanceJob.findUnique({
+      where: { id },
+      select: { status: true },
+    });
     if (!current) throw new NotFoundException('Project not found');
     assertGigModeration(current.status, dto.status);
     const gig = await this.prisma.freelanceJob.update({
@@ -373,7 +394,10 @@ export class AdminController {
   }
 
   private async findAccount(id: string) {
-    const account = await this.prisma.user.findUnique({ where: { id }, select: { id: true, role: true, isActive: true } });
+    const account = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, isActive: true },
+    });
     if (!account) throw new NotFoundException('User not found');
     return account;
   }
@@ -421,7 +445,11 @@ export class AdminController {
 
   // Same settlement as PATCH /dispute/:id/resolve: recording a decision without moving the money left escrow stuck.
   @Patch('disputes/:id/resolve')
-  resolveDispute(@Param('id') id: string, @Body() dto: ResolveDisputeDto, @CurrentUser() user: CurrentUserPayload) {
+  resolveDispute(
+    @Param('id') id: string,
+    @Body() dto: ResolveDisputeDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.disputes.resolveDispute(id, dto, user.userId);
   }
 

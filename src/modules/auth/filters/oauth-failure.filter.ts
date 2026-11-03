@@ -13,7 +13,12 @@ export class OAuthFailureFilter implements ExceptionFilter {
   constructor(@Inject(AUTH_ENV_CONFIG) private readonly config: AuthEnvConfig) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    this.logger.warn(`OAuth sign-in failed: ${exception instanceof Error ? exception.message : String(exception)}`);
-    host.switchToHttp().getResponse<Response>().redirect(`${this.config.frontendUrl}/login?oauth=failed`);
+    this.logger.warn(
+      `OAuth sign-in failed: ${exception instanceof Error ? exception.message : String(exception)}`,
+    );
+    host
+      .switchToHttp()
+      .getResponse<Response>()
+      .redirect(`${this.config.frontendUrl}/login?oauth=failed`);
   }
 }

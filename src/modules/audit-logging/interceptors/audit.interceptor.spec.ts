@@ -23,8 +23,12 @@ describe('AuditInterceptor', () => {
     expect(interceptor.isWorthRecording('DELETE', '/api/v1/admin/users/1')).toBe(true);
     expect(interceptor.isWorthRecording('GET', '/api/v1/users/notifications')).toBe(false);
     expect(interceptor.isWorthRecording('GET', '/api/v1/user-preferences/theme')).toBe(false);
-    expect(interceptor.isWorthRecording('GET', '/api/v1/admin/compliance/gdpr/export/u1')).toBe(true);
-    expect(interceptor.isWorthRecording('GET', '/api/v1/manual-payment/admin/p1/receipt')).toBe(true);
+    expect(interceptor.isWorthRecording('GET', '/api/v1/admin/compliance/gdpr/export/u1')).toBe(
+      true,
+    );
+    expect(interceptor.isWorthRecording('GET', '/api/v1/manual-payment/admin/p1/receipt')).toBe(
+      true,
+    );
   });
 
   it('persists an HTTP_REQUEST audit on success', (done) => {

@@ -118,8 +118,14 @@ export class EscrowProcessor extends WorkerHost {
     if (!escrow) {
       // Chapa sends every payment here; one that isn't escrow may be a plan payment.
       const successful =
-        eventName === 'payment.success' || eventName === 'charge.success' || status.toLowerCase() === 'success';
-      const handled = await this.planPayments.handlePaymentEvent({ txRef, externalRef: externalRef || undefined, successful });
+        eventName === 'payment.success' ||
+        eventName === 'charge.success' ||
+        status.toLowerCase() === 'success';
+      const handled = await this.planPayments.handlePaymentEvent({
+        txRef,
+        externalRef: externalRef || undefined,
+        successful,
+      });
       if (handled) {
         await this.markWebhookProcessed(eventKey, txRef, job.data);
         return;

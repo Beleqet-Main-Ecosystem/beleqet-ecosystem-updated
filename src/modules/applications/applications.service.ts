@@ -181,7 +181,18 @@ export class ApplicationsService {
     const application = await this.prisma.application.findFirst({
       where: { id, OR: [{ userId: viewerId }, { job: { company: { userId: viewerId } } }] },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, avatarUrl: true, headline: true, skills: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+            avatarUrl: true,
+            headline: true,
+            skills: true,
+          },
+        },
         job: { include: { company: true } },
         score: true,
       },

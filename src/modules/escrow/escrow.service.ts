@@ -55,7 +55,15 @@ export class EscrowService {
       const walletAppliedAmount = existingEscrow.walletAppliedAmount ?? 0;
       const amountToPay = Math.max(0, grossAmount - walletAppliedAmount);
       const checkoutUrl = await this.startCheckout(existingEscrow.id, job, amountToPay);
-      return { escrowId: existingEscrow.id, checkoutUrl, grossAmount, platformFee, netAmount, walletAppliedAmount, amountToPay };
+      return {
+        escrowId: existingEscrow.id,
+        checkoutUrl,
+        grossAmount,
+        platformFee,
+        netAmount,
+        walletAppliedAmount,
+        amountToPay,
+      };
     }
 
     const grossAmount = job.contract ? job.contract.agreedAmount : job.budgetMax;
@@ -219,7 +227,12 @@ export class EscrowService {
    */
   private async startCheckout(
     escrowId: string,
-    job: { id: string; currency: string | null; client: { email: string }; contract: { id: string } | null },
+    job: {
+      id: string;
+      currency: string | null;
+      client: { email: string };
+      contract: { id: string } | null;
+    },
     amountToPay: number,
   ): Promise<string> {
     const returnUrl = job.contract
@@ -235,12 +248,19 @@ export class EscrowService {
         externalRef: escrowId,
       });
       // Persist the Beleqet Pay txRef so the processor can verify it later
-      await this.prisma.escrowTransaction.update({ where: { id: escrowId }, data: { gatewayRef: session.txRef } });
-      this.logger.log(`[beleqet-pay] Checkout session created: txRef=${session.txRef} provider=${session.provider}`);
+      await this.prisma.escrowTransaction.update({
+        where: { id: escrowId },
+        data: { gatewayRef: session.txRef },
+      });
+      this.logger.log(
+        `[beleqet-pay] Checkout session created: txRef=${session.txRef} provider=${session.provider}`,
+      );
       return session.checkoutUrl;
     } catch (err) {
       // Non-fatal: user can still pay via manual-payment module
-      this.logger.error(`[beleqet-pay] Failed to create checkout session — falling back to manual URL: ${(err as Error).message}`);
+      this.logger.error(
+        `[beleqet-pay] Failed to create checkout session — falling back to manual URL: ${(err as Error).message}`,
+      );
       return returnUrl;
     }
   }

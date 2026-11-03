@@ -136,7 +136,9 @@ describe('ChatService.createOrGetRoom', () => {
     mockPrismaService.chatRoom.findFirst.mockResolvedValue(null);
     await service.createOrGetRoom('u1', 'u2');
     expect(mockPrismaService.chatRoom.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ jobId: 'j1', contractId: undefined }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ jobId: 'j1', contractId: undefined }),
+      }),
     );
   });
 });

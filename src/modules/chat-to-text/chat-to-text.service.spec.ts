@@ -124,12 +124,17 @@ describe('ChatToTextService', () => {
       mockPrismaService.speechConversation.findUnique.mockResolvedValue(mockConversation);
       mockPrismaService.speechTranscript.create.mockResolvedValue(mockTranscript);
 
-      await service.create({ conversationId: 'conv_123', rawText: 'ሰላም ስሜ አበበ ነው', language: 'am' }, 'user_123');
+      await service.create(
+        { conversationId: 'conv_123', rawText: 'ሰላም ስሜ አበበ ነው', language: 'am' },
+        'user_123',
+      );
 
       expect(mockPrismaService.speechTranscript.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            messages: expect.objectContaining({ create: expect.objectContaining({ content: 'ሰላም ስሜ አበበ ነው።' }) }),
+            messages: expect.objectContaining({
+              create: expect.objectContaining({ content: 'ሰላም ስሜ አበበ ነው።' }),
+            }),
           }),
         }),
       );

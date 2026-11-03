@@ -359,7 +359,14 @@ export class InterviewPlannerService {
         application: {
           select: {
             id: true,
-            job: { select: { id: true, title: true, location: true, company: { select: { name: true, userId: true } } } },
+            job: {
+              select: {
+                id: true,
+                title: true,
+                location: true,
+                company: { select: { name: true, userId: true } },
+              },
+            },
           },
         },
         candidate: { select: { id: true, firstName: true, lastName: true } },
@@ -367,13 +374,20 @@ export class InterviewPlannerService {
     });
   }
 
-  async respond(candidateId: string, interviewId: string, dto: { response: 'CONFIRMED' | 'DECLINED'; note?: string }) {
-    const interview = await this.prisma.interview.findFirst({ where: { id: interviewId, candidateId } });
+  async respond(
+    candidateId: string,
+    interviewId: string,
+    dto: { response: 'CONFIRMED' | 'DECLINED'; note?: string },
+  ) {
+    const interview = await this.prisma.interview.findFirst({
+      where: { id: interviewId, candidateId },
+    });
     if (!interview) throw new NotFoundException('Interview not found');
     if (!['SCHEDULED', 'RESCHEDULED', 'CONFIRMED'].includes(interview.status)) {
       throw new BadRequestException('This interview can no longer be answered');
     }
-    if (interview.startTime < new Date()) throw new BadRequestException('This interview has already started');
+    if (interview.startTime < new Date())
+      throw new BadRequestException('This interview has already started');
     const updated = await this.prisma.interview.update({
       where: { id: interviewId },
       data: { status: dto.response, candidateNote: dto.note?.trim() || null },
@@ -385,7 +399,11 @@ export class InterviewPlannerService {
           userId: interview.employerId,
           type: 'INTERVIEW',
           title: dto.response === 'CONFIRMED' ? 'Interview confirmed' : 'Interview declined',
-          body: dto.note?.trim() || (dto.response === 'CONFIRMED' ? 'The candidate will attend.' : 'The candidate cannot attend.'),
+          body:
+            dto.note?.trim() ||
+            (dto.response === 'CONFIRMED'
+              ? 'The candidate will attend.'
+              : 'The candidate cannot attend.'),
           channel: 'IN_APP',
           metadata: { interviewId },
         },

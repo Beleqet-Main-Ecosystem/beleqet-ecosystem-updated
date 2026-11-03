@@ -259,10 +259,15 @@ export class AuthService {
 
   /** A new verification link; earlier ones stop working so only the latest email counts. */
   async resendVerification(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true },
+    });
     if (!user) throw new UnauthorizedException('User not found');
     if (user.emailVerified) return { success: true, alreadyVerified: true };
-    await this.prisma.verificationToken.deleteMany({ where: { userId, type: 'EMAIL_VERIFICATION' } });
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId, type: 'EMAIL_VERIFICATION' },
+    });
     await this.sendVerificationEmail(userId);
     return { success: true, alreadyVerified: false };
   }
@@ -475,10 +480,19 @@ export class AuthService {
    */
   async oauthSession(
     userId: string,
-  ): Promise<{ requires2fa: true; tempToken: string } | Awaited<ReturnType<AuthService['issueTokens']>>> {
+  ): Promise<
+    { requires2fa: true; tempToken: string } | Awaited<ReturnType<AuthService['issueTokens']>>
+  > {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
     });
     if (!user || !user.isActive) throw new UnauthorizedException('This account is not active');
 

@@ -68,8 +68,13 @@ export class ManualPaymentController {
     @Query('status') status?: string,
   ): Promise<ManualPaymentRecord[]> {
     const known = Object.values(PaymentStatus) as string[];
-    if (status && !known.includes(status)) throw new BadRequestException(`status must be one of ${known.join(', ')}`);
-    return this.manualPaymentService.findAll(page, Math.min(limit, 100), status as PaymentStatus | undefined);
+    if (status && !known.includes(status))
+      throw new BadRequestException(`status must be one of ${known.join(', ')}`);
+    return this.manualPaymentService.findAll(
+      page,
+      Math.min(limit, 100),
+      status as PaymentStatus | undefined,
+    );
   }
 
   @Patch('admin/:id/approve')

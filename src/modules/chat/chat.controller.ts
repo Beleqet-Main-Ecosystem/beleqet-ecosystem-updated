@@ -25,10 +25,7 @@ export class ChatController {
 
   @Post('rooms')
   @ApiOperation({ summary: 'Create or get a chat room with another user' })
-  createOrGetRoom(
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() body: CreateRoomDto,
-  ) {
+  createOrGetRoom(@CurrentUser() user: CurrentUserPayload, @Body() body: CreateRoomDto) {
     return this.chatService.createOrGetRoom(user.userId, body.recipientId, body.contractId);
   }
 

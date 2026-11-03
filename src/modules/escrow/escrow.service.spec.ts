@@ -465,7 +465,10 @@ describe('EscrowService initiate wallet funding', () => {
     expect(prisma.escrowTransaction.create).not.toHaveBeenCalled();
     // Only the new checkout reference is stored; the amounts already match the contract.
     expect(prisma.escrowTransaction.update).toHaveBeenCalledTimes(1);
-    expect(prisma.escrowTransaction.update).toHaveBeenCalledWith({ where: { id: 'escrow-pending' }, data: { gatewayRef: 'bp-tx-1' } });
+    expect(prisma.escrowTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'escrow-pending' },
+      data: { gatewayRef: 'bp-tx-1' },
+    });
     expect(chapaClient.initializePayment).not.toHaveBeenCalled();
     expect(escrowQueue.add).not.toHaveBeenCalled();
     expect(eventEmitter.emit).not.toHaveBeenCalled();
@@ -475,10 +478,20 @@ describe('EscrowService initiate wallet funding', () => {
 describe('EscrowService initiate after a bid is accepted', () => {
   it('charges the agreed amount when the escrow was set up from the budget', async () => {
     const { service, prisma } = buildInitiateService({
-      existingEscrow: { id: 'escrow-pending', grossAmount: 5000, platformFee: 500, netAmount: 4500, walletAppliedAmount: 0, status: 'PENDING' },
+      existingEscrow: {
+        id: 'escrow-pending',
+        grossAmount: 5000,
+        platformFee: 500,
+        netAmount: 4500,
+        walletAppliedAmount: 0,
+        status: 'PENDING',
+      },
     });
     // buildInitiateService's contract agreed 1000.
-    await expect(service.initiate('client-1', 'gig-1')).resolves.toMatchObject({ grossAmount: 1000, amountToPay: 1000 });
+    await expect(service.initiate('client-1', 'gig-1')).resolves.toMatchObject({
+      grossAmount: 1000,
+      amountToPay: 1000,
+    });
     expect(prisma.escrowTransaction.update).toHaveBeenCalledWith({
       where: { id: 'escrow-pending' },
       data: { grossAmount: 1000, platformFee: 100, netAmount: 900 },
@@ -486,7 +499,9 @@ describe('EscrowService initiate after a bid is accepted', () => {
   });
 
   it('refuses to start paying for an escrow that is disputed or closed', async () => {
-    const { service } = buildInitiateService({ existingEscrow: { id: 'e', status: 'DISPUTED', grossAmount: 1000 } });
+    const { service } = buildInitiateService({
+      existingEscrow: { id: 'e', status: 'DISPUTED', grossAmount: 1000 },
+    });
     await expect(service.initiate('client-1', 'gig-1')).rejects.toThrow('already funded');
   });
 });

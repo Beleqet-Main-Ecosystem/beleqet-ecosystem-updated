@@ -101,12 +101,18 @@ export class DisputeManagerService {
     const held = holdsMoney ? Math.max(0, escrow.grossAmount - (released._sum.amount ?? 0)) : 0;
 
     const freelancerGross =
-      resolveDto.outcome === 'REFUND' ? 0 : resolveDto.outcome === 'RELEASE' ? held : resolveDto.freelancerAmount;
+      resolveDto.outcome === 'REFUND'
+        ? 0
+        : resolveDto.outcome === 'RELEASE'
+          ? held
+          : resolveDto.freelancerAmount;
     if (freelancerGross === undefined) {
-      throw new BadRequestException('Give the freelancer\'s share when splitting');
+      throw new BadRequestException("Give the freelancer's share when splitting");
     }
     if (freelancerGross > held) {
-      throw new BadRequestException(`The freelancer's share can't be more than the ${held} still held in escrow`);
+      throw new BadRequestException(
+        `The freelancer's share can't be more than the ${held} still held in escrow`,
+      );
     }
     const clientRefund = held - freelancerGross;
     const freelancerNet = freelancerGross - Math.round(freelancerGross * DISPUTE_PLATFORM_FEE_PCT);
@@ -147,7 +153,11 @@ export class DisputeManagerService {
         const wallet = await tx.freelancerWallet.upsert({
           where: { userId: contract.freelancerId },
           update: { availableBalance: { increment: freelancerNet } },
-          create: { userId: contract.freelancerId, availableBalance: freelancerNet, pendingBalance: 0 },
+          create: {
+            userId: contract.freelancerId,
+            availableBalance: freelancerNet,
+            pendingBalance: 0,
+          },
         });
         await tx.walletTransaction.create({
           data: {
@@ -162,7 +172,10 @@ export class DisputeManagerService {
       if (holdsMoney) {
         await tx.escrowTransaction.update({
           where: { id: escrow.id },
-          data: freelancerGross > 0 ? { status: 'RELEASED', releasedAt: new Date() } : { status: 'REFUNDED' },
+          data:
+            freelancerGross > 0
+              ? { status: 'RELEASED', releasedAt: new Date() }
+              : { status: 'REFUNDED' },
         });
       }
 
@@ -177,7 +190,14 @@ export class DisputeManagerService {
           eventType: 'dispute.resolved',
           entityId: disputeId,
           entityType: 'Dispute',
-          payload: { contractId: contract.id, outcome: resolveDto.outcome, held, clientRefund, freelancerGross, freelancerNet },
+          payload: {
+            contractId: contract.id,
+            outcome: resolveDto.outcome,
+            held,
+            clientRefund,
+            freelancerGross,
+            freelancerNet,
+          },
           processedBy: DisputeManagerService.name,
         },
       });
