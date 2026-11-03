@@ -7,12 +7,15 @@
  * module allowed to depend on PaymentsModule.
  */
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PaymentProvider } from '@prisma/client';
+import { PaymentProvider, SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaypalService } from '../payments/paypal.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { CheckoutDto } from './dto/checkout.dto';
 import { PlanPaymentsService } from './plan-payments.service';
+
+/** A PayPal checkout nobody approved within this time is treated as abandoned. */
+const ABANDONED_PAYPAL_CHECKOUT_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class SubscriptionsCheckoutService {
@@ -24,12 +27,50 @@ export class SubscriptionsCheckoutService {
   ) {}
 
   /**
-   * Starts a checkout. Plans are paid with Chapa (decided 2026-11-03): one payment buys one
-   * period, and the plan starts when Beleqet Pay confirms it (PlanPaymentsService). PayPal is
-   * kept only to cancel subscriptions that were set up through it.
+   * Starts a checkout. Both return `checkoutUrl`, where the browser goes next.
+   * - CHAPA (default): Telebirr, CBE Birr, banks or cards; one payment buys one period
+   *   (PlanPaymentsService). Chapa has no automatic billing.
+   * - PAYPAL: a billing agreement that renews every period. The local PENDING subscription is
+   *   promoted to ACTIVE by BillingService when PayPal's BILLING.SUBSCRIPTION.ACTIVATED webhook
+   *   arrives.
    */
   async checkout(userId: string, dto: CheckoutDto) {
-    return this.planPayments.checkout(userId, dto.planId);
+    if (dto.method !== 'PAYPAL') return this.planPayments.checkout(userId, dto.planId);
+
+    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    if (!plan || !plan.isActive) throw new NotFoundException('Plan not found or inactive');
+    if (!plan.paypalPlanId) {
+      throw new BadRequestException('This plan is not yet configured for PayPal');
+    }
+
+    // A checkout left at PayPal's approval page would otherwise block every later attempt.
+    await this.prisma.subscription.updateMany({
+      where: {
+        userId,
+        provider: PaymentProvider.PAYPAL,
+        status: SubscriptionStatus.PENDING,
+        createdAt: { lt: new Date(Date.now() - ABANDONED_PAYPAL_CHECKOUT_MS) },
+      },
+      data: { status: SubscriptionStatus.CANCELLED },
+    });
+    await this.subscriptionsService.assertNoActiveSubscription(userId);
+
+    const result = await this.paypalService.createSubscription({
+      userId,
+      amount: plan.priceAmount / 100,
+      currency: plan.currency,
+      subscriptionPlanId: plan.paypalPlanId,
+      description: `Beleqet ${plan.name} subscription`,
+    });
+
+    const subscription = await this.subscriptionsService.createPendingCheckout({
+      userId,
+      planId: plan.id,
+      provider: PaymentProvider.PAYPAL,
+      providerSubscriptionId: result.id,
+    });
+
+    return { subscription, checkoutUrl: result.approvalUrl };
   }
 
   /**

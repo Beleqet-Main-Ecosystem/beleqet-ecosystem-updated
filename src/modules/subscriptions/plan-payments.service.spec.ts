@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { PlanPaymentsService } from './plan-payments.service';
 
 describe('PlanPaymentsService', () => {
@@ -39,6 +40,15 @@ describe('PlanPaymentsService', () => {
       expect.objectContaining({ amount: '999.00', preferredProvider: 'CHAPA', externalRef: 'pay-1', successRedirectUrl: 'https://web.test/employer?tab=plan&payment=pay-1' }),
     );
     expect(prisma.payment.update).toHaveBeenCalledWith({ where: { id: 'pay-1' }, data: { providerPaymentId: 'bp-tx-9' } });
+  });
+
+  it('refuses while a PayPal subscription is still renewing, so PayPal never charges for a plan that ended', async () => {
+    prisma.subscription.findFirst.mockResolvedValueOnce({ id: 'sub-pp' });
+    await expect(service.checkout('u1', 'pro')).rejects.toThrow(ConflictException);
+    expect(prisma.subscription.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: 'u1', provider: 'PAYPAL', cancelAtPeriodEnd: false }) }),
+    );
+    expect(prisma.payment.create).not.toHaveBeenCalled();
   });
 
   it('starts the plan once Beleqet Pay confirms the payment', async () => {

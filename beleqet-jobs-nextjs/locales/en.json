@@ -1928,6 +1928,24 @@
     "signIn": "Sign in to choose a plan.",
     "failed": "We couldn’t open the payment page. Try again in a moment.",
     "bankInstead": "Pay by bank transfer instead",
-    "redirecting": "Taking you to Chapa to pay with Telebirr, CBE Birr, your bank or a card…"
+    "redirecting": "Taking you to Chapa to pay with Telebirr, CBE Birr, your bank or a card…",
+    "chooseTitle": "How would you like to pay?",
+    "chapaTitle": "Chapa: Telebirr, CBE Birr, bank or card",
+    "chapaBody": "Pay in birr for one month. Pay again each month to keep your plan.",
+    "paypalTitle": "PayPal",
+    "paypalBody": "Renews automatically every month until you cancel.",
+    "redirectingPaypal": "Taking you to PayPal to approve your subscription…",
+    "otherMethod": "Choose another way to pay",
+    "alreadySubscribed": "You already have a plan. Cancel it or let it end before subscribing with PayPal.",
+    "paypalRenewing": "Your plan renews through PayPal. Cancel it in the Plan tab first, then pay another way.",
+    "paypalUnavailable": "This plan can’t be paid with PayPal yet. Choose another way to pay.",
+    "successTitle": "Subscription active",
+    "successBody": "Your plan is active and renews automatically through PayPal.",
+    "pendingTitle": "Payment received",
+    "pendingBody": "PayPal is still confirming your subscription. This can take a minute. Check the Plan tab shortly.",
+    "confirming": "Confirming your subscription…",
+    "toPlan": "Go to my plan",
+    "cancelTitle": "Checkout cancelled",
+    "cancelBody": "No payment was taken. You can choose a plan again whenever you’re ready."
   }
 }

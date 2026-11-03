@@ -153,7 +153,9 @@ jest.mock('paypal-rest-sdk', () => ({
   },
   notification: {
     webhookEvent: {
-      verify: jest.fn(),
+      verify: jest.fn((_data: unknown, cb: (err: unknown, res?: unknown) => void) =>
+        cb(null, { verification_status: 'SUCCESS' }),
+      ),
     },
   },
 }));
@@ -414,7 +416,7 @@ describe('PaypalService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PaypalService,
-        { provide: ConfigService, useValue: buildMockConfig() },
+        { provide: ConfigService, useValue: buildMockConfig({ PAYPAL_WEBHOOK_ID: 'wh-test' }) },
         { provide: PrismaService, useValue: prisma },
         {
           provide: EventEmitter2,

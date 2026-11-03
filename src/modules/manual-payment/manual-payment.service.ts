@@ -8,7 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UploadsService } from '../uploads/uploads.service';
 import { CreateManualPaymentDto, SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
-import { activatePaidPlan } from '../subscriptions/activate-plan';
+import { activatePaidPlan, assertNoPaypalAutoRenew } from '../subscriptions/activate-plan';
 
 export interface ManualPaymentRecord {
   id: string;
@@ -47,6 +47,7 @@ export class ManualPaymentService {
         select: { id: true, name: true, priceAmount: true, currency: true },
       });
       if (!plan) throw new NotFoundException('That plan is not available');
+      await assertNoPaypalAutoRenew(this.prisma, userId);
     } else if (!input.amount || !input.currency) {
       throw new BadRequestException('Give a plan, or an amount and currency');
     }

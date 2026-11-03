@@ -62,7 +62,7 @@ Not tested: paying into escrow. It needs the Chapa test keys (C5), so the contra
 | U33 | Post a job | Salary period, years of experience, qualification, own website link and urgent were missing; all now saved | Fixed |
 | U34 | Post a job | Logo is set on the company profile (Company tab), which now edits; it shows on the employer's job cards | Fixed |
 | U35 | Pricing | Question about reaching the job-post limit is back now that the limit is enforced (A39) | Fixed |
-| U36 | Pricing | "Subscribe" can't complete until PayPal plan IDs are set or another payment route is chosen (A21, C4) | Blocked |
+| U36 | Pricing | Checkout asks how to pay: Chapa (Telebirr, CBE Birr, bank, card; one month at a time) or PayPal (renews automatically); bank transfer stays as a third way. PayPal needs plan IDs (C4) | Fixed |
 | U37 | Seeker dashboard | Old "Your opportunities", profile and dashboard pages merged into one; subscription cancel and interview availability moved in | Fixed |
 | U38 | Seeker dashboard | Freelancers had no page for My bids or Contracts; added both | Fixed |
 | U39 | Messages | Page claimed "Encrypted socket transmission", which isn't true; removed | Fixed |
@@ -111,7 +111,7 @@ Put secrets in `.env` or a password manager, not in chat.
 | C1 | Google sign-in (A1) | Confirm the client ID and secret in `.env` are valid; add the production callback URL in Google Cloud | Values present, not verified |
 | C2 | LinkedIn sign-in (A1) | Same, in the LinkedIn developer app | Values present, not verified |
 | C3 | Verification and reset emails (A2) | Confirm the SMTP account can send from the production domain | Values present, not verified |
-| C4 | Paid plans (A21) | PayPal plan IDs for Pro and Enterprise, or a decision to use Chapa or Telebirr | Missing |
+| C4 | Paid plans (A21) | Decided: Chapa and PayPal both. Still needed: PayPal billing plan IDs for Pro and Enterprise (set as the plan's paypalPlanId) and PAYPAL_WEBHOOK_ID; Beleqet Pay and Chapa keys for Chapa | Missing |
 | C5 | Escrow testing | Chapa test keys and webhook secret for staging | Values present, not verified |
 | C6 | CV and file uploads | Production storage details; `S3_BUCKET` isn't set under that name, to be checked | Unknown |
 | C7 | Android card (B2) | Public Google Play link | Missing |
@@ -144,7 +144,7 @@ Put secrets in `.env` or a password manager, not in chat.
 | A18 | /job-alerts (up to 10 per person). Every new job used to email every job seeker; now only matching alerts get it, and not people who turned email off | Done |
 | A19 | GET /interview-planner/interviews; candidates confirm or decline (the employer is notified); employers set place, link and notes | Done |
 | A20 | Bank transfers can pay for a plan at the plan's price; approval starts or extends the plan, once only; GET /manual-payment/mine. Also fixed: anyone could read anyone's payment and receipt by id | Done |
-| A21 | PayPal plan IDs are empty, so nobody can subscribe | Small |
+| A21 | POST /subscriptions/checkout takes method CHAPA (default) or PAYPAL. Chapa or bank transfer is refused while a PayPal subscription still renews, so PayPal can't charge for a plan that ended here. An abandoned PayPal checkout no longer blocks the next one. PayPal webhooks are refused when PAYPAL_WEBHOOK_ID is missing; before, they were accepted unverified, so a forged "activated" event started a paid plan free | Done |
 | A22 | Amharic transcripts were dropped as having "no letters"; fixed | Done |
 | A23 | CV Maker upload called an endpoint that doesn't exist; the upload now lives only in Resume Brain, which works | Done |
 | A24 | Website calculator and API use the 2025 bands; tests check them against the official deduction table | Done |

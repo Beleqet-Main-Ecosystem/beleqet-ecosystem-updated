@@ -10,7 +10,7 @@
  *  - createOrder  (happy path, subscription delegation, error handling)
  *  - captureOrder (happy path, missing payerId, failed capture)
  *  - createSubscription (happy path, missing planId)
- *  - handleWebhook (all event types, signature verification, skip when no webhookId)
+ *  - handleWebhook (all event types, signature verification, refused when no webhookId)
  *  - GDPR: userId stored as custom_id, not raw PII
  */
 
@@ -480,6 +480,15 @@ describe('PaypalService', () => {
   // handleWebhook
   // ──────────────────────────────────────────────────────────────────────────
   describe('handleWebhook', () => {
+    beforeEach(async () => {
+      const ctx = await buildModule({ PAYPAL_WEBHOOK_ID: 'wh-123-abc' });
+      service = ctx.service;
+      prisma = ctx.prisma;
+      (paypal.notification.webhookEvent as any).verify = jest.fn(
+        (_data: unknown, cb: PaypalCallback) => cb(null, { verification_status: 'SUCCESS' }),
+      );
+    });
+
     it('processes PAYMENT.CAPTURE.COMPLETED → SUCCEEDED', async () => {
       await service.handleWebhook(makeWebhookEvent('PAYMENT.CAPTURE.COMPLETED') as any, {});
 
@@ -555,11 +564,13 @@ describe('PaypalService', () => {
       expect(prisma.payment.updateMany).not.toHaveBeenCalled();
     });
 
-    it('skips signature verification when PAYPAL_WEBHOOK_ID is not set', async () => {
-      // Default buildModule has PAYPAL_WEBHOOK_ID = ''
-      await service.handleWebhook(makeWebhookEvent('PAYMENT.SALE.COMPLETED') as any, {});
+    it('refuses every event when PAYPAL_WEBHOOK_ID is not set, so a forged activation starts no plan', async () => {
+      const { service: svc, prisma: db } = await buildModule({ PAYPAL_WEBHOOK_ID: '' });
 
-      expect((paypal.notification.webhookEvent as any).verify).not.toHaveBeenCalled();
+      await expect(
+        svc.handleWebhook(makeWebhookEvent('BILLING.SUBSCRIPTION.ACTIVATED') as any, {}),
+      ).rejects.toThrow(UnprocessableEntityException);
+      expect(db.payment.updateMany).not.toHaveBeenCalled();
     });
 
     it('verifies signature when PAYPAL_WEBHOOK_ID is configured', async () => {

@@ -358,6 +358,13 @@ describe('ManualPaymentService plans and privacy', () => {
     );
   });
 
+  it('refuses a plan transfer while a PayPal subscription is still renewing', async () => {
+    prisma.plan.findFirst.mockResolvedValue({ id: 'pro', name: 'Pro', priceAmount: 1500, currency: 'ETB' });
+    prisma.subscription.findFirst.mockResolvedValueOnce({ id: 'sub-pp' });
+    await expect(service.createManualPayment('u1', { planId: 'pro' })).rejects.toThrow('renews through PayPal');
+    expect(prisma.payment.create).not.toHaveBeenCalled();
+  });
+
   it('starts the plan when the transfer is approved', async () => {
     prisma.payment.findUnique.mockResolvedValue(record());
     prisma.subscription.findFirst.mockResolvedValue(null);

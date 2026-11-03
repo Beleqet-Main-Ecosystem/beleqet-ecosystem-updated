@@ -4,7 +4,7 @@ import { PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BeleqetPayService } from '../beleqet-pay/beleqet-pay.service';
-import { activatePaidPlan } from './activate-plan';
+import { activatePaidPlan, assertNoPaypalAutoRenew } from './activate-plan';
 
 /**
  * Paying for a plan with Chapa (through Beleqet Pay): Telebirr, CBE Birr, banks or cards. Chapa
@@ -26,6 +26,7 @@ export class PlanPaymentsService {
     const plan = await this.prisma.plan.findFirst({ where: { id: planId, isActive: true } });
     if (!plan) throw new NotFoundException('Plan not found or inactive');
     if (plan.priceAmount <= 0) throw new BadRequestException('The free plan needs no payment');
+    await assertNoPaypalAutoRenew(this.prisma, userId);
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } });
 
     // Plan prices are kept in santim; Beleqet Pay takes birr.

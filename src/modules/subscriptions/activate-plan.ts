@@ -1,5 +1,23 @@
+import { ConflictException } from '@nestjs/common';
 import { PaymentProvider, Prisma } from '@prisma/client';
 import { addInterval } from './subscriptions.service';
+
+/**
+ * Refuses a one-off plan payment (Chapa or bank transfer) while a PayPal subscription is still
+ * renewing: activatePaidPlan would end it here, but PayPal would keep charging the card.
+ */
+export async function assertNoPaypalAutoRenew(
+  db: Pick<Prisma.TransactionClient, 'subscription'>,
+  userId: string,
+): Promise<void> {
+  const renewing = await db.subscription.findFirst({
+    where: { userId, provider: PaymentProvider.PAYPAL, status: { in: ['ACTIVE', 'PAST_DUE'] }, cancelAtPeriodEnd: false },
+    select: { id: true },
+  });
+  if (renewing) {
+    throw new ConflictException('Your plan renews through PayPal. Cancel it first, then pay another way.');
+  }
+}
 
 /**
  * After a plan is paid for (Chapa, or a bank transfer an admin approved): add a period to the

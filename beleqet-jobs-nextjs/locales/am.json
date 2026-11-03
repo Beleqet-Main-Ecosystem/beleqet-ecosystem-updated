@@ -1925,6 +1925,24 @@
     "signIn": "እቅድ ለመምረጥ ይግቡ።",
     "failed": "የክፍያ ገጹን መክፈት አልቻልንም። ትንሽ ቆይተው እንደገና ይሞክሩ።",
     "bankInstead": "በምትኩ በባንክ ዝውውር ይክፈሉ",
-    "redirecting": "በቴሌብር፣ በCBE Birr፣ በባንክዎ ወይም በካርድ ለመክፈል ወደ Chapa በመውሰድ ላይ…"
+    "redirecting": "በቴሌብር፣ በCBE Birr፣ በባንክዎ ወይም በካርድ ለመክፈል ወደ Chapa በመውሰድ ላይ…",
+    "chooseTitle": "እንዴት መክፈል ይፈልጋሉ?",
+    "chapaTitle": "Chapa፦ ቴሌብር፣ CBE Birr፣ ባንክ ወይም ካርድ",
+    "chapaBody": "ለአንድ ወር በብር ይክፈሉ። እቅድዎን ለማቆየት በየወሩ እንደገና ይክፈሉ።",
+    "paypalTitle": "PayPal",
+    "paypalBody": "እስኪሰርዙት ድረስ በየወሩ በራስ-ሰር ይታደሳል።",
+    "redirectingPaypal": "ምዝገባዎን ለማጽደቅ ወደ PayPal በመውሰድ ላይ…",
+    "otherMethod": "ሌላ የመክፈያ መንገድ ይምረጡ",
+    "alreadySubscribed": "አስቀድመው እቅድ አለዎት። በPayPal ከመመዝገብዎ በፊት ይሰርዙት ወይም እስኪያበቃ ይጠብቁ።",
+    "paypalRenewing": "እቅድዎ በPayPal ይታደሳል። መጀመሪያ በእቅድ ትሩ ውስጥ ይሰርዙት፣ ከዚያ በሌላ መንገድ ይክፈሉ።",
+    "paypalUnavailable": "ይህ እቅድ ገና በPayPal ሊከፈል አይችልም። ሌላ የመክፈያ መንገድ ይምረጡ።",
+    "successTitle": "ምዝገባው ንቁ ነው",
+    "successBody": "እቅድዎ ንቁ ነው እና በPayPal በራስ-ሰር ይታደሳል።",
+    "pendingTitle": "ክፍያው ደርሷል",
+    "pendingBody": "PayPal ምዝገባዎን እያረጋገጠ ነው። ይህ አንድ ደቂቃ ሊወስድ ይችላል። ትንሽ ቆይተው የእቅድ ትሩን ይመልከቱ።",
+    "confirming": "ምዝገባዎን በማረጋገጥ ላይ…",
+    "toPlan": "ወደ እቅዴ ሂድ",
+    "cancelTitle": "ክፍያው ተሰርዟል",
+    "cancelBody": "ምንም ክፍያ አልተወሰደም። ዝግጁ ሲሆኑ እንደገና እቅድ መምረጥ ይችላሉ።"
   }
 }

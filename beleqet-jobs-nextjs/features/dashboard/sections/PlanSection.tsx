@@ -98,7 +98,7 @@ export default function PlanSection() {
         </span>
         <span className="flex flex-wrap gap-2">
           {active && subscription.provider !== 'PAYPAL' && subscription.planId && plan?.priceAmount ? (
-            <Link href={`/checkout?planId=${subscription.planId}`} className={solid}>{t('emp.payNextPeriod')}</Link>
+            <Link href={`/checkout?planId=${subscription.planId}&method=CHAPA`} className={solid}>{t('emp.payNextPeriod')}</Link>
           ) : null}
           <Link href="/pricing" className={active && subscription.provider !== 'PAYPAL' ? outline : solid}>{t('emp.changePlan')}</Link>
           {active && <button type="button" onClick={() => setCancelling(true)} className={outline}>{t('dash.cancelPlan')}</button>}
