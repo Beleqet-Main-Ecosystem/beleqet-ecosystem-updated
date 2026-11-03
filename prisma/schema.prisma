@@ -1316,6 +1316,8 @@ enum PaymentProvider {
   STRIPE
   PAYPAL
   MANUAL
+  /// Chapa through Beleqet Pay: Telebirr, CBE Birr, banks and cards.
+  CHAPA
 }
 
 enum PaymentStatus {

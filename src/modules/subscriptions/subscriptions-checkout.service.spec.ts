@@ -2,11 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PaymentProvider } from '@prisma/client';
 import { SubscriptionsCheckoutService } from './subscriptions-checkout.service';
+import { PlanPaymentsService } from './plan-payments.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PaypalService } from '../payments/paypal.service';
 
 describe('SubscriptionsCheckoutService', () => {
+  const planPayments = { checkout: jest.fn() };
   let service: SubscriptionsCheckoutService;
   let prisma: { plan: { findUnique: jest.Mock }; subscription: { findUnique: jest.Mock } };
   let paypalService: { createSubscription: jest.Mock; cancelSubscription: jest.Mock };
@@ -31,6 +33,7 @@ describe('SubscriptionsCheckoutService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PaypalService, useValue: paypalService },
         { provide: SubscriptionsService, useValue: subscriptionsService },
+        { provide: PlanPaymentsService, useValue: planPayments },
       ],
     }).compile();
 
@@ -38,51 +41,10 @@ describe('SubscriptionsCheckoutService', () => {
   });
 
   describe('checkout', () => {
-    it('creates a PayPal billing agreement and links a local PENDING subscription to it', async () => {
-      prisma.plan.findUnique.mockResolvedValue({
-        id: 'plan1',
-        isActive: true,
-        paypalPlanId: 'P-123',
-        priceAmount: 99900,
-        currency: 'ETB',
-        name: 'Pro',
-      });
-      paypalService.createSubscription.mockResolvedValue({
-        id: 'I-AGREEMENT',
-        approvalUrl: 'https://paypal.example/approve',
-      });
-      subscriptionsService.createPendingCheckout.mockResolvedValue({ id: 'sub1' });
-
-      const result = await service.checkout('user1', { planId: 'plan1' });
-
-      expect(subscriptionsService.assertNoActiveSubscription).toHaveBeenCalledWith('user1');
-      expect(paypalService.createSubscription).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'user1', subscriptionPlanId: 'P-123', amount: 999 }),
-      );
-      expect(subscriptionsService.createPendingCheckout).toHaveBeenCalledWith({
-        userId: 'user1',
-        planId: 'plan1',
-        provider: PaymentProvider.PAYPAL,
-        providerSubscriptionId: 'I-AGREEMENT',
-      });
-      expect(result).toEqual({
-        subscription: { id: 'sub1' },
-        approvalUrl: 'https://paypal.example/approve',
-      });
-    });
-
-    it('throws NotFoundException for a missing or inactive plan', async () => {
-      prisma.plan.findUnique.mockResolvedValue(null);
-      await expect(service.checkout('user1', { planId: 'missing' })).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('throws BadRequestException when the plan has no paypalPlanId configured', async () => {
-      prisma.plan.findUnique.mockResolvedValue({ id: 'plan1', isActive: true, paypalPlanId: null });
-      await expect(service.checkout('user1', { planId: 'plan1' })).rejects.toThrow(
-        BadRequestException,
-      );
+    it('pays with Chapa: hands the plan to PlanPaymentsService and returns its checkout', async () => {
+      planPayments.checkout.mockResolvedValue({ paymentId: 'pay-1', checkoutUrl: 'https://pay.test/c' });
+      await expect(service.checkout('user-1', { planId: 'plan-1' })).resolves.toEqual({ paymentId: 'pay-1', checkoutUrl: 'https://pay.test/c' });
+      expect(planPayments.checkout).toHaveBeenCalledWith('user-1', 'plan-1');
     });
   });
 

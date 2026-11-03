@@ -1570,7 +1570,15 @@
         "FAILED": "Not accepted",
         "REFUNDED": "Refunded"
       }
-    }
+    },
+    "payment": {
+      "checking": "Checking your payment…",
+      "paid": "Payment received. Your plan is active.",
+      "failed": "The payment didn’t go through. You haven’t been charged; you can try again.",
+      "slow": "We haven’t heard back from Chapa yet. Your plan will start as soon as the payment is confirmed."
+    },
+    "paidUntil": "Paid until {date}",
+    "payNextPeriod": "Pay for the next month"
   },
   "tax": {
     "title": "Salary tax calculator",
@@ -1913,5 +1921,13 @@
     "failed": "We couldn’t send that. Try again.",
     "thanks": "Thanks. Our team will look at it.",
     "already": "You’ve already reported this."
+  },
+  "checkout": {
+    "noPlan": "That plan isn’t available.",
+    "viewPlans": "View plans",
+    "signIn": "Sign in to choose a plan.",
+    "failed": "We couldn’t open the payment page. Try again in a moment.",
+    "bankInstead": "Pay by bank transfer instead",
+    "redirecting": "Taking you to Chapa to pay with Telebirr, CBE Birr, your bank or a card…"
   }
 }

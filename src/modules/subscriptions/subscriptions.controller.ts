@@ -29,6 +29,7 @@ import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current
 import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionsCheckoutService } from './subscriptions-checkout.service';
 import { CheckoutDto } from './dto/checkout.dto';
+import { PlanPaymentsService } from './plan-payments.service';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('Subscriptions')
@@ -39,6 +40,7 @@ export class SubscriptionsController {
   constructor(
     private readonly subscriptionsService: SubscriptionsService,
     private readonly checkoutService: SubscriptionsCheckoutService,
+    private readonly planPayments: PlanPaymentsService,
   ) {}
 
   @Post('checkout')
@@ -46,13 +48,18 @@ export class SubscriptionsController {
   @ApiOperation({
     summary: 'Start a subscription checkout',
     description:
-      'Creates a gateway (PayPal) recurring billing agreement for the chosen plan and a local PENDING subscription. Redirect the user to the returned approvalUrl to activate it.',
+      'Opens a Chapa checkout (Telebirr, CBE Birr, banks, cards) for one period of the plan. Redirect the user to checkoutUrl; the plan starts when the payment is confirmed. Paying for the running plan adds a period; another plan replaces it.',
   })
-  @ApiResponse({ status: 201, description: 'Checkout started. Redirect user to approvalUrl.' })
+  @ApiResponse({ status: 201, description: 'Checkout started. Redirect user to checkoutUrl.' })
   @ApiResponse({ status: 404, description: 'Plan not found or inactive' })
-  @ApiResponse({ status: 409, description: 'User already has an active or pending subscription' })
   checkout(@CurrentUser() user: CurrentUserPayload, @Body() dto: CheckoutDto) {
     return this.checkoutService.checkout(user.userId, dto);
+  }
+
+  /** Whether a plan payment went through, for the page Chapa sends people back to. */
+  @Get('payments/:id')
+  paymentStatus(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
+    return this.planPayments.status(user.userId, id);
   }
 
   @Get('me')

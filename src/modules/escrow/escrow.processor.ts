@@ -8,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, ESCROW_JOBS, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { BeleqetPayService } from '../beleqet-pay/beleqet-pay.service';
 import { BeleqetPayWebhookPayload } from '../beleqet-pay/beleqet-pay.types';
+import { PlanPaymentsService } from '../subscriptions/plan-payments.service';
 
 const EscrowJobs: any = ESCROW_JOBS;
 
@@ -48,6 +49,7 @@ export class EscrowProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly paySwitch: BeleqetPayService,
+    private readonly planPayments: PlanPaymentsService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS)
     private readonly notificationsQueue: Queue,
     @InjectQueue(QUEUE_NAMES.ESCROW)
@@ -114,8 +116,16 @@ export class EscrowProcessor extends WorkerHost {
     });
 
     if (!escrow) {
+      // Chapa sends every payment here; one that isn't escrow may be a plan payment.
+      const successful =
+        eventName === 'payment.success' || eventName === 'charge.success' || status.toLowerCase() === 'success';
+      const handled = await this.planPayments.handlePaymentEvent({ txRef, externalRef: externalRef || undefined, successful });
+      if (handled) {
+        await this.markWebhookProcessed(eventKey, txRef, job.data);
+        return;
+      }
       this.logger.warn(
-        `[escrow-webhook] No escrow found for txRef=${txRef} externalRef=${externalRef}`,
+        `[escrow-webhook] No escrow or plan payment found for txRef=${txRef} externalRef=${externalRef}`,
       );
       return;
     }

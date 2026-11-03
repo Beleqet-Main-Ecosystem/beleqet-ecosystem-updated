@@ -29,6 +29,7 @@ import { Prisma } from '@prisma/client';
 import { PaypalService } from '../payments/paypal.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionsCheckoutService } from './subscriptions-checkout.service';
+import { PlanPaymentsService } from './plan-payments.service';
 import { BillingService } from '../billing/billing.service';
 import { WalletService } from '../wallet/wallet.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -165,6 +166,7 @@ describe('Subscription checkout -> webhook -> active flow (integration)', () => 
         PaypalService,
         SubscriptionsService,
         SubscriptionsCheckoutService,
+        { provide: PlanPaymentsService, useValue: { checkout: jest.fn() } },
         BillingService,
         { provide: PrismaService, useValue: prisma },
         { provide: ConfigService, useValue: config },
@@ -203,11 +205,8 @@ describe('Subscription checkout -> webhook -> active flow (integration)', () => 
       });
     });
 
-    const { subscription, approvalUrl } = await checkoutService.checkout('user-1', {
-      planId: 'plan-pro',
-    });
-
-    expect(approvalUrl).toBe('https://paypal.example/approve');
+    // New checkouts go through Chapa; PayPal webhooks still serve subscriptions set up through PayPal.
+    const subscription = await subscriptionsService.createPendingCheckout({ userId: 'user-1', planId: 'plan-pro', provider: 'PAYPAL', providerSubscriptionId: 'I-AGREEMENT-1' });
     expect(subscription.status).toBe('PENDING');
 
     // Simulate PayPal's webhook controller delivering BILLING.SUBSCRIPTION.ACTIVATED —
@@ -231,7 +230,7 @@ describe('Subscription checkout -> webhook -> active flow (integration)', () => 
       cb(null, { id: 'I-AGREEMENT-2', state: 'Pending', links: [] });
     });
 
-    await checkoutService.checkout('user-2', { planId: 'plan-pro' });
+    await subscriptionsService.createPendingCheckout({ userId: 'user-2', planId: 'plan-pro', provider: 'PAYPAL', providerSubscriptionId: 'I-AGREEMENT-2' });
     const paypalService = moduleRef.get(PaypalService);
     const event = {
       id: 'webhook-evt-2',
@@ -261,7 +260,7 @@ describe('Subscription checkout -> webhook -> active flow (integration)', () => 
     });
     (paypal.billingAgreement.cancel as jest.Mock).mockImplementation((_id, _opts, cb) => cb(null));
 
-    await checkoutService.checkout('user-4', { planId: 'plan-pro' });
+    await subscriptionsService.createPendingCheckout({ userId: 'user-4', planId: 'plan-pro', provider: 'PAYPAL', providerSubscriptionId: 'I-AGREEMENT-3' });
     const paypalService = moduleRef.get(PaypalService);
     await (paypalService as any).processWebhookEvent({
       id: 'webhook-evt-3',

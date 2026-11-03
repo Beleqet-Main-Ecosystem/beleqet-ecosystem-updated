@@ -53,7 +53,8 @@ export default function BankTransfer() {
   useEffect(load, [load]);
 
   const planName = (payment: Payment) => plans.find((plan) => plan.id === payment.metadata?.planId)?.name;
-  const money = (amount: number, currency: string) => `${currency} ${amount.toLocaleString('en-US')}`;
+  // Plan prices and plan payments are kept in santim.
+  const money = (amount: number, currency: string) => `${currency} ${(amount / 100).toLocaleString('en-US')}`;
 
   async function start() {
     if (!planId) return;

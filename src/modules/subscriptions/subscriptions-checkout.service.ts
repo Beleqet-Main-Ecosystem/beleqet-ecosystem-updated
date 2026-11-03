@@ -12,6 +12,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { PaypalService } from '../payments/paypal.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { CheckoutDto } from './dto/checkout.dto';
+import { PlanPaymentsService } from './plan-payments.service';
 
 @Injectable()
 export class SubscriptionsCheckoutService {
@@ -19,39 +20,16 @@ export class SubscriptionsCheckoutService {
     private readonly prisma: PrismaService,
     private readonly paypalService: PaypalService,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly planPayments: PlanPaymentsService,
   ) {}
 
   /**
-   * Starts a checkout: creates the PayPal billing agreement, then a local
-   * PENDING Subscription linked to it. The Subscription is promoted to
-   * ACTIVE by BillingService once the BILLING.SUBSCRIPTION.ACTIVATED
-   * webhook arrives (see billing.service.ts).
+   * Starts a checkout. Plans are paid with Chapa (decided 2026-11-03): one payment buys one
+   * period, and the plan starts when Beleqet Pay confirms it (PlanPaymentsService). PayPal is
+   * kept only to cancel subscriptions that were set up through it.
    */
   async checkout(userId: string, dto: CheckoutDto) {
-    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
-    if (!plan || !plan.isActive) throw new NotFoundException('Plan not found or inactive');
-    if (!plan.paypalPlanId) {
-      throw new BadRequestException('This plan is not yet configured for checkout');
-    }
-
-    await this.subscriptionsService.assertNoActiveSubscription(userId);
-
-    const result = await this.paypalService.createSubscription({
-      userId,
-      amount: plan.priceAmount / 100,
-      currency: plan.currency,
-      subscriptionPlanId: plan.paypalPlanId,
-      description: `Beleqet ${plan.name} subscription`,
-    });
-
-    const subscription = await this.subscriptionsService.createPendingCheckout({
-      userId,
-      planId: plan.id,
-      provider: PaymentProvider.PAYPAL,
-      providerSubscriptionId: result.id,
-    });
-
-    return { subscription, approvalUrl: result.approvalUrl };
+    return this.planPayments.checkout(userId, dto.planId);
   }
 
   /**

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { apiGet, apiSend } from '../api';
 import { card, Confirm, Heading, muted, outline, shortDate, solid } from '../ui';
@@ -9,6 +10,8 @@ import BankTransfer from './BankTransfer';
 
 type Subscription = {
   id: string;
+  planId?: string;
+  provider?: string | null;
   status: string;
   cancelAtPeriodEnd?: boolean;
   currentPeriodEnd?: string | null;
@@ -25,11 +28,30 @@ export default function PlanSection() {
   const [error, setError] = useState('');
   const [quota, setQuota] = useState<Quota | null>(null);
 
+  // Back from Chapa: watch the payment until it is confirmed, then show the plan it started.
+  const paymentId = useSearchParams().get('payment');
+  const [paymentState, setPaymentState] = useState<'' | 'checking' | 'paid' | 'failed' | 'slow'>(paymentId ? 'checking' : '');
+
   const load = useCallback(() => {
     apiGet<Subscription | null>('/subscriptions/me').then(setSubscription).catch(() => setSubscription(null));
     apiGet<Quota>('/jobs/my/quota').then(setQuota).catch(() => setQuota(null));
   }, []);
   useEffect(load, [load]);
+
+  useEffect(() => {
+    if (!paymentId) return;
+    let tries = 0;
+    const timer = setInterval(async () => {
+      tries += 1;
+      const payment = await apiGet<{ status: string }>(`/subscriptions/payments/${paymentId}`).catch(() => null);
+      if (payment?.status === 'SUCCEEDED' || payment?.status === 'FAILED' || tries >= 20) {
+        clearInterval(timer);
+        setPaymentState(payment?.status === 'SUCCEEDED' ? 'paid' : payment?.status === 'FAILED' ? 'failed' : 'slow');
+        load();
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [paymentId, load]);
 
   if (subscription === undefined) return <div className="min-h-[40vh]" />;
 
@@ -58,16 +80,27 @@ export default function PlanSection() {
     <>
       <Heading title={t('emp.tabs.plan')} />
       {error && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{error}</p>}
+      {paymentState && (
+        <p role="status" className={`rounded-lg p-3.5 text-sm font-semibold ${paymentState === 'failed' ? 'bg-[#FDECEC] text-[#9B2C2C] dark:bg-red-900/20 dark:text-red-200' : 'bg-[#F1F7EC] text-forest dark:bg-limeAccent/10 dark:text-limeAccent'}`}>
+          {t(`emp.payment.${paymentState}`)}
+        </p>
+      )}
       <section className={`${card} flex flex-wrap items-center justify-between gap-4`}>
         <span className="flex flex-col gap-1">
           <b className="text-xl text-ink-900 dark:text-white">{plan?.name ?? 'Free'}</b>
           {plan?.priceAmount ? <span className="text-sm text-ink-700 dark:text-slate-300">{plan.currency} {(plan.priceAmount / 100).toLocaleString('en-US')} / {t('pricing.month')}</span> : null}
           {subscription?.currentPeriodEnd && (
-            <span className={muted}>{t(active ? 'dash.renews' : 'dash.ends').replace('{date}', shortDate(subscription.currentPeriodEnd, locale))}</span>
+            // Paypal renews by itself; a Chapa or bank-transfer plan runs until the paid period ends.
+            <span className={muted}>
+              {t(active && subscription.provider === 'PAYPAL' ? 'dash.renews' : active ? 'emp.paidUntil' : 'dash.ends').replace('{date}', shortDate(subscription.currentPeriodEnd, locale))}
+            </span>
           )}
         </span>
         <span className="flex flex-wrap gap-2">
-          <Link href="/pricing" className={solid}>{t('emp.changePlan')}</Link>
+          {active && subscription.provider !== 'PAYPAL' && subscription.planId && plan?.priceAmount ? (
+            <Link href={`/checkout?planId=${subscription.planId}`} className={solid}>{t('emp.payNextPeriod')}</Link>
+          ) : null}
+          <Link href="/pricing" className={active && subscription.provider !== 'PAYPAL' ? outline : solid}>{t('emp.changePlan')}</Link>
           {active && <button type="button" onClick={() => setCancelling(true)} className={outline}>{t('dash.cancelPlan')}</button>}
         </span>
       </section>

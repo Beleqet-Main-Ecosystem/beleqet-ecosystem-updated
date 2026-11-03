@@ -226,7 +226,7 @@ export default function AdminReview() {
         {transfers.map((transfer) => (
           <div key={transfer.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-200 py-3 text-sm dark:border-slate-800">
             <span>
-              <b>{transfer.currency} {transfer.amount.toLocaleString('en-US')}</b> · ref {transfer.transactionReference ?? '—'} · {new Date(transfer.createdAt).toLocaleString()}
+              <b>{transfer.currency} {(transfer.amount / 100).toLocaleString('en-US')}</b> · ref {transfer.transactionReference ?? '—'} · {new Date(transfer.createdAt).toLocaleString()}
               {transfer.metadata?.planId && <span className="text-ink-500"> · starts a plan</span>}
             </span>
             <span className="flex gap-2">

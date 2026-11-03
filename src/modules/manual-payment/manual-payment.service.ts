@@ -8,7 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UploadsService } from '../uploads/uploads.service';
 import { CreateManualPaymentDto, SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
-import { addInterval } from '../subscriptions/subscriptions.service';
+import { activatePaidPlan } from '../subscriptions/activate-plan';
 
 export interface ManualPaymentRecord {
   id: string;
@@ -77,40 +77,6 @@ export class ManualPaymentService {
     return payments.map((payment) => this.toRecord(payment));
   }
 
-  /**
-   * After an admin approves a plan payment: start the plan, or add a period to the same plan
-   * if it is already running. Any other running plan ends, so there is one subscription at a time.
-   */
-  private async activatePlan(tx: Prisma.TransactionClient, userId: string, planId: string): Promise<string> {
-    const plan = await tx.plan.findUniqueOrThrow({ where: { id: planId } });
-    const now = new Date();
-    const running = await tx.subscription.findFirst({
-      where: { userId, planId, status: 'ACTIVE', currentPeriodEnd: { gt: now } },
-      orderBy: { currentPeriodEnd: 'desc' },
-    });
-    if (running) {
-      await tx.subscription.update({
-        where: { id: running.id },
-        data: { currentPeriodEnd: addInterval(running.currentPeriodEnd, plan.interval), cancelAtPeriodEnd: false },
-      });
-      return running.id;
-    }
-    await tx.subscription.updateMany({
-      where: { userId, status: { in: ['ACTIVE', 'PAST_DUE'] } },
-      data: { status: 'CANCELLED' },
-    });
-    const created = await tx.subscription.create({
-      data: {
-        userId,
-        planId,
-        status: 'ACTIVE',
-        provider: PaymentProvider.MANUAL,
-        currentPeriodStart: now,
-        currentPeriodEnd: addInterval(now, plan.interval),
-      },
-    });
-    return created.id;
-  }
 
   /**
    * Attaches a receipt file + transaction reference to an existing PENDING
@@ -217,7 +183,7 @@ export class ManualPaymentService {
         data: { status: PaymentStatus.SUCCEEDED },
       });
       if (count === 0) return tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
-      const subscriptionId = planId ? await this.activatePlan(tx, payment.userId, planId) : undefined;
+      const subscriptionId = planId ? await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.MANUAL) : undefined;
       return tx.payment.update({
         where: { id: paymentId },
         data: {
@@ -240,7 +206,7 @@ export class ManualPaymentService {
           userId: payment.userId,
           type: 'PAYMENT_RECEIVED',
           title: 'Payment Approved',
-          body: `Your manual payment of ${payment.amount} ${payment.currency} has been approved.`,
+          body: `Your payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} has been approved.`,
           channel: 'IN_APP',
           metadata: { paymentId: payment.id, approvedBy: adminId },
         },
@@ -263,7 +229,7 @@ export class ManualPaymentService {
           variables: {
             name: userName,
             transactionId: payment.id,
-            amount: payment.amount,
+            amount: (payment.amount / 100).toLocaleString('en-US'),
             currency: payment.currency,
             paidAt: new Date().toLocaleDateString('en-US'),
             reference: payment.transactionReference ?? 'N/A',
@@ -317,7 +283,7 @@ export class ManualPaymentService {
           userId: payment.userId,
           type: 'PAYMENT_RECEIVED',
           title: 'Payment Rejected',
-          body: `Your manual payment of ${payment.amount} ${payment.currency} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+          body: `Your payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
           channel: 'IN_APP',
           metadata: { paymentId: payment.id, rejectedBy: adminId, reason },
         },
@@ -398,7 +364,7 @@ export class ManualPaymentService {
         userId: payment.userId,
         variables: {
           paymentId: payment.id,
-          amount: payment.amount,
+          amount: (payment.amount / 100).toLocaleString('en-US'),
           currency: payment.currency,
           reference,
           receiptUrl,
@@ -417,7 +383,7 @@ export class ManualPaymentService {
         await this.postJson(webhookUrl, webhookSecret, {
           action: 'manual_payment_uploaded',
           order_id: payment.id,
-          amount: payment.amount,
+          amount: (payment.amount / 100).toLocaleString('en-US'),
           currency: payment.currency,
           reference,
           receipt_url: receiptUrl,
@@ -501,7 +467,7 @@ export class ManualPaymentService {
           userId: payment.userId,
           type: 'PAYMENT_RECEIVED',
           title: 'Payment Receipt Submitted',
-          body: `Your payment receipt of ${payment.amount} ${payment.currency} (Ref: ${reference}) was received and is under review.`,
+          body: `Your payment receipt of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} (Ref: ${reference}) was received and is under review.`,
           channel: 'IN_APP',
           metadata: { paymentId: payment.id, reference },
         },
@@ -518,7 +484,7 @@ export class ManualPaymentService {
             userId: admin.id,
             type: 'PAYMENT_RECEIVED',
             title: 'New Manual Payment Received',
-            body: `A manual payment of ${payment.amount} ${payment.currency} (Ref: ${reference}) was submitted and requires review.`,
+            body: `A manual payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} (Ref: ${reference}) was submitted and requires review.`,
             channel: 'IN_APP',
             metadata: { paymentId: payment.id, reference },
           },
