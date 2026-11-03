@@ -15,6 +15,10 @@ const SKIP_PATH_FRAGMENTS = [
   '/api-json',
 ];
 
+/** Reads worth recording: personal-data exports, receipts and dispute evidence. */
+const SENSITIVE_READ_FRAGMENTS = ['/gdpr', '/compliance', '/export', '/receipt', '/arbitration'];
+const READ_METHODS = ['GET', 'HEAD', 'OPTIONS'];
+
 interface AuthenticatedRequest extends Request {
   user?: {
     userId?: string;
@@ -48,13 +52,13 @@ export class AuditInterceptor implements NestInterceptor {
     const req = http.getRequest<AuthenticatedRequest>();
     const res = http.getResponse<Response>();
     const path = this.resolvePath(req);
+    const method = (req.method || 'GET').toUpperCase();
 
-    if (this.shouldSkip(path)) {
+    if (this.shouldSkip(path) || !this.isWorthRecording(method, path)) {
       return next.handle();
     }
 
     const startedAt = Date.now();
-    const method = (req.method || 'GET').toUpperCase();
 
     return next.handle().pipe(
       tap({
@@ -78,6 +82,20 @@ export class AuditInterceptor implements NestInterceptor {
   shouldSkip(path: string): boolean {
     const normalized = path.toLowerCase();
     return SKIP_PATH_FRAGMENTS.some((fragment) => normalized.includes(fragment));
+  }
+
+  /**
+   * Changes are always recorded; plain reads only when they expose personal data.
+   * Recording every page load buried admin actions under polling traffic.
+   *
+   * @param method - HTTP method
+   * @param path - Request path
+   * @returns Whether the request belongs in the audit trail
+   */
+  isWorthRecording(method: string, path: string): boolean {
+    if (!READ_METHODS.includes(method.toUpperCase())) return true;
+    const normalized = path.toLowerCase();
+    return SENSITIVE_READ_FRAGMENTS.some((fragment) => normalized.includes(fragment));
   }
 
   /**

@@ -19,6 +19,8 @@ export interface ManualPaymentRecord {
   transactionReference: string | null;
   receiptUrl: string | null;
   metadata?: Record<string, unknown> | null;
+  /** Admin list only. */
+  payer?: { firstName: string; lastName: string; email: string } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -148,14 +150,16 @@ export class ManualPaymentService {
   }
 
   /** Lists all manual payments (admin use) */
-  async findAll(page = 1, limit = 20): Promise<ManualPaymentRecord[]> {
+  async findAll(page = 1, limit = 20, status?: PaymentStatus): Promise<ManualPaymentRecord[]> {
     const payments = await this.prisma.payment.findMany({
-      where: { provider: PaymentProvider.MANUAL },
+      where: { provider: PaymentProvider.MANUAL, ...(status ? { status } : {}) },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
+      include: { user: { select: { firstName: true, lastName: true, email: true } } },
     });
-    return payments.map(this.toRecord);
+    // Admins need to see who paid; nothing else about the account is sent.
+    return payments.map((payment) => ({ ...this.toRecord(payment), payer: payment.user }));
   }
 
   /**

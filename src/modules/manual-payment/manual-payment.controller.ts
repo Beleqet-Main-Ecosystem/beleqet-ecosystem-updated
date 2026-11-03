@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   DefaultValuePipe,
@@ -16,6 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { PaymentStatus } from '@prisma/client';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -63,8 +65,11 @@ export class ManualPaymentController {
   async list(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('status') status?: string,
   ): Promise<ManualPaymentRecord[]> {
-    return this.manualPaymentService.findAll(page, limit);
+    const known = Object.values(PaymentStatus) as string[];
+    if (status && !known.includes(status)) throw new BadRequestException(`status must be one of ${known.join(', ')}`);
+    return this.manualPaymentService.findAll(page, Math.min(limit, 100), status as PaymentStatus | undefined);
   }
 
   @Patch('admin/:id/approve')

@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import { assertRemovalAllowed } from '../admin/admin-rules';
 
 export interface DataErasureAuditContext {
   reason: string;
@@ -94,6 +95,14 @@ export class GdprGuardService {
       return result;
     }
     return value;
+  }
+
+  /** An admin erasing someone else: never themselves, never the last active admin. */
+  async assertAdminMayErase(actorUserId: string, userUuid: string): Promise<void> {
+    const target = await this.prisma.user.findUnique({ where: { id: userUuid }, select: { id: true, role: true, isActive: true } });
+    if (!target) throw new NotFoundException(`User with ID ${userUuid} was not found in the ecosystem.`);
+    const activeAdmins = await this.prisma.user.count({ where: { role: 'ADMIN', isActive: true } });
+    assertRemovalAllowed(actorUserId, target, activeAdmins);
   }
 
   async executeDataErasure(

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -21,9 +22,13 @@ import {
   MinLength,
   IsArray,
   IsIn,
+  IsInt,
+  Max,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import * as bcrypt from 'bcryptjs';
-import { JobStatus, FreelanceJobStatus } from '@prisma/client';
+import { JobStatus, FreelanceJobStatus, Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -39,6 +44,7 @@ import { ResolveFraudAlertDto } from '../fraud-alert/dto/resolve-fraud-alert.dto
 import { CreateFraudRuleDto, UpdateFraudRuleDto } from '../fraud-alert/dto/create-fraud-rule.dto';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { AuditLoggingService } from '../audit-logging/audit-logging.service';
+import { assertAccountChangeAllowed, assertGigModeration, assertJobModeration, assertRemovalAllowed } from './admin-rules';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -59,6 +65,13 @@ class UpdateUserDto {
   @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
   @IsOptional() @IsBoolean() isActive?: boolean;
   @IsOptional() @IsBoolean() kycVerified?: boolean;
+}
+class ListUsersQueryDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page: number = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit: number = 25;
+  @IsOptional() @IsString() search?: string;
+  @IsOptional() @IsEnum(ManagedRole) role?: ManagedRole;
+  @IsOptional() @IsIn(['active', 'suspended']) status?: 'active' | 'suspended';
 }
 class UpdateJobModerationStatusDto {
   @IsEnum(JobStatus) status!: JobStatus;
@@ -107,13 +120,38 @@ export class AdminController {
 
   @RequirePermissions('manage:users')
   @Get('users')
-  @ApiOperation({ summary: 'List all users' })
-  async getUsers() {
-    const users = await this.prisma.user.findMany({ select: safeUserSelect, orderBy: { createdAt: 'desc' } });
-    return users.map((u) => ({
-      ...u,
-      twoFactorEnabled: u.twoFactor?.enabled ?? false,
-    }));
+  @ApiOperation({ summary: 'List users a page at a time, with search and filters' })
+  async getUsers(@Query() query: ListUsersQueryDto) {
+    const search = query.search?.trim();
+    const where: Prisma.UserWhereInput = {
+      ...(query.role ? { role: query.role } : {}),
+      ...(query.status ? { isActive: query.status === 'active' } : {}),
+      ...(search
+        ? {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: safeUserSelect,
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return {
+      data: users.map((u) => ({ ...u, twoFactorEnabled: u.twoFactor?.enabled ?? false })),
+      total,
+      page: query.page,
+      limit: query.limit,
+    };
   }
 
   @RequirePermissions('manage:users')
@@ -139,7 +177,9 @@ export class AdminController {
   @RequirePermissions('manage:users')
   @Patch('users/:id')
   @ApiOperation({ summary: 'Update a user (role, isActive ban/activate, kyc)' })
-  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  async updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() admin: CurrentUserPayload) {
+    const target = await this.findAccount(id);
+    assertAccountChangeAllowed(admin.userId, target, dto, await this.activeAdminCount());
     const user = await this.prisma.user.update({ where: { id }, data: dto, select: safeUserSelect });
     return {
       ...user,
@@ -284,6 +324,9 @@ export class AdminController {
     @Param('id') id: string,
     @Body() dto: UpdateJobModerationStatusDto,
   ) {
+    const current = await this.prisma.job.findUnique({ where: { id }, select: { status: true } });
+    if (!current) throw new NotFoundException('Job not found');
+    assertJobModeration(current.status, dto.status);
     const job = await this.prisma.job.update({
       where: { id },
       data: { status: dto.status },
@@ -299,6 +342,9 @@ export class AdminController {
     @Param('id') id: string,
     @Body() dto: UpdateGigModerationStatusDto,
   ) {
+    const current = await this.prisma.freelanceJob.findUnique({ where: { id }, select: { status: true } });
+    if (!current) throw new NotFoundException('Project not found');
+    assertGigModeration(current.status, dto.status);
     const gig = await this.prisma.freelanceJob.update({
       where: { id },
       data: { status: dto.status },
@@ -311,10 +357,29 @@ export class AdminController {
   @Delete('users/:id')
   @ApiOperation({ summary: 'Delete a user without dependent records' })
   async deleteUser(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
-    if (id === admin.userId)
-      return { deleted: false, reason: 'You cannot delete your own admin account' };
-    await this.prisma.user.delete({ where: { id } });
+    assertRemovalAllowed(admin.userId, await this.findAccount(id), await this.activeAdminCount());
+    try {
+      await this.prisma.user.delete({ where: { id } });
+    } catch (error) {
+      // Applications, payments, messages and contracts point at the account; keep them intact.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new ConflictException(
+          'This account has activity on the platform, so it can’t be deleted. Suspend it, or erase its personal data.',
+        );
+      }
+      throw error;
+    }
     return { deleted: true };
+  }
+
+  private async findAccount(id: string) {
+    const account = await this.prisma.user.findUnique({ where: { id }, select: { id: true, role: true, isActive: true } });
+    if (!account) throw new NotFoundException('User not found');
+    return account;
+  }
+
+  private activeAdminCount() {
+    return this.prisma.user.count({ where: { role: 'ADMIN', isActive: true } });
   }
 
   @Get('contacts')

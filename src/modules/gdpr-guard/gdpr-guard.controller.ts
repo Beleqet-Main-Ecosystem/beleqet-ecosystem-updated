@@ -30,6 +30,7 @@ export class GdprGuardController {
     @Body() dto: DataErasureRequestDto,
     @CurrentUser() admin: CurrentUserPayload,
   ): Promise<{ success: boolean; scrubbedAt: string; referenceId: string }> {
+    await this.gdprGuardService.assertAdminMayErase(admin.userId, dto.userId);
     return this.gdprGuardService.executeDataErasure(dto.userId, {
       reason: dto.reason,
       actorUserId: admin.userId,
