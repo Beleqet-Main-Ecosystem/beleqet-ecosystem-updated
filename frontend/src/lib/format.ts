@@ -1,43 +1,37 @@
-/** Display helpers for Admin Stats (minor units → readable money). */
+import type { Locale } from './i18n';
 
-export function formatMinorMoney(amount: number, currency: string): string {
-  const major = amount / 100;
+const tag = (locale: Locale) => (locale === 'am' ? 'am-ET' : 'en-GB');
+
+export const formatDate = (iso: string | null | undefined, locale: Locale) =>
+  iso ? new Date(iso).toLocaleDateString(tag(locale), { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+export const formatDateTime = (iso: string | null | undefined, locale: Locale) =>
+  iso ? new Date(iso).toLocaleString(tag(locale), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+
+export const formatNumber = (value: number, locale: Locale) => value.toLocaleString(tag(locale));
+
+/** Amounts the API stores in santim (minor units). */
+export const formatMinor = (minor: number, currency: string, locale: Locale) =>
+  `${currency} ${(minor / 100).toLocaleString(tag(locale), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Amounts the API stores in whole birr (contracts, listings). */
+export const formatMajor = (major: number, currency: string, locale: Locale) => `${currency} ${major.toLocaleString(tag(locale))}`;
+
+export const fullName = (person: { firstName?: string | null; lastName?: string | null } | null | undefined) =>
+  `${person?.firstName ?? ''} ${person?.lastName ?? ''}`.trim() || '—';
+
+/** Only http(s) links are opened; anything else (javascript:, data:) is dropped. */
+export function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
   try {
-    return new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 2,
-    }).format(major);
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
   } catch {
-    return `${major.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`;
+    return null;
   }
 }
 
-export function formatCompactNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, {
-    notation: value >= 10_000 ? 'compact' : 'standard',
-    maximumFractionDigits: 1,
-  }).format(value);
-}
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://beleqetjobs.com';
 
-export function formatShortDate(isoOrYmd: string): string {
-  if (/^\d{4}-\d{2}$/.test(isoOrYmd)) return isoOrYmd;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(isoOrYmd)) {
-    const d = new Date(`${isoOrYmd}T12:00:00Z`);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  }
-  const d = new Date(isoOrYmd);
-  if (Number.isNaN(d.getTime())) return isoOrYmd;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-export function formatChartTick(date: string, granularity: 'day' | 'month'): string {
-  if (granularity === 'month' || /^\d{4}-\d{2}$/.test(date)) {
-    const [y, m] = date.split('-');
-    const label = new Date(Date.UTC(Number(y), Number(m) - 1, 1)).toLocaleDateString(undefined, {
-      month: 'short',
-    });
-    return `${label} ${y?.slice(2) ?? ''}`.trim();
-  }
-  return formatShortDate(date);
-}
+/** Free-text codes from the API (JOB_LISTING, EscrowTransaction) as plain words. */
+export const words = (code: string) => code.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();

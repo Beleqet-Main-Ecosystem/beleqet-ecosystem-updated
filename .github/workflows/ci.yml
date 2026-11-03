@@ -227,9 +227,8 @@ jobs:
       - run: npm run lint
       - name: TypeScript validation
         run: npx tsc --noEmit
-      # No unit-test suite exists for the admin frontend; this job
-      # deliberately does not claim one. Coverage comes from lint, type
-      # checking, the production build, and the Playwright E2E job.
+      - name: Unit tests
+        run: npm test -- --ci
       - name: Production build
         run: npm run build
 
@@ -308,7 +307,16 @@ jobs:
         run: npm run prisma:migrate:deploy
       - run: npm run build
 
-      - name: Run Playwright E2E Tests with backend
+      - name: Create the test admin account
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
+        run: node create-admin.js
+
+      - name: Run admin Playwright E2E tests with backend
+        env:
+          API_URL: http://127.0.0.1:4000/api/v1
+          ADMIN_EMAIL: admin@beleqet.com
+          ADMIN_PASSWORD: SecurePass123!
         run: |
           if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
           BACKEND_PID=$!
@@ -316,8 +324,7 @@ jobs:
           cd frontend
           npm ci
           npx playwright install --with-deps chromium
-          npx playwright test --config playwright.config.ts --trace retain-on-failure
-          npx playwright test --config playwright.harness.config.ts --trace retain-on-failure
+          npx playwright test --trace retain-on-failure
           kill "$BACKEND_PID"
 
       - name: Upload Playwright report and traces on failure

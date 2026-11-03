@@ -173,3 +173,9 @@ Put secrets in `.env` or a password manager, not in chat.
 | A47 | **Security:** GET /applications/:id returned any application to any signed-in user, with the applicant's full account row including the password hash. Now the applicant or the hiring employer only, with safe fields | Done |
 | A48 | The admin disputes list sent full user rows (password hashes included) to the browser; now names and emails only | Done |
 | A49 | Content needed: the bank account people pay into for bank transfers. Set NEXT_PUBLIC_BANK_TRANSFER_DETAILS | Blocked |
+| A50 | **Security:** sign-up accepted the ADMIN role, so anyone could make themselves an administrator. Sign-up now only takes job seeker, employer or freelancer. Check production for admin accounts nobody created on purpose | Done |
+| A51 | One admin app: the old `frontend/` app and the website's `/admin` were replaced by a new `frontend/` built on the website's design (dark mode, Amharic, two-step sign-in). The website's `/admin` redirects there (NEXT_PUBLIC_ADMIN_URL). Every page works at phone width; long lists are paged | Done |
+| A52 | Admin safety: admins can't demote, suspend, delete or erase themselves; the last active admin can't be removed; making someone an admin asks first. Deleting an account with history explains why and offers to erase its personal data | Done |
+| A53 | Moderation only takes listings down; "Approve" used to re-open cancelled projects and taken-down jobs. Funded or in-progress projects are refused (their escrow is settled through a dispute) | Done |
+| A54 | The audit trail recorded every page load (312,000 rows, mostly notification polling). It now records changes and personal-data reads only. The old rows are still in `events_log`; deleting them is a decision for the team | Done |
+| A55 | Admin lists: users are paged and searchable on the server; bank transfers show who paid and filter by status | Done |
