@@ -20,10 +20,11 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: `npx next dev -p ${PORT}`,
+        // CI tests the production build; locally the dev server is quicker to start.
+        command: process.env.CI ? `npm run build && npx next start -p ${PORT}` : `npx next dev -p ${PORT}`,
         url: `http://127.0.0.1:${PORT}/login`,
         reuseExistingServer: true,
-        timeout: 120_000,
+        timeout: 300_000,
         env: { NEXT_PUBLIC_API_URL: API_URL },
       },
 });

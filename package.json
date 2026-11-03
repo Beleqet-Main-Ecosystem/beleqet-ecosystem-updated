@@ -168,8 +168,5 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  },
-  "optionalDependencies": {
-    "@next/swc-win32-x64-msvc": "npm:null@*"
   }
 }

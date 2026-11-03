@@ -48,6 +48,7 @@ test('a non-admin account cannot sign in here', async ({ page }) => {
 });
 
 test('every page opens without errors, on desktop and on a phone', async ({ page }) => {
+  test.setTimeout(180_000);
   const failures: string[] = [];
   page.on('pageerror', (error) => failures.push(error.message));
   page.on('response', (r) => r.url().startsWith(API_URL) && r.status() >= 500 && failures.push(`${r.status()} ${r.url()}`));

@@ -5,13 +5,18 @@ import { ForumService } from './forum.service';
 import { CommunityForumModule } from './forum.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { REDIS_CLIENT } from '../redis/redis.module';
 
 const mockI18n = { t: jest.fn(() => 'translated') };
 
 @Global()
 @Module({
-  providers: [{ provide: I18nService, useValue: mockI18n }],
-  exports: [I18nService],
+  providers: [
+    { provide: I18nService, useValue: mockI18n },
+    // The moderation route's RolesGuard caches permissions in Redis; the app provides it globally.
+    { provide: REDIS_CLIENT, useValue: { get: jest.fn(), set: jest.fn(), del: jest.fn() } },
+  ],
+  exports: [I18nService, REDIS_CLIENT],
 })
 class MockI18nModule {}
 

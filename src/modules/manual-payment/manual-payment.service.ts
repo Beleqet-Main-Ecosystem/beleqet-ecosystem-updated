@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
+import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as https from 'https';
 import { EmailService } from '../email-automation/email.service';
@@ -40,7 +40,10 @@ export class ManualPaymentService {
    * Creates a new PENDING manual payment record that the customer will
    * complete by uploading a receipt.
    */
-  async createManualPayment(userId: string, input: CreateManualPaymentDto): Promise<ManualPaymentRecord> {
+  async createManualPayment(
+    userId: string,
+    input: CreateManualPaymentDto,
+  ): Promise<ManualPaymentRecord> {
     // Paying for a plan: the price is the plan's, never what the browser sends.
     let plan: { id: string; name: string; priceAmount: number; currency: string } | null = null;
     if (input.planId) {
@@ -62,7 +65,9 @@ export class ManualPaymentService {
         amount: plan ? plan.priceAmount : input.amount!,
         currency: plan ? plan.currency : input.currency!,
         status: PaymentStatus.PENDING,
-        description: plan ? `${plan.name} plan by bank transfer` : input.description ?? 'Manual bank transfer payment',
+        description: plan
+          ? `${plan.name} plan by bank transfer`
+          : (input.description ?? 'Manual bank transfer payment'),
         metadata: plan ? { planId: plan.id } : undefined,
       },
     });
@@ -79,7 +84,6 @@ export class ManualPaymentService {
     });
     return payments.map((payment) => this.toRecord(payment));
   }
-
 
   /**
    * Attaches a receipt file + transaction reference to an existing PENDING
@@ -188,7 +192,9 @@ export class ManualPaymentService {
         data: { status: PaymentStatus.SUCCEEDED },
       });
       if (count === 0) return tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
-      const subscriptionId = planId ? await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.MANUAL) : undefined;
+      const subscriptionId = planId
+        ? await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.MANUAL)
+        : undefined;
       return tx.payment.update({
         where: { id: paymentId },
         data: {

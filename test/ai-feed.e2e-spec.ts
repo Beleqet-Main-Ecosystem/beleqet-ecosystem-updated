@@ -52,6 +52,10 @@ describe('AiFeed (e2e)', () => {
     savedJob: {
       findMany: jest.fn().mockResolvedValue([]),
     },
+    // Jobs the person chose to hide are left out of their feed.
+    hiddenJob: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     job: {
       findMany: jest.fn().mockResolvedValue(mockJobs),
     },
