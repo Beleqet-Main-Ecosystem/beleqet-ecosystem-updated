@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import ReportButton from '@/features/reports/ReportButton';
 import { useRouter } from 'next/navigation';
 import { Check, ExternalLink, Mail, Share2, ShieldCheck } from 'lucide-react';
 import SaveJobButton from '@/components/SaveJobButton';
@@ -284,6 +285,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
             <div className="flex flex-col gap-1.5">
               <h2 id="safe-h" className="text-[15px] font-bold text-ink-900 dark:text-white">{t('job.safeTitle')}</h2>
               <p className="text-sm leading-relaxed text-ink-600 dark:text-slate-400">{t('job.safeText')}</p>
+              <ReportButton targetType="JOB" targetId={job.id} className="self-start text-sm font-bold text-forest hover:underline dark:text-limeAccent" />
             </div>
           </section>
         </aside>

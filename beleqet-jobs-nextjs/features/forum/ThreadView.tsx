@@ -9,7 +9,10 @@ import { createReply, toggleReplyUpvote, toggleThreadUpvote, type ForumReply, ty
 import { useTranslation } from '@/lib/i18n';
 import { postedAgo } from '@/features/jobs/format';
 import { forumCard, forumSolid } from './ForumList';
+import ReportButton from '@/features/reports/ReportButton';
+import { authenticatedFetch } from '@/lib/auth';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const MAX_REPLY = 5000;
 
 function Vote({ count, onVote, label, big }: { count: number; onVote: () => Promise<number | null>; label: string; big?: boolean }) {
@@ -48,6 +51,7 @@ function ReplyItem({ reply, locked, onReply, depth = 0 }: { reply: ForumReply; l
         <span className="flex items-center gap-2">
           <Vote count={reply.upvoteCount} onVote={vote} label={t('forum.upvote')} />
           {!locked && <button type="button" onClick={() => onReply(reply)} className="min-h-9 px-2 text-[13px] font-bold text-forest dark:text-limeAccent">{t('forum.replyAction')}</button>}
+          <ReportButton targetType="FORUM_REPLY" targetId={reply.id} />
         </span>
       </div>
       {reply.childReplies && reply.childReplies.length > 0 && (
@@ -80,6 +84,25 @@ export default function ThreadView({ thread }: { thread: ForumThread & { replies
   const [parent, setParent] = useState<ForumReply | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [pinned, setPinned] = useState(thread.isPinned);
+  const [locked, setLocked] = useState(thread.isLocked);
+  const isAdmin = user?.role === 'ADMIN';
+
+  // Admins pin a thread to the top of the list, or lock it against new replies.
+  async function moderate(change: { isPinned?: boolean; isLocked?: boolean }) {
+    setError('');
+    const response = await authenticatedFetch(`${API_URL}/forum/threads/${thread.id}/moderation`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(change),
+    }).catch(() => null);
+    if (!response?.ok) {
+      setError(t('forum.modFailed'));
+      return;
+    }
+    if (change.isPinned !== undefined) setPinned(change.isPinned);
+    if (change.isLocked !== undefined) setLocked(change.isLocked);
+  }
 
   const voteThread = async () => {
     const token = getToken();
@@ -112,7 +135,7 @@ export default function ThreadView({ thread }: { thread: ForumThread & { replies
           <nav aria-label={t('freelance.contract.breadcrumb')} className="text-[13px] text-white/70">
             <Link href="/forum" className="hover:underline">{t('forum.title')}</Link>
           </nav>
-          {thread.isLocked && (
+          {locked && (
             <span className="inline-flex items-center gap-1.5 self-start rounded-md bg-white/10 px-2 py-0.5 text-xs font-bold"><Lock className="h-3 w-3" aria-hidden="true" />{t('forum.locked')}</span>
           )}
           <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em] md:text-[32px]">{thread.title}</h1>
@@ -132,6 +155,19 @@ export default function ThreadView({ thread }: { thread: ForumThread & { replies
                 ))}
               </div>
             )}
+            <div className="flex flex-wrap items-center gap-3">
+              <ReportButton targetType="FORUM_THREAD" targetId={thread.id} />
+              {isAdmin && (
+                <>
+                  <button type="button" onClick={() => moderate({ isPinned: !pinned })} className="min-h-9 text-[13px] font-bold text-forest hover:underline dark:text-limeAccent">
+                    {t(pinned ? 'forum.unpin' : 'forum.pin')}
+                  </button>
+                  <button type="button" onClick={() => moderate({ isLocked: !locked })} className="min-h-9 text-[13px] font-bold text-forest hover:underline dark:text-limeAccent">
+                    {t(locked ? 'forum.unlock' : 'forum.lock')}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </article>
 
@@ -142,13 +178,13 @@ export default function ThreadView({ thread }: { thread: ForumThread & { replies
           ) : (
             <ul className="divide-y divide-[#F1F4F6] dark:divide-slate-800">
               {replies.map((reply) => (
-                <ReplyItem key={reply.id} reply={reply} locked={thread.isLocked} onReply={setParent} />
+                <ReplyItem key={reply.id} reply={reply} locked={locked} onReply={setParent} />
               ))}
             </ul>
           )}
         </section>
 
-        {thread.isLocked ? (
+        {locked ? (
           <p className={`${forumCard} text-sm text-ink-700 dark:text-slate-300`}>{t('forum.lockedText')}</p>
         ) : ready && !user ? (
           <p className={`${forumCard} text-sm text-ink-700 dark:text-slate-300`}>

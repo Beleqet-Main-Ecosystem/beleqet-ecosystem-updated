@@ -257,6 +257,8 @@ export type Gig = {
   /** Status FUNDED: the client's money is already in escrow. */
   funded: boolean;
   createdAt: string | null;
+  /** "Abebe K.": first name and initial, on lists. */
+  clientName: string | null;
 };
 
 function toGig(raw: any): Gig {
@@ -277,6 +279,7 @@ function toGig(raw: any): Gig {
     featured: Boolean(raw.featured),
     funded: raw.status === 'FUNDED',
     createdAt: raw.createdAt ?? null,
+    clientName: raw.clientName ?? null,
   };
 }
 
@@ -293,7 +296,7 @@ export type GigSearchResult = {
 };
 
 /** Search open projects with the API's filters (featured first, then newest). */
-export async function searchGigs(params: { q?: string; category?: string; page?: number; limit?: number }): Promise<GigSearchResult> {
+export async function searchGigs(params: { q?: string; category?: string; sort?: 'budget_high' | 'budget_low'; page?: number; limit?: number }): Promise<GigSearchResult> {
   try {
     const { data: raw } = await api.get<{ items?: any[]; total?: number; page?: number; totalPages?: number }>('/freelance/jobs', { params });
     const data = assertListResponse(raw, 'GET /freelance/jobs');
@@ -318,6 +321,8 @@ export type GigDetail = Gig & {
   attachments: string[];
   /** Still taking bids. */
   open: boolean;
+  clientMemberSince: string | null;
+  clientCompletedContracts: number;
 };
 
 /**
@@ -336,6 +341,8 @@ export const fetchGig = cache(async function fetchGig(id: string): Promise<GigDe
       experienceLevel: raw.experienceLevel ?? null,
       locationPreference: raw.locationPreference ?? null,
       attachments: raw.attachments ?? [],
+      clientMemberSince: raw.client?.memberSince ?? null,
+      clientCompletedContracts: raw.client?.completedContracts ?? 0,
       open: raw.status === 'OPEN' || raw.status === 'FUNDED',
     };
   } catch (err) {

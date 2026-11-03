@@ -8,7 +8,14 @@ export type GigBid = {
   timelineDays: number;
   coverLetter: string;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN';
-  freelancer: { id: string; firstName: string; lastName: string };
+  freelancer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    memberSince?: string;
+    completedContracts?: number;
+    portfolioUrl?: string | null;
+  };
 };
 
 /** Fails with the HTTP status, so callers can tell "already bid" from a real error. */

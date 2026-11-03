@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { Check } from 'lucide-react';
+import { Bookmark, Check } from 'lucide-react';
 import type { Gig } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { formatBudget, postedAgo } from '@/features/jobs/format';
 
 const tag = 'rounded-md px-2 py-[3px] text-[11px] font-extrabold uppercase tracking-[0.04em]';
 
-export default function GigCard({ gig }: { gig: Gig }) {
+export default function GigCard({ gig, saved, onToggleSave }: { gig: Gig; saved?: boolean; onToggleSave?: () => void }) {
   const { t, locale } = useTranslation();
   const hourly = gig.pricingType === 'HOURLY';
   const bids = `${gig.bidCount} ${t(gig.bidCount === 1 ? 'freelance.bid' : 'freelance.bids')}`;
@@ -30,6 +30,23 @@ export default function GigCard({ gig }: { gig: Gig }) {
         <span className={`${tag} bg-[#F1F4F6] text-ink-700 dark:bg-slate-800 dark:text-slate-200`}>
           {t(hourly ? 'freelance.hourly' : 'freelance.fixed')}
         </span>
+        {onToggleSave && (
+          // Above the card-wide title link, so it can be clicked on its own.
+          <button
+            type="button"
+            onClick={onToggleSave}
+            aria-pressed={saved}
+            aria-label={t(saved ? 'freelance.unsaveProject' : 'freelance.saveProject').replace('{title}', gig.title)}
+            className={`relative z-10 ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-bold ${
+              saved
+                ? 'border-obsidian bg-obsidian text-limeAccent dark:border-limeAccent dark:bg-limeAccent dark:text-obsidian'
+                : 'border-ink-300 bg-surface text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white'
+            }`}
+          >
+            <Bookmark className={`h-3.5 w-3.5 ${saved ? 'fill-current' : ''}`} aria-hidden="true" />
+            {t(saved ? 'freelance.saved' : 'freelance.save')}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -41,6 +58,7 @@ export default function GigCard({ gig }: { gig: Gig }) {
         >
           {gig.title}
         </Link>
+        {gig.clientName && <span className="text-[13px] text-ink-500 dark:text-slate-400">{t('freelance.postedBy').replace('{name}', gig.clientName)}</span>}
         <p className="hidden text-sm leading-[1.55] text-ink-500 line-clamp-2 md:[display:-webkit-box] dark:text-slate-300">{gig.description}</p>
       </div>
 

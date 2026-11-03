@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { fetchJobs, type Job } from '@/lib/api';
+import { toDisplayJob, type Job } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { formatSalary, initials } from '@/features/jobs/format';
-import { fetchApplications, fetchProfile, profileChecks, type Application, type Profile } from '../api';
+import { apiGet, fetchApplications, fetchProfile, profileChecks, type Application, type Profile } from '../api';
 import { card, Failed, Heading, link, muted, shortDate } from '../ui';
 
 const ACTIVE = ['SUBMITTED', 'SCREENING', 'SHORTLISTED'];
@@ -25,8 +25,10 @@ export default function Overview({ firstName }: { firstName: string }) {
         setProfile(me);
       })
       .catch(() => setFailed(true));
-    // New jobs are a nice-to-have: the rest of the page works without them.
-    fetchJobs({ limit: 3 }).then(setJobs).catch(() => setJobs([]));
+    // The top of the personalised feed; a nice-to-have, so the rest of the page works without it.
+    apiGet<unknown[]>('/ai-feed?limit=3')
+      .then((rows) => setJobs(rows.map(toDisplayJob)))
+      .catch(() => setJobs([]));
   }, []);
 
   useEffect(load, [load]);
@@ -73,7 +75,7 @@ export default function Overview({ firstName }: { firstName: string }) {
       <div className="flex flex-wrap items-start gap-4">
         <section aria-labelledby="rec-h" className={`${card} flex min-w-0 flex-[2_1_340px] flex-col gap-2`}>
           <div className="flex items-center justify-between gap-3 pb-1">
-            <h2 id="rec-h" className="text-lg font-bold text-ink-900 dark:text-white">{t('dash.newJobs')}</h2>
+            <h2 id="rec-h" className="text-lg font-bold text-ink-900 dark:text-white">{t('dash.jobsForYou')}</h2>
             <Link href="/feed" className={`text-sm ${link}`}>{t('dash.openFeed')} →</Link>
           </div>
           {jobs.length === 0 && <p className={muted}>{t('dash.noJobs')}</p>}

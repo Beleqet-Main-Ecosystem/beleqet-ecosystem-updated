@@ -1,12 +1,14 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Search, SearchX, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { searchGigs, type Gig, type GigCategory, type GigSearchResult } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
-import { categoryLabel, GIG_PAGE_SIZE, gigSearchHref, type GigSearch } from '../search-params';
+import { API_SORT, categoryLabel, GIG_PAGE_SIZE, gigSearchHref, type GigSearch, type GigSort } from '../search-params';
+import { useAuth } from '@/components/AuthProvider';
+import { apiGet, apiSend } from '@/features/dashboard/api';
 import GigCard from './GigCard';
 
 const POST_HREF = '/freelance/post';
@@ -14,27 +16,49 @@ const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:o
 const onDarkRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-limeAccent';
 const ESCROW_STEPS = ['post', 'fund', 'approve', 'paid'] as const;
 
-type Sort = 'default' | 'high' | 'low';
 type Props = { search: GigSearch; result: GigSearchResult | null; categories: GigCategory[] };
 
 export default function GigSearchPage({ search, result, categories }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const [refreshing, startTransition] = useTransition();
+  const { user } = useAuth();
   const [query, setQuery] = useState(search.q);
-  const [sort, setSort] = useState<Sort>('default');
   const [more, setMore] = useState<Gig[]>([]);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreFailed, setMoreFailed] = useState(false);
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [saveError, setSaveError] = useState('');
 
-  // The API has no sort option, so budget sorting covers the projects loaded so far.
-  const loaded = useMemo(() => {
-    const gigs = [...(result?.gigs ?? []), ...more];
-    if (sort === 'default') return gigs;
-    const top = (gig: Gig) => gig.budgetMax || gig.budgetMin;
-    return gigs.sort((a, b) => (sort === 'high' ? top(b) - top(a) : top(a) - top(b)));
-  }, [result, more, sort]);
+  // The API sorts, so every page of results follows the same order.
+  const loaded = useMemo(() => [...(result?.gigs ?? []), ...more], [result, more]);
+
+  useEffect(() => {
+    if (!user) return;
+    apiGet<{ id: string }[]>('/freelance/saved')
+      .then((rows) => setSaved(new Set(rows.map((row) => row.id))))
+      .catch(() => undefined);
+  }, [user]);
+
+  async function toggleSave(gig: Gig) {
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(gigSearchHref(search))}`);
+      return;
+    }
+    const wasSaved = saved.has(gig.id);
+    const next = new Set(saved);
+    if (wasSaved) next.delete(gig.id);
+    else next.add(gig.id);
+    setSaved(next);
+    setSaveError('');
+    try {
+      await apiSend(wasSaved ? 'DELETE' : 'POST', `/freelance/jobs/${gig.id}/save`);
+    } catch {
+      setSaved(saved);
+      setSaveError(t('freelance.saveFailed'));
+    }
+  }
 
   const total = result?.total ?? 0;
   const filtered = Boolean(search.q || search.category);
@@ -46,6 +70,7 @@ export default function GigSearchPage({ search, result, categories }: Props) {
       const next = await searchGigs({
         q: search.q || undefined,
         category: search.category || undefined,
+        sort: API_SORT[search.sort],
         page: page + 1,
         limit: GIG_PAGE_SIZE,
       });
@@ -149,8 +174,8 @@ export default function GigSearchPage({ search, result, categories }: Props) {
               <label className="flex items-center gap-2 text-[13px] text-ink-500 dark:text-slate-400">
                 {t('freelance.sortBy')}
                 <select
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as Sort)}
+                  value={search.sort}
+                  onChange={(event) => router.push(gigSearchHref(search, { sort: event.target.value as GigSort }), { scroll: false })}
                   className={`min-h-10 rounded-lg border border-ink-300 bg-surface px-2.5 text-[13px] font-semibold text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white ${focusRing}`}
                 >
                   <option value="default">{t('freelance.sortDefault')}</option>
@@ -160,6 +185,8 @@ export default function GigSearchPage({ search, result, categories }: Props) {
               </label>
             </div>
           )}
+
+          {saveError && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{saveError}</p>}
 
           {!result ? (
             <Panel icon={<TriangleAlert className="h-[26px] w-[26px]" aria-hidden="true" />} title={t('freelance.errorTitle')} text={t('freelance.errorText')}>
@@ -193,7 +220,7 @@ export default function GigSearchPage({ search, result, categories }: Props) {
           ) : (
             <ul className="grid gap-3 md:grid-cols-[repeat(auto-fill,minmax(min(100%,360px),1fr))] md:gap-3.5">
               {loaded.map((gig) => (
-                <GigCard key={gig.id} gig={gig} />
+                <GigCard key={gig.id} gig={gig} saved={saved.has(gig.id)} onToggleSave={() => toggleSave(gig)} />
               ))}
             </ul>
           )}

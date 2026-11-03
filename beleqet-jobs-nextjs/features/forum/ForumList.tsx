@@ -11,7 +11,8 @@ import { postedAgo } from '@/features/jobs/format';
 export const forumCard = 'rounded-xl border border-ink-200 bg-surface p-4 md:p-5 dark:border-slate-800 dark:bg-slate-900';
 export const forumSolid = 'inline-flex min-h-11 items-center justify-center rounded-lg bg-limeAccent px-4 text-sm font-extrabold text-obsidian disabled:opacity-60';
 const RULES = ['respect', 'private', 'scams'] as const;
-const SORTS = ['latest', 'oldest'] as const;
+// The API's sorts: newest, most voted, and unanswered first.
+const SORTS = ['latest', 'popular', 'unanswered'] as const;
 
 export type ForumQuery = { search: string; tag: string; sort: string; page: number };
 

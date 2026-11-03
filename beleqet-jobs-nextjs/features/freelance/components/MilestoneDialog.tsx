@@ -22,7 +22,7 @@ type Props = {
 
 const field = 'min-h-12 rounded-lg border border-ink-300 bg-surface px-3.5 text-base text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-950 dark:text-white';
 const labelText = 'text-sm font-semibold text-ink-900 dark:text-white';
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const FEE = 0.1;
 
 export default function MilestoneDialog({ request, contractId, freelancerName, currency, onClose, onDone }: Props) {

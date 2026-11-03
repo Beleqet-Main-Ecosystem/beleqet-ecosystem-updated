@@ -7,7 +7,7 @@ import { MessageSquare } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from '@/lib/i18n';
 import { safeHttpUrl } from '@/features/jobs/format';
-import { fetchContract, fundEscrow, raiseDispute, type Contract, type Milestone } from '../contract';
+import { acceptMilestone, declineMilestone, fetchContract, fundEscrow, raiseDispute, type Contract, type ContractEvent, type Milestone } from '../contract';
 import MilestoneDialog, { type DialogRequest } from './MilestoneDialog';
 
 const card = 'rounded-xl border border-ink-200 bg-surface p-5 dark:border-slate-800 dark:bg-slate-900';
@@ -16,6 +16,7 @@ const solid = 'inline-flex min-h-11 items-center justify-center rounded-lg bg-ob
 const BADGES: Record<Milestone['status'], string> = {
   PENDING: 'bg-[#EAF1FB] text-[#1D4E89] dark:bg-slate-800 dark:text-slate-200',
   IN_PROGRESS: 'bg-[#EAF1FB] text-[#1D4E89] dark:bg-slate-800 dark:text-slate-200',
+  PROPOSED: 'bg-[#F1F4F6] text-ink-700 dark:bg-slate-800 dark:text-slate-200',
   SUBMITTED: 'bg-[#FFF7E6] text-[#7A4B00] dark:bg-amber-900/30 dark:text-amber-200',
   APPROVED: 'bg-[#EEF5EF] text-forest dark:bg-forest/30 dark:text-limeAccent',
   REVISION_REQUESTED: 'bg-[#FDECEC] text-[#9B2C2C] dark:bg-red-900/30 dark:text-red-200',
@@ -91,17 +92,50 @@ export default function ContractWorkspace({ id }: { id: string }) {
     { key: t('freelance.contract.fee'), value: money(Math.round(shownReleased * FEE)), tone: 'text-ink-500 dark:text-slate-300' },
   ];
 
+  // The API's event log has the full story (proposals, disputes); older API versions don't send it.
+  const logText = (event: ContractEvent): string | null => {
+    const title = event.milestone ?? '';
+    switch (event.type) {
+      case 'milestone.proposed': return t('freelance.contract.logProposed').replace('{title}', title);
+      case 'milestone.accepted': return t('freelance.contract.logAccepted').replace('{title}', title);
+      case 'milestone.submitted': return t('freelance.contract.logSubmitted').replace('{title}', title);
+      case 'milestone.revision_requested': return t('freelance.contract.logRevision').replace('{title}', title);
+      case 'milestone.approved':
+      case 'milestone.dual_confirmed': return t('freelance.contract.logApproved').replace('{title}', title);
+      case 'escrow.funded': return escrow ? t('freelance.contract.logFunded').replace('{amount}', money(escrow.grossAmount)) : null;
+      case 'dispute.raised': return t('freelance.contract.logDisputed');
+      case 'dispute.resolved': return t('freelance.contract.logResolved');
+      default: return null;
+    }
+  };
   const activity = [
     { text: t('freelance.contract.logCreated').replace('{name}', short(contract.freelancer)), at: contract.startedAt },
-    escrow?.fundedAt ? { text: t('freelance.contract.logFunded').replace('{amount}', money(escrow.grossAmount)), at: escrow.fundedAt } : null,
-    ...contract.milestones.flatMap((item) => [
-      ...(item.deliverables ?? []).map((work) => ({ text: t('freelance.contract.logSubmitted').replace('{title}', item.title), at: work.submittedAt })),
-      item.revisionRequestedAt ? { text: t('freelance.contract.logRevision').replace('{title}', item.title), at: item.revisionRequestedAt } : null,
-      item.approvedAt ? { text: t('freelance.contract.logReleased').replace('{amount}', money(item.amount)).replace('{title}', item.title), at: item.approvedAt } : null,
-    ]),
+    ...(contract.activity
+      ? contract.activity.map((event) => {
+          const text = logText(event);
+          return text ? { text, at: event.at } : null;
+        })
+      : [
+          escrow?.fundedAt ? { text: t('freelance.contract.logFunded').replace('{amount}', money(escrow.grossAmount)), at: escrow.fundedAt } : null,
+          ...contract.milestones.flatMap((item) => [
+            ...(item.deliverables ?? []).map((work) => ({ text: t('freelance.contract.logSubmitted').replace('{title}', item.title), at: work.submittedAt })),
+            item.revisionRequestedAt ? { text: t('freelance.contract.logRevision').replace('{title}', item.title), at: item.revisionRequestedAt } : null,
+            item.approvedAt ? { text: t('freelance.contract.logReleased').replace('{amount}', money(item.amount)).replace('{title}', item.title), at: item.approvedAt } : null,
+          ]),
+        ]),
   ]
     .filter((item): item is { text: string; at: string } => Boolean(item))
     .sort((a, b) => b.at.localeCompare(a.at));
+
+  async function answerProposal(item: Milestone, accept: boolean) {
+    setError('');
+    try {
+      await (accept ? acceptMilestone(item.id) : declineMilestone(item.id));
+      await load();
+    } catch {
+      setError(t('freelance.gig.actionFailed'));
+    }
+  }
 
   async function fund() {
     setFunding(true);
@@ -267,7 +301,17 @@ export default function ContractWorkspace({ id }: { id: string }) {
                       </button>
                     </div>
                   )}
-                  {!isClient && funded && !waitingOnClient && item.status !== 'APPROVED' && (
+                  {item.status === 'PROPOSED' && !isClient && (
+                    <span className="text-[13px] text-ink-500 dark:text-slate-400">{t('freelance.contract.waitingAccept').replace('{name}', short(contract.client))}</span>
+                  )}
+                  {item.status === 'PROPOSED' && isClient && (
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="mr-auto text-[13px] text-ink-500 dark:text-slate-400">{t('freelance.contract.proposedText')}</span>
+                      <button type="button" onClick={() => answerProposal(item, false)} className={outline}>{t('freelance.contract.declineMilestone')}</button>
+                      <button type="button" onClick={() => answerProposal(item, true)} className={solid}>{t('freelance.contract.acceptMilestone')}</button>
+                    </div>
+                  )}
+                  {!isClient && funded && !waitingOnClient && item.status !== 'APPROVED' && item.status !== 'PROPOSED' && (
                     <div className="flex justify-end">
                       <button type="button" onClick={() => setDialog({ kind: 'submit', milestone: item, number: index + 1 })} className={solid}>{t('freelance.contract.submitWork')}</button>
                     </div>

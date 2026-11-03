@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import GigSearchPage from '@/features/freelance/components/GigSearchPage';
-import { GIG_PAGE_SIZE, parseGigSearch } from '@/features/freelance/search-params';
+import { API_SORT, GIG_PAGE_SIZE, parseGigSearch } from '@/features/freelance/search-params';
 import { fetchGigCategories, searchGigs, type GigSearchResult } from '@/lib/api';
 import { freelancePageMetadata } from '@/lib/seo/generate-metadata';
 
@@ -14,6 +14,7 @@ export default async function FreelancePage({ searchParams }: Props) {
     searchGigs({
       q: search.q || undefined,
       category: search.category || undefined,
+      sort: API_SORT[search.sort],
       page: 1,
       limit: GIG_PAGE_SIZE,
     })
@@ -22,6 +23,13 @@ export default async function FreelancePage({ searchParams }: Props) {
     fetchGigCategories(),
   ]);
 
-  // Keyed so a new search starts again from its first page of results.
-  return <GigSearchPage key={`${search.q}|${search.category}`} search={search} result={result} categories={categories} />;
+  // Keyed so a new search or sort starts again from its first page of results.
+  return (
+    <GigSearchPage
+      key={`${search.q}|${search.category}|${search.sort}`}
+      search={search}
+      result={result}
+      categories={categories}
+    />
+  );
 }

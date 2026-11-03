@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import Link from 'next/link';
 import { X } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
-import { safeHttpUrl } from '@/features/jobs/format';
+import { initials, safeHttpUrl } from '@/features/jobs/format';
+import { uploadAttachment } from '@/features/freelance/actions';
 import { apiGet, apiSend, fetchProfile, type Profile } from '../api';
 import { card, Failed, Field, Heading, input, link, muted, outline, solid } from '../ui';
 
@@ -25,6 +26,8 @@ export default function ProfileSection() {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [slotError, setSlotError] = useState('');
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const photoRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     setFailed(false);
@@ -35,6 +38,37 @@ export default function ProfileSection() {
 
   if (failed) return <Failed onRetry={load} />;
   if (!profile) return <div className="min-h-[40vh]" />;
+
+  async function setPhoto(avatarUrl: string | null) {
+    setPhotoBusy(true);
+    setError('');
+    try {
+      await apiSend('PATCH', '/users/profile', { avatarUrl: avatarUrl ?? '' });
+      setProfile({ ...profile!, avatarUrl });
+    } catch {
+      setError(t('dash.saveFailed'));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function changePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setError(t('emp.fileTooBig'));
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const url = await uploadAttachment(file);
+      await setPhoto(url);
+    } catch {
+      setError(t('emp.uploadFailed'));
+      setPhotoBusy(false);
+    }
+  }
 
   const change = (patch: Partial<Profile>) => {
     setSaved(false);
@@ -59,8 +93,8 @@ export default function ProfileSection() {
     try {
       const body: Record<string, unknown> = { skills: profile!.skills, bio: profile!.bio ?? '' };
       for (const field of TEXT_FIELDS) body[field] = profile![field] ?? '';
-      // The API rejects an empty link, so a blank field is left out.
-      for (const field of LINK_FIELDS) if (profile![field]) body[field] = safeHttpUrl(profile![field]);
+      // An empty link clears it.
+      for (const field of LINK_FIELDS) body[field] = profile![field] ? safeHttpUrl(profile![field]) : '';
       await apiSend('PATCH', '/users/profile', body);
       setSaved(true);
     } catch {
@@ -101,6 +135,31 @@ export default function ProfileSection() {
   return (
     <>
       <Heading title={t('dash.profileTitle')} sub={t('dash.profileSub')} />
+      <section className={`${card} flex flex-wrap items-center gap-4`} aria-label={t('dash.photo')}>
+        {safeHttpUrl(profile.avatarUrl) ? (
+          // eslint-disable-next-line @next/next/no-img-element -- uploaded file on our storage
+          <img src={safeHttpUrl(profile.avatarUrl)!} alt="" className="h-16 w-16 rounded-full border border-ink-200 object-cover dark:border-slate-700" />
+        ) : (
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-primary text-lg font-bold text-limeAccent" aria-hidden="true">
+            {initials(`${profile.firstName} ${profile.lastName}`)}
+          </span>
+        )}
+        <span className="flex min-w-0 flex-[1_1_200px] flex-col gap-0.5">
+          <b className="text-[15px] text-ink-900 dark:text-white">{t('dash.photo')}</b>
+          <span className={muted}>{t('dash.photoText')}</span>
+        </span>
+        <input ref={photoRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} onChange={changePhoto} />
+        <span className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => photoRef.current?.click()} disabled={photoBusy} className={outline}>
+            {t(photoBusy ? 'emp.uploading' : profile.avatarUrl ? 'dash.changePhoto' : 'dash.addPhoto')}
+          </button>
+          {profile.avatarUrl && (
+            <button type="button" onClick={() => setPhoto(null)} disabled={photoBusy} className="min-h-11 px-2 text-sm font-semibold text-[#B42318] dark:text-red-300">
+              {t('dash.removePhoto')}
+            </button>
+          )}
+        </span>
+      </section>
       <form noValidate onSubmit={save} className={`${card} flex flex-col gap-4`}>
         <h2 className="text-lg font-bold text-ink-900 dark:text-white">{t('dash.aboutYou')}</h2>
         <div className="grid gap-4 md:grid-cols-2">

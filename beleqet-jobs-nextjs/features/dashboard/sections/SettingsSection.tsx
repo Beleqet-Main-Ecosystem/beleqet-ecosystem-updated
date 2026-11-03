@@ -7,6 +7,8 @@ import { useTranslation } from '@/lib/i18n';
 import { apiGet, apiSend, fetchProfile } from '../api';
 import { card, Confirm, Failed, Field, Heading, input, link, muted, outline, shortDate, Toggle } from '../ui';
 import TwoStep from './TwoStep';
+import JobAlerts from './JobAlerts';
+import DeleteAccount from './DeleteAccount';
 
 type Prefs = { emailEnabled: boolean; telegramEnabled: boolean; inAppEnabled: boolean };
 type Subscription = { id: string; status: string; cancelAtPeriodEnd?: boolean; currentPeriodEnd?: string | null; plan?: { name?: string } | null };
@@ -81,6 +83,8 @@ export default function SettingsSection() {
       <Heading title={t('dash.tabs.settings')} />
       {error && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{error}</p>}
 
+      <JobAlerts />
+
       <section className={`${card} flex flex-col gap-3`}>
         <h2 className={title}>{t('dash.reachYou')}</h2>
         {CHANNELS.map((channel) => (
@@ -145,13 +149,7 @@ export default function SettingsSection() {
         )}
       </section>
 
-      <section className={`${card} flex flex-col gap-2`}>
-        <h2 className={title}>{t('dash.privacy')}</h2>
-        <b className="text-[15px] text-ink-900 dark:text-white">{t('dash.deleteTitle')}</b>
-        <p className="text-sm leading-normal text-ink-500 dark:text-slate-300">
-          {t('dash.deleteText')} <Link href="/contact" className={link}>{t('pricing.contact')}</Link>
-        </p>
-      </section>
+      <DeleteAccount />
 
       {cancelling && (
         <Confirm

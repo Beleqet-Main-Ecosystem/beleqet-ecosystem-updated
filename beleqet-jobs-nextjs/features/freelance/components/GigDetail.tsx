@@ -5,7 +5,7 @@ import { Check, FileText, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import type { GigDetail as Gig } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
-import { formatBudget, initials, postedAgo, safeHttpUrl } from '@/features/jobs/format';
+import { formatBudget, initials, monthYear, postedAgo, safeHttpUrl } from '@/features/jobs/format';
 import { fetchGigBids, findContractId, type GigBid } from '../actions';
 import BidForm from './BidForm';
 import BidList from './BidList';
@@ -125,7 +125,17 @@ export default function GigDetail({ gig }: { gig: Gig }) {
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-limeAccent" aria-hidden="true">
                 {initials(gig.clientName)}
               </span>
-              <b className="text-base text-ink-900 dark:text-white">{gig.clientName}</b>
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <b className="text-base text-ink-900 dark:text-white">{gig.clientName}</b>
+                <span className="text-[13px] text-ink-500 dark:text-slate-400">
+                  {[
+                    gig.clientMemberSince && t('freelance.memberSince').replace('{date}', monthYear(gig.clientMemberSince, locale)),
+                    t(gig.clientCompletedContracts === 1 ? 'freelance.oneCompleted' : 'freelance.completed').replace('{count}', String(gig.clientCompletedContracts)),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </span>
             </div>
             {gig.funded && (
               <span className="flex items-center gap-2 text-sm font-semibold text-forest dark:text-limeAccent">

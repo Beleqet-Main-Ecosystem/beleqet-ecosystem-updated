@@ -70,3 +70,8 @@ export function initials(name: string): string {
   if (words.length === 0) return '·';
   return (words[0][0] + (words[1]?.[0] ?? '')).toUpperCase();
 }
+
+/** "Mar 2025" (or the Amharic month), for "Member since". */
+export function monthYear(iso: string, locale: string): string {
+  return new Date(iso).toLocaleDateString(locale === 'am' ? 'am-ET' : 'en-GB', { month: 'short', year: 'numeric' });
+}

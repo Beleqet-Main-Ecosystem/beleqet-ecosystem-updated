@@ -6,6 +6,7 @@ import {
   CreditCard,
   MessageSquare,
   Receipt,
+  ShieldCheck,
   Trash2,
   UserPlus,
   Users,
@@ -13,6 +14,7 @@ import {
 import { authenticatedFetch } from '@/lib/auth';
 import { useAuth } from '@/components/AuthProvider';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import AdminReview from '@/features/admin/AdminReview';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const roles = ['JOB_SEEKER', 'EMPLOYER', 'FREELANCER', 'ADMIN'];
 type ManagedUser = {
@@ -247,12 +249,16 @@ export default function AdminPage() {
           >
             Subscriptions
           </Tab>
+          <Tab active={tab === 'review'} onClick={() => setTab('review')} icon={ShieldCheck}>
+            Review
+          </Tab>
         </div>
         {notice && (
           <p className="mb-5 rounded-xl bg-brandGreen/10 p-3 text-sm font-semibold text-brandGreen">
             {notice}
           </p>
         )}
+        {tab === 'review' && <AdminReview />}
         {tab === 'users' && (
           <div className="space-y-6">
             <form

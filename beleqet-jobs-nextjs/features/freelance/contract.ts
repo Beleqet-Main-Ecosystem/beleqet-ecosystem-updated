@@ -2,7 +2,7 @@ import { ActionError, call } from './actions';
 
 export type Deliverable = { id: string; fileUrl?: string | null; notes?: string | null; submittedAt: string };
 
-export type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'APPROVED' | 'REVISION_REQUESTED';
+export type MilestoneStatus = 'PROPOSED' | 'PENDING' | 'IN_PROGRESS' | 'SUBMITTED' | 'APPROVED' | 'REVISION_REQUESTED';
 
 export type Milestone = {
   id: string;
@@ -35,7 +35,11 @@ export type Contract = {
   client: Party;
   freelancer: Party;
   milestones: Milestone[];
+  /** What happened, newest first, from the API's event log. */
+  activity?: ContractEvent[];
 };
+
+export type ContractEvent = { type: string; at: string; milestone: string | null; note: string | null };
 
 /** Null when the contract doesn't exist or the viewer isn't one of its two parties. */
 export async function fetchContract(id: string): Promise<Contract | null> {
@@ -69,4 +73,14 @@ export function submitWork(id: string, work: { fileUrl?: string; notes: string }
 
 export function raiseDispute(contractId: string, reason: string): Promise<unknown> {
   return call(`/freelance/contracts/${encodeURIComponent(contractId)}/dispute`, { method: 'POST', body: JSON.stringify({ reason }) });
+}
+
+/** The client agrees to a milestone the freelancer proposed. */
+export function acceptMilestone(id: string): Promise<unknown> {
+  return call(`/freelance/milestones/${encodeURIComponent(id)}/accept`, { method: 'PATCH' });
+}
+
+/** The client turns a proposed milestone down; it is removed. */
+export function declineMilestone(id: string): Promise<unknown> {
+  return call(`/freelance/milestones/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }

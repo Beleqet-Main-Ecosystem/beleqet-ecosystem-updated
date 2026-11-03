@@ -870,7 +870,7 @@
       "useProfileCvHint": "በበለቀት ፕሮፋይልዎ ላይ የተቀመጠው ሲቪ",
       "upload": "ሲቪዎን ይጫኑ",
       "uploadOther": "ሌላ ሲቪ ይጫኑ",
-      "uploadHint": "PDF፣ DOC ወይም DOCX፣ እስከ 5 MB",
+      "uploadHint": "PDF፣ DOC ወይም DOCX፣ እስከ 10 MB",
       "chooseFile": "ፋይል ይምረጡ",
       "consent": "በለቀት ሲቪዬን አስቀምጦ ለዚህ አሰሪ እንዲልክ እስማማለሁ።",
       "cover": "የሽፋን ደብዳቤ",
@@ -888,7 +888,7 @@
       "track": "ማመልከቻዎን ይከታተሉ",
       "keepBrowsing": "ማሰስ ይቀጥሉ",
       "errType": "ሲቪዎ PDF፣ DOC ወይም DOCX መሆን አለበት።",
-      "errSize": "ሲቪዎ ከ5 MB ያነሰ መሆን አለበት።",
+      "errSize": "ሲቪዎ ከ10 MB ያነሰ መሆን አለበት።",
       "errUpload": "ሲቪዎን መጫን አልቻልንም። እባክዎ እንደገና ይሞክሩ።",
       "errClosed": "ይህ ስራ ከአሁን በኋላ ማመልከቻ አይቀበልም።",
       "errGeneric": "ማመልከቻዎን መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
@@ -1039,9 +1039,9 @@
       "removeSkill": "{skill} አስወግድ",
       "optional": "አማራጭ",
       "browse": "ፋይሎችን ይምረጡ",
-      "fileHint": "PDF፣ ምስሎች ወይም ሰነዶች፣ እያንዳንዳቸው እስከ 5 MB። ፕሮጀክቱን የሚያይ ማንኛውም ሰው ሊከፍታቸው ይችላል።",
+      "fileHint": "PDF፣ ምስሎች ወይም ሰነዶች፣ እያንዳንዳቸው እስከ 10 MB። ፕሮጀክቱን የሚያይ ማንኛውም ሰው ሊከፍታቸው ይችላል።",
       "removeFile": "{file} አስወግድ",
-      "fileTooBig": "እያንዳንዱ ፋይል 5 MB ወይም ከዚያ በታች መሆን አለበት።",
+      "fileTooBig": "እያንዳንዱ ፋይል 10 MB ወይም ከዚያ በታች መሆን አለበት።",
       "howPay": "እንዴት መክፈል ይፈልጋሉ?",
       "fixedHint": "ለሙሉ ፕሮጀክቱ የተስማማ መጠን ይክፈሉ",
       "hourlyHint": "በሰዓት የተስማማ ዋጋ ይክፈሉ",
@@ -1124,7 +1124,8 @@
         "IN_PROGRESS": "በሂደት ላይ",
         "SUBMITTED": "ግምገማ በመጠበቅ ላይ",
         "APPROVED": "ተለቋል",
-        "REVISION_REQUESTED": "ማስተካከያ ተጠይቋል"
+        "REVISION_REQUESTED": "ማስተካከያ ተጠይቋል",
+        "PROPOSED": "የቀረበ"
       },
       "submitted": "የቀረበ ስራ",
       "approvedNote": "{date} ጸድቋል · {amount} ከ3 ቀን ቆይታ በኋላ ለፍሪላንሰሩ ይደርሳል",
@@ -1155,7 +1156,7 @@
       "submitTitle": "ለደረጃ {number} ስራ ያስረክቡ",
       "submitConfirm": "ለግምገማ አስገባ",
       "workLink": "የስራው ሊንክ",
-      "workFile": "ወይም ፋይል ይጫኑ (እስከ 5 MB)",
+      "workFile": "ወይም ፋይል ይጫኑ (እስከ 10 MB)",
       "notes": "ለደንበኛው ማስታወሻ",
       "errNotes": "ለደንበኛው ማስታወሻ ያክሉ።",
       "addConfirm": "ደረጃ ያክሉ",
@@ -1166,8 +1167,27 @@
       "errMilestone": "ርዕስ እና የማስረከቢያ ቀን ያስገቡ።",
       "errAmount": "እስከ {left} የሚደርስ መጠን ያስገቡ።",
       "revisionAsked": "ደንበኛው እንዲቀየር የጠየቀው",
-      "logRevision": "ለ\"{title}\" ማስተካከያ ተጠይቋል"
-    }
+      "logRevision": "ለ\"{title}\" ማስተካከያ ተጠይቋል",
+      "logProposed": "{title} እንደ ደረጃ ቀርቧል",
+      "logAccepted": "{title} ተቀባይነት አግኝቷል",
+      "logApproved": "{title} ጸድቆ ተከፍሏል",
+      "logDisputed": "ክርክር ተከፍቷል",
+      "logResolved": "ክርክሩ እልባት አግኝቷል",
+      "waitingAccept": "{name} ይህን ደረጃ እስኪቀበል በመጠበቅ ላይ።",
+      "proposedText": "በፍሪላንሰሩ የቀረበ። ወደ ውሉ ለመጨመር ይቀበሉት።",
+      "acceptMilestone": "ደረጃውን ተቀበል",
+      "declineMilestone": "አትቀበል"
+    },
+    "saveFailed": "የተቀመጡ ፕሮጀክቶችዎን ማዘመን አልቻልንም። እንደገና ይሞክሩ።",
+    "saveProject": "{title}ን አስቀምጥ",
+    "unsaveProject": "{title}ን ከተቀመጡት አስወግድ",
+    "save": "አስቀምጥ",
+    "saved": "ተቀምጧል",
+    "postedBy": "የለጠፈው {name}",
+    "memberSince": "ከ{date} ጀምሮ አባል",
+    "completed": "{count} የተጠናቀቁ ውሎች",
+    "oneCompleted": "1 የተጠናቀቀ ውል",
+    "viewPortfolio": "ፖርትፎሊዮ ይመልከቱ"
   },
   "pricing": {
     "title": "ቀላል እቅዶች፣ በብር",
@@ -1382,7 +1402,59 @@
     "verifyResend": "አዲስ ሊንክ ላክ",
     "verifySending": "በመላክ ላይ…",
     "verifySent": "አዲስ ሊንክ ተልኳል። የገቢ መልዕክት ሳጥንዎን እና አይፈለጌ አቃፊውን ይመልከቱ።",
-    "verifyFailed": "አሁን መላክ አልቻልንም። ትንሽ ቆይተው እንደገና ይሞክሩ።"
+    "verifyFailed": "አሁን መላክ አልቻልንም። ትንሽ ቆይተው እንደገና ይሞክሩ።",
+    "jobsForYou": "ለእርስዎ የሚሆኑ ስራዎች",
+    "alerts": {
+      "title": "የስራ ማንቂያዎች",
+      "new": "አዲስ ማንቂያ",
+      "keywords": "ቁልፍ ቃላት",
+      "keywordsHint": "ለምሳሌ፦ የሂሳብ ባለሙያ፣ ኦዲተር",
+      "anyType": "ማንኛውም አይነት",
+      "minSalary": "ዝቅተኛ ወርሃዊ ደመወዝ (ብር)",
+      "create": "ማንቂያ ፍጠር",
+      "none": "እስካሁን ማንቂያ የለም። አዲስ ስራ ሲዛመድ በኢሜይል እናሳውቅዎታለን።",
+      "anyJob": "ማንኛውም ስራ",
+      "from": "ከ{amount}",
+      "toggle": "ለ{name} ማንቂያ",
+      "delete": "ሰርዝ",
+      "needOne": "ቁልፍ ቃል፣ ቦታ፣ የስራ አይነት ወይም ደመወዝ ያክሉ።",
+      "saveFailed": "ያንን ማንቂያ ማስቀመጥ አልቻልንም። እስከ 10 ሊኖርዎት ይችላል።"
+    },
+    "photo": "የመገለጫ ፎቶ",
+    "photoText": "አሰሪዎች ከማመልከቻዎችዎ አጠገብ ያዩታል። JPG፣ PNG ወይም WEBP፣ እስከ 10 ሜባ።",
+    "addPhoto": "ፎቶ ጨምር",
+    "changePhoto": "ፎቶ ቀይር",
+    "removePhoto": "አስወግድ",
+    "deleteExplain": "ይህ መገለጫዎን፣ ሲቪዎን፣ የተቀመጡ ስራዎችን እና መልዕክቶችን በቋሚነት ያስወግዳል፣ ከሁሉም ቦታ ያስወጣዎታል። ህጉ እንድንይዛቸው የሚያስገድዱ እንደ ክፍያ ያሉ መዝገቦች ያለ ስምዎ ይቀመጣሉ።",
+    "deleteStart": "መለያዬን ሰርዝ",
+    "deletePassword": "የይለፍ ቃልዎ",
+    "deleteSocialNote": "በGoogle ወይም በLinkedIn ተመዝግበው የይለፍ ቃል አላዘጋጁም? ባዶ ይተዉት።",
+    "deleteConfirm": "ለማረጋገጥ DELETE ብለው ይጻፉ",
+    "deleteTypeIt": "ለማረጋገጥ DELETE በትልልቅ ፊደላት ይጻፉ።",
+    "deleteWrongPassword": "ያ የይለፍ ቃል ትክክል አይደለም።",
+    "deleteOpenContracts": "መጀመሪያ ክፍት ውሎችዎን ያጠናቁ ወይም ያስተካክሉ።",
+    "deleteFailed": "መለያዎን መሰረዝ አልቻልንም። እንደገና ይሞክሩ።",
+    "deleting": "በመሰረዝ ላይ…",
+    "deleteNow": "መለያዬን በቋሚነት ሰርዝ",
+    "interview": {
+      "answerFailed": "መልስዎን መላክ አልቻልንም። እንደገና ይሞክሩ።",
+      "status": {
+        "SCHEDULED": "እርስዎን በመጠበቅ ላይ",
+        "RESCHEDULED": "አዲስ ሰዓት",
+        "CONFIRMED": "ተረጋግጧል",
+        "DECLINED": "ውድቅ ተደርጓል",
+        "COMPLETED": "ተጠናቋል",
+        "CANCELLED": "ተሰርዟል"
+      },
+      "where": "ቦታ",
+      "link": "የቪዲዮ ሊንክ",
+      "notes": "ከአሰሪው ማስታወሻ",
+      "declineNote": "ለአሰሪው ምክንያቱን ይንገሩ ወይም ሌላ ሰዓት ይጠቁሙ (አማራጭ)",
+      "sendDecline": "ቃለ መጠይቁን አትቀበል",
+      "confirm": "እንደምገኝ አረጋግጥ",
+      "decline": "መገኘት አልችልም",
+      "hasLink": "የቪዲዮ ሊንክ ተዘጋጅቷል"
+    }
   },
   "emp": {
     "tabs": {
@@ -1440,7 +1512,62 @@
     "notVerified": "ያልተረጋገጠ",
     "verifySoon": "የንግድ ፈቃድ መጫን በቅርቡ ይመጣል። የተረጋገጡ ድርጅቶች በስራዎቻቸው ላይ ምልክት ያገኛሉ።",
     "changePlan": "እቅድ ቀይር",
-    "usage": "አጠቃቀም"
+    "usage": "አጠቃቀም",
+    "fileTooBig": "ያ ፋይል ከ10 ሜባ ይበልጣል። ትንሽ ፋይል ይምረጡ።",
+    "uploadFailed": "ያንን ፋይል መጫን አልቻልንም። እንደገና ይሞክሩ።",
+    "licenceSent": "ፈቃድዎ ተልኳል። አረጋግጠን እናሳውቅዎታለን።",
+    "licenceFailed": "ፈቃድዎን መላክ አልቻልንም። እንደገና ይሞክሩ።",
+    "nameNeeded": "የድርጅትዎን ስም ያስገቡ።",
+    "renamedUnverified": "ተቀምጧል። ስሙ ስለተቀየረ ድርጅትዎ እንደገና መረጋገጥ አለበት።",
+    "companySaved": "የድርጅት መገለጫ ተቀምጧል።",
+    "uploading": "በመጫን ላይ…",
+    "changeLogo": "አርማ ቀይር",
+    "addLogo": "አርማ ጨምር",
+    "editCompany": "መገለጫ አስተካክል",
+    "size": "የድርጅት መጠን",
+    "renameWarning": "ስሙን መቀየር ፈቃድዎን እንደገና እስክናረጋግጥ ድረስ የተረጋገጠ ምልክቱን ያስወግዳል።",
+    "sendLicence": "የንግድ ፈቃድ ላክ",
+    "verifyStatus": {
+      "NONE": "አልተረጋገጠም",
+      "PENDING": "በመረጋገጥ ላይ",
+      "VERIFIED": "ተረጋግጧል",
+      "REJECTED": "አልጸደቀም"
+    },
+    "verifyText": {
+      "NONE": "የንግድ ፈቃድዎን (PDF ወይም ፎቶ) ይላኩ፤ ካረጋገጥን በኋላ ስራዎችዎ የተረጋገጠ ምልክት ያገኛሉ።",
+      "PENDING": "የንግድ ፈቃድዎን በማረጋገጥ ላይ ነን። ብዙውን ጊዜ አንድ ወይም ሁለት የስራ ቀናት ይወስዳል።",
+      "VERIFIED": "ስራዎችዎ የተረጋገጠ ምልክት ያሳያሉ።",
+      "REJECTED": "የላኩትን ፈቃድ ማረጋገጥ አልቻልንም። ምክንያቱ ይህ ነው፤ አዲስ መላክ ይችላሉ።"
+    },
+    "interviewsTitle": "የሚመጡ ቃለ መጠይቆች",
+    "noPlaceYet": "እስካሁን ቦታ ወይም ሊንክ የለም",
+    "setDetails": "ቦታ እና ሊንክ አዘጋጅ",
+    "bank": {
+      "title": "በባንክ ዝውውር ይክፈሉ",
+      "text": "ለእቅድ ከባንክዎ ወይም ከCBE Birr ይክፈሉ፣ ከዚያ ደረሰኙን ይላኩልን። ካረጋገጥን በኋላ እቅድዎ ይጀምራል፤ ብዙውን ጊዜ በዚያው የስራ ቀን።",
+      "startFailed": "ክፍያውን መጀመር አልቻልንም። እንደገና ይሞክሩ።",
+      "needBoth": "የባንኩን ማጣቀሻ ቁጥር እና የደረሰኙን ፎቶ ወይም PDF ያክሉ።",
+      "sent": "ደረሰኙ ተልኳል። ካረጋገጥን በኋላ እቅድዎን እንጀምራለን።",
+      "receiptFailed": "ደረሰኙን መላክ አልቻልንም። እንደገና ይሞክሩ።",
+      "pay": "{amount} ወደዚህ ያስተላልፉ፦",
+      "askDetails": "የሚከፍሉበትን ሂሳብ ይጠይቁን፦",
+      "reference": "የባንክ ማጣቀሻ ቁጥር",
+      "receipt": "ደረሰኝ (ፎቶ ወይም PDF)",
+      "send": "ደረሰኝ ላክ",
+      "plan": "እቅድ",
+      "choose": "እቅድ ይምረጡ",
+      "start": "በዝውውር ክፈል",
+      "history": "የክፍያ ታሪክ",
+      "noPayments": "እስካሁን ክፍያ የለም።",
+      "payment": "ክፍያ",
+      "status": {
+        "PENDING": "ደረሰኝ በመጠበቅ ላይ",
+        "PROCESSING": "በመረጋገጥ ላይ",
+        "SUCCEEDED": "ተከፍሏል",
+        "FAILED": "ተቀባይነት አላገኘም",
+        "REFUNDED": "ተመላሽ ሆኗል"
+      }
+    }
   },
   "tax": {
     "title": "የደመወዝ ግብር ማስያ",
@@ -1486,7 +1613,20 @@
     "matchOn": "በምን እናዛምዳለን",
     "yourSkills": "ክህሎቶችዎ",
     "noSkills": "እስካሁን ክህሎት አልተጨመረም።",
-    "editSkills": "ክህሎቶችን ያስተካክሉ"
+    "editSkills": "ክህሎቶችን ያስተካክሉ",
+    "hideFailed": "ያንን ስራ መደበቅ አልቻልንም። እንደገና ይሞክሩ።",
+    "reasons": {
+      "skills": "ከክህሎቶችዎ ጋር ይዛመዳል፦ {terms}",
+      "search": "ከፍለጋዎ ጋር ይዛመዳል፦ {terms}",
+      "saved": "ካስቀመጧቸው ስራዎች ጋር ይመሳሰላል"
+    },
+    "why": "ይህን የሚያዩበት ምክንያት",
+    "offTitle": "ምግብዎ ለእርስዎ አልተዘጋጀም",
+    "offText": "በቅንብሮች ውስጥ ማዛመድን አጥፍተዋል፣ ስለዚህ እነዚህ አዳዲስ ስራዎች ናቸው።",
+    "openSettings": "ቅንብሮችን ክፈት",
+    "recentSearches": "የቅርብ ጊዜ ፍለጋዎች (ያለፉት 30 ቀናት)",
+    "preferNot": "መዛመድ አይፈልጉም?",
+    "preferNotText": "በቅንብሮች ውስጥ የተዘጋጀውን ምግብ ያጥፉ፣ በምትኩ አዳዲስ ስራዎችን ያያሉ።"
   },
   "forum": {
     "title": "ማህበረሰብ",
@@ -1495,7 +1635,9 @@
     "search": "ውይይቶችን ይፈልጉ",
     "sort": {
       "latest": "አዲሶቹ",
-      "oldest": "የቆዩት"
+      "oldest": "የቆዩት",
+      "popular": "ብዙ ድምጽ ያገኙ",
+      "unanswered": "ያልተመለሱ"
     },
     "showing": "የሚታየው",
     "clear": "አጽዳ",
@@ -1543,7 +1685,12 @@
     "errTitle": "ቢያንስ 5 ፊደላት ያለው ርዕስ ያስገቡ።",
     "errContent": "ቢያንስ 20 ፊደላት ዝርዝር ያክሉ።",
     "postFailed": "ውይይትዎን መለጠፍ አልተቻለም። እንደገና ይሞክሩ።",
-    "anonymous": "ስም-አልባ"
+    "anonymous": "ስም-አልባ",
+    "pin": "ሰካ",
+    "unpin": "ንቀል",
+    "lock": "ቆልፍ",
+    "unlock": "ክፈት",
+    "modFailed": "አልሰራም። እንደገና ይሞክሩ።"
   },
   "voice": {
     "title": "ድምጽ ወደ ጽሁፍ",
@@ -1744,5 +1891,24 @@
     "experienceEmpty": "የስራ ልምድዎ እዚህ ይታያል።",
     "educationEmpty": "ትምህርትዎ እዚህ ይታያል።",
     "skillsHeading": "ክህሎቶች"
+  },
+  "report": {
+    "action": "ሪፖርት አድርግ",
+    "why": "ችግሩ ምንድን ነው?",
+    "reasons": {
+      "scam": "ማጭበርበር ይመስላል",
+      "asks_for_payment": "ለማመልከት ወይም ለቃለ መጠይቅ ገንዘብ ይጠይቃል",
+      "misleading": "ሀሰት ወይም አሳሳች ነው",
+      "offensive": "አጸያፊ ወይም ስድብ ነው",
+      "spam": "አይፈለጌ ነው",
+      "other": "ሌላ ነገር"
+    },
+    "details": "ማወቅ ያለብን ሌላ ነገር አለ? (አማራጭ)",
+    "detailsNeeded": "ችግሩን ይንገሩን",
+    "send": "ሪፖርት ላክ",
+    "sending": "በመላክ ላይ…",
+    "failed": "ያንን መላክ አልቻልንም። እንደገና ይሞክሩ።",
+    "thanks": "እናመሰግናለን። ቡድናችን ይመለከተዋል።",
+    "already": "ይህን አስቀድመው ሪፖርት አድርገዋል።"
   }
 }

@@ -8,7 +8,7 @@ import { useTranslation } from '@/lib/i18n';
 import { safeHttpUrl } from '../format';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
-const MAX_CV_BYTES = 5 * 1024 * 1024;
+const MAX_CV_BYTES = 10 * 1024 * 1024;
 const CV_TYPES = [
   'application/pdf',
   'application/msword',

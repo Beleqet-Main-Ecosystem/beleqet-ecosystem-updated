@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import { apiGet, apiSend } from '../api';
 import { card, Confirm, Heading, muted, outline, shortDate, solid } from '../ui';
+import BankTransfer from './BankTransfer';
 
 type Subscription = {
   id: string;
@@ -82,6 +83,7 @@ export default function PlanSection() {
           </div>
         )}
       </section>
+      <BankTransfer />
       {cancelling && (
         <Confirm title={t('dash.cancelTitle')} text={t('dash.cancelText')} cancel={t('dash.keepPlan')} confirm={t('dash.cancelPlan')} busy={busy} onCancel={() => setCancelling(false)} onConfirm={cancel} />
       )}

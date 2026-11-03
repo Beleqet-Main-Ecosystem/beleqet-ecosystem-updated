@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
-import { initials } from '@/features/jobs/format';
+import { initials, monthYear, safeHttpUrl } from '@/features/jobs/format';
 import { acceptBid, rejectBid, type GigBid } from '../actions';
 
 const outline = 'inline-flex min-h-11 items-center rounded-lg border border-ink-300 px-3.5 text-sm font-bold text-ink-900 disabled:opacity-60 dark:border-slate-700 dark:text-white';
@@ -21,7 +21,7 @@ type Props = {
 const shortName = (bid: GigBid) => `${bid.freelancer.firstName} ${bid.freelancer.lastName.charAt(0)}.`.trim();
 
 export default function BidList({ bids, failed, contractId, onRetry, onChange, onContract }: Props) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [confirming, setConfirming] = useState<GigBid | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
@@ -101,6 +101,17 @@ export default function BidList({ bids, failed, contractId, onRetry, onChange, o
             </span>
             <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-1.5">
               <b className="text-base text-ink-900 dark:text-white">{shortName(bid)}</b>
+              <span className="flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-ink-500 dark:text-slate-400">
+                {bid.freelancer.completedContracts !== undefined && (
+                  <span>{t(bid.freelancer.completedContracts === 1 ? 'freelance.oneCompleted' : 'freelance.completed').replace('{count}', String(bid.freelancer.completedContracts))}</span>
+                )}
+                {bid.freelancer.memberSince && <span>{t('freelance.memberSince').replace('{date}', monthYear(bid.freelancer.memberSince, locale))}</span>}
+                {safeHttpUrl(bid.freelancer.portfolioUrl) && (
+                  <a href={safeHttpUrl(bid.freelancer.portfolioUrl)!} target="_blank" rel="noopener noreferrer nofollow" className="font-bold text-forest hover:underline dark:text-limeAccent">
+                    {t('freelance.viewPortfolio')} ↗
+                  </a>
+                )}
+              </span>
               <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink-700 dark:text-slate-300">{bid.coverLetter}</p>
             </div>
             <div className="flex flex-auto flex-col items-end gap-2.5 md:flex-none">

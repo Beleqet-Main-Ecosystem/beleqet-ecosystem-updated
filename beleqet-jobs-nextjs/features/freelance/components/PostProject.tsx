@@ -14,7 +14,7 @@ import { categoryLabel } from '../search-params';
 const STEPS = ['describe', 'budget', 'review'] as const;
 const LEVELS = ['Entry', 'Intermediate', 'Expert'] as const;
 const FILE_TYPES = '.pdf,.doc,.docx,.jpg,.jpeg,.png,.webp';
-const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MIN_DESCRIPTION = 30;
 
 const input = 'min-h-12 min-w-0 rounded-lg border border-ink-300 bg-surface px-3.5 text-base text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-950 dark:text-white';

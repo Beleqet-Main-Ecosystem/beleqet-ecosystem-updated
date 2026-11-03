@@ -45,6 +45,7 @@ export type Profile = {
   skills: string[];
   gdprConsent: boolean;
   emailVerified: boolean;
+  avatarUrl: string | null;
 };
 
 export const fetchApplications = () => apiGet<Application[]>('/applications/my');

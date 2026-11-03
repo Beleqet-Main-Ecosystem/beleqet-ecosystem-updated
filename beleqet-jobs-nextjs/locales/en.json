@@ -873,7 +873,7 @@
       "useProfileCvHint": "The CV saved on your Beleqet profile",
       "upload": "Upload your CV",
       "uploadOther": "Upload a different CV",
-      "uploadHint": "PDF, DOC or DOCX, up to 5 MB",
+      "uploadHint": "PDF, DOC or DOCX, up to 10 MB",
       "chooseFile": "Choose file",
       "consent": "I agree that Beleqet may store my CV and send it to this employer.",
       "cover": "Cover letter",
@@ -891,7 +891,7 @@
       "track": "Track your application",
       "keepBrowsing": "Keep browsing",
       "errType": "Your CV must be a PDF, DOC or DOCX file.",
-      "errSize": "Your CV must be smaller than 5 MB.",
+      "errSize": "Your CV must be smaller than 10 MB.",
       "errUpload": "We couldn’t upload your CV. Please try again.",
       "errClosed": "This job is no longer accepting applications.",
       "errGeneric": "Your application couldn’t be sent. Please try again.",
@@ -1042,9 +1042,9 @@
       "removeSkill": "Remove {skill}",
       "optional": "optional",
       "browse": "Choose files",
-      "fileHint": "PDF, images or documents, up to 5 MB each. Anyone viewing the project can open them.",
+      "fileHint": "PDF, images or documents, up to 10 MB each. Anyone viewing the project can open them.",
       "removeFile": "Remove {file}",
-      "fileTooBig": "Each file must be 5 MB or smaller.",
+      "fileTooBig": "Each file must be 10 MB or smaller.",
       "howPay": "How do you want to pay?",
       "fixedHint": "Pay an agreed amount for the whole project",
       "hourlyHint": "Pay an agreed rate per hour",
@@ -1127,7 +1127,8 @@
         "IN_PROGRESS": "In progress",
         "SUBMITTED": "Awaiting review",
         "APPROVED": "Released",
-        "REVISION_REQUESTED": "Revision requested"
+        "REVISION_REQUESTED": "Revision requested",
+        "PROPOSED": "Proposed"
       },
       "submitted": "Submitted work",
       "approvedNote": "Approved {date} · {amount} reaches the freelancer after a 3-day hold",
@@ -1158,7 +1159,7 @@
       "submitTitle": "Submit work for milestone {number}",
       "submitConfirm": "Submit for review",
       "workLink": "Link to the work",
-      "workFile": "Or upload a file (up to 5 MB)",
+      "workFile": "Or upload a file (up to 10 MB)",
       "notes": "Notes for the client",
       "errNotes": "Add a note for the client.",
       "addConfirm": "Add milestone",
@@ -1169,8 +1170,27 @@
       "errMilestone": "Enter a title and a due date.",
       "errAmount": "Enter an amount up to {left}.",
       "revisionAsked": "What the client asked to change",
-      "logRevision": "Revision requested for \"{title}\""
-    }
+      "logRevision": "Revision requested for \"{title}\"",
+      "logProposed": "{title} was proposed as a milestone",
+      "logAccepted": "{title} was accepted",
+      "logApproved": "{title} was approved and paid",
+      "logDisputed": "A dispute was opened",
+      "logResolved": "The dispute was settled",
+      "waitingAccept": "Waiting for {name} to accept this milestone.",
+      "proposedText": "Proposed by the freelancer. Accept it to add it to the contract.",
+      "acceptMilestone": "Accept milestone",
+      "declineMilestone": "Decline"
+    },
+    "saveFailed": "We couldn’t update your saved projects. Try again.",
+    "saveProject": "Save {title}",
+    "unsaveProject": "Remove {title} from saved",
+    "save": "Save",
+    "saved": "Saved",
+    "postedBy": "Posted by {name}",
+    "memberSince": "Member since {date}",
+    "completed": "{count} completed contracts",
+    "oneCompleted": "1 completed contract",
+    "viewPortfolio": "View portfolio"
   },
   "pricing": {
     "title": "Simple plans, priced in birr",
@@ -1385,7 +1405,59 @@
     "verifyResend": "Send a new link",
     "verifySending": "Sending…",
     "verifySent": "New link sent. Check your inbox and spam folder.",
-    "verifyFailed": "We couldn’t send it just now. Try again in a while."
+    "verifyFailed": "We couldn’t send it just now. Try again in a while.",
+    "jobsForYou": "Jobs for you",
+    "alerts": {
+      "title": "Job alerts",
+      "new": "New alert",
+      "keywords": "Keywords",
+      "keywordsHint": "e.g. accountant, auditor",
+      "anyType": "Any type",
+      "minSalary": "Minimum monthly salary (ETB)",
+      "create": "Create alert",
+      "none": "No alerts yet. We’ll email you when a new job matches one.",
+      "anyJob": "Any job",
+      "from": "from {amount}",
+      "toggle": "Alert for {name}",
+      "delete": "Delete",
+      "needOne": "Add a keyword, place, job type or salary.",
+      "saveFailed": "We couldn’t save that alert. You can have up to 10."
+    },
+    "photo": "Profile photo",
+    "photoText": "Employers see it next to your applications. JPG, PNG or WEBP, up to 10 MB.",
+    "addPhoto": "Add photo",
+    "changePhoto": "Change photo",
+    "removePhoto": "Remove",
+    "deleteExplain": "This removes your profile, CV, saved jobs and messages for good, and signs you out everywhere. Records the law requires us to keep, like payments, are kept without your name.",
+    "deleteStart": "Delete my account",
+    "deletePassword": "Your password",
+    "deleteSocialNote": "Signed up with Google or LinkedIn and never set a password? Leave it blank.",
+    "deleteConfirm": "Type DELETE to confirm",
+    "deleteTypeIt": "Type DELETE in capitals to confirm.",
+    "deleteWrongPassword": "That password is not right.",
+    "deleteOpenContracts": "Finish or settle your open contracts first.",
+    "deleteFailed": "We couldn’t delete your account. Try again.",
+    "deleting": "Deleting…",
+    "deleteNow": "Delete my account for good",
+    "interview": {
+      "answerFailed": "We couldn’t send your answer. Try again.",
+      "status": {
+        "SCHEDULED": "Waiting for you",
+        "RESCHEDULED": "New time",
+        "CONFIRMED": "Confirmed",
+        "DECLINED": "Declined",
+        "COMPLETED": "Done",
+        "CANCELLED": "Cancelled"
+      },
+      "where": "Where",
+      "link": "Video link",
+      "notes": "Notes from the employer",
+      "declineNote": "Tell the employer why, or suggest another time (optional)",
+      "sendDecline": "Decline interview",
+      "confirm": "Confirm I’ll attend",
+      "decline": "Can’t make it",
+      "hasLink": "Video link set"
+    }
   },
   "emp": {
     "tabs": {
@@ -1443,7 +1515,62 @@
     "notVerified": "Not verified",
     "verifySoon": "Trade licence upload is on the way. Verified companies get a badge on their jobs.",
     "changePlan": "Change plan",
-    "usage": "Usage"
+    "usage": "Usage",
+    "fileTooBig": "That file is over 10 MB. Choose a smaller one.",
+    "uploadFailed": "We couldn’t upload that file. Try again.",
+    "licenceSent": "Your licence was sent. We’ll check it and let you know.",
+    "licenceFailed": "We couldn’t send your licence. Try again.",
+    "nameNeeded": "Enter your company name.",
+    "renamedUnverified": "Saved. Because the name changed, your company needs to be verified again.",
+    "companySaved": "Company profile saved.",
+    "uploading": "Uploading…",
+    "changeLogo": "Change logo",
+    "addLogo": "Add logo",
+    "editCompany": "Edit profile",
+    "size": "Company size",
+    "renameWarning": "Changing the name removes the Verified badge until we check your licence again.",
+    "sendLicence": "Send trade licence",
+    "verifyStatus": {
+      "NONE": "Not verified",
+      "PENDING": "Being checked",
+      "VERIFIED": "Verified",
+      "REJECTED": "Not approved"
+    },
+    "verifyText": {
+      "NONE": "Send your trade licence (PDF or photo) and we’ll add a Verified badge to your jobs once we’ve checked it.",
+      "PENDING": "We’re checking your trade licence. This usually takes one or two working days.",
+      "VERIFIED": "Your jobs show a Verified badge.",
+      "REJECTED": "We couldn’t verify the licence you sent. Here’s why; you can send a new one."
+    },
+    "interviewsTitle": "Upcoming interviews",
+    "noPlaceYet": "No place or link yet",
+    "setDetails": "Set place and link",
+    "bank": {
+      "title": "Pay by bank transfer",
+      "text": "Pay for a plan from your bank or CBE Birr, then send us the receipt. Your plan starts as soon as we’ve checked it, usually the same working day.",
+      "startFailed": "We couldn’t start the payment. Try again.",
+      "needBoth": "Add the bank’s reference number and a photo or PDF of the receipt.",
+      "sent": "Receipt sent. We’ll start your plan once we’ve checked it.",
+      "receiptFailed": "We couldn’t send the receipt. Try again.",
+      "pay": "Transfer {amount} to:",
+      "askDetails": "Ask us for the account to pay into:",
+      "reference": "Bank reference number",
+      "receipt": "Receipt (photo or PDF)",
+      "send": "Send receipt",
+      "plan": "Plan",
+      "choose": "Choose a plan",
+      "start": "Pay by transfer",
+      "history": "Billing history",
+      "noPayments": "No payments yet.",
+      "payment": "Payment",
+      "status": {
+        "PENDING": "Waiting for receipt",
+        "PROCESSING": "Being checked",
+        "SUCCEEDED": "Paid",
+        "FAILED": "Not accepted",
+        "REFUNDED": "Refunded"
+      }
+    }
   },
   "tax": {
     "title": "Salary tax calculator",
@@ -1489,7 +1616,20 @@
     "matchOn": "What we match on",
     "yourSkills": "Your skills",
     "noSkills": "No skills added yet.",
-    "editSkills": "Edit skills"
+    "editSkills": "Edit skills",
+    "hideFailed": "We couldn’t hide that job. Try again.",
+    "reasons": {
+      "skills": "Matches your skills: {terms}",
+      "search": "Matches your search: {terms}",
+      "saved": "Like jobs you saved"
+    },
+    "why": "Why you’re seeing this",
+    "offTitle": "Your feed isn’t personalised",
+    "offText": "You turned off matching in Settings, so these are the newest jobs.",
+    "openSettings": "Open settings",
+    "recentSearches": "Recent searches (last 30 days)",
+    "preferNot": "Prefer not to be matched?",
+    "preferNotText": "Turn off the personalised feed in Settings and you’ll see the newest jobs instead."
   },
   "forum": {
     "title": "Community",
@@ -1498,7 +1638,9 @@
     "search": "Search discussions",
     "sort": {
       "latest": "Newest",
-      "oldest": "Oldest"
+      "oldest": "Oldest",
+      "popular": "Most voted",
+      "unanswered": "Unanswered"
     },
     "showing": "Showing",
     "clear": "Clear",
@@ -1546,7 +1688,12 @@
     "errTitle": "Enter a title of at least 5 characters.",
     "errContent": "Add at least 20 characters of detail.",
     "postFailed": "We couldn't post your discussion. Try again.",
-    "anonymous": "Anonymous"
+    "anonymous": "Anonymous",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "lock": "Lock",
+    "unlock": "Unlock",
+    "modFailed": "That didn’t work. Try again."
   },
   "voice": {
     "title": "Voice to text",
@@ -1747,5 +1894,24 @@
     "experienceEmpty": "Your work experience will appear here.",
     "educationEmpty": "Your education will appear here.",
     "skillsHeading": "Skills"
+  },
+  "report": {
+    "action": "Report",
+    "why": "What’s wrong?",
+    "reasons": {
+      "scam": "It looks like a scam",
+      "asks_for_payment": "It asks for money to apply or be interviewed",
+      "misleading": "It’s false or misleading",
+      "offensive": "It’s offensive or abusive",
+      "spam": "It’s spam",
+      "other": "Something else"
+    },
+    "details": "Anything else we should know? (optional)",
+    "detailsNeeded": "Tell us what’s wrong",
+    "send": "Send report",
+    "sending": "Sending…",
+    "failed": "We couldn’t send that. Try again.",
+    "thanks": "Thanks. Our team will look at it.",
+    "already": "You’ve already reported this."
   }
 }

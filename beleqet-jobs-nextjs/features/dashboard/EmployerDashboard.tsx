@@ -10,9 +10,11 @@ import { daysUntil } from '@/features/jobs/format';
 import { apiGet, apiSend } from './api';
 import VerifyEmailBanner from './VerifyEmailBanner';
 import ApplicantsSection from './sections/ApplicantsSection';
+import EmployerInterviews from './sections/EmployerInterviews';
 import CompanySection from './sections/CompanySection';
 import PlanSection from './sections/PlanSection';
 import TwoStep from './sections/TwoStep';
+import DeleteAccount from './sections/DeleteAccount';
 import { card, Confirm, Empty, Failed, Heading, muted, outline, shortDate, solid } from './ui';
 
 export type EmployerJob = {
@@ -190,13 +192,19 @@ export default function EmployerDashboard() {
           </>
         )}
 
-        {!failed && tab === 'applicants' && jobs && <ApplicantsSection jobs={list} selectedId={selectedJob} />}
+        {!failed && tab === 'applicants' && jobs && (
+          <>
+            <EmployerInterviews />
+            <ApplicantsSection jobs={list} selectedId={selectedJob} />
+          </>
+        )}
         {tab === 'company' && <CompanySection openJobs={open.length} />}
         {tab === 'plan' && <PlanSection />}
         {tab === 'settings' && (
           <>
             <Heading title={t('emp.tabs.settings')} />
             <TwoStep />
+            <DeleteAccount />
           </>
         )}
       </div>
