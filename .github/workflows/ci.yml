@@ -307,10 +307,14 @@ jobs:
         run: npm run prisma:migrate:deploy
       - run: npm run build
 
-      - name: Create the test admin account
+      - name: Create the test admin account and its permissions
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/beleqet_test
-        run: node create-admin.js
+          REDIS_HOST: localhost
+          REDIS_PORT: '6379'
+        run: |
+          node scripts/seed-rbac.js
+          node create-admin.js
 
       - name: Run admin Playwright E2E tests with backend
         env:
