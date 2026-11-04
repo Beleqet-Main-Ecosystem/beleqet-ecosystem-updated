@@ -104,6 +104,11 @@ jobs:
           DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
           SHA: ${{ steps.target.outputs.sha }}
         run: |
+          # Secrets pasted into GitHub often carry a trailing newline or space; drop them.
+          PORT="$(printf '%s' "$PORT" | tr -d '[:space:]')"
+          HOST="$(printf '%s' "$HOST" | tr -d '[:space:]')"
+          USER="$(printf '%s' "$USER" | tr -d '[:space:]')"
+          DEPLOY_PATH="$(printf '%s' "$DEPLOY_PATH" | tr -d '[:space:]')"
           # Update the code to the commit (keeping the server's own docker-compose.yml), then run the
           # deploy script from that commit. The server-side override file is never tracked by git.
           ssh -i ~/.ssh/production_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
