@@ -154,6 +154,9 @@
         "title": "I’m a freelancer",
         "text": "Bid on projects and get paid safely through BeleqetSafe escrow.",
         "short": "a freelancer"
+      },
+      "ADMIN": {
+        "short": "an admin"
       }
     },
     "welcomeBack": "Welcome back",
@@ -233,14 +236,17 @@
     "keepSignedIn": "Keep me signed in",
     "orEmail": "or with email",
     "oauthFailed": "Google or LinkedIn sign-in didn’t finish. Try again, or sign in with your email.",
-    "oauthConfirm": "You already have an account with that email. We’ve emailed you a link to connect it; open it, then sign in."
+    "oauthConfirm": "You already have an account with that email. We’ve emailed you a link to connect it; open it, then sign in.",
+    "otherRoleTitle": "You need {role} account for this",
+    "otherRoleText": "You’re signed in as {current} ({email}). Each Beleqet account has one role, so to continue as {role}, sign out and create a separate account with another email.",
+    "signOutContinue": "Sign out and create the account"
   },
   "postJob": {
     "gateTitle": "Sign in to post a job",
     "gateText": "Sign in with your employer account to publish a job.",
     "signIn": "Sign in",
     "roleTitle": "An employer account is required",
-    "roleText": "Your account cannot publish jobs. Register as an employer to continue.",
+    "roleText": "You’re signed in with an account that can’t post jobs. Employer accounts are separate: sign out and create one to post jobs.",
     "createEmployer": "Create employer account",
     "companyFailed": "We couldn't check your company profile.",
     "companyTitle": "Create your company profile",
@@ -897,7 +903,8 @@
       "errGeneric": "Your application couldn’t be sent. Please try again.",
       "portfolio": "Portfolio link",
       "portfolioInvalid": "Enter a full web address, like https://example.com",
-      "expectedSalary": "Expected salary (ETB)"
+      "expectedSalary": "Expected salary (ETB)",
+      "backToJob": "Back to the job"
     },
     "moreFromEmployer": "More jobs from this employer"
   },

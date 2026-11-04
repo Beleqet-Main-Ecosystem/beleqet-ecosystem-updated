@@ -52,6 +52,17 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     if (!this.enabled || !this.bot) return;
 
+    /**
+     * Receiving messages is opt-in. Telegram delivers a bot's updates to one program only, and in
+     * production @BeleqetNotifyBot's conversations belong to the Python bot service; polling from
+     * here knocked it offline and replaced its menu button on every API restart. Sending (channel
+     * posts, user notifications) and Mini App sign-in work either way.
+     */
+    if (this.config.get<string>('TELEGRAM_RECEIVE_UPDATES', 'false') !== 'true') {
+      this.logger.log('Telegram running send-only (TELEGRAM_RECEIVE_UPDATES is not true).');
+      return;
+    }
+
     const webAppUrl = this.config.get<string>('TELEGRAM_WEBAPP_URL');
 
     /**

@@ -9,6 +9,11 @@ name: Deploy Staging
 #
 # Manual dispatch supports dry_run=true from any branch (validates and plans,
 # contacts no server); a real manual deploy is restricted to main.
+#
+# Automatic deploys after a merge only run when the repository variable
+# STAGING_AUTO_DEPLOY is "true". It stays off until a staging server separate
+# from production exists: the STAGING_* secrets currently point at the
+# production host, and this workflow's setup differs from production's.
 
 on:
   workflow_run:
@@ -44,6 +49,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (
+        vars.STAGING_AUTO_DEPLOY == 'true' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push' &&
         github.event.workflow_run.head_branch == 'main'

@@ -40,6 +40,11 @@ export interface DeploymentContext {
   readonly workflowRun?: WorkflowRunEvent;
   /** True when a manual `workflow_dispatch` staging deploy is permitted. */
   readonly allowManualDeploy: boolean;
+  /**
+   * True when a successful CI run on main may deploy by itself (repository variable
+   * STAGING_AUTO_DEPLOY). Off until a staging server separate from production exists.
+   */
+  readonly allowAutoDeploy?: boolean;
   /** Ref for manual dispatches, e.g. `refs/heads/main`. */
   readonly ref?: string;
 }

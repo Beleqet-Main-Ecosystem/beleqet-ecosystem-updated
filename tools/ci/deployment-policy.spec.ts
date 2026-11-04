@@ -14,10 +14,24 @@ function successfulMainRun(overrides: Partial<WorkflowRunEvent> = {}): WorkflowR
 }
 
 function workflowRunContext(run?: WorkflowRunEvent): DeploymentContext {
-  return { eventName: 'workflow_run', workflowRun: run, allowManualDeploy: false };
+  return {
+    eventName: 'workflow_run',
+    workflowRun: run,
+    allowManualDeploy: false,
+    allowAutoDeploy: true,
+  };
 }
 
 describe('evaluateDeployment — workflow_run', () => {
+  it('refuses automatic deployment until STAGING_AUTO_DEPLOY is enabled', () => {
+    const decision = evaluateDeployment({
+      ...workflowRunContext(successfulMainRun()),
+      allowAutoDeploy: false,
+    });
+    expect(decision.allowed).toBe(false);
+    expect(decision.reason).toContain('STAGING_AUTO_DEPLOY');
+  });
+
   it('allows deployment for a successful push-triggered CI run on main', () => {
     const decision = evaluateDeployment(workflowRunContext(successfulMainRun()));
     expect(decision.allowed).toBe(true);

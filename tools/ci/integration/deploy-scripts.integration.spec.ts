@@ -390,6 +390,11 @@ describe('deployment workflow guards (static)', () => {
     expect(workflow).toContain("== 'main'");
   });
 
+  it('only deploys automatically when STAGING_AUTO_DEPLOY is enabled', () => {
+    const workflow = fs.readFileSync(workflowPath, 'utf8');
+    expect(workflow).toContain("vars.STAGING_AUTO_DEPLOY == 'true'");
+  });
+
   it('uses a non-cancelling deployment concurrency group', () => {
     const workflow = fs.readFileSync(workflowPath, 'utf8');
     expect(workflow).toContain('concurrency');

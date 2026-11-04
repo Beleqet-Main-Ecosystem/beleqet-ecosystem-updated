@@ -202,10 +202,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         async with aiosqlite.connect(DB_FILE) as db:
-            await db.execute("INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)", (user.id, user.username))
+            cursor = await db.execute("INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)", (user.id, user.username))
+            is_new_user = cursor.rowcount == 1
             await db.execute("UPDATE users SET username = ? WHERE user_id = ?", (user.username, user.id))
             await db.commit()
     except aiosqlite.Error as e:
+        is_new_user = False
         logging.error(f"Database error in start: {e}")
 
     menu_markup = admin_menu_markup if await is_admin(user.id) else main_menu_markup
@@ -222,13 +224,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 የገቢዎን ማስያዣ ይጠብቁ፦ ከተጠቃሚዎች ገቢ ሲጨምር ዳሽቦርዱን ይክፈቱ እና "Withdraw" የሚለውን ቁልፍ በመጫን ገንዘብዎን ወደ እርስዎ መለያ ይጠቀሙ።
 """
 
-    if context.args:
+    # A referral counts once: for someone opening the bot for the first time, credited to the first link they used.
+    if context.args and is_new_user:
         try:
             referrer_id = int(context.args[0])
             if referrer_id != user.id:
                 async with aiosqlite.connect(DB_FILE) as db:
+                    async with db.execute("SELECT 1 FROM successful_referrals WHERE referred_user_id = ?", (user.id,)) as seen:
+                        already_referred = await seen.fetchone() is not None
                     async with db.execute("INSERT OR IGNORE INTO successful_referrals (referrer_id, referred_user_id) VALUES (?, ?)", (referrer_id, user.id)) as cursor:
-                        if cursor.rowcount > 0:
+                        if cursor.rowcount > 0 and not already_referred:
                             await db.execute("UPDATE users SET score = score + 1 WHERE user_id = ?", (referrer_id,))
                             await db.commit()
                         
@@ -248,25 +253,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Mini App ይክፈቱ 📱", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
 
+    # WELCOME_PHOTO_FILE_ID may be a Telegram file id or a local image path; fall back to text either way.
     try:
-        if os.path.exists(WELCOME_PHOTO_FILE_ID):
+        if WELCOME_PHOTO_FILE_ID and os.path.exists(WELCOME_PHOTO_FILE_ID):
             with open(WELCOME_PHOTO_FILE_ID, 'rb') as photo_file:
-                await update.message.reply_photo(
-                    photo=photo_file,
-                    caption=amharic_welcome_text,
-                    reply_markup=join_button_markup
-                )
+                await update.message.reply_photo(photo=photo_file, caption=amharic_welcome_text, reply_markup=join_button_markup)
+        elif WELCOME_PHOTO_FILE_ID:
+            await update.message.reply_photo(photo=WELCOME_PHOTO_FILE_ID, caption=amharic_welcome_text, reply_markup=join_button_markup)
         else:
-            await update.message.reply_text(
-                amharic_welcome_text,
-                reply_markup=join_button_markup
-            )
+            await update.message.reply_text(amharic_welcome_text, reply_markup=join_button_markup)
     except Exception as e:
         logging.warning(f"Failed sending welcome photo, falling back to text: {e}")
-        await update.message.reply_text(
-            amharic_welcome_text,
-            reply_markup=join_button_markup
-        )
+        await update.message.reply_text(amharic_welcome_text, reply_markup=join_button_markup)
 
     await update.message.reply_text(
         "👇 Use the menu button below to open your Mini App Dashboard:",
@@ -313,44 +311,47 @@ async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    action, withdrawal_id, user_id, amount = query.data.split(':')
-    user_id, amount = int(user_id), int(amount)
+    # Telegram clients can send any button data, so only admins decide, and the user and amount come
+    # from the database rather than from the button. Older buttons also carried them; they're ignored.
+    if not await is_admin(query.from_user.id):
+        return
+    parts = (query.data or "").split(':')
+    if len(parts) < 2 or parts[0] not in ("approve", "reject") or not parts[1].isdigit():
+        return
+    action, withdrawal_id = parts[0], int(parts[1])
     original_message = query.message.text
 
     try:
         async with aiosqlite.connect(DB_FILE) as db:
-            # 1. Check if the withdrawal has already been processed (prevents double-clicking)
-            async with db.execute("SELECT status FROM withdrawals WHERE id = ?", (withdrawal_id,)) as cursor:
+            async with db.execute("SELECT user_id, amount FROM withdrawals WHERE id = ?", (withdrawal_id,)) as cursor:
                 withdrawal = await cursor.fetchone()
-                if not withdrawal or withdrawal[0] != 'pending':
-                    await query.edit_message_text(text=f"{original_message}\n\n--- ⚠️ Status: ALREADY PROCESSED ---")
-                    return
-
-            if action == "approve":
-                # Note: We DO NOT deduct points here anymore, because api.py already locked and deducted them.
-                # We just mark the withdrawal as successfully paid.
-                await db.execute("UPDATE withdrawals SET status = 'paid', processed_timestamp = ? WHERE id = ?", (datetime.now(), withdrawal_id))
-                await db.commit()
-                
-                await query.edit_message_text(text=f"{original_message}\n\n--- ✅ Status: PAID ---", parse_mode='Markdown')
-
-                user_notification = (f"🎉 Your withdrawal request for **{amount} Birr** has been approved and sent!\n\nየጠየቁት የ {amount} ብር ወጪ ተፈቅዷል እና ተልኳል!")
-                await context.bot.send_message(chat_id=user_id, text=user_notification, parse_mode='Markdown')
-
-            elif action == "reject":
-                # REFUND THE POINTS! Since api.py took them when they requested, we must give them back upon rejection.
+            if not withdrawal:
+                return
+            user_id, amount = withdrawal
+            new_status = 'paid' if action == "approve" else 'rejected'
+            # Only a pending request changes, and only once, even if two admins press at the same time.
+            cursor = await db.execute(
+                "UPDATE withdrawals SET status = ?, processed_timestamp = ? WHERE id = ? AND status = 'pending'",
+                (new_status, datetime.now(), withdrawal_id),
+            )
+            if cursor.rowcount != 1:
+                await query.edit_message_text(text=f"{original_message}\n\n--- ⚠️ Status: ALREADY PROCESSED ---")
+                return
+            if action == "reject":
+                # The API took the points when the request was made; give them back.
                 await db.execute("UPDATE users SET score = score + ? WHERE user_id = ?", (amount, user_id))
-                
-                await db.execute("UPDATE withdrawals SET status = 'rejected', processed_timestamp = ? WHERE id = ?", (datetime.now(), withdrawal_id))
-                await db.commit()
-                
-                await query.edit_message_text(text=f"{original_message}\n\n--- ❌ Status: REJECTED (Points Refunded) ---", parse_mode='Markdown')
-                
-                rejection_reason = (f"⚠️ **Withdrawal Rejected**\n\nYour request for {amount} Birr was not approved, and your {amount} points have been refunded to your account. \n\nየጠየቁት የ {amount} ብር ወጪ አልተፈቀደም፡ ሆኖም {amount} ነጥብዎ ወደ ሂሳብዎ ተመልሷል።")
-                await context.bot.send_message(chat_id=user_id, text=rejection_reason, parse_mode='Markdown')
+            await db.commit()
+
+        if action == "approve":
+            await query.edit_message_text(text=f"{original_message}\n\n--- ✅ Status: PAID ---")
+            user_notification = (f"🎉 Your withdrawal request for **{amount} Birr** has been approved and sent!\n\nየጠየቁት የ {amount} ብር ወጪ ተፈቅዷል እና ተልኳል!")
+            await context.bot.send_message(chat_id=user_id, text=user_notification, parse_mode='Markdown')
+        else:
+            await query.edit_message_text(text=f"{original_message}\n\n--- ❌ Status: REJECTED (Points Refunded) ---")
+            rejection_reason = (f"⚠️ **Withdrawal Rejected**\n\nYour request for {amount} Birr was not approved, and your {amount} points have been refunded to your account. \n\nየጠየቁት የ {amount} ብር ወጪ አልተፈቀደም፡ ሆኖም {amount} ነጥብዎ ወደ ሂሳብዎ ተመልሷል።")
+            await context.bot.send_message(chat_id=user_id, text=rejection_reason, parse_mode='Markdown')
 
     except aiosqlite.Error as e:
-        # Silently log to primary admin if database locks or fails
         await context.bot.send_message(chat_id=PRIMARY_ADMIN_ID, text=f"Database error processing request #{withdrawal_id}: {e}")
 
 # --- 📣 BROADCAST HANDLERS ---
@@ -753,6 +754,8 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 def main():
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+    # httpx logs every request URL at INFO, and Telegram URLs contain the bot token.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     application = Application.builder().token(BOT_TOKEN).persistence(PicklePersistence(filepath="bot_persistence")).post_init(post_init).build()
 
     application.add_handler(ConversationHandler(

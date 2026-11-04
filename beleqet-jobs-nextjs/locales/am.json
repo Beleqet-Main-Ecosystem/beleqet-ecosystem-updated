@@ -154,6 +154,9 @@
         "title": "ፍሪላንሰር ነኝ",
         "text": "በፕሮጀክቶች ላይ ይጫረቱ፣ በBeleqetSafe Escrow በደህና ይከፈሉ።",
         "short": "ፍሪላንሰር"
+      },
+      "ADMIN": {
+        "short": "አስተዳዳሪ"
       }
     },
     "welcomeBack": "እንኳን ደህና መጡ",
@@ -233,14 +236,17 @@
     "keepSignedIn": "እንደገባሁ አቆየኝ",
     "orEmail": "ወይም በኢሜይል",
     "oauthFailed": "በGoogle ወይም በLinkedIn መግባት አልተጠናቀቀም። እንደገና ይሞክሩ ወይም በኢሜይልዎ ይግቡ።",
-    "oauthConfirm": "በዚያ ኢሜይል መለያ አለዎት። ለማገናኘት ሊንክ በኢሜይል ልከንልዎታል፤ ከፍተው ከዚያ ይግቡ።"
+    "oauthConfirm": "በዚያ ኢሜይል መለያ አለዎት። ለማገናኘት ሊንክ በኢሜይል ልከንልዎታል፤ ከፍተው ከዚያ ይግቡ።",
+    "otherRoleTitle": "ለዚህ {role} መለያ ያስፈልግዎታል",
+    "otherRoleText": "እንደ {current} ({email}) ገብተዋል። እያንዳንዱ የበለቀት መለያ አንድ ሚና አለው፤ ስለዚህ እንደ {role} ለመቀጠል ይውጡና በሌላ ኢሜይል የተለየ መለያ ይፍጠሩ።",
+    "signOutContinue": "ውጣና መለያውን ፍጠር"
   },
   "postJob": {
     "gateTitle": "ስራ ለመለጠፍ ይግቡ",
     "gateText": "ስራ ለማተም በአሰሪ መለያዎ ይግቡ።",
     "signIn": "ይግቡ",
     "roleTitle": "የአሰሪ መለያ ያስፈልጋል",
-    "roleText": "መለያዎ ስራ ማተም አይችልም። ለመቀጠል እንደ አሰሪ ይመዝገቡ።",
+    "roleText": "ስራ መለጠፍ በማይችል መለያ ገብተዋል። የአሰሪ መለያዎች የተለዩ ናቸው፤ ስራ ለመለጠፍ ይውጡና አንድ ይፍጠሩ።",
     "createEmployer": "የአሰሪ መለያ ፍጠር",
     "companyFailed": "የድርጅት መገለጫዎን ማረጋገጥ አልተቻለም።",
     "companyTitle": "የድርጅት መገለጫዎን ይፍጠሩ",
@@ -894,7 +900,8 @@
       "errGeneric": "ማመልከቻዎን መላክ አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
       "portfolio": "የፖርትፎሊዮ ሊንክ",
       "portfolioInvalid": "ሙሉ የድረ ገጽ አድራሻ ያስገቡ፣ ለምሳሌ https://example.com",
-      "expectedSalary": "የሚጠበቅ ደመወዝ (ብር)"
+      "expectedSalary": "የሚጠበቅ ደመወዝ (ብር)",
+      "backToJob": "ወደ ስራው ተመለስ"
     },
     "moreFromEmployer": "ከዚህ አሰሪ ተጨማሪ ስራዎች"
   },
