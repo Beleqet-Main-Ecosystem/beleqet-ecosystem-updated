@@ -113,6 +113,18 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 /** Query-string parameters that may contain PII — redacted from logs. */
 const SENSITIVE_PARAMS = ['email', 'token', 'password', 'phone', 'telegramId', 'code'];
 
+/** One alert per endpoint per window: a failing database otherwise sends one per request. */
+const ALERT_WINDOW_MS = 10 * 60 * 1000;
+const lastAlertAt = new Map<string, number>();
+
+/** True when no alert went out for this key within the window; records the send. */
+export function shouldAlert(key: string, now: number): boolean {
+  const last = lastAlertAt.get(key);
+  if (last !== undefined && now - last < ALERT_WINDOW_MS) return false;
+  lastAlertAt.set(key, now);
+  return true;
+}
+
 @Injectable()
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -383,8 +395,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
    */
   private sendTelegramAlert(logEntry: StructuredErrorLog): void {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const channelId = process.env.TELEGRAM_CHANNEL_ID || process.env.TELEGRAM_ALERT_CHAT_ID;
+    // Alerts carry internal details, so they go to a private ops chat only. TELEGRAM_CHANNEL_ID is the
+    // public jobs channel and must never receive them; without an alert chat, no alert is sent.
+    const channelId = process.env.TELEGRAM_ALERT_CHAT_ID;
     if (!botToken || !channelId) return;
+    if (!shouldAlert(`${logEntry.method} ${logEntry.path}`, Date.now())) return;
 
     try {
       const message = [
