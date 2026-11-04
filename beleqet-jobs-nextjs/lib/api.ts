@@ -117,12 +117,6 @@ function relativeTime(iso?: string | null): string {
 }
 
 /** Imported jobs use "external" / "with_email"; jobs posted on Beleqet leave applyType empty. */
-function toApplyMethod(raw: any): 'internal' | 'external' | 'email' {
-  const type = String(raw.applyType ?? '').toLowerCase();
-  if ((type === 'external' || type === 'url') && raw.applyUrl) return 'external';
-  if ((type === 'with_email' || type === 'email') && raw.applyEmail) return 'email';
-  return 'internal';
-}
 
 /** Map a canonical backend Job to the web display Job. */
 export function toDisplayJob(raw: any): Job {
@@ -163,7 +157,9 @@ export function toDisplayJob(raw: any): Job {
     currency: raw.currency ?? 'ETB',
     createdAt: raw.createdAt,
     applicantCount: raw._count?.applications ?? 0,
-    applyMethod: toApplyMethod(raw),
+    // Every application goes through Beleqet, including jobs gathered from other sites (their posting
+    // account receives them). Older listings still carry an external link or email; it is not offered.
+    applyMethod: 'internal',
     applyUrl: raw.applyUrl ?? null,
     applyEmail: raw.applyEmail ?? null,
     closesAt: raw.deadline ?? raw.expiryDate ?? null,

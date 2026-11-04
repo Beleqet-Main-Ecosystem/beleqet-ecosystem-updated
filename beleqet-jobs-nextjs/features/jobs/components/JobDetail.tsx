@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ReportButton from '@/features/reports/ReportButton';
 import { useRouter } from 'next/navigation';
-import { Check, ExternalLink, Mail, Share2, ShieldCheck } from 'lucide-react';
+import { Check, ExternalLink, Share2, ShieldCheck } from 'lucide-react';
 import SaveJobButton from '@/components/SaveJobButton';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
@@ -12,7 +12,7 @@ import type { Job } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { categoryLabel } from '../categories';
 import type { DescriptionBlock } from '../description';
-import { daysUntil, formatSalary, initials, postedAgo, safeEmail, safeHttpUrl } from '../format';
+import { daysUntil, formatSalary, initials, postedAgo, safeHttpUrl } from '../format';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const wrap = 'mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10';
@@ -35,22 +35,20 @@ export default function JobDetail({ job, description, requirements, similar }: P
 
   // Show "Applied" for people who already applied (Beleqet applications only).
   useEffect(() => {
-    if (!user || job.applyMethod !== 'internal') return;
+    if (!user) return;
     authenticatedFetch(`${API_URL}/applications/my`)
       .then(async (res) => (res.ok ? res.json() : []))
       .then((apps: Array<{ jobId?: string; job?: { id?: string } }>) => {
         if (Array.isArray(apps) && apps.some((a) => (a.jobId ?? a.job?.id) === job.id)) setApplied(true);
       })
       .catch(() => undefined);
-  }, [user, job.id, job.applyMethod]);
+  }, [user, job.id]);
 
   const days = daysUntil(job.closesAt);
   const closed = days !== null && days < 0;
   const closesOn = job.closesAt
     ? new Date(job.closesAt).toLocaleDateString(locale === 'am' ? 'am-ET' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : '';
-  const externalUrl = job.applyMethod === 'external' ? safeHttpUrl(job.applyUrl) : null;
-  const email = job.applyMethod === 'email' ? safeEmail(job.applyEmail) : null;
   const pay = formatSalary(job, t('search.upTo'));
   const monthly = !job.salaryType || job.salaryType.toLowerCase() === 'monthly';
   const typeLabel = job.typeCode ? t(`search.types.${job.typeCode}`) : job.type;
@@ -84,22 +82,6 @@ export default function JobDetail({ job, description, requirements, similar }: P
     const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-6 text-base font-extrabold ${focusRing}`;
     const style = tone === 'lime' ? 'bg-limeAccent text-obsidian hover:bg-[#c8ef2e]' : 'bg-primary text-limeAccent hover:bg-primary2 dark:bg-limeAccent dark:text-obsidian dark:hover:bg-[#c8ef2e]';
     if (closed) return null;
-    if (externalUrl) {
-      return (
-        <a href={externalUrl} target="_blank" rel="noopener noreferrer nofollow" className={`${base} ${style}`}>
-          {t('job.applyExternal')}
-          <ExternalLink className="h-4 w-4" aria-hidden="true" />
-        </a>
-      );
-    }
-    if (email) {
-      return (
-        <a href={`mailto:${email}?subject=${encodeURIComponent(`${t('job.emailSubject')}: ${job.title}`)}`} className={`${base} ${style}`}>
-          <Mail className="h-4 w-4" aria-hidden="true" />
-          {t('job.applyEmail')}
-        </a>
-      );
-    }
     if (applied) {
       return (
         <span className={`inline-flex min-h-12 items-center gap-2 rounded-md px-[18px] text-[15px] font-bold ${tone === 'lime' ? 'bg-limeAccent/15 text-limeAccent' : 'bg-[#EEF5EF] text-forest'}`}>
@@ -261,7 +243,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
                 <Link href={category ? `/jobs?category=${encodeURIComponent(category.id)}` : '/jobs'} className={`flex min-h-12 items-center justify-center rounded-md bg-primary text-[15px] font-bold text-white ${focusRing}`}>
                   {t('job.findSimilar')}
                 </Link>
-              ) : applied && job.applyMethod === 'internal' ? (
+              ) : applied ? (
                 <Link href="/applications" className={`flex min-h-12 items-center justify-center rounded-md border border-ink-300 text-[15px] font-bold text-ink-900 dark:border-slate-700 dark:text-white ${focusRing}`}>
                   {t('job.apply.track')}
                 </Link>
@@ -269,9 +251,6 @@ export default function JobDetail({ job, description, requirements, similar }: P
                 applyControl('dark')
               )}
             </div>
-            {!closed && job.applyMethod !== 'internal' && (externalUrl || email) && (
-              <p className="mt-2.5 text-[13px] text-ink-600 dark:text-slate-400">{t(externalUrl ? 'job.externalNote' : 'job.emailNote')}</p>
-            )}
           </section>
 
           <section aria-labelledby="safe-h" className={`${card} flex gap-3.5 px-[22px] py-5`}>
