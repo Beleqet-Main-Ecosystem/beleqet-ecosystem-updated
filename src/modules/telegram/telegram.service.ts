@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Telegraf } from 'telegraf';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -418,18 +424,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
    * Links a user's Telegram ID to their Beleqet account using an auth token.
    */
   async linkTelegramByToken(token: string, telegramId: string) {
-    if (!token || !telegramId) return { success: false, message: 'Missing token or telegramId' };
-    const user = await this.prisma.user.findFirst({
-      where: { id: token },
-    });
-    if (user) {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { telegramId: String(telegramId) },
-      });
-      return { success: true, message: 'Telegram linked successfully' };
-    }
-    return { success: false, message: 'Invalid token' };
+    // The "token" was the user's own ID, so anyone who learned an ID could attach their Telegram to
+    // that account and then sign in as its owner. Linking now happens only through tma-link, which
+    // needs the signed-in owner plus Telegram's signed initData.
+    void token;
+    void telegramId;
+    return {
+      success: false,
+      message: 'Link Telegram from your Beleqet profile inside the Telegram mini app.',
+    };
   }
 
   /**
@@ -456,11 +459,22 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         : 'JOB_SEEKER';
 
     if (telegramId) {
-      const existing = await this.prisma.user.findFirst({
-        where: { OR: [{ telegramId: String(telegramId) }, { email }] },
+      const linked = await this.prisma.user.findFirst({
+        where: { telegramId: String(telegramId) },
       });
-      if (existing) {
-        return { success: true, registered: true, userId: existing.id, role: existing.role };
+      if (linked) {
+        return { success: true, registered: true, role: linked.role };
+      }
+      // An email typed in Telegram proves nothing about who owns it: never hand over or attach to an
+      // existing account (this returned the account's ID, which enabled account takeover).
+      const emailTaken = await this.prisma.user.findFirst({
+        where: { email },
+        select: { id: true },
+      });
+      if (emailTaken) {
+        throw new ConflictException(
+          'Email already registered. Please enter a different email address for registration.',
+        );
       }
 
       const created = await this.prisma.user.create({
@@ -471,10 +485,11 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           lastName,
           role: role as any,
           isActive: true,
-          emailVerified: true,
+          // Only the placeholder address counts as verified; a real one is confirmed by email.
+          emailVerified: email.endsWith('@beleqet.internal'),
         },
       });
-      return { success: true, registered: true, userId: created.id, role: created.role };
+      return { success: true, registered: true, role: created.role };
     }
 
     return { success: false, message: 'Missing telegram_id' };

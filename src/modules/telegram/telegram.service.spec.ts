@@ -92,3 +92,49 @@ describe('TelegramService receiving updates', () => {
     expect(bot.launch).toHaveBeenCalled();
   });
 });
+
+describe('TelegramService bot registration and linking', () => {
+  const prisma = {
+    user: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn() },
+  };
+  const service = new TelegramService({ get: () => undefined } as never, prisma as never);
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('never links a Telegram account to a user ID (account takeover)', async () => {
+    const result = await service.linkTelegramByToken('victim-user-id', '900000002');
+    expect(result.success).toBe(false);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('refuses an email that already has an account, without revealing its ID', async () => {
+    prisma.user.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 'victim-id' });
+    await expect(
+      service.registerFromBot({ telegram_id: '900000001', email: 'victim@example.com' }),
+    ).rejects.toThrow('Email already registered');
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a new account without marking a typed email as verified', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue({ id: 'new-id', role: 'EMPLOYER' });
+    const result = await service.registerFromBot({
+      telegram_id: '42',
+      email: 'Boss@Firm.com',
+      role: 'employer',
+    });
+    expect(prisma.user.create.mock.calls[0][0].data).toMatchObject({
+      email: 'boss@firm.com',
+      emailVerified: false,
+      role: 'EMPLOYER',
+    });
+    expect(result).toEqual({ success: true, registered: true, role: 'EMPLOYER' });
+  });
+
+  it('a Telegram-only account (placeholder email) stays verified', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue({ id: 'new-id', role: 'JOB_SEEKER' });
+    await service.registerFromBot({ telegram_id: '43' });
+    expect(prisma.user.create.mock.calls[0][0].data).toMatchObject({ emailVerified: true });
+  });
+});

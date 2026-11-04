@@ -15,6 +15,7 @@ import { TelegramService } from './telegram.service';
 import { TmaAuthDto } from './dto/telegram-tma.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
+import { BotApiGuard } from './guards/bot-api.guard';
 
 @ApiTags('telegram')
 @Controller('telegram')
@@ -60,6 +61,7 @@ export class TelegramController {
   }
 
   @Get('check-user')
+  @UseGuards(BotApiGuard)
   @SkipThrottle()
   @ApiOperation({ summary: 'Check if Telegram user is registered (WordPress migration drop-in)' })
   async checkUser(@Query('telegram_id') telegramId?: string, @Query('email') email?: string) {
@@ -67,6 +69,7 @@ export class TelegramController {
   }
 
   @Get('get-all-telegram-ids')
+  @UseGuards(BotApiGuard)
   @SkipThrottle()
   @ApiOperation({ summary: 'Retrieve all registered Telegram IDs for broadcasts' })
   async getAllTelegramIds() {
@@ -74,6 +77,7 @@ export class TelegramController {
   }
 
   @Post('update-payment-status')
+  @UseGuards(BotApiGuard)
   @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update manual payment approval status from Telegram admin actions' })
@@ -82,6 +86,7 @@ export class TelegramController {
   }
 
   @Post('link-telegram')
+  @UseGuards(BotApiGuard)
   @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Link Telegram ID to account via token' })
@@ -90,6 +95,7 @@ export class TelegramController {
   }
 
   @Post('update-language')
+  @UseGuards(BotApiGuard)
   @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update user language preference from Telegram' })
@@ -98,6 +104,7 @@ export class TelegramController {
   }
 
   @Post('register')
+  @UseGuards(BotApiGuard)
   @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Candidate / Employer bot registration endpoint' })
