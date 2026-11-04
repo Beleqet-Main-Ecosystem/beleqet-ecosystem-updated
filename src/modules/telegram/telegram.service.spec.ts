@@ -45,3 +45,50 @@ describe('TelegramService', () => {
     expect(result).toBe(false);
   });
 });
+
+describe('TelegramService receiving updates', () => {
+  const settings = (receive?: string) => ({
+    get: jest.fn((key: string, fallback?: string) => {
+      const values: Record<string, string | undefined> = {
+        TELEGRAM_ENABLED: 'true',
+        TELEGRAM_BOT_TOKEN: '123456:test-token',
+        TELEGRAM_WEBAPP_URL: 'https://beleqet.com',
+        TELEGRAM_RECEIVE_UPDATES: receive,
+      };
+      return values[key] ?? fallback;
+    }),
+  });
+
+  const fakeBot = (service: TelegramService) => {
+    const bot = {
+      telegram: {
+        setChatMenuButton: jest.fn().mockResolvedValue(true),
+        deleteWebhook: jest.fn().mockResolvedValue(true),
+        setWebhook: jest.fn().mockResolvedValue(true),
+        sendMessage: jest.fn().mockResolvedValue({}),
+      },
+      command: jest.fn(),
+      on: jest.fn(),
+      launch: jest.fn().mockResolvedValue(undefined),
+    };
+    (service as unknown as { bot: typeof bot }).bot = bot;
+    return bot;
+  };
+
+  it('stays send-only by default: no polling, no menu button change', async () => {
+    const service = new TelegramService(settings() as never, {} as never);
+    const bot = fakeBot(service);
+    await service.onModuleInit();
+    expect(bot.launch).not.toHaveBeenCalled();
+    expect(bot.telegram.deleteWebhook).not.toHaveBeenCalled();
+    expect(bot.telegram.setChatMenuButton).not.toHaveBeenCalled();
+  });
+
+  it('listens for messages only when TELEGRAM_RECEIVE_UPDATES is true', async () => {
+    const service = new TelegramService(settings('true') as never, {} as never);
+    const bot = fakeBot(service);
+    await service.onModuleInit();
+    expect(bot.telegram.setChatMenuButton).toHaveBeenCalled();
+    expect(bot.launch).toHaveBeenCalled();
+  });
+});
