@@ -100,5 +100,9 @@ for service in "${!IMAGES[@]}"; do
   docker tag "$PROJECT-$service:rollback-$STAMP" "$PROJECT-$service:latest" 2>/dev/null || true
 done
 restart
-healthy && log "previous version restored" || log "previous version is not healthy either; check the containers now"
+if healthy; then
+  log "previous version restored"
+else
+  log "previous version is not healthy either; check the containers now"
+fi
 exit 1
