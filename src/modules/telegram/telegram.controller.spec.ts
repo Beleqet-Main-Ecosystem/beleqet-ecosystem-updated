@@ -48,7 +48,7 @@ describe('TelegramController', () => {
       const dto = { initData: 'query_id=test&hash=abc12345', role: TmaUserRole.EMPLOYER };
       const res = await controller.tmaLogin(dto);
       expect(mockTmaService.authenticateTmaUser).toHaveBeenCalledWith(dto.initData, dto.role);
-      expect(res.accessToken).toBe('test-access-token');
+      expect(res).toEqual(expect.objectContaining({ accessToken: 'test-access-token' }));
     });
   });
 

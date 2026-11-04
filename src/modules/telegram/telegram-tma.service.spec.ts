@@ -10,6 +10,7 @@ describe('TelegramTmaService', () => {
   let service: TelegramTmaService;
 
   const mockToken = '123456:SECRET_TEST_BOT_TOKEN_XYZ';
+  const jobsBotToken = '654321:JOBS_BOT_TOKEN_ABC';
 
   const mockPrisma = {
     user: {
@@ -25,11 +26,17 @@ describe('TelegramTmaService', () => {
       refreshToken: 'jwt-refresh-token',
       user: { id: 'usr-100', email: 'test@tme.beleqet.local', role: 'JOB_SEEKER' },
     }),
+    oauthSession: jest.fn().mockResolvedValue({
+      accessToken: 'jwt-access-token',
+      refreshToken: 'jwt-refresh-token',
+      user: { id: 'usr-existing-1', email: 'old@example.com', role: 'EMPLOYER' },
+    }),
   };
 
   const mockConfig = {
     get: jest.fn((key: string) => {
       if (key === 'TELEGRAM_BOT_TOKEN') return mockToken;
+      if (key === 'TELEGRAM_MINI_APP_BOT_TOKENS') return ` ${jobsBotToken} `;
       return undefined;
     }),
   };
@@ -80,6 +87,16 @@ describe('TelegramTmaService', () => {
       expect(result.first_name).toBe('Abebe');
     });
 
+    it('accepts a Mini App opened by the Jobs bot (TELEGRAM_MINI_APP_BOT_TOKENS)', () => {
+      const initData = generateTestInitData(testUser, nowSec, jobsBotToken);
+      expect(service.verifyInitData(initData).id).toBe(998877);
+    });
+
+    it('refuses initData signed by a bot that is not ours', () => {
+      const initData = generateTestInitData(testUser, nowSec, '111:SOMEONE_ELSES_BOT');
+      expect(() => service.verifyInitData(initData)).toThrow(UnauthorizedException);
+    });
+
     it('throws UnauthorizedException if hash is modified/invalid', () => {
       let initData = generateTestInitData(testUser, nowSec);
       initData = initData.replace(
@@ -128,6 +145,7 @@ describe('TelegramTmaService', () => {
       mockPrisma.user.findUnique.mockResolvedValueOnce({
         id: 'usr-existing-1',
         isActive: true,
+        role: 'EMPLOYER',
       } as any);
 
       const result = await service.authenticateTmaUser(initData);
@@ -135,8 +153,23 @@ describe('TelegramTmaService', () => {
         where: { telegramId: '555444' },
         select: expect.any(Object),
       });
-      expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-existing-1');
-      expect(result.accessToken).toBe('jwt-access-token');
+      // The same path as Google sign-in, so two-step sign-in still asks for its code.
+      expect(mockAuthService.oauthSession).toHaveBeenCalledWith('usr-existing-1');
+      expect(mockAuthService.issueTokensForUserId).not.toHaveBeenCalled();
+      expect(result).toEqual(expect.objectContaining({ accessToken: 'jwt-access-token' }));
+    });
+
+    it('refuses to sign an admin in through Telegram', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: 'usr-admin',
+        isActive: true,
+        role: 'ADMIN',
+      } as any);
+
+      await expect(service.authenticateTmaUser(initData)).rejects.toThrow(
+        'Admins sign in with their password.',
+      );
+      expect(mockAuthService.oauthSession).not.toHaveBeenCalled();
     });
 
     it('provisions a new user account if telegramId does not exist in db', async () => {
@@ -162,7 +195,7 @@ describe('TelegramTmaService', () => {
         select: { id: true },
       });
       expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-new-created');
-      expect(result.accessToken).toBe('jwt-access-token');
+      expect(result).toEqual(expect.objectContaining({ accessToken: 'jwt-access-token' }));
     });
 
     it('provisions a new EMPLOYER account with an employer wallet when preferred role is specified', async () => {
@@ -186,7 +219,7 @@ describe('TelegramTmaService', () => {
         select: { id: true },
       });
       expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-employer-created');
-      expect(result.accessToken).toBe('jwt-access-token');
+      expect(result).toEqual(expect.objectContaining({ accessToken: 'jwt-access-token' }));
     });
   });
 
