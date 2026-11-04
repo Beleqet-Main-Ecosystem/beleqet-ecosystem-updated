@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import ApplyForm from '@/features/jobs/components/ApplyForm';
 import { fetchJob } from '@/lib/api';
@@ -14,11 +14,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   });
 }
 
-/** Applying on Beleqet has its own page; jobs that take applications elsewhere go back to the job. */
+/** Every job is applied for on Beleqet, on this page. */
 export default async function ApplyPage({ params }: { params: { id: string } }) {
   const job = await fetchJob(params.id);
   if (!job) notFound();
-  if (job.applyMethod !== 'internal') redirect(`/jobs/${job.id}`);
 
   return <ApplyForm job={{ id: job.id, title: job.title, company: job.company, location: job.location, closesAt: job.closesAt }} />;
 }

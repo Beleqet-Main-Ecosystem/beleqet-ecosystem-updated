@@ -6,14 +6,13 @@ import { CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
-import { initials, safeEmail, safeHttpUrl } from '../format';
+import { initials } from '../format';
 import { JOB_TYPES, type JobTypeCode } from '../search-params';
 import CompanySetup from './CompanySetup';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const PAY_PERIODS = ['monthly', 'daily', 'hourly'] as const;
 const LEVELS = ['Entry level', 'Junior', 'Mid-level', 'Senior'] as const;
-const APPLY_METHODS = ['internal', 'external', 'with_email'] as const;
 const MIN_DESCRIPTION = 50;
 
 const input = 'min-h-12 w-full min-w-0 rounded-lg border border-ink-300 bg-surface px-3.5 text-base text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-950 dark:text-white';
@@ -77,9 +76,6 @@ export default function PostJob({ categories, editId }: { categories: Category[]
   const [qualification, setQualification] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagDraft, setTagDraft] = useState('');
-  const [method, setMethod] = useState<(typeof APPLY_METHODS)[number]>('internal');
-  const [applyUrl, setApplyUrl] = useState('');
-  const [applyEmail, setApplyEmail] = useState('');
   const [deadline, setDeadline] = useState('');
   const [featured, setFeatured] = useState(false);
   const [urgent, setUrgent] = useState(false);
@@ -105,9 +101,6 @@ export default function PostJob({ categories, editId }: { categories: Category[]
     setYears(job.yearsOfExperience ?? '');
     setQualification(job.qualification ?? '');
     setTags(job.tags ?? []);
-    setMethod(job.applyType === 'external' || job.applyType === 'with_email' ? job.applyType : 'internal');
-    setApplyUrl(job.applyUrl ?? '');
-    setApplyEmail(job.applyEmail ?? '');
     setDeadline(job.deadline ? job.deadline.slice(0, 10) : '');
     setFeatured(job.featured);
     setUrgent(job.urgent);
@@ -235,8 +228,6 @@ export default function PostJob({ categories, editId }: { categories: Category[]
     if (!location.trim()) return t('postJob.errLocation');
     if (min && max && max < min) return t('postJob.errSalary');
     if (description.trim().length < MIN_DESCRIPTION) return t('postJob.errDescription');
-    if (method === 'external' && !safeHttpUrl(applyUrl)) return t('postJob.errUrl');
-    if (method === 'with_email' && !safeEmail(applyEmail)) return t('postJob.errEmail');
     return '';
   }
 
@@ -268,9 +259,10 @@ export default function PostJob({ categories, editId }: { categories: Category[]
           qualification: qualification.trim() || empty,
           tags,
           deadline: deadline || empty,
-          applyType: method === 'internal' ? empty : method,
-          applyUrl: method === 'external' ? safeHttpUrl(applyUrl) ?? empty : empty,
-          applyEmail: method === 'with_email' ? applyEmail.trim() : empty,
+          // Applications always come through Beleqet; saving an older job also clears its link or email.
+          applyType: empty,
+          applyUrl: empty,
+          applyEmail: empty,
           featured: canFeature ? featured : undefined,
           urgent,
         }),
@@ -404,28 +396,10 @@ export default function PostJob({ categories, editId }: { categories: Category[]
         </Section>
 
         <Section title={t('postJob.applyTitle')}>
-          <fieldset className="flex flex-col gap-2.5">
-            <legend className={`${labelText} pb-2`}>{t('postJob.applyMethod')}</legend>
-            {APPLY_METHODS.map((option) => (
-              <label key={option} className={`flex cursor-pointer items-start gap-3 rounded-[10px] border p-3.5 ${method === option ? 'border-2 border-obsidian dark:border-limeAccent' : 'border-ink-300 dark:border-slate-700'}`}>
-                <input type="radio" name="apply" checked={method === option} onChange={() => setMethod(option)} className="mt-0.5 h-5 w-5 accent-primary" />
-                <span className="flex flex-col gap-0.5">
-                  <b className="text-[15px] text-ink-900 dark:text-white">{t(`postJob.methods.${option}.label`)}</b>
-                  <span className={hint}>{t(`postJob.methods.${option}.text`)}</span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
-          {method === 'external' && (
-            <Field label={t('postJob.applyLink')}>
-              <input type="url" inputMode="url" placeholder="https://" value={applyUrl} onChange={(event) => setApplyUrl(event.target.value)} className={input} />
-            </Field>
-          )}
-          {method === 'with_email' && (
-            <Field label={t('postJob.applyEmail')}>
-              <input type="email" placeholder="hr@company.com" value={applyEmail} onChange={(event) => setApplyEmail(event.target.value)} className={input} />
-            </Field>
-          )}
+          <p className="flex flex-col gap-0.5 rounded-[10px] border border-ink-300 p-3.5 dark:border-slate-700">
+            <b className="text-[15px] text-ink-900 dark:text-white">{t('postJob.methods.internal.label')}</b>
+            <span className={hint}>{t('postJob.methods.internal.text')}</span>
+          </p>
           <Field label={t('postJob.deadline')}>
             <input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} className={`${input} md:max-w-[240px]`} />
           </Field>
