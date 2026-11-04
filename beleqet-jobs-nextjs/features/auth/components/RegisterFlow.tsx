@@ -24,11 +24,17 @@ const ROLES: { id: Role; icon: LucideIcon; param: string }[] = [
 
 const MIN_PASSWORD = 8;
 
+/** The account type asked for with `?role=`, if any. */
+function requestedRole() {
+  const param = new URLSearchParams(window.location.search).get('role')?.toLowerCase();
+  return ROLES.find((r) => r.param === param || r.id.toLowerCase() === param);
+}
+
 /** Two steps: what you'll use Beleqet for, then your details. `?role=employer` skips step 1. */
 export default function RegisterFlow() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { user, ready, setUser } = useAuth();
+  const { user, ready, setUser, logout } = useAuth();
   const [step, setStep] = useState<'role' | 'details' | 'done'>('role');
   const [role, setRole] = useState<Role>('JOB_SEEKER');
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
@@ -37,19 +43,25 @@ export default function RegisterFlow() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState<AuthUser | null>(null);
+  // Signed in already, but asked for a different kind of account (e.g. "Create employer account" on Post a job).
+  const [otherRole, setOtherRole] = useState(false);
 
   useEffect(() => {
-    const param = new URLSearchParams(window.location.search).get('role')?.toLowerCase();
-    const match = ROLES.find((r) => r.param === param || r.id.toLowerCase() === param);
+    const match = requestedRole();
     if (match) {
       setRole(match.id);
       setStep('details');
     }
   }, []);
 
-  // Signed-in visitors don't need this page (but stay on the confirmation after signing up).
+  // Signed-in visitors don't need this page (but stay on the confirmation after signing up). Roles
+  // can't be changed by their owner, so asking for another one explains that instead of silently
+  // dropping them on their own dashboard.
   useEffect(() => {
-    if (ready && user && step !== 'done') router.replace(homeFor(user));
+    if (!ready || !user || step === 'done') return;
+    const match = requestedRole();
+    if (match && match.id !== user.role) setOtherRole(true);
+    else router.replace(homeFor(user));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, user]);
 
@@ -87,6 +99,33 @@ export default function RegisterFlow() {
     const next = safeNextPath(new URLSearchParams(window.location.search).get('next'));
     return next ? `/login?next=${encodeURIComponent(next)}` : '/login';
   })();
+
+  if (otherRole && user) {
+    return (
+      <AuthLayout brand={role}>
+        <Heading
+          title={t('auth.otherRoleTitle').replace('{role}', t(`auth.roles.${role}.short`))}
+          sub={t('auth.otherRoleText')
+            .replace('{current}', t(`auth.roles.${user.role}.short`))
+            .replace('{email}', user.email)
+            .replace('{role}', t(`auth.roles.${role}.short`))}
+        />
+        <button
+          type="button"
+          onClick={() => {
+            logout();
+            setOtherRole(false);
+          }}
+          className={`flex min-h-[50px] items-center justify-center rounded-md bg-primary text-base font-extrabold text-limeAccent dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
+        >
+          {t('auth.signOutContinue')}
+        </button>
+        <Link href={homeFor(user)} className={`self-center rounded text-sm font-bold text-forest hover:underline dark:text-limeAccent ${focusRing}`}>
+          {t('auth.goToDashboard')}
+        </Link>
+      </AuthLayout>
+    );
+  }
 
   if (step === 'done' && created) {
     const next = typeof window !== 'undefined' ? safeNextPath(new URLSearchParams(window.location.search).get('next')) : null;

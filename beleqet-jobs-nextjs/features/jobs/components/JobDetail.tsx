@@ -13,7 +13,6 @@ import { useTranslation } from '@/lib/i18n';
 import { categoryLabel } from '../categories';
 import type { DescriptionBlock } from '../description';
 import { daysUntil, formatSalary, initials, postedAgo, safeEmail, safeHttpUrl } from '../format';
-import ApplyDialog from './ApplyDialog';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const wrap = 'mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10';
@@ -31,7 +30,6 @@ export default function JobDetail({ job, description, requirements, similar }: P
   const { t, locale } = useTranslation();
   const { user, ready } = useAuth();
   const router = useRouter();
-  const [applyOpen, setApplyOpen] = useState(false);
   const [applied, setApplied] = useState(false);
   const [shareNote, setShareNote] = useState('');
 
@@ -59,13 +57,11 @@ export default function JobDetail({ job, description, requirements, similar }: P
   const category = job.category ? { id: job.category, label: job.categoryLabel || job.category, icon: '' } : null;
   const website = safeHttpUrl(job.companyWebsite);
 
+  // Applying has its own page, which also sends signed-out visitors to sign in and back.
   function startApply() {
     if (!ready) return;
-    if (!user) {
-      router.push(`/login?next=${encodeURIComponent(`/jobs/${job.id}`)}`);
-      return;
-    }
-    setApplyOpen(true);
+    const applyPath = `/jobs/${job.id}/apply`;
+    router.push(user ? applyPath : `/login?next=${encodeURIComponent(applyPath)}`);
   }
 
   async function share() {
@@ -339,15 +335,6 @@ export default function JobDetail({ job, description, requirements, similar }: P
         </div>
       </div>
 
-      {applyOpen && (
-        <ApplyDialog
-          jobId={job.id}
-          jobTitle={job.title}
-          company={job.company}
-          onClose={() => setApplyOpen(false)}
-          onApplied={() => setApplied(true)}
-        />
-      )}
     </>
   );
 }
