@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import re
 import aiohttp
 import telegram
@@ -967,7 +968,7 @@ async def webhook_handler(request: web.Request) -> web.Response:
     expected_token = os.getenv("WEBHOOK_SECRET_TOKEN")
     provided_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
 
-    if not expected_token or provided_token != expected_token:
+    if not expected_token or not provided_token or not hmac.compare_digest(provided_token, expected_token):
         logger.warning(f"Unauthorized webhook access attempt from {request.remote}")
         return web.Response(text="Forbidden", status=403)
     

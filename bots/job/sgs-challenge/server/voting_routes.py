@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 CHALLENGE_DB_PATH = "sgs_challenge.db"
 INIT_DATA_MAX_AGE_SECONDS = 24 * 3600
+MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
 
 def verify_init_data(init_data: str, bot_token: str):
@@ -360,7 +361,8 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             if row and row[0]:
                 old_avatar_url = row[0]
                 if old_avatar_url != new_avatar_url and old_avatar_url.startswith("/challenge/uploads/"):
-                    filename = old_avatar_url.split("/challenge/uploads/")[-1]
+                    # Only ever a file directly inside uploads/, whatever the stored URL says.
+                    filename = os.path.basename(old_avatar_url.split("/challenge/uploads/")[-1])
                     filepath = os.path.join(os.path.dirname(__file__), '..', 'app', 'uploads', filename)
                     if os.path.exists(filepath):
                         try:
@@ -384,7 +386,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         async with db.execute("SELECT avatar_url FROM challenge_creators WHERE id=?", (creator_id,)) as cur:
             row = await cur.fetchone()
             if row and row[0] and row[0].startswith("/challenge/uploads/"):
-                filename = row[0].split("/challenge/uploads/")[-1]
+                filename = os.path.basename(row[0].split("/challenge/uploads/")[-1])
                 filepath = os.path.join(os.path.dirname(__file__), '..', 'app', 'uploads', filename)
                 if os.path.exists(filepath):
                     try:
@@ -420,12 +422,20 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         uploads_dir = os.path.join(os.path.dirname(__file__), '..', 'app', 'uploads')
         os.makedirs(uploads_dir, exist_ok=True)
         
+        # Images only: anything else saved here would be served from the Mini App's own address.
+        extension = os.path.splitext(filename or "")[1].lower()
+        if extension not in (".jpg", ".jpeg", ".png", ".webp", ".gif"):
+            return web.json_response({"error": "Upload a JPG, PNG, WEBP or GIF image."}, status=400)
+        content = file_field.file.read(MAX_AVATAR_BYTES + 1)
+        if len(content) > MAX_AVATAR_BYTES:
+            return web.json_response({"error": "The image must be 5 MB or smaller."}, status=400)
+
         safe_base = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', os.path.basename(filename))
         safe_name = f"{int(time.time())}_{safe_base}"
         file_path = os.path.join(uploads_dir, safe_name)
-        
+
         with open(file_path, 'wb') as f:
-            f.write(file_field.file.read())
+            f.write(content)
             
         return web.json_response({"url": f"/challenge/uploads/{safe_name}"})
 
