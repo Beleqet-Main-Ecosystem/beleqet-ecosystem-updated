@@ -1,0 +1,136 @@
+name: Deploy Production
+
+# Puts every commit that reaches main live, once CI has passed for it and published its images.
+# It connects to the production server over SSH and runs scripts/deploy/deploy-production.sh there:
+# database backup, image pull, migrations, container swap, health checks, and automatic rollback to
+# the previous images if a check fails.
+#
+# Pull requests never deploy: the only triggers are a completed CI run (this file always runs from
+# main for workflow_run) and a manual run from main.
+#
+# Secrets (Settings -> Secrets and variables -> Actions):
+#   PROD_HOST, PROD_PORT, PROD_USER  where to connect (the user needs passwordless sudo)
+#   PROD_SSH_KEY                     private key whose public half is in that user's authorized_keys
+#   PROD_KNOWN_HOSTS                 output of: ssh-keyscan -p <port> <host>
+#   PROD_DEPLOY_PATH                 optional, defaults to /srv/beleqet-staging
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One production deploy at a time; a newer merge waits for the running one instead of cancelling it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    environment: production
+    steps:
+      - name: Resolve the commit to deploy
+        id: target
+        env:
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          sha="${RUN_SHA:-$DISPATCH_SHA}"
+          if ! echo "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::Not a full 40-character commit SHA: '$sha'"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Deploying $sha"
+
+      - name: Check the deploy secrets are set
+        env:
+          HOST: ${{ secrets.PROD_HOST }}
+          USER: ${{ secrets.PROD_USER }}
+          KEY: ${{ secrets.PROD_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PROD_KNOWN_HOSTS }}
+        run: |
+          missing=""
+          [ -n "$HOST" ] || missing="$missing PROD_HOST"
+          [ -n "$USER" ] || missing="$missing PROD_USER"
+          [ -n "$KEY" ] || missing="$missing PROD_SSH_KEY"
+          [ -n "$KNOWN_HOSTS" ] || missing="$missing PROD_KNOWN_HOSTS"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets:$missing"
+            exit 1
+          fi
+
+      - name: Check CI published the images
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          namespace="ghcr.io/${GITHUB_REPOSITORY,,}"
+          for image in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
+            docker manifest inspect "$namespace/$image:$SHA" > /dev/null
+          done
+
+      - name: Configure SSH (strict host-key checking)
+        env:
+          KEY: ${{ secrets.PROD_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PROD_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/production_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          chmod 600 ~/.ssh/production_key ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.PROD_HOST }}
+          PORT: ${{ secrets.PROD_PORT }}
+          USER: ${{ secrets.PROD_USER }}
+          DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          # Update the code to the commit (keeping the server's own docker-compose.yml), then run the
+          # deploy script from that commit. The server-side override file is never tracked by git.
+          ssh -i ~/.ssh/production_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
+            -p "${PORT:-22}" "$USER@$HOST" \
+            "set -e
+             cd '${DEPLOY_PATH:-/srv/beleqet-staging}'
+             git_() { sudo git -c safe.directory='*' \"\$@\"; }
+             sudo cp docker-compose.yml /tmp/compose.production.yml
+             git_ fetch -q origin main
+             git_ checkout -q -f -B deploy/auto '$SHA'
+             sudo cp /tmp/compose.production.yml docker-compose.yml
+             sudo rm -f /tmp/compose.production.yml
+             sudo bash scripts/deploy/deploy-production.sh '$SHA'"
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f ~/.ssh/production_key
+
+      - name: Summary
+        if: always()
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+          STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "### Production deploy: $STATUS"
+            echo
+            echo "Commit \`$SHA\`. On failure the deploy script restores the previous images by itself;"
+            echo "its log is in the Deploy step above."
+          } >> "$GITHUB_STEP_SUMMARY"
