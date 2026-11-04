@@ -60,6 +60,9 @@ function evaluateWorkflowRun(run: WorkflowRunEvent | undefined): DeploymentDecis
 export function evaluateDeployment(context: DeploymentContext): DeploymentDecision {
   switch (context.eventName) {
     case 'workflow_run':
+      if (!context.allowAutoDeploy) {
+        return refuse('automatic staging deployment is not enabled (STAGING_AUTO_DEPLOY)');
+      }
       return evaluateWorkflowRun(context.workflowRun);
     case 'workflow_dispatch': {
       if (!context.allowManualDeploy) {
