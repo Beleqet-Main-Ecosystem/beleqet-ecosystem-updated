@@ -45,24 +45,22 @@ export class TelegramTmaService {
     entries.sort((a, b) => a[0].localeCompare(b[0]));
     const dataCheckString = entries.map(([key, value]) => `${key}=${value}`).join('\n');
 
-    const botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN') || '';
-    if (!botToken || botToken === 'your_bot_token_here') {
+    // A Mini App is signed by the bot that opened it: the API's own bot or the Jobs bot.
+    const botTokens = this.miniAppBotTokens();
+    if (botTokens.length === 0) {
       this.logger.error('TELEGRAM_BOT_TOKEN is not configured for TMA authentication.');
       throw new UnauthorizedException('Telegram Bot Token is not properly configured.');
     }
 
-    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
-    const calculatedHash = crypto
-      .createHmac('sha256', secretKey)
-      .update(dataCheckString)
-      .digest('hex');
-
     const hashBuffer = Buffer.from(hash, 'hex');
-    const calculatedBuffer = Buffer.from(calculatedHash, 'hex');
-    if (
-      hashBuffer.length !== calculatedBuffer.length ||
-      !crypto.timingSafeEqual(hashBuffer, calculatedBuffer)
-    ) {
+    const signedByOurBot = botTokens.some((botToken) => {
+      const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+      const calculated = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest();
+      return (
+        hashBuffer.length === calculated.length && crypto.timingSafeEqual(hashBuffer, calculated)
+      );
+    });
+    if (!signedByOurBot) {
       throw new UnauthorizedException('Invalid Telegram WebApp cryptographic signature.');
     }
 
@@ -114,7 +112,7 @@ export class TelegramTmaService {
 
     const existingUser = await this.prisma.user.findUnique({
       where: { telegramId: telegramIdStr },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, role: true },
     });
 
     if (existingUser) {
@@ -124,7 +122,7 @@ export class TelegramTmaService {
       this.logger.log(
         `TMA authentication success for user ${existingUser.id} (Telegram ID: ${telegramIdStr})`,
       );
-      return this.authService.issueTokensForUserId(existingUser.id);
+      return this.sessionFor(existingUser);
     }
 
     const syntheticEmail = `tma_${telegramIdStr}@tme.beleqet.local`;
@@ -132,7 +130,7 @@ export class TelegramTmaService {
     // Ensure no conflict with synthetic email if previously created without telegramId
     const existingByEmail = await this.prisma.user.findUnique({
       where: { email: syntheticEmail },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, role: true },
     });
 
     if (existingByEmail) {
@@ -143,7 +141,7 @@ export class TelegramTmaService {
         where: { id: existingByEmail.id },
         data: { telegramId: telegramIdStr },
       });
-      return this.authService.issueTokensForUserId(existingByEmail.id);
+      return this.sessionFor(existingByEmail);
     }
 
     const newUser = await this.prisma.user.create({
@@ -166,6 +164,26 @@ export class TelegramTmaService {
       `Provisioned new Telegram TMA account for ID ${telegramIdStr} as ${preferredRole} (${syntheticEmail})`,
     );
     return this.authService.issueTokensForUserId(newUser.id);
+  }
+
+  /**
+   * Session for an existing account. Admins sign in with their password, and an account with
+   * two-step sign-in still has to enter its code, as with Google or LinkedIn.
+   */
+  private sessionFor(user: { id: string; role: string }) {
+    if (user.role === 'ADMIN') {
+      throw new UnauthorizedException('Admins sign in with their password.');
+    }
+    return this.authService.oauthSession(user.id);
+  }
+
+  /** TELEGRAM_BOT_TOKEN plus TELEGRAM_MINI_APP_BOT_TOKENS (comma-separated, e.g. the Jobs bot's). */
+  private miniAppBotTokens(): string[] {
+    const own = this.configService.get<string>('TELEGRAM_BOT_TOKEN') || '';
+    const others = this.configService.get<string>('TELEGRAM_MINI_APP_BOT_TOKENS') || '';
+    return [own, ...others.split(',')]
+      .map((token) => token.trim())
+      .filter((token) => token && token !== 'your_bot_token_here');
   }
 
   /**

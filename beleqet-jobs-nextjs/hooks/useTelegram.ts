@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { loadTelegramWebApp } from '@/lib/telegram-webapp';
 
 /**
  * Represents the subset of the Telegram WebApp API used across the app.
@@ -112,8 +113,13 @@ export function useTelegram(): UseTelegramReturn {
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp ?? null;
-    setWebApp(tg);
+    let active = true;
+    void loadTelegramWebApp().then((tg) => {
+      if (active) setWebApp(tg);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return {

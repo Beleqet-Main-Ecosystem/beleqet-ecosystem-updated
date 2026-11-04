@@ -207,6 +207,22 @@ export async function completeTwoFactor(tempToken: string, code: string, kind: '
   }
 }
 
+/**
+ * Sign in from a Telegram Mini App with Telegram's signed launch data, no password. Someone
+ * without an account gets one with `role`; two-step sign-in still asks for its code.
+ */
+export async function signInWithTelegram(initData: string, role: 'JOB_SEEKER' | 'EMPLOYER'): Promise<LoginResult> {
+  try {
+    const { data } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/telegram/tma-login', { initData, role });
+    if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
+    const auth = data as AuthResponse;
+    persist(auth.accessToken, auth.user, auth.refreshToken);
+    return { status: 'signed-in', user: auth.user };
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
 /** Always resolves the same way whether or not the email exists, like the API. */
 export async function requestPasswordReset(email: string): Promise<void> {
   try {
