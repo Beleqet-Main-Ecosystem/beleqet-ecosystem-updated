@@ -3,6 +3,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { TelegramController } from './telegram.controller';
 import { TelegramTmaService } from './telegram-tma.service';
 import { TelegramService } from './telegram.service';
+import { ConfigService } from '@nestjs/config';
 import { TmaUserRole } from './dto/telegram-tma.dto';
 
 describe('TelegramController', () => {
@@ -32,6 +33,7 @@ describe('TelegramController', () => {
       providers: [
         { provide: TelegramTmaService, useValue: mockTmaService },
         { provide: TelegramService, useValue: mockTelegramService },
+        { provide: ConfigService, useValue: { get: () => undefined } },
       ],
     })
       .overrideGuard(ThrottlerGuard)
