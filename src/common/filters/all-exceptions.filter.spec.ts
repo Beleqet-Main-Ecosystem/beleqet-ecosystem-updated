@@ -7,7 +7,13 @@
  */
 import { HttpException, HttpStatus, ArgumentsHost } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { AllExceptionsFilter, ERROR_CODES, ErrorResponse } from './all-exceptions.filter';
+import * as https from 'https';
+import {
+  AllExceptionsFilter,
+  ERROR_CODES,
+  ErrorResponse,
+  shouldAlert,
+} from './all-exceptions.filter';
 import { ErrorRecurrenceTrackerService } from './error-recurrence-tracker.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -291,5 +297,59 @@ describe('AllExceptionsFilter', () => {
       const [calledCode] = mockTracker.track.mock.calls[0] as [string, string, string];
       expect(calledCode).toBe(ERROR_CODES.NOT_FOUND);
     });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Telegram alerts: private chat only, and not one per request
+// ─────────────────────────────────────────────────────────────────────────────
+describe('AllExceptionsFilter Telegram alerts', () => {
+  const env = { ...process.env };
+  let request: jest.SpyInstance;
+  let written: string[];
+
+  const filter = () =>
+    new AllExceptionsFilter(
+      { httpAdapter: { reply: jest.fn() } } as unknown as HttpAdapterHost,
+      { track: jest.fn() } as unknown as ErrorRecurrenceTrackerService,
+    );
+
+  beforeEach(() => {
+    written = [];
+    request = jest.spyOn(https, 'request').mockImplementation((() => ({
+      on: jest.fn(),
+      write: (body: string) => written.push(body),
+      end: jest.fn(),
+      destroy: jest.fn(),
+    })) as never);
+    process.env.TELEGRAM_BOT_TOKEN = '123:test';
+  });
+
+  afterEach(() => {
+    request.mockRestore();
+    process.env = { ...env };
+  });
+
+  it('never posts to the public jobs channel', () => {
+    process.env.TELEGRAM_CHANNEL_ID = '@BeleqetJobs';
+    delete process.env.TELEGRAM_ALERT_CHAT_ID;
+    filter().catch(new Error('db down'), buildMockHost('/api/v1/public-only'));
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('posts to the private alert chat when one is set', () => {
+    process.env.TELEGRAM_CHANNEL_ID = '@BeleqetJobs';
+    process.env.TELEGRAM_ALERT_CHAT_ID = '-100777';
+    filter().catch(new Error('db down'), buildMockHost('/api/v1/private-chat'));
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(written[0]).chat_id).toBe('-100777');
+  });
+
+  it('sends one alert per endpoint per 10 minutes', () => {
+    const t = 1_000_000;
+    expect(shouldAlert('GET /x', t)).toBe(true);
+    expect(shouldAlert('GET /x', t + 60_000)).toBe(false);
+    expect(shouldAlert('GET /y', t + 60_000)).toBe(true);
+    expect(shouldAlert('GET /x', t + 10 * 60_000)).toBe(true);
   });
 });
