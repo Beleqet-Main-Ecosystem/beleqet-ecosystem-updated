@@ -34,19 +34,23 @@ from telegram import ChatMemberUpdated
 from telegram.ext import ChatMemberHandler
 
 # --- ⚙️ CONFIGURATION ---
-load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 TARGET_CHATS = [
-    -1001669125004, 
-    -1001199095627, 
-    -1002877767689, 
-    -1001989588782
+    int(x.strip()) for x in os.getenv("TARGET_CHATS", "-1001669125004,-1001199095627,-1002877767689,-1001989588782").split(",") if x.strip()
 ]
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1001989588782"))
 PRIMARY_ADMIN_ID = int(os.getenv("ADMIN_ID", "6728089681"))
-DB_FILE = "referrals.db"
-WELCOME_PHOTO_FILE_ID = os.getenv("WELCOME_PHOTO_FILE_ID")
+PAYMENT_HANDLER_ID = int(os.getenv("PAYMENT_HANDLER_ID")) if os.getenv("PAYMENT_HANDLER_ID") else None
+DB_FILE = os.path.join(BASE_DIR, "referrals.db")
+PERSISTENCE_FILE = os.path.join(BASE_DIR, "bot_persistence")
+WELCOME_PHOTO_FILE_ID = os.getenv("WELCOME_PHOTO_FILE_ID", "Promo.jpg")
+if WELCOME_PHOTO_FILE_ID and not os.path.isabs(WELCOME_PHOTO_FILE_ID):
+    local_photo_path = os.path.join(BASE_DIR, WELCOME_PHOTO_FILE_ID)
+    if os.path.exists(local_photo_path):
+        WELCOME_PHOTO_FILE_ID = local_photo_path
 CHANNEL_INVITE_LINK = os.getenv("CHANNEL_INVITE_LINK", "https://t.me/BeleqetBoost")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "https://beleqetaca-miniapp.beleqet.com/")
 
@@ -70,6 +74,8 @@ async def setup_database():
         """)
         await db.execute("CREATE TABLE IF NOT EXISTS admins (user_id INTEGER PRIMARY KEY)")
         await db.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (PRIMARY_ADMIN_ID,))
+        if PAYMENT_HANDLER_ID:
+            await db.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (PAYMENT_HANDLER_ID,))
         await db.execute("CREATE INDEX IF NOT EXISTS idx_referrer_id ON successful_referrals (referrer_id)")
         await db.execute("""
             CREATE TABLE IF NOT EXISTS scheduled_posts (
@@ -277,10 +283,15 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def track_chats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = update.chat_member
-    if not result or update.effective_chat.id != CHANNEL_ID:
+    if not result or (update.effective_chat.id != CHANNEL_ID and update.effective_chat.id not in TARGET_CHATS):
         return
 
-    user_id = result.from_user.id
+    # Use new_chat_member.user so that if an admin kicks/removes a user,
+    # the target user's identity is resolved rather than the admin's.
+    user = result.new_chat_member.user if result.new_chat_member else None
+    if not user:
+        return
+    user_id = user.id
     new_status = result.new_chat_member.status
     left_statuses = ['left', 'kicked', 'deleted']
     joined_statuses = ['member', 'administrator', 'creator']
@@ -345,11 +356,17 @@ async def handle_admin_decision(update: Update, context: ContextTypes.DEFAULT_TY
         if action == "approve":
             await query.edit_message_text(text=f"{original_message}\n\n--- ✅ Status: PAID ---")
             user_notification = (f"🎉 Your withdrawal request for **{amount} Birr** has been approved and sent!\n\nየጠየቁት የ {amount} ብር ወጪ ተፈቅዷል እና ተልኳል!")
-            await context.bot.send_message(chat_id=user_id, text=user_notification, parse_mode='Markdown')
+            try:
+                await context.bot.send_message(chat_id=user_id, text=user_notification, parse_mode='Markdown')
+            except Exception as notify_err:
+                logging.warning(f"Could not notify user {user_id} of approved withdrawal: {notify_err}")
         else:
             await query.edit_message_text(text=f"{original_message}\n\n--- ❌ Status: REJECTED (Points Refunded) ---")
             rejection_reason = (f"⚠️ **Withdrawal Rejected**\n\nYour request for {amount} Birr was not approved, and your {amount} points have been refunded to your account. \n\nየጠየቁት የ {amount} ብር ወጪ አልተፈቀደም፡ ሆኖም {amount} ነጥብዎ ወደ ሂሳብዎ ተመልሷል።")
-            await context.bot.send_message(chat_id=user_id, text=rejection_reason, parse_mode='Markdown')
+            try:
+                await context.bot.send_message(chat_id=user_id, text=rejection_reason, parse_mode='Markdown')
+            except Exception as notify_err:
+                logging.warning(f"Could not notify user {user_id} of rejected withdrawal: {notify_err}")
 
     except aiosqlite.Error as e:
         await context.bot.send_message(chat_id=PRIMARY_ADMIN_ID, text=f"Database error processing request #{withdrawal_id}: {e}")
@@ -513,14 +530,18 @@ async def post_get_repeating_times(update: Update, context: ContextTypes.DEFAULT
 
 async def send_scheduled_post(context: ContextTypes.DEFAULT_TYPE):
     job = context.job
-    keyboard = [[InlineKeyboardButton(job.data.get('post_button_text'), url=job.data.get('post_button_url'))]]
+    btn_text = job.data.get('post_button_text')
+    btn_url = job.data.get('post_button_url')
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(btn_text, url=btn_url)]]) if btn_text and btn_url else None
+
     for target in TARGET_CHATS:
         try:
             if job.data.get('post_photo'):
-                await context.bot.send_photo(chat_id=target, photo=job.data.get('post_photo'), caption=job.data['post_text'], reply_markup=InlineKeyboardMarkup(keyboard))
+                await context.bot.send_photo(chat_id=target, photo=job.data.get('post_photo'), caption=job.data['post_text'], reply_markup=reply_markup)
             else:
-                await context.bot.send_message(chat_id=target, text=job.data['post_text'], reply_markup=InlineKeyboardMarkup(keyboard))
-        except Exception: pass
+                await context.bot.send_message(chat_id=target, text=job.data['post_text'], reply_markup=reply_markup)
+        except Exception as e:
+            logging.warning(f"Failed sending scheduled post to {target}: {e}")
     
     async with aiosqlite.connect(DB_FILE) as db:
         async with db.execute("SELECT repeat FROM scheduled_posts WHERE job_id = ?", (job.name,)) as cursor:
@@ -625,17 +646,25 @@ async def get_user_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No data.")
         return
 
-    msg = "📊 **User Stats & Balances**\n\n"
+    messages = []
+    current_chunk = "📊 **User Stats & Balances**\n\n"
     for uname, uid, score, total_refs in stats:
-        # Format the username to prevent markdown errors, or use the ID if no username exists
-        escaped_uname = uname.replace('_', r'\_') if uname else ""
+        # Format the username to prevent markdown parsing errors
+        escaped_uname = uname.replace('\\', r'\\').replace('_', r'\_').replace('*', r'\*').replace('`', r'\`').replace('[', r'\[').replace(']', r'\]') if uname else ""
         user_display = f"@{escaped_uname}" if uname else f"`{uid}`"
         
-        # Display both the current withdrawable balance and their all-time invites
-        msg += f"👤 {user_display}\n💰 **Balance:** {score} Birr/Points | 📈 **Total Refs:** {total_refs}\n\n"
-        
-    # Send the message, making sure it doesn't exceed Telegram's length limit
-    await update.message.reply_text(msg[:4096], parse_mode='Markdown')
+        entry = f"👤 {user_display}\n💰 **Balance:** {score} Birr/Points | 📈 **Total Refs:** {total_refs}\n\n"
+        if len(current_chunk) + len(entry) > 3800:
+            messages.append(current_chunk)
+            current_chunk = entry
+        else:
+            current_chunk += entry
+
+    if current_chunk:
+        messages.append(current_chunk)
+
+    for chunk in messages:
+        await update.message.reply_text(chunk, parse_mode='Markdown')
 
 # --- 🗓️ SCHEDULED POSTS HANDLERS ---
 async def manage_scheduled_posts(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -756,7 +785,7 @@ def main():
     logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
     # httpx logs every request URL at INFO, and Telegram URLs contain the bot token.
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    application = Application.builder().token(BOT_TOKEN).persistence(PicklePersistence(filepath="bot_persistence")).post_init(post_init).build()
+    application = Application.builder().token(BOT_TOKEN).persistence(PicklePersistence(filepath=PERSISTENCE_FILE)).post_init(post_init).build()
 
     application.add_handler(ConversationHandler(
         entry_points=[
