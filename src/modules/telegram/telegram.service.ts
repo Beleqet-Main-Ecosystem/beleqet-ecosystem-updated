@@ -6,6 +6,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcryptjs';
 import { Telegraf } from 'telegraf';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -453,10 +454,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     const parts = fullName.trim().split(/\s+/);
     const firstName = parts[0] || 'Telegram';
     const lastName = parts.slice(1).join(' ') || data.last_name || data.lastName || 'User';
+    const phone = data.phone || null;
     const role =
       data.role === 'employer' || data.role === 'wp_job_board_pro_employer'
         ? 'EMPLOYER'
         : 'JOB_SEEKER';
+
+    const rawPassword = data.password ? String(data.password).trim() : null;
+    const passwordHash = rawPassword ? await bcrypt.hash(rawPassword, 12) : null;
 
     if (telegramId) {
       const linked = await this.prisma.user.findFirst({
@@ -483,12 +488,37 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           telegramId: String(telegramId),
           firstName,
           lastName,
+          phone,
+          passwordHash,
+          headline: role === 'JOB_SEEKER' ? data.job_title || null : null,
           role: role as any,
           isActive: true,
           // Only the placeholder address counts as verified; a real one is confirmed by email.
           emailVerified: email.endsWith('@beleqet.internal'),
         },
       });
+
+      // For employers, auto-create the Company profile so they never have to re-enter it in the Mini App
+      if (role === 'EMPLOYER' && this.prisma.company?.upsert) {
+        const companyName = data.company_name || `${firstName}'s Company`;
+        try {
+          await this.prisma.company.upsert({
+            where: { userId: created.id },
+            create: {
+              userId: created.id,
+              name: companyName,
+              verified: false,
+              verificationStatus: 'NONE',
+            },
+            update: {
+              name: companyName,
+            },
+          });
+        } catch (companyErr) {
+          this.logger.warn(`Could not create company for employer ${created.id}: ${(companyErr as Error).message}`);
+        }
+      }
+
       return { success: true, registered: true, role: created.role };
     }
 

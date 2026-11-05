@@ -194,18 +194,23 @@ bot_context = BotContext()
 
 @lru_cache(maxsize=128)
 def get_keyboard(role: str, lang: str, is_admin: bool = False) -> ReplyKeyboardMarkup:
+    if lang not in TRANSLATIONS or 'menu' not in TRANSLATIONS[lang]:
+        lang = 'en'
     menu = TRANSLATIONS[lang]['menu']
     role_friendly = normalize_role(role)
-    options = (
-        [[menu['job_list'], menu['my_profile']],
-         [menu['my_applications'], menu['dashboard']],
-         [menu['challenge']]]
-        if role_friendly == 'Candidate' else
-        [[menu['post_job'], menu['dashboard']],
-         [menu['applicants'], menu['my_jobs']],
-         [menu['my_profile']],
-         [menu['challenge']]]
-    )
+    if role_friendly == 'Candidate':
+        options = [
+            [menu['job_list'], menu['my_profile']],
+            [menu['my_applications'], menu['dashboard']],
+            [menu['challenge']]
+        ]
+    else:
+        options = [
+            [menu['post_job'], menu['dashboard']],
+            [menu['applicants'], menu['my_jobs']],
+            [menu['my_profile']],
+            [menu['challenge']]
+        ]
     
     if is_admin:
         options.append(["📣 Broadcast Message"])
@@ -656,12 +661,7 @@ async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     role_input = user_data.get('role_input', '')
 
     if role_input == 'employer':
-        await bot_context.rate_limiter.send_message(
-            message.chat_id,
-            TRANSLATIONS[lang]['enter_trade_license'],
-            parse_mode='HTML'
-        )
-        return TRADE_LICENSE
+        return await submit_registration(update, context)
     
     await bot_context.rate_limiter.send_message(
         message.chat_id,
@@ -691,13 +691,27 @@ async def get_trade_license(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     document = message.document
     photo = message.photo
     
+    MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB limit
+    ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
+
     if document:
-        original_ext = document.file_name.lower().split('.')[-1]
+        if document.file_size and document.file_size > MAX_FILE_BYTES:
+            await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['invalid_file_type'])
+            return TRADE_LICENSE
+        raw_name = document.file_name or "trade_license.pdf"
+        original_ext = raw_name.lower().split('.')[-1] if '.' in raw_name else 'pdf'
+        if original_ext not in ALLOWED_EXTENSIONS:
+            await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['invalid_file_type'])
+            return TRADE_LICENSE
         file_name = f"TG_{telegram_id}_{timestamp}.{original_ext}"
         file_obj = await document.get_file()
     elif photo:
+        best_photo = photo[-1]
+        if best_photo.file_size and best_photo.file_size > MAX_FILE_BYTES:
+            await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['invalid_file_type'])
+            return TRADE_LICENSE
         file_name = f"TG_{telegram_id}_{timestamp}.jpg"
-        file_obj = await photo[-1].get_file()
+        file_obj = await best_photo.get_file()
     else:
         await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['invalid_file_type'])
         return TRADE_LICENSE
@@ -734,19 +748,7 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     }
 
     try:
-        if 'trade_license_bytes' in user_data:
-            form_data = aiohttp.FormData()
-            for k, v in payload.items():
-                form_data.add_field(k, str(v or ''))
-            form_data.add_field(
-                'trade_license_file',
-                user_data['trade_license_bytes'],
-                filename=user_data.get('trade_license_name', 'license.jpg'),
-                content_type='application/octet-stream'
-            )
-            req_kwargs = {'data': form_data}
-        else:
-            req_kwargs = {'json': payload}
+        req_kwargs = {'json': payload}
 
         async with bot_context.session.post(CONFIG['wp_api_url'], **req_kwargs, timeout=60) as response:
             if response.status == 201 or response.status == 200:
@@ -850,10 +852,24 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
         lang = 'en'
     # --- !! END OF REPLACEMENT !! ---
 
-    menu = TRANSLATIONS[lang]['menu']
-    menu_key = next((key for key, value in menu.items() if value == text), None)
+    # 1. First look up the menu key in the user's current language
+    menu_key = None
+    if lang in TRANSLATIONS and 'menu' in TRANSLATIONS[lang]:
+        menu_key = next((key for key, value in TRANSLATIONS[lang]['menu'].items() if value == text), None)
+
+    # 2. If not matched, search across ALL available languages (handles language switch or keyboard mismatch)
+    if not menu_key:
+        for l_code, l_data in TRANSLATIONS.items():
+            for key, val in l_data.get('menu', {}).items():
+                if val == text:
+                    menu_key = key
+                    lang = l_code
+                    context.user_data['language'] = lang
+                    break
+            if menu_key:
+                break
     
-    if not menu_key or not role or role == 'unknown':
+    if not menu_key or not role or role.lower() == 'unknown':
         logger.warning(f"Menu handler failed for user {telegram_id}. Text: '{text}'. Role: {role}. Menu Key: {menu_key}")
         return
 

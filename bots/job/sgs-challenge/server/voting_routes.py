@@ -77,6 +77,7 @@ async def init_challenge_db(path: str = CHALLENGE_DB_PATH):
             created_at INTEGER NOT NULL
         )
     """)
+    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_votes_single_user ON challenge_votes (telegram_id)")
     await db.commit()
 
     return db
@@ -210,7 +211,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             )
             await db.commit()
         except aiosqlite.IntegrityError:
-            return web.json_response({"error": "You already voted for this creator."}, status=409)
+            return web.json_response({"error": "You have already cast your vote! You can only vote for one creator in this contest."}, status=409)
 
         async with db.execute(
             "SELECT COUNT(*) FROM challenge_votes WHERE creator_id = ?", (creator_id,)
