@@ -13,6 +13,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { applicationReceivedEmail, applicationStatusEmail } from '../notifications/email-templates';
 import { openJobs } from '../jobs/open-jobs';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 @Injectable()
 export class ApplicationsService {
@@ -120,7 +121,7 @@ export class ApplicationsService {
       .add(ANALYTICS_JOBS.UPDATE_JOB_STATS, { jobId: dto.jobId })
       .catch((err) => this.logger.error('Failed to enqueue UPDATE_JOB_STATS', err.message));
 
-    const applicationUrl = `${this.config.get('FRONTEND_URL')}/applications`;
+    const applicationUrl = `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/applications`;
     applicationReceivedEmail({
       firstName: application.user.firstName,
       jobTitle: job.title,
@@ -236,7 +237,7 @@ export class ApplicationsService {
         firstName: application.user.firstName,
         jobTitle: application.job.title,
         status,
-        applicationUrl: `${this.config.get('FRONTEND_URL')}/applications`,
+        applicationUrl: `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/applications`,
       });
       await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
         to: application.user.email,

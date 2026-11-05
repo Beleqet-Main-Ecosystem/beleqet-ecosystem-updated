@@ -9,6 +9,7 @@ import { QUEUE_NAMES, ESCROW_JOBS, NOTIFICATION_JOBS } from '../queues/queues.co
 import { BeleqetPayService } from '../beleqet-pay/beleqet-pay.service';
 import { BeleqetPayWebhookPayload } from '../beleqet-pay/beleqet-pay.types';
 import { PlanPaymentsService } from '../subscriptions/plan-payments.service';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 const EscrowJobs: any = ESCROW_JOBS;
 
@@ -333,7 +334,7 @@ export class EscrowProcessor extends WorkerHost {
     if (user?.telegramId) {
       await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
         telegramId: user.telegramId,
-        message: `ETB ${amount.toLocaleString()} is now available in your Beleqet wallet. Withdraw at: ${this.config.get('FRONTEND_URL')}/freelance/wallet`,
+        message: `ETB ${amount.toLocaleString()} is now available in your Beleqet wallet. Withdraw at: ${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/freelance/wallet`,
       });
     }
 

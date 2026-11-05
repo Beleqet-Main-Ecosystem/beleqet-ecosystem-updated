@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BeleqetPayService } from '../beleqet-pay/beleqet-pay.service';
 import { activatePaidPlan, assertNoPaypalAutoRenew } from './activate-plan';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 /**
  * Paying for a plan with Chapa (through Beleqet Pay): Telebirr, CBE Birr, banks or cards. Chapa
@@ -46,7 +47,7 @@ export class PlanPaymentsService {
       },
     });
 
-    const frontend = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4001';
+    const frontend = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
     const session = await this.paySwitch.createCheckoutSession({
       amount: (plan.priceAmount / 100).toFixed(2),
       currency: plan.currency,

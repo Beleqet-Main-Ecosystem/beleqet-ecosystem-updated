@@ -23,6 +23,7 @@ import {
 } from '../notifications/email-templates';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 /** Safe account fields that may be returned after successful authentication. */
 export interface AuthenticatedUserResponse {
@@ -80,7 +81,7 @@ export class AuthService {
     );
 
     // Send personalised welcome email
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4001';
+    const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
     const dashboardUrl =
       user.role === 'EMPLOYER'
         ? `${frontendUrl}/employer`
@@ -247,7 +248,7 @@ export class AuthService {
       },
     });
 
-    const verifyUrl = `${this.config.get('FRONTEND_URL')}/auth/verify-email?token=${token}`;
+    const verifyUrl = `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/auth/verify-email?token=${token}`;
     const email = await verificationEmail(user.firstName, verifyUrl);
 
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
@@ -305,7 +306,7 @@ export class AuthService {
       },
     });
 
-    const resetUrl = `${this.config.get('FRONTEND_URL')}/auth/reset-password?token=${token}`;
+    const resetUrl = `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/auth/reset-password?token=${token}`;
     const emailContent = await passwordResetEmail(user.firstName, resetUrl);
 
     await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
