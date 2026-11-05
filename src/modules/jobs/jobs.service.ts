@@ -16,6 +16,7 @@ import { CreateJobDto, JobType, QueryJobsDto, UpdateJobDto } from './dto/create-
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import { jobPostConfirmationEmail, jobAlertEmail } from '../notifications/email-templates';
 import { TelegramService } from '../telegram/telegram.service';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 @Injectable()
 export class JobsService {
@@ -99,7 +100,7 @@ export class JobsService {
       include: { company: true, category: true },
     });
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4001';
+    const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
     const jobUrl = `${frontendUrl}/jobs/${job.id}`;
 
     // Send confirmation email to Employer

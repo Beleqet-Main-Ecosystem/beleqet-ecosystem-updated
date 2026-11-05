@@ -9,6 +9,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
 import { BeleqetPayService } from '../beleqet-pay/beleqet-pay.service';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 const PLATFORM_FEE_PCT = 0.1;
 
@@ -236,8 +237,8 @@ export class EscrowService {
     amountToPay: number,
   ): Promise<string> {
     const returnUrl = job.contract
-      ? `${this.config.get('FRONTEND_URL')}/freelance/contracts/${job.contract.id}`
-      : `${this.config.get('FRONTEND_URL')}/freelance/${job.id}`;
+      ? `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/freelance/contracts/${job.contract.id}`
+      : `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/freelance/${job.id}`;
     try {
       const session = await this.paySwitch.createCheckoutSession({
         amount: amountToPay.toString(),

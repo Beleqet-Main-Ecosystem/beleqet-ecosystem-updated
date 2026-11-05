@@ -23,6 +23,7 @@ import { Request } from 'express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ChapaSignatureService } from './chapa-signature.service';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 @ApiTags('escrow')
 @Controller('escrow')
@@ -81,7 +82,7 @@ export class EscrowController {
         await this.svc.handleWebhook(
           payload as unknown as { reference: string; status: string; [k: string]: unknown },
         );
-        const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:4001';
+        const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
         return { url: `${frontendUrl}/dashboard` };
       }
 

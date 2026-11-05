@@ -1,3 +1,5 @@
+import { primaryFrontendUrl } from '../../../common/utils/frontend-url';
+
 /**
  * Required byte length of the token-encryption key: AES-256 requires a
  * 256-bit (32-byte) key.
@@ -86,7 +88,7 @@ export function loadAuthEnvConfig(): AuthEnvConfig {
     linkedinCallbackUrl: requireEnv('LINKEDIN_CALLBACK_URL'),
     jwtAccessSecret: requireEnv('JWT_ACCESS_SECRET'),
     appBaseUrl: requireEnv('APP_BASE_URL'),
-    frontendUrl: (process.env.FRONTEND_URL ?? 'http://localhost:4001').replace(/\/+$/, ''),
+    frontendUrl: primaryFrontendUrl(process.env.FRONTEND_URL),
     sessionSecret: requireEnv('SESSION_SECRET'),
     tokenEncryptionKey,
   };

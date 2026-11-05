@@ -25,6 +25,7 @@ import {
 } from '../queues/queues.constants';
 import { recruiterApplicationEmail } from '../notifications/email-templates';
 import { escapeTelegramMarkdown } from '../../common/utils/telegram-escape';
+import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 // ── Payload types ──────────────────────────────────────────────────────────
 
@@ -265,7 +266,7 @@ export class ScreeningProcessor extends WorkerHost {
       });
 
       try {
-        const applicationUrl = `${this.config.get('FRONTEND_URL')}/employer`;
+        const applicationUrl = `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/employer`;
         const email = await recruiterApplicationEmail({
           firstName: company.user.firstName,
           applicantName: job.data.applicantName,
@@ -284,7 +285,7 @@ export class ScreeningProcessor extends WorkerHost {
       if (company.user.telegramId) {
         await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
           telegramId: company.user.telegramId,
-          message: `📋 New application for *${escapeTelegramMarkdown(job.data.jobTitle)}*\nApplicant: ${escapeTelegramMarkdown(job.data.applicantName)}\n\nReview → ${this.config.get('FRONTEND_URL')}/dashboard/applications/${job.data.applicationId}`,
+          message: `📋 New application for *${escapeTelegramMarkdown(job.data.jobTitle)}*\nApplicant: ${escapeTelegramMarkdown(job.data.applicantName)}\n\nReview → ${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/dashboard/applications/${job.data.applicationId}`,
         });
       }
     }
