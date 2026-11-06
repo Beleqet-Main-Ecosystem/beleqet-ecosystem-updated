@@ -483,19 +483,33 @@ jobs:
 
       - name: Scan images for critical vulnerabilities (trivy)
         run: |
-          mkdir -p trivy-reports
+          mkdir -p trivy-reports trivy-cache
+          # Download the vulnerability database once, trying each mirror in turn: a single
+          # mirror answering 404 used to fail the whole job.
+          db_ready=""
+          for repo in mirror.gcr.io/aquasec/trivy-db:2 ghcr.io/aquasecurity/trivy-db:2 public.ecr.aws/aquasecurity/trivy-db:2; do
+            if docker run --rm -v "$PWD/trivy-cache:/root/.cache/trivy" \
+              aquasec/trivy:0.58.1 image --download-db-only --db-repository "$repo"; then
+              db_ready=1
+              break
+            fi
+            echo "trivy database not available from $repo, trying the next mirror"
+          done
+          [ -n "$db_ready" ] || { echo "::error::no trivy database mirror answered"; exit 1; }
           for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
             image="${{ steps.meta.outputs.namespace }}/${svc}:${{ github.sha }}"
             echo "trivy: $image"
             docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "$PWD/trivy-cache:/root/.cache/trivy" \
               -v "$PWD/trivy-reports:/reports" \
-              aquasec/trivy:0.58.1 image \
+              aquasec/trivy:0.58.1 image --skip-db-update \
               --severity HIGH,CRITICAL --format table \
               --output "/reports/${svc}.txt" --exit-code 0 "$image"
             docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
-              aquasec/trivy:0.58.1 image \
+              -v "$PWD/trivy-cache:/root/.cache/trivy" \
+              aquasec/trivy:0.58.1 image --skip-db-update \
               --severity CRITICAL --ignore-unfixed --exit-code 0 "$image"
           done
 
