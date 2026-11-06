@@ -181,7 +181,7 @@
         <div class="reg-form-group"><input type="email" id="reg-email" placeholder="Email Address"></div>
         <div class="reg-form-group"><input type="text" id="reg-tg-username" placeholder="Telegram Username (without @)">
         </div>
-        <div class="reg-form-group"><input type="password" id="reg-password" placeholder="Password"></div>
+        <div class="reg-form-group"><input type="password" id="reg-password" placeholder="Password (at least 8 characters)" minlength="8"></div>
 
         <div id="reg-candidate-fields" class="reg-dynamic-section">
           <div class="reg-form-group"><input type="text" id="reg-job-title" placeholder="Job Title (e.g. Developer)">
@@ -190,15 +190,6 @@
 
         <div id="reg-employer-fields" class="reg-dynamic-section" style="display:none;">
           <div class="reg-form-group"><input type="text" id="reg-company-name" placeholder="Company Name"></div>
-          <div class="reg-form-group reg-file-group">
-            <input type="text" id="reg-trade-license-name" placeholder="Trade License (PDF/Image)" readonly>
-            <input type="file" id="reg-trade-license-file" accept=".pdf,image/png,image/jpeg" style="display:none;"
-              onchange="
-              if(this.files[0]) { document.getElementById('reg-trade-license-name').value = this.files[0].name; }
-            ">
-            <button type="button" class="reg-upload-btn"
-              onclick="document.getElementById('reg-trade-license-file').click()">Browse</button>
-          </div>
         </div>
       </div>
 

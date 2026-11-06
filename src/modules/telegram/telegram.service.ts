@@ -6,6 +6,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcryptjs';
 import { Telegraf } from 'telegraf';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -477,6 +478,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      // A password chosen in the bot or the SGS Challenge form lets the person sign in on the
+      // website too (where a new account confirms its email with a code first).
+      const password = typeof data.password === 'string' ? data.password : '';
+      const placeholder = email.endsWith('@beleqet.internal');
+      const passwordHash =
+        !placeholder && password.length >= 8 ? await bcrypt.hash(password, 12) : undefined;
+
       const created = await this.prisma.user.create({
         data: {
           email,
@@ -485,8 +493,9 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           lastName,
           role: role as any,
           isActive: true,
+          ...(passwordHash ? { passwordHash } : {}),
           // Only the placeholder address counts as verified; a real one is confirmed by email.
-          emailVerified: email.endsWith('@beleqet.internal'),
+          emailVerified: placeholder,
         },
       });
       return { success: true, registered: true, role: created.role };
