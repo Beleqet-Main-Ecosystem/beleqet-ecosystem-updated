@@ -7,13 +7,12 @@
 #
 # Production runs from /srv/beleqet-staging with docker-compose.yml plus the
 # server-only docker-compose.override.yml; neither is replaced here. CI publishes
-# the API, admin, website and home page (port 3002) images to GHCR for every
-# commit on main, so the server pulls them instead of building (it lacks the
-# disk space to build).
+# the API, admin and website images to GHCR for every commit on main, so the
+# server pulls them instead of building (it lacks the disk space to build).
 #
 # Sequence: back up the database -> pull the images -> apply migrations with the
 # new API image -> retag the images the compose services run -> restart the API,
-# admin, website and home page -> health checks. If a health check fails, the previous
+# admin and website -> health checks. If a health check fails, the previous
 # images come back automatically (migrations are not undone: they only ever add,
 # so the previous code keeps working; restore the backup by hand if ever needed).
 # =============================================================================
@@ -34,16 +33,11 @@ declare -A IMAGES=(
   [backend]=beleqet-backend
   [frontend]=beleqet-admin-frontend
   [jobs-frontend]=beleqet-jobs-frontend
-  [homepage-frontend]=beleqet-homepage-frontend
 )
-# Services that may be missing from GHCR (a new package starts private until someone makes it
-# public). Without its image such a service stays as it is, with a warning, instead of blocking the deploy.
-OPTIONAL_SERVICES=" homepage-frontend "
 HEALTH_URLS=(
   "http://127.0.0.1:4000/api/v1/health"
   "http://127.0.0.1:3000/login"
   "http://127.0.0.1:3001/"
-  "http://127.0.0.1:3002/"
 )
 
 log() { printf '[deploy] %s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
@@ -94,12 +88,7 @@ if [ "$(free_gb)" -lt "$MIN_FREE_GB" ]; then
   fail "only $(free_gb) GB free on / (need $MIN_FREE_GB GB); nothing was changed. Free space, then deploy again"
 fi
 for service in "${!IMAGES[@]}"; do
-  if ! docker pull -q "$NAMESPACE/${IMAGES[$service]}:$SHA" > /dev/null; then
-    [[ "$OPTIONAL_SERVICES" == *" $service "* ]] || fail "could not pull ${IMAGES[$service]}:$SHA; nothing was changed"
-    log "    WARNING: ${IMAGES[$service]}:$SHA is not available (is the GHCR package public?); $service keeps running as it is"
-    unset "IMAGES[$service]"
-    HEALTH_URLS=("${HEALTH_URLS[@]/http:\/\/127.0.0.1:3002\//}")
-  fi
+  docker pull -q "$NAMESPACE/${IMAGES[$service]}:$SHA" > /dev/null
 done
 
 log "3/6 applying database migrations"
@@ -113,13 +102,12 @@ for service in "${!IMAGES[@]}"; do
 done
 
 restart() {
-  docker compose up -d --no-deps --no-build "${!IMAGES[@]}"
+  docker compose up -d --no-deps --no-build backend frontend jobs-frontend
 }
 
 healthy() {
   local url code
   for url in "${HEALTH_URLS[@]}"; do
-    [ -n "$url" ] || continue
     for _ in $(seq 1 30); do
       code="$(curl -s -o /dev/null -w '%{http_code}' "$url" || true)"
       [ "$code" = 200 ] && break
@@ -129,7 +117,7 @@ healthy() {
   done
 }
 
-log "5/6 restarting the API, admin, website and home page"
+log "5/6 restarting the API, admin and website"
 restart
 
 log "6/6 health checks"
