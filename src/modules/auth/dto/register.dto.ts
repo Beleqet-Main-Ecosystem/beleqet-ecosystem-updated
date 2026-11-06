@@ -70,7 +70,8 @@ export class VerifyEmailCodeDto {
 
   @ApiProperty({ example: '482913' })
   @IsString()
-  @Matches(/^\s*\d{6}\s*$/, { message: 'Enter the 6-digit code from the email.' })
+  // Six digits; spaces anywhere are fine ("246 810"), the service drops them.
+  @Matches(/^\s*(\d\s*){6}$/, { message: 'Enter the 6-digit code from the email.' })
   code: string;
 }
 
