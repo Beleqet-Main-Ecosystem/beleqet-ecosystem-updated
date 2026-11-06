@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { ConfigService } from '@nestjs/config';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import * as fs from 'fs';
 import * as https from 'https';
 import { EmailService } from '../email-automation/email.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -333,16 +334,25 @@ export class ManualPaymentService {
       throw new NotFoundException('No receipt uploaded for this payment');
     }
 
-    // If local fallback, return the URL directly
+    const key = payment.receiptUrl.match(/(manual-receipts\/[A-Za-z0-9_-]+\.[a-z0-9]+)/i)?.[1];
+
+    // Local storage: links saved at upload time can carry an old address (http://localhost:4000),
+    // so build the link from the file's key with the current API address, and say plainly when
+    // the file is not on this server instead of handing out a link that fails.
     if (this.uploadsService.isLocalFallbackActive()) {
-      return { url: payment.receiptUrl };
+      if (!key) return { url: payment.receiptUrl };
+      if (!fs.existsSync(this.uploadsService.resolveLocalFilePath(key))) {
+        throw new NotFoundException(
+          'The receipt file is not stored on this server. Ask the payer to send it again.',
+        );
+      }
+      return { url: this.uploadsService.localFileUrl(key) };
     }
 
-    // If S3/R2, extract key and generate presigned read URL
+    // If S3/R2, generate a presigned read URL from the key
     try {
-      const match = payment.receiptUrl.match(/(manual-receipts\/[A-Za-z0-9_-]+\.[a-z0-9]+)/i);
-      if (match && match[1]) {
-        const presignedUrl = await this.uploadsService.getPresignedReadUrl(match[1]);
+      if (key) {
+        const presignedUrl = await this.uploadsService.getPresignedReadUrl(key);
         return { url: presignedUrl };
       }
     } catch (err) {
