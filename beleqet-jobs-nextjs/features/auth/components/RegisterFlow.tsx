@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BriefcaseBusiness, MailCheck, Search, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { BriefcaseBusiness, Search, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { UserRole } from '@beleqet/common';
 import { useAuth } from '@/components/AuthProvider';
 import { registerUser, type AuthUser } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 import { homeFor, safeNextPath } from '../redirect';
 import AuthLayout, { type BrandVariant } from './AuthLayout';
+import EmailCodeStep from './EmailCodeStep';
 import { focusRing, FormError, Heading, PasswordField, SubmitButton, TextField } from './fields';
 import SocialButtons from './SocialButtons';
 import { friendly } from './SignInForm';
@@ -42,7 +43,8 @@ export default function RegisterFlow() {
   const [touched, setTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [created, setCreated] = useState<AuthUser | null>(null);
+  // After sign-up: the emailed code must be entered before the account is signed in.
+  const [challenge, setChallenge] = useState<{ verificationToken: string; email: string } | null>(null);
   // Signed in already, but asked for a different kind of account (e.g. "Create employer account" on Post a job).
   const [otherRole, setOtherRole] = useState(false);
 
@@ -76,21 +78,30 @@ export default function RegisterFlow() {
     setBusy(true);
     setError('');
     try {
-      const signedIn = await registerUser({
+      const result = await registerUser({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         password: form.password,
         role: UserRole[role],
       });
-      setCreated(signedIn);
-      setStep('done');
-      setUser(signedIn);
+      if (result.status === 'needs-email-code') {
+        setChallenge({ verificationToken: result.verificationToken, email: result.email });
+        setStep('done');
+      } else {
+        signedIn(result.user);
+      }
     } catch (err) {
       setError(friendly(err, t));
     } finally {
       setBusy(false);
     }
+  }
+
+  function signedIn(account: AuthUser) {
+    setUser(account);
+    const next = safeNextPath(new URLSearchParams(window.location.search).get('next'));
+    router.replace(next ?? homeFor(account));
   }
 
   const roleTitle = t(`auth.roles.${role}.short`);
@@ -127,29 +138,18 @@ export default function RegisterFlow() {
     );
   }
 
-  if (step === 'done' && created) {
-    const next = typeof window !== 'undefined' ? safeNextPath(new URLSearchParams(window.location.search).get('next')) : null;
+  if (step === 'done' && challenge) {
     return (
-      <AuthLayout brand={role}>
-        <span className="grid h-16 w-16 place-items-center rounded-2xl bg-limeAccent text-obsidian" aria-hidden="true">
-          <MailCheck className="h-[30px] w-[30px]" />
-        </span>
-        <Heading
-          title={t('auth.checkEmail')}
-          sub={
-            <>
-              {t('auth.checkEmailSub1')} <b className="text-ink-900 dark:text-white">{created.email}</b>. {t('auth.checkEmailSub2')}
-            </>
-          }
-        />
-        <Link
-          href={next ?? homeFor(created)}
-          className={`flex min-h-[50px] items-center justify-center rounded-md bg-primary text-base font-extrabold text-limeAccent dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
-        >
-          {t('auth.continue')}
-        </Link>
-        <p className="text-sm text-ink-600 dark:text-slate-400">{t('auth.noEmail')}</p>
-      </AuthLayout>
+      <EmailCodeStep
+        email={challenge.email}
+        verificationToken={challenge.verificationToken}
+        onSignedIn={signedIn}
+        onTwoFactor={() => router.replace('/login')}
+        onBack={() => {
+          setChallenge(null);
+          setStep('details');
+        }}
+      />
     );
   }
 

@@ -1,7 +1,8 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { randomUUID } from 'crypto';
+import { createHmac, randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 
@@ -18,6 +19,25 @@ describe('Auth Lifecycle (e2e)', () => {
   let employerToken = '';
   let employerRefreshToken = '';
   const createdUserIds: string[] = [];
+  let employerTicket = '';
+  let codeSecret = '';
+
+  /** How the API stores a code: a keyed hash, scoped to the account (AuthService.emailCodeKey). */
+  const codeKey = (userId: string, code: string) =>
+    `evc:${userId}:${createHmac('sha256', codeSecret).update(`${userId}:${code}`).digest('hex')}`;
+
+  /** Sign-up answers with a code ticket, not a session; returns the new account's id. */
+  async function expectCodeChallenge(body: any, email: string, role: string) {
+    expect(body.requiresEmailVerification).toBe(true);
+    expect(typeof body.verificationToken).toBe('string');
+    expect(body.email).toBe(email.toLowerCase());
+    expect(body).not.toHaveProperty('accessToken');
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    expect(user?.role).toBe(role);
+    expect(user?.emailVerified).toBe(false);
+    createdUserIds.push(user!.id);
+    return user!.id;
+  }
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -32,6 +52,9 @@ describe('Auth Lifecycle (e2e)', () => {
 
     await app.init();
     prisma = moduleFixture.get(PrismaService);
+    const config = moduleFixture.get(ConfigService);
+    codeSecret =
+      config.get<string>('TOTP_TEMP_SECRET') ?? config.get<string>('JWT_ACCESS_SECRET') ?? '';
   }, 90000);
 
   afterAll(async () => {
@@ -58,11 +81,8 @@ describe('Auth Lifecycle (e2e)', () => {
         })
         .expect(201);
 
-      expect(res.body).toHaveProperty('accessToken');
-      expect(res.body).toHaveProperty('user');
-      expect(res.body.user.email).toBe(employerEmail.toLowerCase());
-      expect(res.body.user.role).toBe('EMPLOYER');
-      createdUserIds.push(res.body.user.id);
+      await expectCodeChallenge(res.body, employerEmail, 'EMPLOYER');
+      employerTicket = res.body.verificationToken;
     });
 
     it('1.2 should register a FREELANCER successfully', async () => {
@@ -77,11 +97,7 @@ describe('Auth Lifecycle (e2e)', () => {
         })
         .expect(201);
 
-      expect(res.body).toHaveProperty('accessToken');
-      expect(res.body).toHaveProperty('user');
-      expect(res.body.user.email).toBe(freelancerEmail.toLowerCase());
-      expect(res.body.user.role).toBe('FREELANCER');
-      createdUserIds.push(res.body.user.id);
+      await expectCodeChallenge(res.body, freelancerEmail, 'FREELANCER');
     });
 
     it('1.3 should register a JOB_SEEKER successfully', async () => {
@@ -96,11 +112,7 @@ describe('Auth Lifecycle (e2e)', () => {
         })
         .expect(201);
 
-      expect(res.body).toHaveProperty('accessToken');
-      expect(res.body).toHaveProperty('user');
-      expect(res.body.user.email).toBe(jobSeekerEmail.toLowerCase());
-      expect(res.body.user.role).toBe('JOB_SEEKER');
-      createdUserIds.push(res.body.user.id);
+      await expectCodeChallenge(res.body, jobSeekerEmail, 'JOB_SEEKER');
     });
 
     it('1.4 should reject registration with duplicate email (409 Conflict)', async () => {
@@ -115,6 +127,63 @@ describe('Auth Lifecycle (e2e)', () => {
         .expect(409);
 
       expect(res.body.message).toMatch(/already registered/i);
+    });
+  });
+
+  describe('Email confirmation with a code (Journeys 1.4b - 1.4e)', () => {
+    it('1.4b signing in before confirming asks for the code instead of a session', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: employerEmail, password: testPassword })
+        .expect(200);
+      expect(res.body.requiresEmailVerification).toBe(true);
+      expect(res.body).not.toHaveProperty('accessToken');
+      employerTicket = res.body.verificationToken;
+    });
+
+    it('1.4c a wrong code is refused (400)', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/verify-email-code')
+        .send({ verificationToken: employerTicket, code: '000000' })
+        .expect(400);
+      expect(res.body.message).toMatch(/not right or has expired/i);
+    });
+
+    it('1.4d the right code confirms the email and signs the account in', async () => {
+      // The test cannot read the email, so it replaces the code with a known one, stored the way the API stores codes.
+      const employer = await prisma.user.findUniqueOrThrow({
+        where: { email: employerEmail.toLowerCase() },
+      });
+      await prisma.verificationToken.deleteMany({ where: { userId: employer.id } });
+      await prisma.verificationToken.create({
+        data: {
+          userId: employer.id,
+          token: codeKey(employer.id, '246810'),
+          type: 'EMAIL_VERIFICATION_CODE',
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/verify-email-code')
+        .send({ verificationToken: employerTicket, code: '246 810' })
+        .expect(200);
+      expect(res.body).toHaveProperty('accessToken');
+      expect(res.body.user.email).toBe(employerEmail.toLowerCase());
+      const after = await prisma.user.findUniqueOrThrow({ where: { id: employer.id } });
+      expect(after.emailVerified).toBe(true);
+    });
+
+    it('1.4e a forged code ticket is refused (400)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/verify-email-code')
+        .send({ verificationToken: 'not-a-ticket', code: '123456' })
+        .expect(400);
+      // The other two accounts are confirmed directly; the later journeys sign in with them.
+      await prisma.user.updateMany({
+        where: { email: { in: [freelancerEmail.toLowerCase(), jobSeekerEmail.toLowerCase()] } },
+        data: { emailVerified: true },
+      });
     });
   });
 

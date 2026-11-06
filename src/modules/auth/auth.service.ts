@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { createHmac, randomInt } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto, ChangePasswordDto, ChangeEmailDto } from './dto/register.dto';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -17,6 +18,7 @@ import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import {
   passwordResetEmail,
   verificationEmail,
+  verificationCodeEmail,
   loginAlertEmail,
   logoutAlertEmail,
   welcomeEmail,
@@ -24,6 +26,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { TwoFactorService } from '../two-factor/two-factor.service';
 import { primaryFrontendUrl } from '../../common/utils/frontend-url';
+import { isDeliverableEmail } from '../../common/utils/deliverable-email';
 
 /** Safe account fields that may be returned after successful authentication. */
 export interface AuthenticatedUserResponse {
@@ -41,6 +44,25 @@ export interface AuthenticatedSessionResponse {
   user: AuthenticatedUserResponse;
 }
 const _PLATFORM_FEE_PCT = 0.1;
+
+/**
+ * Accounts created from this moment must confirm their email with a 6-digit code before they can
+ * sign in. Older accounts (almost none confirmed while email was broken) keep the softer rule:
+ * they can sign in, but posting, applying and paying wait for a confirmed email (VerifiedEmailGuard).
+ */
+export const STRICT_EMAIL_VERIFICATION_FROM = new Date('2026-11-06T00:00:00Z');
+const EMAIL_CODE = 'EMAIL_VERIFICATION_CODE';
+const EMAIL_CODE_ATTEMPT = 'EMAIL_VERIFICATION_CODE_ATTEMPT';
+const EMAIL_CODE_MINUTES = 15;
+const EMAIL_CODE_MAX_ATTEMPTS = 5;
+const EMAIL_CODE_RESEND_GAP_MS = 60 * 1000;
+
+/** Sign-up and sign-in answer for an account that still has to enter its email code. */
+export interface EmailVerificationChallenge {
+  requiresEmailVerification: true;
+  verificationToken: string;
+  email: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -75,10 +97,8 @@ export class AuthService {
 
     this.logger.log(`New user registered: ${user.email} (${user.role})`);
 
-    // Fire-and-forget: email queue failures must NOT crash registration
-    this.sendVerificationEmail(user.id).catch((err) =>
-      this.logger.error(`Failed to enqueue verification email for ${user.email}: ${err.message}`),
-    );
+    // The account is signed in only after its email code is entered (verifyEmailCode).
+    const challenge = await this.emailCodeChallenge(user);
 
     // Send personalised welcome email
     const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
@@ -100,7 +120,7 @@ export class AuthService {
         this.logger.error(`Failed to enqueue welcome email for ${user.email}: ${err.message}`),
       );
 
-    return this.issueTokens(user);
+    return challenge;
   }
 
   async validateUser(email: string, password: string) {
@@ -194,6 +214,169 @@ export class AuthService {
       );
     await this.touchLastLogin(user.id);
     return this.issueTokens(user);
+  }
+
+  /**
+   * Sign-in with email and password. A new account that has not entered its email code yet gets
+   * a fresh code instead of a session; everyone else signs in as before (login).
+   */
+  async passwordLogin(
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      emailVerified?: boolean;
+      createdAt?: Date;
+    },
+    userAgent?: string,
+  ) {
+    if (this.needsEmailCodeBeforeSignIn(user)) return this.emailCodeChallenge(user);
+    return this.login(user, userAgent);
+  }
+
+  /** Checks the 6-digit code, confirms the email and signs the account in. */
+  async verifyEmailCode(verificationToken: string, code: string) {
+    const userId = this.readVerificationTicket(verificationToken);
+    const digits = (code ?? '').replace(/\s/g, '');
+    if (!/^\d{6}$/.test(digits)) {
+      throw new BadRequestException('Enter the 6-digit code from the email.');
+    }
+
+    const windowStart = new Date(Date.now() - EMAIL_CODE_MINUTES * 60 * 1000);
+    const failures = await this.prisma.verificationToken.count({
+      where: { userId, type: EMAIL_CODE_ATTEMPT, createdAt: { gt: windowStart } },
+    });
+    if (failures >= EMAIL_CODE_MAX_ATTEMPTS) {
+      throw new BadRequestException('Too many wrong codes. Send a new code and try again.');
+    }
+
+    const stored = await this.prisma.verificationToken.findUnique({
+      where: { token: this.emailCodeKey(userId, digits) },
+    });
+    if (!stored || stored.type !== EMAIL_CODE || stored.expiresAt < new Date()) {
+      await this.prisma.verificationToken.create({
+        data: {
+          userId,
+          token: `eva:${userId}:${uuidv4()}`,
+          type: EMAIL_CODE_ATTEMPT,
+          expiresAt: new Date(Date.now() + EMAIL_CODE_MINUTES * 60 * 1000),
+        },
+      });
+      throw new BadRequestException('That code is not right or has expired.');
+    }
+
+    await this.prisma.user.update({ where: { id: userId }, data: { emailVerified: true } });
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId, type: { in: [EMAIL_CODE, EMAIL_CODE_ATTEMPT, 'EMAIL_VERIFICATION'] } },
+    });
+    return this.oauthSession(userId);
+  }
+
+  /** A new code for an account on the code screen; at most one a minute. */
+  async resendEmailCode(verificationToken: string) {
+    const userId = this.readVerificationTicket(verificationToken);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, emailVerified: true },
+    });
+    if (!user) throw new BadRequestException('This account no longer exists.');
+    if (user.emailVerified) return { sent: false, alreadyVerified: true };
+    const sent = await this.sendEmailCode(user);
+    return { sent, alreadyVerified: false };
+  }
+
+  private needsEmailCodeBeforeSignIn(user: {
+    email: string;
+    role: string;
+    emailVerified?: boolean;
+    createdAt?: Date;
+  }): boolean {
+    return (
+      user.emailVerified === false &&
+      user.role !== 'ADMIN' &&
+      Boolean(user.createdAt && user.createdAt >= STRICT_EMAIL_VERIFICATION_FROM) &&
+      isDeliverableEmail(user.email)
+    );
+  }
+
+  private async emailCodeChallenge(user: {
+    id: string;
+    email: string;
+    firstName: string;
+  }): Promise<EmailVerificationChallenge> {
+    // A queue hiccup must not block sign-up: the code screen can send another.
+    await this.sendEmailCode(user).catch((err: Error) =>
+      this.logger.error(`Failed to enqueue verification code for ${user.id}: ${err.message}`),
+    );
+    return {
+      requiresEmailVerification: true,
+      verificationToken: this.jwt.sign(
+        { sub: user.id, purpose: 'verify_email' },
+        { secret: this.verificationTicketSecret(), expiresIn: '2h' },
+      ),
+      email: user.email,
+    };
+  }
+
+  /** Emails a fresh code, replacing earlier ones. False when one went out less than a minute ago. */
+  private async sendEmailCode(user: { id: string; email: string; firstName: string }) {
+    const recent = await this.prisma.verificationToken.findFirst({
+      where: {
+        userId: user.id,
+        type: EMAIL_CODE,
+        createdAt: { gt: new Date(Date.now() - EMAIL_CODE_RESEND_GAP_MS) },
+      },
+      select: { id: true },
+    });
+    if (recent) return false;
+
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId: user.id, type: { in: [EMAIL_CODE, EMAIL_CODE_ATTEMPT] } },
+    });
+    await this.prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        token: this.emailCodeKey(user.id, code),
+        type: EMAIL_CODE,
+        expiresAt: new Date(Date.now() + EMAIL_CODE_MINUTES * 60 * 1000),
+      },
+    });
+    const email = await verificationCodeEmail(user.firstName, code, EMAIL_CODE_MINUTES);
+    await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+      to: user.email,
+      subject: `${code} is your Beleqet verification code`,
+      ...email,
+    });
+    return true;
+  }
+
+  /** Codes are stored only as a keyed hash, scoped to the account. */
+  private emailCodeKey(userId: string, code: string): string {
+    const hash = createHmac('sha256', this.verificationTicketSecret())
+      .update(`${userId}:${code}`)
+      .digest('hex');
+    return `evc:${userId}:${hash}`;
+  }
+
+  private verificationTicketSecret(): string {
+    return (
+      this.config.get<string>('TOTP_TEMP_SECRET') ?? this.config.get<string>('JWT_ACCESS_SECRET')!
+    );
+  }
+
+  private readVerificationTicket(verificationToken: string): string {
+    try {
+      const payload = this.jwt.verify(verificationToken, {
+        secret: this.verificationTicketSecret(),
+      }) as { sub?: string; purpose?: string };
+      if (payload.purpose === 'verify_email' && payload.sub) return payload.sub;
+    } catch {
+      // falls through
+    }
+    throw new BadRequestException('This code screen has expired. Sign in again to get a new code.');
   }
 
   async refresh(token: string) {

@@ -247,7 +247,20 @@
       "sent": "ተልኳል። የኢሜይል ሳጥንዎን እና ስፓም ፎልደሩን ይመልከቱ።",
       "failed": "መላክ አልተቻለም። ቆይተው እንደገና ይሞክሩ።",
       "dismiss": "ደብቅ"
-    }
+    },
+    "emailCodeSub1": "ባለ 6 አሃዝ ኮድ ልከናል ወደ",
+    "emailCodeSub2": "ኢሜይልዎን ለማረጋገጥና መለያዎን ለመጨረስ ኮዱን ያስገቡ።",
+    "emailCodeLabel": "የማረጋገጫ ኮድ",
+    "emailCodeVerify": "ኢሜይሉን አረጋግጥ",
+    "emailCodeResend": "አዲስ ኮድ ላክ",
+    "emailCodeResendIn": "በ{s} ሰከንድ አዲስ ኮድ መላክ ይቻላል",
+    "emailCodeSent": "አዲስ ኮድ ተልኳል።",
+    "emailCodeSpam": "ካላገኙት የስፓም ወይም ፕሮሞሽን ፎልደሩን ይመልከቱ።",
+    "emailCodeBack": "ሌላ ኢሜይል ተጠቀም",
+    "emailCodeWrong": "ኮዱ ትክክል አይደለም ወይም ጊዜው አልፏል።",
+    "emailCodeTooMany": "ብዙ የተሳሳቱ ኮዶች ገብተዋል። አዲስ ኮድ አስልከው እንደገና ይሞክሩ።",
+    "emailCodeExpired": "ይህ ገጽ ጊዜው አልፏል። አዲስ ኮድ ለማግኘት እንደገና ይግቡ።",
+    "emailCodeFormat": "ከኢሜይሉ ያለውን ባለ 6 አሃዝ ኮድ ያስገቡ።"
   },
   "postJob": {
     "gateTitle": "ስራ ለመለጠፍ ይግቡ",

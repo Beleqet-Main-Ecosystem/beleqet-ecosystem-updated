@@ -9,6 +9,7 @@ import { useTranslation } from '@/lib/i18n';
 import { homeFor, safeNextPath } from '../redirect';
 import AuthLayout from './AuthLayout';
 import SocialButtons from './SocialButtons';
+import EmailCodeStep from './EmailCodeStep';
 import { focusRing, FormError, Heading, PasswordField, SubmitButton, TextField } from './fields';
 
 export default function SignInForm() {
@@ -21,6 +22,7 @@ export default function SignInForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [tempToken, setTempToken] = useState<string | null>(null);
+  const [emailCode, setEmailCode] = useState<{ verificationToken: string; email: string } | null>(null);
   const [codeKind, setCodeKind] = useState<'app' | 'backup'>('app');
   const [code, setCode] = useState('');
   const codeRef = useRef<HTMLInputElement>(null);
@@ -70,6 +72,11 @@ export default function SignInForm() {
         setBusy(false);
         return;
       }
+      if (result.status === 'needs-email-code') {
+        setEmailCode({ verificationToken: result.verificationToken, email: result.email });
+        setBusy(false);
+        return;
+      }
       finish(result.user);
     } catch (err) {
       setError(friendly(err, t));
@@ -88,6 +95,24 @@ export default function SignInForm() {
       setError(friendly(err, t));
       setBusy(false);
     }
+  }
+
+  if (emailCode) {
+    return (
+      <EmailCodeStep
+        email={emailCode.email}
+        verificationToken={emailCode.verificationToken}
+        onSignedIn={finish}
+        onTwoFactor={(token) => {
+          setEmailCode(null);
+          setTempToken(token);
+        }}
+        onBack={() => {
+          setEmailCode(null);
+          setPassword('');
+        }}
+      />
+    );
   }
 
   if (tempToken) {
@@ -211,6 +236,10 @@ function registerHref() {
 export function friendly(err: unknown, t: (k: string) => string): string {
   const message = err instanceof Error ? err.message : '';
   if (/social login/i.test(message)) return t('auth.errSocial');
+  if (/not right or has expired/i.test(message)) return t('auth.emailCodeWrong');
+  if (/too many wrong codes/i.test(message)) return t('auth.emailCodeTooMany');
+  if (/code screen has expired/i.test(message)) return t('auth.emailCodeExpired');
+  if (/6-digit code/i.test(message)) return t('auth.emailCodeFormat');
   if (/invalid credentials|unauthorized|incorrect|wrong password/i.test(message)) return t('auth.errCredentials');
   if (/invalid code|expired verification|invalid or expired token/i.test(message)) return t('auth.errCode');
   if (/already registered/i.test(message)) return t('auth.errExists');

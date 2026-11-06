@@ -154,27 +154,62 @@ function messageFrom(error: unknown): string {
 
 // ── Auth API functions ────────────────────────────────────────────────────────
 
+/** Sign-up, and sign-in for a new account, wait for the 6-digit code emailed to the address. */
+export type EmailCodeChallenge = { status: 'needs-email-code'; verificationToken: string; email: string };
+type ChallengeResponse = { requiresEmailVerification: true; verificationToken: string; email: string };
+
+const challengeFrom = (data: ChallengeResponse): EmailCodeChallenge => ({
+  status: 'needs-email-code',
+  verificationToken: data.verificationToken,
+  email: data.email,
+});
+
 /**
- * Register a new account.
- * Persists tokens to localStorage on success.
+ * Register a new account. The API emails a 6-digit code and signs the account in only once the
+ * code is entered (verifyEmailCode).
  */
-export async function registerUser(input: RegisterDto): Promise<AuthUser> {
+export async function registerUser(input: RegisterDto): Promise<EmailCodeChallenge | { status: 'signed-in'; user: AuthUser }> {
   try {
-    const { data } = await authApi.post<AuthResponse>('/auth/register', input);
+    const { data } = await authApi.post<AuthResponse | ChallengeResponse>('/auth/register', input);
+    if ('requiresEmailVerification' in data) return challengeFrom(data);
     persist(data.accessToken, data.user, data.refreshToken);
-    return data.user;
+    return { status: 'signed-in', user: data.user };
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+/** Confirms the email with the emailed code; signs in (or asks for the two-step code). */
+export async function verifyEmailCode(verificationToken: string, code: string): Promise<LoginResult> {
+  try {
+    const { data } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/auth/verify-email-code', { verificationToken, code });
+    if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
+    const auth = data as AuthResponse;
+    persist(auth.accessToken, auth.user, auth.refreshToken);
+    return { status: 'signed-in', user: auth.user };
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+/** Emails a new code; the API sends at most one a minute (sent is false otherwise). */
+export async function resendEmailCode(verificationToken: string): Promise<{ sent: boolean; alreadyVerified: boolean }> {
+  try {
+    const { data } = await authApi.post<{ sent: boolean; alreadyVerified: boolean }>('/auth/resend-verification-code', { verificationToken });
+    return data;
   } catch (error) {
     throw new Error(messageFrom(error));
   }
 }
 
 /**
- * Result of a password sign-in: either signed in, or the account has
- * two-step verification and needs a code before tokens are issued.
+ * Result of a password sign-in: signed in, or a code is needed first: the two-step code
+ * (authenticator app) or, for a new account, the code emailed to confirm the address.
  */
 export type LoginResult =
   | { status: 'signed-in'; user: AuthUser }
-  | { status: 'needs-code'; tempToken: string };
+  | { status: 'needs-code'; tempToken: string }
+  | EmailCodeChallenge;
 
 /**
  * Authenticate with email + password.
@@ -183,7 +218,8 @@ export type LoginResult =
  */
 export async function loginUser(input: LoginDto): Promise<LoginResult> {
   try {
-    const { data } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/auth/login', input);
+    const { data } = await authApi.post<AuthResponse | ChallengeResponse | { requires2fa: true; tempToken: string }>('/auth/login', input);
+    if ('requiresEmailVerification' in data) return challengeFrom(data);
     if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
     const auth = data as AuthResponse;
     persist(auth.accessToken, auth.user, auth.refreshToken);

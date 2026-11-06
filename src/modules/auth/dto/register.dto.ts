@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsIn, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsIn, IsOptional, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 // Local enum — avoids dependency on generated Prisma client at compile time.
@@ -60,6 +60,24 @@ export class VerifyEmailDto {
   @ApiProperty()
   @IsString()
   token: string;
+}
+
+/** The 6-digit code from the verification email, with the ticket sign-up or sign-in returned. */
+export class VerifyEmailCodeDto {
+  @ApiProperty({ description: 'verificationToken from the sign-up or sign-in answer' })
+  @IsString()
+  verificationToken: string;
+
+  @ApiProperty({ example: '482913' })
+  @IsString()
+  @Matches(/^\s*\d{6}\s*$/, { message: 'Enter the 6-digit code from the email.' })
+  code: string;
+}
+
+export class ResendEmailCodeDto {
+  @ApiProperty({ description: 'verificationToken from the sign-up or sign-in answer' })
+  @IsString()
+  verificationToken: string;
 }
 
 export class ForgotPasswordDto {

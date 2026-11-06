@@ -63,7 +63,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function login(email: string, password: string): Promise<LoginResult> {
-  const data = await post<Tokens | { requires2fa: true; tempToken: string }>('/auth/login', { email, password });
+  const data = await post<Tokens | { requires2fa: true; tempToken: string } | { requiresEmailVerification: true }>(
+    '/auth/login',
+    { email, password },
+  );
+  // Only new self-service accounts are asked to confirm their email; administrators never are.
+  if ('requiresEmailVerification' in data) throw new NotAdminError();
   if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
   return { status: 'signed-in', user: persist(data as Tokens) };
 }

@@ -139,6 +139,21 @@ export function verificationEmail(firstName: string, verifyUrl: string) {
   });
 }
 
+export function verificationCodeEmail(firstName: string, code: string, minutes: number) {
+  return renderTemplate({
+    preview: `Your Beleqet verification code is ${code}.`,
+    eyebrow: 'Account verification',
+    title: 'Your verification code',
+    greeting: `Hello ${firstName},`,
+    paragraphs: [
+      'Enter this code on Beleqet to confirm your email address and finish setting up your account.',
+    ],
+    detailLabel: 'Verification code',
+    detailValue: code,
+    footnote: `The code expires in ${minutes} minutes. If you did not create a Beleqet account, you can ignore this email.`,
+  });
+}
+
 export function passwordResetEmail(firstName: string, resetUrl: string) {
   return renderTemplate({
     preview: 'Use this secure link to reset your Beleqet password.',

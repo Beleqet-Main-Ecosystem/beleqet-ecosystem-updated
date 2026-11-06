@@ -24,6 +24,8 @@ import {
   LoginDto,
   RefreshDto,
   VerifyEmailDto,
+  VerifyEmailCodeDto,
+  ResendEmailCodeDto,
   ForgotPasswordDto,
   ResetPasswordDto,
   ChangePasswordDto,
@@ -62,7 +64,9 @@ export class AuthController {
   // ─── Pre-existing local email/password auth (unchanged) ──────────────────
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
+  @ApiOperation({
+    summary: 'Register a new user; emails a 6-digit code and returns a verificationToken',
+  })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -73,7 +77,23 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Request() req: any) {
     const user = await this.authService.validateUser(dto.email, dto.password);
     const userAgent = req.headers['user-agent'];
-    return this.authService.login(user, userAgent);
+    return this.authService.passwordLogin(user, userAgent);
+  }
+
+  @Post('verify-email-code')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
+  @ApiOperation({ summary: 'Confirm the email with the 6-digit code and sign in' })
+  verifyEmailCode(@Body() dto: VerifyEmailCodeDto) {
+    return this.authService.verifyEmailCode(dto.verificationToken, dto.code);
+  }
+
+  @Post('resend-verification-code')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 900_000 } })
+  @ApiOperation({ summary: 'Email a new 6-digit code (at most one a minute)' })
+  resendEmailCode(@Body() dto: ResendEmailCodeDto) {
+    return this.authService.resendEmailCode(dto.verificationToken);
   }
 
   @Post('refresh')
