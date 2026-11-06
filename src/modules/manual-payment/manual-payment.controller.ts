@@ -21,6 +21,7 @@ import { PaymentStatus } from '@prisma/client';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { MulterFile } from '../uploads/interfaces/multer-file.interface';
 import { UPLOAD_FILE_INTERCEPTOR_OPTIONS } from '../uploads/uploads.controller';
@@ -35,6 +36,7 @@ export class ManualPaymentController {
   constructor(private readonly manualPaymentService: ManualPaymentService) {}
 
   @Post()
+  @UseGuards(VerifiedEmailGuard)
   @ApiOperation({ summary: 'Create a new pending manual payment record' })
   async create(
     @Req() req: Request & { user: { userId: string } },

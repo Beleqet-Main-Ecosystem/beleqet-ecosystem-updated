@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import {
   FreelanceService,
@@ -77,14 +78,14 @@ export class FreelanceController {
   }
 
   @Post('jobs')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard)
   @ApiBearerAuth()
   createJob(@CurrentUser() u: CurrentUserPayload, @Body() dto: CreateFreelanceJobDto) {
     return this.svc.createJob(u.userId, dto);
   }
 
   @Post('jobs/:id/bids')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard)
   @ApiBearerAuth()
   submitBid(
     @Param('id') id: string,

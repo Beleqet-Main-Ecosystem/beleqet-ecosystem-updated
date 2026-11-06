@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { StepUpGuard } from '../two-factor/guards/step-up.guard';
 import { SensitiveAction } from '../two-factor/decorators/sensitive-action.decorator';
@@ -35,7 +36,7 @@ export class EscrowController {
   ) {}
 
   @Post('initiate/:gigId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard)
   @ApiBearerAuth()
   initiate(@Param('gigId') gigId: string, @CurrentUser() u: CurrentUserPayload) {
     return this.svc.initiate(u.userId, gigId);

@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import * as nodemailer from 'nodemailer';
+import { isDeliverableEmail } from '../../common/utils/deliverable-email';
 
 export interface InAppPayload {
   userId: string;
@@ -172,6 +173,10 @@ export class NotificationsProcessor extends WorkerHost {
   async sendEmail(job: BullMQJob<EmailPayload>): Promise<void> {
     const { to, subject, html, text } = job.data;
     if (!to) return;
+    if (!isDeliverableEmail(to)) {
+      this.logger.debug(`Email skipped: placeholder address (${subject})`);
+      return;
+    }
 
     try {
       await this.transporter.sendMail({

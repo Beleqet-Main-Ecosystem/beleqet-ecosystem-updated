@@ -3,7 +3,7 @@
  * @description Next.js configuration for the Beleqet Jobs platform.
  *
  * Image optimisation:
- * - Remote images are allowed from all HTTPS hosts.
+ * - Images are served unoptimized and no remote image hosts are allowed (see `images`).
  * - Mobile-first: `deviceSizes` starts at 320px (small phones).
  * - Lazy loading is enabled by default; `loading="eager"` must be
  *   explicitly set for above-the-fold images.
@@ -19,10 +19,12 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@beleqet/common"],
   images: {
-    remotePatterns: [
-      // Allow all HTTPS image sources (Unsplash, CDNs, user avatars, etc.)
-      { protocol: "https", hostname: "**", pathname: "/**" },
-    ],
+    // The image optimizer of Next.js 14 has critical flaws (remote code execution from crafted
+    // SVG/AVIF files) with no 14.x fix. The site only shows its own logo through next/image, so
+    // images are served as they are and the optimizer fetches nothing from other websites.
+    // Remove both settings after upgrading to a fixed Next.js (15.5.24+).
+    unoptimized: true,
+    remotePatterns: [],
     /**
      * Mobile-first device sizes for responsive `next/image`.
      * The smallest size (320) targets small phones; the largest

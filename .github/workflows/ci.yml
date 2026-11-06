@@ -347,6 +347,10 @@ jobs:
   # ── Docker images: build, start the full stack, scan, publish on main ──────
   docker-build:
     name: Docker build, stack smoke test & scan
+    # The slowest job (about 9 minutes). It runs on main, where it builds the images the deploy
+    # uses, so a bad image still never reaches production; pull requests skip it to get feedback
+    # in about half the time.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -600,11 +604,17 @@ jobs:
       - name: Verify every mandatory job succeeded
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          EVENT: ${{ github.event_name }}
         run: |
           echo "$NEEDS_JSON"
-          failed="$(echo "$NEEDS_JSON" | grep -Ec '"result": *"(failure|cancelled|skipped)"' || true)"
-          if [ "$failed" != "0" ]; then
-            echo "::error::$failed mandatory job(s) did not succeed"
+          # Every job must succeed; only the Docker job may be skipped, and only on pull requests.
+          failed="$(echo "$NEEDS_JSON" | jq -r --arg ev "$EVENT" '
+            to_entries[]
+            | select(.value.result != "success")
+            | select(($ev == "pull_request" and .key == "docker-build" and .value.result == "skipped") | not)
+            | .key')"
+          if [ -n "$failed" ]; then
+            echo "::error::mandatory job(s) did not succeed: ${failed//$'\n'/, }"
             exit 1
           fi
           echo "All mandatory jobs succeeded"

@@ -14,7 +14,7 @@ import * as bcrypt from 'bcryptjs';
 // import of this CommonJS module would be `undefined` at runtime.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import session = require('express-session');
-import { RedisStore } from 'connect-redis';
+import { IoRedisSessionStore } from './common/session/ioredis-session.store';
 import type Redis from 'ioredis';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { REDIS_CLIENT } from './modules/redis/redis.module';
@@ -22,6 +22,9 @@ import { REDIS_CLIENT } from './modules/redis/redis.module';
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  // The API sits behind one nginx hop: take the visitor's address and HTTPS from its forwarded
+  // headers, so rate limits are per visitor and secure session cookies work in production.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   const redisIoAdapter = new RedisIoAdapter(app);
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
@@ -41,7 +44,7 @@ async function bootstrap() {
 
   app.use(
     session({
-      store: new RedisStore({ client: sessionRedisClient, prefix: 'beleqet:sess:' }),
+      store: new IoRedisSessionStore(sessionRedisClient, 'beleqet:sess:'),
       secret: sessionSecret,
       resave: false,
       saveUninitialized: false,

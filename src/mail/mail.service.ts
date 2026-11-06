@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { IEmailSender } from '../modules/auth/interfaces/email-sender.interface';
 import { loadMailEnvConfig } from './mail.config';
+import { isDeliverableEmail } from '../common/utils/deliverable-email';
 
 /**
  * Real SMTP-backed mailer, implementing the same {@link IEmailSender}
@@ -30,6 +31,7 @@ export class MailService implements IEmailSender {
     toEmail: string,
     confirmationUrl: string,
   ): Promise<void> {
+    if (!isDeliverableEmail(toEmail)) return;
     await this.transporter.sendMail({
       from: this.fromAddress,
       to: toEmail,

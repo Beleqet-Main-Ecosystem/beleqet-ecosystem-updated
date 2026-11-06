@@ -239,7 +239,15 @@
     "oauthConfirm": "You already have an account with that email. We’ve emailed you a link to connect it; open it, then sign in.",
     "otherRoleTitle": "You need {role} account for this",
     "otherRoleText": "You’re signed in as {current} ({email}). Each Beleqet account has one role, so to continue as {role}, sign out and create a separate account with another email.",
-    "signOutContinue": "Sign out and create the account"
+    "signOutContinue": "Sign out and create the account",
+    "verifyBanner": {
+      "message": "Please confirm your email address ({email}). You need it to post jobs, apply or pay.",
+      "send": "Send a new link",
+      "sending": "Sending…",
+      "sent": "Sent. Check your inbox and spam folder.",
+      "failed": "Couldn't send it. Please try again later.",
+      "dismiss": "Hide"
+    }
   },
   "postJob": {
     "gateTitle": "Sign in to post a job",

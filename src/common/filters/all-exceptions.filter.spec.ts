@@ -196,6 +196,19 @@ describe('AllExceptionsFilter', () => {
   // Generic errors
   // ──────────────────────────────────────────────────────────────────────────
   describe('Generic error handling', () => {
+    it('does not reply again once the response has gone out (that crashed the API)', () => {
+      const response = { headersSent: true };
+      const host = {
+        switchToHttp: () => ({
+          getRequest: () => ({ url: '/api/v1/auth/linkedin', method: 'GET' }),
+          getResponse: () => response,
+        }),
+      } as unknown as ArgumentsHost;
+
+      expect(() => filter.catch(new Error('ERR syntax error'), host)).not.toThrow();
+      expect(mockReply).not.toHaveBeenCalled();
+    });
+
     it('maps a plain Error to 500 ERR_INTERNAL', () => {
       const host = buildMockHost();
       filter.catch(new Error('something exploded'), host);

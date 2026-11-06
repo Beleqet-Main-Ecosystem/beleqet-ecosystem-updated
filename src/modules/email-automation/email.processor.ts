@@ -5,6 +5,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { EmailStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EMAIL_QUEUE_NAME } from './email.service';
+import { isDeliverableEmail } from '../../common/utils/deliverable-email';
 
 interface SendJobData {
   emailLogId: string;
@@ -33,6 +34,15 @@ export class EmailProcessor extends WorkerHost {
     const log = await this.prisma.emailLog.findUniqueOrThrow({
       where: { id: emailLogId },
     });
+
+    // A placeholder address can never be delivered: record it once instead of retrying.
+    if (!isDeliverableEmail(log.recipient)) {
+      await this.prisma.emailLog.update({
+        where: { id: log.id },
+        data: { status: EmailStatus.FAILED, errorMessage: 'Placeholder address, not sent' },
+      });
+      return;
+    }
 
     try {
       const result = await this.mailerService.sendMail({
