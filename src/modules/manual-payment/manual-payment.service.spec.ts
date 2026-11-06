@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -39,6 +40,10 @@ describe('ManualPaymentService', () => {
     uploadFile: jest.fn(),
     isLocalFallbackActive: jest.fn(),
     getPresignedReadUrl: jest.fn(),
+    resolveLocalFilePath: jest.fn((key: string) => `/app/temp-storage/${key}`),
+    localFileUrl: jest.fn(
+      (key: string) => `https://api.beleqetjobs.com/api/v1/uploads/local-file/${key}`,
+    ),
   };
 
   const mockEmailService = {
@@ -290,15 +295,35 @@ describe('ManualPaymentService', () => {
   });
 
   describe('getReceiptViewUrl', () => {
-    it('returns local URL directly when local fallback is active', async () => {
+    it('rebuilds a local link saved with an old address (localhost) using the current API address', async () => {
       const dummy = createDummyPayment({
         receiptUrl: 'http://localhost:4000/api/v1/uploads/local-file/manual-receipts/abc.webp',
       });
       mockPrismaService.payment.findUnique.mockResolvedValue(dummy);
       mockUploadsService.isLocalFallbackActive.mockReturnValue(true);
+      const exists = jest.spyOn(fs, 'existsSync').mockReturnValue(true);
 
       const result = await service.getReceiptViewUrl('pay-uuid-1', 'admin-1', true);
-      expect(result.url).toBe(dummy.receiptUrl);
+      expect(result.url).toBe(
+        'https://api.beleqetjobs.com/api/v1/uploads/local-file/manual-receipts/abc.webp',
+      );
+      expect(exists).toHaveBeenCalledWith('/app/temp-storage/manual-receipts/abc.webp');
+      exists.mockRestore();
+    });
+
+    it('says the file is missing instead of returning a link that fails', async () => {
+      mockPrismaService.payment.findUnique.mockResolvedValue(
+        createDummyPayment({
+          receiptUrl: 'http://localhost:4000/api/v1/uploads/local-file/manual-receipts/gone.pdf',
+        }),
+      );
+      mockUploadsService.isLocalFallbackActive.mockReturnValue(true);
+      const exists = jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+
+      await expect(service.getReceiptViewUrl('pay-uuid-1', 'admin-1', true)).rejects.toThrow(
+        'not stored on this server',
+      );
+      exists.mockRestore();
     });
 
     it('generates presigned read URL when cloud storage is active', async () => {

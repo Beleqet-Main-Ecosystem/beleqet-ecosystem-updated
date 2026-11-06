@@ -533,6 +533,11 @@ export class UploadsService {
     return `${apiBaseUrl.replace(/\/$/, '')}/uploads/local-file/${key}`;
   }
 
+  /** Link to a locally stored file, built with the current API address. */
+  localFileUrl(key: string): string {
+    return this.buildLocalUrl(key);
+  }
+
   /**
    * Permanently deletes a previously uploaded file from cloud storage.
    * Used by right-to-erasure (GDPR) flows where a database record and its
