@@ -1,4 +1,4 @@
-import { Inter, Noto_Sans_Ethiopic } from 'next/font/google';
+import { Inter, Noto_Sans_Ethiopic, Sora } from 'next/font/google';
 
 export const inter = Inter({
   subsets: ['latin'],
@@ -10,5 +10,12 @@ export const inter = Inter({
 export const ethiopic = Noto_Sans_Ethiopic({
   subsets: ['ethiopic'],
   variable: '--font-ethiopic',
+  display: 'swap',
+});
+
+// Headline font of the home page design (features/old-home).
+export const sora = Sora({
+  subsets: ['latin'],
+  variable: '--font-sora',
   display: 'swap',
 });
