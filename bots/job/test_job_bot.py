@@ -209,7 +209,7 @@ async def async_test_sgs_challenge_strict_single_vote():
 
 
 def test_webhook_secret_token_verification():
-    expected_token = "27805717db90707de557a1b62257c54936f563dc0e23e92762d33445cc60e4b4"
+    expected_token = "test-webhook-secret-not-real"  # test-only value
 
     def check_token(provided):
         if not expected_token or not provided:
