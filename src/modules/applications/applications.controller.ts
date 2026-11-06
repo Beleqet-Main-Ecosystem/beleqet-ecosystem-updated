@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { ApplicationsService } from './applications.service';
 import { UsersService } from '../users/users.service';
@@ -17,6 +18,7 @@ export class ApplicationsController {
   ) {}
 
   @Post()
+  @UseGuards(VerifiedEmailGuard)
   @ApiOperation({ summary: 'Submit a job application — triggers AI screening workflow' })
   submit(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateApplicationDto) {
     return this.svc.submit(user.userId, dto);

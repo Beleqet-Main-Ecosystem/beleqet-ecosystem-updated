@@ -50,6 +50,7 @@ import { CreatePaypalOrderDto } from './dto/create-paypal-order.dto';
 import { CreateRefundDto, CapturePaypalOrderDto } from './dto/webhook.dto';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -225,6 +226,7 @@ export class PaypalController {
 
   // ── POST /payments/paypal/order ───────────────────────────────────────────
   @Post('order')
+  @UseGuards(VerifiedEmailGuard)
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
@@ -279,6 +281,7 @@ Optionally include \`subscriptionPlanId\` to create a **recurring subscription**
 
   // ── POST /payments/paypal/subscription ───────────────────────────────────
   @Post('subscription')
+  @UseGuards(VerifiedEmailGuard)
   @HttpCode(HttpStatus.CREATED)
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @ApiOperation({

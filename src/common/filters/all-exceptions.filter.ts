@@ -197,7 +197,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         : {}),
     };
 
-    httpAdapter.reply(ctx.getResponse(), body, statusCode);
+    // An error after the response went out (e.g. a redirect, then a failed session save) can only
+    // be logged: replying again throws ERR_HTTP_HEADERS_SENT, which used to crash the whole API.
+    const response = ctx.getResponse<{ headersSent?: boolean }>();
+    if (response.headersSent) return;
+    httpAdapter.reply(response, body, statusCode);
   }
 
   // ──────────────────────────────────────────────────────────────────────────

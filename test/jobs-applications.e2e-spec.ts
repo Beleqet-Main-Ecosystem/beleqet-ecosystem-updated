@@ -73,6 +73,8 @@ describe('Jobs & Applications (e2e)', () => {
         firstName: 'Emp',
         lastName: 'Jobs',
         role: 'EMPLOYER',
+        // Posting jobs and applying need a confirmed email (VerifiedEmailGuard).
+        emailVerified: true,
         rbacRoles: { connect: { id: role.id } },
       },
     });
@@ -98,6 +100,7 @@ describe('Jobs & Applications (e2e)', () => {
         firstName: 'Cand',
         lastName: 'Jobs',
         role: 'JOB_SEEKER',
+        emailVerified: true,
       },
     });
     const candTokens: any = await authService.login(candidate);
@@ -205,6 +208,32 @@ describe('Jobs & Applications (e2e)', () => {
       expect(res.body.jobId).toBe(createdJobId);
       expect(res.body.userId).toBe(candidate.id);
       expect(res.body.status).toBe('SUBMITTED');
+    });
+
+    it('3.4b should refuse an application from an account without a confirmed email (403)', async () => {
+      const unverified = await prisma.user.create({
+        data: {
+          email: `unverified-${testSuffix}@example.com`,
+          firstName: 'Un',
+          lastName: 'Verified',
+          role: 'JOB_SEEKER',
+        },
+      });
+      try {
+        const tokens: any = await authService.login(unverified);
+        const res = await request(app.getHttpServer())
+          .post('/api/v1/applications')
+          .set('Authorization', `Bearer ${tokens.accessToken}`)
+          .send({
+            jobId: createdJobId,
+            coverLetter:
+              'This account has not confirmed its email address yet, so it cannot apply.',
+          })
+          .expect(403);
+        expect(res.body.message).toMatch(/confirm your email/i);
+      } finally {
+        await prisma.user.delete({ where: { id: unverified.id } }).catch(() => {});
+      }
     });
 
     it('3.5 should prevent duplicate application to the same job (409 Conflict)', async () => {

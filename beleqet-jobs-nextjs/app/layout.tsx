@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import VerifyEmailBanner from '@/components/VerifyEmailBanner';
 import { AuthProvider } from '@/components/AuthProvider';
 import QueryProvider from '@/components/QueryProvider';
 import { WebSiteSchema } from '@/lib/seo/schemas';
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <TelegramInitializer />
               <WebSiteSchema />
               <Header />
+              <VerifyEmailBanner />
               {/*
                * pb-24 on mobile ensures content isn't hidden behind the
                * fixed MobileBottomNav (~70px + safe-area-inset-bottom).

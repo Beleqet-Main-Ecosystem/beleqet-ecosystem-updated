@@ -23,6 +23,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { SubscriptionStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
@@ -44,6 +45,7 @@ export class SubscriptionsController {
   ) {}
 
   @Post('checkout')
+  @UseGuards(VerifiedEmailGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Start a subscription checkout',
