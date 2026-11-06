@@ -131,6 +131,30 @@ describe('TelegramService bot registration and linking', () => {
     expect(result).toEqual({ success: true, registered: true, role: 'EMPLOYER' });
   });
 
+  it('stores a password chosen in the bot or the challenge, hashed, so the website works too', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue({ id: 'new-id', role: 'JOB_SEEKER' });
+    await service.registerFromBot({
+      telegram_id: '44',
+      email: 'seeker@gmail.com',
+      password: 'Challenge-2026',
+      role: 'candidate',
+    });
+    const data = prisma.user.create.mock.calls[0][0].data;
+    expect(data.role).toBe('JOB_SEEKER');
+    expect(data.passwordHash).toMatch(/^\$2[aby]\$12\$/);
+    expect(data.passwordHash).not.toContain('Challenge-2026');
+  });
+
+  it('keeps no password that is too short or comes with a placeholder email', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue({ id: 'new-id', role: 'JOB_SEEKER' });
+    await service.registerFromBot({ telegram_id: '45', email: 'a@b.com', password: 'short' });
+    await service.registerFromBot({ telegram_id: '46', password: 'LongEnough-123' });
+    expect(prisma.user.create.mock.calls[0][0].data).not.toHaveProperty('passwordHash');
+    expect(prisma.user.create.mock.calls[1][0].data).not.toHaveProperty('passwordHash');
+  });
+
   it('a Telegram-only account (placeholder email) stays verified', async () => {
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.user.create.mockResolvedValue({ id: 'new-id', role: 'JOB_SEEKER' });

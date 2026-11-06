@@ -67,8 +67,10 @@ function init() {
 async function loadCreators() {
   const loadingEl = document.getElementById('loading');
   try {
-    const initQuery = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? `?uid=${tg.initDataUnsafe.user.id}` : '';
-    const res = await fetch(`${API_BASE}/api/challenge/creators${initQuery}`);
+    // Telegram's signed launch data proves who is asking, so the server can mark this person's vote.
+    const res = await fetch(`${API_BASE}/api/challenge/creators`, {
+      headers: tg && tg.initData ? { 'X-Init-Data': tg.initData } : {}
+    });
     if (!res.ok) throw new Error('bad response');
     const data = await res.json();
     STATE.creators = data.creators || [];
@@ -382,17 +384,9 @@ async function submitRegistration() {
     formData.append('password', document.getElementById('reg-password').value);
     formData.append('role', role);
 
+    // No trade licence here: the bot no longer asks for one, and the API cannot take a file.
     if (role === 'employer') {
       formData.append('company_name', document.getElementById('reg-company-name').value.trim());
-      const fileInput = document.getElementById('reg-trade-license-file');
-      if (fileInput.files.length > 0) {
-        formData.append('trade_license', fileInput.files[0]);
-      } else {
-        showToast("Please upload a trade license.");
-        btn.textContent = "Register";
-        btn.disabled = false;
-        return;
-      }
     } else {
       formData.append('job_title', document.getElementById('reg-job-title').value.trim());
     }

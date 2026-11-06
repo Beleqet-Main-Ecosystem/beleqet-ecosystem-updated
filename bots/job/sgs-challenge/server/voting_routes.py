@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import logging
+import re
 import time
 from urllib.parse import parse_qsl
 
@@ -11,7 +12,29 @@ from aiohttp import web
 
 logger = logging.getLogger(__name__)
 
-CHALLENGE_DB_PATH = "sgs_challenge.db"
+# bots/job/sgs_challenge.db, wherever the bot is started from (it used to follow the working folder).
+CHALLENGE_DB_PATH = os.getenv("SGS_CHALLENGE_DB_PATH") or os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..", "sgs_challenge.db"
+)
+ALLOWED_AVATAR_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _int_field(body: dict, key: str, default: int) -> int:
+    """A whole number from an admin form, or ValueError (answered as 400, not a crash)."""
+    value = body.get(key, default)
+    if value in (None, ""):
+        return default
+    return int(value)
+
+
+def _verified_telegram_id(request: web.Request, bot_token: str) -> str:
+    """The Telegram user id from the X-Init-Data header, only if Telegram signed it."""
+    verified = verify_init_data(request.headers.get("X-Init-Data", ""), bot_token)
+    if not verified:
+        return ""
+    user = verified.get("user") or {}
+    return str(user.get("id", "")) if isinstance(user, dict) else ""
 INIT_DATA_MAX_AGE_SECONDS = 24 * 3600
 MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
@@ -77,6 +100,9 @@ async def init_challenge_db(path: str = CHALLENGE_DB_PATH):
             created_at INTEGER NOT NULL
         )
     """)
+    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_votes_single_user ON challenge_votes (telegram_id)")
+    # One voucher per person, however often registration is retried.
+    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_coupons_single_user ON challenge_coupons (telegram_id)")
     await db.commit()
 
     return db
@@ -100,7 +126,9 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         return True
 
     async def get_creators(request: web.Request) -> web.Response:
-        telegram_id = request.query.get("uid", "")
+        # "Voted by me" only for the Telegram user who signed the request: a plain ?uid= let
+        # anyone look up how another person voted.
+        telegram_id = _verified_telegram_id(request, bot_token)
 
         async with db.execute(
             "SELECT id, name, handle, avatar_url, tiktok_url, views, sort_order FROM challenge_creators "
@@ -210,7 +238,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             )
             await db.commit()
         except aiosqlite.IntegrityError:
-            return web.json_response({"error": "You already voted for this creator."}, status=409)
+            return web.json_response({"error": "You have already cast your vote! You can only vote for one creator in this contest."}, status=409)
 
         async with db.execute(
             "SELECT COUNT(*) FROM challenge_votes WHERE creator_id = ?", (creator_id,)
@@ -220,83 +248,86 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         return web.json_response({"ok": True, "votes": votes})
 
     async def register_user(request: web.Request) -> web.Response:
+        """
+        Creates the Beleqet Jobs account from the Mini App form, through the API's bot endpoint
+        (POST /api/v1/telegram/register, JSON, X-Beleqet-API-Token). Success is reported only when
+        the API says the account exists; its own message is shown otherwise.
+        """
         try:
             data = await request.post()
-            init_data = data.get("initData", "")
-            
-            verified = verify_init_data(init_data, bot_token)
-            if not verified:
-                return web.json_response({"error": "Could not verify your Telegram session. Please reopen the app from the bot."}, status=401)
-                
-            user = verified.get("user") or {}
-            telegram_id = str(user.get("id", ""))
-            if not telegram_id:
-                return web.json_response({"error": "Missing Telegram user id."}, status=401)
+        except Exception:
+            return web.json_response({"error": "Invalid request body."}, status=400)
 
-            if not wp_api_url:
-                return web.json_response({"error": "WordPress API URL not configured."}, status=500)
+        verified = verify_init_data(data.get("initData", ""), bot_token)
+        if not verified:
+            return web.json_response({"error": "Could not verify your Telegram session. Please reopen the app from the bot."}, status=401)
+        user = verified.get("user") or {}
+        telegram_id = str(user.get("id", "")) if isinstance(user, dict) else ""
+        if not telegram_id:
+            return web.json_response({"error": "Missing Telegram user id."}, status=401)
+        if not wp_api_url:
+            return web.json_response({"error": "Registration is not available right now."}, status=503)
 
-            import aiohttp
-            form_data = aiohttp.FormData()
-            form_data.add_field('telegram_id', telegram_id)
-            form_data.add_field('name', data.get('name', ''))
-            form_data.add_field('email', data.get('email', ''))
-            form_data.add_field('password', data.get('password', ''))
-            form_data.add_field('username', f"tg_{telegram_id}")
-            
-            role_input = data.get('role', '')
-            backend_role = 'wp_job_board_pro_employer' if role_input == 'employer' else 'wp_job_board_pro_candidate'
-            form_data.add_field('role', backend_role)
-            
-            form_data.add_field('language', 'am')
-            form_data.add_field('phone', data.get('phone', ''))
-            form_data.add_field('tg_username', data.get('tg_username', ''))
-            form_data.add_field('job_title', data.get('job_title', ''))
-            form_data.add_field('company_name', data.get('company_name', ''))
-            
-            trade_license = data.get('trade_license')
-            if trade_license and hasattr(trade_license, 'file'):
-                form_data.add_field('trade_license_file', 
-                                   trade_license.file.read(),
-                                   filename=trade_license.filename,
-                                   content_type=trade_license.content_type)
-            elif trade_license:
-                # Fallback if trade_license is just a string (shouldn't happen but just in case)
-                pass
+        def field(name: str) -> str:
+            value = data.get(name, "")
+            return value.strip() if isinstance(value, str) else ""
 
-            try:
-                import os
-                headers = {}
-                token = os.getenv("BELEQET_API_SECRET_TOKEN")
-                if token:
-                    headers["X-Beleqet-API-Token"] = token
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(wp_api_url, data=form_data, headers=headers, timeout=60) as response:
-                        if response.status in (200, 201):
-                            response_data = await response.json()
-                            coupon_code = response_data.get("coupon_code")
-                            if coupon_code:
-                                await db.execute(
-                                    "INSERT INTO challenge_coupons (telegram_id, coupon_code, created_at) VALUES (?, ?, ?)",
-                                    (telegram_id, coupon_code, int(time.time()))
-                                )
-                                await db.commit()
-                            return web.json_response({"ok": True, "coupon_code": coupon_code})
-                        else:
-                            try:
-                                error_data = await response.json()
-                                error_message = error_data.get('message', f'An unknown error occurred. Status: {response.status}')
-                            except Exception:
-                                error_text = await response.text()
-                                error_message = f"An unknown error occurred. Status: {response.status}. Body: {error_text}"
-                            logger.warning(f"WordPress API returned error: {error_message}")
-                            return web.json_response({"error": error_message}, status=400)
-            except Exception as e:
-                logger.error(f"Error during registration proxy: {e}", exc_info=True)
-                return web.json_response({"error": f"Error connecting to the registration server: {str(e)}"}, status=500)
+        role = "employer" if field("role") == "employer" else "candidate"
+        name, email, password = field("name"), field("email").lower(), data.get("password", "")
+        password = password if isinstance(password, str) else ""
+        if not name:
+            return web.json_response({"error": "Please enter your full name."}, status=400)
+        if not EMAIL_PATTERN.match(email):
+            return web.json_response({"error": "Please enter a valid email address."}, status=400)
+        if len(password) < 8:
+            return web.json_response({"error": "The password must be at least 8 characters."}, status=400)
+        if role == "employer" and not field("company_name"):
+            return web.json_response({"error": "Please enter your company name."}, status=400)
+
+        payload = {
+            "telegram_id": telegram_id,
+            "name": name,
+            "email": email,
+            "password": password,
+            "role": role,
+            "phone": field("phone"),
+            "tg_username": field("tg_username").lstrip("@"),
+            "job_title": field("job_title"),
+            "company_name": field("company_name"),
+        }
+        headers = {}
+        token = os.getenv("BELEQET_API_SECRET_TOKEN")
+        if token:
+            headers["X-Beleqet-API-Token"] = token
+
+        import aiohttp
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(wp_api_url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    try:
+                        answer = await response.json(content_type=None)
+                    except Exception:
+                        answer = {}
         except Exception as e:
-            logger.error(f"Unhandled exception in register_user: {e}", exc_info=True)
-            return web.json_response({"error": f"Internal exception: {str(e)}"}, status=500)
+            logger.error(f"Registration request for {telegram_id} failed: {e}")
+            return web.json_response({"error": "Could not reach the registration server. Please try again."}, status=502)
+
+        if response.status in (200, 201) and answer.get("success") and answer.get("registered"):
+            coupon_code = answer.get("coupon_code")
+            if coupon_code:
+                await db.execute(
+                    "INSERT OR IGNORE INTO challenge_coupons (telegram_id, coupon_code, created_at) VALUES (?, ?, ?)",
+                    (telegram_id, coupon_code, int(time.time())),
+                )
+                await db.commit()
+            return web.json_response({"ok": True, "coupon_code": coupon_code})
+
+        message = answer.get("message")
+        if isinstance(message, list):
+            message = "; ".join(str(m) for m in message)
+        logger.warning(f"Registration refused for {telegram_id}: HTTP {response.status} {message}")
+        status = 409 if response.status == 409 else 400
+        return web.json_response({"error": message or "Registration failed. Please try again."}, status=status)
 
     async def admin_check(request: web.Request) -> web.Response:
         if not _verify_admin_header(request):
@@ -337,13 +368,35 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             }
         })
 
+    async def _creator_fields(request: web.Request):
+        """(name, handle, avatar_url, tiktok_url, views, is_active, sort_order) or an error message."""
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            return None, "Invalid request body."
+        if not isinstance(body, dict):
+            return None, "Invalid request body."
+        name = str(body.get("name") or "").strip()
+        handle = str(body.get("handle") or "").strip()
+        if not name or not handle:
+            return None, "Name and TikTok handle are required."
+        try:
+            numbers = (_int_field(body, "views", 0), _int_field(body, "is_active", 1), _int_field(body, "sort_order", 0))
+        except (TypeError, ValueError):
+            return None, "Views and order must be whole numbers."
+        avatar_url = str(body.get("avatar_url") or "").strip()
+        tiktok_url = str(body.get("tiktok_url") or "").strip()
+        return (name, handle, avatar_url, tiktok_url, *numbers), None
+
     async def admin_add_creator(request: web.Request) -> web.Response:
         if not _verify_admin_header(request):
             return web.json_response({"error": "Unauthorized"}, status=401)
-        body = await request.json()
+        fields, error = await _creator_fields(request)
+        if error:
+            return web.json_response({"error": error}, status=400)
         await db.execute(
             "INSERT INTO challenge_creators (name, handle, avatar_url, tiktok_url, views, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (body.get("name", ""), body.get("handle", ""), body.get("avatar_url", ""), body.get("tiktok_url", ""), int(body.get("views", 0)), int(body.get("is_active", 1)), int(body.get("sort_order", 0)))
+            fields,
         )
         await db.commit()
         return web.json_response({"ok": True})
@@ -352,8 +405,10 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         if not _verify_admin_header(request):
             return web.json_response({"error": "Unauthorized"}, status=401)
         creator_id = request.match_info["id"]
-        body = await request.json()
-        new_avatar_url = body.get("avatar_url", "")
+        fields, error = await _creator_fields(request)
+        if error:
+            return web.json_response({"error": error}, status=400)
+        new_avatar_url = fields[2]
         
         # Check if the avatar URL changed and delete the old one if it's local
         async with db.execute("SELECT avatar_url FROM challenge_creators WHERE id=?", (creator_id,)) as cur:
@@ -372,7 +427,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
                             
         await db.execute(
             "UPDATE challenge_creators SET name=?, handle=?, avatar_url=?, tiktok_url=?, views=?, is_active=?, sort_order=? WHERE id=?",
-            (body.get("name", ""), body.get("handle", ""), new_avatar_url, body.get("tiktok_url", ""), int(body.get("views", 0)), int(body.get("is_active", 1)), int(body.get("sort_order", 0)), creator_id)
+            (*fields, creator_id),
         )
         await db.commit()
         return web.json_response({"ok": True})
@@ -417,21 +472,20 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         file_field = data['file']
         filename = file_field.filename
         
-        import time
-        import re
         uploads_dir = os.path.join(os.path.dirname(__file__), '..', 'app', 'uploads')
         os.makedirs(uploads_dir, exist_ok=True)
         
         # Images only: anything else saved here would be served from the Mini App's own address.
         extension = os.path.splitext(filename or "")[1].lower()
-        if extension not in (".jpg", ".jpeg", ".png", ".webp", ".gif"):
+        if extension not in ALLOWED_AVATAR_EXTENSIONS:
             return web.json_response({"error": "Upload a JPG, PNG, WEBP or GIF image."}, status=400)
         content = file_field.file.read(MAX_AVATAR_BYTES + 1)
         if len(content) > MAX_AVATAR_BYTES:
             return web.json_response({"error": "The image must be 5 MB or smaller."}, status=400)
 
-        safe_base = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', os.path.basename(filename))
-        safe_name = f"{int(time.time())}_{safe_base}"
+        # Letters, digits, _ and - only, then the checked extension: no second extension can sneak in.
+        safe_base = re.sub(r'[^a-zA-Z0-9_\-]', '_', os.path.splitext(os.path.basename(filename))[0])[:60] or "avatar"
+        safe_name = f"{int(time.time())}_{safe_base}{extension}"
         file_path = os.path.join(uploads_dir, safe_name)
 
         with open(file_path, 'wb') as f:
