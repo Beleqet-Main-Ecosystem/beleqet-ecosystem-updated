@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { RegisterDto } from './register.dto';
+import { RegisterDto, VerifyEmailCodeDto } from './register.dto';
 
 describe('RegisterDto', () => {
   const base = {
@@ -22,5 +22,18 @@ describe('RegisterDto', () => {
   it('refuses ADMIN, so nobody can make themselves an administrator by signing up', async () => {
     const errors = await errorsFor({ ...base, role: 'ADMIN' });
     expect(errors.map((e) => e.property)).toEqual(['role']);
+  });
+});
+
+describe('VerifyEmailCodeDto', () => {
+  const errorsFor = async (code: string) =>
+    validate(plainToInstance(VerifyEmailCodeDto, { verificationToken: 'ticket', code }));
+
+  it.each(['246810', '246 810', ' 2 4 6 8 1 0 '])('accepts %j', async (code) => {
+    expect(await errorsFor(code)).toHaveLength(0);
+  });
+
+  it.each(['24681', '2468101', '24681a', ''])('refuses %j', async (code) => {
+    expect((await errorsFor(code)).map((e) => e.property)).toEqual(['code']);
   });
 });

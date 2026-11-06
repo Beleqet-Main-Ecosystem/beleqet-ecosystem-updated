@@ -26,6 +26,7 @@ describe('AuthController', () => {
       | 'refresh'
       | 'validateUser'
       | 'login'
+      | 'passwordLogin'
       | 'register'
       | 'logout'
       | 'verifyEmail'
@@ -61,6 +62,7 @@ describe('AuthController', () => {
       register: jest.fn(),
       validateUser: jest.fn(),
       login: jest.fn(),
+      passwordLogin: jest.fn(),
       refresh: jest.fn(),
       issueTokensForUserId: jest.fn(),
       logout: jest.fn(),
@@ -107,7 +109,7 @@ describe('AuthController', () => {
   });
 
   describe('register', () => {
-    it('should register a user and return fresh tokens', async () => {
+    it('should register a user and ask for the emailed code (no session yet)', async () => {
       const dto: RegisterDto = {
         email: 'test@beleqet.com',
         password: 'password123!',
@@ -116,10 +118,15 @@ describe('AuthController', () => {
         role: MOCK_ROLE,
       };
 
-      authService.register.mockResolvedValueOnce(FAKE_TOKENS);
+      const challenge = {
+        requiresEmailVerification: true as const,
+        verificationToken: 'ticket',
+        email: dto.email,
+      };
+      authService.register.mockResolvedValueOnce(challenge);
 
       const result = await controller.register(dto);
-      expect(result).toEqual(FAKE_TOKENS);
+      expect(result).toEqual(challenge);
       expect(authService.register).toHaveBeenCalledWith(dto);
     });
   });
@@ -130,13 +137,13 @@ describe('AuthController', () => {
       const req = { headers: { 'user-agent': 'Mozilla/5.0' } };
 
       authService.validateUser.mockResolvedValueOnce(FAKE_USER as any);
-      authService.login.mockResolvedValueOnce(FAKE_TOKENS);
+      authService.passwordLogin.mockResolvedValueOnce(FAKE_TOKENS);
 
       const result = await controller.login(loginDto, req as any);
 
       expect(result).toEqual(FAKE_TOKENS);
       expect(authService.validateUser).toHaveBeenCalledWith(loginDto.email, loginDto.password);
-      expect(authService.login).toHaveBeenCalledWith(FAKE_USER, req.headers['user-agent']);
+      expect(authService.passwordLogin).toHaveBeenCalledWith(FAKE_USER, req.headers['user-agent']);
     });
   });
 

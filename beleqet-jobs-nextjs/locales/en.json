@@ -247,7 +247,20 @@
       "sent": "Sent. Check your inbox and spam folder.",
       "failed": "Couldn't send it. Please try again later.",
       "dismiss": "Hide"
-    }
+    },
+    "emailCodeSub1": "We sent a 6-digit code to",
+    "emailCodeSub2": "Enter it to confirm your email and finish creating your account.",
+    "emailCodeLabel": "Verification code",
+    "emailCodeVerify": "Confirm email",
+    "emailCodeResend": "Send a new code",
+    "emailCodeResendIn": "Send a new code in {s}s",
+    "emailCodeSent": "A new code is on its way.",
+    "emailCodeSpam": "Can't find it? Check your spam or promotions folder.",
+    "emailCodeBack": "Use a different email",
+    "emailCodeWrong": "That code isn't right or has expired.",
+    "emailCodeTooMany": "Too many wrong codes. Send a new code and try again.",
+    "emailCodeExpired": "This page has expired. Sign in again to get a new code.",
+    "emailCodeFormat": "Enter the 6-digit code from the email."
   },
   "postJob": {
     "gateTitle": "Sign in to post a job",
