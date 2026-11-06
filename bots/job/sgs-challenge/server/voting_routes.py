@@ -4,6 +4,7 @@ import hmac
 import json
 import logging
 import re
+import secrets
 import time
 from urllib.parse import parse_qsl
 
@@ -17,6 +18,10 @@ CHALLENGE_DB_PATH = os.getenv("SGS_CHALLENGE_DB_PATH") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..", "sgs_challenge.db"
 )
 ALLOWED_AVATAR_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+# What a voucher is worth, as shown to voters (set SGS_VOUCHER_OFFER, e.g. "10% off any Super SGS Furniture order").
+VOUCHER_OFFER = os.getenv("SGS_VOUCHER_OFFER") or "a discount at Super SGS Furniture"
+# No 0/O, 1/I/L: codes are read out loud and typed in at the shop.
+VOUCHER_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -103,6 +108,12 @@ async def init_challenge_db(path: str = CHALLENGE_DB_PATH):
     await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_votes_single_user ON challenge_votes (telegram_id)")
     # One voucher per person, however often registration is retried.
     await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_coupons_single_user ON challenge_coupons (telegram_id)")
+    await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_challenge_coupons_code ON challenge_coupons (coupon_code)")
+    # When the shop accepted the voucher (older databases lack the column).
+    async with db.execute("PRAGMA table_info(challenge_coupons)") as cur:
+        columns = [row[1] for row in await cur.fetchall()]
+    if "redeemed_at" not in columns:
+        await db.execute("ALTER TABLE challenge_coupons ADD COLUMN redeemed_at INTEGER")
     await db.commit()
 
     return db
@@ -124,6 +135,33 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         if telegram_id not in admin_ids:
             return False
         return True
+
+    async def _voucher_for(telegram_id: str, create: bool):
+        """(code, redeemed_at) for this voter; with create, a new unique code if they have none yet."""
+        async with db.execute(
+            "SELECT coupon_code, redeemed_at FROM challenge_coupons WHERE telegram_id = ?", (telegram_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        if row or not create:
+            return row
+        for _ in range(5):
+            code = "SGS-" + "".join(secrets.choice(VOUCHER_ALPHABET) for _ in range(6))
+            try:
+                await db.execute(
+                    "INSERT INTO challenge_coupons (telegram_id, coupon_code, created_at) VALUES (?, ?, ?)",
+                    (telegram_id, code, int(time.time())),
+                )
+                await db.commit()
+                return (code, None)
+            except aiosqlite.IntegrityError:
+                # Same voter at the same moment (one voucher each) or, rarely, a code clash: try again.
+                async with db.execute(
+                    "SELECT coupon_code, redeemed_at FROM challenge_coupons WHERE telegram_id = ?", (telegram_id,)
+                ) as cur:
+                    row = await cur.fetchone()
+                if row:
+                    return row
+        raise RuntimeError("could not issue a voucher")
 
     async def get_creators(request: web.Request) -> web.Response:
         # "Voted by me" only for the Telegram user who signed the request: a plain ?uid= let
@@ -245,7 +283,33 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         ) as cur:
             (votes,) = await cur.fetchone()
 
-        return web.json_response({"ok": True, "votes": votes})
+        # The reward for voting: a Super SGS Furniture voucher (one per person).
+        try:
+            voucher = await _voucher_for(telegram_id, create=True)
+        except Exception as e:
+            logger.error(f"Could not issue a voucher for {telegram_id}: {e}")
+            voucher = None
+        return web.json_response({
+            "ok": True,
+            "votes": votes,
+            "coupon_code": voucher[0] if voucher else None,
+            "voucher_offer": VOUCHER_OFFER,
+        })
+
+    async def my_voucher(request: web.Request) -> web.Response:
+        """The signed-in voter's voucher, so they can show it again at the shop."""
+        telegram_id = _verified_telegram_id(request, bot_token)
+        if not telegram_id:
+            return web.json_response({"error": "Please open the challenge from the bot."}, status=401)
+        async with db.execute("SELECT 1 FROM challenge_votes WHERE telegram_id = ?", (telegram_id,)) as cur:
+            voted = await cur.fetchone() is not None
+        # Someone who voted before vouchers existed gets theirs now.
+        voucher = await _voucher_for(telegram_id, create=voted)
+        return web.json_response({
+            "coupon_code": voucher[0] if voucher else None,
+            "redeemed": bool(voucher and voucher[1]),
+            "voucher_offer": VOUCHER_OFFER,
+        })
 
     async def register_user(request: web.Request) -> web.Response:
         """
@@ -313,14 +377,8 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             return web.json_response({"error": "Could not reach the registration server. Please try again."}, status=502)
 
         if response.status in (200, 201) and answer.get("success") and answer.get("registered"):
-            coupon_code = answer.get("coupon_code")
-            if coupon_code:
-                await db.execute(
-                    "INSERT OR IGNORE INTO challenge_coupons (telegram_id, coupon_code, created_at) VALUES (?, ?, ?)",
-                    (telegram_id, coupon_code, int(time.time())),
-                )
-                await db.commit()
-            return web.json_response({"ok": True, "coupon_code": coupon_code})
+            # The voucher comes with the vote, not with registering.
+            return web.json_response({"ok": True})
 
         message = answer.get("message")
         if isinstance(message, list):
@@ -328,6 +386,47 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         logger.warning(f"Registration refused for {telegram_id}: HTTP {response.status} {message}")
         status = 409 if response.status == 409 else 400
         return web.json_response({"error": message or "Registration failed. Please try again."}, status=status)
+
+    def _normalise_code(value) -> str:
+        return re.sub(r"[^A-Z0-9-]", "", str(value or "").upper())
+
+    async def admin_voucher_check(request: web.Request) -> web.Response:
+        if not _verify_admin_header(request):
+            return web.json_response({"error": "Unauthorized"}, status=401)
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid request body."}, status=400)
+        code = _normalise_code(body.get("code") if isinstance(body, dict) else "")
+        async with db.execute(
+            "SELECT created_at, redeemed_at FROM challenge_coupons WHERE coupon_code = ?", (code,)
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return web.json_response({"found": False, "code": code})
+        return web.json_response({"found": True, "code": code, "issued_at": row[0], "redeemed_at": row[1]})
+
+    async def admin_voucher_redeem(request: web.Request) -> web.Response:
+        if not _verify_admin_header(request):
+            return web.json_response({"error": "Unauthorized"}, status=401)
+        try:
+            body = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid request body."}, status=400)
+        code = _normalise_code(body.get("code") if isinstance(body, dict) else "")
+        # Only an unused voucher can be marked: a code works once.
+        cur = await db.execute(
+            "UPDATE challenge_coupons SET redeemed_at = ? WHERE coupon_code = ? AND redeemed_at IS NULL",
+            (int(time.time()), code),
+        )
+        await db.commit()
+        if cur.rowcount == 1:
+            return web.json_response({"ok": True, "code": code})
+        async with db.execute("SELECT redeemed_at FROM challenge_coupons WHERE coupon_code = ?", (code,)) as c2:
+            row = await c2.fetchone()
+        if not row:
+            return web.json_response({"error": "This voucher code does not exist."}, status=404)
+        return web.json_response({"error": "This voucher was already used.", "redeemed_at": row[0]}, status=409)
 
     async def admin_check(request: web.Request) -> web.Response:
         if not _verify_admin_header(request):
@@ -357,6 +456,11 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         
         async with db.execute("SELECT COUNT(*) FROM challenge_votes") as cur:
             (total_votes,) = await cur.fetchone()
+
+        async with db.execute(
+            "SELECT COUNT(*), COUNT(redeemed_at) FROM challenge_coupons"
+        ) as cur:
+            vouchers_issued, vouchers_redeemed = await cur.fetchone()
             
         return web.json_response({
             "creators": creators,
@@ -364,7 +468,9 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
                 "total_voters": total_voters,
                 "total_votes": total_votes,
                 "active_creators": sum(1 for c in creators if c["is_active"]),
-                "total_creators": len(creators)
+                "total_creators": len(creators),
+                "vouchers_issued": vouchers_issued,
+                "vouchers_redeemed": vouchers_redeemed,
             }
         })
 
@@ -504,5 +610,8 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
     app.router.add_delete(r"/api/challenge/admin/creators/{id:\d+}", admin_delete_creator)
     app.router.add_post("/api/challenge/admin/reset", admin_reset_votes)
     app.router.add_post("/api/challenge/admin/upload", admin_upload_avatar)
+    app.router.add_get("/api/challenge/my-voucher", my_voucher)
+    app.router.add_post("/api/challenge/admin/voucher/check", admin_voucher_check)
+    app.router.add_post("/api/challenge/admin/voucher/redeem", admin_voucher_redeem)
 
     logger.info("[challenge] routes registered (with admin routes)")
