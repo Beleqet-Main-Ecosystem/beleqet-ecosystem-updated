@@ -758,7 +758,7 @@ export default function HomepageClient({ featuredJobs, featuredGigs, stats, appU
                 href={`${APP_URL}/jobs`}
                 className="board-foot"
                 id="board-foot-text"
-                style={{ textDecoration: 'none', color: 'inherit' }}
+                style={{ textDecoration: 'none' }}
               >
                 Explore all openings →
               </a>
