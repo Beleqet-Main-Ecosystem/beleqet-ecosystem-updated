@@ -46,7 +46,7 @@ jobs:
 
       - name: Lint Dockerfiles (hadolint, fail on errors)
         run: |
-          for df in Dockerfile frontend/Dockerfile beleqet-jobs-nextjs/Dockerfile frontend-main/Dockerfile; do
+          for df in Dockerfile frontend/Dockerfile beleqet-jobs-nextjs/Dockerfile; do
             echo "hadolint: $df"
             docker run --rm -i hadolint/hadolint:v2.12.0 \
               hadolint --failure-threshold error - < "$df"
@@ -386,13 +386,6 @@ jobs:
           -t "${{ steps.meta.outputs.namespace }}/beleqet-jobs-frontend:${{ github.sha }}"
           .
 
-      # The home page (frontend-main/), served by nginx at "/" on port 3002.
-      - name: Build home page image
-        run: >-
-          docker build
-          -t "${{ steps.meta.outputs.namespace }}/beleqet-homepage-frontend:${{ github.sha }}"
-          frontend-main
-
       - name: Create synthetic staging environment
         run: |
           cat > .env.staging <<'EOF'
@@ -491,7 +484,7 @@ jobs:
       - name: Scan images for critical vulnerabilities (trivy)
         run: |
           mkdir -p trivy-reports
-          for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend beleqet-homepage-frontend; do
+          for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
             image="${{ steps.meta.outputs.namespace }}/${svc}:${{ github.sha }}"
             echo "trivy: $image"
             docker run --rm \
@@ -520,7 +513,7 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
             -u "${{ github.actor }}" --password-stdin
-          for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend beleqet-homepage-frontend; do
+          for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
             docker push "${{ steps.meta.outputs.namespace }}/${svc}:${{ github.sha }}"
           done
 
