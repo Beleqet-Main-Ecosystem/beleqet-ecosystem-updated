@@ -62,6 +62,14 @@
     </div>
   </a>
 
+  <button id="my-voucher-btn" class="promo-card" style="display:none; width:calc(100% - 32px); cursor:pointer; text-align:left; font:inherit;">
+    <div class="promo-icon">🎁</div>
+    <div class="promo-text">
+      <b>My Super SGS Furniture voucher</b>
+      <span>Tap to show your discount code at the shop →</span>
+    </div>
+  </button>
+
   <div class="search-wrap">
     <input type="text" id="search" placeholder="ፈልግ · Search creators…">
   </div>
@@ -95,6 +103,10 @@
       <div class="faq-item"><b>እንዴት አሸናፊ ይመረጣል?</b>
         <p>Winners are ranked by total qualifying views combined with in-app votes — see Terms and Conditions for the
           full formula.</p>
+      </div>
+      <div class="faq-item"><b>What do I get for voting?</b>
+        <p>After you vote you get a Super SGS Furniture voucher code. Show it at Super SGS Furniture to get your
+          discount. Each code works once; tap "My voucher" to see it again.</p>
       </div>
       <div class="faq-item"><b>ሽልማቴን እንዴት አገኛለሁ?</b>
         <p>Winners are contacted directly on Telegram by Super SGS Furniture within 5 business days of the results
@@ -203,18 +215,19 @@
   <div id="coupon-modal" class="reg-modal" style="display:none; z-index:1000;">
     <div class="reg-modal-content" style="text-align: center;">
       <div class="reg-modal-header">
-        <h3>🎁 Special Gift!</h3>
-        <p>Thank you for registering as an Employer.</p>
+        <h3>🎁 Your Super SGS Furniture voucher</h3>
+        <p>Thank you for voting!</p>
       </div>
       <div class="reg-form-body" style="margin: 20px 0;">
-        <p>Here is your 50 Birr OFF coupon code for your first job posting:</p>
+        <p>This code gives you <b id="coupon-offer">a discount at Super SGS Furniture</b>:</p>
         <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin: 15px 0; font-size: 1.2rem; font-weight: bold; letter-spacing: 2px; color: #0f172a; user-select: all;" id="coupon-code-display">
           CODE
         </div>
-        <p style="font-size: 0.85rem; color: #64748b;">Please copy or take a screenshot of this code.</p>
+        <p id="coupon-used" style="display:none; color:#ef4444; font-weight:bold;">This voucher has already been used.</p>
+        <p style="font-size: 0.85rem; color: #64748b;">Show this code at Super SGS Furniture. It works once. You can open it again any time with the "My voucher" button.</p>
       </div>
       <div class="reg-modal-actions" style="justify-content: center;">
-        <button id="coupon-close-btn" class="reg-btn-primary" style="width: 100%;">I saved it!</button>
+        <button id="coupon-close-btn" class="reg-btn-primary" style="width: 100%;">Got it</button>
       </div>
     </div>
   </div>

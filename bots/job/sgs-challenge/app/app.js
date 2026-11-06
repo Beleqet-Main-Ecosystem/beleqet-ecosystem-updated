@@ -61,7 +61,16 @@ function init() {
   });
   document.getElementById('reg-submit-btn').addEventListener('click', submitRegistration);
 
+  document.getElementById('coupon-close-btn').addEventListener('click', () => {
+    document.getElementById('coupon-modal').style.display = 'none';
+  });
+  document.getElementById('my-voucher-btn').addEventListener('click', () => {
+    const v = STATE.voucher;
+    if (v) showVoucher(v.code, v.offer, v.redeemed);
+  });
+
   loadCreators();
+  loadMyVoucher();
 }
 
 async function loadCreators() {
@@ -157,11 +166,39 @@ async function castVote(creatorId, btn) {
     if (creator) { creator.votes = data.votes; creator.voted_by_me = true; }
     renderCreators();
     renderWinners();
-    showToast('Vote recorded! ✅');
+    if (data.coupon_code) {
+      showVoucher(data.coupon_code, data.voucher_offer, false);
+    } else {
+      showToast('Vote recorded! ✅');
+    }
   } catch (err) {
     showToast('Network error — try again.');
     btn.disabled = false;
   }
+}
+
+// The voter's Super SGS Furniture voucher: shown after voting and again from the "My voucher" button.
+function showVoucher(code, offer, redeemed) {
+  STATE.voucher = { code, offer, redeemed };
+  document.getElementById('coupon-code-display').textContent = code;
+  if (offer) document.getElementById('coupon-offer').textContent = offer;
+  document.getElementById('coupon-used').style.display = redeemed ? 'block' : 'none';
+  document.getElementById('coupon-modal').style.display = 'flex';
+  document.getElementById('my-voucher-btn').style.display = 'flex';
+}
+
+async function loadMyVoucher() {
+  if (!tg || !tg.initData) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/challenge/my-voucher`, {
+      headers: { 'X-Init-Data': tg.initData }
+    });
+    const data = await res.json();
+    if (res.ok && data.coupon_code) {
+      STATE.voucher = { code: data.coupon_code, offer: data.voucher_offer, redeemed: data.redeemed };
+      document.getElementById('my-voucher-btn').style.display = 'flex';
+    }
+  } catch (e) { }
 }
 
 function onSearch(e) {
@@ -247,6 +284,19 @@ function renderAdminCreators() {
         <span style="font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:bold;">Active Creators</span>
         <div style="font-size:18px; font-weight:bold; color:var(--accent-deep);">${s.active_creators || 0} / ${s.total_creators || 0}</div>
       </div>
+      <div>
+        <span style="font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:bold;">Vouchers Used</span>
+        <div style="font-size:18px; font-weight:bold; color:var(--accent-deep);">${s.vouchers_redeemed || 0} / ${s.vouchers_issued || 0}</div>
+      </div>
+    </div>
+    <div style="background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:15px; margin-bottom:15px;">
+      <span style="font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:bold;">Check a voucher at the shop</span>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <input id="voucher-input" placeholder="SGS-XXXXXX" autocapitalize="characters"
+          style="flex:1; min-width:0; padding:8px; border:1px solid var(--line); border-radius:8px; text-transform:uppercase;">
+        <button class="vote-btn" onclick="checkVoucher()" style="font-size:12px; padding:5px 10px;">Check</button>
+      </div>
+      <div id="voucher-result" style="margin-top:8px; font-size:13px;"></div>
     </div>
   `;
 
@@ -264,6 +314,46 @@ function renderAdminCreators() {
   `).join('');
   listEl.innerHTML = html;
 }
+
+async function voucherRequest(action, code) {
+  const res = await fetch(`${API_BASE}/api/challenge/admin/voucher/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Init-Data': tg ? tg.initData : '' },
+    body: JSON.stringify({ code }),
+  });
+  return { res, data: await res.json() };
+}
+
+window.checkVoucher = async function () {
+  const code = document.getElementById('voucher-input').value.trim();
+  const out = document.getElementById('voucher-result');
+  if (!code) return;
+  try {
+    const { data } = await voucherRequest('check', code);
+    if (!data.found) {
+      out.innerHTML = `<b style="color:#ef4444;">✗ ${escapeHtml(data.code || code)} is not a valid voucher.</b>`;
+    } else if (data.redeemed_at) {
+      const when = new Date(data.redeemed_at * 1000).toLocaleString();
+      out.innerHTML = `<b style="color:#ef4444;">✗ ${escapeHtml(data.code)} was already used (${escapeHtml(when)}).</b>`;
+    } else {
+      out.innerHTML = `<b style="color:var(--accent-deep);">✓ ${escapeHtml(data.code)} is valid and unused.</b>
+        <button class="vote-btn" onclick="redeemVoucher('${escapeHtml(data.code)}')" style="font-size:12px; padding:5px 10px; margin-left:6px;">Mark as used</button>`;
+    }
+  } catch (e) { showToast('Error'); }
+};
+
+window.redeemVoucher = async function (code) {
+  if (!confirm(`Mark ${code} as used? It cannot be used again.`)) return;
+  try {
+    const { res, data } = await voucherRequest('redeem', code);
+    document.getElementById('voucher-result').innerHTML = res.ok
+      ? `<b style="color:var(--accent-deep);">✓ ${escapeHtml(code)} marked as used.</b>`
+      : `<b style="color:#ef4444;">✗ ${escapeHtml(data.error || 'Could not mark it as used.')}</b>`;
+    if (res.ok) {
+      STATE.adminStats.vouchers_redeemed = (STATE.adminStats.vouchers_redeemed || 0) + 1;
+    }
+  } catch (e) { showToast('Error'); }
+};
 
 window.openAdminModal = function (id) {
   const m = document.getElementById('admin-modal');
@@ -405,18 +495,7 @@ async function submitRegistration() {
     }
 
     document.getElementById('register-modal').style.display = 'none';
-
-    if (data.coupon_code) {
-      document.getElementById('coupon-code-display').textContent = data.coupon_code;
-      document.getElementById('coupon-modal').style.display = 'flex';
-      
-      document.getElementById('coupon-close-btn').onclick = () => {
-        document.getElementById('coupon-modal').style.display = 'none';
-        showToast("Registration successful! You can now cast your vote.");
-      };
-    } else {
-      showToast("Registration successful! You can now cast your vote.");
-    }
+    showToast("Registration successful! Vote now to get your Super SGS Furniture voucher.");
   } catch (err) {
     showToast('Network error during registration. Try again.');
   }
