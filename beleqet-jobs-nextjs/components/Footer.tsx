@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 
 const TELEGRAM_URL = 'https://t.me/BeleqetJobs';
@@ -45,7 +46,7 @@ const footerColumns = [
   },
 ];
 
-export default function Footer() {
+function SiteFooter() {
   const { t } = useTranslation();
 
   return (
@@ -94,4 +95,10 @@ export default function Footer() {
       </div>
     </footer>
   );
+}
+
+/** The home page (/) brings its own footer, the earlier landing design (features/old-home). */
+export default function Footer() {
+  const pathname = usePathname();
+  return pathname === '/' ? null : <SiteFooter />;
 }

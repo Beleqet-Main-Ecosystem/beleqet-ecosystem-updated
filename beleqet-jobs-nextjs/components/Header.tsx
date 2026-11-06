@@ -17,7 +17,7 @@ import { useTranslation } from "@/lib/i18n";
  */
 const MobileDrawer = lazy(() => import("@/components/mobile/MobileDrawer"));
 
-export default function Header() {
+function SiteHeader() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
@@ -204,4 +204,10 @@ export default function Header() {
       </Suspense>
     </>
   );
+}
+
+/** The home page (/) brings its own header, the earlier landing design (features/old-home). */
+export default function Header() {
+  const pathname = usePathname();
+  return pathname === "/" ? null : <SiteHeader />;
 }
