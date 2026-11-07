@@ -51,7 +51,8 @@ export default function SeekerDashboard() {
 
   if (!ready || !user || !seenTab) return <div className="min-h-[60vh]" />;
 
-  const freelancer = user.role === 'FREELANCER';
+  // Job seekers can bid too, so they get the same bids, contracts and wallet.
+  const freelancer = user.role === 'FREELANCER' || user.role === 'JOB_SEEKER';
   const nav = [...BASE, ...(freelancer ? FREELANCE : []), ...END];
   const requested = params.get('tab') ?? 'overview';
   const tab = nav.some((item) => item.id === requested && !item.href) ? requested : 'overview';

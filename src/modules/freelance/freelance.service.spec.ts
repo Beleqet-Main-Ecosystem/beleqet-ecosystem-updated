@@ -135,6 +135,16 @@ describe('FreelanceService', () => {
     });
   });
 
+  it("lists only the caller's own projects, newest first, with bid counts and the contract", async () => {
+    prisma.freelanceJob.findMany.mockResolvedValue([]);
+    await service.getMyProjects('client');
+    const args = prisma.freelanceJob.findMany.mock.calls[0][0];
+    expect(args.where).toEqual({ clientId: 'client' });
+    expect(args.orderBy).toEqual({ createdAt: 'desc' });
+    expect(args.select._count).toEqual({ select: { bids: true } });
+    expect(args.select.contract).toEqual({ select: { id: true, status: true } });
+  });
+
   it("gives each bid the freelancer's track record", async () => {
     prisma.freelanceJob.findUnique.mockResolvedValue({ clientId: 'client' });
     const joined = new Date('2025-03-01');

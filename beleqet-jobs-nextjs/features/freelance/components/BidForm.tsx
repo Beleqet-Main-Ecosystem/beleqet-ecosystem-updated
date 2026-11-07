@@ -41,7 +41,7 @@ export default function BidForm({ gig, myBid, contractId, onSent }: Props) {
         {accepted && contractId ? (
           <Link href={`/freelance/contracts/${contractId}`} className={primary}>{t('freelance.gig.openContract')}</Link>
         ) : (
-          <Link href="/dashboard" className={primary}>{t('freelance.gig.myBids')}</Link>
+          <Link href="/dashboard?tab=bids" className={primary}>{t('freelance.gig.myBids')}</Link>
         )}
       </section>
     );
@@ -96,7 +96,8 @@ export default function BidForm({ gig, myBid, contractId, onSent }: Props) {
     } catch (err) {
       // Already bid, perhaps in another tab: reloading shows that bid.
       if (err instanceof ActionError && err.status === 409) onSent();
-      else if (err instanceof ActionError && err.status === 403) setError(t('freelance.gig.employerCantBid'));
+      // Employers never reach the form, so a refusal here means the email isn't confirmed yet.
+      else if (err instanceof ActionError && err.status === 403) setError(t('freelance.gig.emailUnverified'));
       else if (err instanceof ActionError && err.status === 404) setError(t('freelance.gig.bidClosed'));
       else setError(t('freelance.gig.bidFailed'));
     } finally {

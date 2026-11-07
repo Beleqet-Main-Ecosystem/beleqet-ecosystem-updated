@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Building2, CreditCard, FileCheck2, LayoutGrid, ListChecks, MessageSquare, Settings, type LucideIcon } from 'lucide-react';
+import { BriefcaseBusiness, Building2, CreditCard, FileCheck2, LayoutGrid, ListChecks, MessageSquare, Settings, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from '@/lib/i18n';
 import { daysUntil } from '@/features/jobs/format';
@@ -12,6 +12,7 @@ import VerifyEmailBanner from './VerifyEmailBanner';
 import ApplicantsSection from './sections/ApplicantsSection';
 import EmployerInterviews from './sections/EmployerInterviews';
 import CompanySection from './sections/CompanySection';
+import FreelanceWork from './sections/FreelanceWork';
 import PlanSection from './sections/PlanSection';
 import TwoStep from './sections/TwoStep';
 import DeleteAccount from './sections/DeleteAccount';
@@ -29,6 +30,7 @@ export type EmployerJob = {
 const NAV: { id: string; icon: LucideIcon; href?: string }[] = [
   { id: 'overview', icon: LayoutGrid },
   { id: 'jobs', icon: ListChecks },
+  { id: 'projects', icon: BriefcaseBusiness },
   { id: 'applicants', icon: FileCheck2 },
   { id: 'messages', icon: MessageSquare, href: '/messages' },
   { id: 'company', icon: Building2 },
@@ -198,6 +200,7 @@ export default function EmployerDashboard() {
             <ApplicantsSection jobs={list} selectedId={selectedJob} />
           </>
         )}
+        {tab === 'projects' && <FreelanceWork kind="projects" />}
         {tab === 'company' && <CompanySection openJobs={open.length} />}
         {tab === 'plan' && <PlanSection />}
         {tab === 'settings' && (

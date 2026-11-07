@@ -172,7 +172,7 @@ export default function ContractWorkspace({ id }: { id: string }) {
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-end justify-between gap-4 px-4 pb-6 pt-3 md:px-[clamp(16px,4vw,40px)] md:pb-8">
           <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-3">
             <nav aria-label={t('freelance.contract.breadcrumb')} className="text-[13px] text-white/70">
-              <Link href="/dashboard" className="hover:underline">{t('freelance.contract.contracts')}</Link> / <span aria-current="page">{contract.freelanceJob.title}</span>
+              <Link href={isClient ? '/employer?tab=projects' : '/dashboard?tab=contracts'} className="hover:underline">{t('freelance.contract.contracts')}</Link> / <span aria-current="page">{contract.freelanceJob.title}</span>
             </nav>
             <span className="flex flex-wrap gap-2">
               <span className={`rounded-md px-2 py-[3px] text-[11px] font-extrabold uppercase tracking-[0.04em] ${disputed ? 'bg-[#FDECEC] text-[#9B2C2C]' : 'bg-limeAccent text-obsidian'}`}>

@@ -1013,6 +1013,7 @@
       "payNote": "ደንበኛው ከተቀበለ፣ እያንዳንዱ ደረጃ ሲጸድቅ ከእስክሮው ይከፈልዎታል።",
       "formInvalid": "ዋጋዎን፣ የማስረከቢያ ጊዜዎን እና የሽፋን ደብዳቤዎን ያስገቡ።",
       "bidFailed": "ጨረታዎን መላክ አልተቻለም። እንደገና ይሞክሩ።",
+      "emailUnverified": "መጀመሪያ ኢሜይልዎን ያረጋግጡ። የላክንልዎትን ሊንክ ይጠቀሙ፣ ወይም ከዳሽቦርድዎ አዲስ ይላኩ።",
       "employerCantBid": "ጨረታ ማቅረብ የሚችሉት የፍሪላንሰር እና የሥራ ፈላጊ መለያዎች ብቻ ናቸው። ጨረታ ለመላክ በእነዚህ መለያዎች በአንዱ ይግቡ።",
       "bidClosed": "ይህ ፕሮጀክት ከእንግዲህ ጨረታ አይቀበልም።",
       "bidSent": "ጨረታ ተልኳል",
@@ -1294,7 +1295,8 @@
       "contracts": "ውሎች",
       "messages": "መልዕክቶች",
       "settings": "ቅንብሮች",
-      "wallet": "ቦርሳ"
+      "wallet": "ቦርሳ",
+      "projects": "የእኔ ፕሮጀክቶች"
     },
     "hello": "ሰላም፣ {name}",
     "helloSub": "የስራ ፍለጋዎ ዛሬ ያለበት ሁኔታ ይኸው።",
@@ -1393,6 +1395,17 @@
     },
     "noBids": "እስካሁን ጨረታ የለም",
     "noContracts": "እስካሁን ውል የለም",
+    "noProjects": "እስካሁን ፕሮጀክት የለም",
+    "postProject": "ፕሮጀክት ይለጥፉ",
+    "bidCount": "{count} ጨረታዎች",
+    "projectStatus": {
+      "DRAFT": "ረቂቅ",
+      "OPEN": "ለጨረታ ክፍት",
+      "FUNDED": "ለጨረታ ክፍት",
+      "IN_PROGRESS": "በሂደት ላይ",
+      "COMPLETED": "ተጠናቋል",
+      "CANCELLED": "ተሰርዟል"
+    },
     "reachYou": "እንዴት እናግኝዎ",
     "channels": {
       "emailEnabled": {
@@ -1532,6 +1545,7 @@
     "tabs": {
       "overview": "አጠቃላይ እይታ",
       "jobs": "ስራዎች",
+      "projects": "የፍሪላንስ ፕሮጀክቶች",
       "applicants": "አመልካቾች",
       "messages": "መልዕክቶች",
       "company": "የድርጅት መገለጫ",
