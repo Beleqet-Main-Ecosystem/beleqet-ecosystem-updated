@@ -1,4 +1,5 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { RequestMethod, UnauthorizedException } from '@nestjs/common';
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { EscrowController } from './escrow.controller';
 
 function buildController(options: { secret?: string; verified?: boolean } = {}) {
@@ -71,14 +72,54 @@ describe('EscrowController webhook signature checks', () => {
     expect(svc.handleWebhook).toHaveBeenCalledWith(expect.objectContaining({ tx_ref: 'tx-1' }));
   });
 
-  it('still allows unsigned GET return callbacks', async () => {
+  it('registers Chapa’s GET callback as its own route (it used to be lost, giving 404)', () => {
+    const route = (handler: unknown) => ({
+      path: Reflect.getMetadata(PATH_METADATA, handler as object),
+      method: Reflect.getMetadata(METHOD_METADATA, handler as object),
+    });
+    expect(route(EscrowController.prototype.callback)).toEqual({
+      path: 'callback',
+      method: RequestMethod.GET,
+    });
+    expect(route(EscrowController.prototype.webhook)).toEqual({
+      path: 'callback',
+      method: RequestMethod.POST,
+    });
+  });
+});
+
+describe('EscrowController Chapa GET callback', () => {
+  it('queues a check for the payment Chapa names, without needing a signature', async () => {
     const { controller, svc, signatures } = buildController();
-
     await expect(
-      controller.webhook({}, { method: 'GET', query: { trx_ref: 'tx-1' } } as never, {}),
-    ).resolves.toEqual({ url: 'http://localhost:3000/dashboard' });
-
+      controller.callback({ trx_ref: 'CHAPA-1', ref_id: 'AP1', status: 'success' }),
+    ).resolves.toEqual({ received: true });
     expect(signatures.verifyWebhook).not.toHaveBeenCalled();
-    expect(svc.handleWebhook).toHaveBeenCalledWith(expect.objectContaining({ tx_ref: 'tx-1' }));
+    expect(svc.handleWebhook).toHaveBeenCalledWith({
+      tx_ref: 'CHAPA-1',
+      reference: 'AP1',
+      status: 'success',
+    });
+  });
+
+  it('ignores a call that names no payment', async () => {
+    const { controller, svc } = buildController();
+    await expect(controller.callback({ status: 'success' })).resolves.toEqual({ received: false });
+    expect(svc.handleWebhook).not.toHaveBeenCalled();
+  });
+
+  it('ignores extra query fields such as the JSONP callback name', async () => {
+    const { controller, svc } = buildController();
+    await controller.callback({
+      callback: 'jQuery1',
+      trx_ref: 'CHAPA-1',
+      status: 'success',
+      _: '1',
+    });
+    expect(svc.handleWebhook).toHaveBeenCalledWith({
+      tx_ref: 'CHAPA-1',
+      reference: 'CHAPA-1',
+      status: 'success',
+    });
   });
 });

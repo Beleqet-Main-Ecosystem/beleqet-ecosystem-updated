@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bookmark, BriefcaseBusiness, CalendarDays, CircleUser, FileCheck2, Handshake, LayoutGrid, MessageSquare, Settings, type LucideIcon } from 'lucide-react';
+import { Bookmark, BriefcaseBusiness, CalendarDays, CircleUser, FileCheck2, Handshake, LayoutGrid, MessageSquare, Settings, Wallet as WalletIcon, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from '@/lib/i18n';
 import Applications from './sections/Applications';
@@ -13,6 +13,7 @@ import Overview from './sections/Overview';
 import ProfileSection from './sections/ProfileSection';
 import SavedJobs from './sections/SavedJobs';
 import SettingsSection from './sections/SettingsSection';
+import Wallet from './sections/Wallet';
 import VerifyEmailBanner from './VerifyEmailBanner';
 
 type Item = { id: string; icon: LucideIcon; href?: string };
@@ -27,6 +28,7 @@ const BASE: Item[] = [
 const FREELANCE: Item[] = [
   { id: 'bids', icon: BriefcaseBusiness },
   { id: 'contracts', icon: Handshake },
+  { id: 'wallet', icon: WalletIcon },
 ];
 const END: Item[] = [
   { id: 'messages', icon: MessageSquare, href: '/messages' },
@@ -86,6 +88,7 @@ export default function SeekerDashboard() {
         {tab === 'interviews' && <Interviews />}
         {tab === 'bids' && <FreelanceWork kind="bids" />}
         {tab === 'contracts' && <FreelanceWork kind="contracts" />}
+        {tab === 'wallet' && <Wallet />}
         {tab === 'settings' && <SettingsSection />}
       </div>
     </div>

@@ -67,7 +67,9 @@ export class SubscriptionsController {
   @Get('me')
   @ApiOperation({ summary: "Get the caller's current subscription" })
   @ApiResponse({ status: 200, description: 'Current subscription (or null if none)' })
-  findMine(@CurrentUser() user: CurrentUserPayload) {
+  async findMine(@CurrentUser() user: CurrentUserPayload) {
+    // A Chapa payment the callback missed is confirmed here, before the plan is read.
+    await this.planPayments.confirmRecent(user.userId).catch(() => undefined);
     return this.subscriptionsService.findMine(user.userId);
   }
 

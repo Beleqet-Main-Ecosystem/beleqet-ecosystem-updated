@@ -3,16 +3,19 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ServiceUnavailableException,
   Logger,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { IsEnum, IsInt, IsString, Max, MaxLength, Min, IsOptional } from 'class-validator';
+import { IsInt, IsString, Length, Matches, Max, Min, IsOptional } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { QUEUE_NAMES, WALLET_JOBS } from '../queues/queues.constants';
+import { ChapaClient } from '../chapa/chapa.client';
 
 export class WithdrawDto {
   @IsInt()
@@ -20,14 +23,22 @@ export class WithdrawDto {
   @Max(1_000_000, { message: 'Maximum single withdrawal is ETB 1,000,000' })
   amount!: number;
 
-  @IsEnum(['CHAPA', 'TELEBIRR', 'CBE_BIRR'], {
-    message: 'method must be CHAPA, TELEBIRR, or CBE_BIRR',
-  })
-  method!: 'CHAPA' | 'TELEBIRR' | 'CBE_BIRR';
-
+  /** A bank or wallet code from GET /wallet/banks (Chapa's bank id). */
   @IsString()
-  @MaxLength(50, { message: 'accountRef must be 50 characters or fewer' })
-  accountRef!: string;
+  @Matches(/^\d{1,6}$/, { message: 'Choose a bank or wallet from the list' })
+  bankCode!: string;
+
+  /** The name the account is registered under. */
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @Length(2, 100, { message: 'Enter the account holder’s full name' })
+  accountName!: string;
+
+  /** Account number, or phone number for a mobile wallet. */
+  @Transform(({ value }) => (typeof value === 'string' ? value.replace(/[\s-]/g, '') : value))
+  @IsString()
+  @Matches(/^\d{6,20}$/, { message: 'The account number must be 6 to 20 digits' })
+  accountNumber!: string;
 
   @IsString()
   @IsOptional()
@@ -52,7 +63,18 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.WALLET) private readonly walletQueue: Queue,
+    private readonly chapa: ChapaClient,
   ) {}
+
+  /** Where a freelancer can withdraw to: Chapa's banks and mobile wallets. */
+  async payoutBanks() {
+    try {
+      return await this.chapa.banks();
+    } catch (err) {
+      this.logger.error(`Could not load Chapa banks: ${(err as Error).message}`);
+      throw new ServiceUnavailableException('The bank list is unavailable. Try again shortly.');
+    }
+  }
 
   async onModuleInit() {
     if (process.env.NODE_ENV === 'test') {
@@ -143,6 +165,16 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
     if (wallet.availableBalance < amountInWalletCurrency)
       throw new BadRequestException('Insufficient available balance');
 
+    // Check the destination before any money moves: a real Chapa bank, and a number of the
+    // length that bank uses.
+    const bank = (await this.payoutBanks()).find((b) => b.code === dto.bankCode);
+    if (!bank) throw new BadRequestException('Choose a bank or wallet from the list');
+    if (bank.accountLength && dto.accountNumber.length !== bank.accountLength) {
+      throw new BadRequestException(
+        `${bank.name} ${bank.mobileMoney ? 'phone' : 'account'} numbers have ${bank.accountLength} digits`,
+      );
+    }
+
     // Debit the wallet and create a pending transaction record atomically.
     const { tx } = await this.prisma.$transaction(async (prisma: any) => {
       const updateResult = await prisma.freelancerWallet.updateMany({
@@ -161,7 +193,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
           walletId: wallet.id,
           type: 'DEBIT_WITHDRAWAL',
           amount: amountInWalletCurrency,
-          note: `Withdrawal of ${dto.amount} ${withdrawCurrency} via ${dto.method} — pending`,
+          note: `Withdrawal of ${dto.amount} ${withdrawCurrency} to ${bank.name} — pending`,
         },
       });
       return { tx };
@@ -181,8 +213,10 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
           walletAmount: amountInWalletCurrency,
           payoutAmount: amountInWalletCurrency,
           payoutCurrency: 'ETB' as const,
-          method: dto.method,
-          accountRef: dto.accountRef,
+          method: bank.name,
+          bankCode: bank.code,
+          accountName: dto.accountName,
+          accountNumber: dto.accountNumber,
         },
         {
           jobId: `wallet-withdrawal-${tx.id}`,
@@ -206,7 +240,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
         this.prisma.walletTransaction.update({
           where: { id: tx.id },
           data: {
-            note: `Withdrawal via ${dto.method} — Withdrawal FAILED: queue unavailable`,
+            note: `Withdrawal to ${bank.name} — Withdrawal FAILED: queue unavailable`,
           },
         }),
       ]);
@@ -219,7 +253,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
       success: true,
       status: 'PENDING',
       amount: dto.amount,
-      method: dto.method,
+      method: bank.name,
       amountInETB: amountInWalletCurrency,
       note: 'Payout queued — typically processed within 1-2 business days',
     };

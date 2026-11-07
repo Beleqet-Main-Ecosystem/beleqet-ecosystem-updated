@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bullmq';
 import { FaqBotCurrencyService } from './services/faq-bot-currency.service';
 import { WalletService } from '../wallet/wallet.service';
+import { ChapaClient } from '../chapa/chapa.client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_NAMES } from '../queues/queues.constants';
 
@@ -23,6 +24,8 @@ describe('FaqBotCurrencyService <-> WalletService (integration)', () => {
         { provide: PrismaService, useValue: {} },
         { provide: ConfigService, useValue: { get: jest.fn(() => undefined) } },
         { provide: getQueueToken(QUEUE_NAMES.WALLET), useValue: { add: jest.fn() } },
+        // Withdrawals need Chapa's bank list; currency conversion never calls it.
+        { provide: ChapaClient, useValue: { banks: jest.fn() } },
       ],
     }).compile();
 
