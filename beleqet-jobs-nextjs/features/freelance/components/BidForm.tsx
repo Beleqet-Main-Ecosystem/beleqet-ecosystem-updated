@@ -67,6 +67,17 @@ export default function BidForm({ gig, myBid, contractId, onSent }: Props) {
     );
   }
 
+  // The API takes bids only from freelancer and job-seeker accounts.
+  if (user.role === 'EMPLOYER' || user.role === 'ADMIN') {
+    return (
+      <section className={card}>
+        <h2 className="text-lg font-bold text-ink-900 dark:text-white">{t('freelance.gig.placeBid')}</h2>
+        <p className="text-sm leading-relaxed text-ink-500 dark:text-slate-300">{t('freelance.gig.employerCantBid')}</p>
+        <Link href="/freelance" className={primary}>{t('freelance.gig.browse')}</Link>
+      </section>
+    );
+  }
+
   const price = Number(amount);
   const validPrice = Number.isFinite(price) && price >= 1;
   const fee = validPrice ? Math.round(price * PLATFORM_FEE) : 0;
@@ -85,6 +96,8 @@ export default function BidForm({ gig, myBid, contractId, onSent }: Props) {
     } catch (err) {
       // Already bid, perhaps in another tab: reloading shows that bid.
       if (err instanceof ActionError && err.status === 409) onSent();
+      else if (err instanceof ActionError && err.status === 403) setError(t('freelance.gig.employerCantBid'));
+      else if (err instanceof ActionError && err.status === 404) setError(t('freelance.gig.bidClosed'));
       else setError(t('freelance.gig.bidFailed'));
     } finally {
       setSending(false);
