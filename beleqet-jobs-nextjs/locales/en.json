@@ -1294,7 +1294,8 @@
       "bids": "My bids",
       "contracts": "Contracts",
       "messages": "Messages",
-      "settings": "Settings"
+      "settings": "Settings",
+      "wallet": "Wallet"
     },
     "hello": "Hello, {name}",
     "helloSub": "Here's where your job search stands today.",
@@ -1485,6 +1486,47 @@
       "confirm": "Confirm I’ll attend",
       "decline": "Can’t make it",
       "hasLink": "Video link set"
+    },
+    "wallet": {
+      "sub": "What you have earned on Beleqet, and sending it to your bank or mobile wallet.",
+      "available": "Available to withdraw",
+      "onHold": "On hold",
+      "onHoldText": "Approved work is held for 3 days, then becomes available.",
+      "withdrawTitle": "Withdraw",
+      "bank": "Bank or wallet",
+      "chooseBank": "Choose your bank or wallet",
+      "accountName": "Account holder's full name",
+      "accountNumber": "Account number",
+      "phone": "Phone number",
+      "digits": "{n} digits",
+      "amount": "Amount (ETB)",
+      "code": "Two-step sign-in code",
+      "withdraw": "Withdraw",
+      "checkName": "The name must match the account exactly, or the bank may return the money.",
+      "pickBank": "Choose your bank or wallet.",
+      "needName": "Enter the account holder's full name.",
+      "badLength": "{bank} numbers have {n} digits.",
+      "badAmount": "Enter a whole number of birr.",
+      "tooMuch": "That is more than your available balance.",
+      "needCode": "Enter the 6-digit code from your authenticator app.",
+      "enterCode": "Two-step sign-in is on. Enter the 6-digit code from your authenticator app, then press Withdraw again.",
+      "codeWrong": "That code didn't work. Try the newest code.",
+      "failed": "The withdrawal didn't go through. Try again.",
+      "sent": "{amount} is on its way to {bank}. It usually arrives within 1–2 business days.",
+      "noBanks": "Withdrawals are unavailable right now. Try again later.",
+      "history": "Recent activity",
+      "noHistory": "Nothing yet. Payments for approved work appear here.",
+      "type": {
+        "CREDIT_PENDING": "Payment for approved work",
+        "CREDIT_AVAILABLE": "Now available",
+        "DEBIT_WITHDRAWAL": "Withdrawal",
+        "DEBIT_FEE": "Fee"
+      },
+      "state": {
+        "sent": "Sent",
+        "failed": "Failed, money returned",
+        "processing": "Processing"
+      }
     }
   },
   "emp": {

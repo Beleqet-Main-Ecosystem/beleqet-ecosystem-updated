@@ -59,10 +59,26 @@ const withdrawalJob = {
     walletAmount: 1205,
     payoutAmount: 1205,
     payoutCurrency: 'ETB',
-    method: 'CHAPA',
-    accountRef: '0912345678',
+    method: 'Hibret Bank',
+    bankCode: '534',
+    accountName: 'Selam Tesfaye',
+    accountNumber: '1000123456789012',
   },
 } as Job;
+
+/** A withdrawal queued before banks were chosen (method + accountRef only). */
+const legacyJob = (method: string) =>
+  ({
+    ...withdrawalJob,
+    data: {
+      ...withdrawalJob.data,
+      method,
+      bankCode: undefined,
+      accountName: undefined,
+      accountNumber: undefined,
+      accountRef: '0912345678',
+    },
+  }) as Job;
 
 describe('WalletProcessor withdrawals', () => {
   it('submits the ETB-converted payout amount to Chapa using the ledger id reference', async () => {
@@ -70,20 +86,43 @@ describe('WalletProcessor withdrawals', () => {
 
     await processor.process(withdrawalJob);
 
-    expect(chapaClient.createTransfer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        accountNumber: '0912345678',
-        amount: '1205',
-        currency: 'ETB',
-        reference: 'tx-001',
-      }),
-    );
+    expect(chapaClient.createTransfer).toHaveBeenCalledWith({
+      accountName: 'Selam Tesfaye',
+      accountNumber: '1000123456789012',
+      amount: '1205',
+      currency: 'ETB',
+      reference: 'tx-001',
+      bankCode: '534',
+    });
     expect(prisma.walletTransaction.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'tx-001' },
         data: expect.objectContaining({
           note: expect.stringContaining('Chapa transfer submitted'),
         }),
+      }),
+    );
+  });
+
+  it('sends an older telebirr request to telebirr (855)', async () => {
+    const { processor, chapaClient } = buildProcessor();
+    await processor.process(legacyJob('TELEBIRR'));
+    expect(chapaClient.createTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({ bankCode: '855', accountNumber: '0912345678' }),
+    );
+  });
+
+  it('gives the money back for an older request that never named a bank', async () => {
+    const { processor, prisma, chapaClient } = buildProcessor();
+    await processor.process(legacyJob('CHAPA'));
+    expect(chapaClient.createTransfer).not.toHaveBeenCalled();
+    expect(prisma.freelancerWallet.update).toHaveBeenCalledWith({
+      where: { userId: 'user-001' },
+      data: { availableBalance: { increment: 1205 } },
+    });
+    expect(prisma.walletTransaction.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { note: expect.stringContaining('No bank was chosen') },
       }),
     );
   });

@@ -55,7 +55,7 @@ describe('ChapaClient', () => {
           amount: '100',
           currency: 'ETB',
           reference: 'withdrawal-1',
-          bank_code: '855',
+          bank_code: 855,
         }),
       }),
     );
@@ -171,5 +171,46 @@ describe('ChapaClient', () => {
       amount: 999,
       currency: 'ETB',
     });
+  });
+
+  it('lists active ETB banks by name, as codes the transfer takes', async () => {
+    const fetchMock = reply({
+      status: 'success',
+      data: [
+        {
+          id: 855,
+          name: 'telebirr',
+          acct_length: 10,
+          is_mobilemoney: 1,
+          active: 1,
+          currency: 'ETB',
+        },
+        {
+          id: 867,
+          name: 'YaYaWallet',
+          acct_length: 12,
+          is_mobilemoney: 1,
+          active: null,
+          currency: 'ETB',
+        },
+        {
+          id: 534,
+          name: 'Hibret Bank',
+          acct_length: 16,
+          is_mobilemoney: null,
+          active: 1,
+          currency: 'ETB',
+        },
+      ],
+    });
+    global.fetch = fetchMock as never;
+    const client = buildClient();
+    await expect(client.banks()).resolves.toEqual([
+      { code: '534', name: 'Hibret Bank', accountLength: 16, mobileMoney: false },
+      { code: '855', name: 'telebirr', accountLength: 10, mobileMoney: true },
+    ]);
+    await client.banks();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.chapa.co/v1/banks');
   });
 });

@@ -23,9 +23,17 @@ interface ProcessWithdrawalPayload {
   walletAmount: number;
   payoutAmount: number;
   payoutCurrency: 'ETB';
-  method: 'CHAPA' | 'TELEBIRR' | 'CBE_BIRR';
-  accountRef: string;
+  /** The bank's name, for the wallet history. */
+  method: string;
+  bankCode?: string;
+  accountName?: string;
+  accountNumber?: string;
+  /** Jobs queued before banks were chosen: `method` was TELEBIRR, CBE_BIRR or CHAPA. */
+  accountRef?: string;
 }
+
+/** Chapa bank ids for withdrawals queued before the bank list existed. */
+const LEGACY_BANK_CODES: Record<string, string> = { TELEBIRR: '855', CBE_BIRR: '128' };
 
 type WalletJobPayload = ReleasePendingPayload | ProcessWithdrawalPayload;
 type WithdrawalClaim =
@@ -120,15 +128,10 @@ export class WalletProcessor extends WorkerHost {
   }
 
   private async processWithdrawal(job: Job<ProcessWithdrawalPayload>): Promise<void> {
-    const {
-      withdrawalTxId,
-      userId,
-      walletAmount,
-      payoutAmount,
-      payoutCurrency,
-      method,
-      accountRef,
-    } = job.data;
+    const { withdrawalTxId, userId, walletAmount, payoutAmount, payoutCurrency, method } = job.data;
+    const bankCode = job.data.bankCode ?? LEGACY_BANK_CODES[method];
+    const accountNumber = job.data.accountNumber ?? job.data.accountRef ?? '';
+    const accountName = job.data.accountName ?? 'Beleqet freelancer';
 
     if (!this.config.get<string>('CHAPA_SECRET_KEY')) {
       const reason = `Chapa secret is not configured for withdrawal ${withdrawalTxId}`;
@@ -156,14 +159,25 @@ export class WalletProcessor extends WorkerHost {
       );
     }
 
+    if (!bankCode || !accountNumber) {
+      // An old request that never said which bank: give the money back rather than guess.
+      await this.restoreRejectedWithdrawal(
+        userId,
+        withdrawalTxId,
+        walletAmount,
+        'No bank was chosen. Please withdraw again and pick your bank.',
+      );
+      return;
+    }
+
     try {
       const result = await this.chapaClient.createTransfer({
-        accountName: 'Freelancer',
-        accountNumber: accountRef,
+        accountName,
+        accountNumber,
         amount: payoutAmount.toString(),
         currency: payoutCurrency,
         reference: withdrawalTxId,
-        bankCode: method === 'TELEBIRR' ? '855' : '853d0598-9c01-41ab-ac99-48eab4da1513',
+        bankCode,
       });
 
       if (result.status !== 'success') {

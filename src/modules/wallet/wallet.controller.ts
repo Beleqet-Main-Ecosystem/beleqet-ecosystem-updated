@@ -24,6 +24,12 @@ export class WalletController {
     return this.svc.getEmployerWallet(u.userId);
   }
 
+  /** Banks and mobile wallets a freelancer can withdraw to. */
+  @Get('banks')
+  banks() {
+    return this.svc.payoutBanks();
+  }
+
   @Post('withdraw')
   @UseGuards(StepUpGuard)
   @SensitiveAction('wallet_withdraw')

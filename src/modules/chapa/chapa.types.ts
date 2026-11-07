@@ -40,6 +40,28 @@ export type ChapaPaymentResult = {
   raw: ChapaVerifyResponse;
 };
 
+/** A bank or wallet Chapa can pay out to; `code` is what transfers take as `bank_code`. */
+export type ChapaBank = {
+  code: string;
+  name: string;
+  /** Digits in an account (or phone) number there, when Chapa says. */
+  accountLength: number | null;
+  mobileMoney: boolean;
+};
+
+export type ChapaBanksResponse = {
+  status?: string;
+  message?: string;
+  data?: Array<{
+    id: number | string;
+    name: string;
+    acct_length?: number | null;
+    is_mobilemoney?: number | boolean | null;
+    active?: number | boolean | null;
+    currency?: string | null;
+  }>;
+};
+
 export type ChapaTransferRequest = {
   accountName: string;
   accountNumber: string;
