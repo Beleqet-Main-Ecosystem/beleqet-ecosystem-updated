@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { AuthService } from '../src/modules/auth/auth.service';
+import { ChapaClient } from '../src/modules/chapa/chapa.client';
 
 describe('Wallet & Payments Lifecycle (e2e)', () => {
   let app: INestApplication;
@@ -21,6 +22,10 @@ describe('Wallet & Payments Lifecycle (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
+    // Withdrawals check the destination against Chapa's bank list; CI has no Chapa key.
+    jest
+      .spyOn(moduleFixture.get(ChapaClient, { strict: false }), 'banks')
+      .mockResolvedValue([{ code: '855', name: 'telebirr', accountLength: 10, mobileMoney: true }]);
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
@@ -109,8 +114,9 @@ describe('Wallet & Payments Lifecycle (e2e)', () => {
         .send({
           amount: 500,
           currency: 'ETB',
-          method: 'TELEBIRR',
-          accountRef: '+251911223344',
+          bankCode: '855',
+          accountName: 'Test Freelancer',
+          accountNumber: '0911223344',
         })
         .expect(400);
 
@@ -132,8 +138,9 @@ describe('Wallet & Payments Lifecycle (e2e)', () => {
           .send({
             amount: 500,
             currency: 'ETB',
-            method: 'TELEBIRR',
-            accountRef: '+251911223344',
+            bankCode: '855',
+            accountName: 'Test Freelancer',
+            accountNumber: '0911223344',
           }),
         request(app.getHttpServer())
           .post('/api/v1/wallet/withdraw')
@@ -141,8 +148,9 @@ describe('Wallet & Payments Lifecycle (e2e)', () => {
           .send({
             amount: 500,
             currency: 'ETB',
-            method: 'TELEBIRR',
-            accountRef: '+251911223344',
+            bankCode: '855',
+            accountName: 'Test Freelancer',
+            accountNumber: '0911223344',
           }),
       ]);
 
@@ -186,8 +194,9 @@ describe('Wallet & Payments Lifecycle (e2e)', () => {
         .send({
           amount: 50,
           currency: 'ETB',
-          method: 'TELEBIRR',
-          accountRef: '+251911223344',
+          bankCode: '855',
+          accountName: 'Test Freelancer',
+          accountNumber: '0911223344',
         })
         .expect(401);
 
