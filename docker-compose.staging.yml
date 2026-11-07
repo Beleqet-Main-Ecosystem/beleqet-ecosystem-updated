@@ -79,7 +79,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      GROQ_MODEL: ${GROQ_MODEL:-llama-3.1-8b-instant}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
       # Payment services read these in their constructors (getOrThrow), so
       # the backend cannot boot without them — use sandbox/test keys.
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required (test key)}

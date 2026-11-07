@@ -19,7 +19,8 @@ import {
  * already uses (beleqet-jobs-nextjs/lib/groq.ts), so a single config drives
  * both ends.
  *
- * Default model: `llama-3.1-8b-instant` (matches the frontend default).
+ * Default model: `openai/gpt-oss-20b` (matches the frontend default; Groq retired
+ * `llama-3.1-8b-instant`).
  */
 /**
  * Fail an AI request that hasn't completed within this many ms. Kept short for
@@ -40,7 +41,7 @@ export class GroqProvider implements AiChatProvider {
   private readonly model: string;
 
   constructor(private readonly config: ConfigService) {
-    this.model = this.config.get<string>('GROQ_MODEL', 'llama-3.1-8b-instant');
+    this.model = this.config.get<string>('GROQ_MODEL', 'openai/gpt-oss-20b');
     this.client = new OpenAI({
       apiKey: this.config.get<string>('GROQ_API_KEY') ?? '',
       baseURL: this.config.get<string>('GROQ_BASE_URL', 'https://api.groq.com/openai/v1'),
