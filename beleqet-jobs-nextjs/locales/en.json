@@ -1016,6 +1016,8 @@
       "payNote": "If the client accepts, you're paid from escrow as each milestone is approved.",
       "formInvalid": "Enter your price, delivery time and cover letter.",
       "bidFailed": "We couldn't send your bid. Try again.",
+      "employerCantBid": "Only freelancer and job-seeker accounts can bid. Sign in with one of those to send a bid.",
+      "bidClosed": "This project is no longer taking bids.",
       "bidSent": "Bid sent",
       "bidAccepted": "Bid accepted",
       "bidDeclined": "Bid declined",
