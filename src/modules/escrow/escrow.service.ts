@@ -8,8 +8,9 @@ import { QUEUE_NAMES, ESCROW_JOBS } from '../queues/queues.constants';
 import { WalletService } from '../wallet/wallet.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
-import { BeleqetPayService } from '../beleqet-pay/beleqet-pay.service';
+import { ChapaClient } from '../chapa/chapa.client';
 import { primaryFrontendUrl } from '../../common/utils/frontend-url';
+import { escrowTxRef } from './escrow-tx-ref';
 
 const PLATFORM_FEE_PCT = 0.1;
 
@@ -21,7 +22,7 @@ export class EscrowService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly walletSvc: WalletService,
-    private readonly paySwitch: BeleqetPayService,
+    private readonly chapa: ChapaClient,
     @InjectQueue(QUEUE_NAMES.ESCROW) private readonly escrowQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -222,16 +223,16 @@ export class EscrowService {
   }
 
   /**
-   * Opens a Beleqet Pay checkout for what is left to pay. The contract page shows live escrow
-   * status, so payers return there (or to the gig page when funding happens before a bid is
-   * accepted). If the checkout can't be created, that page is returned instead.
+   * Opens a Chapa checkout for what is left to pay. The contract page shows live escrow status,
+   * so payers return there (or to the gig page when funding happens before a bid is accepted).
+   * If the checkout can't be created, that page is returned instead.
    */
   private async startCheckout(
     escrowId: string,
     job: {
       id: string;
       currency: string | null;
-      client: { email: string };
+      client: { email: string; firstName: string; lastName: string };
       contract: { id: string } | null;
     },
     amountToPay: number,
@@ -239,28 +240,30 @@ export class EscrowService {
     const returnUrl = job.contract
       ? `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/freelance/contracts/${job.contract.id}`
       : `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/freelance/${job.id}`;
+    const txRef = escrowTxRef(escrowId);
     try {
-      const session = await this.paySwitch.createCheckoutSession({
-        amount: amountToPay.toString(),
+      const checkoutUrl = await this.chapa.checkoutUrl({
+        amount: amountToPay.toFixed(2),
         currency: job.currency ?? 'ETB',
-        customerEmail: job.client.email,
-        preferredProvider: 'CHAPA',
-        successRedirectUrl: this.config.get<string>('CHAPA_RETURN_URL') ?? returnUrl,
-        externalRef: escrowId,
+        email: job.client.email,
+        firstName: job.client.firstName,
+        lastName: job.client.lastName,
+        txRef,
+        returnUrl,
+        title: 'Beleqet Jobs',
+        description: 'Freelance contract payment',
       });
-      // Persist the Beleqet Pay txRef so the processor can verify it later
+      // The processor matches Chapa's callback to this escrow by the latest tx_ref.
       await this.prisma.escrowTransaction.update({
         where: { id: escrowId },
-        data: { gatewayRef: session.txRef },
+        data: { gatewayRef: txRef },
       });
-      this.logger.log(
-        `[beleqet-pay] Checkout session created: txRef=${session.txRef} provider=${session.provider}`,
-      );
-      return session.checkoutUrl;
+      this.logger.log(`[chapa] Checkout opened: txRef=${txRef}`);
+      return checkoutUrl;
     } catch (err) {
       // Non-fatal: user can still pay via manual-payment module
       this.logger.error(
-        `[beleqet-pay] Failed to create checkout session — falling back to manual URL: ${(err as Error).message}`,
+        `[chapa] Failed to open a checkout — falling back to the contract page: ${(err as Error).message}`,
       );
       return returnUrl;
     }

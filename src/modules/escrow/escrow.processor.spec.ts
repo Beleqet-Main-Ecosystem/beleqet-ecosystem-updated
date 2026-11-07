@@ -84,12 +84,12 @@ function buildProcessor() {
     }),
   };
 
-  const paySwitch = {
-    getTransaction: jest.fn().mockResolvedValue({
-      status: 'SUCCESS',
+  const chapa = {
+    paymentResult: jest.fn().mockResolvedValue({
+      state: 'success',
       amount: 900,
       currency: 'ETB',
-      txRef: 'tx-1',
+      raw: { status: 'success' },
     }),
   };
 
@@ -99,24 +99,24 @@ function buildProcessor() {
   const processor = new EscrowProcessor(
     prisma as never,
     { get: jest.fn(() => 'http://localhost:3000') } as never,
-    paySwitch as never,
+    chapa as never,
     planPayments as never,
     notificationsQueue as never,
     escrowQueue as never,
   );
 
-  return { processor, prisma, tx, paySwitch, notificationsQueue, escrowQueue };
+  return { processor, prisma, tx, chapa, planPayments, notificationsQueue, escrowQueue };
 }
 
 describe('EscrowProcessor', () => {
   it('verifies Chapa before marking escrow funded', async () => {
-    const { processor, tx, paySwitch, notificationsQueue } = buildProcessor();
+    const { processor, tx, chapa, notificationsQueue } = buildProcessor();
 
     await processor.handleWebhook({
       data: { event: 'charge.success', tx_ref: 'tx-1', reference: 'chapa-ref', status: 'success' },
     } as Job);
 
-    expect(paySwitch.getTransaction).toHaveBeenCalledWith('tx-1');
+    expect(chapa.paymentResult).toHaveBeenCalledWith('tx-1');
     expect(tx.escrowTransaction.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FUNDED' }) }),
     );
@@ -129,14 +129,76 @@ describe('EscrowProcessor', () => {
   });
 
   it('skips duplicate webhook events', async () => {
-    const { processor, prisma, paySwitch } = buildProcessor();
+    const { processor, prisma, chapa } = buildProcessor();
     prisma.eventLog.findFirst.mockResolvedValueOnce({ id: 'event-1' });
 
     await processor.handleWebhook({
       data: { event: 'charge.success', tx_ref: 'tx-1', reference: 'chapa-ref', status: 'success' },
     } as Job);
 
-    expect(paySwitch.getTransaction).not.toHaveBeenCalled();
+    expect(chapa.paymentResult).not.toHaveBeenCalled();
+  });
+
+  it('does not fund when Chapa reports a different amount', async () => {
+    const { processor, tx, chapa } = buildProcessor();
+    chapa.paymentResult.mockResolvedValue({
+      state: 'success',
+      amount: 1,
+      currency: 'ETB',
+      raw: {},
+    });
+    await expect(
+      processor.handleWebhook({
+        data: { event: 'charge.success', tx_ref: 'tx-1', status: 'success' },
+      } as Job),
+    ).rejects.toThrow('Chapa verification mismatch');
+    expect(tx.escrowTransaction.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('does not fund when Chapa says the payment is not paid, whatever the event claims', async () => {
+    const { processor, tx, chapa } = buildProcessor();
+    chapa.paymentResult.mockResolvedValue({
+      state: 'pending',
+      amount: 900,
+      currency: 'ETB',
+      raw: {},
+    });
+    await expect(
+      processor.handleWebhook({
+        data: { event: 'charge.success', tx_ref: 'tx-1', status: 'success' },
+      } as Job),
+    ).rejects.toThrow('Chapa verification mismatch');
+    expect(tx.escrowTransaction.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('finds the escrow from an older checkout reference that was paid after all', async () => {
+    const { processor, prisma, chapa } = buildProcessor();
+    const escrowId = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    const oldRef = `E-${escrowId}-lz1abc`;
+    await processor.handleWebhook({
+      data: { event: 'charge.success', tx_ref: oldRef, status: 'success' },
+    } as Job);
+    expect(prisma.escrowTransaction.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { OR: expect.arrayContaining([{ id: escrowId }]) },
+      }),
+    );
+    expect(chapa.paymentResult).toHaveBeenCalledWith(oldRef);
+  });
+
+  it('passes a payment that is not an escrow on to plan payments', async () => {
+    const { processor, prisma, planPayments, chapa } = buildProcessor();
+    prisma.escrowTransaction.findFirst.mockResolvedValue(null);
+    planPayments.handlePaymentEvent.mockResolvedValue(true);
+    await processor.handleWebhook({
+      data: { event: 'charge.success', tx_ref: 'CHAPA-1', status: 'success' },
+    } as Job);
+    expect(planPayments.handlePaymentEvent).toHaveBeenCalledWith({
+      txRef: 'CHAPA-1',
+      externalRef: undefined,
+      successful: true,
+    });
+    expect(chapa.paymentResult).not.toHaveBeenCalled();
   });
 
   it('moves auto-release funds inside one idempotent transaction', async () => {
