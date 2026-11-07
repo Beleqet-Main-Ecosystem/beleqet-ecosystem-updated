@@ -182,8 +182,13 @@ async function bootstrap() {
   // ── Logging interceptor ───────────────────────────────────────────────────
   app.useGlobalInterceptors(new LoggingInterceptor());
 
-  // ── Swagger (enabled by default; set SWAGGER_ENABLED=false to disable) ─────
-  if (configService.get<string>('SWAGGER_ENABLED', 'true') !== 'false') {
+  // ── Swagger (on for local runs; off by default on a public HTTPS deployment,
+  //    where it would list every endpoint to anyone. SWAGGER_ENABLED overrides) ─
+  const publicDeployment =
+    nodeEnv === 'production' ||
+    configService.get<string>('APP_BASE_URL', '').startsWith('https://');
+  const swaggerDefault = publicDeployment ? 'false' : 'true';
+  if (configService.get<string>('SWAGGER_ENABLED', swaggerDefault) === 'true') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('Beleqet API')
       .setDescription(
