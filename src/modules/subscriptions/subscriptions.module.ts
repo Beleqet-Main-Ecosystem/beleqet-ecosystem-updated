@@ -5,7 +5,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionsCheckoutService } from './subscriptions-checkout.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { PlanPaymentsService } from './plan-payments.service';
-import { BeleqetPayModule } from '../beleqet-pay/beleqet-pay.module';
+import { ChapaModule } from '../chapa/chapa.module';
 
 @Module({
   // PaymentsModule is imported one-directionally here (checkout needs
@@ -13,7 +13,7 @@ import { BeleqetPayModule } from '../beleqet-pay/beleqet-pay.module';
   // webhook -> subscription syncing flows through an EventEmitter2 event
   // instead (see paypal.service.ts + billing.service.ts), so there is no
   // circular module dependency.
-  imports: [PrismaModule, PaymentsModule, BeleqetPayModule],
+  imports: [PrismaModule, PaymentsModule, ChapaModule],
   controllers: [SubscriptionsController],
   providers: [SubscriptionsService, SubscriptionsCheckoutService, PlanPaymentsService],
   exports: [SubscriptionsService, PlanPaymentsService],

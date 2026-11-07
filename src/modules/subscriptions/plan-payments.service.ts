@@ -1,16 +1,16 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
+import { Payment, PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BeleqetPayService } from '../beleqet-pay/beleqet-pay.service';
+import { ChapaClient } from '../chapa/chapa.client';
 import { activatePaidPlan, assertNoPaypalAutoRenew } from './activate-plan';
 import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 /**
- * Paying for a plan with Chapa (through Beleqet Pay): Telebirr, CBE Birr, banks or cards. Chapa
- * has no automatic monthly billing, so each payment buys one period; paying again adds the next.
- * The plan starts only after Beleqet Pay confirms the payment server to server.
+ * Paying for a plan with Chapa: Telebirr, CBE Birr, banks or cards. Chapa has no automatic
+ * monthly billing, so each payment buys one period; paying again adds the next. The plan starts
+ * only after Chapa itself confirms the payment, server to server.
  */
 @Injectable()
 export class PlanPaymentsService {
@@ -18,7 +18,7 @@ export class PlanPaymentsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly paySwitch: BeleqetPayService,
+    private readonly chapa: ChapaClient,
     private readonly config: ConfigService,
   ) {}
 
@@ -30,10 +30,10 @@ export class PlanPaymentsService {
     await assertNoPaypalAutoRenew(this.prisma, userId);
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { email: true },
+      select: { email: true, firstName: true, lastName: true },
     });
 
-    // Plan prices are kept in santim; Beleqet Pay takes birr.
+    // The payment's reference is also Chapa's tx_ref, so Chapa's callback finds it.
     const payment = await this.prisma.payment.create({
       data: {
         userId,
@@ -48,25 +48,33 @@ export class PlanPaymentsService {
     });
 
     const frontend = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
-    const session = await this.paySwitch.createCheckoutSession({
-      amount: (plan.priceAmount / 100).toFixed(2),
-      currency: plan.currency,
-      customerEmail: user.email,
-      preferredProvider: 'CHAPA',
-      successRedirectUrl: `${frontend}/employer?tab=plan&payment=${payment.id}`,
-      externalRef: payment.id,
-    });
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { providerPaymentId: session.txRef },
-    });
-    return { paymentId: payment.id, checkoutUrl: session.checkoutUrl };
+    try {
+      const checkoutUrl = await this.chapa.checkoutUrl({
+        // Plan prices are kept in santim; Chapa takes birr.
+        amount: (plan.priceAmount / 100).toFixed(2),
+        currency: plan.currency,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        txRef: payment.providerPaymentId,
+        returnUrl: `${frontend}/employer?tab=plan&payment=${payment.id}`,
+        title: 'Beleqet Jobs',
+        description: `${plan.name} plan`,
+      });
+      return { paymentId: payment.id, checkoutUrl };
+    } catch (err) {
+      await this.prisma.payment.updateMany({
+        where: { id: payment.id, status: PaymentStatus.PENDING },
+        data: { status: PaymentStatus.FAILED },
+      });
+      throw err;
+    }
   }
 
   /**
    * Called for a Chapa event that matched no escrow. Returns false when it isn't a plan payment
-   * either. A success is re-checked with Beleqet Pay (status and amount) before the plan starts,
-   * and a payment starts its plan only once however often the event arrives.
+   * either. A success is re-checked with Chapa (status, amount and currency) before the plan
+   * starts, and a payment starts its plan only once however often the event arrives.
    */
   async handlePaymentEvent(event: {
     txRef: string;
@@ -93,18 +101,53 @@ export class PlanPaymentsService {
       return true;
     }
 
-    const verified = await this.paySwitch.getTransaction(payment.providerPaymentId);
-    const paid = Number(verified.amount);
-    if (
-      verified.status !== 'SUCCESS' ||
-      !Number.isFinite(paid) ||
-      Math.abs(paid - payment.amount / 100) >= 0.01
-    ) {
+    const result = await this.chapa.paymentResult(payment.providerPaymentId);
+    if (result.state !== 'success' || !this.paidInFull(payment, result)) {
       throw new Error(
-        `Plan payment ${payment.id} not confirmed: status=${verified.status} amount=${verified.amount}`,
+        `Plan payment ${payment.id} not confirmed: status=${result.state} amount=${result.amount} ${result.currency}`,
       );
     }
+    await this.startPlan(payment);
+    return true;
+  }
 
+  /**
+   * The caller's own payment, for the page Chapa sends people back to. While it is still open,
+   * Chapa is asked directly, so a late or lost callback doesn't leave the payer waiting.
+   */
+  async status(userId: string, paymentId: string) {
+    const select = { id: true, status: true, amount: true, currency: true, createdAt: true };
+    const payment = await this.prisma.payment.findFirst({ where: { id: paymentId, userId } });
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    if (payment.status === PaymentStatus.PENDING && payment.provider === PaymentProvider.CHAPA) {
+      try {
+        const result = await this.chapa.paymentResult(payment.providerPaymentId);
+        if (result.state === 'success' && this.paidInFull(payment, result)) {
+          await this.startPlan(payment);
+        } else if (result.state === 'failed') {
+          await this.prisma.payment.updateMany({
+            where: { id: payment.id, status: PaymentStatus.PENDING },
+            data: { status: PaymentStatus.FAILED },
+          });
+        }
+      } catch (err) {
+        // Chapa doesn't know a payment until the payer opens its page; keep waiting.
+        this.logger.debug(`Chapa check for payment ${payment.id}: ${(err as Error).message}`);
+      }
+    }
+    return this.prisma.payment.findFirstOrThrow({ where: { id: payment.id }, select });
+  }
+
+  private paidInFull(payment: Payment, result: { amount: number; currency: string }) {
+    return (
+      Number.isFinite(result.amount) &&
+      Math.abs(result.amount - payment.amount / 100) < 0.01 &&
+      (!result.currency || result.currency === payment.currency)
+    );
+  }
+
+  private async startPlan(payment: Payment) {
     const planId = (payment.metadata as { planId?: string } | null)?.planId;
     if (!planId) throw new Error(`Plan payment ${payment.id} has no plan`);
     await this.prisma.$transaction(async (tx) => {
@@ -129,20 +172,9 @@ export class PlanPaymentsService {
           } as Prisma.InputJsonValue,
         },
       });
+      this.logger.log(
+        `Plan payment ${payment.id} confirmed; plan ${planId} active for ${payment.userId}`,
+      );
     });
-    this.logger.log(
-      `Plan payment ${payment.id} confirmed; plan ${planId} active for ${payment.userId}`,
-    );
-    return true;
-  }
-
-  /** The caller's own payment, for the page Chapa sends people back to. */
-  async status(userId: string, paymentId: string) {
-    const payment = await this.prisma.payment.findFirst({
-      where: { id: paymentId, userId },
-      select: { id: true, status: true, amount: true, currency: true, createdAt: true },
-    });
-    if (!payment) throw new NotFoundException('Payment not found');
-    return payment;
   }
 }

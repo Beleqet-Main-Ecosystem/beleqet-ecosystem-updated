@@ -2,10 +2,10 @@ import { BadGatewayException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChapaClient } from './chapa.client';
 
-function buildClient() {
+function buildClient(settings: Record<string, string> = {}) {
   const config = {
     get: jest.fn((key: string, fallback?: string) =>
-      key === 'CHAPA_BASE_URL' ? fallback : undefined,
+      key === 'CHAPA_BASE_URL' ? fallback : settings[key],
     ),
     getOrThrow: jest.fn((key: string) => {
       if (key === 'CHAPA_SECRET_KEY') return 'chapa-secret';
@@ -91,5 +91,85 @@ describe('ChapaClient', () => {
       'https://api.chapa.co/v1/transfers/verify/tx-001',
       expect.objectContaining({ method: 'GET' }),
     );
+  });
+
+  const reply = (body: unknown, ok = true) =>
+    jest.fn().mockResolvedValue({
+      ok,
+      status: ok ? 200 : 400,
+      text: jest.fn().mockResolvedValue(JSON.stringify(body)),
+    });
+
+  const checkout = {
+    amount: '999.00',
+    currency: 'ETB',
+    email: 'emp@example.com',
+    firstName: 'Abebe',
+    lastName: 'Kebede',
+    txRef: 'CHAPA-1',
+    returnUrl: 'https://web.test/employer?tab=plan&payment=p1',
+    title: 'Beleqet Jobs Marketplace',
+    description: 'Pro plan (monthly) & more!',
+  };
+
+  it('opens a checkout with the callback address and Chapa-safe title and description', async () => {
+    const fetchMock = reply({
+      status: 'success',
+      data: { checkout_url: 'https://checkout.chapa.co/checkout/payment/abc' },
+    });
+    global.fetch = fetchMock as never;
+
+    await expect(
+      buildClient({ APP_BASE_URL: 'https://api.test/api/v1/' }).checkoutUrl(checkout),
+    ).resolves.toBe('https://checkout.chapa.co/checkout/payment/abc');
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.chapa.co/v1/transaction/initialize');
+    expect(body).toMatchObject({
+      amount: '999.00',
+      tx_ref: 'CHAPA-1',
+      callback_url: 'https://api.test/api/v1/escrow/callback',
+      return_url: checkout.returnUrl,
+      customization: { title: 'Beleqet Jobs Mar', description: 'Pro plan monthly  more' },
+    });
+  });
+
+  it('prefers CHAPA_CALLBACK_URL when it is set', async () => {
+    const fetchMock = reply({ status: 'success', data: { checkout_url: 'https://c.test/x' } });
+    global.fetch = fetchMock as never;
+    await buildClient({
+      APP_BASE_URL: 'https://api.test/api/v1',
+      CHAPA_CALLBACK_URL: 'https://hooks.test/chapa',
+    }).checkoutUrl(checkout);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).callback_url).toBe(
+      'https://hooks.test/chapa',
+    );
+  });
+
+  it('fails clearly when Chapa refuses the checkout', async () => {
+    global.fetch = reply({ status: 'failed', message: 'Invalid currency' }, false) as never;
+    await expect(buildClient().checkoutUrl(checkout)).rejects.toBeInstanceOf(BadGatewayException);
+  });
+
+  it('fails when Chapa answers without a payment page', async () => {
+    global.fetch = reply({ status: 'success', data: {} }) as never;
+    await expect(buildClient().checkoutUrl(checkout)).rejects.toThrow('payment page');
+  });
+
+  it.each([
+    ['success', 'success'],
+    ['pending', 'pending'],
+    ['failed', 'failed'],
+    ['cancelled', 'failed'],
+  ])('reads Chapa status %s as %s', async (chapaStatus, state) => {
+    global.fetch = reply({
+      status: 'success',
+      data: { status: chapaStatus, amount: '999.00', currency: 'ETB', tx_ref: 'CHAPA-1' },
+    }) as never;
+    await expect(buildClient().paymentResult('CHAPA-1')).resolves.toMatchObject({
+      state,
+      amount: 999,
+      currency: 'ETB',
+    });
   });
 });

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   ChapaInitializeRequest,
   ChapaInitializeResponse,
+  ChapaPaymentResult,
   ChapaTransferRequest,
   ChapaTransferResponse,
   ChapaVerifyResponse,
@@ -38,6 +39,48 @@ export class ChapaClient {
         description: request.description,
       },
     });
+  }
+
+  /**
+   * Opens Chapa's hosted payment page and returns its address. Chapa calls
+   * `CHAPA_CALLBACK_URL` (default: this API's `/escrow/callback`) when the payment ends.
+   */
+  async checkoutUrl(request: ChapaInitializeRequest): Promise<string> {
+    const appBase = this.config.get<string>('APP_BASE_URL')?.replace(/\/$/, '');
+    const response = await this.initializePayment({
+      ...request,
+      callbackUrl:
+        request.callbackUrl ??
+        this.config.get<string>('CHAPA_CALLBACK_URL') ??
+        (appBase ? `${appBase}/escrow/callback` : undefined),
+      // Chapa allows at most 16 characters in the title, and only letters, numbers, spaces,
+      // dots, hyphens and underscores in the description.
+      title: request.title.slice(0, 16),
+      description: request.description.replace(/[^A-Za-z0-9 ._-]/g, '').slice(0, 100),
+    });
+    const url = response.data?.checkout_url;
+    if (response.status !== 'success' || !url) {
+      throw new BadGatewayException({
+        message: response.message ?? 'Chapa did not return a payment page',
+        provider: response,
+      });
+    }
+    return url;
+  }
+
+  /**
+   * Chapa's own answer about a payment (never the webhook's word): `success` only when Chapa
+   * reports it paid, `pending` while it is open, `failed` for anything else.
+   */
+  async paymentResult(txRef: string): Promise<ChapaPaymentResult> {
+    const response = await this.verifyTransaction(txRef);
+    const status = String(response.data?.status ?? '').toLowerCase();
+    return {
+      state: status === 'success' ? 'success' : status === 'pending' ? 'pending' : 'failed',
+      amount: Number(response.data?.amount),
+      currency: String(response.data?.currency ?? ''),
+      raw: response,
+    };
   }
 
   /**

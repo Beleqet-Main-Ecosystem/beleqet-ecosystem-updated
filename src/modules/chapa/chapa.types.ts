@@ -32,6 +32,14 @@ export type ChapaVerifyResponse = {
   };
 };
 
+export type ChapaPaymentResult = {
+  state: 'success' | 'pending' | 'failed';
+  /** Birr as Chapa reports it; NaN when Chapa sent none. */
+  amount: number;
+  currency: string;
+  raw: ChapaVerifyResponse;
+};
+
 export type ChapaTransferRequest = {
   accountName: string;
   accountNumber: string;

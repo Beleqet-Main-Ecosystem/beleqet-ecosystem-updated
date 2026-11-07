@@ -57,11 +57,7 @@ function buildService(overrides: Record<string, unknown> = {}) {
     prisma as never,
     { get: jest.fn() } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    {
-      createCheckoutSession: jest.fn(),
-      getTransaction: jest.fn(),
-      createEscrowContract: jest.fn(),
-    } as never,
+    { checkoutUrl: jest.fn(), paymentResult: jest.fn() } as never,
     escrowQueue as never,
     { emit: jest.fn() } as never,
   );
@@ -134,7 +130,7 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
   );
   const escrowQueue = { add: jest.fn() };
   const eventEmitter = { emit: jest.fn() };
-  const chapaClient = { initializePayment: jest.fn() };
+  const chapaClient = { checkoutUrl: jest.fn().mockResolvedValue('https://checkout.chapa.co/c/1') };
 
   const service = new EscrowService(
     prisma as never,
@@ -142,16 +138,7 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
       get: jest.fn((key: string) => (key === 'FRONTEND_URL' ? 'http://localhost:3000' : undefined)),
     } as never,
     { convertCurrency: jest.fn((amount: number) => amount) } as never,
-    {
-      createCheckoutSession: jest.fn().mockResolvedValue({
-        txRef: 'bp-tx-1',
-        checkoutUrl: 'https://pay.test/checkout',
-        provider: 'CHAPA',
-        status: 'PENDING',
-      }),
-      getTransaction: jest.fn(),
-      createEscrowContract: jest.fn(),
-    } as never,
+    chapaClient as never,
     escrowQueue as never,
     eventEmitter as never,
   );
@@ -388,7 +375,7 @@ describe('EscrowService initiate wallet funding', () => {
       amountToPay: 0,
     });
 
-    expect(chapaClient.initializePayment).not.toHaveBeenCalled();
+    expect(chapaClient.checkoutUrl).not.toHaveBeenCalled();
     expect(escrowQueue.add).not.toHaveBeenCalled();
     expect(prisma.freelanceJob.update).toHaveBeenCalledWith({
       where: { id: 'gig-1' },
@@ -434,7 +421,7 @@ describe('EscrowService initiate wallet funding', () => {
     expect(prisma.employerWallet.updateMany).not.toHaveBeenCalled();
     expect(prisma.escrowTransaction.create).not.toHaveBeenCalled();
     expect(prisma.escrowTransaction.update).not.toHaveBeenCalled();
-    expect(chapaClient.initializePayment).not.toHaveBeenCalled();
+    expect(chapaClient.checkoutUrl).not.toHaveBeenCalled();
     expect(escrowQueue.add).not.toHaveBeenCalled();
   });
 
@@ -458,7 +445,7 @@ describe('EscrowService initiate wallet funding', () => {
       grossAmount: 1000,
       walletAppliedAmount: 400,
       amountToPay: 600,
-      checkoutUrl: 'https://pay.test/checkout',
+      checkoutUrl: 'https://checkout.chapa.co/c/1',
     });
 
     expect(prisma.employerWallet.updateMany).not.toHaveBeenCalled();
@@ -467,9 +454,17 @@ describe('EscrowService initiate wallet funding', () => {
     expect(prisma.escrowTransaction.update).toHaveBeenCalledTimes(1);
     expect(prisma.escrowTransaction.update).toHaveBeenCalledWith({
       where: { id: 'escrow-pending' },
-      data: { gatewayRef: 'bp-tx-1' },
+      data: { gatewayRef: expect.stringMatching(/^E-escrow-pending-/) },
     });
-    expect(chapaClient.initializePayment).not.toHaveBeenCalled();
+    // Chapa is asked for what is left to pay, in birr, with a fresh reference for this escrow.
+    expect(chapaClient.checkoutUrl).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: '600.00',
+        currency: 'ETB',
+        email: 'client@example.com',
+        txRef: prisma.escrowTransaction.update.mock.calls[0][0].data.gatewayRef,
+      }),
+    );
     expect(escrowQueue.add).not.toHaveBeenCalled();
     expect(eventEmitter.emit).not.toHaveBeenCalled();
   });
@@ -503,5 +498,22 @@ describe('EscrowService initiate after a bid is accepted', () => {
       existingEscrow: { id: 'e', status: 'DISPUTED', grossAmount: 1000 },
     });
     await expect(service.initiate('client-1', 'gig-1')).rejects.toThrow('already funded');
+  });
+});
+
+describe('EscrowService checkout with Chapa', () => {
+  it('sends the payer back to the contract page if Chapa will not open a checkout', async () => {
+    const { service, chapaClient } = buildInitiateService({
+      existingEscrow: {
+        id: 'escrow-pending',
+        grossAmount: 1000,
+        walletAppliedAmount: 0,
+        status: 'PENDING',
+      },
+    });
+    chapaClient.checkoutUrl.mockRejectedValue(new Error('Chapa down'));
+    await expect(service.initiate('client-1', 'gig-1')).resolves.toMatchObject({
+      checkoutUrl: expect.stringContaining('http://localhost:3000/freelance/contracts/'),
+    });
   });
 });
