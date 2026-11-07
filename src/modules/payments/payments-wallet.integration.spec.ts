@@ -97,6 +97,10 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
 const mockChapaClient = {
   createTransfer: jest.fn(),
+  banks: jest.fn().mockResolvedValue([
+    { code: '855', name: 'telebirr', accountLength: 10, mobileMoney: true },
+    { code: '534', name: 'Hibret Bank', accountLength: 16, mobileMoney: false },
+  ]),
 };
 const mockWalletQueue = {
   add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal-tx-001' }),
@@ -402,8 +406,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
     it('decrements wallet balance and queues the Chapa payout job', async () => {
       const dto: WithdrawDto = {
         amount: 500,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'ETB',
       };
 
@@ -411,7 +416,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
 
       expect(result.success).toBe(true);
       expect(result.amount).toBe(500);
-      expect(result.method).toBe('CHAPA');
+      expect(result.method).toBe('telebirr');
       expect((result as any).status).toBe('PENDING');
       expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
       expect(mockWalletQueue.add).toHaveBeenCalledWith(
@@ -421,7 +426,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
           walletAmount: 500,
           payoutAmount: 500,
           payoutCurrency: 'ETB',
-          accountRef: '0912345678',
+          bankCode: '855',
+          accountName: 'Selam Tesfaye',
+          accountNumber: '0912345678',
         }),
         expect.objectContaining({
           jobId: 'wallet-withdrawal-tx-001',
@@ -438,8 +445,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
 
       const dto: WithdrawDto = {
         amount: 10,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'USD',
       };
 
@@ -469,8 +477,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
 
       const dto: WithdrawDto = {
         amount: 1000,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'ETB',
       };
 
@@ -489,8 +498,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
 
       const dto: WithdrawDto = {
         amount: 5,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'USD',
       };
 
@@ -508,8 +518,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
 
       const dto: WithdrawDto = {
         amount: 200,
-        method: 'CHAPA',
-        accountRef: 'bad_account',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'ETB',
       };
 
@@ -535,8 +546,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
     it('leaves provider I/O to the retryable worker', async () => {
       const dto: WithdrawDto = {
         amount: 300,
-        method: 'TELEBIRR',
-        accountRef: '0911111111',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'ETB',
       };
 
@@ -548,7 +560,7 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       expect(mockWalletQueue.add).toHaveBeenCalledWith(
         WALLET_JOBS.PROCESS_WITHDRAWAL,
         expect.objectContaining({
-          method: 'TELEBIRR',
+          method: 'telebirr',
           payoutAmount: 300,
           payoutCurrency: 'ETB',
         }),
@@ -556,6 +568,56 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
       );
     });
   });
+  // 13b. The destination is checked before any money moves
+  describe('Scenario 13b - Withdrawal destination is checked first', () => {
+    it('refuses a bank that is not in the Chapa list', async () => {
+      await expect(
+        walletService.withdraw('user-001', {
+          amount: 100,
+          bankCode: '999',
+          accountName: 'Selam Tesfaye',
+          accountNumber: '0912345678',
+          currency: 'ETB',
+        }),
+      ).rejects.toThrow('Choose a bank or wallet from the list');
+      expect(prisma.freelancerWallet.updateMany).not.toHaveBeenCalled();
+      expect(mockWalletQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('refuses an account number of the wrong length for that bank', async () => {
+      await expect(
+        walletService.withdraw('user-001', {
+          amount: 100,
+          bankCode: '534',
+          accountName: 'Selam Tesfaye',
+          accountNumber: '1000123',
+          currency: 'ETB',
+        }),
+      ).rejects.toThrow('Hibret Bank account numbers have 16 digits');
+      expect(mockWalletQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('sends the chosen bank and the account holder name to the payout job', async () => {
+      await walletService.withdraw('user-001', {
+        amount: 100,
+        bankCode: '534',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '1000123456789012',
+        currency: 'ETB',
+      });
+      expect(mockWalletQueue.add).toHaveBeenCalledWith(
+        WALLET_JOBS.PROCESS_WITHDRAWAL,
+        expect.objectContaining({
+          method: 'Hibret Bank',
+          bankCode: '534',
+          accountName: 'Selam Tesfaye',
+          accountNumber: '1000123456789012',
+        }),
+        expect.any(Object),
+      );
+    });
+  });
+
   // ── 14. Concurrent Stripe + PayPal intents ────────────────────────────────
   describe('Scenario 14 – Concurrent Stripe + PayPal intents', () => {
     it('persists both intents independently in the DB', async () => {
@@ -600,8 +662,9 @@ describe('Integration: Payment Gateway ↔ Multi-Currency Wallet', () => {
 
       const dto: WithdrawDto = {
         amount: 100,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'ETB',
       };
 

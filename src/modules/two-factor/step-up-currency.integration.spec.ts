@@ -16,6 +16,9 @@ const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
 const mockChapaClient = {
   createTransfer: jest.fn(),
+  banks: jest
+    .fn()
+    .mockResolvedValue([{ code: '855', name: 'telebirr', accountLength: 10, mobileMoney: true }]),
 };
 const mockWalletQueue = {
   add: jest.fn().mockResolvedValue({ id: 'wallet-withdrawal-tx-001' }),
@@ -112,16 +115,18 @@ describe('Step-Up + Multi-Currency integration', () => {
     it('defaults currency to ETB when not provided', () => {
       const dto = new WithdrawDto();
       dto.amount = 100;
-      dto.method = 'CHAPA';
-      dto.accountRef = '0911000000';
+      dto.bankCode = '855';
+      dto.accountName = 'Selam Tesfaye';
+      dto.accountNumber = '0911000000';
       expect(dto.currency).toBe('ETB');
     });
 
     it('accepts a non-default currency (USD)', () => {
       const dto = new WithdrawDto();
       dto.amount = 100;
-      dto.method = 'CHAPA';
-      dto.accountRef = '0911000000';
+      dto.bankCode = '855';
+      dto.accountName = 'Selam Tesfaye';
+      dto.accountNumber = '0911000000';
       dto.currency = 'USD';
       expect(dto.currency).toBe('USD');
     });
@@ -144,8 +149,9 @@ describe('Step-Up + Multi-Currency integration', () => {
 
       const dto: WithdrawDto = {
         amount: 10,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'USD',
       };
 
@@ -153,7 +159,7 @@ describe('Step-Up + Multi-Currency integration', () => {
 
       expect(result.success).toBe(true);
       expect(result.amount).toBe(10);
-      expect(result.method).toBe('CHAPA');
+      expect(result.method).toBe('telebirr');
       expect(result.amountInETB).toBe(1205);
       expect(mockChapaClient.createTransfer).not.toHaveBeenCalled();
       expect(mockWalletQueue.add).toHaveBeenCalledWith(
@@ -162,7 +168,7 @@ describe('Step-Up + Multi-Currency integration', () => {
           requestedCurrency: 'USD',
           payoutAmount: 1205,
           payoutCurrency: 'ETB',
-          accountRef: '0912345678',
+          accountNumber: '0912345678',
         }),
         expect.objectContaining({ jobId: 'wallet-withdrawal-tx-001' }),
       );
@@ -173,8 +179,9 @@ describe('Step-Up + Multi-Currency integration', () => {
 
       const dto: WithdrawDto = {
         amount: 50,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'USD',
       };
 
@@ -196,8 +203,9 @@ describe('Step-Up + Multi-Currency integration', () => {
 
       const dto: WithdrawDto = {
         amount: 5,
-        method: 'CHAPA',
-        accountRef: '0912345678',
+        bankCode: '855',
+        accountName: 'Selam Tesfaye',
+        accountNumber: '0912345678',
         currency: 'USD',
       };
 

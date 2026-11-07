@@ -1,6 +1,8 @@
 import { BadGatewayException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  ChapaBank,
+  ChapaBanksResponse,
   ChapaInitializeRequest,
   ChapaInitializeResponse,
   ChapaPaymentResult,
@@ -9,9 +11,12 @@ import {
   ChapaVerifyResponse,
 } from './chapa.types';
 
+const BANKS_CACHE_MS = 60 * 60 * 1000;
+
 @Injectable()
 export class ChapaClient {
   private readonly baseUrl: string;
+  private bankCache?: { at: number; banks: ChapaBank[] };
 
   constructor(private readonly config: ConfigService) {
     this.baseUrl = this.config
@@ -103,8 +108,28 @@ export class ChapaClient {
       amount: request.amount,
       currency: request.currency,
       reference: request.reference,
-      bank_code: request.bankCode,
+      // Chapa's bank ids are numbers (e.g. telebirr 855); send them as numbers.
+      bank_code: /^\d+$/.test(request.bankCode) ? Number(request.bankCode) : request.bankCode,
     });
+  }
+
+  /** Active banks and wallets Chapa pays out to, by name (kept for an hour). */
+  async banks(): Promise<ChapaBank[]> {
+    if (this.bankCache && Date.now() - this.bankCache.at < BANKS_CACHE_MS) {
+      return this.bankCache.banks;
+    }
+    const response = await this.get<ChapaBanksResponse>('/banks');
+    const banks = (response.data ?? [])
+      .filter((bank) => bank.active && (!bank.currency || bank.currency === 'ETB'))
+      .map((bank) => ({
+        code: String(bank.id),
+        name: bank.name,
+        accountLength: bank.acct_length ?? null,
+        mobileMoney: Boolean(bank.is_mobilemoney),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    this.bankCache = { at: Date.now(), banks };
+    return banks;
   }
 
   /**
