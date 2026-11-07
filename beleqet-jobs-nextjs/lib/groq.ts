@@ -20,7 +20,7 @@ export async function completeWithGroq(messages: GroqMessage[], maxTokens = 400)
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: process.env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
+      model: process.env.GROQ_MODEL ?? 'openai/gpt-oss-20b',
       messages,
       temperature: 0.55,
       max_completion_tokens: maxTokens,

@@ -6,7 +6,10 @@ import { UsersModule } from '../users/users.module';
 import { AI_CHAT_PROVIDER } from './ai/ai-chat-provider.interface';
 import { GroqProvider } from './ai/groq.provider';
 import { MockResumeExtractionProvider } from './extraction/mock-resume-extraction.provider';
-import { OpenAiResumeExtractionProvider } from './extraction/openai-resume-extraction.provider';
+import {
+  OpenAiResumeExtractionProvider,
+  resumeAiVendor,
+} from './extraction/openai-resume-extraction.provider';
 import { DocxParserService } from './parsers/docx-parser.service';
 import { OcrFallbackService } from './parsers/ocr-fallback.service';
 import { PdfParserService } from './parsers/pdf-parser.service';
@@ -18,9 +21,9 @@ import { ResumeBrainService } from './resume-brain.service';
 /**
  * NestJS module bundling CV upload, parsing, AI extraction, retrieval,
  * erasure, and profile autofill for the "Resume Brain" feature. The
- * extraction engine is swappable: an OpenAI-backed provider is used when
- * `OPENAI_API_KEY` is configured, otherwise a deterministic mock provider is
- * used (mirroring the `KycModule`'s `KycProvider` factory pattern).
+ * extraction engine is swappable: Groq or OpenAI (see `resumeAiVendor`) when
+ * that service's key is configured, otherwise a deterministic mock provider
+ * (mirroring the `KycModule`'s `KycProvider` factory pattern).
  */
 @Module({
   imports: [PrismaModule, ConfigModule, UploadsModule, UsersModule],
@@ -40,7 +43,8 @@ import { ResumeBrainService } from './resume-brain.service';
         mockProvider: MockResumeExtractionProvider,
         openAiProvider: OpenAiResumeExtractionProvider,
       ) => {
-        const apiKey = config.get<string>('OPENAI_API_KEY');
+        const keyName = resumeAiVendor(config) === 'groq' ? 'GROQ_API_KEY' : 'OPENAI_API_KEY';
+        const apiKey = config.get<string>(keyName);
         const isProduction =
           config.get<string>('NODE_ENV') === 'production' || process.env.NODE_ENV === 'production';
         const isApiKeyMissingOrDummy =
@@ -49,7 +53,7 @@ import { ResumeBrainService } from './resume-brain.service';
         if (isApiKeyMissingOrDummy) {
           if (isProduction) {
             throw new Error(
-              'OPENAI_API_KEY is missing or set to a dummy value in production environment.',
+              `${keyName} is missing or set to a dummy value in production environment.`,
             );
           }
           return mockProvider;

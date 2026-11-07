@@ -1,5 +1,9 @@
 import { ConfigService } from '@nestjs/config';
-import { OpenAiResumeExtractionProvider } from './openai-resume-extraction.provider';
+import OpenAI from 'openai';
+import {
+  OpenAiResumeExtractionProvider,
+  resumeAiVendor,
+} from './openai-resume-extraction.provider';
 
 const mockCreate = jest.fn();
 
@@ -10,6 +14,51 @@ jest.mock('openai', () => {
       chat: { completions: { create: mockCreate } },
     })),
   };
+});
+
+const configWith = (values: Record<string, unknown>) =>
+  ({
+    get: jest.fn((key: string, fallback?: unknown) => values[key] ?? fallback),
+  }) as unknown as ConfigService;
+
+describe('resumeAiVendor', () => {
+  it('uses Groq when a Groq key is set', () => {
+    expect(resumeAiVendor(configWith({ GROQ_API_KEY: 'gsk', OPENAI_API_KEY: 'sk' }))).toBe('groq');
+  });
+
+  it('uses OpenAI when there is no Groq key', () => {
+    expect(resumeAiVendor(configWith({ OPENAI_API_KEY: 'sk' }))).toBe('openai');
+  });
+
+  it('follows RESUME_EXTRACTION_PROVIDER when set', () => {
+    expect(
+      resumeAiVendor(configWith({ GROQ_API_KEY: 'gsk', RESUME_EXTRACTION_PROVIDER: 'OpenAI' })),
+    ).toBe('openai');
+  });
+});
+
+describe('OpenAiResumeExtractionProvider on Groq', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('points the client at Groq with the Groq key and model', () => {
+    const provider = new OpenAiResumeExtractionProvider(
+      configWith({ GROQ_API_KEY: 'gsk-test', OPENAI_API_KEY: 'sk-test' }),
+    );
+    expect(provider.engineId).toBe('groq:openai/gpt-oss-20b');
+    expect(OpenAI).toHaveBeenCalledWith({
+      apiKey: 'gsk-test',
+      baseURL: 'https://api.groq.com/openai/v1',
+    });
+  });
+
+  it('refuses to start in production without a Groq key when Groq is chosen', () => {
+    expect(
+      () =>
+        new OpenAiResumeExtractionProvider(
+          configWith({ NODE_ENV: 'production', RESUME_EXTRACTION_PROVIDER: 'groq' }),
+        ),
+    ).toThrow(/GROQ_API_KEY/);
+  });
 });
 
 describe('OpenAiResumeExtractionProvider', () => {

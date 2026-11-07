@@ -14,10 +14,22 @@ const SYSTEM_PROMPT =
   'compensation figure, express it as {"amount": "<decimal string, e.g. \\"45000.00\\">", "currencyCode": ' +
   '"<ISO 4217 code>"} — never a bare number, and omit it entirely if no figure is mentioned.';
 
+export type ResumeAiVendor = 'openai' | 'groq';
+
 /**
- * OpenAI-backed implementation of `ResumeExtractionProvider`. Uses JSON mode
- * with a low temperature to keep extraction deterministic and grounded in
- * the source text.
+ * Which service reads CVs: `RESUME_EXTRACTION_PROVIDER` if set, otherwise Groq
+ * when a Groq key is configured (it has a free tier), otherwise OpenAI.
+ */
+export function resumeAiVendor(config: ConfigService): ResumeAiVendor {
+  const chosen = config.get<string>('RESUME_EXTRACTION_PROVIDER')?.toLowerCase();
+  if (chosen === 'openai' || chosen === 'groq') return chosen;
+  return config.get<string>('GROQ_API_KEY') ? 'groq' : 'openai';
+}
+
+/**
+ * OpenAI-compatible implementation of `ResumeExtractionProvider`, talking to
+ * OpenAI or to Groq (same API, different base URL). Uses JSON mode with a low
+ * temperature to keep extraction deterministic and grounded in the source text.
  */
 @Injectable()
 export class OpenAiResumeExtractionProvider implements ResumeExtractionProvider {
@@ -25,20 +37,31 @@ export class OpenAiResumeExtractionProvider implements ResumeExtractionProvider 
   private readonly logger = new Logger(OpenAiResumeExtractionProvider.name);
   private readonly openai: OpenAI;
   private readonly model: string;
+  private readonly vendor: ResumeAiVendor;
 
   constructor(private readonly config: ConfigService) {
-    this.model = this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini');
-    this.engineId = `openai:${this.model}`;
-    const apiKey = this.config.get<string>('OPENAI_API_KEY');
+    this.vendor = resumeAiVendor(config);
+    const keyName = this.vendor === 'groq' ? 'GROQ_API_KEY' : 'OPENAI_API_KEY';
+    this.model =
+      this.vendor === 'groq'
+        ? this.config.get<string>('GROQ_MODEL', 'openai/gpt-oss-20b')
+        : this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini');
+    this.engineId = `${this.vendor}:${this.model}`;
+    const apiKey = this.config.get<string>(keyName);
 
     if (!apiKey && this.config.get<string>('NODE_ENV') === 'production') {
       throw new Error(
-        'OPENAI_API_KEY is not configured. Refusing to start in production: every resume ' +
-          'extraction would otherwise fail with a confusing OpenAI auth error instead of failing loudly on boot.',
+        `${keyName} is not configured. Refusing to start in production: every resume ` +
+          'extraction would otherwise fail with a confusing auth error instead of failing loudly on boot.',
       );
     }
 
-    this.openai = new OpenAI({ apiKey: apiKey || 'dummy_key_for_testing' });
+    this.openai = new OpenAI({
+      apiKey: apiKey || 'dummy_key_for_testing',
+      ...(this.vendor === 'groq'
+        ? { baseURL: this.config.get<string>('GROQ_BASE_URL', 'https://api.groq.com/openai/v1') }
+        : {}),
+    });
   }
 
   /** @inheritdoc */
@@ -66,7 +89,8 @@ ${resumeText.slice(0, 12000)}
           { role: 'user', content: userPrompt },
         ],
         temperature: 0.1,
-        max_tokens: 2000,
+        // Groq's gpt-oss models spend part of the budget on reasoning before the JSON.
+        max_tokens: this.vendor === 'groq' ? 4000 : 2000,
         response_format: { type: 'json_object' },
       });
 
@@ -75,7 +99,7 @@ ${resumeText.slice(0, 12000)}
       return this.toSafeDto(parsed);
     } catch (err) {
       this.logger.error(
-        `OpenAI resume extraction failed: ${(err as Error).message}`,
+        `${this.engineId} resume extraction failed: ${(err as Error).message}`,
         (err as Error).stack,
       );
       return this.toSafeDto({});
