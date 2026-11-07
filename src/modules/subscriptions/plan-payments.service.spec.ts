@@ -30,6 +30,7 @@ describe('PlanPaymentsService', () => {
         update: jest.fn(),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findFirst: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
         findFirstOrThrow: jest.fn().mockResolvedValue({ id: 'pay-1', status: 'SUCCEEDED' }),
       },
       subscription: {
@@ -76,7 +77,7 @@ describe('PlanPaymentsService', () => {
         email: 'emp@example.com',
         firstName: 'Abebe',
         txRef: 'CHAPA-9',
-        returnUrl: 'https://web.test/employer?tab=plan&payment=pay-1',
+        returnUrl: 'https://web.test/payment/chapa/pay-1',
       }),
     );
   });
@@ -222,6 +223,39 @@ describe('PlanPaymentsService', () => {
       expect(prisma.payment.findFirst).toHaveBeenCalledWith({
         where: { id: 'pay-1', userId: 'u2' },
       });
+    });
+  });
+
+  describe('confirmRecent, when the plan is loaded', () => {
+    it('starts the plan for a recent payment Chapa says is paid', async () => {
+      prisma.payment.findMany.mockResolvedValue([pending]);
+      await service.confirmRecent('u1');
+      expect(prisma.payment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ userId: 'u1', provider: 'CHAPA', status: 'PENDING' }),
+          take: 5,
+        }),
+      );
+      expect(chapa.paymentResult).toHaveBeenCalledWith('CHAPA-9');
+      expect(prisma.subscription.create).toHaveBeenCalled();
+    });
+
+    it('leaves payments Chapa still calls pending alone', async () => {
+      prisma.payment.findMany.mockResolvedValue([pending]);
+      chapa.paymentResult.mockResolvedValue({
+        state: 'pending',
+        amount: 999,
+        currency: 'ETB',
+        raw: {},
+      });
+      await service.confirmRecent('u1');
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
+      expect(prisma.payment.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does nothing without open payments', async () => {
+      await service.confirmRecent('u1');
+      expect(chapa.paymentResult).not.toHaveBeenCalled();
     });
   });
 });

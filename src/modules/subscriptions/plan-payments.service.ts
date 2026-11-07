@@ -57,7 +57,8 @@ export class PlanPaymentsService {
         firstName: user.firstName,
         lastName: user.lastName,
         txRef: payment.providerPaymentId,
-        returnUrl: `${frontend}/employer?tab=plan&payment=${payment.id}`,
+        // The id is in the path: query strings on the return address don't survive Chapa's redirect.
+        returnUrl: `${frontend}/payment/chapa/${payment.id}`,
         title: 'Beleqet Jobs',
         description: `${plan.name} plan`,
       });
@@ -119,24 +120,46 @@ export class PlanPaymentsService {
     const select = { id: true, status: true, amount: true, currency: true, createdAt: true };
     const payment = await this.prisma.payment.findFirst({ where: { id: paymentId, userId } });
     if (!payment) throw new NotFoundException('Payment not found');
-
-    if (payment.status === PaymentStatus.PENDING && payment.provider === PaymentProvider.CHAPA) {
-      try {
-        const result = await this.chapa.paymentResult(payment.providerPaymentId);
-        if (result.state === 'success' && this.paidInFull(payment, result)) {
-          await this.startPlan(payment);
-        } else if (result.state === 'failed') {
-          await this.prisma.payment.updateMany({
-            where: { id: payment.id, status: PaymentStatus.PENDING },
-            data: { status: PaymentStatus.FAILED },
-          });
-        }
-      } catch (err) {
-        // Chapa doesn't know a payment until the payer opens its page; keep waiting.
-        this.logger.debug(`Chapa check for payment ${payment.id}: ${(err as Error).message}`);
-      }
-    }
+    await this.checkWithChapa(payment);
     return this.prisma.payment.findFirstOrThrow({ where: { id: payment.id }, select });
+  }
+
+  /**
+   * Asks Chapa about the caller's plan payments from the last day that are still open, so a paid
+   * plan starts even if the payer never came back to the return page.
+   */
+  async confirmRecent(userId: string) {
+    const open = await this.prisma.payment.findMany({
+      where: {
+        userId,
+        provider: PaymentProvider.CHAPA,
+        status: PaymentStatus.PENDING,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+    for (const payment of open) await this.checkWithChapa(payment);
+  }
+
+  private async checkWithChapa(payment: Payment) {
+    if (payment.status !== PaymentStatus.PENDING || payment.provider !== PaymentProvider.CHAPA) {
+      return;
+    }
+    try {
+      const result = await this.chapa.paymentResult(payment.providerPaymentId);
+      if (result.state === 'success' && this.paidInFull(payment, result)) {
+        await this.startPlan(payment);
+      } else if (result.state === 'failed') {
+        await this.prisma.payment.updateMany({
+          where: { id: payment.id, status: PaymentStatus.PENDING },
+          data: { status: PaymentStatus.FAILED },
+        });
+      }
+    } catch (err) {
+      // Chapa doesn't know a payment until the payer opens its page; keep waiting.
+      this.logger.debug(`Chapa check for payment ${payment.id}: ${(err as Error).message}`);
+    }
   }
 
   private paidInFull(payment: Payment, result: { amount: number; currency: string }) {

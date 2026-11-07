@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Query,
   Headers,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -24,7 +25,6 @@ import { Request } from 'express';
 import { SkipThrottle } from '@nestjs/throttler';
 import { ChapaSignatureService } from './chapa-signature.service';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
-import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 
 @ApiTags('escrow')
 @Controller('escrow')
@@ -45,7 +45,6 @@ export class EscrowController {
   /** Webhook endpoint — verified via Chapa signature header */
   @SkipThrottle()
   @Post('callback')
-  @Get('callback')
   @HttpCode(HttpStatus.OK)
   async webhook(
     @Body() body: Record<string, unknown>,
@@ -57,45 +56,40 @@ export class EscrowController {
     const signature = chapaSignature || xChapaSignature;
     const secret = this.config.get<string>('CHAPA_WEBHOOK_SECRET');
 
-    // Verify signature for Chapa POST webhooks. GET callbacks are user redirects
-    // and are verified later through the server-to-server Chapa transaction check.
-    if (req.method === 'POST') {
-      if (!secret || !req.rawBody || !signature) {
-        throw new UnauthorizedException(
-          'Webhook signature verification failed: missing required components',
-        );
-      }
-
-      if (!this.signatures.verifyWebhook(req.rawBody, headers)) {
-        throw new UnauthorizedException('Invalid Webhook Signature');
-      }
-    }
-
-    // Merge body and query to support both POST webhooks and GET redirects from Chapa
-    const payload = {
-      ...body,
-      ...req.query,
-      tx_ref: req.query.trx_ref || body.tx_ref || req.query.tx_ref,
-    };
-
-    try {
-      if (req.method === 'GET') {
-        await this.svc.handleWebhook(
-          payload as unknown as { reference: string; status: string; [k: string]: unknown },
-        );
-        const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
-        return { url: `${frontendUrl}/dashboard` };
-      }
-
-      await this.svc.handleWebhook(
-        payload as unknown as { reference: string; status: string; [k: string]: unknown },
+    if (!secret || !req.rawBody || !signature) {
+      throw new UnauthorizedException(
+        'Webhook signature verification failed: missing required components',
       );
-      console.log(`[escrow-webhook] Successfully added to queue for tx_ref: ${payload.tx_ref}`);
-      return { success: true };
-    } catch (error) {
-      console.error(`[escrow-webhook] Queue execution failed!`, error);
-      throw error;
     }
+    if (!this.signatures.verifyWebhook(req.rawBody, headers)) {
+      throw new UnauthorizedException('Invalid Webhook Signature');
+    }
+
+    const payload = { ...body, tx_ref: body.tx_ref ?? body.trx_ref };
+    await this.svc.handleWebhook(
+      payload as unknown as { reference: string; status: string; [k: string]: unknown },
+    );
+    return { success: true };
+  }
+
+  /**
+   * Chapa's `callback_url`: called with `?trx_ref=…&status=…` (server to server, and from its
+   * checkout page) when a payment ends. It is unsigned, so it only queues a check: nothing changes
+   * until Chapa's verify endpoint confirms the payment. (A separate handler: a second method
+   * decorator on the POST handler is never registered, so these calls used to get 404.)
+   */
+  @SkipThrottle()
+  @Get('callback')
+  @HttpCode(HttpStatus.OK)
+  async callback(@Query() query: Record<string, unknown>) {
+    const txRef = query.trx_ref ?? query.tx_ref;
+    if (typeof txRef !== 'string' || !txRef) return { received: false };
+    await this.svc.handleWebhook({
+      tx_ref: txRef,
+      reference: typeof query.ref_id === 'string' ? query.ref_id : txRef,
+      status: typeof query.status === 'string' ? query.status : '',
+    });
+    return { received: true };
   }
 
   @Post('milestones/:id/release')
