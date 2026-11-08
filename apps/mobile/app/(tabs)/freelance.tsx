@@ -97,7 +97,7 @@ function FilterForm({ initial, categories, onApply }: { initial: Filters; catego
         label={t('freelance.gig.experience')}
         value={form.experienceLevel}
         onChange={(experienceLevel) => setForm({ ...form, experienceLevel })}
-        options={[{ value: '', label: t('m.all') }, ...LEVELS.map((level) => ({ value: level, label: t(`m.level.${level}`) }))]}
+        options={[{ value: '', label: t('m.all') }, ...LEVELS.map((level) => ({ value: level, label: t(`freelance.post2.levels.${level}`) }))]}
       />
       <Select
         label={t('m.sort')}

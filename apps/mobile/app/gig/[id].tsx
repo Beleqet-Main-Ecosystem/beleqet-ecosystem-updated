@@ -85,7 +85,7 @@ export default function GigScreen() {
         <Fact label={t('freelance.gig.budget')} value={`${formatBudget(data)}${hourly ? ` / ${t('freelance.hour')}` : ''}`} />
         <Fact label={t('freelance.gig.pricing')} value={t(hourly ? 'freelance.hourly' : 'freelance.fixed')} />
         {data.deadlineDays ? <Fact label={t('freelance.gig.delivery')} value={t('freelance.gig.within', { days: data.deadlineDays })} /> : null}
-        {data.experienceLevel ? <Fact label={t('freelance.gig.experience')} value={t(`m.level.${data.experienceLevel}`)} /> : null}
+        {data.experienceLevel ? <Fact label={t('freelance.gig.experience')} value={t(`freelance.post2.levels.${data.experienceLevel}`)} /> : null}
         {data.locationPreference ? <Fact label={t('m.location')} value={data.locationPreference} /> : null}
       </Card>
       <Card>

@@ -165,7 +165,7 @@ function EmployerHome() {
             </View>
             <View className="flex-row gap-3">
               <Button className="flex-1" label={`+ ${t('postJob.title')}`} onPress={() => router.push('/post-job')} />
-              <Button className="flex-1" label={`+ ${t('m.postProject')}`} variant="outline" onPress={() => router.push('/post-project')} />
+              <Button className="flex-1" label={`+ ${t('dash.postProject')}`} variant="outline" onPress={() => router.push('/post-project')} />
             </View>
             {open.length === 0 ? (
               <Empty title={t('emp.noOpen')} text={t('emp.noOpenText')} />

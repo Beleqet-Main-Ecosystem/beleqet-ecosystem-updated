@@ -12,14 +12,34 @@ export type EmployerJob = {
   deadline: string | null;
   createdAt?: string;
   _count?: { applications: number };
+  // Full fields, for editing.
+  categoryId?: string;
+  vacancies?: number | null;
+  type?: string;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  salaryType?: string | null;
+  description?: string;
+  requirements?: string | null;
+  experienceLevel?: string | null;
+  yearsOfExperience?: string | null;
+  qualification?: string | null;
+  tags?: string[];
+  featured?: boolean;
+  urgent?: boolean;
 };
+
+export type JobInput = Record<string, unknown>;
+export const createJob = (job: JobInput) => send<{ id: string }>('POST', '/jobs', job);
+export const updateJob = (id: string, job: JobInput) => send<{ id: string }>('PATCH', `/jobs/${encodeURIComponent(id)}`, job);
 
 export const fetchMyJobs = () => get<EmployerJob[]>('/jobs/my');
 /** Close, reopen or publish; `filled` records that the job was filled through Beleqet. */
 export const setJobStatus = (id: string, status: JobStatus, filled?: boolean) =>
   send('PATCH', `/jobs/${encodeURIComponent(id)}`, filled === undefined ? { status } : { status, filled });
 
-export type Quota = { used: number; limit: number | null; plan?: string; canFeature?: boolean };
+/** Job posts used in this plan period; max is null on unlimited plans. */
+export type Quota = { plan: string; used: number; max: number | null; canFeature: boolean };
 export const fetchQuota = () => get<Quota>('/jobs/my/quota');
 
 export type Applicant = {
@@ -55,6 +75,8 @@ export type Company = {
   tradeLicenseUrl?: string | null;
 };
 
-export const fetchCompany = () => get<Company | null>('/users/company');
+/** The employer's company, or null before they create one (the API answers with an empty body). */
+export const fetchCompany = async () => ((await get<Company | '' | null>('/users/company')) || null) as Company | null;
+export const createCompany = (company: { name: string; industry: string; location: string; website?: string; description: string }) => send<Company>('POST', '/users/company', company);
 export const saveCompany = (changes: Partial<Company>) => send<Company>('PATCH', '/users/company', changes);
 export const submitLicence = (tradeLicenseUrl: string) => send<Partial<Company>>('POST', '/users/company/verification', { tradeLicenseUrl });
