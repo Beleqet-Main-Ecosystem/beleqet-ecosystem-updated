@@ -31,6 +31,7 @@ function buildProcessor() {
     },
     freelanceJob: {
       update: jest.fn((input) => Promise.resolve(input)),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     employerWallet: {
       findUnique: employerWalletFindUnique,
@@ -59,6 +60,7 @@ function buildProcessor() {
     },
     freelanceJob: {
       update: jest.fn((input) => Promise.resolve(input)),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     employerWallet: {
       findUnique: employerWalletFindUnique,
@@ -126,6 +128,21 @@ describe('EscrowProcessor', () => {
       }),
     );
     expect(notificationsQueue.add).toHaveBeenCalled();
+  });
+
+  it('leaves a hired project in progress when its escrow is funded', async () => {
+    const { processor, tx } = buildProcessor();
+
+    await processor.handleWebhook({
+      data: { event: 'charge.success', tx_ref: 'tx-1', reference: 'chapa-ref', status: 'success' },
+    } as Job);
+
+    // FUNDED counts as open (listed and biddable), so only a project still at OPEN becomes FUNDED.
+    expect(tx.freelanceJob.updateMany).toHaveBeenCalledWith({
+      where: { id: 'gig-1', status: 'OPEN' },
+      data: { status: 'FUNDED' },
+    });
+    expect(tx.freelanceJob.update).not.toHaveBeenCalled();
   });
 
   it('skips duplicate webhook events', async () => {

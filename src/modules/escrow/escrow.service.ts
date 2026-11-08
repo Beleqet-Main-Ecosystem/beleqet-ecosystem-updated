@@ -149,8 +149,9 @@ export class EscrowService {
         });
       }
 
-      await this.prisma.freelanceJob.update({
-        where: { id: freelanceJobId },
+      // As in the processor: a hired project stays IN_PROGRESS.
+      await this.prisma.freelanceJob.updateMany({
+        where: { id: freelanceJobId, status: 'OPEN' },
         data: { status: 'FUNDED' },
       });
 

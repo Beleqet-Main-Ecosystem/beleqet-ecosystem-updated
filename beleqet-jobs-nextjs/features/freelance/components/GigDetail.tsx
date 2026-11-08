@@ -33,12 +33,17 @@ export default function GigDetail({ gig }: { gig: Gig }) {
   }, [gig.id]);
 
   useEffect(() => {
-    if (!user) return;
-    void loadBids();
-    if (!gig.open) findContractId(gig.id).then(setContractId).catch(() => setContractId(null));
-  }, [user, gig.id, gig.open, loadBids]);
+    if (user) void loadBids();
+  }, [user, loadBids]);
 
-  const open = gig.open && !bids?.some((bid) => bid.status === 'ACCEPTED');
+  // Look for the contract once someone is hired, whatever the project's status says.
+  const hired = bids?.some((bid) => bid.status === 'ACCEPTED') ?? false;
+  useEffect(() => {
+    if (!user || (gig.open && !hired)) return;
+    findContractId(gig.id).then(setContractId).catch(() => setContractId(null));
+  }, [user, gig.id, gig.open, hired]);
+
+  const open = gig.open && !hired;
   const myBid = bids?.find((bid) => bid.freelancer.id === user?.id) ?? null;
   const shownBidCount = bids?.length ?? gig.bidCount;
   const hourly = gig.pricingType === 'HOURLY';
