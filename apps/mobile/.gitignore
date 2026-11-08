@@ -4,3 +4,6 @@
 expo-env.d.ts
 .expo/
 # @end expo-cli
+# Native folders are generated from app.json by EAS (prebuild); never edit or commit them.
+/android
+/ios

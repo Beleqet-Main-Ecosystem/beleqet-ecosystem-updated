@@ -2,7 +2,7 @@
   "expo": {
     "name": "Beleqet Jobs",
     "slug": "beleqet-mobile",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "beleqet",
@@ -23,11 +23,9 @@
         "backgroundColor": "#041603"
       },
       "package": "com.beleqet.jobs",
-      "versionCode": 21,
+      "versionCode": 22,
       "permissions": [
         "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE"
@@ -73,7 +71,8 @@
       "expo-sharing",
       "expo-localization",
       "@react-native-community/datetimepicker",
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ],
     "extra": {
       "router": {
