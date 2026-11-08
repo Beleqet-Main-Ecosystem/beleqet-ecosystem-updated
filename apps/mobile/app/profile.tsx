@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Image, Linking, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -26,8 +26,11 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
   const refreshUser = useAuth((s) => s.refreshUser);
   const load = useLoad(() => Promise.all([fetchProfile(), fetchSlots().catch(() => [] as Slot[])]), []);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [slots, setSlots] = useState<Slot[]>([]);
+  // Edits on top of what loaded.
+  const [edited, setProfile] = useState<Profile | null>(null);
+  const [editedSlots, setSlots] = useState<Slot[] | null>(null);
+  const profile = edited ?? load.data?.[0] ?? null;
+  const slots = editedSlots ?? load.data?.[1] ?? [];
   const [skill, setSkill] = useState('');
   const [busy, setBusy] = useState<'' | 'save' | 'photo' | 'cv'>('');
   const [error, setError] = useState('');
@@ -35,13 +38,6 @@ export default function ProfileScreen() {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [slotError, setSlotError] = useState('');
-
-  useEffect(() => {
-    if (load.data) {
-      setProfile(load.data[0]);
-      setSlots(load.data[1]);
-    }
-  }, [load.data]);
 
   if (load.loading || (!profile && !load.error)) return <Screen title={t('dash.profileTitle')}><Loading /></Screen>;
   if (load.error || !profile) return <Screen title={t('dash.profileTitle')}><Failed message={errorText(load.error, t)} onRetry={load.reload} /></Screen>;

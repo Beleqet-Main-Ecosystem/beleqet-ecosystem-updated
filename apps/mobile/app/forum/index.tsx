@@ -69,7 +69,7 @@ export default function Forum() {
 }
 
 function ThreadRow({ thread, onTag }: { thread: ForumThread; onTag: (tag: string) => void }) {
-  const { t, locale } = useTranslation();
+  const { locale } = useTranslation();
   const { colors } = useTheme();
   return (
     <Pressable onPress={() => router.push(`/forum/${thread.id}`)} accessibilityRole="button" className="gap-2 rounded-xl border border-ink-200 bg-surface p-4 active:opacity-80 dark:border-slate-800 dark:bg-slate-900">

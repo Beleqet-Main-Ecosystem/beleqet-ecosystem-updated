@@ -22,13 +22,14 @@ export default function ChatRoom() {
   const history = useLoad(() => fetchMessages(id), [id]);
   const room = useLoad(() => fetchRooms().then((rooms) => rooms.find((r) => r.id === id) ?? null), [id]);
   const { socket, state } = useChatSocket();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Messages that arrived live, on top of the loaded history.
+  const [live, setLive] = useState<ChatMessage[]>([]);
+  const messages = [...(history.data ?? []), ...live.filter((m) => !(history.data ?? []).some((h) => h.id === m.id))];
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const list = useRef<FlatList<ChatMessage>>(null);
 
   useEffect(() => {
-    if (history.data) setMessages(history.data);
     markRoomRead(id).catch(() => undefined);
   }, [history.data, id]);
 
@@ -37,7 +38,7 @@ export default function ChatRoom() {
     const join = () => socket.emit('join_room', { roomId: id });
     const onMessage = (message: ChatMessage) => {
       if (message.roomId !== id) return;
-      setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]));
+      setLive((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]));
       markRoomRead(id).catch(() => undefined);
     };
     const onError = () => setError(t('chat.sendFailed'));

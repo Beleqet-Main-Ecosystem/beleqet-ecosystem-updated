@@ -1,4 +1,5 @@
 // A copy of beleqet-jobs-nextjs/lib/resume-brain/mapping.ts; keep the two the same.
+/* eslint-disable no-unused-expressions -- kept identical to the website's file */
 // Resume Brain — pure, framework-free mapping logic.
 //
 // This module holds the parts of the CV Builder that have nothing to do with

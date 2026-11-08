@@ -12,9 +12,10 @@
     "build:all": "eas build --platform all --profile production",
     "submit:android": "eas submit --platform android --profile production",
     "submit:ios": "eas submit --platform ios --profile production",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint app components lib api store features --ext .ts,.tsx",
     "type-check": "tsc --noEmit",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "check:i18n": "node scripts/check-i18n.js"
   },
   "dependencies": {
     "@beleqet/common": "file:../../packages/common",

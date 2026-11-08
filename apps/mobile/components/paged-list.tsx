@@ -17,8 +17,12 @@ type Props<T> = {
   emptyText?: string;
 };
 
-/** A search result list that loads the next page as you reach the end. */
-export function PagedList<T>({ load, query, render, keyOf, header, emptyTitle, emptyText }: Props<T>) {
+/** A search result list that loads the next page as you reach the end. A new query starts afresh. */
+export function PagedList<T>(props: Props<T>) {
+  return <Results key={props.query} {...props} />;
+}
+
+function Results<T>({ load, render, keyOf, header, emptyTitle, emptyText }: Props<T>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const [items, setItems] = useState<T[]>([]);
@@ -29,9 +33,9 @@ export function PagedList<T>({ load, query, render, keyOf, header, emptyTitle, e
   const generation = useRef(0);
 
   const fetchPage = useCallback(
-    async (next: number, mode: 'loading' | 'more' | 'refreshing') => {
+    // Callers set the state shown meanwhile; the first load starts in 'loading' (one list per query).
+    async (next: number) => {
       const mine = ++generation.current;
-      setState(mode);
       try {
         const result = await load(next);
         if (mine !== generation.current) return;
@@ -46,12 +50,15 @@ export function PagedList<T>({ load, query, render, keyOf, header, emptyTitle, e
         setState(next === 1 ? 'failed' : 'ready');
       }
     },
+    // `load` changes every render; the list remounts when the query changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [query],
+    [],
   );
 
   useEffect(() => {
-    void fetchPage(1, 'loading');
+    // Fetching on mount: state is set only after the request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchPage(1);
   }, [fetchPage]);
 
   return (
@@ -63,14 +70,17 @@ export function PagedList<T>({ load, query, render, keyOf, header, emptyTitle, e
       keyboardShouldPersistTaps="handled"
       ListHeaderComponent={header}
       ListEmptyComponent={
-        state === 'loading' ? <Loading /> : state === 'failed' ? <Failed message={errorText(error, t)} onRetry={() => fetchPage(1, 'loading')} /> : <Empty title={emptyTitle} text={emptyText} />
+        state === 'loading' ? <Loading /> : state === 'failed' ? <Failed message={errorText(error, t)} onRetry={() => { setState('loading'); void fetchPage(1); }} /> : <Empty title={emptyTitle} text={emptyText} />
       }
       ListFooterComponent={state === 'more' ? <View className="py-4"><ActivityIndicator color={colors.accent} /></View> : null}
       onEndReachedThreshold={0.4}
       onEndReached={() => {
-        if (state === 'ready' && page < totalPages) void fetchPage(page + 1, 'more');
+        if (state === 'ready' && page < totalPages) {
+          setState('more');
+          void fetchPage(page + 1);
+        }
       }}
-      refreshControl={<RefreshControl refreshing={state === 'refreshing'} onRefresh={() => fetchPage(1, 'refreshing')} tintColor={colors.accent} colors={[colors.accent]} />}
+      refreshControl={<RefreshControl refreshing={state === 'refreshing'} onRefresh={() => { setState('refreshing'); void fetchPage(1); }} tintColor={colors.accent} colors={[colors.accent]} />}
     />
   );
 }

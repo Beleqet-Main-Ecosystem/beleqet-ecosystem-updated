@@ -53,9 +53,11 @@ export default function CvMaker() {
   const user = useAuth((s) => s.user);
   const pending = useCvImport((s) => s.pending);
   const clearImport = useCvImport((s) => s.set);
-  const [cv, setCv] = useState<CvData>(emptyCv);
-  const [open, setOpen] = useState<Record<SectionId, boolean>>({ contact: true, summary: true, experience: true, education: false, skills: false });
-  const [status, setStatus] = useState('');
+  // A CV handed over by Resume Brain starts the form; otherwise the saved draft loads below.
+  const [imported] = useState(() => (pending ? mergeExtractedProfile(emptyCv, resumeToCvImport(pending)).next : null));
+  const [cv, setCv] = useState<CvData>(imported ?? emptyCv);
+  const [open, setOpen] = useState<Record<SectionId, boolean>>(imported ? { contact: true, summary: true, experience: true, education: true, skills: true } : { contact: true, summary: true, experience: true, education: false, skills: false });
+  const [status, setStatus] = useState(imported ? t('cv.imported') : '');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<'' | 'draft' | 'profile' | 'ai' | 'pdf'>('');
   const loaded = useRef(false);
@@ -63,11 +65,7 @@ export default function CvMaker() {
   useEffect(() => {
     if (loaded.current) return;
     loaded.current = true;
-    if (pending) {
-      const { next } = mergeExtractedProfile(emptyCv, resumeToCvImport(pending));
-      setCv(next);
-      setOpen({ contact: true, summary: true, experience: true, education: true, skills: true });
-      setStatus(t('cv.imported'));
+    if (imported) {
       clearImport(null);
       return;
     }
@@ -84,7 +82,7 @@ export default function CvMaker() {
         })
         .catch(() => undefined);
     }
-  }, [pending, user, t, clearImport]);
+  }, [imported, user, clearImport]);
 
   function field<K extends keyof CvData>(key: K, value: CvData[K]) {
     setCv((old) => ({ ...old, [key]: value }));

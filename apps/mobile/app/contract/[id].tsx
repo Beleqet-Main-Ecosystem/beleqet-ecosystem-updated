@@ -307,6 +307,8 @@ function MilestoneSheet({ dialog, contract, onClose, onDone }: { dialog: Dialog 
   const [deadline, setDeadline] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Milestones are due from tomorrow on.
+  const [tomorrow] = useState(() => new Date(Date.now() + 86400000));
   const money = (value: number) => fmt(value, contract.currency);
 
   function close() {
@@ -378,7 +380,6 @@ function MilestoneSheet({ dialog, contract, onClose, onDone }: { dialog: Dialog 
     }
   }
 
-  const tomorrow = new Date(Date.now() + 86400000);
   return (
     <Sheet visible title={heading} onClose={close}>
       <View className="gap-4 p-4">

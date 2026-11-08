@@ -47,7 +47,7 @@ export default function Apply() {
       <Screen title={t('job.apply.title')}>
         <Card>
           <Check color={colors.accent} size={32} />
-          <H1>{t('m.apply.sent')}</H1>
+          <H1>{t('m.applySent')}</H1>
           <Muted>{t('job.apply.sentText', { company: job.company })}</Muted>
           <Button label={t('job.apply.track')} onPress={() => router.replace('/applications')} />
           <Button label={t('job.apply.keepBrowsing')} variant="outline" onPress={() => router.replace('/(tabs)/jobs')} />

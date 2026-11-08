@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen, Card, H2, Muted, Field, Select, Chips, Button, Notice, Toggle, Loading, Failed, Divider } from '../components/ui';
@@ -74,21 +74,19 @@ export default function PortfolioScreen() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
   const load = useLoad(fetchPortfolio, [], { enabled: Boolean(user) });
-  const [data, setData] = useState<Portfolio | null>(null);
+  // Edits on top of the saved portfolio, or a new one started from the account.
+  const [edited, setData] = useState<Portfolio | null>(null);
   const [lang, setLang] = useState<'en' | 'am'>('en');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  useEffect(() => {
-    if (!load.loading && !load.error) {
-      setData(load.data ?? {
-        ...blank(),
-        profile: { ...blank().profile, fullName: user ? `${user.firstName} ${user.lastName}`.trim() : '', location: user?.location ?? '' },
-        contact: { ...blank().contact, email: user?.email ?? '' },
-      });
-    }
-  }, [load.loading, load.error, load.data, user]);
+  const [fresh] = useState(() => ({
+    ...blank(),
+    profile: { ...blank().profile, fullName: user ? `${user.firstName} ${user.lastName}`.trim() : '', location: user?.location ?? '' },
+    contact: { ...blank().contact, email: user?.email ?? '' },
+  }));
+  const data = edited ?? (load.loading || load.error ? null : load.data ?? fresh);
 
   if (!user) {
     return (

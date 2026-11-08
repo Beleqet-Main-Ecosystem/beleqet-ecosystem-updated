@@ -24,12 +24,13 @@ export default function Jobs() {
     fetchJobCategories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
-  useEffect(() => {
-    if (params.q !== undefined) {
-      setDraft(params.q);
-      setQ(params.q);
-    }
-  }, [params.q]);
+  // A new ?q= (from the home search) replaces the search.
+  const [seenQ, setSeenQ] = useState(params.q);
+  if (params.q !== seenQ) {
+    setSeenQ(params.q);
+    setDraft(params.q ?? '');
+    setQ(params.q ?? '');
+  }
 
   const active = Number(Boolean(filters.location)) + Number(Boolean(filters.category)) + filters.types.length;
   const query = JSON.stringify({ q, ...filters });

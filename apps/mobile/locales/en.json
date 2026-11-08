@@ -1,1 +1,189 @@
-{ "m": {} }
+{
+  "m": {
+    "back": "Back",
+    "retry": "Try again",
+    "choose": "Choose…",
+    "all": "All",
+    "clear": "Clear",
+    "apply": "Apply",
+    "applySent": "Application sent",
+    "save": "Save",
+    "unsave": "Remove from saved",
+    "copy": "Copy",
+    "share": "Share",
+    "seeAll": "See all",
+    "closed": "Closed",
+    "featured": "Featured",
+    "urgent": "Urgent",
+    "location": "Location",
+    "category": "Category",
+    "min": "Minimum",
+    "max": "Maximum",
+    "pickDate": "Choose a date",
+    "filters": "Filters",
+    "filtersHint": "Results update when you tap Apply.",
+    "jobTypeLabel": "Job type",
+    "sort": "Sort by",
+    "sortNewest": "Newest first",
+    "sortBudgetHigh": "Highest budget",
+    "sortBudgetLow": "Lowest budget",
+    "searchJobs": "Job title, skill or company",
+    "searchProjects": "Search projects",
+    "tryOtherFilters": "Try other words or clear the filters.",
+    "noProjects": "No open projects match",
+    "savedProjects": "Saved projects",
+    "noSavedProjects": "You haven't saved any projects yet",
+    "bidCount": "{count} bids",
+    "publishProject": "Publish project",
+    "viewPost": "View post",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all read",
+    "noNotifications": "No notifications yet",
+    "ago": {
+      "now": "just now",
+      "minutes": "{n} min ago",
+      "hours": "{n} h ago",
+      "days": "{n} days ago",
+      "weeks": "{n} weeks ago",
+      "months": "{n} months ago",
+      "years": "{n} years ago"
+    },
+    "error": {
+      "generic": "Something went wrong on our side. Try again in a moment."
+    },
+    "tabs": {
+      "home": "Home",
+      "jobs": "Jobs",
+      "freelance": "Freelance",
+      "hiring": "Hiring",
+      "projects": "Projects",
+      "messages": "Messages",
+      "me": "Me"
+    },
+    "home": {
+      "latestJobs": "Latest jobs",
+      "openProjects": "Open freelance projects",
+      "activeContracts": "Contracts in progress"
+    },
+    "auth": {
+      "google": "Continue with Google",
+      "changeRole": "Change account type",
+      "resetInBrowser": "The link opens in your browser. Set your new password there, then sign in here."
+    },
+    "verify": {
+      "done": "I've confirmed it"
+    },
+    "contract": {
+      "paymentPending": "We haven't heard from Chapa yet. Pull down to refresh in a minute; the contract updates as soon as the payment is confirmed.",
+      "released": "Payment released. The freelancer gets it after the 3-day hold.",
+      "revisionSent": "Revision request sent.",
+      "disputeOpened": "Dispute opened. Escrow is frozen until Beleqet reviews it.",
+      "workSent": "Work submitted. The client has been told.",
+      "milestoneAdded": "Milestone proposed. The client will accept or decline it."
+    },
+    "wallet": {
+      "max": "Up to {amount}",
+      "sending": "Sending…"
+    },
+    "profile": {
+      "changePhoto": "Change photo",
+      "addSkill": "Add a skill",
+      "uploadCv": "Upload a new CV",
+      "booked": "Booked"
+    },
+    "resume": {
+      "apply": "Fill my profile with these"
+    },
+    "plan": {
+      "current": "Your plan",
+      "upgrade": "See plans",
+      "payChapa": "Pay with Chapa",
+      "chapaNote": "Chapa takes Telebirr, CBE Birr, bank accounts and cards. Each payment covers one month; pay again to extend."
+    },
+    "company": {
+      "changeLogo": "Change logo",
+      "sendLicence": "Send trade licence"
+    },
+    "twoStep": {
+      "openApp": "Add to my authenticator app",
+      "noApp": "No authenticator app found. Install Google Authenticator or Microsoft Authenticator, or enter the key by hand."
+    },
+    "me": {
+      "guestTitle": "Welcome to Beleqet",
+      "guestText": "Sign in to apply for jobs, bid on projects, hire, and get paid safely.",
+      "jobs": "Jobs",
+      "hiring": "Hiring",
+      "tools": "Career tools",
+      "account": "Account",
+      "about": "Beleqet",
+      "signOutText": "You'll need to sign in again to see your applications and messages."
+    },
+    "tools": {
+      "cvMaker": "CV Maker",
+      "portfolio": "Portfolio",
+      "chatToText": "Chat-to-Text",
+      "forum": "Community forum",
+      "tax": "Salary & tax calculator"
+    },
+    "about": {
+      "pricing": "Pricing",
+      "about": "About Beleqet",
+      "contact": "Contact us"
+    },
+    "contact": {
+      "intro": "Questions, problems or ideas: write to us and we'll reply by email.",
+      "name": "Your name",
+      "subject": "Subject",
+      "message": "Message",
+      "send": "Send message",
+      "sent": "Thanks, we got your message. Your reference is {reference}.",
+      "failed": "Your message couldn't be sent. Try again."
+    },
+    "cv": {
+      "pdfFailed": "We couldn't make the PDF. Try again."
+    },
+    "portfolio": {
+      "intro": "Your portfolio is one place for your work, skills and experience, in English and Amharic. It's the same one you edit on the website.",
+      "isPublished": "Published: anyone with the link can see it.",
+      "isDraft": "Draft: only you can see it.",
+      "saved": "Portfolio saved.",
+      "published": "Portfolio published.",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "contentLanguage": "Writing in",
+      "template": "Template",
+      "templates": {
+        "modern": "Modern",
+        "minimal": "Minimal",
+        "professional": "Professional",
+        "creative": "Creative"
+      },
+      "profile": "Profile",
+      "projects": "Projects",
+      "projectTitle": "Project name",
+      "technologies": "Tools and technologies (comma-separated)",
+      "liveLink": "Live link",
+      "skill": "Skill",
+      "level": "Level",
+      "levels": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced",
+        "expert": "Expert"
+      },
+      "field": "Field of study",
+      "certifications": "Certifications",
+      "certificate": "Certificate",
+      "issuer": "Issued by",
+      "issued": "Issue date",
+      "credentialLink": "Credential link",
+      "links": "Links",
+      "platform": "Platform (e.g. LinkedIn)",
+      "contact": "Contact",
+      "availability": "Availability",
+      "publicLabel": "Public",
+      "publicHint": "Let anyone with the link see your portfolio.",
+      "webOnly": "Case studies and the gallery are edited on the website; saving here keeps them as they are."
+    }
+  }
+}

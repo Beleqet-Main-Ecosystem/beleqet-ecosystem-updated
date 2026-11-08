@@ -24,14 +24,13 @@ export function useLoad<T>(load: () => Promise<T>, deps: DependencyList, options
   const [refreshing, setRefreshing] = useState(false);
   const generation = useRef(0);
   const loaded = useRef(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // A generic hook: the caller lists what `load` depends on, as with useEffect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo
   const run = useCallback(load, deps);
 
   const fetchNow = useCallback(
     async (mode: 'first' | 'refresh' | 'quiet') => {
       const mine = ++generation.current;
-      if (mode === 'first') setLoading(true);
-      if (mode === 'refresh') setRefreshing(true);
       try {
         const next = await run();
         if (mine !== generation.current) return;
@@ -52,12 +51,18 @@ export function useLoad<T>(load: () => Promise<T>, deps: DependencyList, options
     [run],
   );
 
+  // New inputs (another id, say) show the spinner again; noticed during render, as React advises.
+  const [shownFor, setShownFor] = useState(() => run);
+  if (shownFor !== run) {
+    setShownFor(() => run);
+    setLoading(enabled);
+  }
+
   useEffect(() => {
-    if (!enabled) {
-      setLoading(false);
-      return;
-    }
+    if (!enabled) return;
     loaded.current = false;
+    // Fetching on mount: state is set only after the request resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchNow('first');
   }, [fetchNow, enabled]);
 
@@ -74,10 +79,17 @@ export function useLoad<T>(load: () => Promise<T>, deps: DependencyList, options
   return {
     data,
     error,
-    loading,
+    // Nothing is loading while the load is switched off.
+    loading: enabled && loading,
     refreshing,
-    reload: () => fetchNow('first'),
-    refresh: () => fetchNow('refresh'),
+    reload: () => {
+      setLoading(true);
+      return fetchNow('first');
+    },
+    refresh: () => {
+      setRefreshing(true);
+      return fetchNow('refresh');
+    },
     setData,
   };
 }

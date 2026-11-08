@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CheckCircle2, X } from 'lucide-react-native';
@@ -33,11 +33,9 @@ export default function PostJob() {
     [edit],
     { enabled: isEmployer(user) },
   );
-  const [company, setCompany] = useState<Company | null | undefined>(undefined);
-
-  useEffect(() => {
-    if (load.data) setCompany(load.data[0]);
-  }, [load.data]);
+  // A company created on this screen, until the next load.
+  const [created, setCompany] = useState<Company | null>(null);
+  const company = created ?? (load.data ? load.data[0] : undefined);
 
   const title = editing ? t('postJob.editTitle') : t('postJob.title');
   if (!user || !isEmployer(user)) {

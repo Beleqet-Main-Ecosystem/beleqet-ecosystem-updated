@@ -1,1 +1,189 @@
-{ "m": {} }
+{
+  "m": {
+    "back": "ተመለስ",
+    "retry": "እንደገና ይሞክሩ",
+    "choose": "ይምረጡ…",
+    "all": "ሁሉም",
+    "clear": "አጽዳ",
+    "apply": "ተግብር",
+    "applySent": "ማመልከቻው ተልኳል",
+    "save": "አስቀምጥ",
+    "unsave": "ከተቀመጡት አስወግድ",
+    "copy": "ቅዳ",
+    "share": "አጋራ",
+    "seeAll": "ሁሉንም ይመልከቱ",
+    "closed": "ተዘግቷል",
+    "featured": "ተለይቶ የቀረበ",
+    "urgent": "አስቸኳይ",
+    "location": "ቦታ",
+    "category": "ምድብ",
+    "min": "ዝቅተኛ",
+    "max": "ከፍተኛ",
+    "pickDate": "ቀን ይምረጡ",
+    "filters": "ማጣሪያዎች",
+    "filtersHint": "ተግብር ሲጫኑ ውጤቶቹ ይዘመናሉ።",
+    "jobTypeLabel": "የሥራ ዓይነት",
+    "sort": "ደርድር",
+    "sortNewest": "አዲሶቹ መጀመሪያ",
+    "sortBudgetHigh": "ከፍተኛ በጀት",
+    "sortBudgetLow": "ዝቅተኛ በጀት",
+    "searchJobs": "የሥራ መደብ፣ ክህሎት ወይም ድርጅት",
+    "searchProjects": "ፕሮጀክቶችን ይፈልጉ",
+    "tryOtherFilters": "ሌላ ቃል ይሞክሩ ወይም ማጣሪያዎቹን ያጽዱ።",
+    "noProjects": "የሚዛመዱ ክፍት ፕሮጀክቶች የሉም",
+    "savedProjects": "የተቀመጡ ፕሮጀክቶች",
+    "noSavedProjects": "እስካሁን ምንም ፕሮጀክት አላስቀመጡም",
+    "bidCount": "{count} ጨረታዎች",
+    "publishProject": "ፕሮጀክቱን ለጥፍ",
+    "viewPost": "ማስታወቂያውን ይመልከቱ",
+    "notifications": "ማሳወቂያዎች",
+    "markAllRead": "ሁሉንም እንደተነበበ ምልክት አድርግ",
+    "noNotifications": "እስካሁን ምንም ማሳወቂያ የለም",
+    "ago": {
+      "now": "አሁን",
+      "minutes": "ከ{n} ደቂቃ በፊት",
+      "hours": "ከ{n} ሰዓት በፊት",
+      "days": "ከ{n} ቀናት በፊት",
+      "weeks": "ከ{n} ሳምንታት በፊት",
+      "months": "ከ{n} ወራት በፊት",
+      "years": "ከ{n} ዓመታት በፊት"
+    },
+    "error": {
+      "generic": "በእኛ በኩል ችግር ተፈጥሯል። ትንሽ ቆይተው እንደገና ይሞክሩ።"
+    },
+    "tabs": {
+      "home": "መነሻ",
+      "jobs": "ሥራዎች",
+      "freelance": "ፍሪላንስ",
+      "hiring": "ቅጥር",
+      "projects": "ፕሮጀክቶች",
+      "messages": "መልዕክቶች",
+      "me": "እኔ"
+    },
+    "home": {
+      "latestJobs": "አዳዲስ ሥራዎች",
+      "openProjects": "ክፍት የፍሪላንስ ፕሮጀክቶች",
+      "activeContracts": "በሂደት ላይ ያሉ ውሎች"
+    },
+    "auth": {
+      "google": "በGoogle ይቀጥሉ",
+      "changeRole": "የመለያ ዓይነት ይቀይሩ",
+      "resetInBrowser": "ሊንኩ በብራውዘርዎ ይከፈታል። እዚያ አዲሱን የይለፍ ቃል ያስገቡ፣ ከዚያ እዚህ ይግቡ።"
+    },
+    "verify": {
+      "done": "አረጋግጫለሁ"
+    },
+    "contract": {
+      "paymentPending": "ከቻፓ ገና ምላሽ አልደረሰንም። ከአንድ ደቂቃ በኋላ ለማደስ ወደ ታች ይጎትቱ፤ ክፍያው እንደተረጋገጠ ውሉ ይዘመናል።",
+      "released": "ክፍያው ተለቋል። ፍሪላንሰሩ ከ3 ቀን ቆይታ በኋላ ያገኘዋል።",
+      "revisionSent": "የማሻሻያ ጥያቄ ተልኳል።",
+      "disputeOpened": "ክርክር ተከፍቷል። ቤለቀት እስኪመረምረው እስክሮው ታግዷል።",
+      "workSent": "ሥራው ገብቷል። ደንበኛው ተነግሮታል።",
+      "milestoneAdded": "ደረጃው ቀርቧል። ደንበኛው ይቀበለዋል ወይም ውድቅ ያደርገዋል።"
+    },
+    "wallet": {
+      "max": "እስከ {amount}",
+      "sending": "በመላክ ላይ…"
+    },
+    "profile": {
+      "changePhoto": "ፎቶ ቀይር",
+      "addSkill": "ክህሎት ያክሉ",
+      "uploadCv": "አዲስ ሲቪ ይስቀሉ",
+      "booked": "ተይዟል"
+    },
+    "resume": {
+      "apply": "መገለጫዬን በእነዚህ ሙላ"
+    },
+    "plan": {
+      "current": "የእርስዎ ዕቅድ",
+      "upgrade": "ዕቅዶችን ይመልከቱ",
+      "payChapa": "በቻፓ ይክፈሉ",
+      "chapaNote": "ቻፓ ቴሌብር፣ ሲቢኢ ብር፣ የባንክ ሂሳቦችን እና ካርዶችን ይቀበላል። እያንዳንዱ ክፍያ አንድ ወር ይሸፍናል፤ ለማራዘም እንደገና ይክፈሉ።"
+    },
+    "company": {
+      "changeLogo": "አርማ ቀይር",
+      "sendLicence": "የንግድ ፈቃድ ይላኩ"
+    },
+    "twoStep": {
+      "openApp": "ወደ አረጋጋጭ መተግበሪያዬ ጨምር",
+      "noApp": "አረጋጋጭ መተግበሪያ አልተገኘም። Google Authenticator ወይም Microsoft Authenticator ይጫኑ፣ ወይም ቁልፉን በእጅ ያስገቡ።"
+    },
+    "me": {
+      "guestTitle": "እንኳን ወደ ቤለቀት በደህና መጡ",
+      "guestText": "ለሥራ ለማመልከት፣ በፕሮጀክቶች ላይ ጨረታ ለማቅረብ፣ ለመቅጠር እና በደህና ክፍያ ለመቀበል ይግቡ።",
+      "jobs": "ሥራዎች",
+      "hiring": "ቅጥር",
+      "tools": "የሙያ መሣሪያዎች",
+      "account": "መለያ",
+      "about": "ቤለቀት",
+      "signOutText": "ማመልከቻዎችዎን እና መልዕክቶችዎን ለማየት እንደገና መግባት ያስፈልግዎታል።"
+    },
+    "tools": {
+      "cvMaker": "ሲቪ ሰሪ",
+      "portfolio": "ፖርትፎሊዮ",
+      "chatToText": "ድምፅ ወደ ጽሑፍ",
+      "forum": "የማህበረሰብ መድረክ",
+      "tax": "የደመወዝ እና የግብር ማስያ"
+    },
+    "about": {
+      "pricing": "ዋጋዎች",
+      "about": "ስለ ቤለቀት",
+      "contact": "ያግኙን"
+    },
+    "contact": {
+      "intro": "ጥያቄ፣ ችግር ወይም ሀሳብ ካለዎት ይጻፉልን፤ በኢሜይል እንመልሳለን።",
+      "name": "ስምዎ",
+      "subject": "ርዕስ",
+      "message": "መልዕክት",
+      "send": "መልዕክት ላክ",
+      "sent": "እናመሰግናለን፣ መልዕክትዎ ደርሶናል። የማጣቀሻ ቁጥርዎ {reference} ነው።",
+      "failed": "መልዕክትዎ ሊላክ አልቻለም። እንደገና ይሞክሩ።"
+    },
+    "cv": {
+      "pdfFailed": "PDF መፍጠር አልቻልንም። እንደገና ይሞክሩ።"
+    },
+    "portfolio": {
+      "intro": "ፖርትፎሊዮዎ ሥራዎን፣ ክህሎቶችዎን እና ልምድዎን በእንግሊዝኛ እና በአማርኛ የሚያሳይ አንድ ቦታ ነው። በድረ-ገጹ ላይ የሚያስተካክሉት ያው ነው።",
+      "isPublished": "ታትሟል፤ ሊንኩ ያለው ማንኛውም ሰው ማየት ይችላል።",
+      "isDraft": "ረቂቅ፤ እርስዎ ብቻ ማየት ይችላሉ።",
+      "saved": "ፖርትፎሊዮው ተቀምጧል።",
+      "published": "ፖርትፎሊዮው ታትሟል።",
+      "publish": "አትም",
+      "unpublish": "ከሕትመት አውጣ",
+      "contentLanguage": "የሚጽፉበት ቋንቋ",
+      "template": "ቅርጸት",
+      "templates": {
+        "modern": "ዘመናዊ",
+        "minimal": "ቀላል",
+        "professional": "ፕሮፌሽናል",
+        "creative": "ፈጠራዊ"
+      },
+      "profile": "መገለጫ",
+      "projects": "ፕሮጀክቶች",
+      "projectTitle": "የፕሮጀክቱ ስም",
+      "technologies": "መሣሪያዎች እና ቴክኖሎጂዎች (በኮማ የተለዩ)",
+      "liveLink": "የቀጥታ ሊንክ",
+      "skill": "ክህሎት",
+      "level": "ደረጃ",
+      "levels": {
+        "beginner": "ጀማሪ",
+        "intermediate": "መካከለኛ",
+        "advanced": "የላቀ",
+        "expert": "ባለሙያ"
+      },
+      "field": "የትምህርት መስክ",
+      "certifications": "ምስክር ወረቀቶች",
+      "certificate": "ምስክር ወረቀት",
+      "issuer": "የሰጠው",
+      "issued": "የተሰጠበት ቀን",
+      "credentialLink": "የማረጋገጫ ሊንክ",
+      "links": "ሊንኮች",
+      "platform": "መድረክ (ለምሳሌ LinkedIn)",
+      "contact": "አድራሻ",
+      "availability": "ዝግጁነት",
+      "publicLabel": "ለሕዝብ ክፍት",
+      "publicHint": "ሊንኩ ያለው ማንኛውም ሰው ፖርትፎሊዮዎን እንዲያይ ይፍቀዱ።",
+      "webOnly": "ጥናታዊ ምሳሌዎች እና ጋለሪው በድረ-ገጹ ላይ ይስተካከላሉ፤ እዚህ ማስቀመጥ እንዳሉ ይጠብቃቸዋል።"
+    }
+  }
+}
