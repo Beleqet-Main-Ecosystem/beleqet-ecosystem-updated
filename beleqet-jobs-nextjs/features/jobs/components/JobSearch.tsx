@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, MapPin, Search, SearchX, Send, SlidersHorizo
 import type { Category, JobSearchResult } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { categoryLabel, featuredCategories } from '../categories';
-import { JOB_TYPES, QUICK_LOCATIONS, hasFilters, jobSearchHref, pageWindow, toggleType, type JobSearch as SearchState } from '../search-params';
+import { EXPERIENCE_LEVELS, JOB_TYPES, POSTED_WITHIN, QUICK_LOCATIONS, SALARY_STEPS, hasFilters, jobSearchHref, pageWindow, toggleType, type JobSearch as SearchState, type JobSort } from '../search-params';
 import JobResultCard from './JobResultCard';
 
 const TELEGRAM_CHANNEL = 'https://t.me/BeleqetJobs';
@@ -43,10 +43,13 @@ export default function JobSearch({ search, result, categories }: Props) {
     ...search.types.map((code) => ({ key: `type-${code}`, label: t(`search.types.${code}`), clear: { types: search.types.filter((item) => item !== code) } })),
     activeCategory && { key: 'category', label: categoryLabel(activeCategory, t), clear: { category: '' } },
     search.loc && { key: 'loc', label: placeLabel(search.loc, t), clear: { loc: '' } },
+    search.salary && { key: 'salary', label: t('search.salaryFrom').replace('{amount}', search.salary.toLocaleString('en-US')), clear: { salary: 0 } },
+    search.level && { key: 'level', label: t(`postJob.levels.${search.level}`), clear: { level: '' } },
+    search.posted && { key: 'posted', label: t(`search.postedWithin.${search.posted}`), clear: { posted: 0 } },
     // The company name comes from the results; every result is from that one employer.
     search.company && { key: 'company', label: t('search.fromEmployer').replace('{company}', result?.jobs[0]?.company ?? t('search.oneEmployer')), clear: { company: '' } },
   ].filter(Boolean) as { key: string; label: string; clear: Partial<SearchState> }[];
-  const clearAll = () => go({ types: [], category: '', loc: '', company: '' });
+  const clearAll = () => go({ types: [], category: '', loc: '', company: '', salary: 0, level: '', posted: 0 });
 
   const total = result?.total ?? 0;
   // No count when the API couldn't be reached: '0 jobs' would be a false statement.
@@ -90,7 +93,7 @@ export default function JobSearch({ search, result, categories }: Props) {
               <b className="text-ink-900 dark:text-white">{countText}</b>
               {context.length > 0 && ` ${t('search.for')} ${context.join(` ${t('search.in')} `)}`}
             </p>
-            <span className="text-[13px] text-ink-600 dark:text-slate-400">{t('search.order')}</span>
+            <SortSelect value={search.sort} onChange={(sort) => go({ sort })} />
           </div>
 
           {chips.length > 0 && (
@@ -147,7 +150,7 @@ export default function JobSearch({ search, result, categories }: Props) {
                     {(hasFilters(search) || search.q) && (
                       <button
                         type="button"
-                        onClick={() => go({ q: '', types: [], category: '', loc: '', company: '' })}
+                        onClick={() => go({ q: '', types: [], category: '', loc: '', company: '', salary: 0, level: '', posted: 0 })}
                         className={`min-h-12 rounded-md border border-ink-300 bg-surface px-[18px] text-[15px] font-bold text-ink-900 ${focusRing}`}
                       >
                         {t('search.clearSearch')}
@@ -336,6 +339,54 @@ function FilterPanel({
         )}
       </div>
 
+      <div role="group" aria-labelledby={`${idPrefix}filter-salary`} className="flex flex-col gap-1 border-t border-ink-200 py-3.5 dark:border-slate-800">
+        <h3 id={`${idPrefix}filter-salary`} className={legend}>{t('search.salaryMin')}</h3>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" aria-pressed={!search.salary} onClick={() => onChange({ salary: 0 })} className={pill(!search.salary)}>
+            {t('search.any')}
+          </button>
+          {SALARY_STEPS.map((amount) => (
+            <button key={amount} type="button" aria-pressed={search.salary === amount} onClick={() => onChange({ salary: amount })} className={pill(search.salary === amount)}>
+              {t('search.salaryFrom').replace('{amount}', amount.toLocaleString('en-US'))}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div role="group" aria-labelledby={`${idPrefix}filter-level`} className="flex flex-col gap-1 border-t border-ink-200 py-3.5 dark:border-slate-800">
+        <h3 id={`${idPrefix}filter-level`} className={legend}>{t('search.experience')}</h3>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" aria-pressed={!search.level} onClick={() => onChange({ level: '' })} className={pill(!search.level)}>
+            {t('search.any')}
+          </button>
+          {EXPERIENCE_LEVELS.map((level) => (
+            <button key={level} type="button" aria-pressed={search.level === level} onClick={() => onChange({ level })} className={pill(search.level === level)}>
+              {t(`postJob.levels.${level}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div role="group" aria-labelledby={`${idPrefix}filter-posted`} className="flex flex-col gap-1 border-t border-ink-200 py-3.5 dark:border-slate-800">
+        <h3 id={`${idPrefix}filter-posted`} className={legend}>{t('search.posted')}</h3>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" aria-pressed={!search.posted} onClick={() => onChange({ posted: 0 })} className={pill(!search.posted)}>
+            {t('search.anyTime')}
+          </button>
+          {POSTED_WITHIN.map((days) => (
+            <button key={days} type="button" aria-pressed={search.posted === days} onClick={() => onChange({ posted: days })} className={pill(search.posted === days)}>
+              {t(`search.postedWithin.${days}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {inSheet && (
+        <div className="flex flex-col gap-2 border-t border-ink-200 py-3.5 dark:border-slate-800">
+          <SortSelect value={search.sort} onChange={(sort) => onChange({ sort })} />
+        </div>
+      )}
+
       <div role="group" aria-labelledby={`${idPrefix}filter-location`} className="flex flex-col gap-2 border-t border-ink-200 pt-3.5 dark:border-slate-800">
         <h3 id={`${idPrefix}filter-location`} className={legend}>{t('search.location')}</h3>
         <div className="flex flex-wrap gap-1.5">
@@ -353,6 +404,24 @@ function FilterPanel({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Newest first (featured on top) or highest salary first. */
+function SortSelect({ value, onChange }: { value: JobSort; onChange: (sort: JobSort) => void }) {
+  const { t } = useTranslation();
+  return (
+    <label className="flex items-center gap-2 text-[13px] text-ink-600 dark:text-slate-400">
+      {t('search.sortBy')}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as JobSort)}
+        className={`min-h-10 rounded-md border border-ink-300 bg-surface px-2.5 text-sm font-semibold text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white ${focusRing}`}
+      >
+        <option value="newest">{t('search.order')}</option>
+        <option value="salary">{t('search.sortSalary')}</option>
+      </select>
+    </label>
   );
 }
 

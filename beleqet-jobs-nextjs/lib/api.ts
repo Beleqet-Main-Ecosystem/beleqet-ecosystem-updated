@@ -294,7 +294,17 @@ export type GigSearchResult = {
 };
 
 /** Search open projects with the API's filters (featured first, then newest). */
-export async function searchGigs(params: { q?: string; category?: string; sort?: 'budget_high' | 'budget_low'; page?: number; limit?: number }): Promise<GigSearchResult> {
+export async function searchGigs(params: {
+  q?: string;
+  category?: string;
+  sort?: 'budget_high' | 'budget_low';
+  pricingType?: string;
+  experienceLevel?: string;
+  budgetMin?: number;
+  budgetMax?: number;
+  page?: number;
+  limit?: number;
+}): Promise<GigSearchResult> {
   try {
     const { data: raw } = await api.get<{ items?: any[]; total?: number; page?: number; totalPages?: number }>('/freelance/jobs', { params });
     const data = assertListResponse(raw, 'GET /freelance/jobs');

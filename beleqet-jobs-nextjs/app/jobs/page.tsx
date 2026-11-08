@@ -23,6 +23,10 @@ export default async function JobsPage({ searchParams }: Props) {
       company: search.company || undefined,
       // The API takes several types, comma-separated.
       type: search.types.join(',') || undefined,
+      salaryMin: search.salary || undefined,
+      experienceLevel: search.level || undefined,
+      postedWithin: search.posted || undefined,
+      sort: search.sort === 'salary' ? 'salary' : undefined,
       page: search.page,
       limit: PAGE_SIZE,
     })

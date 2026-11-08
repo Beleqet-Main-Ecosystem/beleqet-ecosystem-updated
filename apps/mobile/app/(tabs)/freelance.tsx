@@ -5,12 +5,12 @@ import { Bookmark, SlidersHorizontal } from 'lucide-react-native';
 import { Screen, Field, Button, Select, Sheet, Chips } from '../../components/ui';
 import { PagedList } from '../../components/paged-list';
 import { GigCard } from '../../components/cards';
-import { fetchGigCategories, searchGigs, type GigCategory, type GigSearch } from '../../api/freelance';
+import { fetchGigCategories, GIG_BUDGETS, searchGigs, type GigCategory, type GigSearch } from '../../api/freelance';
 import { useAuth } from '../../store/auth.store';
 import { useTranslation } from '../../lib/i18n';
 
-type Filters = Pick<GigSearch, 'category' | 'pricingType' | 'experienceLevel' | 'sort'>;
-const NONE: Filters = { category: '', pricingType: '', experienceLevel: '', sort: 'newest' };
+type Filters = Pick<GigSearch, 'category' | 'pricingType' | 'experienceLevel' | 'budget' | 'sort'>;
+const NONE: Filters = { category: '', pricingType: '', experienceLevel: '', budget: '', sort: 'newest' };
 const LEVELS = ['Entry', 'Intermediate', 'Expert'];
 
 export default function Freelance() {
@@ -26,7 +26,7 @@ export default function Freelance() {
     fetchGigCategories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
-  const active = [filters.category, filters.pricingType, filters.experienceLevel].filter(Boolean).length + (filters.sort && filters.sort !== 'newest' ? 1 : 0);
+  const active = [filters.category, filters.pricingType, filters.experienceLevel, filters.budget].filter(Boolean).length + (filters.sort && filters.sort !== 'newest' ? 1 : 0);
   const saved = user ? (
     <Pressable onPress={() => router.push('/saved-projects')} accessibilityRole="button" accessibilityLabel={t('m.savedProjects')} className="h-11 w-11 items-center justify-center rounded-full active:bg-white/10">
       <Bookmark color="#fff" size={22} />
@@ -92,6 +92,12 @@ function FilterForm({ initial, categories, onApply }: { initial: Filters; catego
           { value: 'FIXED', label: t('freelance.fixed') },
           { value: 'HOURLY', label: t('freelance.hourly') },
         ]}
+      />
+      <Select
+        label={t('freelance.gig.budget')}
+        value={form.budget}
+        onChange={(budget) => setForm({ ...form, budget })}
+        options={[{ value: '', label: t('freelance.anyBudget') }, ...Object.keys(GIG_BUDGETS).map((value) => ({ value, label: t(`freelance.budgets.${value}`) }))]}
       />
       <Select
         label={t('freelance.gig.experience')}

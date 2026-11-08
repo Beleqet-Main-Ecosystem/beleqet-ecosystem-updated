@@ -62,7 +62,25 @@ export type GigDetail = Gig & {
   clientCompletedContracts: number;
 };
 
-export type GigSearch = { q?: string; category?: string; pricingType?: string; experienceLevel?: string; sort?: 'newest' | 'budget_high' | 'budget_low'; page?: number; limit?: number };
+export type GigSearch = {
+  q?: string;
+  category?: string;
+  pricingType?: string;
+  experienceLevel?: string;
+  /** One of GIG_BUDGETS. */
+  budget?: string;
+  sort?: 'newest' | 'budget_high' | 'budget_low';
+  page?: number;
+  limit?: number;
+};
+
+/** Budget ranges in ETB, the same as the website's project filters. */
+export const GIG_BUDGETS: Record<string, { min?: number; max?: number }> = {
+  under5k: { max: 5000 },
+  '5k-20k': { min: 5000, max: 20000 },
+  '20k-50k': { min: 20000, max: 50000 },
+  over50k: { min: 50000 },
+};
 
 export async function searchGigs(search: GigSearch): Promise<Page<Gig>> {
   const limit = search.limit ?? 20;
@@ -71,6 +89,8 @@ export async function searchGigs(search: GigSearch): Promise<Page<Gig>> {
     category: search.category || undefined,
     pricingType: search.pricingType || undefined,
     experienceLevel: search.experienceLevel || undefined,
+    budgetMin: search.budget ? GIG_BUDGETS[search.budget]?.min : undefined,
+    budgetMax: search.budget ? GIG_BUDGETS[search.budget]?.max : undefined,
     sort: search.sort && search.sort !== 'newest' ? search.sort : undefined,
     page: search.page ?? 1,
     limit,

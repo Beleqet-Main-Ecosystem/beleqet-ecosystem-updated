@@ -87,7 +87,26 @@ function list<T>(data: unknown, map: (raw: unknown) => T, page = 1, limit = 20):
 }
 export { list as toPage };
 
-export type JobSearch = { q?: string; location?: string; category?: string; company?: string; types?: string[]; page?: number; limit?: number };
+export type JobSearch = {
+  q?: string;
+  location?: string;
+  category?: string;
+  company?: string;
+  types?: string[];
+  /** Minimum salary in ETB. */
+  salaryMin?: number;
+  experienceLevel?: string;
+  /** Posted within this many days. */
+  postedWithin?: number;
+  sort?: 'newest' | 'salary';
+  page?: number;
+  limit?: number;
+};
+
+/** The same choices as the website's job filters (features/jobs/search-params.ts). */
+export const SALARY_STEPS = [5000, 10000, 20000, 40000];
+export const EXPERIENCE_LEVELS = ['Entry level', 'Junior', 'Mid-level', 'Senior'];
+export const POSTED_WITHIN = [1, 7, 30];
 
 export async function searchJobs(search: JobSearch): Promise<Page<Job>> {
   const limit = search.limit ?? 20;
@@ -97,6 +116,10 @@ export async function searchJobs(search: JobSearch): Promise<Page<Job>> {
     category: search.category || undefined,
     company: search.company || undefined,
     type: search.types?.join(',') || undefined,
+    salaryMin: search.salaryMin || undefined,
+    experienceLevel: search.experienceLevel || undefined,
+    postedWithin: search.postedWithin || undefined,
+    sort: search.sort === 'salary' ? 'salary' : undefined,
     page: search.page ?? 1,
     limit,
   });
