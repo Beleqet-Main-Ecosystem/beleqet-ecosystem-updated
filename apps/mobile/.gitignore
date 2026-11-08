@@ -7,3 +7,7 @@ expo-env.d.ts
 # Native folders are generated from app.json by EAS (prebuild); never edit or commit them.
 /android
 /ios
+
+# Firebase config and keys: kept on expo.dev, never in this public repo.
+google-services.json
+*firebase-adminsdk*.json
