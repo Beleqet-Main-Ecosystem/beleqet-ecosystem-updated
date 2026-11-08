@@ -58,12 +58,24 @@ export function profileChecks(profile: Profile) {
   ];
 }
 
+/** Why the feed picked a job: matching skills, recent searches, or saved jobs. */
+export type FeedReason = { kind: string; terms: string[] };
+export type FeedJob = Job & { reasons: FeedReason[] };
+
 /** The personalised "Jobs for you" feed. */
-export async function fetchFeed(limit = 10): Promise<Job[]> {
-  const rows = await get<unknown[]>('/ai-feed', { limit });
-  return Array.isArray(rows) ? rows.map(toJob) : [];
+export async function fetchFeed(limit = 10): Promise<FeedJob[]> {
+  const rows = await get<Record<string, unknown>[]>('/ai-feed', { limit });
+  return Array.isArray(rows) ? rows.map((row) => ({ ...toJob(row), reasons: (row.reasons as FeedReason[]) ?? [] })) : [];
 }
 
-export type FeedSignals = { skills?: string[]; location?: string | null; categories?: string[]; hidden?: number };
+export type FeedSignals = { personalised: boolean; skills: string[]; searches: string[] };
 export const fetchFeedSignals = () => get<FeedSignals>('/ai-feed/signals');
 export const hideFromFeed = (jobId: string) => send('POST', `/ai-feed/hidden/${encodeURIComponent(jobId)}`);
+
+// ── Job alerts ─────────────────────────────────────────────────────────────────
+
+export type JobAlert = { id: string; keywords: string[]; location: string | null; jobType: string | null; minSalary: number | null; isActive: boolean };
+export const fetchAlerts = () => get<JobAlert[]>('/job-alerts');
+export const createAlert = (alert: { keywords: string[]; location?: string; jobType?: string; minSalary?: number }) => send<JobAlert>('POST', '/job-alerts', alert);
+export const setAlertActive = (id: string, isActive: boolean) => send('PATCH', `/job-alerts/${encodeURIComponent(id)}`, { isActive });
+export const deleteAlert = (id: string) => send('DELETE', `/job-alerts/${encodeURIComponent(id)}`);

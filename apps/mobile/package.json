@@ -19,6 +19,7 @@
   "dependencies": {
     "@beleqet/common": "file:../../packages/common",
     "@expo/metro-runtime": "~57.0.15",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@react-navigation/native": "^6.1.18",
     "axios": "^1.7.7",
     "date-fns": "^3.6.0",

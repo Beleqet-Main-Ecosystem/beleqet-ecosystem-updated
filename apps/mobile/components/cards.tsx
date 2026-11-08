@@ -59,7 +59,7 @@ export function JobCard({ job }: { job: Job }) {
         ) : null}
       </View>
       <View className="flex-row flex-wrap items-center gap-2">
-        {job.typeCode ? <Badge label={t(`m.jobType.${job.typeCode}`)} /> : null}
+        {job.typeCode ? <Badge label={t(`search.types.${job.typeCode}`)} /> : null}
         {job.featured ? <Badge label={t('m.featured')} tone="good" /> : null}
         {job.urgent ? <Badge label={t('m.urgent')} tone="bad" /> : null}
         {salary ? <Text className="ml-auto text-sm font-bold text-ink-900 dark:text-white">{salary}</Text> : null}

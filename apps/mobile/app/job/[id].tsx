@@ -90,7 +90,7 @@ export default function JobDetail() {
         </View>
       </View>
       <View className="flex-row flex-wrap gap-2">
-        {data.typeCode ? <Badge label={t(`m.jobType.${data.typeCode}`)} /> : null}
+        {data.typeCode ? <Badge label={t(`search.types.${data.typeCode}`)} /> : null}
         {data.featured ? <Badge label={t('m.featured')} tone="good" /> : null}
         {data.urgent ? <Badge label={t('m.urgent')} tone="bad" /> : null}
         {data.companyVerified ? <Badge label={t('job.verified')} tone="info" /> : null}

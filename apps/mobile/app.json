@@ -71,7 +71,8 @@
       "expo-status-bar",
       "expo-web-browser",
       "expo-sharing",
-      "expo-localization"
+      "expo-localization",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "router": {

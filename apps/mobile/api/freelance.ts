@@ -110,6 +110,12 @@ export async function fetchSavedGigIds(): Promise<string[]> {
   return (rows ?? []).map((row) => row.id);
 }
 
+/** Saved projects, newest saved first, as full project cards. */
+export async function fetchSavedGigs(): Promise<Gig[]> {
+  const rows = await get<unknown[]>('/freelance/saved');
+  return (rows ?? []).map(toGig);
+}
+
 export const saveGig = (id: string) => send('POST', `/freelance/jobs/${encodeURIComponent(id)}/save`);
 export const unsaveGig = (id: string) => send('DELETE', `/freelance/jobs/${encodeURIComponent(id)}/save`);
 

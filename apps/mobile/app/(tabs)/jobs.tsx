@@ -48,7 +48,7 @@ export default function Jobs() {
       <Chips
         value={filters.types[0] ?? ''}
         onChange={(value) => setFilters((current) => ({ ...current, types: value ? [value] : [] }))}
-        options={[{ value: '', label: t('m.all') }, ...JOB_TYPES.map((type) => ({ value: type, label: t(`m.jobType.${type}`) }))]}
+        options={[{ value: '', label: t('m.all') }, ...JOB_TYPES.map((type) => ({ value: type, label: t(`search.types.${type}`) }))]}
       />
     </View>
   );
@@ -61,8 +61,8 @@ export default function Jobs() {
         render={(job) => <JobCard job={job} />}
         keyOf={(job) => job.id}
         header={header}
-        emptyTitle={t('search.noResults')}
-        emptyText={t('m.tryOtherFilters')}
+        emptyTitle={t('search.emptyTitle')}
+        emptyText={t('search.emptyText')}
       />
       <Sheet visible={sheet} title={t('m.filters')} onClose={() => setSheet(false)}>
         <FilterForm
@@ -99,7 +99,7 @@ function FilterForm({ initial, categories, onApply }: { initial: Filters; catego
             const on = form.types.includes(type);
             return (
               <Pressable key={type} onPress={() => toggle(type)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} className={`min-h-9 justify-center rounded-full border px-3.5 ${on ? 'border-obsidian bg-obsidian dark:border-limeAccent dark:bg-limeAccent' : 'border-ink-300 dark:border-slate-700'}`}>
-                <Text className={`text-[13px] font-bold ${on ? 'text-white dark:text-obsidian' : 'text-ink-700 dark:text-slate-200'}`}>{t(`m.jobType.${type}`)}</Text>
+                <Text className={`text-[13px] font-bold ${on ? 'text-white dark:text-obsidian' : 'text-ink-700 dark:text-slate-200'}`}>{t(`search.types.${type}`)}</Text>
               </Pressable>
             );
           })}

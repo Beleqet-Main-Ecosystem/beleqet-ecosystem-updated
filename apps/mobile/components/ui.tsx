@@ -15,6 +15,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { Check, ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import { useTheme } from '../lib/theme';
@@ -425,6 +426,99 @@ export function Progress({ value }: { value: number }) {
   return (
     <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: percent }} className="h-2 overflow-hidden rounded-full bg-ink-100 dark:bg-slate-800">
       <View style={{ width: `${percent}%` }} className="h-2 rounded-full bg-forest dark:bg-limeAccent" />
+    </View>
+  );
+}
+
+/** A date field that opens the phone's calendar. Value is YYYY-MM-DD, or '' when not chosen. */
+export function DateField({ label, value, onChange, minimumDate, error }: { label: string; value: string; onChange: (value: string) => void; minimumDate?: Date; error?: string }) {
+  const { colors } = useTheme();
+  const { t, locale } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const shown = value ? new Date(`${value}T12:00:00`).toLocaleDateString(locale === 'am' ? 'am-ET' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  return (
+    <View className="gap-1.5">
+      <Text className="text-sm font-semibold text-ink-900 dark:text-white">{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={() => setOpen(true)}
+        className={`min-h-12 flex-row items-center justify-between rounded-lg border bg-surface px-3.5 dark:bg-slate-950 ${error ? 'border-red-500' : 'border-ink-300 dark:border-slate-700'}`}
+      >
+        <Text className={`text-base ${value ? 'text-ink-900 dark:text-white' : 'text-ink-400'}`}>{shown || t('m.pickDate')}</Text>
+        <ChevronDown color={colors.muted} size={18} />
+      </Pressable>
+      {error ? <Text className="text-[13px] font-semibold text-red-700 dark:text-red-300">{error}</Text> : null}
+      {open ? (
+        <DateTimePicker
+          value={value ? new Date(`${value}T12:00:00`) : minimumDate ?? new Date()}
+          mode="date"
+          minimumDate={minimumDate}
+          onChange={(event, picked) => {
+            setOpen(false);
+            if (event.type === 'set' && picked) {
+              const y = picked.getFullYear();
+              const m = String(picked.getMonth() + 1).padStart(2, '0');
+              const d = String(picked.getDate()).padStart(2, '0');
+              onChange(`${y}-${m}-${d}`);
+            }
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+/** A date and time field: Android asks for the day, then the time. Value is an ISO string or ''. */
+export function DateTimeField({ label, value, onChange, minimumDate }: { label: string; value: string; onChange: (value: string) => void; minimumDate?: Date }) {
+  const { colors } = useTheme();
+  const { t, locale } = useTranslation();
+  const [step, setStep] = useState<'closed' | 'date' | 'time'>('closed');
+  const [day, setDay] = useState<Date | null>(null);
+  const current = value ? new Date(value) : null;
+  let shown = '';
+  if (current) {
+    try {
+      shown = current.toLocaleString(locale === 'am' ? 'am-ET' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    } catch {
+      shown = current.toISOString().replace('T', ' ').slice(0, 16);
+    }
+  }
+  return (
+    <View className="gap-1.5">
+      <Text className="text-sm font-semibold text-ink-900 dark:text-white">{label}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => setStep('date')} className="min-h-12 flex-row items-center justify-between rounded-lg border border-ink-300 bg-surface px-3.5 dark:border-slate-700 dark:bg-slate-950">
+        <Text className={`text-base ${shown ? 'text-ink-900 dark:text-white' : 'text-ink-400'}`}>{shown || t('m.pickDate')}</Text>
+        <ChevronDown color={colors.muted} size={18} />
+      </Pressable>
+      {step === 'date' ? (
+        <DateTimePicker
+          value={current ?? minimumDate ?? new Date()}
+          mode="date"
+          minimumDate={minimumDate}
+          onChange={(event, picked) => {
+            if (event.type === 'set' && picked) {
+              setDay(picked);
+              setStep('time');
+            } else setStep('closed');
+          }}
+        />
+      ) : null}
+      {step === 'time' ? (
+        <DateTimePicker
+          value={current ?? day ?? new Date()}
+          mode="time"
+          is24Hour
+          onChange={(event, picked) => {
+            setStep('closed');
+            if (event.type === 'set' && picked && day) {
+              const combined = new Date(day);
+              combined.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+              onChange(combined.toISOString());
+            }
+          }}
+        />
+      ) : null}
     </View>
   );
 }
