@@ -10,6 +10,8 @@ const config = getDefaultConfig(projectRoot);
 // 1. Watch monorepo shared packages
 config.watchFolders = [
   path.resolve(monorepoRoot, 'packages/common'),
+  // The app reads the website's translations, so both say the same thing.
+  path.resolve(monorepoRoot, 'beleqet-jobs-nextjs/locales'),
 ];
 
 // 2. Explicitly map @beleqet/common and node modules for reliable monorepo resolution

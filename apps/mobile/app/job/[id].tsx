@@ -1,389 +1,157 @@
-import { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Share,
-  StatusBar,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  MapPin,
-  Clock,
-  Briefcase,
-  DollarSign,
-  Building2,
-  ArrowLeft,
-  Share2,
-  Bookmark,
-  BookmarkCheck,
-  CheckCircle2,
-  ShieldCheck,
-} from 'lucide-react-native';
-import Toast from 'react-native-toast-message';
-import { fetchJob, applyToJob, type NormalizedJob } from '../../api/jobs';
-import { useAuthStore } from '../../store/auth.store';
+import { useState } from 'react';
+import { Linking, Pressable, Share, Text, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Bookmark, BookmarkCheck, Share2, ShieldCheck } from 'lucide-react-native';
+import { Screen, Card, H1, H2, Body, Muted, Fact, Badge, Button, Failed, Loading, Notice } from '../../components/ui';
+import { JobCard, Logo } from '../../components/cards';
+import { fetchJob, fetchSavedJobs, saveJob, searchJobs, unsaveJob } from '../../api/jobs';
+import { fetchApplications } from '../../api/seeker';
+import { isEmployer, useAuth } from '../../store/auth.store';
+import { useTranslation } from '../../lib/i18n';
+import { useTheme } from '../../lib/theme';
+import { useLoad } from '../../lib/use-load';
+import { errorText } from '../../lib/api-error';
+import { daysUntil, formatSalary, fullDate, safeHttpUrl, timeAgo } from '../../lib/format';
+import { SITE_URL } from '../../lib/config';
 
-export default function JobDetailScreen() {
+export default function JobDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const user = useAuthStore((s) => s.user);
+  const { t, locale } = useTranslation();
+  const { colors } = useTheme();
+  const user = useAuth((s) => s.user);
+  const job = useLoad(() => fetchJob(id), [id]);
+  const similar = useLoad(
+    () => (job.data ? searchJobs({ category: job.data.category, limit: 4 }).then((page) => page.items.filter((item) => item.id !== id).slice(0, 3)) : Promise.resolve([])),
+    [job.data?.category, id],
+    { enabled: Boolean(job.data) },
+  );
+  // Saved and applied state only matter to someone who can apply.
+  const mine = useLoad(
+    () => Promise.all([fetchSavedJobs().catch(() => []), fetchApplications().catch(() => [])]),
+    [id, user?.id],
+    { enabled: Boolean(user) && !isEmployer(user), refetchOnFocus: true },
+  );
+  const [savedOverride, setSavedOverride] = useState<boolean | null>(null);
+  const [error, setError] = useState('');
 
-  const [job, setJob] = useState<NormalizedJob | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [applying, setApplying] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const saved = savedOverride ?? Boolean(mine.data?.[0].some((row) => row.jobId === id));
+  const applied = Boolean(mine.data?.[1].some((app) => app.jobId === id));
 
-  useEffect(() => {
-    if (!id) return;
-    fetchJob(id)
-      .then((j) => {
-        setJob(j);
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  }, [id]);
-
-  async function handleShare() {
-    if (!job) return;
-    try {
-      await Share.share({
-        title: job.title,
-        message: `Check out this job on Beleqet: ${job.title} at ${job.companyDisplay}\nhttps://beleqet.com/jobs/${job.id}`,
-      });
-    } catch {
-      // Ignore share cancellation
-    }
-  }
-
-  function handleToggleSave() {
+  async function toggleSave() {
+    if (!user) return router.push({ pathname: '/(auth)/login', params: { next: `/job/${id}` } });
+    setError('');
     const next = !saved;
-    setSaved(next);
-    Toast.show({
-      type: 'info',
-      text1: next ? 'Saved to Bookmarks' : 'Removed from Bookmarks',
-      text2: next ? 'You can view this job in your profile.' : undefined,
-    });
-  }
-
-  async function handleApply() {
-    if (!job) return;
-    if (!user) {
-      router.push('/(auth)/login');
-      return;
-    }
-
-    Alert.alert(
-      'Apply for Position',
-      `Submit your verified Beleqet profile and resume to ${job.companyDisplay}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm Application',
-          onPress: async () => {
-            setApplying(true);
-            try {
-              await applyToJob(job.id, {});
-              Toast.show({
-                type: 'success',
-                text1: 'Application Submitted! 🎉',
-                text2: `Your profile has been delivered to ${job.companyDisplay}.`,
-              });
-            } catch (err) {
-              Toast.show({
-                type: 'error',
-                text1: 'Application Failed',
-                text2: err instanceof Error ? err.message : 'Could not submit application. Please try again.',
-              });
-            } finally {
-              setApplying(false);
-            }
-          },
-        },
-      ],
-    );
-  }
-
-  if (loading) {
-    return (
-      <View className="flex-1 bg-surface items-center justify-center">
-        <ActivityIndicator color="#041603" size="large" />
-        <Text className="text-muted text-sm font-semibold mt-3">Loading job details…</Text>
-      </View>
-    );
-  }
-
-  if (!job) {
-    return (
-      <View className="flex-1 bg-surface items-center justify-center px-8">
-        <View className="w-16 h-16 rounded-full bg-primary/10 items-center justify-center mb-4">
-          <Briefcase color="#041603" size={28} />
-        </View>
-        <Text className="text-slate-900 font-bold text-lg">Job Not Found</Text>
-        <Text className="text-muted text-sm text-center mt-1 mb-6">
-          This job vacancy may have expired or been filled by the employer.
-        </Text>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="bg-primary px-6 py-3 rounded-full"
-        >
-          <Text className="text-brandGreen font-bold text-sm">Return to Job Listings</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // Company initials
-  const initials = job.companyDisplay
-    ? job.companyDisplay.substring(0, 2).toUpperCase()
-    : 'BJ';
-
-  // Format salary
-  const hasSalary = Boolean(job.salaryMin || job.salaryMax);
-  let salaryText = 'Negotiable / Competitive';
-  if (hasSalary) {
-    if (job.salaryMin && job.salaryMax && job.salaryMin !== job.salaryMax) {
-      salaryText = `${job.salaryMin.toLocaleString()} – ${job.salaryMax.toLocaleString()} ${job.currency ?? 'ETB'}`;
-    } else {
-      salaryText = `${(job.salaryMin ?? job.salaryMax)?.toLocaleString()} ${job.currency ?? 'ETB'}`;
+    setSavedOverride(next);
+    try {
+      await (next ? saveJob(id) : unsaveJob(id));
+    } catch (failure) {
+      setSavedOverride(!next);
+      setError(errorText(failure, t));
     }
   }
+
+  const right = (
+    <View className="flex-row">
+      <Pressable onPress={() => Share.share({ message: `${job.data?.title ?? ''} ${SITE_URL}/jobs/${id}` })} accessibilityRole="button" accessibilityLabel={t('job.share')} className="h-11 w-11 items-center justify-center rounded-full active:bg-white/10">
+        <Share2 color="#fff" size={20} />
+      </Pressable>
+      {!isEmployer(user) ? (
+        <Pressable onPress={toggleSave} accessibilityRole="button" accessibilityLabel={t(saved ? 'm.unsave' : 'm.save')} className="h-11 w-11 items-center justify-center rounded-full active:bg-white/10">
+          {saved ? <BookmarkCheck color={colors.lime} size={22} /> : <Bookmark color="#fff" size={22} />}
+        </Pressable>
+      ) : null}
+    </View>
+  );
+
+  if (job.loading) return <Screen title="" right={right}><Loading /></Screen>;
+  if (job.error || !job.data) return <Screen title=""><Failed message={errorText(job.error, t)} onRetry={job.reload} /></Screen>;
+
+  const data = job.data;
+  const days = daysUntil(data.closesAt);
+  const closed = days !== null && days < 0;
+  const salary = formatSalary(data, t('search.upTo'));
+  const website = safeHttpUrl(data.companyWebsite);
+
+  const footer = isEmployer(user) ? null : applied ? (
+    <Button label={`✓ ${t('job.applied')} · ${t('job.apply.track')}`} variant="outline" onPress={() => router.push('/applications')} />
+  ) : closed ? (
+    <Button label={t('job.closed')} disabled />
+  ) : (
+    <Button label={t('job.applyNow')} onPress={() => (user ? router.push(`/job/apply/${id}`) : router.push({ pathname: '/(auth)/login', params: { next: `/job/apply/${id}` } }))} />
+  );
 
   return (
-    <View className="flex-1 bg-surface">
-      <StatusBar barStyle="light-content" backgroundColor="#041603" />
-
-      {/* ── Top Floating Navigation Bar ── */}
-      <View className="bg-primary px-5 pt-14 pb-3 flex-row items-center justify-between border-b border-white/10">
-        <TouchableOpacity
-          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/jobs'))}
-          className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/10 active:opacity-75"
-          accessibilityRole="button"
-          accessibilityLabel="Back to jobs feed"
-        >
-          <ArrowLeft color="#ffffff" size={20} />
-        </TouchableOpacity>
-
-        <Text className="text-white text-sm font-bold flex-1 text-center px-3" numberOfLines={1}>
-          {job.title}
-        </Text>
-
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity
-            onPress={handleShare}
-            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/10 active:opacity-75"
-            accessibilityRole="button"
-            accessibilityLabel="Share job"
-          >
-            <Share2 color="#ffffff" size={17} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleToggleSave}
-            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center border border-white/10 active:opacity-75"
-            accessibilityRole="button"
-            accessibilityLabel={saved ? 'Unsave job' : 'Save job'}
-          >
-            {saved ? (
-              <BookmarkCheck color="#d8ff3e" size={18} fill="#d8ff3e" />
-            ) : (
-              <Bookmark color="#ffffff" size={17} />
-            )}
-          </TouchableOpacity>
+    <Screen title={data.company} right={right} footer={footer} refreshing={job.refreshing} onRefresh={job.refresh}>
+      <View className="flex-row gap-3">
+        <Logo name={data.company} url={data.companyLogo} size={56} />
+        <View className="flex-1 gap-1">
+          <H1>{data.title}</H1>
+          <Muted>{[data.company, data.location].filter(Boolean).join(' · ')}</Muted>
         </View>
       </View>
-
-      {/* ── Scrollable Body ── */}
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 130 + insets.bottom }}
-        showsVerticalScrollIndicator={false}
-      >
-        
-        {/* Hero Section */}
-        <View className="bg-primary px-5 pt-4 pb-8">
-          <View className="flex-row items-center gap-3.5 mb-4">
-            <View className="w-14 h-14 bg-brandGreen rounded-2xl items-center justify-center shadow-md">
-              <Text className="text-primary text-xl font-black">{initials}</Text>
-            </View>
-            <View className="flex-1">
-              <View className="flex-row items-center gap-1.5">
-                <Text className="text-white/80 text-sm font-semibold">{job.companyDisplay}</Text>
-                <ShieldCheck color="#d8ff3e" size={15} />
-              </View>
-              <Text className="text-white/40 text-xs mt-0.5">Verified Ethiopian Employer</Text>
-            </View>
+      <View className="flex-row flex-wrap gap-2">
+        {data.typeCode ? <Badge label={t(`m.jobType.${data.typeCode}`)} /> : null}
+        {data.featured ? <Badge label={t('m.featured')} tone="good" /> : null}
+        {data.urgent ? <Badge label={t('m.urgent')} tone="bad" /> : null}
+        {data.companyVerified ? <Badge label={t('job.verified')} tone="info" /> : null}
+      </View>
+      {error ? <Notice tone="bad" text={error} /> : null}
+      {closed ? (
+        <Notice tone="warn" text={`${t('job.closedOn')} ${fullDate(data.closesAt, locale)}`} />
+      ) : days !== null ? (
+        <Notice tone="info" text={days === 0 ? t('job.closesToday') : t('job.closesIn', { n: days })} />
+      ) : null}
+      <Card>
+        <H2>{t('job.overview')}</H2>
+        {salary ? <Fact label={t('job.salary')} value={`${salary}${data.salaryType ? ` · ${data.salaryType}` : ''}`} /> : null}
+        {data.experienceLevel ? <Fact label={t('job.experience')} value={data.experienceLevel} /> : null}
+        <Fact label={t('job.openings')} value={String(data.vacancies)} />
+        {data.createdAt ? <Fact label={t('job.posted')} value={timeAgo(data.createdAt, locale)} /> : null}
+        {data.categoryLabel ? <Fact label={t('m.category')} value={data.categoryLabel} /> : null}
+      </Card>
+      <Card>
+        <H2>{t('job.about')}</H2>
+        <Body>{data.description || t('job.noDescription')}</Body>
+      </Card>
+      {data.requirements ? (
+        <Card>
+          <H2>{t('job.requirements')}</H2>
+          <Body>{data.requirements}</Body>
+        </Card>
+      ) : null}
+      {data.tags.length > 0 ? (
+        <Card>
+          <H2>{t('job.skills')}</H2>
+          <View className="flex-row flex-wrap gap-2">
+            {data.tags.map((tag) => <Badge key={tag} label={tag} />)}
           </View>
-
-          <Text className="text-white text-2xl font-black leading-tight tracking-tight">
-            {job.title}
-          </Text>
-
-          {/* Quick Info Badges */}
-          <View className="flex-row flex-wrap gap-2 mt-4">
-            {job.location ? (
-              <HeroBadge icon={<MapPin color="#d8ff3e" size={13} />} label={job.location} />
-            ) : null}
-            {job.typeDisplay ? (
-              <HeroBadge icon={<Briefcase color="#d8ff3e" size={13} />} label={job.typeDisplay} />
-            ) : null}
-            {job.postedAgo ? (
-              <HeroBadge icon={<Clock color="#d8ff3e" size={13} />} label={job.postedAgo} />
-            ) : null}
-            <HeroBadge
-              icon={<DollarSign color="#d8ff3e" size={13} />}
-              label={salaryText}
-              highlight
-            />
-          </View>
-        </View>
-
-        {/* Details Content Cards */}
-        <View className="px-5 pt-6 space-y-4">
-          
-          {/* Overview */}
-          {job.description ? (
-            <SectionCard title="About The Opportunity">
-              <Text className="text-slate-700 text-sm leading-6">{job.description}</Text>
-            </SectionCard>
-          ) : null}
-
-          {/* Requirements */}
-          {job.requirements && (typeof job.requirements === 'string' ? job.requirements.length > 0 : true) ? (
-            <SectionCard title="Key Requirements & Experience">
-              {(typeof job.requirements === 'string'
-                ? job.requirements.split('\n').filter(Boolean)
-                : Array.isArray(job.requirements)
-                ? job.requirements
-                : []
-              ).map((req: string, i: number) => (
-                <View key={i} className="flex-row items-start gap-2.5 mb-2">
-                  <CheckCircle2 color="#059669" size={16} style={{ marginTop: 2 }} />
-                  <Text className="text-slate-700 text-sm leading-5 flex-1">{req}</Text>
-                </View>
-              ))}
-            </SectionCard>
-          ) : null}
-
-          {/* Skills & Tags */}
-          {job.tags && job.tags.length > 0 ? (
-            <SectionCard title="Skills & Specializations">
-              <View className="flex-row flex-wrap gap-2">
-                {job.tags.map((tag) => (
-                  <View
-                    key={tag}
-                    className="bg-primary/5 border border-primary/10 px-3.5 py-1.5 rounded-full"
-                  >
-                    <Text className="text-primary text-xs font-bold">{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            </SectionCard>
-          ) : null}
-
-          {/* Employer Card */}
-          <SectionCard title="About The Employer">
-            <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-xl bg-slate-100 items-center justify-center">
-                <Building2 color="#041603" size={20} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-slate-900 font-bold text-sm">{job.companyDisplay}</Text>
-                <Text className="text-muted text-xs mt-0.5">
-                  Direct recruiter on Beleqet Talent Platform
-                </Text>
-              </View>
-            </View>
-          </SectionCard>
-
-        </View>
-      </ScrollView>
-
-      {/* ── Fixed Bottom Bar ── */}
-      <View
-        className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200/80 px-5 pt-3.5 shadow-lg shadow-black/10"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
-      >
+        </Card>
+      ) : null}
+      <Card>
         <View className="flex-row items-center gap-3">
-          <TouchableOpacity
-            onPress={handleToggleSave}
-            className="w-14 h-14 rounded-2xl bg-slate-100 items-center justify-center border border-slate-200 active:opacity-75"
-            accessibilityRole="button"
-            accessibilityLabel={saved ? 'Saved' : 'Save'}
-          >
-            {saved ? (
-              <BookmarkCheck color="#041603" size={22} fill="#041603" />
-            ) : (
-              <Bookmark color="#64748b" size={22} />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="flex-1 bg-primary rounded-2xl py-4 items-center justify-center active:opacity-90 shadow-md shadow-primary/20"
-            onPress={handleApply}
-            disabled={applying}
-            accessibilityRole="button"
-            accessibilityLabel="Apply for this job"
-          >
-            {applying ? (
-              <View className="flex-row items-center gap-2">
-                <ActivityIndicator color="#d8ff3e" size="small" />
-                <Text className="text-brandGreen font-black text-base">Submitting…</Text>
-              </View>
-            ) : (
-              <Text className="text-brandGreen font-black text-base tracking-wide">
-                Apply for Position
-              </Text>
-            )}
-          </TouchableOpacity>
+          <Logo name={data.company} url={data.companyLogo} />
+          <View className="flex-1">
+            <Text className="text-base font-bold text-ink-900 dark:text-white">{data.company}</Text>
+            <Muted>{[data.companyIndustry, data.companySize ? `${data.companySize} ${t('job.employees')}` : null].filter(Boolean).join(' · ')}</Muted>
+          </View>
+        </View>
+        {data.companyDescription ? <Body>{data.companyDescription}</Body> : null}
+        {website ? <Button label={t('job.website')} variant="outline" small onPress={() => Linking.openURL(website)} /> : null}
+        {data.companyId ? <Button label={t('job.moreFromEmployer')} variant="ghost" small onPress={() => router.push({ pathname: '/(tabs)/jobs', params: { q: data.company } })} /> : null}
+      </Card>
+      <View className="flex-row gap-3 rounded-xl border border-ink-200 bg-surface p-4 dark:border-slate-800 dark:bg-slate-900">
+        <ShieldCheck color={colors.accent} size={22} />
+        <View className="flex-1 gap-1">
+          <Text className="font-bold text-ink-900 dark:text-white">{t('job.safeTitle')}</Text>
+          <Muted>{t('job.safeText')}</Muted>
         </View>
       </View>
-    </View>
-  );
-}
-
-// ── Sub-components ──
-
-function HeroBadge({
-  icon,
-  label,
-  highlight,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  highlight?: boolean;
-}) {
-  return (
-    <View
-      className={`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full ${
-        highlight ? 'bg-brandGreen/20 border border-brandGreen/30' : 'bg-white/10'
-      }`}
-    >
-      {icon}
-      <Text
-        className={`text-xs font-bold ${
-          highlight ? 'text-brandGreen' : 'text-white/90'
-        }`}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View className="bg-white rounded-3xl p-5 border border-black/5 shadow-sm shadow-black/5">
-      <Text className="text-xs font-extrabold uppercase tracking-wider text-muted mb-3.5">
-        {title}
-      </Text>
-      {children}
-    </View>
+      {(similar.data ?? []).length > 0 ? (
+        <>
+          <H2>{t('job.similar')}</H2>
+          {similar.data!.map((item) => <JobCard key={item.id} job={item} />)}
+        </>
+      ) : null}
+    </Screen>
   );
 }

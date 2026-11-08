@@ -1,127 +1,101 @@
 /**
- * Auth API — login, register, refresh, profile fetch.
- *
- * Types are imported from @beleqet/common so mobile and web
- * stay in sync with the backend DTOs automatically.
+ * Sign-in, sign-up and account calls. Same flows as the website's lib/auth.ts:
+ * a password sign-in may need the emailed code (new accounts) or the two-step code first.
  */
+import type { AuthResponse, AuthUser, UserRole } from '@beleqet/common';
+import { apiClient, persistTokens, REFRESH_TOKEN_KEY } from './client';
+import { get, send } from '../lib/api';
+import { toApiError } from '../lib/api-error';
+import * as SecureStore from 'expo-secure-store';
 
-import type {
-  AuthUser,
-  AuthResponse,
-  LoginDto,
-  RegisterDto,
-  JwtPayload,
-} from '@beleqet/common';
-import { apiClient, persistTokens } from './client';
+export type { AuthUser, UserRole };
 
-// Re-export so consumers can import from a single place.
-export type { AuthUser, LoginDto, RegisterDto };
+/** The signed-in user, with whether the email is confirmed (from /users/profile). */
+export type Me = AuthUser & { emailVerified?: boolean; createdAt?: string };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+export type SignInResult =
+  | { status: 'signed-in'; user: Me }
+  | { status: 'needs-code'; tempToken: string }
+  | { status: 'needs-email-code'; verificationToken: string; email: string };
 
-function extractMessage(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'response' in error) {
-    const data = (error as { response?: { data?: { message?: string | string[] } } }).response?.data;
-    const msg = data?.message;
-    if (Array.isArray(msg)) return msg.join(', ');
-    if (typeof msg === 'string') return msg;
+type Challenge = { requiresEmailVerification: true; verificationToken: string; email: string };
+type TwoFactor = { requires2fa: true; tempToken: string };
+
+async function finish(data: AuthResponse | Challenge | TwoFactor): Promise<SignInResult> {
+  if ('requiresEmailVerification' in data) {
+    return { status: 'needs-email-code', verificationToken: data.verificationToken, email: data.email };
   }
-  return 'Something went wrong. Please try again.';
+  if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
+  const auth = data as AuthResponse;
+  await persistTokens(auth.accessToken, auth.refreshToken);
+  return { status: 'signed-in', user: await fetchMe().catch(() => auth.user) };
 }
 
-// ── API functions ─────────────────────────────────────────────────────────────
-
-/**
- * Response when 2FA is required before full authentication.
- */
-export interface TwoFactorRequired {
-  requires2fa: true;
-  tempToken: string;
-  factorId: string;
-}
-
-/**
- * Authenticate with email + password.
- * Persists tokens to SecureStore on success.
- * Returns a TwoFactorRequired object if the account has 2FA enabled.
- */
-export async function loginUser(input: LoginDto): Promise<AuthUser | TwoFactorRequired> {
+async function post<T>(path: string, body: unknown): Promise<T> {
   try {
-    const { data } = await apiClient.post<AuthResponse | TwoFactorRequired>('/auth/login', input);
-
-    // Handle 2FA challenge response
-    if ('requires2fa' in data && data.requires2fa) {
-      return data as TwoFactorRequired;
-    }
-
-    const authData = data as AuthResponse;
-    await persistTokens(authData.accessToken, authData.refreshToken);
-    return authData.user;
-  } catch (error) {
-    throw new Error(extractMessage(error));
-  }
-}
-
-/**
- * Create a new account.
- * Persists tokens to SecureStore on success.
- */
-export async function registerUser(input: RegisterDto): Promise<AuthUser> {
-  try {
-    const { data } = await apiClient.post<AuthResponse>('/auth/register', input);
-    await persistTokens(data.accessToken, data.refreshToken);
-    return data.user;
-  } catch (error) {
-    throw new Error(extractMessage(error));
-  }
-}
-
-/**
- * Request password reset email.
- */
-export async function requestPasswordReset(email: string): Promise<{ message?: string }> {
-  try {
-    const { data } = await apiClient.post<{ message?: string }>('/auth/forgot-password', { email });
+    const { data } = await apiClient.post<T>(path, body);
     return data;
   } catch (error) {
-    throw new Error(extractMessage(error));
+    throw toApiError(error);
   }
 }
 
-/**
- * Fetch the full authenticated user profile from `GET /users/profile`.
- *
- * NOTE: `GET /auth/me` only returns the JWT payload { userId, email, role }.
- * Use `GET /users/profile` for the full AuthUser shape.
- */
-export async function fetchMe(): Promise<AuthUser> {
-  const { data } = await apiClient.get<AuthUser>('/users/profile');
-  return data;
+export async function signIn(email: string, password: string): Promise<SignInResult> {
+  return finish(await post('/auth/login', { email: email.trim().toLowerCase(), password }));
 }
 
-/**
- * Fetch the minimal JWT payload from `GET /auth/me`.
- * Contains only { userId, email, role }.
- */
-export async function fetchJwtPayload(): Promise<JwtPayload | null> {
-  try {
-    const { data } = await apiClient.get<JwtPayload>('/auth/me');
-    return data;
-  } catch {
-    return null;
-  }
+export type SignupRole = 'JOB_SEEKER' | 'FREELANCER' | 'EMPLOYER';
+
+export async function register(input: { email: string; password: string; firstName: string; lastName: string; role: SignupRole }): Promise<SignInResult> {
+  return finish(await post('/auth/register', { ...input, email: input.email.trim().toLowerCase() }));
 }
 
-/**
- * Update own profile fields (partial update).
- */
-export async function updateProfile(
-  input: Partial<Pick<AuthUser, 'firstName' | 'lastName' | 'phone' | 'bio' | 'location' | 'avatarUrl' | 'skills' | 'headline'>>,
-): Promise<AuthUser> {
-  try {
-    const { data } = await apiClient.patch<AuthUser>('/users/profile', input);
-    return data;
-  } catch (error) {
-    throw new Error(extractMessage(error));
-  }
+/** Confirms the email with the 6-digit code; signs in (or asks for the two-step code). */
+export async function verifyEmailCode(verificationToken: string, code: string): Promise<SignInResult> {
+  return finish(await post('/auth/verify-email-code', { verificationToken, code }));
+}
+
+/** Emails a new code; the API sends at most one a minute (sent is false otherwise). */
+export function resendEmailCode(verificationToken: string) {
+  return post<{ sent: boolean; alreadyVerified: boolean }>('/auth/resend-verification-code', { verificationToken });
+}
+
+/** Finishes a two-step sign-in with an app code or a backup code. */
+export async function completeTwoFactor(tempToken: string, code: string, kind: 'app' | 'backup'): Promise<SignInResult> {
+  const data = await post<AuthResponse>(
+    kind === 'app' ? '/auth/2fa/verify' : '/auth/2fa/backup-code',
+    kind === 'app' ? { tempToken, code } : { tempToken, backupCode: code },
+  );
+  return finish(data);
+}
+
+/** Resolves the same way whether or not the email exists, like the API. */
+export function requestPasswordReset(email: string) {
+  return post('/auth/forgot-password', { email: email.trim().toLowerCase() });
+}
+
+export function resetPassword(token: string, newPassword: string) {
+  return post('/auth/reset-password', { token, newPassword });
+}
+
+/** Sends a new confirmation link to a signed-in user whose email isn't confirmed. */
+export function resendVerification() {
+  return send('POST', '/auth/resend-verification');
+}
+
+/** Signs in with the tokens Google or LinkedIn handed back. */
+export async function completeOAuth(accessToken: string, refreshToken: string): Promise<Me> {
+  await persistTokens(accessToken, refreshToken);
+  return fetchMe();
+}
+
+export async function fetchMe(): Promise<Me> {
+  return get<Me>('/users/profile');
+}
+
+/** Ends the session on the server too (revokes refresh tokens); failures don't block signing out. */
+export async function serverLogout(): Promise<void> {
+  const refresh = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY).catch(() => null);
+  if (!refresh) return;
+  await send('POST', '/auth/logout').catch(() => undefined);
 }

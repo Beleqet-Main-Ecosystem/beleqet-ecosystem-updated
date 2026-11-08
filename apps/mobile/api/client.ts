@@ -61,7 +61,10 @@ apiClient.interceptors.response.use(
     const url = original.url ?? '';
     const isAuthRoute = /\/auth\/(login|register|refresh|2fa)/.test(url);
 
-    if (error.response?.status !== 401 || original._retry || isAuthRoute) {
+    // A 401 asking for the two-step code is not an expired session: refreshing would not help.
+    const wantsCode = (error.response?.data as { requiresStepUp?: boolean } | undefined)?.requiresStepUp === true;
+
+    if (error.response?.status !== 401 || original._retry || isAuthRoute || wantsCode) {
       return Promise.reject(error);
     }
 
