@@ -48,6 +48,7 @@ model User {
   employerWallet        EmployerWallet?
   messages              Message[]
   notifications         Notification[]
+  pushTokens            PushToken[]
   refreshTokens         RefreshToken[]
   verificationTokens    VerificationToken[]
   savedJobs             SavedJob[]
@@ -149,6 +150,20 @@ enum ThemePreference {
   LIGHT
   DARK
   SYSTEM
+}
+
+/// A phone that gets push notifications (an Expo push token). One row per device.
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  platform  String   @default("android")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_tokens")
 }
 
 model NotificationPreference {

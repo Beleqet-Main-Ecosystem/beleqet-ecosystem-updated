@@ -1,321 +1,118 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  ScrollView,
-  StatusBar,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import {
-  Search,
-  ShieldCheck,
-  PlusCircle,
-  X,
-  Briefcase,
-  RotateCcw,
-  Bell,
-} from 'lucide-react-native';
-import Toast from 'react-native-toast-message';
-import { fetchGigs, type FreelanceJob } from '../../api/freelance';
-import GigCard from '../../components/GigCard';
-import CategoryPill from '../../components/CategoryPill';
+import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Bookmark, SlidersHorizontal } from 'lucide-react-native';
+import { Screen, Field, Button, Select, Sheet, Chips } from '../../components/ui';
+import { PagedList } from '../../components/paged-list';
+import { GigCard } from '../../components/cards';
+import { fetchGigCategories, searchGigs, type GigCategory, type GigSearch } from '../../api/freelance';
+import { useAuth } from '../../store/auth.store';
+import { useTranslation } from '../../lib/i18n';
 
-const CATEGORIES = [
-  { slug: '__all__', label: 'All Gigs' },
-  { slug: 'web-development', label: 'Web Dev' },
-  { slug: 'graphic-design', label: 'Design' },
-  { slug: 'writing', label: 'Writing' },
-  { slug: 'digital-marketing', label: 'Marketing' },
-  { slug: 'video-animation', label: 'Video' },
-];
+type Filters = Pick<GigSearch, 'category' | 'pricingType' | 'experienceLevel' | 'sort'>;
+const NONE: Filters = { category: '', pricingType: '', experienceLevel: '', sort: 'newest' };
+const LEVELS = ['Entry', 'Intermediate', 'Expert'];
 
-const PRICING_TYPES = [
-  { id: 'all', label: 'All Types' },
-  { id: 'FIXED', label: 'Fixed Price' },
-  { id: 'HOURLY', label: 'Hourly' },
-];
+export default function Freelance() {
+  const { t } = useTranslation();
+  const user = useAuth((s) => s.user);
+  const [draft, setDraft] = useState('');
+  const [q, setQ] = useState('');
+  const [filters, setFilters] = useState<Filters>(NONE);
+  const [sheet, setSheet] = useState(false);
+  const [categories, setCategories] = useState<GigCategory[]>([]);
 
-const DEBOUNCE_MS = 300;
-
-export default function FreelanceScreen() {
-  const router = useRouter();
-  const [gigs, setGigs] = useState<FreelanceJob[]>([]);
-  const [activeCategory, setActiveCategory] = useState('__all__');
-  const [activePricingType, setActivePricingType] = useState('all');
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Debounce search input
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
-    debounceRef.current = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
-    return () => clearTimeout(debounceRef.current);
-  }, [query]);
+    fetchGigCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
 
-  const load = useCallback(
-    async (opts?: { refresh?: boolean }) => {
-      if (opts?.refresh) setRefreshing(true);
-      else if (gigs.length === 0) setLoading(true);
-      try {
-        const data = await fetchGigs({
-          limit: 40,
-          ...(activeCategory !== '__all__' ? { category: activeCategory } : {}),
-          ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
-        });
+  const active = [filters.category, filters.pricingType, filters.experienceLevel].filter(Boolean).length + (filters.sort && filters.sort !== 'newest' ? 1 : 0);
+  const saved = user ? (
+    <Pressable onPress={() => router.push('/saved-projects')} accessibilityRole="button" accessibilityLabel={t('m.savedProjects')} className="h-11 w-11 items-center justify-center rounded-full active:bg-white/10">
+      <Bookmark color="#fff" size={22} />
+    </Pressable>
+  ) : null;
 
-        // Filter by pricing type if selected
-        let filtered = data;
-        if (activePricingType !== 'all') {
-          filtered = data.filter((g) => {
-            const pt = ((g as any).pricingType ?? (g as any).type ?? '').toUpperCase();
-            return pt === activePricingType;
-          });
-        }
-
-        setGigs(filtered);
-      } catch {
-        // preserve existing on failure
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [activeCategory, debouncedQuery, activePricingType, gigs.length],
+  const header = (
+    <View className="gap-3 pb-1">
+      <View className="flex-row gap-2">
+        <View className="flex-1">
+          <Field value={draft} onChangeText={setDraft} placeholder={t('m.searchProjects')} returnKeyType="search" onSubmitEditing={() => setQ(draft.trim())} autoCorrect={false} />
+        </View>
+        <Pressable onPress={() => setSheet(true)} accessibilityRole="button" accessibilityLabel={t('m.filters')} className="min-h-12 flex-row items-center gap-1.5 rounded-lg border border-ink-300 bg-surface px-3 dark:border-slate-700 dark:bg-slate-900">
+          <SlidersHorizontal color="#00653B" size={18} />
+          {active > 0 ? <Text className="text-sm font-bold text-forest dark:text-limeAccent">{active}</Text> : null}
+        </Pressable>
+      </View>
+      <Chips
+        value={filters.category ?? ''}
+        onChange={(category) => setFilters((current) => ({ ...current, category }))}
+        options={[{ value: '', label: t('m.all') }, ...categories.map((c) => ({ value: c.slug, label: c.label }))]}
+      />
+    </View>
   );
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const hasFilters =
-    activeCategory !== '__all__' || activePricingType !== 'all' || query.trim().length > 0;
-
-  function clearAllFilters() {
-    setQuery('');
-    setActiveCategory('__all__');
-    setActivePricingType('all');
-  }
-
   return (
-    <View className="flex-1 bg-surface">
-      <StatusBar barStyle="light-content" backgroundColor="#041603" />
-
-      {/* ── Header ── */}
-      <View className="bg-primary px-5 pt-14 pb-5 shadow-md">
-        {/* Brand Bar */}
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-row items-center gap-2.5">
-            <View className="w-10 h-10 bg-brandGreen rounded-2xl items-center justify-center shadow-sm">
-              <Text className="text-primary text-xl font-black">B</Text>
-            </View>
-            <View>
-              <Text className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
-                Beleqet Freelance
-              </Text>
-              <Text className="text-white text-lg font-black tracking-tight leading-tight">
-                Verified Projects
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row items-center gap-2">
-            <TouchableOpacity
-              className="flex-row items-center gap-1.5 bg-brandGreen px-3.5 py-2 rounded-2xl shadow-sm"
-              onPress={() =>
-                Toast.show({
-                  type: 'info',
-                  text1: 'Post a Project',
-                  text2: 'Client project posting is available on the web portal at beleqet.com.',
-                })
-              }
-              accessibilityLabel="Post a project"
-            >
-              <PlusCircle color="#041603" size={15} />
-              <Text className="text-primary text-xs font-black">Post</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="w-10 h-10 bg-white/10 rounded-2xl items-center justify-center border border-white/10"
-              onPress={() => router.push('/notifications')}
-              accessibilityLabel="Notifications"
-            >
-              <Bell color="#d8ff3e" size={18} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Escrow trust banner */}
-        <View className="flex-row items-center bg-white/10 border border-white/10 rounded-2xl px-3.5 py-2.5 mb-3.5 gap-2.5">
-          <ShieldCheck color="#d8ff3e" size={17} />
-          <Text className="text-white/80 text-xs flex-1 leading-4">
-            <Text className="text-brandGreen font-bold">BeleqetSafe Escrow:</Text> Client funds are
-            held safely until project deliverables are approved.
-          </Text>
-        </View>
-
-        {/* Search */}
-        <View className="flex-row items-center bg-white/10 rounded-2xl px-4 py-3.5 border border-white/10 mb-3.5">
-          <Search color="rgba(255,255,255,0.45)" size={17} style={{ marginRight: 8 }} />
-          <TextInput
-            className="flex-1 text-white text-sm"
-            placeholder="Search skills, keywords, or client projects…"
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={() => load()}
-            returnKeyType="search"
-            accessibilityLabel="Search gigs"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {query !== debouncedQuery && (
-            <ActivityIndicator size="small" color="#d8ff3e" style={{ marginRight: 6 }} />
-          )}
-          {query.length > 0 && query === debouncedQuery && (
-            <TouchableOpacity
-              onPress={() => setQuery('')}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityLabel="Clear search"
-            >
-              <X color="rgba(255,255,255,0.6)" size={16} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Category pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="-mx-5 mb-2.5"
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
-        >
-          {CATEGORIES.map((c) => (
-            <CategoryPill
-              key={c.slug}
-              label={c.label}
-              active={activeCategory === c.slug}
-              onPress={() => setActiveCategory(c.slug)}
-            />
-          ))}
-        </ScrollView>
-
-        {/* Quick Pricing Type Filter Chips */}
-        <View className="flex-row items-center gap-2 pt-1">
-          {PRICING_TYPES.map((pt) => {
-            const isSelected = activePricingType === pt.id;
-            return (
-              <TouchableOpacity
-                key={pt.id}
-                onPress={() => setActivePricingType(pt.id)}
-                className={`px-3 py-1.5 rounded-full border ${
-                  isSelected
-                    ? 'bg-brandGreen border-brandGreen'
-                    : 'bg-white/5 border-white/10'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-semibold ${
-                    isSelected ? 'text-primary font-bold' : 'text-white/70'
-                  }`}
-                >
-                  {pt.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* ── Filter Status & Counter ── */}
-      <View className="px-5 py-3 border-b border-slate-100 bg-white flex-row items-center justify-between">
-        <Text className="text-slate-500 text-xs font-semibold">
-          Showing <Text className="text-slate-900 font-bold">{gigs.length}</Text> open project{gigs.length !== 1 ? 's' : ''}
-        </Text>
-        {hasFilters && (
-          <TouchableOpacity onPress={clearAllFilters}>
-            <Text className="text-primary text-xs font-bold">Reset Filters</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* ── Feed ── */}
-      {loading && gigs.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#041603" size="large" />
-          <Text className="text-slate-500 text-sm mt-3 font-medium">Finding verified projects…</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={gigs}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, gap: 14, flexGrow: 1 }}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={7}
-          removeClippedSubviews
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => load({ refresh: true })}
-              tintColor="#041603"
-            />
-          }
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-16 px-6">
-              <View className="w-16 h-16 rounded-2xl bg-primary/10 items-center justify-center mb-4">
-                {hasFilters ? (
-                  <Search color="#041603" size={28} />
-                ) : (
-                  <Briefcase color="#041603" size={28} />
-                )}
-              </View>
-              <Text className="text-slate-900 text-lg font-bold text-center">
-                {query.trim().length > 0
-                  ? `No projects matching "${query.trim()}"`
-                  : activeCategory !== '__all__'
-                  ? `No ${CATEGORIES.find((c) => c.slug === activeCategory)?.label ?? ''} projects yet`
-                  : 'No open freelance projects'}
-              </Text>
-              <Text className="text-slate-500 text-sm text-center mt-1.5 mb-6 max-w-xs leading-5">
-                {hasFilters
-                  ? 'Try checking for spelling errors, using broader keywords, or clearing your category filters.'
-                  : 'New client gigs are posted frequently. Check back soon or pull down to refresh.'}
-              </Text>
-              {hasFilters ? (
-                <TouchableOpacity
-                  className="flex-row items-center gap-2 bg-primary px-5 py-3 rounded-full shadow-sm"
-                  onPress={clearAllFilters}
-                  accessibilityLabel="Clear all filters"
-                >
-                  <RotateCcw color="#d8ff3e" size={14} />
-                  <Text className="text-brandGreen text-sm font-bold">Clear All Filters</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  className="flex-row items-center gap-2 bg-primary px-5 py-3 rounded-full shadow-sm"
-                  onPress={() => load({ refresh: true })}
-                  accessibilityLabel="Refresh listings"
-                >
-                  <RotateCcw color="#d8ff3e" size={14} />
-                  <Text className="text-brandGreen text-sm font-bold">Refresh Feed</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          }
-          renderItem={({ item }) => (
-            <GigCard gig={item} onPress={() => router.push(`/gig/${item.id}`)} />
-          )}
+    <Screen title={t('m.tabs.freelance')} back={false} right={saved} scroll={false}>
+      <PagedList
+        query={JSON.stringify({ q, ...filters })}
+        load={(page) => searchGigs({ q, ...filters, page, limit: 20 })}
+        render={(gig) => <GigCard gig={gig} />}
+        keyOf={(gig) => gig.id}
+        header={header}
+        emptyTitle={t('m.noProjects')}
+        emptyText={t('m.tryOtherFilters')}
+      />
+      <Sheet visible={sheet} title={t('m.filters')} onClose={() => setSheet(false)}>
+        <FilterForm
+          initial={filters}
+          categories={categories}
+          onApply={(next) => {
+            setFilters(next);
+            setSheet(false);
+          }}
         />
-      )}
+      </Sheet>
+    </Screen>
+  );
+}
+
+function FilterForm({ initial, categories, onApply }: { initial: Filters; categories: GigCategory[]; onApply: (filters: Filters) => void }) {
+  const { t } = useTranslation();
+  const [form, setForm] = useState(initial);
+  return (
+    <View className="gap-4 p-4">
+      <Select label={t('m.category')} value={form.category} onChange={(category) => setForm({ ...form, category })} options={[{ value: '', label: t('m.all') }, ...categories.map((c) => ({ value: c.slug, label: c.label }))]} />
+      <Select
+        label={t('freelance.gig.pricing')}
+        value={form.pricingType}
+        onChange={(pricingType) => setForm({ ...form, pricingType })}
+        options={[
+          { value: '', label: t('m.all') },
+          { value: 'FIXED', label: t('freelance.fixed') },
+          { value: 'HOURLY', label: t('freelance.hourly') },
+        ]}
+      />
+      <Select
+        label={t('freelance.gig.experience')}
+        value={form.experienceLevel}
+        onChange={(experienceLevel) => setForm({ ...form, experienceLevel })}
+        options={[{ value: '', label: t('m.all') }, ...LEVELS.map((level) => ({ value: level, label: t(`freelance.post2.levels.${level}`) }))]}
+      />
+      <Select
+        label={t('m.sort')}
+        value={form.sort}
+        onChange={(sort) => setForm({ ...form, sort: sort as Filters['sort'] })}
+        options={[
+          { value: 'newest', label: t('m.sortNewest') },
+          { value: 'budget_high', label: t('m.sortBudgetHigh') },
+          { value: 'budget_low', label: t('m.sortBudgetLow') },
+        ]}
+      />
+      <View className="flex-row gap-3">
+        <Button className="flex-1" variant="outline" label={t('m.clear')} onPress={() => onApply(NONE)} />
+        <Button className="flex-1" label={t('m.apply')} onPress={() => onApply(form)} />
+      </View>
     </View>
   );
 }

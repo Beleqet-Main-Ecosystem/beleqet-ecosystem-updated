@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, ConflictException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Logger, Optional } from '@nestjs/common';
+import { PushService } from '../push/push.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -29,6 +30,7 @@ export class ApplicationsService {
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS)
     private readonly notificationsQueue: Queue,
     private readonly config: ConfigService,
+    @Optional() private readonly push?: PushService,
   ) {}
 
   async submit(userId: string, dto: CreateApplicationDto) {
@@ -230,6 +232,11 @@ export class ApplicationsService {
         body: `Your application status is now ${status.replaceAll('_', ' ').toLowerCase()}.`,
         metadata: { applicationId: id },
       },
+    });
+    await this.push?.sendToUser(application.userId, {
+      title: 'Application status updated',
+      body: `${application.job.title}: ${status.replaceAll('_', ' ').toLowerCase()}.`,
+      metadata: { applicationId: id },
     });
 
     try {

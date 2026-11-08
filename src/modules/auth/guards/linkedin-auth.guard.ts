@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { rememberAppChallenge } from '../app-oauth';
 import { PreparedOAuthIdentity } from '../interfaces/prepared-oauth-identity.interface';
 
 /** Info shape Passport provides when authentication fails. */
@@ -16,6 +17,12 @@ interface AuthFailureInfo {
  */
 @Injectable()
 export class LinkedInAuthGuard extends AuthGuard('linkedin') {
+  /** A sign-in started by the mobile app returns to the app (app-oauth.ts). */
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    rememberAppChallenge(context.switchToHttp().getRequest());
+    return (await super.canActivate(context)) as boolean;
+  }
+
   /**
    * Surfaces the real Passport failure reason (e.g. issuer mismatch,
    * state verification failure) as the thrown error's message, instead

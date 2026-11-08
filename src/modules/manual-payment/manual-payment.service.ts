@@ -1,4 +1,11 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
+import { PushService } from '../push/push.service';
 import { ConfigService } from '@nestjs/config';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -35,6 +42,7 @@ export class ManualPaymentService {
     private readonly uploadsService: UploadsService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    @Optional() private readonly push?: PushService,
   ) {}
 
   /**
@@ -492,6 +500,11 @@ export class ManualPaymentService {
           channel: 'IN_APP',
           metadata: { paymentId: payment.id, reference },
         },
+      });
+      await this.push?.sendToUser(payment.userId, {
+        title: 'Payment Receipt Submitted',
+        body: `Your receipt (Ref: ${reference}) was received and is under review.`,
+        metadata: { paymentId: payment.id },
       });
 
       // 2. In-app notification for active admins

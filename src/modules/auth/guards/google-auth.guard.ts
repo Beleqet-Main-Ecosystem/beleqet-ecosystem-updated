@@ -1,5 +1,6 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { rememberAppChallenge } from '../app-oauth';
 
 /**
  * Activates the `google` Passport strategy for a route. Applying this
@@ -18,6 +19,12 @@ import { AuthGuard } from '@nestjs/passport';
  */
 @Injectable()
 export class GoogleAuthGuard extends AuthGuard('google') {
+  /** A sign-in started by the mobile app returns to the app (app-oauth.ts). */
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    rememberAppChallenge(context.switchToHttp().getRequest());
+    return (await super.canActivate(context)) as boolean;
+  }
+
   public getAuthenticateOptions(_context: ExecutionContext): { state: boolean } {
     return { state: true };
   }

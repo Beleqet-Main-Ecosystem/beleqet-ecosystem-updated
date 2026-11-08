@@ -1,328 +1,116 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  RefreshControl,
-  ActivityIndicator,
-  ScrollView,
-  StatusBar,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import {
-  Search,
-  Bell,
-  X,
-  Briefcase,
-  RotateCcw,
-  Sparkles,
-} from 'lucide-react-native';
-import { fetchJobs, fetchCategories, type NormalizedJob, type JobCategory } from '../../api/jobs';
-import { useAuthStore } from '../../store/auth.store';
-import JobCard from '../../components/JobCard';
-import CategoryPill from '../../components/CategoryPill';
+import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { SlidersHorizontal } from 'lucide-react-native';
+import { Screen, Field, Button, Select, Sheet, Chips, Muted } from '../../components/ui';
+import { PagedList } from '../../components/paged-list';
+import { JobCard } from '../../components/cards';
+import { fetchJobCategories, JOB_TYPES, searchJobs, type Category } from '../../api/jobs';
+import { useTranslation } from '../../lib/i18n';
 
-const ALL_SLUG = '__all__';
-const DEBOUNCE_MS = 300;
+type Filters = { location: string; category: string; types: string[] };
+const NONE: Filters = { location: '', category: '', types: [] };
 
-// Curated quick filter types
-const WORK_TYPES = [
-  { id: 'all', label: 'All Types' },
-  { id: 'FULL_TIME', label: 'Full Time' },
-  { id: 'REMOTE', label: 'Remote' },
-  { id: 'HYBRID', label: 'Hybrid' },
-  { id: 'CONTRACT', label: 'Contract' },
-];
-
-export default function JobsScreen() {
-  const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-
-  const [jobs, setJobs] = useState<NormalizedJob[]>([]);
-  const [categories, setCategories] = useState<JobCategory[]>([]);
-  const [activeCategory, setActiveCategory] = useState(ALL_SLUG);
-  const [activeWorkType, setActiveWorkType] = useState('all');
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Debounce search input
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => {
-    debounceRef.current = setTimeout(() => setDebouncedQuery(query), DEBOUNCE_MS);
-    return () => clearTimeout(debounceRef.current);
-  }, [query]);
-
-  const load = useCallback(
-    async (opts?: { refresh?: boolean }) => {
-      if (opts?.refresh) setRefreshing(true);
-      else if (jobs.length === 0) setLoading(true);
-      try {
-        const [jobData, catData] = await Promise.all([
-          fetchJobs({
-            limit: 40,
-            ...(activeCategory !== ALL_SLUG ? { category: activeCategory } : {}),
-            ...(debouncedQuery.trim() ? { q: debouncedQuery.trim() } : {}),
-            ...(activeWorkType !== 'all' ? { type: activeWorkType as any } : {}),
-          }),
-          fetchCategories(),
-        ]);
-
-        // Filter by work type if selected
-        let filtered = jobData;
-        if (activeWorkType !== 'all') {
-          filtered = jobData.filter((j) => {
-            const t = (j.type ?? '').toUpperCase();
-            return t === activeWorkType || (j.typeDisplay ?? '').toUpperCase().includes(activeWorkType);
-          });
-        }
-
-        setJobs(filtered);
-        setCategories(catData);
-      } catch {
-        // preserve existing jobs on error
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [activeCategory, debouncedQuery, activeWorkType, jobs.length],
-  );
+export default function Jobs() {
+  const { t } = useTranslation();
+  const params = useLocalSearchParams<{ q?: string; category?: string }>();
+  const [draft, setDraft] = useState(params.q ?? '');
+  const [q, setQ] = useState(params.q ?? '');
+  const [filters, setFilters] = useState<Filters>({ ...NONE, category: params.category ?? '' });
+  const [sheet, setSheet] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    fetchJobCategories().then(setCategories).catch(() => setCategories([]));
+  }, []);
 
-  const greeting = user?.firstName
-    ? `Welcome back, ${user.firstName}`
-    : 'Find your next career';
-
-  const hasFilters = activeCategory !== ALL_SLUG || activeWorkType !== 'all' || query.trim().length > 0;
-
-  function clearAllFilters() {
-    setQuery('');
-    setActiveCategory(ALL_SLUG);
-    setActiveWorkType('all');
+  // A new ?q= (from the home search) replaces the search.
+  const [seenQ, setSeenQ] = useState(params.q);
+  if (params.q !== seenQ) {
+    setSeenQ(params.q);
+    setDraft(params.q ?? '');
+    setQ(params.q ?? '');
   }
 
+  const active = Number(Boolean(filters.location)) + Number(Boolean(filters.category)) + filters.types.length;
+  const query = JSON.stringify({ q, ...filters });
+
+  const header = (
+    <View className="gap-3 pb-1">
+      <View className="flex-row gap-2">
+        <View className="flex-1">
+          <Field value={draft} onChangeText={setDraft} placeholder={t('m.searchJobs')} returnKeyType="search" onSubmitEditing={() => setQ(draft.trim())} autoCorrect={false} />
+        </View>
+        <Pressable onPress={() => setSheet(true)} accessibilityRole="button" accessibilityLabel={t('m.filters')} className="min-h-12 flex-row items-center gap-1.5 rounded-lg border border-ink-300 bg-surface px-3 dark:border-slate-700 dark:bg-slate-900">
+          <SlidersHorizontal color="#00653B" size={18} />
+          {active > 0 ? <Text className="text-sm font-bold text-forest dark:text-limeAccent">{active}</Text> : null}
+        </Pressable>
+      </View>
+      <Chips
+        value={filters.types[0] ?? ''}
+        onChange={(value) => setFilters((current) => ({ ...current, types: value ? [value] : [] }))}
+        options={[{ value: '', label: t('m.all') }, ...JOB_TYPES.map((type) => ({ value: type, label: t(`search.types.${type}`) }))]}
+      />
+    </View>
+  );
+
   return (
-    <View className="flex-1 bg-surface">
-      <StatusBar barStyle="light-content" backgroundColor="#041603" />
+    <Screen title={t('m.tabs.jobs')} back={false} scroll={false}>
+      <PagedList
+        query={query}
+        load={(page) => searchJobs({ q, ...filters, page, limit: 20 })}
+        render={(job) => <JobCard job={job} />}
+        keyOf={(job) => job.id}
+        header={header}
+        emptyTitle={t('search.emptyTitle')}
+        emptyText={t('search.emptyText')}
+      />
+      <Sheet visible={sheet} title={t('m.filters')} onClose={() => setSheet(false)}>
+        <FilterForm
+          initial={filters}
+          categories={categories}
+          onApply={(next) => {
+            setFilters(next);
+            setSheet(false);
+          }}
+        />
+      </Sheet>
+    </Screen>
+  );
+}
 
-      {/* ── Top Header ── */}
-      <View className="bg-primary px-5 pt-14 pb-5 shadow-md">
-        
-        {/* Brand Bar */}
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-row items-center gap-2.5">
-            <View className="w-10 h-10 bg-brandGreen rounded-2xl items-center justify-center shadow-sm">
-              <Text className="text-primary text-xl font-black">B</Text>
-            </View>
-            <View>
-              <Text className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
-                Beleqet Jobs
-              </Text>
-              <Text className="text-white text-lg font-black tracking-tight leading-tight">
-                {greeting}
-              </Text>
-            </View>
-          </View>
-
-          {/* Notifications Bell */}
-          <TouchableOpacity
-            className="w-10 h-10 bg-white/10 rounded-2xl items-center justify-center border border-white/10 active:opacity-75"
-            onPress={() => router.push('/notifications')}
-            accessibilityLabel="Notifications"
-          >
-            <Bell color="#d8ff3e" size={18} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Search Bar */}
-        <View className="flex-row items-center bg-white/10 rounded-2xl px-4 py-3.5 border border-white/10">
-          <Search color="rgba(255,255,255,0.45)" size={17} style={{ marginRight: 8 }} />
-          <TextInput
-            className="flex-1 text-white text-sm"
-            placeholder="Search job titles, skills, or companies…"
-            placeholderTextColor="rgba(255,255,255,0.35)"
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={() => load()}
-            returnKeyType="search"
-            accessibilityLabel="Search jobs"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {query !== debouncedQuery && (
-            <ActivityIndicator size="small" color="#d8ff3e" style={{ marginRight: 6 }} />
-          )}
-          {query.length > 0 && query === debouncedQuery && (
-            <TouchableOpacity
-              onPress={() => setQuery('')}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityLabel="Clear search"
-            >
-              <X color="rgba(255,255,255,0.6)" size={16} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Categories Carousel */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mt-3.5 -mx-5"
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
-        >
-          <CategoryPill
-            label="All Jobs"
-            active={activeCategory === ALL_SLUG}
-            onPress={() => setActiveCategory(ALL_SLUG)}
-          />
-          {categories.map((c) => (
-            <CategoryPill
-              key={c.slug}
-              label={c.label}
-              active={activeCategory === c.slug}
-              onPress={() => setActiveCategory(c.slug)}
-            />
-          ))}
-        </ScrollView>
-
-        {/* Work Type Quick Filter Chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mt-2.5 -mx-5"
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 6 }}
-        >
-          {WORK_TYPES.map((wt) => {
-            const isSelected = activeWorkType === wt.id;
+function FilterForm({ initial, categories, onApply }: { initial: Filters; categories: Category[]; onApply: (filters: Filters) => void }) {
+  const { t } = useTranslation();
+  const [form, setForm] = useState(initial);
+  const toggle = (type: string) =>
+    setForm((current) => ({ ...current, types: current.types.includes(type) ? current.types.filter((x) => x !== type) : [...current.types, type] }));
+  return (
+    <View className="gap-4 p-4">
+      <Field label={t('m.location')} value={form.location} onChangeText={(location) => setForm({ ...form, location })} placeholder="Addis Ababa" />
+      <Select
+        label={t('m.category')}
+        value={form.category}
+        onChange={(category) => setForm({ ...form, category })}
+        options={[{ value: '', label: t('m.all') }, ...categories.map((c) => ({ value: c.slug, label: c.label }))]}
+      />
+      <View className="gap-2">
+        <Text className="text-sm font-semibold text-ink-900 dark:text-white">{t('m.jobTypeLabel')}</Text>
+        <View className="flex-row flex-wrap gap-2">
+          {JOB_TYPES.map((type) => {
+            const on = form.types.includes(type);
             return (
-              <TouchableOpacity
-                key={wt.id}
-                onPress={() => setActiveWorkType(wt.id)}
-                activeOpacity={0.7}
-                className={`px-3 py-1.5 rounded-xl border ${
-                  isSelected
-                    ? 'bg-white/20 border-brandGreen'
-                    : 'bg-white/5 border-white/10'
-                }`}
-              >
-                <Text
-                  className={`text-[11px] font-bold ${
-                    isSelected ? 'text-brandGreen' : 'text-white/60'
-                  }`}
-                >
-                  {wt.label}
-                </Text>
-              </TouchableOpacity>
+              <Pressable key={type} onPress={() => toggle(type)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} className={`min-h-9 justify-center rounded-full border px-3.5 ${on ? 'border-obsidian bg-obsidian dark:border-limeAccent dark:bg-limeAccent' : 'border-ink-300 dark:border-slate-700'}`}>
+                <Text className={`text-[13px] font-bold ${on ? 'text-white dark:text-obsidian' : 'text-ink-700 dark:text-slate-200'}`}>{t(`search.types.${type}`)}</Text>
+              </Pressable>
             );
           })}
-        </ScrollView>
-      </View>
-
-      {/* ── Active Filters & Result Count Bar ── */}
-      <View className="px-5 py-3 bg-white border-b border-black/5 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-1.5">
-          <Sparkles color="#041603" size={13} />
-          <Text className="text-slate-800 text-xs font-bold">
-            {jobs.length} {jobs.length === 1 ? 'Opportunity' : 'Opportunities'} Available
-          </Text>
         </View>
-
-        {hasFilters && (
-          <TouchableOpacity
-            onPress={clearAllFilters}
-            className="flex-row items-center gap-1"
-          >
-            <RotateCcw color="#041603" size={12} />
-            <Text className="text-primary text-xs font-black">Reset Filters</Text>
-          </TouchableOpacity>
-        )}
       </View>
-
-      {/* ── Feed Content ── */}
-      {loading && jobs.length === 0 ? (
-        <View className="flex-1 items-center justify-center py-20">
-          <ActivityIndicator color="#041603" size="large" />
-          <Text className="text-muted text-sm font-semibold mt-3">
-            Finding verified opportunities…
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={jobs}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100, flexGrow: 1 }}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={7}
-          removeClippedSubviews
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => load({ refresh: true })}
-              tintColor="#041603"
-            />
-          }
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-16 px-6">
-              <View className="w-16 h-16 rounded-3xl bg-primary/10 items-center justify-center mb-4">
-                {query.length > 0 || activeCategory !== ALL_SLUG ? (
-                  <Search color="#041603" size={28} />
-                ) : (
-                  <Briefcase color="#041603" size={28} />
-                )}
-              </View>
-
-              <Text className="text-slate-900 text-lg font-bold text-center">
-                {query.trim().length > 0
-                  ? `No jobs matching "${query.trim()}"`
-                  : activeCategory !== ALL_SLUG
-                  ? `No ${categories.find((c) => c.slug === activeCategory)?.label ?? ''} jobs found`
-                  : activeWorkType !== 'all'
-                  ? `No ${WORK_TYPES.find((w) => w.id === activeWorkType)?.label ?? ''} jobs right now`
-                  : 'No open jobs available'}
-              </Text>
-
-              <Text className="text-muted text-sm text-center mt-1.5 mb-6 max-w-xs leading-5">
-                {hasFilters
-                  ? 'Try checking for typos, using broader keywords, or clearing your active filters.'
-                  : 'Verified companies post vacancies regularly. Pull down to check for newly published roles.'}
-              </Text>
-
-              {hasFilters ? (
-                <TouchableOpacity
-                  className="flex-row items-center gap-2 bg-primary px-5 py-3 rounded-full shadow-sm"
-                  onPress={clearAllFilters}
-                  accessibilityLabel="Clear all filters"
-                >
-                  <RotateCcw color="#d8ff3e" size={14} />
-                  <Text className="text-brandGreen text-sm font-bold">Clear All Filters</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  className="flex-row items-center gap-2 bg-primary px-5 py-3 rounded-full shadow-sm"
-                  onPress={() => load({ refresh: true })}
-                  accessibilityLabel="Refresh jobs"
-                >
-                  <RotateCcw color="#d8ff3e" size={14} />
-                  <Text className="text-brandGreen text-sm font-bold">Refresh Listings</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          }
-          renderItem={({ item }) => (
-            <JobCard job={item} onPress={() => router.push(`/job/${item.id}`)} />
-          )}
-        />
-      )}
+      <Muted>{t('m.filtersHint')}</Muted>
+      <View className="flex-row gap-3">
+        <Button className="flex-1" variant="outline" label={t('m.clear')} onPress={() => onApply(NONE)} />
+        <Button className="flex-1" label={t('m.apply')} onPress={() => onApply(form)} />
+      </View>
     </View>
   );
 }

@@ -1,145 +1,95 @@
 /**
- * Global auth state managed by Zustand.
- *
- * Responsibilities:
- *  - Hold the current user + auth status
- *  - Expose login / register / logout / hydrate actions
- *  - Trigger token clearance via the API client layer
+ * The signed-in user, shared by every screen. Tokens live in SecureStore (api/client.ts); the
+ * user record is cached there too so the app opens signed in while offline.
  */
-
 import { create } from 'zustand';
-import type { AuthUser, LoginDto, RegisterDto } from '../api/auth';
-import { loginUser, registerUser, fetchMe, type TwoFactorRequired } from '../api/auth';
-import { clearTokens, ACCESS_TOKEN_KEY, USER_CACHE_KEY, apiClient } from '../api/client';
 import * as SecureStore from 'expo-secure-store';
+import { ACCESS_TOKEN_KEY, USER_CACHE_KEY, clearTokens } from '../api/client';
+import { fetchMe, serverLogout, type Me } from '../api/auth';
+import { removePushToken } from '../api/notifications';
+import { toApiError } from '../lib/api-error';
 
-type AuthStatus = 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
+type Status = 'loading' | 'signed-in' | 'signed-out';
 
-interface AuthState {
-  user: AuthUser | null;
-  status: AuthStatus;
-  error: string | null;
-
-  /**
-   * Re-hydrate auth state from SecureStore on app launch.
-   * Calls GET /auth/me using the stored access token.
-   */
+type AuthState = {
+  user: Me | null;
+  status: Status;
+  /** Reads the saved session on launch, then refreshes the user in the background. */
   hydrate: () => Promise<void>;
-  login: (input: LoginDto) => Promise<void>;
-  register: (input: RegisterDto) => Promise<void>;
-  logout: () => Promise<void>;
-  clearError: () => void;
-  setUser: (user: AuthUser) => void;
+  /** After any successful sign-in. */
+  signedIn: (user: Me) => Promise<void>;
+  /** Re-reads the user, e.g. after editing the profile or confirming the email. */
+  refreshUser: () => Promise<void>;
+  signOut: () => Promise<void>;
+};
+
+async function cache(user: Me | null) {
+  if (user) await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(user)).catch(() => undefined);
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuth = create<AuthState>((set, get) => ({
   user: null,
-  status: 'idle',
-  error: null,
+  status: 'loading',
 
   hydrate: async () => {
-    set({ status: 'loading', error: null });
+    const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY).catch(() => null);
+    if (!token) {
+      set({ user: null, status: 'signed-out' });
+      return;
+    }
     try {
-      // Check if we have stored tokens before making a network call
-      const storedToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-      if (!storedToken) {
-        set({ user: null, status: 'unauthenticated' });
-        return;
-      }
-
-      // Check if we have a locally cached user profile for instant offline display
-      let cachedUser: AuthUser | null = null;
-      try {
-        const raw = await SecureStore.getItemAsync(USER_CACHE_KEY);
-        if (raw) cachedUser = JSON.parse(raw) as AuthUser;
-      } catch {
-        // ignore parse error
-      }
-
-      if (cachedUser) {
-        set({ user: cachedUser, status: 'authenticated' });
-      }
-
-      // Attempt background profile refresh
-      try {
-        const freshUser = await fetchMe();
-        if (freshUser) {
-          try {
-            await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(freshUser));
-          } catch {
-            // ignore cache write error
-          }
-          set({ user: freshUser, status: 'authenticated' });
-        } else if (!cachedUser) {
-          set({ user: null, status: 'unauthenticated' });
-        }
-      } catch (err: unknown) {
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 401) {
-          await clearTokens();
-          set({ user: null, status: 'unauthenticated' });
-        } else if (cachedUser) {
-          // Offline or network timeout — stay authenticated with cached profile!
-          set({ user: cachedUser, status: 'authenticated' });
-        } else {
-          set({ user: null, status: 'unauthenticated' });
-        }
-      }
+      const raw = await SecureStore.getItemAsync(USER_CACHE_KEY);
+      if (raw) set({ user: JSON.parse(raw) as Me, status: 'signed-in' });
     } catch {
-      set({ user: null, status: 'unauthenticated' });
+      // A broken cache just means we wait for the network.
     }
-  },
-
-  login: async (input) => {
-    set({ status: 'loading', error: null });
     try {
-      const result = await loginUser(input);
-
-      // Handle 2FA challenge — full 2FA screen to be built later
-      if ('requires2fa' in result && result.requires2fa) {
-        set({ status: 'unauthenticated', error: 'Two-factor authentication is required. Please use the web app to complete login.' });
-        return;
+      const user = await fetchMe();
+      await cache(user);
+      set({ user, status: 'signed-in' });
+    } catch (error) {
+      const failure = toApiError(error);
+      if (failure.status === 401 || failure.status === 403) {
+        await clearTokens();
+        set({ user: null, status: 'signed-out' });
+      } else if (!get().user) {
+        // Offline with no cached user: let them in signed-out; the session stays saved.
+        set({ status: 'signed-out' });
       }
-
-      const authUser = result as AuthUser;
-      try {
-        await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(authUser));
-      } catch {
-        // ignore cache write error
-      }
-      set({ user: authUser, status: 'authenticated', error: null });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Login failed';
-      set({ status: 'unauthenticated', error: msg });
-      throw err;
     }
   },
 
-  register: async (input) => {
-    set({ status: 'loading', error: null });
+  signedIn: async (user) => {
+    await cache(user);
+    set({ user, status: 'signed-in' });
+  },
+
+  refreshUser: async () => {
     try {
-      const user = await registerUser(input);
-      try {
-        await SecureStore.setItemAsync(USER_CACHE_KEY, JSON.stringify(user));
-      } catch {
-        // ignore cache write error
-      }
-      set({ user, status: 'authenticated', error: null });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Registration failed';
-      set({ status: 'unauthenticated', error: msg });
-      throw err;
+      const user = await fetchMe();
+      await cache(user);
+      set({ user });
+    } catch {
+      // Keep what we have.
     }
   },
 
-  logout: async () => {
-    // Revoke refresh token server-side (fire-and-forget — don't block logout on network failure)
-    try { await apiClient.post('/auth/logout'); } catch { /* best effort */ }
+  signOut: async () => {
+    // Stop this phone's notifications for the account first, while still signed in.
+    const pushToken = await SecureStore.getItemAsync('beleqet_push_token').catch(() => null);
+    if (pushToken) {
+      await removePushToken(pushToken).catch(() => undefined);
+      await SecureStore.deleteItemAsync('beleqet_push_token').catch(() => undefined);
+    }
+    await serverLogout();
     await clearTokens();
-    set({ user: null, status: 'unauthenticated', error: null });
+    set({ user: null, status: 'signed-out' });
   },
-
-  clearError: () => set({ error: null }),
-
-  setUser: (user) => set({ user }),
 }));
+
+export type Role = 'JOB_SEEKER' | 'FREELANCER' | 'EMPLOYER' | 'ADMIN';
+
+/** Employers (and admins) hire; everyone else looks for work. */
+export function isEmployer(user: Me | null | undefined): boolean {
+  return user?.role === 'EMPLOYER' || user?.role === 'ADMIN';
+}

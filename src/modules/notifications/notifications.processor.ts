@@ -1,5 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq'; // Pull WorkerHost and Processor
-import { Logger, Injectable } from '@nestjs/common';
+import { Logger, Injectable, Optional } from '@nestjs/common';
+import { PushService } from '../push/push.service';
 import { Job as BullMQJob } from 'bullmq'; // Use bullmq Job types
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
@@ -65,6 +66,7 @@ export class NotificationsProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    @Optional() private readonly push?: PushService,
   ) {
     super();
     this.transporter = nodemailer.createTransport({
@@ -131,6 +133,8 @@ export class NotificationsProcessor extends WorkerHost {
         metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined,
       },
     });
+    // The same notification on the person's phones.
+    await this.push?.sendToUser(userId, { title, body, metadata });
     this.logger.debug(`In-app → ${userId}: ${title}`);
   }
 

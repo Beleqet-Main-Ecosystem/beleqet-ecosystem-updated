@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, Inject, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { AUTH_ENV_CONFIG, AuthEnvConfig } from '../config/auth.config';
+import { APP_CALLBACK, takeAppChallenge } from '../app-oauth';
 
 /**
  * A Google or LinkedIn sign-in that fails (the person cancels, the provider errors, the
@@ -16,9 +17,13 @@ export class OAuthFailureFilter implements ExceptionFilter {
     this.logger.warn(
       `OAuth sign-in failed: ${exception instanceof Error ? exception.message : String(exception)}`,
     );
-    host
-      .switchToHttp()
+    const http = host.switchToHttp();
+    // A sign-in the mobile app started goes back to the app, which says it didn't finish.
+    const fromApp = takeAppChallenge(http.getRequest());
+    http
       .getResponse<Response>()
-      .redirect(`${this.config.frontendUrl}/login?oauth=failed`);
+      .redirect(
+        fromApp ? `${APP_CALLBACK}?error=failed` : `${this.config.frontendUrl}/login?oauth=failed`,
+      );
   }
 }

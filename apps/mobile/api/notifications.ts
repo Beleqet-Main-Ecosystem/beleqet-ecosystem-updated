@@ -1,39 +1,23 @@
-import { apiClient } from './client';
+import { get, send } from '../lib/api';
 
-export interface AppNotification {
+export type AppNotification = {
   id: string;
   type: string;
   title: string;
   body: string;
   read: boolean;
   createdAt: string;
-  data?: Record<string, unknown>;
-}
+  metadata?: Record<string, unknown> | null;
+};
 
-/** Fetch all user notifications from the backend. */
-export async function fetchNotifications(): Promise<AppNotification[]> {
-  try {
-    const { data } = await apiClient.get<AppNotification[]>('/users/notifications');
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
+export const fetchNotifications = () => get<AppNotification[]>('/users/notifications');
+export const markRead = (id: string) => send('PATCH', `/users/notifications/${encodeURIComponent(id)}/read`);
+export const markAllRead = () => send('PATCH', '/users/notifications/read-all');
 
-/** Mark a single notification as read. */
-export async function markNotificationAsRead(id: string): Promise<void> {
-  try {
-    await apiClient.patch(`/users/notifications/${id}/read`);
-  } catch {
-    // best-effort
-  }
-}
+export type NotificationPrefs = Record<string, boolean>;
+export const fetchPrefs = () => get<NotificationPrefs>('/users/notification-preferences');
+export const savePrefs = (prefs: NotificationPrefs) => send<NotificationPrefs>('PATCH', '/users/notification-preferences', prefs);
 
-/** Mark all notifications as read. */
-export async function markAllNotificationsAsRead(): Promise<void> {
-  try {
-    await apiClient.patch('/users/notifications/read-all');
-  } catch {
-    // best-effort
-  }
-}
+/** Registers this phone for push notifications; the API stores one row per device. */
+export const registerPushToken = (token: string) => send('POST', '/users/push-tokens', { token, platform: 'android' });
+export const removePushToken = (token: string) => send('DELETE', `/users/push-tokens/${encodeURIComponent(token)}`);

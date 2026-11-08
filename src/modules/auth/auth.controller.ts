@@ -8,10 +8,12 @@ import {
   HttpStatus,
   Inject,
   Logger,
+  Optional,
   Post,
   Request,
   Req,
   Res,
+  UnauthorizedException,
   UseFilters,
   UseGuards,
 } from '@nestjs/common';
@@ -42,6 +44,18 @@ import { PreparedOAuthIdentity } from './interfaces/prepared-oauth-identity.inte
 import { EMAIL_SENDER, IEmailSender } from './interfaces/email-sender.interface';
 import { AUTH_ENV_CONFIG, AuthEnvConfig } from './config/auth.config';
 import { OAuthFailureFilter } from './filters/oauth-failure.filter';
+import { APP_CALLBACK, AppOAuthHandoff, takeAppChallenge } from './app-oauth';
+import { IsString, MaxLength } from 'class-validator';
+
+export class AppExchangeDto {
+  @IsString()
+  @MaxLength(200)
+  code: string;
+
+  @IsString()
+  @MaxLength(200)
+  verifier: string;
+}
 
 /** Discriminated response shapes returned by the OAuth callback routes. */
 type OAuthCallbackResponse =
@@ -59,6 +73,7 @@ export class AuthController {
     private readonly accountLinkingService: AccountLinkingService,
     @Inject(EMAIL_SENDER) private readonly emailSender: IEmailSender,
     @Inject(AUTH_ENV_CONFIG) private readonly config: AuthEnvConfig,
+    @Optional() private readonly appHandoff?: AppOAuthHandoff,
   ) {}
 
   // ─── Pre-existing local email/password auth (unchanged) ──────────────────
@@ -196,7 +211,7 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @UseFilters(OAuthFailureFilter)
   async googleCallback(@Req() req: ExpressRequest, @Res() res: ExpressResponse): Promise<void> {
-    res.redirect(this.websiteUrl(await this.handleOAuthCallback(req)));
+    res.redirect(await this.redirectAfterOAuth(req, await this.handleOAuthCallback(req)));
   }
 
   @Get('linkedin')
@@ -210,7 +225,34 @@ export class AuthController {
   @UseGuards(LinkedInAuthGuard)
   @UseFilters(OAuthFailureFilter)
   async linkedinCallback(@Req() req: ExpressRequest, @Res() res: ExpressResponse): Promise<void> {
-    res.redirect(this.websiteUrl(await this.handleOAuthCallback(req)));
+    res.redirect(await this.redirectAfterOAuth(req, await this.handleOAuthCallback(req)));
+  }
+
+  /**
+   * Back to the mobile app when it started the sign-in (see app-oauth.ts): only a one-time code
+   * travels in the link. Otherwise back to the website.
+   */
+  private async redirectAfterOAuth(
+    req: ExpressRequest,
+    outcome: OAuthCallbackResponse,
+  ): Promise<string> {
+    const challenge = takeAppChallenge(req as never);
+    if (!challenge || !this.appHandoff) return this.websiteUrl(outcome);
+    if (outcome.status === 'confirmation_required') return `${APP_CALLBACK}?confirm=1`;
+    if (outcome.status === 'two_factor')
+      return `${APP_CALLBACK}?${new URLSearchParams({ twoFactor: outcome.tempToken })}`;
+    const code = await this.appHandoff.issue(challenge, outcome.tokens);
+    return `${APP_CALLBACK}?${new URLSearchParams({ code })}`;
+  }
+
+  /** The mobile app trades the one-time code and its secret for the session. */
+  @Post('app-exchange')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 900_000 } })
+  @ApiOperation({ summary: 'Finish a Google or LinkedIn sign-in started in the mobile app' })
+  appExchange(@Body() dto: AppExchangeDto) {
+    if (!this.appHandoff) throw new UnauthorizedException();
+    return this.appHandoff.exchange(dto.code, dto.verifier);
   }
 
   /**

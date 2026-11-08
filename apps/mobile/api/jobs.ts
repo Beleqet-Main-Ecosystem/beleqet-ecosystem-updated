@@ -1,113 +1,137 @@
 /**
- * Jobs API — feed, detail, categories, apply.
- *
- * Types imported from @beleqet/common keep mobile aligned with the backend.
+ * Jobs: search, detail, categories, applying, saving. The mapping matches the website's
+ * toDisplayJob, so both show the same thing for the same listing.
  */
+import { get, send } from '../lib/api';
+import { toApiError } from '../lib/api-error';
 
-import type {
-  Job,
-  JobCategory,
-  JobsResponse,
-  JobStats,
-  QueryJobsDto,
-  CreateApplicationDto,
-  JobType,
-} from '@beleqet/common';
-import { apiClient } from './client';
-
-// Re-export for consumers.
-export type { Job, JobCategory, QueryJobsDto };
-
-// ── Display helpers ───────────────────────────────────────────────────────────
-
-const TYPE_LABELS: Record<string, string> = {
-  FULL_TIME: 'Full Time',
-  PART_TIME: 'Part Time',
-  REMOTE:    'Remote',
-  HYBRID:    'Hybrid',
-  CONTRACT:  'Contract',
+export type Job = {
+  id: string;
+  title: string;
+  company: string;
+  companyId: string | null;
+  companyLogo: string | null;
+  companyWebsite: string | null;
+  companyDescription: string | null;
+  companyVerified: boolean;
+  companyIndustry: string | null;
+  companySize: string | null;
+  location: string;
+  /** FULL_TIME, PART_TIME, REMOTE, HYBRID, CONTRACT. */
+  typeCode: string;
+  category: string;
+  categoryLabel: string;
+  featured: boolean;
+  urgent: boolean;
+  description: string;
+  requirements: string | null;
+  experienceLevel: string | null;
+  vacancies: number;
+  salaryType: string;
+  tags: string[];
+  salaryMin: number | null;
+  salaryMax: number | null;
+  currency: string;
+  createdAt: string | null;
+  applicantCount: number;
+  closesAt: string | null;
 };
 
-function relativeTime(iso?: string | null): string {
-  if (!iso) return 'Recently';
-  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 60) return `${Math.max(1, mins)}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-/** Normalize a raw API job into a clean display object. */
-export function normalizeJob(job: Job) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function toJob(raw: any): Job {
   return {
-    ...job,
-    companyDisplay: job.company?.name ?? 'Confidential',
-    typeDisplay:    (job.type && TYPE_LABELS[job.type]) ?? job.type ?? '',
-    postedAgo:      relativeTime(job.createdAt),
-    categorySlug:   job.category?.slug ?? job.categoryId ?? '',
+    id: raw.id,
+    title: raw.title ?? '',
+    company: raw.company?.name ?? raw.companyName ?? 'Confidential',
+    companyId: raw.companyId ?? raw.company?.id ?? null,
+    companyLogo: raw.companyLogo ?? raw.company?.logoUrl ?? null,
+    companyWebsite: raw.company?.website ?? null,
+    companyDescription: raw.company?.description ?? null,
+    companyVerified: Boolean(raw.company?.verified),
+    companyIndustry: raw.company?.industry ?? null,
+    companySize: raw.company?.size ?? null,
+    location: raw.location ?? '',
+    typeCode: raw.type ?? '',
+    category: raw.category?.slug ?? raw.categoryId ?? '',
+    categoryLabel: raw.category?.label ?? raw.category?.slug ?? '',
+    featured: Boolean(raw.featured),
+    urgent: Boolean(raw.urgent),
+    description: raw.description ?? '',
+    requirements: raw.requirements ?? null,
+    experienceLevel: raw.experienceLevel ?? null,
+    vacancies: raw.vacancies ?? 1,
+    salaryType: raw.salaryType ?? 'Monthly',
+    tags: raw.tags ?? [],
+    salaryMin: raw.salaryMin ?? null,
+    salaryMax: raw.salaryMax ?? null,
+    currency: raw.currency ?? 'ETB',
+    createdAt: raw.createdAt ?? null,
+    applicantCount: raw._count?.applications ?? 0,
+    closesAt: raw.deadline ?? raw.expiryDate ?? null,
   };
 }
 
-export type NormalizedJob = ReturnType<typeof normalizeJob>;
+export type Page<T> = { items: T[]; total: number; page: number; totalPages: number };
 
-// ── API functions ─────────────────────────────────────────────────────────────
+/** A 200 that isn't a list (e.g. a proxy's HTML page) is an error, never "no results". */
+function list<T>(data: unknown, map: (raw: unknown) => T, page = 1, limit = 20): Page<T> {
+  const body = data as { items?: unknown[]; total?: number; page?: number; totalPages?: number } | null;
+  if (!body || !Array.isArray(body.items)) throw toApiError(new Error('Unexpected response'));
+  const total = body.total ?? body.items.length;
+  return {
+    items: body.items.map(map),
+    total,
+    page: body.page ?? page,
+    totalPages: body.totalPages ?? Math.max(1, Math.ceil(total / limit)),
+  };
+}
+export { list as toPage };
 
-/** Fetch paginated job listings. */
-export async function fetchJobs(params: QueryJobsDto = {}): Promise<NormalizedJob[]> {
-  try {
-    const { data } = await apiClient.get<JobsResponse>('/jobs', {
-      params: { limit: 40, ...params },
-    });
-    return (data.items ?? []).map(normalizeJob);
-  } catch {
-    return [];
-  }
+export type JobSearch = { q?: string; location?: string; category?: string; company?: string; types?: string[]; page?: number; limit?: number };
+
+export async function searchJobs(search: JobSearch): Promise<Page<Job>> {
+  const limit = search.limit ?? 20;
+  const data = await get('/jobs', {
+    q: search.q || undefined,
+    location: search.location || undefined,
+    category: search.category || undefined,
+    company: search.company || undefined,
+    type: search.types?.join(',') || undefined,
+    page: search.page ?? 1,
+    limit,
+  });
+  return list(data, toJob, search.page ?? 1, limit);
 }
 
-/** Fetch a single job by ID. */
-export async function fetchJob(id: string): Promise<NormalizedJob | null> {
-  try {
-    const { data } = await apiClient.get<Job>(`/jobs/${id}`);
-    return normalizeJob(data);
-  } catch {
-    return null;
-  }
+export async function fetchJob(id: string): Promise<Job> {
+  return toJob(await get(`/jobs/${encodeURIComponent(id)}`));
 }
 
-/** Fetch all job categories. */
-export async function fetchCategories(): Promise<JobCategory[]> {
-  try {
-    const { data } = await apiClient.get<JobCategory[]>('/jobs/categories');
-    return data ?? [];
-  } catch {
-    return [];
-  }
+export type Category = { id: string; slug: string; label: string; openJobs: number };
+
+export async function fetchJobCategories(): Promise<Category[]> {
+  const data = await get<{ id: string; slug?: string; label: string; openJobs?: number }[]>('/jobs/categories');
+  if (!Array.isArray(data)) return [];
+  return data.map((c) => ({ id: c.id, slug: c.slug ?? c.id, label: c.label, openJobs: c.openJobs ?? 0 }));
 }
 
-/** Fetch platform-wide stats. */
-export async function fetchPlatformStats(): Promise<JobStats> {
-  try {
-    const { data } = await apiClient.get<JobStats>('/jobs/stats');
-    return data;
-  } catch {
-    return {
-      activeJobs: 10_000,
-      hiringCompanies: 5_000,
-      registeredJobSeekers: 50_000,
-      satisfactionRate: 98,
-    };
-  }
+export const JOB_TYPES = ['FULL_TIME', 'PART_TIME', 'REMOTE', 'HYBRID', 'CONTRACT'] as const;
+
+// ── Applying ───────────────────────────────────────────────────────────────────
+
+export function applyToJob(input: { jobId: string; resumeUrl?: string; coverLetter?: string; portfolioUrl?: string; expectedSalary?: number }) {
+  return send<{ id: string }>('POST', '/applications', input);
 }
 
-/** Apply to a job posting. */
-export async function applyToJob(
-  jobId: string,
-  payload: Omit<CreateApplicationDto, 'jobId'>,
-): Promise<{ id: string }> {
-  const { data } = await apiClient.post<{ id: string }>(
-    '/applications',
-    { ...payload, jobId },
-  );
-  return data;
+// ── Saved jobs ─────────────────────────────────────────────────────────────────
+
+export type SavedJob = { id: string; jobId: string; createdAt: string; job: Job };
+
+export async function fetchSavedJobs(): Promise<SavedJob[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = await get<any[]>('/users/saved-jobs');
+  return (rows ?? []).map((row) => ({ id: row.id, jobId: row.jobId ?? row.job?.id, createdAt: row.createdAt, job: toJob(row.job ?? {}) }));
 }
+
+export const saveJob = (jobId: string) => send('POST', `/users/saved-jobs/${encodeURIComponent(jobId)}`);
+export const unsaveJob = (jobId: string) => send('DELETE', `/users/saved-jobs/${encodeURIComponent(jobId)}`);

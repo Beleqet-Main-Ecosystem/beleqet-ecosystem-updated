@@ -27,6 +27,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { LinkedInStrategy } from './strategies/linkedin.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AuthController } from './auth.controller';
+import { AppOAuthHandoff } from './app-oauth';
 import { AuthExceptionFilter } from './filters/auth-exception.filter';
 import { TwoFactorModule } from '../two-factor/two-factor.module';
 
@@ -52,6 +53,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
   ],
   controllers: [AuthController],
   providers: [
+    AppOAuthHandoff,
     {
       provide: AUTH_ENV_CONFIG,
       useFactory: () => loadAuthEnvConfig(),

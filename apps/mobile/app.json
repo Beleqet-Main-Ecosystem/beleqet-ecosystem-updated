@@ -2,7 +2,7 @@
   "expo": {
     "name": "Beleqet Jobs",
     "slug": "beleqet-mobile",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "beleqet",
@@ -23,11 +23,9 @@
         "backgroundColor": "#041603"
       },
       "package": "com.beleqet.jobs",
-      "versionCode": 21,
+      "versionCode": 22,
       "permissions": [
         "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE"
@@ -61,18 +59,20 @@
         "expo-build-properties",
         {
           "android": {
-            "targetSdkVersion": 35,
-            "compileSdkVersion": 35,
-            "buildToolsVersion": "35.0.0"
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36
           }
         }
       ],
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-web-browser",
+      "expo-sharing",
+      "expo-localization",
+      "@react-native-community/datetimepicker",
+      "expo-audio",
+      "expo-asset"
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
     "extra": {
       "router": {
         "origin": false
