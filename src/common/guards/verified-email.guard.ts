@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { isDeliverableEmail } from '../utils/deliverable-email';
+import { ERROR_CODES } from '../filters/all-exceptions.filter';
 
 export const EMAIL_NOT_VERIFIED_MESSAGE =
   'Please confirm your email address first. Use the link we emailed you, or send a new one from the banner on the site.';
@@ -33,6 +34,9 @@ export class VerifiedEmailGuard implements CanActivate {
     if (!user) throw new UnauthorizedException();
     if (user.emailVerified || user.role === 'ADMIN' || !isDeliverableEmail(user.email)) return true;
 
-    throw new ForbiddenException(EMAIL_NOT_VERIFIED_MESSAGE);
+    throw new ForbiddenException({
+      message: EMAIL_NOT_VERIFIED_MESSAGE,
+      errorCode: ERROR_CODES.EMAIL_NOT_VERIFIED,
+    });
   }
 }

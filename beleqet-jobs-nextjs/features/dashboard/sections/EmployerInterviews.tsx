@@ -7,6 +7,7 @@ import { safeHttpUrl } from '@/features/jobs/format';
 import { apiSend } from '../api';
 import { card, Field, input, muted, outline, solid } from '../ui';
 import { fetchInterviews, whenText, type Interview } from './Interviews';
+import { errorText } from '@/lib/api-error';
 
 /** Upcoming interviews the employer scheduled, with the candidate's answer and where to meet. */
 export default function EmployerInterviews() {
@@ -36,8 +37,8 @@ export default function EmployerInterviews() {
       const updated = await apiSend<Interview>('PATCH', `/interview-planner/interviews/${row.id}`, draft);
       setRows((list) => list && list.map((item) => (item.id === row.id ? { ...item, location: updated.location, meetingLink: updated.meetingLink, notes: updated.notes } : item)));
       setEditing(null);
-    } catch {
-      setError(t('dash.saveFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'dash.saveFailed'));
     }
   }
 

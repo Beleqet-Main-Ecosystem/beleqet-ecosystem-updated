@@ -7,6 +7,7 @@ import { initials, safeHttpUrl } from '@/features/jobs/format';
 import { uploadAttachment } from '@/features/freelance/actions';
 import { apiGet, apiSend } from '../api';
 import { card, Empty, Failed, Field, Heading, input, muted, outline, solid } from '../ui';
+import { errorText } from '@/lib/api-error';
 
 type Company = {
   name: string;
@@ -68,7 +69,7 @@ export default function CompanySection({ openJobs }: { openJobs: number }) {
       const logoUrl = await upload(file);
       setCompany(await apiSend<Company>('PATCH', '/users/company', { logoUrl }));
     } catch (problem) {
-      setError(problem instanceof Error && problem.message === t('emp.fileTooBig') ? problem.message : t('emp.uploadFailed'));
+      setError(problem instanceof Error && problem.message === t('emp.fileTooBig') ? problem.message : errorText(problem, t, 'emp.uploadFailed'));
     } finally {
       setBusy('');
     }
@@ -85,8 +86,8 @@ export default function CompanySection({ openJobs }: { openJobs: number }) {
       const status = await apiSend<Partial<Company>>('POST', '/users/company/verification', { tradeLicenseUrl });
       setCompany({ ...company!, ...status });
       setNotice(t('emp.licenceSent'));
-    } catch {
-      setError(t('emp.licenceFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'emp.licenceFailed'));
     } finally {
       setBusy('');
     }
@@ -116,8 +117,8 @@ export default function CompanySection({ openJobs }: { openJobs: number }) {
       setCompany(saved);
       setEditing(false);
       setNotice(company!.verified && !saved.verified ? t('emp.renamedUnverified') : t('emp.companySaved'));
-    } catch {
-      setError(t('dash.saveFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'dash.saveFailed'));
     } finally {
       setBusy('');
     }

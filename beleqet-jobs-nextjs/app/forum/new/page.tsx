@@ -9,6 +9,7 @@ import { getToken } from '@/lib/auth';
 import { FORUM_CONFIG } from '@/lib/config/forum';
 import { createThread } from '@/lib/forum-api';
 import { useTranslation } from '@/lib/i18n';
+import { errorText } from '@/lib/api-error';
 
 const { MIN_TITLE_LENGTH, MAX_TITLE_LENGTH, MIN_CONTENT_LENGTH, MAX_CONTENT_LENGTH, MAX_TAGS, MAX_TAG_LENGTH } = FORUM_CONFIG.VALIDATION;
 const input = 'min-h-12 rounded-lg border border-ink-300 bg-surface px-3.5 text-base text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-950 dark:text-white';
@@ -56,8 +57,8 @@ export default function NewThreadPage() {
     try {
       const thread = await createThread({ title: title.trim(), content: content.trim(), tags, isAnonymous: anonymous }, token);
       router.push(`/forum/${thread.id}`);
-    } catch {
-      setError(t('forum.postFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'forum.postFailed'));
       setSubmitting(false);
     }
   }

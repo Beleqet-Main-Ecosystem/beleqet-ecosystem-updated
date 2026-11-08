@@ -8,6 +8,7 @@ import { initials, safeHttpUrl } from '@/features/jobs/format';
 import { uploadAttachment } from '@/features/freelance/actions';
 import { apiGet, apiSend, fetchProfile, type Profile } from '../api';
 import { card, Failed, Field, Heading, input, link, muted, outline, solid } from '../ui';
+import { errorText } from '@/lib/api-error';
 
 type Slot = { id: string; startTime: string; endTime: string };
 
@@ -45,8 +46,8 @@ export default function ProfileSection() {
     try {
       await apiSend('PATCH', '/users/profile', { avatarUrl: avatarUrl ?? '' });
       setProfile({ ...profile!, avatarUrl });
-    } catch {
-      setError(t('dash.saveFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'dash.saveFailed'));
     } finally {
       setPhotoBusy(false);
     }
@@ -64,8 +65,8 @@ export default function ProfileSection() {
     try {
       const url = await uploadAttachment(file);
       await setPhoto(url);
-    } catch {
-      setError(t('emp.uploadFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'emp.uploadFailed'));
       setPhotoBusy(false);
     }
   }
@@ -97,8 +98,8 @@ export default function ProfileSection() {
       for (const field of LINK_FIELDS) body[field] = profile![field] ? safeHttpUrl(profile![field]) : '';
       await apiSend('PATCH', '/users/profile', body);
       setSaved(true);
-    } catch {
-      setError(t('dash.saveFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'dash.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -115,8 +116,8 @@ export default function ProfileSection() {
       setSlots([...slots, slot]);
       setStart('');
       setEnd('');
-    } catch {
-      setSlotError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setSlotError(errorText(problem, t, 'freelance.gig.actionFailed'));
     }
   }
 
@@ -125,8 +126,8 @@ export default function ProfileSection() {
     try {
       await apiSend('DELETE', `/interview-planner/availability/${id}`);
       setSlots(slots.filter((slot) => slot.id !== id));
-    } catch {
-      setSlotError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setSlotError(errorText(problem, t, 'freelance.gig.actionFailed'));
     }
   }
 

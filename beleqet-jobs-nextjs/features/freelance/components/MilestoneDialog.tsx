@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/i18n';
 import { safeHttpUrl } from '@/features/jobs/format';
 import { uploadAttachment } from '../actions';
 import { addMilestone, releaseMilestone, requestRevision, submitWork, type Milestone } from '../contract';
+import { errorText } from '@/lib/api-error';
 
 export type DialogRequest =
   | { kind: 'release' | 'revision'; milestone: Milestone }
@@ -79,8 +80,8 @@ export default function MilestoneDialog({ request, contractId, freelancerName, c
         await addMilestone(contractId, { title: title.trim(), amount: Math.round(Number(amount)), deadline: new Date(deadline).toISOString() });
       }
       onDone();
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
       setBusy(false);
     }
   }

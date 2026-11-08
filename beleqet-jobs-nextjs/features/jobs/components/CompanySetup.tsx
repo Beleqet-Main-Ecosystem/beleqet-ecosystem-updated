@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
+import { errorText, apiError } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const FIELDS = ['name', 'industry', 'location'] as const;
@@ -33,10 +34,10 @@ export default function CompanySetup({ onCreated }: { onCreated: (company: { nam
           description: form.get('description'),
         }),
       });
-      if (!response.ok) throw new Error('company');
+      if (!response.ok) throw await apiError(response);
       onCreated({ name });
-    } catch {
-      setError(t('postJob.companySaveFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'postJob.companySaveFailed'));
     } finally {
       setSaving(false);
     }

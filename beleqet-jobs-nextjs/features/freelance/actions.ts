@@ -1,4 +1,5 @@
 import { authenticatedFetch } from '@/lib/auth';
+import { ApiError, apiError } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
@@ -18,19 +19,18 @@ export type GigBid = {
   };
 };
 
-/** Fails with the HTTP status, so callers can tell "already bid" from a real error. */
-export class ActionError extends Error {
-  constructor(public status: number) {
-    super(`Request failed: ${status}`);
-  }
-}
+/** Fails with the HTTP status and the server's reason, so callers can tell "already bid" from a real error. */
+export class ActionError extends ApiError {}
 
 export async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await authenticatedFetch(`${API_URL}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
   });
-  if (!response.ok) throw new ActionError(response.status);
+  if (!response.ok) {
+    const { status, code, message } = await apiError(response);
+    throw new ActionError(status, code, message);
+  }
   return response.json();
 }
 
@@ -74,7 +74,7 @@ export async function uploadAttachment(file: File): Promise<string> {
   form.append('hasConsentedToProcessing', 'true');
   const response = await authenticatedFetch(`${API_URL}/uploads/file`, { method: 'POST', body: form });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data.publicUrl) throw new ActionError(response.status);
+  if (!response.ok || !data.publicUrl) throw new ActionError(response.status, data.errorCode, data.message);
   return data.publicUrl;
 }
 

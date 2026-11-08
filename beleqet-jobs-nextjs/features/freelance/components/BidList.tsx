@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import { initials, monthYear, safeHttpUrl } from '@/features/jobs/format';
 import { acceptBid, rejectBid, type GigBid } from '../actions';
+import { errorText } from '@/lib/api-error';
 
 const outline = 'inline-flex min-h-11 items-center rounded-lg border border-ink-300 px-3.5 text-sm font-bold text-ink-900 disabled:opacity-60 dark:border-slate-700 dark:text-white';
 const solid = 'inline-flex min-h-11 items-center rounded-lg bg-obsidian px-3.5 text-sm font-bold text-white disabled:opacity-60 dark:bg-limeAccent dark:text-obsidian';
@@ -41,8 +42,8 @@ export default function BidList({ bids, failed, contractId, onRetry, onChange, o
     try {
       await rejectBid(bid.id);
       onChange((bids ?? []).map((item) => (item.id === bid.id ? { ...item, status: 'REJECTED' } : item)));
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     } finally {
       setWorking(false);
     }
@@ -55,8 +56,8 @@ export default function BidList({ bids, failed, contractId, onRetry, onChange, o
       const contract = await acceptBid(bid.id);
       onContract(contract.id);
       onChange((bids ?? []).map((item) => ({ ...item, status: item.id === bid.id ? 'ACCEPTED' : 'REJECTED' })));
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     } finally {
       setWorking(false);
       setConfirming(null);

@@ -6,6 +6,7 @@ import { useTranslation } from '@/lib/i18n';
 import { daysUntil, initials } from '@/features/jobs/format';
 import { apiGet, apiSend } from '../api';
 import { card, Empty, Failed, Heading, muted, outline, shortDate, solid } from '../ui';
+import { errorText } from '@/lib/api-error';
 
 type Saved = {
   jobId: string;
@@ -32,8 +33,8 @@ export default function SavedJobs() {
     try {
       await apiSend('DELETE', `/users/saved-jobs/${jobId}`);
       setSaved((list) => (list ?? []).filter((item) => item.jobId !== jobId));
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     }
   }
 

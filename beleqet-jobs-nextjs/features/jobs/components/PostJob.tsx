@@ -9,6 +9,7 @@ import { useTranslation } from '@/lib/i18n';
 import { initials } from '../format';
 import { JOB_TYPES, type JobTypeCode } from '../search-params';
 import CompanySetup from './CompanySetup';
+import { apiError, errorText } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const PAY_PERIODS = ['monthly', 'daily', 'hourly'] as const;
@@ -267,17 +268,13 @@ export default function PostJob({ categories, editId }: { categories: Category[]
           urgent,
         }),
       });
-      if (response.status === 403) {
-        const body = await response.json().catch(() => ({}));
-        setError(typeof body.message === 'string' ? body.message : t('postJob.limitReached'));
-        return;
-      }
-      if (!response.ok) throw new Error('publish');
+      // A 403 is the plan's job limit or an unconfirmed email; errorText shows which.
+      if (!response.ok) throw await apiError(response);
       const job = await response.json();
       setPublishedId(job.id);
       window.scrollTo({ top: 0 });
-    } catch {
-      setError(t(editing ? 'postJob.saveFailed' : 'postJob.publishFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, editing ? 'postJob.saveFailed' : 'postJob.publishFailed'));
     } finally {
       setPublishing(false);
     }

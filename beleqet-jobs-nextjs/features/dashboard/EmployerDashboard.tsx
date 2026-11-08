@@ -17,6 +17,7 @@ import PlanSection from './sections/PlanSection';
 import TwoStep from './sections/TwoStep';
 import DeleteAccount from './sections/DeleteAccount';
 import { card, Confirm, Empty, Failed, Heading, muted, outline, shortDate, solid } from './ui';
+import { errorText } from '@/lib/api-error';
 
 export type EmployerJob = {
   id: string;
@@ -79,8 +80,8 @@ export default function EmployerDashboard() {
     try {
       await apiSend('PATCH', `/jobs/${job.id}`, filled === undefined ? { status } : { status, filled });
       setJobs((rows) => (rows ?? []).map((row) => (row.id === job.id ? { ...row, status } : row)));
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     }
   }
 

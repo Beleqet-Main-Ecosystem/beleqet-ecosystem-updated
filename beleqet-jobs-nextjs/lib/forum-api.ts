@@ -1,3 +1,4 @@
+import { apiError } from "@/lib/api-error";
 const API = process.env.NEXT_PUBLIC_API_URL ?? "https://api.beleqetjobs.com/api/v1";
 
 export interface ForumThread {
@@ -49,10 +50,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: { "Content-Type": "application/json", ...options?.headers },
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message ?? `Request failed: ${res.status}`);
-  }
+  if (!res.ok) throw await apiError(res);
   return res.json();
 }
 

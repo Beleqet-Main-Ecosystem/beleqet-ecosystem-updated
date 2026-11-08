@@ -11,6 +11,7 @@ import { postedAgo } from '@/features/jobs/format';
 import { forumCard, forumSolid } from './ForumList';
 import ReportButton from '@/features/reports/ReportButton';
 import { authenticatedFetch } from '@/lib/auth';
+import { errorText } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const MAX_REPLY = 5000;
@@ -121,8 +122,8 @@ export default function ThreadView({ thread }: { thread: ForumThread & { replies
       setCount(count + 1);
       setText('');
       setParent(null);
-    } catch {
-      setError(t('forum.replyFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'forum.replyFailed'));
     } finally {
       setSending(false);
     }
