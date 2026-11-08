@@ -27,20 +27,33 @@ describe('PushService', () => {
   });
 
   it('refuses anything that is not an Expo push token', async () => {
-    await expect(service.register('u1', 'https://evil.example')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.register('u1', 'https://evil.example')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     expect(prisma.pushToken.upsert).not.toHaveBeenCalled();
   });
 
   it('only removes the token from its own account', async () => {
     await service.remove('u1', 'ExponentPushToken[abc]');
-    expect(prisma.pushToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1', token: 'ExponentPushToken[abc]' } });
+    expect(prisma.pushToken.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'u1', token: 'ExponentPushToken[abc]' },
+    });
   });
 
   it('sends to every phone, with the screen to open', async () => {
-    await service.sendToUser('u1', { title: 'Bid accepted', body: 'Open the contract', metadata: { contractId: 'c1' } });
+    await service.sendToUser('u1', {
+      title: 'Bid accepted',
+      body: 'Open the contract',
+      metadata: { contractId: 'c1' },
+    });
     const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(sent).toEqual([
-      expect.objectContaining({ to: 'ExponentPushToken[abc]', title: 'Bid accepted', body: 'Open the contract', data: { path: '/contract/c1' } }),
+      expect.objectContaining({
+        to: 'ExponentPushToken[abc]',
+        title: 'Bid accepted',
+        body: 'Open the contract',
+        data: { path: '/contract/c1' },
+      }),
     ]);
   });
 
@@ -51,9 +64,16 @@ describe('PushService', () => {
   });
 
   it('forgets phones Expo says are no longer registered', async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ data: [{ status: 'error', details: { error: 'DeviceNotRegistered' } }] }) });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [{ status: 'error', details: { error: 'DeviceNotRegistered' } }],
+      }),
+    });
     await service.sendToUser('u1', { title: 'x', body: 'y' });
-    expect(prisma.pushToken.deleteMany).toHaveBeenCalledWith({ where: { token: { in: ['ExponentPushToken[abc]'] } } });
+    expect(prisma.pushToken.deleteMany).toHaveBeenCalledWith({
+      where: { token: { in: ['ExponentPushToken[abc]'] } },
+    });
   });
 
   it('never throws to the caller when Expo is down', async () => {

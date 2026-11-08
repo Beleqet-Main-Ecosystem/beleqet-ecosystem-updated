@@ -15,8 +15,10 @@ type Ticket = { status: 'ok' | 'error'; details?: { error?: string } };
 export function pushPath(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== 'object') return null;
   const m = metadata as Record<string, unknown>;
-  const id = (key: string) => (typeof m[key] === 'string' && m[key] ? encodeURIComponent(m[key] as string) : null);
-  if (typeof m.path === 'string' && m.path.startsWith('/') && !m.path.startsWith('//')) return m.path;
+  const id = (key: string) =>
+    typeof m[key] === 'string' && m[key] ? encodeURIComponent(m[key] as string) : null;
+  if (typeof m.path === 'string' && m.path.startsWith('/') && !m.path.startsWith('//'))
+    return m.path;
   if (id('contractId')) return `/contract/${id('contractId')}`;
   if (id('roomId')) return `/chat/${id('roomId')}`;
   if (id('freelanceJobId')) return `/gig/${id('freelanceJobId')}`;
@@ -57,11 +59,17 @@ export class PushService {
   }
 
   /** Sends one notification to every phone the user is signed in on. */
-  async sendToUser(userId: string, message: { title: string; body: string; metadata?: unknown }): Promise<void> {
+  async sendToUser(
+    userId: string,
+    message: { title: string; body: string; metadata?: unknown },
+  ): Promise<void> {
     try {
       const [tokens, pref] = await Promise.all([
         this.prisma.pushToken.findMany({ where: { userId }, select: { token: true } }),
-        this.prisma.notificationPreference.findUnique({ where: { userId }, select: { inAppEnabled: true } }),
+        this.prisma.notificationPreference.findUnique({
+          where: { userId },
+          select: { inAppEnabled: true },
+        }),
       ]);
       if (tokens.length === 0 || pref?.inAppEnabled === false) return;
       const path = pushPath(message.metadata);
@@ -91,7 +99,11 @@ export class PushService {
     const { data } = (await response.json()) as { data?: Ticket[] };
     // A phone that uninstalled the app (or turned notifications off for good) is forgotten.
     const gone = (data ?? [])
-      .map((ticket, index) => (ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered' ? messages[index]?.to : null))
+      .map((ticket, index) =>
+        ticket.status === 'error' && ticket.details?.error === 'DeviceNotRegistered'
+          ? messages[index]?.to
+          : null,
+      )
       .filter((token): token is string => Boolean(token));
     if (gone.length) await this.prisma.pushToken.deleteMany({ where: { token: { in: gone } } });
   }
