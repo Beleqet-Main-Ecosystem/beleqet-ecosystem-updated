@@ -104,6 +104,7 @@ function buildInitiateService(options: { existingEscrow?: Record<string, unknown
     freelanceJob: {
       findFirst: jest.fn().mockResolvedValue(freelanceJob),
       update: jest.fn().mockResolvedValue({ ...freelanceJob, status: 'FUNDED' }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     employerWallet: {
       findUnique: jest.fn().mockResolvedValue(employerWallet),
@@ -377,8 +378,9 @@ describe('EscrowService initiate wallet funding', () => {
 
     expect(chapaClient.checkoutUrl).not.toHaveBeenCalled();
     expect(escrowQueue.add).not.toHaveBeenCalled();
-    expect(prisma.freelanceJob.update).toHaveBeenCalledWith({
-      where: { id: 'gig-1' },
+    // Only a project nobody is hired for yet becomes FUNDED; a hired one stays IN_PROGRESS.
+    expect(prisma.freelanceJob.updateMany).toHaveBeenCalledWith({
+      where: { id: 'gig-1', status: 'OPEN' },
       data: { status: 'FUNDED' },
     });
     expect(prisma.eventLog.create).toHaveBeenCalledWith(

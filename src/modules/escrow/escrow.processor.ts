@@ -183,8 +183,10 @@ export class EscrowProcessor extends WorkerHost {
 
         if (claim.count === 0) return false;
 
-        await tx.freelanceJob.update({
-          where: { id: escrow.freelanceJobId },
+        // Only a project still looking for a freelancer becomes FUNDED. Once someone is hired it
+        // stays IN_PROGRESS: FUNDED counts as open, so it would reappear in search and take bids.
+        await tx.freelanceJob.updateMany({
+          where: { id: escrow.freelanceJobId, status: 'OPEN' },
           data: { status: 'FUNDED' },
         });
 
