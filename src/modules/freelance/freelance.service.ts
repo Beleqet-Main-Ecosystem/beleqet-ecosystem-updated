@@ -487,6 +487,25 @@ export class FreelanceService {
     });
   }
 
+  /** The projects a client posted, newest first, with their bid count and contract if hired. */
+  async getMyProjects(clientId: string) {
+    return this.prisma.freelanceJob.findMany({
+      where: { clientId },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        budgetMin: true,
+        budgetMax: true,
+        currency: true,
+        createdAt: true,
+        contract: { select: { id: true, status: true } },
+        _count: { select: { bids: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async getMyContracts(userId: string) {
     return this.prisma.contract.findMany({
       where: {

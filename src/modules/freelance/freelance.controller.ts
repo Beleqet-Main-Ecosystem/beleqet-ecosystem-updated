@@ -116,6 +116,13 @@ export class FreelanceController {
     return this.svc.getMyBids(u.userId);
   }
 
+  @Get('my-projects')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  myProjects(@CurrentUser() u: CurrentUserPayload) {
+    return this.svc.getMyProjects(u.userId);
+  }
+
   @Get('my-contracts')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

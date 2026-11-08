@@ -10,9 +10,13 @@ type Row = { id: string; href: string; title: string; detail: string; status: st
 
 type MyBid = { id: string; amount: number; status: string; createdAt: string; freelanceJob: { id: string; title: string; contract?: { id: string } | null } };
 type MyContract = { id: string; agreedAmount: number; currency: string; status: string; startedAt: string; freelanceJob: { title: string } };
+type MyProject = { id: string; title: string; status: string; createdAt: string; contract: { id: string } | null; _count: { bids: number } };
 
-/** My bids and My contracts for freelancer accounts, which the project pages link to. */
-export default function FreelanceWork({ kind }: { kind: 'bids' | 'contracts' }) {
+/**
+ * My bids and My contracts for freelancer accounts, and the projects a client posted. Each row opens
+ * the project (where its bids are) or, once someone is hired, the contract.
+ */
+export default function FreelanceWork({ kind }: { kind: 'bids' | 'contracts' | 'projects' }) {
   const { t, locale } = useTranslation();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -29,6 +33,15 @@ export default function FreelanceWork({ kind }: { kind: 'bids' | 'contracts' }) 
           title: bid.freelanceJob.title,
           detail: `ETB ${bid.amount.toLocaleString('en-US')} · ${shortDate(bid.createdAt, locale)}`,
           status: t(`dash.bidStatus.${bid.status}`),
+        })));
+      } else if (kind === 'projects') {
+        const projects = await apiGet<MyProject[]>('/freelance/my-projects');
+        setRows(projects.map((project) => ({
+          id: project.id,
+          href: project.contract ? `/freelance/contracts/${project.contract.id}` : `/freelance/${project.id}`,
+          title: project.title,
+          detail: `${t('dash.bidCount').replace('{count}', String(project._count.bids))} · ${shortDate(project.createdAt, locale)}`,
+          status: t(`dash.projectStatus.${project.status}`),
         })));
       } else {
         const contracts = await apiGet<MyContract[]>('/freelance/my-contracts');
@@ -54,8 +67,12 @@ export default function FreelanceWork({ kind }: { kind: 'bids' | 'contracts' }) 
       {rows === null ? (
         <div className="min-h-[40vh]" />
       ) : rows.length === 0 ? (
-        <Empty title={t(kind === 'bids' ? 'dash.noBids' : 'dash.noContracts')}>
-          <Link href="/freelance" className={`${solid} mt-2`}>{t('freelance.gig.browse')}</Link>
+        <Empty title={t(kind === 'bids' ? 'dash.noBids' : kind === 'projects' ? 'dash.noProjects' : 'dash.noContracts')}>
+          {kind === 'projects' ? (
+            <Link href="/freelance/post" className={`${solid} mt-2`}>{t('dash.postProject')}</Link>
+          ) : (
+            <Link href="/freelance" className={`${solid} mt-2`}>{t('freelance.gig.browse')}</Link>
+          )}
         </Empty>
       ) : (
         rows.map((row) => (

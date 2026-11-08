@@ -1016,6 +1016,7 @@
       "payNote": "If the client accepts, you're paid from escrow as each milestone is approved.",
       "formInvalid": "Enter your price, delivery time and cover letter.",
       "bidFailed": "We couldn't send your bid. Try again.",
+      "emailUnverified": "Confirm your email first. Use the link we emailed you, or send a new one from your dashboard.",
       "employerCantBid": "Only freelancer and job-seeker accounts can bid. Sign in with one of those to send a bid.",
       "bidClosed": "This project is no longer taking bids.",
       "bidSent": "Bid sent",
@@ -1297,7 +1298,8 @@
       "contracts": "Contracts",
       "messages": "Messages",
       "settings": "Settings",
-      "wallet": "Wallet"
+      "wallet": "Wallet",
+      "projects": "My projects"
     },
     "hello": "Hello, {name}",
     "helloSub": "Here's where your job search stands today.",
@@ -1396,6 +1398,17 @@
     },
     "noBids": "No bids yet",
     "noContracts": "No contracts yet",
+    "noProjects": "No projects yet",
+    "postProject": "Post a project",
+    "bidCount": "{count} bids",
+    "projectStatus": {
+      "DRAFT": "Draft",
+      "OPEN": "Open for bids",
+      "FUNDED": "Open for bids",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
     "reachYou": "How we reach you",
     "channels": {
       "emailEnabled": {
@@ -1535,6 +1548,7 @@
     "tabs": {
       "overview": "Overview",
       "jobs": "Jobs",
+      "projects": "Freelance projects",
       "applicants": "Applicants",
       "messages": "Messages",
       "company": "Company profile",
