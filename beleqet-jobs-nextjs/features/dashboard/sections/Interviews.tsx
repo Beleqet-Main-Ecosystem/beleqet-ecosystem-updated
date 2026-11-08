@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n';
 import { safeHttpUrl } from '@/features/jobs/format';
 import { apiGet, apiSend } from '../api';
 import { card, Empty, Failed, Field, Heading, input, muted, outline, solid } from '../ui';
+import { errorText } from '@/lib/api-error';
 
 export type Interview = {
   id: string;
@@ -67,8 +68,8 @@ export default function Interviews() {
       setRows((list) => list && list.map((item) => (item.id === row.id ? { ...item, status: updated.status, candidateNote: updated.candidateNote } : item)));
       setDeclining(null);
       setNote('');
-    } catch {
-      setError(t('dash.interview.answerFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'dash.interview.answerFailed'));
     }
   }
 

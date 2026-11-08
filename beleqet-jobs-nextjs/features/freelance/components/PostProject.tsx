@@ -10,6 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 import { formatBudget } from '@/features/jobs/format';
 import { createGig, uploadAttachment } from '../actions';
 import { categoryLabel } from '../search-params';
+import { errorText } from '@/lib/api-error';
 
 const STEPS = ['describe', 'budget', 'review'] as const;
 const LEVELS = ['Entry', 'Intermediate', 'Expert'] as const;
@@ -128,8 +129,8 @@ export default function PostProject({ categories }: { categories: GigCategory[] 
         attachments,
       });
       setPublishedId(gig.id);
-    } catch {
-      setError(t('freelance.post2.publishFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.post2.publishFailed'));
     } finally {
       setPublishing(false);
     }

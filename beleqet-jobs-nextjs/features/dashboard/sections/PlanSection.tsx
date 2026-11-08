@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n';
 import { apiGet, apiSend } from '../api';
 import { card, Confirm, Heading, muted, outline, shortDate, solid } from '../ui';
 import BankTransfer from './BankTransfer';
+import { errorText } from '@/lib/api-error';
 
 type Subscription = {
   id: string;
@@ -68,8 +69,8 @@ export default function PlanSection() {
     try {
       await apiSend('POST', `/subscriptions/${subscription!.id}/cancel`);
       setSubscription({ ...subscription!, cancelAtPeriodEnd: true });
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     } finally {
       setBusy(false);
       setCancelling(false);

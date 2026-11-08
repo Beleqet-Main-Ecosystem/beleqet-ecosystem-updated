@@ -7,6 +7,7 @@ import { authenticatedFetch } from '@/lib/auth';
 import { fetchPlans } from '@/lib/api';
 import { apiGet, apiSend } from '../api';
 import { card, Field, input, muted, outline, shortDate, solid } from '../ui';
+import { errorText, apiError } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 /** Account name, bank and number to pay into; set per deployment, never guessed. */
@@ -62,8 +63,8 @@ export default function BankTransfer() {
     setError('');
     try {
       setPending(await apiSend<Payment>('POST', '/manual-payment', { planId }));
-    } catch {
-      setError(t('emp.bank.startFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'emp.bank.startFailed'));
     } finally {
       setBusy(false);
     }
@@ -87,14 +88,14 @@ export default function BankTransfer() {
       form.append('transactionReference', reference.trim());
       form.append('receipt', receipt);
       const response = await authenticatedFetch(`${API_URL}/manual-payment/submit-receipt`, { method: 'POST', body: form });
-      if (!response.ok) throw new Error('receipt');
+      if (!response.ok) throw await apiError(response);
       setNotice(t('emp.bank.sent'));
       setPending(null);
       setReference('');
       setReceipt(null);
       load();
-    } catch {
-      setError(t('emp.bank.receiptFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'emp.bank.receiptFailed'));
     } finally {
       setBusy(false);
     }

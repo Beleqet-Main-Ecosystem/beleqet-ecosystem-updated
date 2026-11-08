@@ -6,6 +6,7 @@ import { ChevronDown, Download, Sparkles } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
+import { errorText, apiError } from '@/lib/api-error';
 import {
   buildProfilePayload,
   emptyCv,
@@ -95,13 +96,13 @@ export default function CvMaker() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ data: cv }),
         });
-        if (!response.ok) throw new Error('draft');
+        if (!response.ok) throw await apiError(response);
       } else {
         localStorage.setItem(LOCAL_DRAFT, JSON.stringify(cv));
       }
       setStatus(t('cv.draftSaved'));
-    } catch {
-      setError(t('cv.draftFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'cv.draftFailed'));
     } finally {
       setBusy('');
     }
@@ -125,10 +126,10 @@ export default function CvMaker() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error('profile');
+      if (!response.ok) throw await apiError(response);
       setStatus(t('cv.profileSaved'));
-    } catch {
-      setError(t('cv.profileFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'cv.profileFailed'));
     } finally {
       setBusy('');
     }

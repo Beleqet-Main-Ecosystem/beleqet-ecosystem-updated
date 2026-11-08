@@ -8,6 +8,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 import { daysUntil, safeHttpUrl } from '../format';
+import { ApiError, errorText } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const MAX_CV_BYTES = 10 * 1024 * 1024;
@@ -116,12 +117,14 @@ export default function ApplyForm({ job }: { job: ApplyJob }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const message = Array.isArray(data.message) ? data.message.join(', ') : data.message;
-        throw new Error(res.status === 404 ? t('job.apply.errClosed') : message || t('job.apply.errGeneric'));
+        if (res.status === 404) throw new Error(t('job.apply.errClosed'));
+        throw new ApiError(res.status, data.errorCode, message);
       }
       setStatus('sent');
       window.scrollTo({ top: 0 });
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('job.apply.errGeneric'));
+      // Our own checks (file type, size, closed job) throw plain Errors already in the user's words.
+      setError(err instanceof ApiError || err instanceof TypeError || !(err instanceof Error) ? errorText(err, t, 'job.apply.errGeneric') : err.message);
       setStatus('form');
     }
   }

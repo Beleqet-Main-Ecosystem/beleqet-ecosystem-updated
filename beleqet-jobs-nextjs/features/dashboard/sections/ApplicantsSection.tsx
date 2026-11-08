@@ -8,6 +8,7 @@ import { initials, safeHttpUrl } from '@/features/jobs/format';
 import { apiGet, apiSend, type ApplicationStatus } from '../api';
 import type { EmployerJob } from '../EmployerDashboard';
 import { card, Empty, Failed, Heading, input, muted, outline, shortDate, solid } from '../ui';
+import { errorText } from '@/lib/api-error';
 
 type Applicant = {
   id: string;
@@ -54,8 +55,8 @@ export default function ApplicantsSection({ jobs, selectedId }: { jobs: Employer
     try {
       await apiSend('PATCH', `/applications/${id}/status`, { status });
       setRows((list) => (list ?? []).map((row) => (row.id === id ? { ...row, status } : row)));
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     }
   }
 
@@ -66,8 +67,8 @@ export default function ApplicantsSection({ jobs, selectedId }: { jobs: Employer
       await apiSend('POST', '/interview-planner/auto-schedule', { applicationId: id });
       setNote(t('emp.scheduled'));
       load();
-    } catch {
-      setError(t('emp.scheduleFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'emp.scheduleFailed'));
     }
   }
 

@@ -11,6 +11,7 @@ import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 import { initials } from '@/features/jobs/format';
 import { apiGet, apiSend } from '@/features/dashboard/api';
 import { card, Empty, Failed, Heading, muted, solid } from '@/features/dashboard/ui';
+import { errorText } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const SOCKET_URL = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -67,8 +68,8 @@ export default function Messages() {
         try {
           const room = await apiSend<{ id: string }>('POST', '/chat/rooms', { recipientId: to });
           target = room.id;
-        } catch {
-          setError(t('chat.startFailed'));
+        } catch (problem) {
+          setError(errorText(problem, t, 'chat.startFailed'));
         }
       }
       const list = await apiGet<Room[]>('/chat/rooms');

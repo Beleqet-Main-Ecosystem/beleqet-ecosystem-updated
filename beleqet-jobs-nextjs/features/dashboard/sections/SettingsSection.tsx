@@ -9,6 +9,7 @@ import { card, Confirm, Failed, Field, Heading, input, link, muted, outline, sho
 import TwoStep from './TwoStep';
 import JobAlerts from './JobAlerts';
 import DeleteAccount from './DeleteAccount';
+import { errorText } from '@/lib/api-error';
 
 type Prefs = { emailEnabled: boolean; telegramEnabled: boolean; inAppEnabled: boolean };
 type Subscription = { id: string; status: string; cancelAtPeriodEnd?: boolean; currentPeriodEnd?: string | null; plan?: { name?: string } | null };
@@ -67,8 +68,8 @@ export default function SettingsSection() {
     try {
       await apiSend('POST', `/subscriptions/${subscription!.id}/cancel`);
       setSubscription({ ...subscription!, cancelAtPeriodEnd: true });
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     } finally {
       setBusy(false);
       setCancelling(false);

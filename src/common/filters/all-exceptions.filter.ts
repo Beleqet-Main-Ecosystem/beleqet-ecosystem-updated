@@ -57,6 +57,7 @@ export const ERROR_CODES = {
   BAD_REQUEST: 'ERR_BAD_REQUEST',
   UNAUTHORIZED: 'ERR_UNAUTHORIZED',
   FORBIDDEN: 'ERR_FORBIDDEN',
+  EMAIL_NOT_VERIFIED: 'ERR_EMAIL_NOT_VERIFIED',
   NOT_FOUND: 'ERR_RESOURCE_NOT_FOUND',
   CONFLICT: 'ERR_CONFLICT',
   UNPROCESSABLE: 'ERR_VALIDATION_FAILED',
@@ -228,9 +229,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : ((response as { message?: string | string[] }).message?.toString() ??
             exception.message);
 
+      // An exception may name a more specific code from the catalogue, e.g. ERR_EMAIL_NOT_VERIFIED.
+      const ownCode =
+        typeof response === 'object' && response !== null
+          ? (response as { errorCode?: unknown }).errorCode
+          : undefined;
+      const known = Object.values(ERROR_CODES) as string[];
+
       return {
         statusCode,
-        errorCode: this.httpStatusToCode(statusCode),
+        errorCode:
+          typeof ownCode === 'string' && known.includes(ownCode)
+            ? (ownCode as ErrorCode)
+            : this.httpStatusToCode(statusCode),
         internalMessage,
       };
     }

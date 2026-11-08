@@ -8,6 +8,7 @@ import type { GigDetail } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { formatBudget } from '@/features/jobs/format';
 import { ActionError, submitBid, type GigBid } from '../actions';
+import { errorText } from '@/lib/api-error';
 
 /** Same 10% as PLATFORM_FEE_PCT in the escrow service. */
 const PLATFORM_FEE = 0.1;
@@ -81,6 +82,8 @@ export default function BidForm({ gig, myBid, contractId, onSent }: Props) {
   const price = Number(amount);
   const validPrice = Number.isFinite(price) && price >= 1;
   const fee = validPrice ? Math.round(price * PLATFORM_FEE) : 0;
+  // The budget is the client's guide, not a limit: an outside bid is allowed, with a heads-up.
+  const outside = validPrice && gig.budgetMax > 0 ? (price > gig.budgetMax ? 'aboveBudget' : price < gig.budgetMin ? 'belowBudget' : null) : null;
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -96,10 +99,8 @@ export default function BidForm({ gig, myBid, contractId, onSent }: Props) {
     } catch (err) {
       // Already bid, perhaps in another tab: reloading shows that bid.
       if (err instanceof ActionError && err.status === 409) onSent();
-      // Employers never reach the form, so a refusal here means the email isn't confirmed yet.
-      else if (err instanceof ActionError && err.status === 403) setError(t('freelance.gig.emailUnverified'));
       else if (err instanceof ActionError && err.status === 404) setError(t('freelance.gig.bidClosed'));
-      else setError(t('freelance.gig.bidFailed'));
+      else setError(errorText(err, t, 'freelance.gig.bidFailed'));
     } finally {
       setSending(false);
     }
@@ -112,6 +113,7 @@ export default function BidForm({ gig, myBid, contractId, onSent }: Props) {
         <span className="text-sm font-semibold text-ink-900 dark:text-white">{t('freelance.gig.yourPrice').replace('{currency}', gig.currency)}</span>
         <input type="number" inputMode="numeric" min={1} required value={amount} onChange={(event) => setAmount(event.target.value)} className={field} />
         <span className="text-[13px] text-ink-500 dark:text-slate-400">{t('freelance.gig.clientBudget').replace('{budget}', formatBudget(gig))}</span>
+        {outside && <span role="status" className="text-[13px] font-semibold text-[#8A5A00] dark:text-amber-300">{t(`freelance.gig.${outside}`)}</span>}
       </label>
       {validPrice && (
         <dl className="flex flex-col gap-2 rounded-lg bg-[#F1F4F6] p-3.5 text-sm dark:bg-slate-800">

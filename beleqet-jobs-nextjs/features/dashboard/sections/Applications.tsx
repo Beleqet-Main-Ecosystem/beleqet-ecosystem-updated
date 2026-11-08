@@ -6,6 +6,7 @@ import { useTranslation } from '@/lib/i18n';
 import { initials } from '@/features/jobs/format';
 import { apiSend, fetchApplications, type Application } from '../api';
 import { card, Confirm, Empty, Failed, Heading, muted, outline, shortDate, solid } from '../ui';
+import { errorText } from '@/lib/api-error';
 
 const STEPS = ['SUBMITTED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'OFFERED'] as const;
 const CLOSED = ['REJECTED', 'WITHDRAWN'];
@@ -45,8 +46,8 @@ export default function Applications() {
     try {
       await apiSend('PATCH', `/applications/${withdrawing.id}/withdraw`);
       setApps((list) => (list ?? []).map((app) => (app.id === withdrawing.id ? { ...app, status: 'WITHDRAWN' } : app)));
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     } finally {
       setBusy(false);
       setWithdrawing(null);

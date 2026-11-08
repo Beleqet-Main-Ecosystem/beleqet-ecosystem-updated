@@ -9,6 +9,7 @@ import { useTranslation } from '@/lib/i18n';
 import { safeHttpUrl } from '@/features/jobs/format';
 import { acceptMilestone, declineMilestone, fetchContract, fundEscrow, raiseDispute, type Contract, type ContractEvent, type Milestone } from '../contract';
 import MilestoneDialog, { type DialogRequest } from './MilestoneDialog';
+import { errorText } from '@/lib/api-error';
 
 const card = 'rounded-xl border border-ink-200 bg-surface p-5 dark:border-slate-800 dark:bg-slate-900';
 const outline = 'inline-flex min-h-11 items-center justify-center rounded-lg border border-ink-300 bg-surface px-3.5 text-sm font-bold text-ink-900 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-white';
@@ -132,8 +133,8 @@ export default function ContractWorkspace({ id }: { id: string }) {
     try {
       await (accept ? acceptMilestone(item.id) : declineMilestone(item.id));
       await load();
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     }
   }
 
@@ -145,8 +146,8 @@ export default function ContractWorkspace({ id }: { id: string }) {
       const target = safeHttpUrl(checkoutUrl);
       if (target) window.location.href = target;
       else await load();
-    } catch {
-      setError(t('freelance.contract.fundFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.contract.fundFailed'));
       setFunding(false);
     }
   }
@@ -159,8 +160,8 @@ export default function ContractWorkspace({ id }: { id: string }) {
       setDisputeOpen(false);
       setReason('');
       await load();
-    } catch {
-      setError(t('freelance.gig.actionFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     } finally {
       setDisputing(false);
     }

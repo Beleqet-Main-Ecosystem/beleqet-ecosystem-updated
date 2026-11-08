@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
+import { ApiError, errorText } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const solid = 'inline-flex min-h-12 items-center justify-center rounded-lg bg-obsidian px-5 text-[15px] font-bold text-white dark:bg-limeAccent dark:text-obsidian';
@@ -44,9 +45,9 @@ function CheckoutInner() {
       if (response.status === 404) setError(t('checkout.noPlan'));
       else if (response.status === 409) setError(t(chosen === 'PAYPAL' ? 'checkout.alreadySubscribed' : 'checkout.paypalRenewing'));
       else if (response.status === 400 && chosen === 'PAYPAL') setError(t('checkout.paypalUnavailable'));
-      else setError(t('checkout.failed'));
-    } catch {
-      setError(t('checkout.failed'));
+      else setError(errorText(new ApiError(response.status, data.errorCode, data.message), t, 'checkout.failed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'checkout.failed'));
     }
   }
 

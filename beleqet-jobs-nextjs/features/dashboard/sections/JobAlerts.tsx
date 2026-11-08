@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/i18n';
 import { JOB_TYPES, type JobTypeCode } from '@/features/jobs/search-params';
 import { apiGet, apiSend } from '../api';
 import { card, Field, input, muted, outline, solid, Toggle } from '../ui';
+import { errorText } from '@/lib/api-error';
 
 type Alert = {
   id: string;
@@ -64,8 +65,8 @@ export default function JobAlerts() {
       setLocation('');
       setJobType('');
       setMinSalary('');
-    } catch {
-      setError(t('dash.alerts.saveFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'dash.alerts.saveFailed'));
     } finally {
       setBusy(false);
     }
@@ -86,8 +87,8 @@ export default function JobAlerts() {
     try {
       await apiSend('DELETE', `/job-alerts/${alert.id}`);
       setAlerts((list) => list && list.filter((item) => item.id !== alert.id));
-    } catch {
-      setError(t('dash.saveFailed'));
+    } catch (problem) {
+      setError(errorText(problem, t, 'dash.saveFailed'));
     }
   }
 

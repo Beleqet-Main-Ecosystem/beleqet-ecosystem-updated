@@ -1005,6 +1005,8 @@
       "placeBid": "Place your bid",
       "yourPrice": "Your price ({currency})",
       "clientBudget": "Client's budget: {budget}",
+      "aboveBudget": "Your price is above the client’s budget. You can still bid; say in your cover letter why it’s worth it.",
+      "belowBudget": "Your price is below the client’s budget. Make sure it covers the work.",
       "clientPays": "Client pays",
       "fee": "Beleqet fee (10%)",
       "youReceive": "You receive",
@@ -1016,7 +1018,6 @@
       "payNote": "If the client accepts, you're paid from escrow as each milestone is approved.",
       "formInvalid": "Enter your price, delivery time and cover letter.",
       "bidFailed": "We couldn't send your bid. Try again.",
-      "emailUnverified": "Confirm your email first. Use the link we emailed you, or send a new one from your dashboard.",
       "employerCantBid": "Only freelancer and job-seeker accounts can bid. Sign in with one of those to send a bid.",
       "bidClosed": "This project is no longer taking bids.",
       "bidSent": "Bid sent",
@@ -2033,5 +2034,11 @@
     "toPlan": "Go to my plan",
     "cancelTitle": "Checkout cancelled",
     "cancelBody": "No payment was taken. You can choose a plan again whenever you’re ready."
+  },
+  "errors": {
+    "emailUnverified": "Confirm your email address first. Use the link we emailed you, or send a new one from the banner at the top of your dashboard.",
+    "signedOut": "Your session has ended. Sign in again and retry.",
+    "tooMany": "Too many attempts. Wait a minute, then try again.",
+    "offline": "We couldn’t reach Beleqet. Check your internet connection and try again."
   }
 }

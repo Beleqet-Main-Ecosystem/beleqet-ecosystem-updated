@@ -99,6 +99,35 @@ describe('AllExceptionsFilter', () => {
       expect(body.errorCode).toBe(ERROR_CODES.FORBIDDEN);
     });
 
+    it('keeps a catalogue code the exception names, so the site can say what to fix', () => {
+      const host = buildMockHost('/api/v1/freelance/jobs', 'POST');
+      filter.catch(
+        new HttpException(
+          {
+            message: 'Please confirm your email address first.',
+            errorCode: ERROR_CODES.EMAIL_NOT_VERIFIED,
+          },
+          HttpStatus.FORBIDDEN,
+        ),
+        host,
+      );
+
+      const [, body] = mockReply.mock.calls[0] as [unknown, ErrorResponse, number];
+      expect(body.errorCode).toBe(ERROR_CODES.EMAIL_NOT_VERIFIED);
+      expect(body.message).toBe('Please confirm your email address first.');
+    });
+
+    it('ignores a code that is not in the catalogue', () => {
+      const host = buildMockHost();
+      filter.catch(
+        new HttpException({ message: 'No', errorCode: 'ERR_MADE_UP' }, HttpStatus.FORBIDDEN),
+        host,
+      );
+
+      const [, body] = mockReply.mock.calls[0] as [unknown, ErrorResponse, number];
+      expect(body.errorCode).toBe(ERROR_CODES.FORBIDDEN);
+    });
+
     it('maps 400 to ERR_BAD_REQUEST', () => {
       const host = buildMockHost();
       filter.catch(new HttpException('Bad request', HttpStatus.BAD_REQUEST), host);

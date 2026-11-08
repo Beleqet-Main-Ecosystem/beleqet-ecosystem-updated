@@ -1,10 +1,11 @@
 import { authenticatedFetch } from '@/lib/auth';
+import { apiError } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await authenticatedFetch(`${API_URL}${path}`);
-  if (!response.ok) throw new Error(`GET ${path}: ${response.status}`);
+  if (!response.ok) throw await apiError(response);
   const text = await response.text();
   return (text ? JSON.parse(text) : null) as T;
 }
@@ -15,7 +16,7 @@ export async function apiSend<T = unknown>(method: 'POST' | 'PATCH' | 'DELETE', 
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`${method} ${path}: ${response.status}`);
+  if (!response.ok) throw await apiError(response);
   const text = await response.text();
   return (text ? JSON.parse(text) : null) as T;
 }
