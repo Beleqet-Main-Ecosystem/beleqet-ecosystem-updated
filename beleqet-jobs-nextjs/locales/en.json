@@ -857,7 +857,20 @@
       "Mekelle": "Mekelle"
     },
     "fromEmployer": "Jobs from {company}",
-    "oneEmployer": "one employer"
+    "oneEmployer": "one employer",
+    "salaryMin": "Minimum salary",
+    "salaryFrom": "ETB {amount}+",
+    "any": "Any",
+    "experience": "Experience",
+    "posted": "Date posted",
+    "anyTime": "Any time",
+    "postedWithin": {
+      "1": "Last 24 hours",
+      "7": "Last 7 days",
+      "30": "Last 30 days"
+    },
+    "sortBy": "Sort by",
+    "sortSalary": "Highest salary first"
   },
   "job": {
     "verified": "Verified employer",
@@ -1222,7 +1235,17 @@
     "memberSince": "Member since {date}",
     "completed": "{count} completed contracts",
     "oneCompleted": "1 completed contract",
-    "viewPortfolio": "View portfolio"
+    "viewPortfolio": "View portfolio",
+    "filters": "Filters",
+    "anyPricing": "Fixed or hourly",
+    "anyBudget": "Any budget",
+    "anyLevel": "Any level",
+    "budgets": {
+      "under5k": "Under ETB 5,000",
+      "5k-20k": "ETB 5,000–20,000",
+      "20k-50k": "ETB 20,000–50,000",
+      "over50k": "Over ETB 50,000"
+    }
   },
   "pricing": {
     "title": "Simple plans, priced in birr",

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import GigSearchPage from '@/features/freelance/components/GigSearchPage';
-import { API_SORT, GIG_PAGE_SIZE, parseGigSearch } from '@/features/freelance/search-params';
+import { API_SORT, gigApiFilters, GIG_PAGE_SIZE, parseGigSearch } from '@/features/freelance/search-params';
 import { fetchGigCategories, searchGigs, type GigSearchResult } from '@/lib/api';
 import { freelancePageMetadata } from '@/lib/seo/generate-metadata';
 
@@ -15,6 +15,7 @@ export default async function FreelancePage({ searchParams }: Props) {
       q: search.q || undefined,
       category: search.category || undefined,
       sort: API_SORT[search.sort],
+      ...gigApiFilters(search),
       page: 1,
       limit: GIG_PAGE_SIZE,
     })

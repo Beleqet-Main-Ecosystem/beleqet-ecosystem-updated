@@ -854,7 +854,20 @@
       "Mekelle": "መቐለ"
     },
     "fromEmployer": "የ{company} ስራዎች",
-    "oneEmployer": "አንድ አሰሪ"
+    "oneEmployer": "አንድ አሰሪ",
+    "salaryMin": "ዝቅተኛ ደመወዝ",
+    "salaryFrom": "ብር {amount}+",
+    "any": "ማንኛውም",
+    "experience": "የሥራ ልምድ",
+    "posted": "የተለጠፈበት ጊዜ",
+    "anyTime": "በማንኛውም ጊዜ",
+    "postedWithin": {
+      "1": "ባለፉት 24 ሰዓታት",
+      "7": "ባለፉት 7 ቀናት",
+      "30": "ባለፉት 30 ቀናት"
+    },
+    "sortBy": "ደርድር",
+    "sortSalary": "ከፍተኛ ደመወዝ መጀመሪያ"
   },
   "job": {
     "verified": "የተረጋገጠ አሰሪ",
@@ -1219,7 +1232,17 @@
     "memberSince": "ከ{date} ጀምሮ አባል",
     "completed": "{count} የተጠናቀቁ ውሎች",
     "oneCompleted": "1 የተጠናቀቀ ውል",
-    "viewPortfolio": "ፖርትፎሊዮ ይመልከቱ"
+    "viewPortfolio": "ፖርትፎሊዮ ይመልከቱ",
+    "filters": "ማጣሪያዎች",
+    "anyPricing": "ቋሚ ወይም በሰዓት",
+    "anyBudget": "ማንኛውም በጀት",
+    "anyLevel": "ማንኛውም ደረጃ",
+    "budgets": {
+      "under5k": "ከብር 5,000 በታች",
+      "5k-20k": "ብር 5,000–20,000",
+      "20k-50k": "ብር 20,000–50,000",
+      "over50k": "ከብር 50,000 በላይ"
+    }
   },
   "pricing": {
     "title": "ቀላል እቅዶች፣ በብር",

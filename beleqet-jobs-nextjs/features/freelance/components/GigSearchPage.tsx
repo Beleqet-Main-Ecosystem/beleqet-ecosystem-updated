@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Search, SearchX, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { searchGigs, type Gig, type GigCategory, type GigSearchResult } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
-import { API_SORT, categoryLabel, GIG_PAGE_SIZE, gigSearchHref, type GigSearch, type GigSort } from '../search-params';
+import { API_SORT, gigApiFilters, categoryLabel, GIG_BUDGETS, GIG_LEVELS, GIG_PAGE_SIZE, GIG_PRICINGS, gigSearchHref, hasGigFilters, type GigBudget, type GigSearch, type GigSort } from '../search-params';
 import { useAuth } from '@/components/AuthProvider';
 import { apiGet, apiSend } from '@/features/dashboard/api';
 import GigCard from './GigCard';
@@ -61,7 +61,7 @@ export default function GigSearchPage({ search, result, categories }: Props) {
   }
 
   const total = result?.total ?? 0;
-  const filtered = Boolean(search.q || search.category);
+  const filtered = Boolean(search.q) || hasGigFilters(search);
 
   async function loadMore() {
     setLoadingMore(true);
@@ -71,6 +71,7 @@ export default function GigSearchPage({ search, result, categories }: Props) {
         q: search.q || undefined,
         category: search.category || undefined,
         sort: API_SORT[search.sort],
+        ...gigApiFilters(search),
         page: page + 1,
         limit: GIG_PAGE_SIZE,
       });
@@ -163,6 +164,32 @@ export default function GigSearchPage({ search, result, categories }: Props) {
         </nav>
 
         <div className="flex flex-col gap-3 px-4 md:gap-[18px] md:px-0">
+          <div role="group" aria-label={t('freelance.filters')} className="flex flex-wrap items-end gap-2.5">
+            <FilterSelect
+              label={t('freelance.gig.pricing')}
+              value={search.pricing}
+              onChange={(pricing) => router.push(gigSearchHref(search, { pricing }), { scroll: false })}
+              options={[{ value: '', label: t('freelance.anyPricing') }, ...GIG_PRICINGS.map((value) => ({ value, label: t(value === 'FIXED' ? 'freelance.fixed' : 'freelance.hourly') }))]}
+            />
+            <FilterSelect
+              label={t('freelance.gig.budget')}
+              value={search.budget}
+              onChange={(budget) => router.push(gigSearchHref(search, { budget: budget as GigBudget | '' }), { scroll: false })}
+              options={[{ value: '', label: t('freelance.anyBudget') }, ...(Object.keys(GIG_BUDGETS) as GigBudget[]).map((value) => ({ value, label: t(`freelance.budgets.${value}`) }))]}
+            />
+            <FilterSelect
+              label={t('freelance.gig.experience')}
+              value={search.level}
+              onChange={(level) => router.push(gigSearchHref(search, { level }), { scroll: false })}
+              options={[{ value: '', label: t('freelance.anyLevel') }, ...GIG_LEVELS.map((value) => ({ value, label: t(`freelance.post2.levels.${value}`) }))]}
+            />
+            {(search.pricing || search.budget || search.level) && (
+              <Link href={gigSearchHref(search, { pricing: '', budget: '', level: '' })} scroll={false} className={`min-h-10 content-center rounded px-1 text-sm font-semibold text-forest dark:text-limeAccent ${focusRing}`}>
+                {t('freelance.clear')}
+              </Link>
+            )}
+          </div>
+
           {result && total > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p role="status" className="text-sm text-ink-700 md:text-[15px] dark:text-slate-300">
@@ -283,5 +310,25 @@ function Panel({ icon, title, text, children }: { icon: React.ReactNode; title: 
       <p className="max-w-[420px] text-sm leading-relaxed text-ink-500 md:text-[15px] dark:text-slate-300">{text}</p>
       <div className="mt-1.5 flex flex-wrap justify-center gap-2.5">{children}</div>
     </div>
+  );
+}
+
+/** One labelled dropdown in the project filter row. */
+function FilterSelect({ label, value, options, onChange }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
+  return (
+    <label className="flex min-w-[150px] flex-1 flex-col gap-1 text-[13px] font-semibold text-ink-600 md:flex-none dark:text-slate-400">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={`min-h-11 rounded-lg border border-ink-300 bg-surface px-2.5 text-sm font-semibold text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white ${focusRing}`}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

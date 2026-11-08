@@ -5,11 +5,11 @@ import { SlidersHorizontal } from 'lucide-react-native';
 import { Screen, Field, Button, Select, Sheet, Chips, Muted } from '../../components/ui';
 import { PagedList } from '../../components/paged-list';
 import { JobCard } from '../../components/cards';
-import { fetchJobCategories, JOB_TYPES, searchJobs, type Category } from '../../api/jobs';
+import { EXPERIENCE_LEVELS, fetchJobCategories, JOB_TYPES, POSTED_WITHIN, SALARY_STEPS, searchJobs, type Category } from '../../api/jobs';
 import { useTranslation } from '../../lib/i18n';
 
-type Filters = { location: string; category: string; types: string[] };
-const NONE: Filters = { location: '', category: '', types: [] };
+type Filters = { location: string; category: string; types: string[]; salaryMin: number; experienceLevel: string; postedWithin: number; sort: 'newest' | 'salary' };
+const NONE: Filters = { location: '', category: '', types: [], salaryMin: 0, experienceLevel: '', postedWithin: 0, sort: 'newest' };
 
 export default function Jobs() {
   const { t } = useTranslation();
@@ -32,7 +32,9 @@ export default function Jobs() {
     setQ(params.q ?? '');
   }
 
-  const active = Number(Boolean(filters.location)) + Number(Boolean(filters.category)) + filters.types.length;
+  const active =
+    Number(Boolean(filters.location)) + Number(Boolean(filters.category)) + filters.types.length +
+    Number(Boolean(filters.salaryMin)) + Number(Boolean(filters.experienceLevel)) + Number(Boolean(filters.postedWithin)) + Number(filters.sort === 'salary');
   const query = JSON.stringify({ q, ...filters });
 
   const header = (
@@ -106,6 +108,30 @@ function FilterForm({ initial, categories, onApply }: { initial: Filters; catego
           })}
         </View>
       </View>
+      <Select
+        label={t('search.salaryMin')}
+        value={String(form.salaryMin)}
+        onChange={(value) => setForm({ ...form, salaryMin: Number(value) })}
+        options={[{ value: '0', label: t('search.any') }, ...SALARY_STEPS.map((amount) => ({ value: String(amount), label: t('search.salaryFrom', { amount: amount.toLocaleString('en-US') }) }))]}
+      />
+      <Select
+        label={t('search.experience')}
+        value={form.experienceLevel}
+        onChange={(experienceLevel) => setForm({ ...form, experienceLevel })}
+        options={[{ value: '', label: t('search.any') }, ...EXPERIENCE_LEVELS.map((level) => ({ value: level, label: t(`postJob.levels.${level}`) }))]}
+      />
+      <Select
+        label={t('search.posted')}
+        value={String(form.postedWithin)}
+        onChange={(value) => setForm({ ...form, postedWithin: Number(value) })}
+        options={[{ value: '0', label: t('search.anyTime') }, ...POSTED_WITHIN.map((days) => ({ value: String(days), label: t(`search.postedWithin.${days}`) }))]}
+      />
+      <Select
+        label={t('search.sortBy')}
+        value={form.sort}
+        onChange={(sort) => setForm({ ...form, sort: sort as Filters['sort'] })}
+        options={[{ value: 'newest', label: t('search.order') }, { value: 'salary', label: t('search.sortSalary') }]}
+      />
       <Muted>{t('m.filtersHint')}</Muted>
       <View className="flex-row gap-3">
         <Button className="flex-1" variant="outline" label={t('m.clear')} onPress={() => onApply(NONE)} />

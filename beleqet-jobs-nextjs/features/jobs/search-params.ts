@@ -12,6 +12,14 @@ export const QUICK_LOCATIONS = ['Addis Ababa', 'Adama', 'Hawassa', 'Bahir Dar', 
 
 export const PAGE_SIZE = 20;
 
+/** Minimum monthly salary steps (ETB); the API keeps jobs paying at least this at the top of their range. */
+export const SALARY_STEPS = [5000, 10000, 20000, 40000] as const;
+/** The levels employers pick when posting (PostJob); the API matches them case-insensitively. */
+export const EXPERIENCE_LEVELS = ['Entry level', 'Junior', 'Mid-level', 'Senior'] as const;
+/** Posted within this many days. */
+export const POSTED_WITHIN = [1, 7, 30] as const;
+export type JobSort = 'newest' | 'salary';
+
 export type JobSearch = {
   q: string;
   loc: string;
@@ -20,6 +28,13 @@ export type JobSearch = {
   types: JobTypeCode[];
   /** One employer's jobs, from "More jobs from this employer". */
   company: string;
+  /** Minimum salary in ETB, 0 for any. */
+  salary: number;
+  /** An experience level, or '' for any. */
+  level: string;
+  /** Posted within this many days, 0 for any time. */
+  posted: number;
+  sort: JobSort;
   page: number;
 };
 
@@ -36,6 +51,9 @@ export function parseJobSearch(raw: RawParams): JobSearch {
     .map((value) => value.trim())
     .filter((value, index, all): value is JobTypeCode => (JOB_TYPES as readonly string[]).includes(value) && all.indexOf(value) === index);
   const page = Number.parseInt(first(raw.page), 10);
+  const salary = Number.parseInt(first(raw.salary), 10);
+  const posted = Number.parseInt(first(raw.posted), 10);
+  const level = EXPERIENCE_LEVELS.find((item) => item.toLowerCase() === first(raw.level).toLowerCase()) ?? '';
   return {
     q: first(raw.q).slice(0, 100),
     loc: first(raw.loc).slice(0, 60),
@@ -43,6 +61,11 @@ export function parseJobSearch(raw: RawParams): JobSearch {
     // In the canonical order, so the same filters always make the same link.
     types: JOB_TYPES.filter((code) => types.includes(code)),
     company: first(raw.company).slice(0, 60),
+    // Only the offered steps, so every search is one of a known set of links.
+    salary: (SALARY_STEPS as readonly number[]).includes(salary) ? salary : 0,
+    level,
+    posted: (POSTED_WITHIN as readonly number[]).includes(posted) ? posted : 0,
+    sort: first(raw.sort) === 'salary' ? 'salary' : 'newest',
     page: Number.isFinite(page) && page > 1 ? Math.min(page, 1000) : 1,
   };
 }
@@ -56,6 +79,10 @@ export function jobSearchHref(search: JobSearch, changes: Partial<JobSearch> = {
   if (next.category) params.set('category', next.category);
   if (next.types.length) params.set('type', JOB_TYPES.filter((code) => next.types.includes(code)).join(','));
   if (next.company) params.set('company', next.company);
+  if (next.salary) params.set('salary', String(next.salary));
+  if (next.level) params.set('level', next.level);
+  if (next.posted) params.set('posted', String(next.posted));
+  if (next.sort === 'salary') params.set('sort', 'salary');
   if (next.page > 1) params.set('page', String(next.page));
   const qs = params.toString();
   return qs ? `/jobs?${qs}` : '/jobs';
@@ -69,7 +96,7 @@ export function pageWindow(page: number, totalPages: number): (number | 'gap')[]
 }
 
 export function hasFilters(search: JobSearch): boolean {
-  return Boolean(search.loc || search.category || search.types.length || search.company);
+  return Boolean(search.loc || search.category || search.types.length || search.company || search.salary || search.level || search.posted);
 }
 
 /** The job types with `code` switched on or off. */

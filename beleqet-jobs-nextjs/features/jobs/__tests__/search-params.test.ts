@@ -8,8 +8,17 @@ describe('parseJobSearch', () => {
       category: 'health-care',
       types: ['REMOTE'],
       company: '',
+      salary: 0,
+      level: '',
+      posted: 0,
+      sort: 'newest',
       page: 3,
     });
+  });
+
+  it('reads salary, experience, date posted and sort, keeping only the offered values', () => {
+    expect(parseJobSearch({ salary: '10000', level: 'senior', posted: '7', sort: 'salary' })).toMatchObject({ salary: 10000, level: 'Senior', posted: 7, sort: 'salary' });
+    expect(parseJobSearch({ salary: '12345', level: 'Wizard', posted: '99', sort: 'random' })).toMatchObject({ salary: 0, level: '', posted: 0, sort: 'newest' });
   });
 
   it('drops values the API would reject', () => {
@@ -33,6 +42,12 @@ describe('jobSearchHref', () => {
 
   it('keeps the search and changes only what is asked', () => {
     expect(jobSearchHref(base, { page: 5 })).toBe('/jobs?q=sales&loc=Adama&page=5');
+  });
+
+  it('writes the new filters and leaves out their defaults', () => {
+    const search = parseJobSearch({ salary: '20000', level: 'Junior', posted: '1', sort: 'salary' });
+    expect(jobSearchHref(search)).toBe('/jobs?salary=20000&level=Junior&posted=1&sort=salary');
+    expect(jobSearchHref(search, { salary: 0, level: '', posted: 0, sort: 'newest' })).toBe('/jobs');
   });
 
   it('leaves out empty values and page 1', () => {
