@@ -9,10 +9,20 @@ import { errorText } from '../lib/api-error';
 import { timeAgo } from '../lib/format';
 import { refreshUnread } from '../lib/unread';
 
-/** Where a notification leads, when the API says. */
+/** Where a notification leads, from what its metadata names. Same rules as the API's pushPath. */
 function pathOf(item: AppNotification): string | null {
-  const path = item.metadata?.path ?? item.metadata?.link;
-  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') ? path : null;
+  const m = item.metadata ?? {};
+  const id = (key: string) => (typeof m[key] === 'string' && m[key] ? encodeURIComponent(m[key] as string) : null);
+  if (typeof m.path === 'string' && m.path.startsWith('/') && !m.path.startsWith('//')) return m.path;
+  if (id('contractId')) return `/contract/${id('contractId')}`;
+  if (id('roomId')) return `/chat/${id('roomId')}`;
+  if (id('freelanceJobId')) return `/gig/${id('freelanceJobId')}`;
+  if (id('gigId')) return `/gig/${id('gigId')}`;
+  if (id('applicationId')) return '/applications';
+  if (id('interviewId')) return '/interviews';
+  if (id('paymentId')) return '/plan';
+  if (id('jobId')) return `/job/${id('jobId')}`;
+  return null;
 }
 
 export default function Notifications() {

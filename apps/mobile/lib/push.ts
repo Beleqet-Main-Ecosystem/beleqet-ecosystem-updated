@@ -6,6 +6,10 @@ import { router, type Href } from 'expo-router';
 import { registerPushToken } from '../api/notifications';
 import { useAuth } from '../store/auth.store';
 import { refreshUnread } from './unread';
+import * as SecureStore from 'expo-secure-store';
+
+/** This phone's push token, kept so signing out can unregister it. */
+export const PUSH_TOKEN_KEY = 'beleqet_push_token';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
@@ -39,6 +43,7 @@ export function usePushNotifications() {
       const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
       const { data: token } = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
       await registerPushToken(token);
+      await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token).catch(() => undefined);
     })().catch(() => {
       // No push on this phone (no Play services, permission refused): the in-app list still works.
       registeredFor.current = null;

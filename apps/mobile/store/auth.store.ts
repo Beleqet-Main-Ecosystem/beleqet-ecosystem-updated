@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { ACCESS_TOKEN_KEY, USER_CACHE_KEY, clearTokens } from '../api/client';
 import { fetchMe, serverLogout, type Me } from '../api/auth';
+import { removePushToken } from '../api/notifications';
 import { toApiError } from '../lib/api-error';
 
 type Status = 'loading' | 'signed-in' | 'signed-out';
@@ -74,6 +75,12 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 
   signOut: async () => {
+    // Stop this phone's notifications for the account first, while still signed in.
+    const pushToken = await SecureStore.getItemAsync('beleqet_push_token').catch(() => null);
+    if (pushToken) {
+      await removePushToken(pushToken).catch(() => undefined);
+      await SecureStore.deleteItemAsync('beleqet_push_token').catch(() => undefined);
+    }
     await serverLogout();
     await clearTokens();
     set({ user: null, status: 'signed-out' });

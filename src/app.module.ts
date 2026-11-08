@@ -15,6 +15,7 @@ import { JobsModule } from './modules/jobs/jobs.module';
 import { ApplicationsModule } from './modules/applications/applications.module';
 import { ScreeningModule } from './modules/screening/screening.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PushModule } from './modules/push/push.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { QueuesModule } from './modules/queues/queues.module';
 import { FreelanceModule } from './modules/freelance/freelance.module';
@@ -130,6 +131,7 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     ApplicationsModule,
     ScreeningModule,
     NotificationsModule,
+    PushModule,
     AnalyticsModule,
     FreelanceModule,
     EscrowModule,
