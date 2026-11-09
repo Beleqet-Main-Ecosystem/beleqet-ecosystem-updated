@@ -23,7 +23,7 @@
         "backgroundColor": "#041603"
       },
       "package": "com.beleqet.jobs",
-      "versionCode": 22,
+      "versionCode": 23,
       "permissions": [
         "RECORD_AUDIO",
         "CAMERA",
