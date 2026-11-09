@@ -129,7 +129,7 @@ export default function ChatToText() {
           <Muted>{t('voice.upTo')}</Muted>
         </View>
         <Muted className="text-center">{t('voice.or')}</Muted>
-        <Button variant="outline" label={t('voice.upload')} disabled={recording || working} onPress={pickFile} />
+        <Button variant="outline" label={t('m.uploadAudio')} disabled={recording || working} onPress={pickFile} />
         <Muted>{t('voice.privacy')}</Muted>
       </Card>
       {working ? (

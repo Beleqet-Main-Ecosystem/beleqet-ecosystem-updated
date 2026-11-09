@@ -21,7 +21,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/theme';
 import { useLoad } from '../../lib/use-load';
 import { errorText, toApiError } from '../../lib/api-error';
-import { fileName, formatBudget, monthYear, safeHttpUrl, shortName, timeAgo, money } from '../../lib/format';
+import { fileName, formatBudget, monthYear, plainText, safeHttpUrl, shortName, timeAgo, money } from '../../lib/format';
 import { SITE_URL } from '../../lib/config';
 
 /** Same 10% as PLATFORM_FEE_PCT in the escrow service. */
@@ -73,7 +73,7 @@ export default function GigScreen() {
   );
 
   return (
-    <Screen title={t('freelance.project')} right={right} refreshing={gig.refreshing} onRefresh={() => Promise.all([gig.refresh(), user ? bids.refresh() : undefined]).then(() => undefined)}>
+    <Screen title={t('m.projectTitle')} right={right} refreshing={gig.refreshing} onRefresh={() => Promise.all([gig.refresh(), user ? bids.refresh() : undefined]).then(() => undefined)}>
       <View className="flex-row flex-wrap gap-2">
         {data.funded ? <Badge label={t('freelance.funded')} tone="good" /> : null}
         <Badge label={t(hourly ? 'freelance.hourly' : 'freelance.fixed')} />
@@ -90,7 +90,7 @@ export default function GigScreen() {
       </Card>
       <Card>
         <H2>{t('freelance.gig.description')}</H2>
-        <Body>{data.description}</Body>
+        <Body>{plainText(data.description)}</Body>
         {data.skills.length > 0 ? (
           <View className="flex-row flex-wrap gap-2">
             {data.skills.map((skill) => <Badge key={skill} label={skill} />)}

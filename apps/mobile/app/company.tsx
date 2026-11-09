@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, Linking, Text, View } from 'react-native';
+import { Linking, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -10,7 +10,7 @@ import { uploadFile } from '../lib/api';
 import { useTranslation } from '../lib/i18n';
 import { useLoad } from '../lib/use-load';
 import { errorText } from '../lib/api-error';
-import { safeHttpUrl } from '../lib/format';
+import { plainText, safeHttpUrl } from '../lib/format';
 
 const SIZES = ['1–10', '11–50', '51–200', '201–500', '500+'];
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -125,14 +125,14 @@ export default function CompanyScreen() {
       ) : (
         <Card>
           <View className="flex-row items-center gap-3">
-            {safeHttpUrl(company.logoUrl) ? <Image source={{ uri: safeHttpUrl(company.logoUrl)! }} className="h-16 w-16 rounded-lg" accessibilityIgnoresInvertColors /> : <Logo name={company.name} size={64} />}
+            <Logo name={company.name} url={safeHttpUrl(company.logoUrl)} size={64} />
             <View className="flex-1 gap-0.5">
               <Text className="text-lg font-bold text-ink-900 dark:text-white">{company.name}</Text>
               <Muted>{[company.industry, company.location, company.size ? `${company.size} ${t('job.employees')}` : null].filter(Boolean).join(' · ')}</Muted>
               <Muted>{t('emp.openCount', { count: openJobs })}</Muted>
             </View>
           </View>
-          {company.description ? <Body>{company.description}</Body> : null}
+          {company.description ? <Body>{plainText(company.description)}</Body> : null}
           {website ? <Button small variant="ghost" label={website} onPress={() => Linking.openURL(website)} /> : null}
           <View className="flex-row gap-2">
             <Button className="flex-1" small variant="outline" label={t('m.company.changeLogo')} busy={busy === 'logo'} onPress={changeLogo} />

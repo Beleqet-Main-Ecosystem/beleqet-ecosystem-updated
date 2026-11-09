@@ -43,9 +43,39 @@ export function timeAgo(iso: string | null | undefined, locale: Locale): string 
     ['minutes', 60],
   ];
   for (const [unit, size] of steps) {
-    if (seconds >= size) return translate(locale, `m.ago.${unit}`, { n: Math.floor(seconds / size) });
+    const n = Math.floor(seconds / size);
+    // "1 month ago", not "1 months ago": the singular keys are the unit without its "s".
+    if (n >= 1) return translate(locale, `m.ago.${n === 1 ? unit.slice(0, -1) : unit}`, { n });
   }
   return translate(locale, 'm.ago.now');
+}
+
+const ENTITIES: Record<string, string> = { nbsp: ' ', lt: '<', gt: '>', quot: '"', apos: "'", ndash: '–', mdash: '—', hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“', bull: '•', amp: '&' };
+
+/**
+ * Text for a description that may be HTML (jobs imported from the old site, the website's rich
+ * editor): list items become bullets, paragraphs blank lines, other tags go. Plain text is unchanged.
+ */
+export function plainText(text: string | null | undefined): string {
+  if (!text) return '';
+  if (!/<[a-z/!]|&[#a-z0-9]+;/i.test(text)) return text;
+  return text
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/\s*<li[^>]*>/gi, '\n• ')
+    .replace(/<\/(p|div|h[1-6]|ul|ol|blockquote|tr)>/gi, '\n\n')
+    .replace(/<[a-z/!][^>]*>/gi, '')
+    .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (match, name: string) => {
+      if (name[0] === '#') {
+        const code = name[1] === 'x' || name[1] === 'X' ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10);
+        return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : match;
+      }
+      return ENTITIES[name.toLowerCase()] ?? match;
+    })
+    .replace(/[ \t ]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function dateLocale(locale: Locale) {
