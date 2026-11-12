@@ -1,17 +1,20 @@
+import { useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { BadgeCheck, Clock, MapPin } from 'lucide-react-native';
 import type { Job } from '../api/jobs';
 import type { Gig } from '../api/freelance';
 import { Badge } from './ui';
-import { formatBudget, formatSalary, initials, timeAgo } from '../lib/format';
+import { formatBudget, formatSalary, initials, plainText, timeAgo } from '../lib/format';
 import { useTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
 
-/** Company logo, or its initials on the brand colour. */
+/** Company logo, or its initials on the brand colour when there is none or it fails to load. */
 export function Logo({ name, url, size = 44 }: { name: string; url?: string | null; size?: number }) {
-  if (url && /^https?:\/\//.test(url)) {
-    return <Image source={{ uri: url }} style={{ width: size, height: size }} className="rounded-lg bg-ink-100" accessibilityIgnoresInvertColors />;
+  const [failed, setFailed] = useState<string | null>(null);
+  // Android's Image can't draw SVG, so an SVG logo shows initials too.
+  if (url && /^https?:\/\//.test(url) && !/\.svg(\?|$)/i.test(url) && failed !== url) {
+    return <Image source={{ uri: url }} onError={() => setFailed(url)} style={{ width: size, height: size }} className="rounded-lg bg-ink-100" accessibilityIgnoresInvertColors />;
   }
   return (
     <View style={{ width: size, height: size }} className="items-center justify-center rounded-lg bg-obsidian">
@@ -87,7 +90,7 @@ export function GigCard({ gig }: { gig: Gig }) {
       </Text>
       {gig.description ? (
         <Text className="text-[13px] leading-5 text-ink-600 dark:text-slate-300" numberOfLines={2}>
-          {gig.description}
+          {plainText(gig.description)}
         </Text>
       ) : null}
       <View className="flex-row flex-wrap items-center gap-x-3 gap-y-1">

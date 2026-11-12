@@ -11,7 +11,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/theme';
 import { useLoad } from '../../lib/use-load';
 import { errorText } from '../../lib/api-error';
-import { daysUntil, formatSalary, fullDate, safeHttpUrl, timeAgo } from '../../lib/format';
+import { daysUntil, formatSalary, fullDate, plainText, safeHttpUrl, timeAgo } from '../../lib/format';
 import { SITE_URL } from '../../lib/config';
 
 export default function JobDetail() {
@@ -111,12 +111,12 @@ export default function JobDetail() {
       </Card>
       <Card>
         <H2>{t('job.about')}</H2>
-        <Body>{data.description || t('job.noDescription')}</Body>
+        <Body>{plainText(data.description) || t('job.noDescription')}</Body>
       </Card>
       {data.requirements ? (
         <Card>
           <H2>{t('job.requirements')}</H2>
-          <Body>{data.requirements}</Body>
+          <Body>{plainText(data.requirements)}</Body>
         </Card>
       ) : null}
       {data.tags.length > 0 ? (

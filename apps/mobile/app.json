@@ -2,7 +2,7 @@
   "expo": {
     "name": "Beleqet Jobs",
     "slug": "beleqet-mobile",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "beleqet",
@@ -23,7 +23,7 @@
         "backgroundColor": "#041603"
       },
       "package": "com.beleqet.jobs",
-      "versionCode": 23,
+      "versionCode": 24,
       "permissions": [
         "RECORD_AUDIO",
         "CAMERA",

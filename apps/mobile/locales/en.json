@@ -46,7 +46,13 @@
       "days": "{n} days ago",
       "weeks": "{n} weeks ago",
       "months": "{n} months ago",
-      "years": "{n} years ago"
+      "years": "{n} years ago",
+      "minute": "{n} min ago",
+      "hour": "{n} h ago",
+      "day": "{n} day ago",
+      "week": "{n} week ago",
+      "month": "{n} month ago",
+      "year": "{n} year ago"
     },
     "error": {
       "generic": "Something went wrong on our side. Try again in a moment."
@@ -184,6 +190,8 @@
       "publicLabel": "Public",
       "publicHint": "Let anyone with the link see your portfolio.",
       "webOnly": "Case studies and the gallery are edited on the website; saving here keeps them as they are."
-    }
+    },
+    "projectTitle": "Project",
+    "uploadAudio": "Upload an audio file"
   }
 }
