@@ -215,21 +215,36 @@
     "rejected": "Payment rejected."
   },
   "listings": {
-    "sub": "Jobs and projects go live when their owner publishes them. Take down anything that breaks the rules.",
+    "sub": "New jobs wait here until an admin approves them. Take down anything live that breaks the rules.",
     "kind": "Listing type",
     "kinds": { "ALL": "All", "JOB": "Job", "GIG": "Project" },
     "search": "Search title, owner, category or place",
     "none": "Nothing matches.",
     "status": {
       "DRAFT": "Draft", "PUBLISHED": "Live", "CLOSED": "Closed", "ARCHIVED": "Taken down",
-      "FUNDED": "Funded", "OPEN": "Open", "IN_PROGRESS": "In progress", "COMPLETED": "Completed", "CANCELLED": "Cancelled"
+      "FUNDED": "Funded", "OPEN": "Open", "IN_PROGRESS": "In progress", "COMPLETED": "Completed", "CANCELLED": "Cancelled",
+      "PENDING_REVIEW": "Waiting for approval", "REJECTED": "Rejected"
     },
     "open": "Open",
     "takeDown": "Take down",
     "takeDownTitle": "Take down \"{title}\"?",
     "takeDownJob": "The job disappears from the site and stops taking applications. It can't be put back from here.",
     "takeDownGig": "The project is cancelled and stops taking bids. It can't be put back from here.",
-    "takenDown": "\"{title}\" was taken down."
+    "takenDown": "\"{title}\" was taken down.",
+    "view": "Show",
+    "views": { "REVIEW": "Waiting for approval", "ALL": "All listings" },
+    "noneWaiting": "No jobs are waiting for approval.",
+    "readJob": "Read the full job",
+    "requirements": "Requirements",
+    "gender": "Gender: {gender}",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approved": "\"{title}\" is live. The employer has been told.",
+    "rejected": "\"{title}\" was rejected. The employer has been told why.",
+    "rejectTitle": "Reject \"{title}\"?",
+    "reasonLabel": "Reason",
+    "reasonHint": "The employer sees this and can fix the job, then send it again.",
+    "reason": "Rejected: {note}"
   },
   "plans": {
     "sub": "Prices are in birr. Paid plans need a PayPal plan ID before people can pay with PayPal.",

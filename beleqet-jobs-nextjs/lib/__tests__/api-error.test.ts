@@ -8,6 +8,11 @@ describe('errorText', () => {
     expect(errorText(error, t, 'post.failed')).toBe('t:errors.emailUnverified');
   });
 
+  it('sends a Telegram sign-up without an email to the bot to add one', () => {
+    const error = new ApiError(403, 'ERR_EMAIL_REQUIRED', 'Add and confirm your email address first.');
+    expect(errorText(error, t, 'post.failed')).toBe('t:errors.emailMissing');
+  });
+
   it('shows the server explanation for any other refusal', () => {
     const error = new ApiError(400, 'ERR_BAD_REQUEST', 'Milestones would add up to more than the contract amount.');
     expect(errorText(error, t, 'post.failed')).toBe('Milestones would add up to more than the contract amount.');

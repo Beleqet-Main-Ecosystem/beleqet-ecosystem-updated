@@ -6,6 +6,7 @@ import { FraudAlertModule } from '../fraud-alert/fraud-alert.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuditLoggingModule } from '../audit-logging/audit-logging.module';
 import { DisputeManagerModule } from '../dispute-manager/dispute-manager.module';
+import { JobsModule } from '../jobs/jobs.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DisputeManagerModule } from '../dispute-manager/dispute-manager.module'
     NotificationsModule,
     AuditLoggingModule,
     DisputeManagerModule,
+    JobsModule,
   ],
   controllers: [AdminController],
 })

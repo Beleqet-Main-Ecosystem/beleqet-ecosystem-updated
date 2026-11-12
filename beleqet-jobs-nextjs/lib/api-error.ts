@@ -37,6 +37,8 @@ export function errorText(error: unknown, t: (key: string) => string, fallbackKe
   if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) return t('errors.offline');
   if (!(error instanceof ApiError)) return t(fallbackKey);
   if (error.code === 'ERR_EMAIL_NOT_VERIFIED') return t('errors.emailUnverified');
+  // A Telegram sign-up has no email yet: the bot is where it adds one.
+  if (error.code === 'ERR_EMAIL_REQUIRED') return t('errors.emailMissing');
   if (error.status === 401) return t('errors.signedOut');
   if (error.status === 429) return t('errors.tooMany');
   if (error.status >= 400 && error.status < 500 && error.serverMessage) return error.serverMessage;

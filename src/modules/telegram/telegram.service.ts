@@ -1,7 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
+  NotFoundException,
   OnModuleInit,
   OnModuleDestroy,
 } from '@nestjs/common';
@@ -9,6 +13,28 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { Telegraf } from 'telegraf';
 import { PrismaService } from '../../prisma/prisma.service';
+import { AuthService } from '../auth/auth.service';
+import { isDeliverableEmail } from '../../common/utils/deliverable-email';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_CODE_EVENT = 'telegram.email_code';
+const EMAIL_CODES_PER_DAY = 5;
+
+/** Text for a Telegram message sent with parse_mode HTML. */
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** A trimmed string from a bot field, or '' (bots send numbers, nulls and blanks too). */
+function text(value: unknown): string {
+  return typeof value === 'string' ? value.trim().slice(0, 200) : '';
+}
+
+/** A Telegram username without the "@", or null when there is none. */
+function telegramUsername(value: unknown): string | null {
+  const name = text(value).replace(/^@+/, '');
+  return /^[A-Za-z0-9_]{4,32}$/.test(name) ? name : null;
+}
 
 @Injectable()
 export class TelegramService implements OnModuleInit, OnModuleDestroy {
@@ -19,6 +45,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
+    private auth: AuthService,
   ) {
     const telegramEnabled = this.config.get<string>('TELEGRAM_ENABLED', 'false');
     if (telegramEnabled !== 'true') {
@@ -274,6 +301,35 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Tells the admins' private chat (TELEGRAM_ALERT_CHAT_ID) that a job is waiting for approval.
+   * Never the public channel. Without an alert chat, admins see it in the admin panel only.
+   */
+  async notifyReviewers(job: { title: string; companyName?: string }): Promise<boolean> {
+    const chatId = this.config.get<string>('TELEGRAM_ALERT_CHAT_ID');
+    if (!this.enabled || !this.bot || !chatId) return false;
+    const admin = (this.config.get<string>('ADMIN_URL') || 'https://admin.beleqetjobs.com').replace(
+      /\/+$/,
+      '',
+    );
+    const message =
+      `🆕 <b>Job waiting for approval</b>\n\n` +
+      `💼 ${escapeHtml(job.title)}\n` +
+      `🏢 ${escapeHtml(job.companyName || 'Unknown company')}\n\n` +
+      `Approve or reject it in the admin panel: ${admin}/listings`;
+    try {
+      await this.withTimeout(
+        this.bot.telegram.sendMessage(chatId, message, { parse_mode: 'HTML' }),
+        10_000,
+        'Review alert',
+      );
+      return true;
+    } catch (err) {
+      this.logger.error(`Failed to alert reviewers: ${(err as Error).message}`);
+      return false;
+    }
+  }
+
+  /**
    * Broadcasts a newly published job directly to the configured Telegram channel / group.
    */
   async broadcastJob(job: {
@@ -311,12 +367,13 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           ? `💰 Salary: From ${job.salaryMin.toLocaleString()} ${job.currency || 'ETB'}\n`
           : '';
 
+    // Employers type these; an unescaped "<" or "&" makes Telegram refuse the whole message.
     const message =
       `📢 <b>New Job Vacancy on Beleqet!</b>\n\n` +
-      `💼 <b>${job.title}</b>\n` +
-      `🏢 Company: ${job.companyName || 'Confidential'}\n` +
-      `📍 Location: ${job.location || 'Addis Ababa, Ethiopia'}\n` +
-      `⏱️ Type: ${job.jobType || 'Full-time'}\n` +
+      `💼 <b>${escapeHtml(job.title)}</b>\n` +
+      `🏢 Company: ${escapeHtml(job.companyName || 'Confidential')}\n` +
+      `📍 Location: ${escapeHtml(job.location || 'Addis Ababa, Ethiopia')}\n` +
+      `⏱️ Type: ${escapeHtml(job.jobType || 'Full-time')}\n` +
       salaryText +
       `\n🔗 Apply directly on the platform below:`;
 
@@ -382,19 +439,112 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
     }
     const user = await this.prisma.user.findFirst({
       where: { telegramId: String(telegramId) },
-      select: { id: true, role: true, emailVerified: true },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        emailVerified: true,
+        notificationPreference: { select: { language: true } },
+      },
     });
 
     if (!user) {
       return { registered: false, email_registered: false, role: 'unknown', language: 'en' };
     }
 
+    const hasEmail = isDeliverableEmail(user.email);
     return {
       registered: true,
       email_registered: true,
       role: user.role === 'EMPLOYER' ? 'employer' : 'candidate',
-      language: 'en',
+      // Employers no longer wait for approval to use the bot; their jobs are reviewed instead.
+      status: 'approved',
+      language: user.notificationPreference?.language === 'am' ? 'am' : 'en',
+      // Posting jobs needs a confirmed, real email (Telegram sign-ups add one in the bot).
+      has_email: hasEmail,
+      email: hasEmail ? user.email : null,
+      email_confirmed: hasEmail && user.emailVerified,
     };
+  }
+
+  /**
+   * Emails a 6-digit code so a bot user can confirm their email (employers, before posting).
+   * With `email`, first sets that address: a Telegram sign-up adding one, or a typo being fixed.
+   * A confirmed address isn't changed here. At most one code a minute and five a day.
+   */
+  async requestEmailCode(telegramId: string, email?: string) {
+    const user = await this.botUser(telegramId);
+    let address = user.email;
+    const wanted = typeof email === 'string' ? email.toLowerCase().trim() : '';
+    if (wanted && wanted !== user.email) {
+      if (!EMAIL_PATTERN.test(wanted) || !isDeliverableEmail(wanted)) {
+        throw new BadRequestException('That does not look like an email address.');
+      }
+      if (user.emailVerified && isDeliverableEmail(user.email)) {
+        throw new ConflictException(`Your email ${user.email} is already confirmed.`);
+      }
+      const taken = await this.prisma.user.findUnique({
+        where: { email: wanted },
+        select: { id: true },
+      });
+      if (taken) {
+        throw new ConflictException('That email belongs to another account. Use a different one.');
+      }
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { email: wanted, emailVerified: false },
+      });
+      address = wanted;
+    } else if (user.emailVerified && isDeliverableEmail(user.email)) {
+      return { sent: false, already_confirmed: true, email: user.email };
+    }
+    if (!isDeliverableEmail(address)) {
+      throw new BadRequestException('Send your email address first.');
+    }
+
+    const sentToday = await this.prisma.eventLog.count({
+      where: {
+        eventType: EMAIL_CODE_EVENT,
+        entityId: user.id,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    });
+    if (sentToday >= EMAIL_CODES_PER_DAY) {
+      throw new HttpException(
+        'You asked for too many codes today. Try again tomorrow.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (!(await this.auth.sendEmailCodeTo(user.id))) {
+      throw new HttpException(
+        'We sent you a code less than a minute ago. Wait a minute, then ask again.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    await this.prisma.eventLog.create({
+      data: { eventType: EMAIL_CODE_EVENT, entityId: user.id, entityType: 'User', payload: {} },
+    });
+    return { sent: true, already_confirmed: false, email: address };
+  }
+
+  /** Checks the 6-digit code a bot user typed and confirms their email. */
+  async confirmEmailCode(telegramId: string, code: string) {
+    const user = await this.botUser(telegramId);
+    await this.auth.confirmEmailCode(user.id, code);
+    return { confirmed: true, email: user.email };
+  }
+
+  private async botUser(telegramId: string) {
+    const user = telegramId
+      ? await this.prisma.user.findUnique({
+          where: { telegramId: String(telegramId) },
+          select: { id: true, email: true, emailVerified: true, isActive: true },
+        })
+      : null;
+    if (!user || !user.isActive) {
+      throw new NotFoundException('This Telegram account is not registered. Send /start.');
+    }
+    return user;
   }
 
   /**
@@ -440,17 +590,38 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
    * Updates language preference for a Telegram user.
    */
   async updateLanguage(telegramId: string, language: string) {
-    this.logger.log(`User ${telegramId} updated Telegram language preference to ${language}`);
-    return { success: true, language };
+    const chosen = language === 'am' ? 'am' : 'en';
+    const user = await this.prisma.user.findUnique({
+      where: { telegramId: String(telegramId) },
+      select: { id: true },
+    });
+    if (user) {
+      // The bot speaks it and notifications follow it.
+      await this.prisma.notificationPreference.upsert({
+        where: { userId: user.id },
+        create: { userId: user.id, language: chosen },
+        update: { language: chosen },
+      });
+    }
+    return { success: Boolean(user), language: chosen };
   }
 
   /**
-   * Direct bot registration endpoint for Candidates/Employers.
+   * Bot registration for job seekers and employers (also used by the SGS Challenge form). Keeps
+   * everything the person typed: name, phone, email, password, job title (as the profile
+   * headline), the employer's company (as their company profile), language, and the Telegram
+   * username Telegram reports.
    */
   async registerFromBot(data: any) {
     const telegramId = data.telegram_id || data.telegramId;
     const email = (data.email || `telegram_${telegramId}@beleqet.internal`).toLowerCase().trim();
-    const fullName = data.name || data.first_name || data.firstName || 'Telegram User';
+    // An employer's contact person; the bot before November 2026 sent only the company name.
+    const fullName =
+      text(data.contact_name) ||
+      text(data.name) ||
+      data.first_name ||
+      data.firstName ||
+      'Telegram User';
     const parts = fullName.trim().split(/\s+/);
     const firstName = parts[0] || 'Telegram';
     const lastName = parts.slice(1).join(' ') || data.last_name || data.lastName || 'User';
@@ -458,13 +629,15 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       data.role === 'employer' || data.role === 'wp_job_board_pro_employer'
         ? 'EMPLOYER'
         : 'JOB_SEEKER';
+    const language = data.language === 'am' ? 'am' : 'en';
+    const companyName = role === 'EMPLOYER' ? text(data.company_name) : '';
 
     if (telegramId) {
       const linked = await this.prisma.user.findFirst({
         where: { telegramId: String(telegramId) },
       });
       if (linked) {
-        return { success: true, registered: true, role: linked.role };
+        return { success: true, registered: true, role: linked.role, status: 'approved' };
       }
       // An email typed in Telegram proves nothing about who owns it: never hand over or attach to an
       // existing account (this returned the account's ID, which enabled account takeover).
@@ -479,26 +652,41 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
       }
 
       // A password chosen in the bot or the SGS Challenge form lets the person sign in on the
-      // website too (where a new account confirms its email with a code first).
+      // website too (where a new account confirms its email with a code first). A shorter one
+      // used to be dropped without a word, leaving the person unable to sign in.
       const password = typeof data.password === 'string' ? data.password : '';
       const placeholder = email.endsWith('@beleqet.internal');
-      const passwordHash =
-        !placeholder && password.length >= 8 ? await bcrypt.hash(password, 12) : undefined;
+      if (!placeholder && password.length < 8) {
+        throw new BadRequestException('Choose a password of at least 8 characters.');
+      }
+      const passwordHash = placeholder ? undefined : await bcrypt.hash(password, 12);
 
       const created = await this.prisma.user.create({
         data: {
           email,
           telegramId: String(telegramId),
+          telegramUsername: telegramUsername(data.tg_username),
           firstName,
           lastName,
+          phone: text(data.phone) || null,
+          headline: role === 'JOB_SEEKER' ? text(data.job_title) || null : null,
           role: role as any,
           isActive: true,
           ...(passwordHash ? { passwordHash } : {}),
           // Only the placeholder address counts as verified; a real one is confirmed by email.
           emailVerified: placeholder,
+          notificationPreference: { create: { language } },
+          ...(companyName ? { company: { create: { name: companyName } } } : {}),
         },
       });
-      return { success: true, registered: true, role: created.role };
+      return {
+        success: true,
+        registered: true,
+        role: created.role,
+        status: 'approved',
+        language,
+        email_confirmed: placeholder ? false : created.emailVerified,
+      };
     }
 
     return { success: false, message: 'Missing telegram_id' };

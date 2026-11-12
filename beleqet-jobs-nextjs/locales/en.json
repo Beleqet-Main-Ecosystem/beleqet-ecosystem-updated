@@ -346,7 +346,7 @@
     "previewTitle": "Your job title",
     "planName": "{plan} plan",
     "postsUsed": "{used} of {max} posts used",
-    "publish": "Publish job",
+    "publish": "Send for review",
     "editNote": "You can edit or close the job anytime from your dashboard.",
     "errTitle": "Enter a job title.",
     "errCategory": "Choose a category.",
@@ -369,7 +369,17 @@
     "savedText": "{title} has been updated. Candidates see the new details right away.",
     "editLoadFailed": "We couldn't load this job.",
     "editMissing": "Job not found",
-    "editMissingText": "This job doesn't exist or isn't one of yours. You can edit your jobs from your dashboard."
+    "editMissingText": "This job doesn't exist or isn't one of yours. You can edit your jobs from your dashboard.",
+    "gender": "Gender",
+    "genders": {
+      "ANY": "Any",
+      "MALE": "Male",
+      "FEMALE": "Female"
+    },
+    "reviewTitle": "Sent for review",
+    "reviewText": "{title} is waiting for approval. Our team checks every new job, usually within one working day, and we'll email you as soon as it's live.",
+    "savedReviewText": "{title} has been updated. It goes live once our team approves it.",
+    "reviewNote": "New jobs go live after a quick check by our team."
   },
   "hero": {
     "title": "Find your next job in Ethiopia",
@@ -940,7 +950,8 @@
       "expectedSalary": "Expected salary (ETB)",
       "backToJob": "Back to the job"
     },
-    "moreFromEmployer": "More jobs from this employer"
+    "moreFromEmployer": "More jobs from this employer",
+    "gender": "Gender"
   },
   "freelance": {
     "title": "Freelance projects",
@@ -1592,7 +1603,9 @@
       "PUBLISHED": "Open",
       "DRAFT": "Drafts",
       "CLOSED": "Closed",
-      "ARCHIVED": "Archived"
+      "ARCHIVED": "Archived",
+      "PENDING_REVIEW": "In review",
+      "REJECTED": "Not approved"
     },
     "noJobs": "No jobs in this group.",
     "closes": "Closes {date}",
@@ -1688,7 +1701,11 @@
       "slow": "We haven’t heard back from Chapa yet. Your plan will start as soon as the payment is confirmed."
     },
     "paidUntil": "Paid until {date}",
-    "payNextPeriod": "Pay for the next month"
+    "payNextPeriod": "Pay for the next month",
+    "submit": "Send for review",
+    "resubmit": "Send again",
+    "inReview": "Waiting for approval. We'll email you when it's live.",
+    "rejectedReason": "Not approved: {reason}"
   },
   "tax": {
     "title": "Salary tax calculator",
@@ -2062,6 +2079,7 @@
     "emailUnverified": "Confirm your email address first. Use the link we emailed you, or send a new one from the banner at the top of your dashboard.",
     "signedOut": "Your session has ended. Sign in again and retry.",
     "tooMany": "Too many attempts. Wait a minute, then try again.",
-    "offline": "We couldn’t reach Beleqet. Check your internet connection and try again."
+    "offline": "We couldn’t reach Beleqet. Check your internet connection and try again.",
+    "emailMissing": "Add and confirm your email first: open the Beleqet Jobs bot in Telegram and tap Post Job."
   }
 }

@@ -19,6 +19,8 @@ model User {
   avatarUrl             String?
   phone                 String?
   telegramId            String?               @unique
+  /// "@name" without the @, as Telegram last reported it (bot sign-up, Mini App sign-in).
+  telegramUsername      String?
   isActive              Boolean               @default(true)
   emailVerified         Boolean               @default(false)
   /// Set on successful session issuance (password/OAuth/2FA). Used by admin active-user metrics.
@@ -405,6 +407,11 @@ model Job {
   currency                 String        @default("ETB")
   deadline                 DateTime?
   status                   JobStatus     @default(DRAFT)
+  /// When an admin first approved it. Once set, closing and reopening needs no new review.
+  approvedAt               DateTime?
+  reviewedAt               DateTime?
+  /// Why it was rejected, shown to the employer.
+  reviewNote               String?
   featured                 Boolean       @default(false)
   companyId                String
   createdAt                DateTime      @default(now())
@@ -1038,9 +1045,13 @@ enum JobType {
 
 enum JobStatus {
   DRAFT
+  /// Sent by the employer, waiting for an admin to approve it. Not public.
+  PENDING_REVIEW
   PUBLISHED
   CLOSED
   ARCHIVED
+  /// An admin turned it down; reviewNote says why. The employer can edit and send it again.
+  REJECTED
 }
 
 enum ApplicationStatus {

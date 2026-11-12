@@ -58,6 +58,8 @@ export const ERROR_CODES = {
   UNAUTHORIZED: 'ERR_UNAUTHORIZED',
   FORBIDDEN: 'ERR_FORBIDDEN',
   EMAIL_NOT_VERIFIED: 'ERR_EMAIL_NOT_VERIFIED',
+  /** The account has only a placeholder address (a Telegram sign-up) and must add a real one. */
+  EMAIL_REQUIRED: 'ERR_EMAIL_REQUIRED',
   NOT_FOUND: 'ERR_RESOURCE_NOT_FOUND',
   CONFLICT: 'ERR_CONFLICT',
   UNPROCESSABLE: 'ERR_VALIDATION_FAILED',

@@ -239,6 +239,28 @@ export class AuthService {
   /** Checks the 6-digit code, confirms the email and signs the account in. */
   async verifyEmailCode(verificationToken: string, code: string) {
     const userId = this.readVerificationTicket(verificationToken);
+    await this.confirmEmailCode(userId, code);
+    return this.oauthSession(userId);
+  }
+
+  /**
+   * Emails a 6-digit code to the account's address (the Telegram bot's email step). False when
+   * one went out less than a minute ago.
+   */
+  async sendEmailCodeTo(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true },
+    });
+    if (!user) throw new BadRequestException('This account no longer exists.');
+    return this.sendEmailCode(user);
+  }
+
+  /**
+   * Checks a 6-digit code and confirms the account's email, with the same expiry and attempt
+   * limit as the website. Throws a message the person can act on when the code is wrong.
+   */
+  async confirmEmailCode(userId: string, code: string): Promise<void> {
     const digits = (code ?? '').replace(/\s/g, '');
     if (!/^\d{6}$/.test(digits)) {
       throw new BadRequestException('Enter the 6-digit code from the email.');
@@ -271,7 +293,6 @@ export class AuthService {
     await this.prisma.verificationToken.deleteMany({
       where: { userId, type: { in: [EMAIL_CODE, EMAIL_CODE_ATTEMPT, 'EMAIL_VERIFICATION'] } },
     });
-    return this.oauthSession(userId);
   }
 
   /** A new code for an account on the code screen; at most one a minute. */

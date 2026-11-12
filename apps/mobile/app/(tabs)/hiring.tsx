@@ -12,9 +12,14 @@ import { useLoad } from '../../lib/use-load';
 import { errorText } from '../../lib/api-error';
 import { daysUntil, shortDate } from '../../lib/format';
 
-const FILTERS = ['all', 'PUBLISHED', 'DRAFT', 'CLOSED'] as const;
+const FILTERS = ['all', 'PUBLISHED', 'PENDING_REVIEW', 'DRAFT', 'CLOSED', 'REJECTED'] as const;
+/** Not public yet: there is no job page to open. */
+const HIDDEN: JobStatus[] = ['DRAFT', 'PENDING_REVIEW', 'REJECTED'];
 
-/** The employer's jobs: filter by state, see applicants, edit, close, publish or reopen. */
+/**
+ * The employer's jobs: filter by state, see applicants, edit, close, reopen, or send for review
+ * (a new job goes live once an admin approves it).
+ */
 export default function Hiring() {
   const { t, locale } = useTranslation();
   const jobs = useLoad(fetchMyJobs, [], { refetchOnFocus: true });
@@ -27,8 +32,8 @@ export default function Hiring() {
   async function setStatus(job: EmployerJob, status: JobStatus, filled?: boolean) {
     setError('');
     try {
-      await setJobStatus(job.id, status, filled);
-      jobs.setData((rows) => (rows ?? []).map((row) => (row.id === job.id ? { ...row, status } : row)));
+      const saved = await setJobStatus(job.id, status, filled);
+      jobs.setData((rows) => (rows ?? []).map((row) => (row.id === job.id ? { ...row, status: saved?.status ?? status, reviewNote: saved?.reviewNote ?? null } : row)));
     } catch (failure) {
       setError(errorText(failure, t, 'freelance.gig.actionFailed'));
     }
@@ -49,17 +54,20 @@ export default function Hiring() {
       title: job.title,
       detail: [job.location, t('emp.applicantCount', { count: job._count?.applications ?? 0 }), job.deadline ? t('emp.closes', { date: shortDate(job.deadline, locale) }) : null].filter(Boolean).join(' · '),
       status: t(`emp.filters.${job.status}`),
-      tone: (job.status === 'PUBLISHED' ? 'good' : job.status === 'CLOSED' ? 'neutral' : 'warn') as 'good' | 'neutral' | 'warn',
+      tone: (job.status === 'PUBLISHED' ? 'good' : job.status === 'CLOSED' ? 'neutral' : job.status === 'REJECTED' ? 'bad' : 'warn') as 'good' | 'neutral' | 'warn' | 'bad',
       onPress: () => router.push({ pathname: '/applicants', params: { job: job.id } }),
       extra: (
         <View className="gap-2">
           {left !== null && left < 0 && job.status === 'PUBLISHED' ? <Notice tone="warn" text={t('emp.pastDeadline')} /> : null}
+          {job.status === 'PENDING_REVIEW' ? <Notice text={t('emp.inReview')} /> : null}
+          {job.status === 'REJECTED' && job.reviewNote ? <Notice tone="bad" text={t('emp.rejectedReason', { reason: job.reviewNote })} /> : null}
           <View className="flex-row flex-wrap gap-2">
             <Button small variant="outline" label={t('emp.edit')} onPress={() => router.push({ pathname: '/post-job', params: { edit: job.id } })} />
             {job.status === 'PUBLISHED' ? <Button small variant="outline" label={t('emp.close')} onPress={() => close(job)} /> : null}
-            {job.status === 'DRAFT' ? <Button small label={t('emp.publish')} onPress={() => setStatus(job, 'PUBLISHED')} /> : null}
+            {job.status === 'DRAFT' ? <Button small label={t(job.approvedAt ? 'emp.publish' : 'emp.submit')} onPress={() => setStatus(job, 'PUBLISHED')} /> : null}
+            {job.status === 'REJECTED' ? <Button small label={t('emp.resubmit')} onPress={() => setStatus(job, 'PUBLISHED')} /> : null}
             {job.status === 'CLOSED' ? <Button small variant="outline" label={t('emp.reopen')} onPress={() => setStatus(job, 'PUBLISHED')} /> : null}
-            <Button small variant="ghost" label={t('m.viewPost')} onPress={() => router.push(`/job/${job.id}`)} />
+            {HIDDEN.includes(job.status) ? null : <Button small variant="ghost" label={t('m.viewPost')} onPress={() => router.push(`/job/${job.id}`)} />}
           </View>
         </View>
       ),

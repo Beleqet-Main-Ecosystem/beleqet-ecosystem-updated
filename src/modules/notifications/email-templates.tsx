@@ -275,6 +275,7 @@ export function adminAnnouncementEmail(
   });
 }
 
+/** Sent when a job goes live: when an admin approves it, or right away for a job an admin posts. */
 export function jobPostConfirmationEmail(firstName: string, jobTitle: string, viewJobUrl: string) {
   return renderTemplate({
     preview: `Your job listing "${jobTitle}" is live!`,
@@ -282,10 +283,45 @@ export function jobPostConfirmationEmail(firstName: string, jobTitle: string, vi
     title: 'Your Job Listing is Live',
     greeting: `Hello ${firstName},`,
     paragraphs: [
-      `Congratulations! Your new job posting for "${jobTitle}" has been successfully published on Beleqet.`,
+      `Your job posting for "${jobTitle}" has been approved and is now live on Beleqet.`,
       'Job seekers can now view and apply to your vacancy. You will receive email notifications as soon as candidates submit applications.',
     ],
     action: { label: 'View Job Listing', url: viewJobUrl },
+  });
+}
+
+export function jobSubmittedEmail(firstName: string, jobTitle: string, dashboardUrl: string) {
+  return renderTemplate({
+    preview: `We received "${jobTitle}" and will review it shortly.`,
+    eyebrow: 'Job Received',
+    title: 'Your Job is Waiting for Approval',
+    greeting: `Hello ${firstName},`,
+    paragraphs: [
+      `Thank you. We received your job posting for "${jobTitle}".`,
+      'Our team checks every new job before it goes live, to keep Beleqet safe from fake offers. We will email you as soon as it is approved, usually within one working day.',
+    ],
+    action: { label: 'Go to my jobs', url: dashboardUrl },
+  });
+}
+
+export function jobRejectedEmail(
+  firstName: string,
+  jobTitle: string,
+  reason: string,
+  editUrl: string,
+) {
+  return renderTemplate({
+    preview: `"${jobTitle}" needs changes before it can go live.`,
+    eyebrow: 'Job Not Approved',
+    title: 'Your Job Needs Changes',
+    greeting: `Hello ${firstName},`,
+    paragraphs: [
+      `We could not approve your job posting for "${jobTitle}" yet.`,
+      'Edit the job to fix what is described below, then send it for review again.',
+    ],
+    detailLabel: 'Reason',
+    detailValue: reason,
+    action: { label: 'Edit the job', url: editUrl },
   });
 }
 

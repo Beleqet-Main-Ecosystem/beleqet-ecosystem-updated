@@ -21,11 +21,17 @@ export enum JobType {
   CONTRACT = 'CONTRACT',
 }
 
+/**
+ * What an employer may ask for. PUBLISHED sends a job that was never approved for review; the
+ * review statuses themselves are set by admins only.
+ */
 export enum JobStatus {
   DRAFT = 'DRAFT',
   PUBLISHED = 'PUBLISHED',
   CLOSED = 'CLOSED',
 }
+
+export const JOB_GENDERS = ['ANY', 'MALE', 'FEMALE'] as const;
 
 export class CreateJobDto {
   @ApiProperty() @IsString() title: string;
@@ -48,7 +54,11 @@ export class CreateJobDto {
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() filled?: boolean;
   @ApiProperty({ required: false }) @IsOptional() @IsBoolean() urgent?: boolean;
   @ApiProperty({ required: false }) @IsOptional() @IsString() jobSite?: string;
-  @ApiProperty({ required: false }) @IsOptional() @IsString() gender?: string;
+  /** Who the employer is looking for; ANY when it doesn't matter. Older imported jobs may hold other text. */
+  @ApiProperty({ required: false, enum: JOB_GENDERS })
+  @IsOptional()
+  @IsIn(JOB_GENDERS)
+  gender?: (typeof JOB_GENDERS)[number];
   @ApiProperty({ required: false }) @IsOptional() @IsString() salaryType?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsInt() vacancies?: number;
   @ApiProperty({ required: false }) @IsOptional() @IsString() experienceLevel?: string;
