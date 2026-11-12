@@ -17,8 +17,10 @@ describe('Jobs & Applications (e2e)', () => {
   const testSuffix = randomUUID().substring(0, 8);
   let employer: any;
   let candidate: any;
+  let admin: any;
   let employerToken = '';
   let candidateToken = '';
+  let adminToken = '';
   let categoryId = '';
   let createdJobId = '';
   let createdApplicationId = '';
@@ -105,6 +107,19 @@ describe('Jobs & Applications (e2e)', () => {
     });
     const candTokens: any = await authService.login(candidate);
     candidateToken = candTokens.accessToken;
+
+    // An admin approves new jobs before they go live.
+    admin = await prisma.user.create({
+      data: {
+        email: `admin-${testSuffix}@example.com`,
+        firstName: 'Ad',
+        lastName: 'Min',
+        role: 'ADMIN',
+        emailVerified: true,
+      },
+    });
+    await redis.set(`user_permissions:${admin.id}`, JSON.stringify(['manage:jobs']), 'EX', 3600);
+    adminToken = ((await authService.login(admin)) as any).accessToken;
   }, 90000);
 
   afterAll(async () => {
@@ -119,8 +134,14 @@ describe('Jobs & Applications (e2e)', () => {
         await prisma.application.deleteMany({ where: { jobId: createdJobId } }).catch(() => {});
         await prisma.job.deleteMany({ where: { id: createdJobId } }).catch(() => {});
       }
+      if (employer?.id) {
+        await prisma.notification.deleteMany({ where: { userId: employer.id } }).catch(() => {});
+      }
       if (candidate?.id) {
         await prisma.user.deleteMany({ where: { id: candidate.id } }).catch(() => {});
+      }
+      if (admin?.id) {
+        await prisma.user.deleteMany({ where: { id: admin.id } }).catch(() => {});
       }
       if (employer?.id) {
         await prisma.company.deleteMany({ where: { userId: employer.id } }).catch(() => {});
@@ -168,7 +189,38 @@ describe('Jobs & Applications (e2e)', () => {
       expect(res.body).toHaveProperty('id');
       expect(res.body.title).toContain('Senior Backend Engineer');
       expect(res.body).toHaveProperty('companyId');
+      // A new job waits for an admin before anyone can see or apply to it.
+      expect(res.body.status).toBe('PENDING_REVIEW');
       createdJobId = res.body.id;
+    });
+
+    it('hides a job waiting for review from the public, but not from its employer', async () => {
+      await request(app.getHttpServer()).get(`/api/v1/jobs/${createdJobId}`).expect(404);
+      const own = await request(app.getHttpServer())
+        .get(`/api/v1/jobs/${createdJobId}`)
+        .set('Authorization', `Bearer ${employerToken}`)
+        .expect(200);
+      expect(own.body.status).toBe('PENDING_REVIEW');
+    });
+
+    it('lets only an admin publish it: the employer asking to publish keeps it in review', async () => {
+      const asked = await request(app.getHttpServer())
+        .patch(`/api/v1/jobs/${createdJobId}`)
+        .set('Authorization', `Bearer ${employerToken}`)
+        .send({ status: 'PUBLISHED' })
+        .expect(200);
+      expect(asked.body.status).toBe('PENDING_REVIEW');
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/admin/moderation/jobs/${createdJobId}/approve`)
+        .set('Authorization', `Bearer ${employerToken}`)
+        .expect(403);
+      const approved = await request(app.getHttpServer())
+        .post(`/api/v1/admin/moderation/jobs/${createdJobId}/approve`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(201);
+      expect(approved.body.status).toBe('PUBLISHED');
+      expect(approved.body.approvedAt).toBeTruthy();
     });
 
     it('should view single job details by id', async () => {

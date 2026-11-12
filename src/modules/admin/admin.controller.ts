@@ -20,6 +20,7 @@ import {
   IsOptional,
   IsString,
   MinLength,
+  MaxLength,
   IsArray,
   IsIn,
   IsInt,
@@ -35,6 +36,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { DisputeManagerService } from '../dispute-manager/dispute-manager.service';
 import { ResolveDisputeDto } from '../dispute-manager/dto/resolve-dispute.dto';
+import { JobsService } from '../jobs/jobs.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatService } from '../chat/chat.service';
@@ -94,6 +96,9 @@ class VerificationDecisionDto {
   @IsIn(['VERIFIED', 'REJECTED']) decision!: 'VERIFIED' | 'REJECTED';
   @IsOptional() @IsString() note?: string;
 }
+class RejectJobDto {
+  @IsString() @MinLength(3) @MaxLength(1000) note!: string;
+}
 
 const safeUserSelect = {
   id: true,
@@ -121,6 +126,7 @@ export class AdminController {
     private readonly notificationsService: NotificationsService,
     private readonly auditLoggingService: AuditLoggingService,
     private readonly disputes: DisputeManagerService,
+    private readonly jobs: JobsService,
   ) {}
 
   @RequirePermissions('manage:users')
@@ -222,11 +228,19 @@ export class AdminController {
       status: string;
       createdAt: Date;
       updatedAt: Date;
+      requirements?: string | null;
+      gender?: string | null;
+      reviewNote?: string | null;
     }> = [];
 
     if (selectedType === 'ALL' || selectedType === 'JOB') {
+      // The approval queue asks for one job status: filter in the database, not after loading all.
+      const jobStatus = (Object.values(JobStatus) as string[]).includes(status ?? '')
+        ? (status as JobStatus)
+        : undefined;
       const jobs = await this.prisma.job.findMany({
-        include: { company: true, category: true },
+        where: jobStatus ? { status: jobStatus } : undefined,
+        include: { company: { include: { user: { select: { email: true } } } }, category: true },
         orderBy: { createdAt: 'desc' },
       });
       for (const job of jobs) {
@@ -235,8 +249,12 @@ export class AdminController {
           type: 'JOB',
           title: job.title,
           description: job.description,
+          requirements: job.requirements,
+          gender: job.gender,
+          reviewNote: job.reviewNote,
           creatorName: job.company?.name || job.companyName || 'Independent Employer',
-          creatorEmail: job.applyEmail || undefined,
+          // The employer's account email: who to contact about the job.
+          creatorEmail: job.company?.user?.email || job.applyEmail || undefined,
           category: job.category?.label,
           location: job.location,
           compensation: job.salaryMin
@@ -342,8 +360,44 @@ export class AdminController {
   }
 
   @RequirePermissions('manage:jobs')
+  @Post('moderation/jobs/:id/approve')
+  @ApiOperation({ summary: 'Approve a job waiting for review: it goes live and is announced' })
+  async approveJob(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
+    const job = await this.jobs.approve(id);
+    void this.auditLoggingService.createSafe({
+      eventType: 'job.approved',
+      entityId: id,
+      entityType: 'Job',
+      payload: { title: job.title },
+      processedBy: AdminController.name,
+      actorUserId: admin.userId,
+    });
+    return job;
+  }
+
+  @RequirePermissions('manage:jobs')
+  @Post('moderation/jobs/:id/reject')
+  @ApiOperation({ summary: 'Reject a job waiting for review, with the reason the employer sees' })
+  async rejectJob(
+    @Param('id') id: string,
+    @Body() dto: RejectJobDto,
+    @CurrentUser() admin: CurrentUserPayload,
+  ) {
+    const job = await this.jobs.reject(id, dto.note);
+    void this.auditLoggingService.createSafe({
+      eventType: 'job.rejected',
+      entityId: id,
+      entityType: 'Job',
+      payload: { title: job.title, reason: dto.note },
+      processedBy: AdminController.name,
+      actorUserId: admin.userId,
+    });
+    return job;
+  }
+
+  @RequirePermissions('manage:jobs')
   @Patch('moderation/jobs/:id/status')
-  @ApiOperation({ summary: 'Approve, archive, or update job status' })
+  @ApiOperation({ summary: 'Take a job down (archive it)' })
   async updateJobStatus(@Param('id') id: string, @Body() dto: UpdateJobModerationStatusDto) {
     const current = await this.prisma.job.findUnique({ where: { id }, select: { status: true } });
     if (!current) throw new NotFoundException('Job not found');

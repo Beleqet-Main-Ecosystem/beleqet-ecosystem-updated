@@ -111,4 +111,24 @@ export class TelegramController {
   async registerFromBot(@Body() body: any) {
     return this.telegramService.registerFromBot(body);
   }
+
+  // Limited per Telegram account in the service (one code a minute, five a day): all bot traffic
+  // comes from one address, so a per-IP limit would lock out every bot user at once.
+  @Post('email-code')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Email a 6-digit code to a bot user, optionally setting the address' })
+  async requestEmailCode(@Body() body: { telegram_id: string; email?: string }) {
+    return this.telegramService.requestEmailCode(String(body?.telegram_id ?? ''), body?.email);
+  }
+
+  @Post('confirm-email')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirm a bot user email with the 6-digit code they typed' })
+  async confirmEmail(@Body() body: { telegram_id: string; code: string }) {
+    return this.telegramService.confirmEmailCode(String(body?.telegram_id ?? ''), body?.code);
+  }
 }

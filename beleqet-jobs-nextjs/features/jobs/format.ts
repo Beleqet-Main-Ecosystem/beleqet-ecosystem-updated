@@ -64,6 +64,21 @@ export function daysUntil(iso: string | null | undefined): number | null {
   return Math.ceil((end.getTime() - Date.now()) / 86400000) - 1;
 }
 
+export const GENDERS = ['ANY', 'MALE', 'FEMALE'] as const;
+export type Gender = (typeof GENDERS)[number];
+
+/**
+ * A job's gender as one of GENDERS. Jobs imported from the old site may say "Male", "female" or
+ * "Both"; anything not clearly male or female counts as ANY. Null when the job doesn't say.
+ */
+export function jobGender(value: string | null | undefined): Gender | null {
+  const text = (value ?? '').trim().toLowerCase();
+  if (!text) return null;
+  if (text === 'male' || text === 'm' || text === 'ወንድ') return 'MALE';
+  if (text === 'female' || text === 'f' || text === 'ሴት') return 'FEMALE';
+  return 'ANY';
+}
+
 /** Two-letter monogram for listings without a logo. */
 export function initials(name: string): string {
   const words = name.trim().split(/[\s\-–—&,.()/]+/).filter(Boolean);

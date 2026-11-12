@@ -112,12 +112,22 @@ export class TelegramTmaService {
 
     const existingUser = await this.prisma.user.findUnique({
       where: { telegramId: telegramIdStr },
-      select: { id: true, isActive: true, role: true },
+      select: { id: true, isActive: true, role: true, telegramUsername: true },
     });
+    // Telegram's own record, so employers can reach the person; people change it now and then.
+    const username = /^[A-Za-z0-9_]{4,32}$/.test(userData.username ?? '')
+      ? userData.username!
+      : null;
 
     if (existingUser) {
       if (!existingUser.isActive) {
         throw new UnauthorizedException('Account is disabled.');
+      }
+      if (username && username !== existingUser.telegramUsername) {
+        await this.prisma.user.update({
+          where: { id: existingUser.id },
+          data: { telegramUsername: username },
+        });
       }
       this.logger.log(
         `TMA authentication success for user ${existingUser.id} (Telegram ID: ${telegramIdStr})`,
@@ -151,6 +161,7 @@ export class TelegramTmaService {
         lastName: userData.last_name || 'User',
         avatarUrl: userData.photo_url || null,
         telegramId: telegramIdStr,
+        telegramUsername: username,
         emailVerified: true,
         role: preferredRole,
         ...(preferredRole === 'EMPLOYER'

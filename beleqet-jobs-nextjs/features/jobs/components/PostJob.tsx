@@ -6,7 +6,7 @@ import { CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
-import { initials } from '../format';
+import { GENDERS, initials, jobGender, type Gender } from '../format';
 import { JOB_TYPES, type JobTypeCode } from '../search-params';
 import CompanySetup from './CompanySetup';
 import { apiError, errorText } from '@/lib/api-error';
@@ -40,6 +40,7 @@ type SavedJob = {
   experienceLevel: string | null;
   yearsOfExperience: string | null;
   qualification: string | null;
+  gender: string | null;
   tags: string[];
   applyType: string | null;
   applyUrl: string | null;
@@ -66,6 +67,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
   const [categoryId, setCategoryId] = useState('');
   const [location, setLocation] = useState('');
   const [vacancies, setVacancies] = useState('1');
+  const [gender, setGender] = useState<Gender>('ANY');
   const [type, setType] = useState<JobTypeCode>('FULL_TIME');
   const [salaryMin, setSalaryMin] = useState('');
   const [salaryMax, setSalaryMax] = useState('');
@@ -83,6 +85,8 @@ export default function PostJob({ categories, editId }: { categories: Category[]
   const [error, setError] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [publishedId, setPublishedId] = useState('');
+  // What the server made of it: a new employer job waits for an admin before it goes live.
+  const [publishedStatus, setPublishedStatus] = useState('');
 
   const canPost = user?.role === 'EMPLOYER' || user?.role === 'ADMIN';
 
@@ -91,6 +95,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
     setCategoryId(job.categoryId);
     setLocation(job.location);
     setVacancies(String(job.vacancies ?? 1));
+    setGender(jobGender(job.gender) ?? 'ANY');
     setType(job.type);
     setSalaryMin(job.salaryMin ? String(job.salaryMin) : '');
     setSalaryMax(job.salaryMax ? String(job.salaryMax) : '');
@@ -187,15 +192,21 @@ export default function PostJob({ categories, editId }: { categories: Category[]
   }
 
   if (publishedId) {
+    const inReview = publishedStatus === 'PENDING_REVIEW';
+    const heading = inReview ? 'postJob.reviewTitle' : editing ? 'postJob.savedTitle' : 'postJob.liveTitle';
+    const body = inReview
+      ? editing ? 'postJob.savedReviewText' : 'postJob.reviewText'
+      : editing ? 'postJob.savedText' : 'postJob.liveText';
     return (
       <div className="mx-auto max-w-[720px] px-4 py-8 md:py-14">
         <section className="flex flex-col items-center gap-3 rounded-xl border border-ink-200 bg-surface px-5 py-12 text-center dark:border-slate-800 dark:bg-slate-900">
           <CheckCircle2 className="h-10 w-10 text-forest dark:text-limeAccent" aria-hidden="true" />
-          <h1 className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900 dark:text-white">{t(editing ? 'postJob.savedTitle' : 'postJob.liveTitle')}</h1>
-          <p className="max-w-[460px] text-[15px] leading-relaxed text-ink-500 dark:text-slate-300">{t(editing ? 'postJob.savedText' : 'postJob.liveText').replace('{title}', title.trim())}</p>
+          <h1 className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900 dark:text-white">{t(heading)}</h1>
+          <p className="max-w-[460px] text-[15px] leading-relaxed text-ink-500 dark:text-slate-300">{t(body).replace('{title}', title.trim())}</p>
           <div className="mt-1.5 flex flex-wrap justify-center gap-2.5">
-            <Link href={`/jobs/${publishedId}`} className={solid}>{t('postJob.view')}</Link>
-            <Link href="/employer" className={outline}>{t('postJob.dashboard')}</Link>
+            {/* A job waiting for review has no public page yet. */}
+            {publishedStatus === 'PUBLISHED' && <Link href={`/jobs/${publishedId}`} className={solid}>{t('postJob.view')}</Link>}
+            <Link href="/employer?tab=jobs" className={publishedStatus === 'PUBLISHED' ? outline : solid}>{t('postJob.dashboard')}</Link>
           </div>
         </section>
       </div>
@@ -255,6 +266,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
           salaryMax: max || empty,
           salaryType,
           vacancies: Number(vacancies) || 1,
+          gender,
           experienceLevel: experienceLevel || empty,
           yearsOfExperience: years.trim() || empty,
           qualification: qualification.trim() || empty,
@@ -271,6 +283,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
       // A 403 is the plan's job limit or an unconfirmed email; errorText shows which.
       if (!response.ok) throw await apiError(response);
       const job = await response.json();
+      setPublishedStatus(job.status ?? '');
       setPublishedId(job.id);
       window.scrollTo({ top: 0 });
     } catch (problem) {
@@ -302,9 +315,18 @@ export default function PostJob({ categories, editId }: { categories: Category[]
               <input type="text" value={location} onChange={(event) => setLocation(event.target.value)} className={input} />
             </Field>
           </div>
-          <Field label={t('postJob.openings')}>
-            <input type="number" min={1} value={vacancies} onChange={(event) => setVacancies(event.target.value)} className={`${input} md:max-w-[200px]`} />
-          </Field>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label={t('postJob.openings')}>
+              <input type="number" min={1} value={vacancies} onChange={(event) => setVacancies(event.target.value)} className={input} />
+            </Field>
+            <Field label={t('postJob.gender')}>
+              <select value={gender} onChange={(event) => setGender(event.target.value as Gender)} className={input}>
+                {GENDERS.map((value) => (
+                  <option key={value} value={value}>{t(`postJob.genders.${value}`)}</option>
+                ))}
+              </select>
+            </Field>
+          </div>
           <fieldset>
             <legend className={`${labelText} pb-2`}>{t('postJob.jobType')}</legend>
             <div className="flex flex-wrap gap-2">
@@ -468,7 +490,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
           ) : (
             <>
               <button type="submit" disabled={publishing || atLimit} className={solid}>{t(publishing ? 'freelance.post2.publishing' : 'postJob.publish')}</button>
-              <span className={hint}>{t('postJob.editNote')}</span>
+              <span className={hint}>{t('postJob.reviewNote')} {t('postJob.editNote')}</span>
             </>
           )}
         </section>

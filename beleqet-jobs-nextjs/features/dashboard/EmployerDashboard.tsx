@@ -23,8 +23,12 @@ export type EmployerJob = {
   id: string;
   title: string;
   location: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+  status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED' | 'REJECTED';
   deadline: string | null;
+  /** Why an admin rejected it. */
+  reviewNote?: string | null;
+  /** Set once an admin approved it: it can then be closed and reopened without a new review. */
+  approvedAt?: string | null;
   _count?: { applications: number };
 };
 
@@ -38,7 +42,9 @@ const NAV: { id: string; icon: LucideIcon; href?: string }[] = [
   { id: 'plan', icon: CreditCard },
   { id: 'settings', icon: Settings },
 ];
-const FILTERS = ['all', 'PUBLISHED', 'DRAFT', 'CLOSED'] as const;
+const FILTERS = ['all', 'PUBLISHED', 'PENDING_REVIEW', 'DRAFT', 'CLOSED', 'REJECTED'] as const;
+/** Not public yet, so the title opens the editor instead of the job page. */
+const HIDDEN = ['DRAFT', 'PENDING_REVIEW', 'REJECTED'];
 
 export default function EmployerDashboard() {
   const { t, locale } = useTranslation();
@@ -78,8 +84,9 @@ export default function EmployerDashboard() {
   async function setStatus(job: EmployerJob, status: EmployerJob['status'], filled?: boolean) {
     setError('');
     try {
-      await apiSend('PATCH', `/jobs/${job.id}`, filled === undefined ? { status } : { status, filled });
-      setJobs((rows) => (rows ?? []).map((row) => (row.id === job.id ? { ...row, status } : row)));
+      // Publishing a job no admin has approved yet sends it for review: show what the server decided.
+      const saved = await apiSend<Pick<EmployerJob, 'status' | 'reviewNote'>>('PATCH', `/jobs/${job.id}`, filled === undefined ? { status } : { status, filled });
+      setJobs((rows) => (rows ?? []).map((row) => (row.id === job.id ? { ...row, status: saved?.status ?? status, reviewNote: saved?.reviewNote ?? null } : row)));
     } catch (problem) {
       setError(errorText(problem, t, 'freelance.gig.actionFailed'));
     }
@@ -176,16 +183,19 @@ export default function EmployerDashboard() {
                 return (
                   <article key={job.id} className={`${card} flex flex-wrap items-center gap-3`}>
                     <span className="flex min-w-0 flex-[1_1_240px] flex-col gap-0.5">
-                      <Link href={`/jobs/${job.id}`} prefetch={false} className="font-bold text-ink-900 hover:underline dark:text-white">{job.title}</Link>
+                      <Link href={HIDDEN.includes(job.status) ? `/post-job?edit=${job.id}` : `/jobs/${job.id}`} prefetch={false} className="font-bold text-ink-900 hover:underline dark:text-white">{job.title}</Link>
                       <span className={muted}>{[job.location, t('emp.applicantCount').replace('{count}', String(applicants(job))), t('emp.closes').replace('{date}', closes(job))].join(' · ')}</span>
                       {left !== null && left < 0 && job.status === 'PUBLISHED' && <span className="text-[13px] font-semibold text-[#9B2C2C] dark:text-red-300">{t('emp.pastDeadline')}</span>}
+                      {job.status === 'PENDING_REVIEW' && <span className="text-[13px] text-ink-500 dark:text-slate-400">{t('emp.inReview')}</span>}
+                      {job.status === 'REJECTED' && job.reviewNote && <span className="text-[13px] font-semibold text-[#9B2C2C] dark:text-red-300">{t('emp.rejectedReason').replace('{reason}', job.reviewNote)}</span>}
                     </span>
                     <span className="rounded-md bg-[#F1F4F6] px-2 py-0.5 text-xs font-bold text-ink-700 dark:bg-slate-800 dark:text-slate-200">{t(`emp.filters.${job.status}`)}</span>
                     <span className="flex flex-wrap gap-2">
                       {applicants(job) > 0 && review(job)}
                       <Link href={`/post-job?edit=${job.id}`} prefetch={false} className={outline}>{t('emp.edit')}</Link>
                       {job.status === 'PUBLISHED' && <button type="button" onClick={() => setClosing(job)} className={outline}>{t('emp.close')}</button>}
-                      {job.status === 'DRAFT' && <button type="button" onClick={() => setStatus(job, 'PUBLISHED')} className={solid}>{t('emp.publish')}</button>}
+                      {job.status === 'DRAFT' && <button type="button" onClick={() => setStatus(job, 'PUBLISHED')} className={solid}>{t(job.approvedAt ? 'emp.publish' : 'emp.submit')}</button>}
+                      {job.status === 'REJECTED' && <button type="button" onClick={() => setStatus(job, 'PUBLISHED')} className={solid}>{t('emp.resubmit')}</button>}
                       {job.status === 'CLOSED' && <button type="button" onClick={() => setStatus(job, 'PUBLISHED')} className={outline}>{t('emp.reopen')}</button>}
                     </span>
                   </article>

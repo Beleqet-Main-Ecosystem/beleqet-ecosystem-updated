@@ -50,6 +50,8 @@ export function errorText(error: unknown, t: (key: string) => string, fallbackKe
   const failure = toApiError(error);
   if (failure.status === OFFLINE) return t('errors.offline');
   if (failure.code === 'ERR_EMAIL_NOT_VERIFIED') return t('errors.emailUnverified');
+  // A Telegram sign-up has no email yet: the bot is where it adds one. Same as the website.
+  if (failure.code === 'ERR_EMAIL_REQUIRED') return t('errors.emailMissing');
   if (failure.status === 401) return t('errors.signedOut');
   if (failure.status === 429) return t('errors.tooMany');
   if (failure.status >= 400 && failure.status < 500 && failure.serverMessage) return failure.serverMessage;

@@ -67,6 +67,8 @@ export type Job = {
   description?: string;
   requirements?: string | null;
   experienceLevel?: string | null;
+  /** ANY, MALE or FEMALE; older imported jobs may hold other text (see jobGender). */
+  gender?: string | null;
   vacancies?: number | null;
   expiryDate?: string | null;
   salaryType?: string | null;
@@ -142,6 +144,7 @@ export function toDisplayJob(raw: any): Job {
     description: raw.description ?? '',
     requirements: raw.requirements ?? null,
     experienceLevel: raw.experienceLevel ?? null,
+    gender: raw.gender ?? null,
     vacancies: raw.vacancies ?? 1,
     expiryDate: raw.expiryDate
       ? new Date(raw.expiryDate).toLocaleDateString('en-US', {

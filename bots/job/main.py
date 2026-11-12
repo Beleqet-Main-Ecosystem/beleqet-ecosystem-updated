@@ -45,6 +45,11 @@ logger = logging.getLogger(__name__)
 
 LANGUAGE, ROLE, NAME, PHONE, EMAIL, TG_USERNAME, PASSWORD, CHANGE_LANGUAGE, TRADE_LICENSE, JOB_TITLE, COMPANY_NAME = range(11)
 BROADCAST_MESSAGE, BROADCAST_BUTTON_TEXT, BROADCAST_BUTTON_URL, BROADCAST_CONFIRM = range(11, 15)
+# New states go after the old ones: conversations saved in bot_data.pickle keep their numbers.
+CONTACT_NAME, EMAIL_CODE, NEW_EMAIL = range(15, 18)
+
+MIN_PASSWORD_LENGTH = 8
+EMAIL_PATTERN = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 
 TRANSLATIONS = {
     'en': {
@@ -56,11 +61,29 @@ TRANSLATIONS = {
         'pending_employer': "You’re already registered as an Employer, but your account is still pending approval. You’ll be notified once approved.",
         'status_error': "Sorry, I couldn’t check your registration status. Let’s proceed with registration.",
         'role_selected': "Selected role: {role}\nNow, Please provide your full name:",
-        'enter_name': "Great! Now please provide your email address:",
+        'enter_email': "Great! Now please enter your email address:",
+        'enter_contact_name': "Thanks! Now your own full name (the contact person for this company):",
         'invalid_email': "Invalid email address. Please enter a valid email address:",
         'email_exists': "Email already registered. Please enter a different email address for registration.",
         'email_error': "Sorry, I couldn't verify email availability at the moment. Please try again later.",
-        'enter_password': "Nice! Now please enter your desired password:",
+        'enter_password': "Nice! Now choose a password of at least 8 characters. You'll use it with your email to sign in on beleqetjobs.com:",
+        'password_too_short': "That password is too short. Please use at least 8 characters:",
+        'password_hidden': "For your safety, I deleted the message with your password.",
+        'code_sent': "We sent a 6-digit code to {email}. Type it here to confirm your email.\nNot there? Check your spam folder.",
+        'code_confirmed': "Your email is confirmed. ✅ You can post jobs now.",
+        'code_format': "Please type the 6 digits from the email.",
+        'code_resend': "Send a new code",
+        'code_change_email': "Change email",
+        'code_later': "Later",
+        'code_later_text': "No problem. Tap Post Job when you're ready and I'll send you a new code.",
+        'enter_new_email': "Type the email address you want to use:",
+        'confirm_to_post': "To post jobs, first confirm your email address. It keeps job seekers safe from fake job ads.",
+        'add_email_to_post': "To post jobs, add your email address first; I'll send you a code to confirm it. It keeps job seekers safe from fake job ads.",
+        'send_code_to': "Send a code to {email}",
+        'add_email': "Add my email",
+        'confirm_now': "One last step: confirm your email, so you can post jobs.",
+        'job_review_note': "New jobs are checked by our team before they go live. We'll email you when yours is approved.",
+        'code_failed': "Sorry, that didn't work: {error}",
         'registration_success': "Registration successful! You're now registered on our Job platform.\n",
         'pending_approval': "Your account is pending approval. You’ll be notified once approved.\n",
         'registration_details': "Name: {name}\nEmail: {email}\nRole: {role}",
@@ -108,11 +131,29 @@ Our team will review these promptly so you can start hiring your next great tale
         'status_error': "ይቅርታ፣ የምዝገባ ደረጃዎን(ሁኔታዎን)መፈተሽና ማረጋገጥ አልቻልኩም። ስለዚህ ወደ ምዝገባው እናምራ።",
         'select_role': "እባክዎ ሚናዎን ይምረጡ:",
         'role_selected': "የተመረጠ ሚና: {role}\nአሁን ደግሞ፣ ሙሉ ስምዎን ያስገቡ:",
-        'enter_name': "በጣም ጥሩ! አሁን ደግሞ የኢሜል አድራሻዎን ያስገቡ:",
+        'enter_email': "በጣም ጥሩ! አሁን ደግሞ የኢሜል አድራሻዎን ያስገቡ:",
+        'enter_contact_name': "እናመሰግናለን! አሁን የእርስዎን ሙሉ ስም ያስገቡ (የድርጅቱ ተጠሪ):",
         'invalid_email': "ልክ ያልሆነ(የማይሰራ)የኢሜል አድራሻ!!እባክዎ ትክክለኛ የኢሜል አድራሻ ያስገቡ:",
         'email_exists': "ይህ ኢሜል ቀድሞ ተመዝግቧል። እባክዎ ለምዝገባ የሚሆን ሌላ የኢሜል አድራሻ ያስገቡ።",
         'email_error': "ይቅርታ፣ በአሁኑ ጊዜ የኢሜሉን መገኘት መቻልና አለመቻል ማረጋገጥ አልቻልኩም። እባክዎ ቆይተው ይሞክሩ።",
-        'enter_password': "ጥሩ! አሁን የሚፈልጉትን የይለፍ ቃል ያስገቡ:",
+        'enter_password': "ጥሩ! አሁን ቢያንስ 8 ፊደላት ወይም ቁጥሮች ያሉት የይለፍ ቃል ይምረጡ። በbeleqetjobs.com ለመግባት ከኢሜልዎ ጋር ይጠቀሙበታል:",
+        'password_too_short': "የይለፍ ቃሉ በጣም አጭር ነው። እባክዎ ቢያንስ 8 ፊደላት ወይም ቁጥሮች ይጠቀሙ:",
+        'password_hidden': "ለደህንነትዎ፣ የይለፍ ቃልዎን የያዘውን መልዕክት አጥፍቻለሁ።",
+        'code_sent': "ባለ 6 አሃዝ ኮድ ወደ {email} ልከናል። ኢሜልዎን ለማረጋገጥ ኮዱን እዚህ ይጻፉ።\nካላገኙት የስፓም (spam) ማህደሩን ይመልከቱ።",
+        'code_confirmed': "ኢሜልዎ ተረጋግጧል። ✅ አሁን ስራ መለጠፍ ይችላሉ።",
+        'code_format': "እባክዎ ከኢሜሉ ላይ ያሉትን 6 አሃዞች ይጻፉ።",
+        'code_resend': "አዲስ ኮድ ላክ",
+        'code_change_email': "ኢሜል ቀይር",
+        'code_later': "በኋላ",
+        'code_later_text': "ችግር የለም። ሲዘጋጁ «ሥራ መለጠፍ» የሚለውን ይጫኑ፤ አዲስ ኮድ እልክልዎታለሁ።",
+        'enter_new_email': "መጠቀም የሚፈልጉትን የኢሜል አድራሻ ይጻፉ:",
+        'confirm_to_post': "ስራ ለመለጠፍ መጀመሪያ የኢሜል አድራሻዎን ያረጋግጡ። ይህ ስራ ፈላጊዎችን ከሀሰተኛ የስራ ማስታወቂያዎች ይጠብቃል።",
+        'add_email_to_post': "ስራ ለመለጠፍ መጀመሪያ የኢሜል አድራሻዎን ያስገቡ፤ ለማረጋገጥ ኮድ እልክልዎታለሁ። ይህ ስራ ፈላጊዎችን ከሀሰተኛ የስራ ማስታወቂያዎች ይጠብቃል።",
+        'send_code_to': "ኮድ ወደ {email} ላክ",
+        'add_email': "ኢሜሌን ጨምር",
+        'confirm_now': "አንድ የመጨረሻ ደረጃ፦ ስራ መለጠፍ እንዲችሉ ኢሜልዎን ያረጋግጡ።",
+        'job_review_note': "አዳዲስ ስራዎች ከመታተማቸው በፊት በቡድናችን ይገመገማሉ። ስራዎ ሲጸድቅ በኢሜል እናሳውቅዎታለን።",
+        'code_failed': "ይቅርታ፣ አልተሳካም፦ {error}",
         'registration_success': "ምዝገባው ተሳክቷል! አሁን በሥራ ፕላትፎርማችን ላይ ተመዝግበዋል።\n",
         'pending_approval': "መለያ አካውንትዎ ፈቃድ እየጠበቀ ነው።ተፈቅዶ ሲያልቅ ይነገርዎታል\n",
         'registration_details': "ስም: {name}\nኢሜል: {email}\nሚና: {role}",
@@ -167,6 +208,49 @@ def normalize_role(role: str) -> str:
     if role_clean in ('candidate', 'wp_job_board_pro_candidate'):
         return 'Candidate'
     return 'Unknown'
+
+
+def password_ok(text: str) -> bool:
+    """The website's rule: at least 8 characters. A shorter one was once kept silently and unusable."""
+    return isinstance(text, str) and len(text) >= MIN_PASSWORD_LENGTH
+
+
+def six_digit_code(text: str):
+    """The emailed code from what the person typed ("123 456" works too), or None."""
+    digits = re.sub(r'\s', '', text or '')
+    return digits if re.fullmatch(r'\d{6}', digits) else None
+
+
+def menu_key_for(text: str):
+    """(menu key, language) when the text is one of the menu buttons, in either language."""
+    for l_code, l_data in TRANSLATIONS.items():
+        for key, value in l_data.get('menu', {}).items():
+            if value == text:
+                return key, l_code
+    return None
+
+
+def registration_payload(user_data: dict, telegram_user) -> dict:
+    """
+    What the API keeps from a registration: everything the person typed, plus the Telegram
+    username Telegram itself reports (not typed, so it can't be someone else's).
+    """
+    role_input = user_data.get('role_input', '')
+    return {
+        'telegram_id': str(telegram_user.id),
+        'name': user_data.get('name'),
+        # The employer's own name; the company name goes to their company profile.
+        'contact_name': user_data.get('contact_name', '') if role_input == 'employer' else '',
+        'email': user_data.get('email'),
+        'password': user_data.get('password'),
+        'username': f"tg_{telegram_user.id}",
+        'role': ROLE_BACKEND.get(role_input, user_data.get('role', 'candidate')),
+        'language': user_data.get('language', 'en'),
+        'phone': user_data.get('phone', ''),
+        'tg_username': getattr(telegram_user, 'username', None) or '',
+        'job_title': user_data.get('job_title', ''),
+        'company_name': user_data.get('company_name', ''),
+    }
 
 MENU_URLS = {
     'candidate': {
@@ -518,7 +602,17 @@ async def get_company_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if not message or not message.text:
         return COMPANY_NAME
     context.user_data['company_name'] = message.text.strip()
-    context.user_data['name'] = message.text.strip() 
+    lang = context.user_data.get('language', 'en')
+    await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['enter_contact_name'])
+    return CONTACT_NAME
+
+async def get_contact_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """The employer's own name: the account is theirs, the company is its profile."""
+    message = update.effective_message
+    if not message or not message.text:
+        return CONTACT_NAME
+    context.user_data['contact_name'] = message.text.strip()
+    context.user_data['name'] = message.text.strip()
     lang = context.user_data.get('language', 'en')
     await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['enter_phone'])
     return PHONE
@@ -567,7 +661,7 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['phone'] = phone_input
     await bot_context.rate_limiter.send_message(
         message.chat_id,
-        TRANSLATIONS[lang]['enter_name']
+        TRANSLATIONS[lang]['enter_email']
     )
     return EMAIL
 
@@ -619,16 +713,13 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         logger.warning(f"Could not verify email {email} availability upfront; proceeding with registration.")
 
     context.user_data['email'] = email
-    
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(TRANSLATIONS[lang]['skip'], callback_data='skip_tg')]])
-    await bot_context.rate_limiter.send_message(
-        message.chat_id,
-        TRANSLATIONS[lang]['enter_tg_username'],
-        reply_markup=keyboard
-    )
-    return TG_USERNAME
+
+    # The Telegram username comes from Telegram itself when registering, so there's nothing to ask.
+    await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['enter_password'])
+    return PASSWORD
 
 async def get_tg_username(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Only for conversations saved before the username question was dropped."""
     lang = context.user_data.get('language', 'en')
     
     if update.callback_query:
@@ -656,8 +747,17 @@ async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return PASSWORD
 
     user_data = context.user_data
-    user_data['password'] = message.text
     lang = user_data.get('language', 'en')
+    # The password shouldn't stay readable in the chat. Bots may delete messages in private chats.
+    try:
+        await message.delete()
+        await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['password_hidden'])
+    except Exception as e:
+        logger.info(f"Could not delete a password message: {e}")
+    if not password_ok(message.text):
+        await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['password_too_short'])
+        return PASSWORD
+    user_data['password'] = message.text
     role_input = user_data.get('role_input', '')
 
     if role_input == 'employer':
@@ -731,21 +831,8 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_data = context.user_data
     lang = user_data.get('language', 'en')
     chat_id = update.effective_chat.id if update.effective_chat else (update.effective_message.chat_id if update.effective_message else None)
-    backend_role = ROLE_BACKEND.get(user_data.get('role_input', ''), user_data.get('role', 'candidate'))
-
-    payload = {
-        'telegram_id': str(update.effective_user.id),
-        'name': user_data.get('name'),
-        'email': user_data.get('email'),
-        'password': user_data.get('password'),
-        'username': f"tg_{update.effective_user.id}",
-        'role': backend_role,
-        'language': lang,
-        'phone': user_data.get('phone', ''),
-        'tg_username': user_data.get('tg_username', ''),
-        'job_title': user_data.get('job_title', ''),
-        'company_name': user_data.get('company_name', '')
-    }
+    payload = registration_payload(user_data, update.effective_user)
+    next_state = ConversationHandler.END
 
     try:
         req_kwargs = {'json': payload}
@@ -754,9 +841,12 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
             if response.status == 201 or response.status == 200:
                 data = await response.json()
                 context.user_data['role'] = normalize_role(data.get('role'))
-                context.user_data['language'] = data.get('language')
+                context.user_data['language'] = data.get('language') or lang
                 status = data.get('status', 'approved')
                 role = normalize_role(user_data.get('role_input', ''))
+                # Employers confirm their email before posting jobs; job seekers don't have to.
+                if role == 'Employer' and not data.get('email_confirmed') and chat_id:
+                    next_state = EMAIL_CODE
                 
                 msg = TRANSLATIONS[lang]['registration_success']
                 if status == 'pending':
@@ -814,9 +904,159 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
         keys_to_remove = ['trade_license_bytes', 'trade_license_name', 'password', 'role_input']
         for key in keys_to_remove:
             context.user_data.pop(key, None)
-            
+
         logger.info(f"Cleaned up heavy registration data for user {update.effective_user.id}")
+
+    if next_state == EMAIL_CODE:
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['confirm_now'])
+        return await send_email_code(chat_id, context, str(update.effective_user.id))
     return ConversationHandler.END
+
+
+# --- EMAIL CONFIRMATION (employers, before posting jobs) ---
+
+async def bot_api(path: str, payload: dict):
+    """POST to one of the API's bot endpoints; (HTTP status, JSON body or {})."""
+    try:
+        async with bot_context.session.post(
+            f"{CONFIG['wp_api_url']}/../{path}",
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=20),
+        ) as response:
+            try:
+                data = await response.json()
+            except Exception:
+                data = {}
+            return response.status, data if isinstance(data, dict) else {}
+    except Exception as e:
+        logger.error(f"Bot API call {path} failed: {e}")
+        return 0, {}
+
+
+def api_message(data: dict, fallback: str = 'please try again in a moment') -> str:
+    message = data.get('message') if isinstance(data, dict) else None
+    if isinstance(message, list):
+        message = '; '.join(str(m) for m in message)
+    return message or fallback
+
+
+def code_keyboard(lang: str) -> InlineKeyboardMarkup:
+    t = TRANSLATIONS[lang]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t['code_resend'], callback_data='code_resend'),
+         InlineKeyboardButton(t['code_change_email'], callback_data='code_change')],
+        [InlineKeyboardButton(t['code_later'], callback_data='code_later')],
+    ])
+
+
+def post_job_markup(lang: str) -> InlineKeyboardMarkup:
+    label = TRANSLATIONS[lang]['menu']['post_job']
+    return InlineKeyboardMarkup([[InlineKeyboardButton(label, web_app=WebAppInfo(url=MENU_URLS['employer']['post_job']))]])
+
+
+async def send_email_code(chat_id: int, context: ContextTypes.DEFAULT_TYPE, telegram_id: str, email: str = None) -> int:
+    """Asks the API to email a code (to `email` when given, after setting it). The next state."""
+    lang = context.user_data.get('language') or 'en'
+    payload = {'telegram_id': telegram_id}
+    if email:
+        payload['email'] = email
+    status, data = await bot_api('email-code', payload)
+    if status == 200 and data.get('already_confirmed'):
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['code_confirmed'], reply_markup=post_job_markup(lang))
+        return ConversationHandler.END
+    if status == 200 and data.get('sent'):
+        await bot_context.rate_limiter.send_message(
+            chat_id,
+            TRANSLATIONS[lang]['code_sent'].format(email=data.get('email') or email or ''),
+            reply_markup=code_keyboard(lang),
+        )
+        return EMAIL_CODE
+    await bot_context.rate_limiter.send_message(
+        chat_id, TRANSLATIONS[lang]['code_failed'].format(error=api_message(data))
+    )
+    # A bad or taken address: ask for another. Too many codes, or no answer: try again later.
+    if status in (400, 409):
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['enter_new_email'])
+        return NEW_EMAIL
+    return ConversationHandler.END
+
+
+async def leave_for_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """A menu button pressed mid-confirmation ends it and does what the button says."""
+    text = update.effective_message.text if update.effective_message else None
+    if text and menu_key_for(text):
+        await handle_menu_selection(update, context)
+        return True
+    return False
+
+
+async def handle_email_code(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.effective_message
+    if not message or not message.text:
+        return EMAIL_CODE
+    if await leave_for_menu(update, context):
+        return ConversationHandler.END
+    lang = context.user_data.get('language') or 'en'
+    code = six_digit_code(message.text)
+    if not code:
+        await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['code_format'])
+        return EMAIL_CODE
+    status, data = await bot_api('confirm-email', {'telegram_id': str(update.effective_user.id), 'code': code})
+    if status == 200 and data.get('confirmed'):
+        await bot_context.rate_limiter.send_message(
+            message.chat_id,
+            TRANSLATIONS[lang]['code_confirmed'] + "\n\n" + TRANSLATIONS[lang]['job_review_note'],
+            reply_markup=post_job_markup(lang),
+        )
+        return ConversationHandler.END
+    await bot_context.rate_limiter.send_message(
+        message.chat_id,
+        TRANSLATIONS[lang]['code_failed'].format(error=api_message(data)),
+        reply_markup=code_keyboard(lang),
+    )
+    return EMAIL_CODE
+
+
+async def handle_new_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.effective_message
+    if not message or not message.text:
+        return NEW_EMAIL
+    if await leave_for_menu(update, context):
+        return ConversationHandler.END
+    lang = context.user_data.get('language') or 'en'
+    email = message.text.strip().lower()
+    if not re.match(EMAIL_PATTERN, email):
+        await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['invalid_email'])
+        return NEW_EMAIL
+    return await send_email_code(message.chat_id, context, str(update.effective_user.id), email)
+
+
+async def code_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Send / Send a new code, Change email, Later."""
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get('language') or 'en'
+    chat_id = query.message.chat_id
+    if query.data == 'code_later':
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['code_later_text'])
+        return ConversationHandler.END
+    if query.data == 'code_change':
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['enter_new_email'])
+        return NEW_EMAIL
+    return await send_email_code(chat_id, context, str(query.from_user.id))
+
+
+async def ask_to_confirm_email(chat_id: int, lang: str, account: dict) -> None:
+    """An employer tapped Post Job without a confirmed email: offer to send a code or add an email."""
+    t = TRANSLATIONS[lang]
+    if account.get('has_email') and account.get('email'):
+        text = t['confirm_to_post']
+        buttons = [[InlineKeyboardButton(t['send_code_to'].format(email=account['email']), callback_data='code_send')],
+                   [InlineKeyboardButton(t['code_change_email'], callback_data='code_change')]]
+    else:
+        text = t['add_email_to_post']
+        buttons = [[InlineKeyboardButton(t['add_email'], callback_data='code_change')]]
+    await bot_context.rate_limiter.send_message(chat_id, text, reply_markup=InlineKeyboardMarkup(buttons))
 
 async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
@@ -877,6 +1117,13 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
         await challenge_command(update, context)
         return
 
+    # Posting needs a confirmed email; asked fresh each time, since it may have just been confirmed.
+    if role == 'Employer' and menu_key == 'post_job':
+        account = await fetch_account(telegram_id)
+        if account is not None and account.get('registered') and not account.get('email_confirmed'):
+            await ask_to_confirm_email(update.message.chat_id, lang, account)
+            return
+
     if role == 'Candidate' and menu_key in ['dashboard', 'my_profile', 'my_applications', 'job_list']:
         photo_id = CONFIG.get('candidate_promo_photo_id')
         
@@ -932,11 +1179,27 @@ https://beleqetjobs.com ላይማስታወቂያዎችን በመመልከት <b>
         url = links[menu_key]
         keyboard = [[InlineKeyboardButton(text, web_app=WebAppInfo(url=url))]]
         reply_markup = InlineKeyboardMarkup(keyboard)
+        message_text = TRANSLATIONS[lang]['open_section'].format(section=text)
+        if menu_key == 'post_job':
+            message_text += "\n\n" + TRANSLATIONS[lang]['job_review_note']
         await bot_context.rate_limiter.send_message(
             chat_id=update.message.chat_id,
-            text=TRANSLATIONS[lang]['open_section'].format(section=text),
+            text=message_text,
             reply_markup=reply_markup
         )
+
+async def fetch_account(telegram_id: str):
+    """The API's check-user answer for this Telegram account, or None if it can't be reached."""
+    try:
+        async with bot_context.session.get(
+            f"{CONFIG['wp_api_url']}/../check-user?telegram_id={telegram_id}",
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as response:
+            if response.status == 200:
+                return await response.json()
+    except Exception as e:
+        logger.error(f"check-user failed for {telegram_id}: {e}")
+    return None
 
 async def get_user_role(telegram_id: str) -> str:
     async with bot_context.session.get(
@@ -1349,6 +1612,17 @@ async def main() -> None:
         bot_context.rate_limiter = RateLimiter()
         bot_context.application.add_error_handler(error_handler)
         
+        email_code_states = {
+            EMAIL_CODE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_email_code),
+                CallbackQueryHandler(code_button, pattern='^code_(resend|send|change|later)$'),
+            ],
+            NEW_EMAIL: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_new_email),
+                CallbackQueryHandler(code_button, pattern='^code_(change|later)$'),
+            ],
+        }
+
         language_change_handler = ConversationHandler(
             entry_points=[CommandHandler('language', change_language_command)],
             states={
@@ -1364,6 +1638,7 @@ async def main() -> None:
                 LANGUAGE: [CallbackQueryHandler(handle_language_selection, pattern='^(en|am)$')],
                 ROLE: [CallbackQueryHandler(handle_role_selection)],
                 COMPANY_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_company_name)],
+                CONTACT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_contact_name)],
                 NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
                 PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
                 EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
@@ -1374,9 +1649,21 @@ async def main() -> None:
                 PASSWORD: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_password)],
                 TRADE_LICENSE: [MessageHandler((filters.Document.ALL | filters.PHOTO) & ~filters.COMMAND, get_trade_license)],
                 JOB_TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_job_title)],
+                # An employer's registration ends by confirming the email.
+                **email_code_states,
             },
             fallbacks=[CommandHandler('cancel', cancel)],
             name="registration_conversation",
+            persistent=True,
+            allow_reentry=True
+        )
+
+        # Confirming the email later, from Post Job: the same steps as at the end of registration.
+        email_conv = ConversationHandler(
+            entry_points=[CallbackQueryHandler(code_button, pattern='^code_(send|change)$')],
+            states=email_code_states,
+            fallbacks=[CommandHandler('cancel', cancel)],
+            name="email_conversation",
             persistent=True,
             allow_reentry=True
         )
@@ -1398,6 +1685,7 @@ async def main() -> None:
         bot_context.application.add_handler(broadcast_conv)
         bot_context.application.add_handler(language_change_handler)
         bot_context.application.add_handler(conv_handler)
+        bot_context.application.add_handler(email_conv)
         bot_context.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu_selection))
         bot_context.application.add_handler(CallbackQueryHandler(handle_payment_decision, pattern='^(approve_payment_|reject_payment_)'))
         bot_context.application.add_handler(CommandHandler("challenge", challenge_command))

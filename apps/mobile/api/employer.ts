@@ -2,7 +2,8 @@
 import { get, send } from '../lib/api';
 import type { ApplicationStatus } from './seeker';
 
-export type JobStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
+/** PENDING_REVIEW: sent, waiting for an admin. REJECTED: an admin said no; reviewNote says why. */
+export type JobStatus = 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED' | 'REJECTED';
 
 export type EmployerJob = {
   id: string;
@@ -11,6 +12,9 @@ export type EmployerJob = {
   status: JobStatus;
   deadline: string | null;
   createdAt?: string;
+  reviewNote?: string | null;
+  /** Set once an admin approved it; it can then be closed and reopened without a new review. */
+  approvedAt?: string | null;
   _count?: { applications: number };
   // Full fields, for editing.
   categoryId?: string;
@@ -24,19 +28,24 @@ export type EmployerJob = {
   experienceLevel?: string | null;
   yearsOfExperience?: string | null;
   qualification?: string | null;
+  gender?: string | null;
   tags?: string[];
   featured?: boolean;
   urgent?: boolean;
 };
 
 export type JobInput = Record<string, unknown>;
-export const createJob = (job: JobInput) => send<{ id: string }>('POST', '/jobs', job);
-export const updateJob = (id: string, job: JobInput) => send<{ id: string }>('PATCH', `/jobs/${encodeURIComponent(id)}`, job);
+/** The server decides the status: a new employer job comes back PENDING_REVIEW. */
+export const createJob = (job: JobInput) => send<{ id: string; status: JobStatus }>('POST', '/jobs', job);
+export const updateJob = (id: string, job: JobInput) => send<{ id: string; status: JobStatus }>('PATCH', `/jobs/${encodeURIComponent(id)}`, job);
 
 export const fetchMyJobs = () => get<EmployerJob[]>('/jobs/my');
-/** Close, reopen or publish; `filled` records that the job was filled through Beleqet. */
+/**
+ * Close, reopen or publish; `filled` records that the job was filled through Beleqet. Publishing a
+ * job no admin has approved yet sends it for review: the reply says which status it got.
+ */
 export const setJobStatus = (id: string, status: JobStatus, filled?: boolean) =>
-  send('PATCH', `/jobs/${encodeURIComponent(id)}`, filled === undefined ? { status } : { status, filled });
+  send<Pick<EmployerJob, 'status' | 'reviewNote'>>('PATCH', `/jobs/${encodeURIComponent(id)}`, filled === undefined ? { status } : { status, filled });
 
 /** Job posts used in this plan period; max is null on unlimited plans. */
 export type Quota = { plan: string; used: number; max: number | null; canFeature: boolean };

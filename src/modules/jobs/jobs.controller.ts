@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { VerifiedEmailGuard } from '../../common/guards/verified-email.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -68,8 +69,12 @@ export class JobsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
+    summary: 'One job; drafts and jobs in review only for their employer and admins',
+  })
+  findOne(@Param('id') id: string, @CurrentUser() user?: CurrentUserPayload) {
+    return this.svc.findOne(id, user);
   }
 
   @Post()

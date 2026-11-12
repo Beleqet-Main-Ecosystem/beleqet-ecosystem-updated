@@ -31,6 +31,7 @@ SERVER_DIR = os.path.join(BASE_DIR, "sgs-challenge", "server")
 if SERVER_DIR not in sys.path:
     sys.path.insert(0, SERVER_DIR)
 
+import main as bot
 from main import TRANSLATIONS, get_keyboard, normalize_role
 from voting_routes import init_challenge_db, verify_init_data
 
@@ -149,6 +150,145 @@ def test_streamlined_employer_flow_without_trade_license():
     print("  [PASS] test_streamlined_employer_flow_without_trade_license (Trade license successfully removed)")
 
 
+def test_translations_complete_in_both_languages():
+    """Every message the bot can send exists in English and Amharic."""
+    en, am = TRANSLATIONS['en'], TRANSLATIONS['am']
+    assert set(en) == set(am), f"missing: {set(en) ^ set(am)}"
+    assert set(en['menu']) == set(am['menu'])
+    for key in ('enter_email', 'enter_contact_name', 'password_too_short', 'code_sent', 'confirm_to_post'):
+        assert en[key] and am[key]
+    assert '{email}' in en['code_sent'] and '{email}' in am['code_sent']
+    print("  [PASS] test_translations_complete_in_both_languages")
+
+
+class FakeTelegramUser:
+    def __init__(self, user_id, username=None):
+        self.id = user_id
+        self.username = username
+
+
+def test_registration_payload_keeps_everything():
+    """The employer's own name, company, phone, language and Telegram's username all reach the API."""
+    employer = bot.registration_payload({
+        'role_input': 'employer',
+        'company_name': 'Abyssinia Tech PLC',
+        'contact_name': 'Ahmed Dawud',
+        'name': 'Ahmed Dawud',
+        'email': 'ahmed@abyssiniatech.com',
+        'password': 'SecureEmployerPass123!',
+        'phone': '+251911223344',
+        'language': 'am',
+    }, FakeTelegramUser(5719730488, 'ahmed_recruiter'))
+    assert employer['role'] == 'wp_job_board_pro_employer'
+    assert employer['company_name'] == 'Abyssinia Tech PLC'
+    assert employer['contact_name'] == 'Ahmed Dawud'
+    assert employer['language'] == 'am'
+    assert employer['phone'] == '+251911223344'
+    # From Telegram, not typed: it can't be someone else's username.
+    assert employer['tg_username'] == 'ahmed_recruiter'
+
+    seeker = bot.registration_payload({
+        'role_input': 'candidate',
+        'name': 'Sara Tesfaye',
+        'job_title': 'Accountant',
+        'tg_username': 'typed_by_hand',
+    }, FakeTelegramUser(42))
+    assert seeker['role'] == 'wp_job_board_pro_candidate'
+    assert seeker['job_title'] == 'Accountant'
+    assert seeker['contact_name'] == ''
+    assert seeker['tg_username'] == ''
+    assert seeker['language'] == 'en'
+    print("  [PASS] test_registration_payload_keeps_everything")
+
+
+def test_password_and_code_rules():
+    assert not bot.password_ok('short')
+    assert not bot.password_ok('1234567')
+    assert bot.password_ok('12345678')
+    assert bot.six_digit_code('123456') == '123456'
+    assert bot.six_digit_code(' 123 456 ') == '123456'
+    assert bot.six_digit_code('12345') is None
+    assert bot.six_digit_code('abc123') is None
+    assert bot.menu_key_for('ሥራ መለጠፍ') == ('post_job', 'am')
+    assert bot.menu_key_for('123456') is None
+    print("  [PASS] test_password_and_code_rules")
+
+
+class FakeMessage:
+    def __init__(self, text, chat_id=7):
+        self.text = text
+        self.chat_id = chat_id
+
+
+class FakeUpdate:
+    def __init__(self, text, user_id=7):
+        self.effective_message = FakeMessage(text, user_id)
+        self.effective_user = FakeTelegramUser(user_id)
+        self.message = self.effective_message
+
+
+class FakeContext:
+    def __init__(self, lang='en'):
+        self.user_data = {'language': lang, 'role': 'Employer'}
+
+
+class RecordingSender:
+    def __init__(self):
+        self.sent = []
+
+    async def send_message(self, chat_id, text, **kwargs):
+        self.sent.append(text)
+
+
+async def async_test_email_code_step():
+    """The code step: format check, confirmation, a refused code, and leaving through the menu."""
+    calls = []
+    answers = {}
+
+    async def fake_api(path, payload):
+        calls.append((path, payload))
+        return answers[path]
+
+    menu_presses = []
+
+    async def fake_menu(update, context):
+        menu_presses.append(update.effective_message.text)
+
+    sender = RecordingSender()
+    original = (bot.bot_api, bot.handle_menu_selection, bot.bot_context.rate_limiter)
+    bot.bot_api, bot.handle_menu_selection, bot.bot_context.rate_limiter = fake_api, fake_menu, sender
+    try:
+        context = FakeContext()
+
+        state = await bot.handle_email_code(FakeUpdate('12ab'), context)
+        assert state == bot.EMAIL_CODE and calls == []
+        assert sender.sent[-1] == TRANSLATIONS['en']['code_format']
+
+        answers['confirm-email'] = (400, {'message': 'That code is not right or has expired.'})
+        state = await bot.handle_email_code(FakeUpdate('111 111'), context)
+        assert state == bot.EMAIL_CODE
+        assert 'not right' in sender.sent[-1]
+
+        answers['confirm-email'] = (200, {'confirmed': True})
+        state = await bot.handle_email_code(FakeUpdate('123 456'), context)
+        assert state == bot.ConversationHandler.END
+        assert calls[-1] == ('confirm-email', {'telegram_id': '7', 'code': '123456'})
+        assert sender.sent[-1].startswith(TRANSLATIONS['en']['code_confirmed'])
+
+        # A menu button ends the step and does what it says, instead of counting as a wrong code.
+        state = await bot.handle_email_code(FakeUpdate('Jobs'), context)
+        assert state == bot.ConversationHandler.END and menu_presses == ['Jobs']
+
+        # A taken email asks for another one.
+        answers['email-code'] = (409, {'message': 'That email belongs to another account.'})
+        state = await bot.handle_new_email(FakeUpdate('taken@firm.com'), context)
+        assert state == bot.NEW_EMAIL
+        assert calls[-1] == ('email-code', {'telegram_id': '7', 'email': 'taken@firm.com'})
+    finally:
+        bot.bot_api, bot.handle_menu_selection, bot.bot_context.rate_limiter = original
+    print("  [PASS] async_test_email_code_step")
+
+
 def test_sgs_challenge_init_data():
     valid_data = make_valid_init_data(5719730488)
     verified = verify_init_data(valid_data, TEST_BOT_TOKEN)
@@ -231,11 +371,15 @@ def main():
     test_keyboard_generation()
     test_menu_matching_across_languages()
     test_streamlined_employer_flow_without_trade_license()
+    test_translations_complete_in_both_languages()
+    test_registration_payload_keeps_everything()
+    test_password_and_code_rules()
+    asyncio.run(async_test_email_code_step())
     test_sgs_challenge_init_data()
     asyncio.run(async_test_sgs_challenge_strict_single_vote())
     test_webhook_secret_token_verification()
     print("==================================================")
-    print(" ALL 7 / 7 TESTS PASSED SUCCESSFULLY! (100% OK)")
+    print(" ALL 11 / 11 TESTS PASSED SUCCESSFULLY! (100% OK)")
     print("==================================================")
 
 

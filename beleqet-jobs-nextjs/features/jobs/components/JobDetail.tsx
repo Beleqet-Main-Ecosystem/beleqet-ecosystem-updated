@@ -12,7 +12,7 @@ import type { Job } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { categoryLabel } from '../categories';
 import type { DescriptionBlock } from '../description';
-import { daysUntil, formatSalary, initials, postedAgo, safeHttpUrl } from '../format';
+import { daysUntil, formatSalary, initials, jobGender, postedAgo, safeHttpUrl } from '../format';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const wrap = 'mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10';
@@ -104,10 +104,13 @@ export default function JobDetail({ job, description, requirements, similar }: P
     job.applicantCount ? `${job.applicantCount} ${t(job.applicantCount === 1 ? 'job.applicant' : 'job.applicants')}` : '',
   ].filter(Boolean);
 
+  const gender = jobGender(job.gender);
   const overview = [
     { k: t('job.salary'), v: pay ? `${pay}${monthly ? ` ${t('search.perMonth')}` : ''}` : t('landing.salaryNotListed') },
     { k: t('search.jobType'), v: typeLabel },
     { k: t('job.experience'), v: job.experienceLevel },
+    // Only a real requirement is worth a row; "Any" is the same as saying nothing.
+    { k: t('job.gender'), v: gender && gender !== 'ANY' ? t(`postJob.genders.${gender}`) : '' },
     { k: t('job.openings'), v: job.vacancies ? String(job.vacancies) : '' },
     { k: t('search.category'), v: category ? categoryLabel(category, t) : '' },
     { k: t('search.location'), v: job.location },

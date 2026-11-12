@@ -10,7 +10,7 @@ import { useTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
 import { useLoad } from '../lib/use-load';
 import { errorText } from '../lib/api-error';
-import { safeHttpUrl } from '../lib/format';
+import { GENDERS, jobGender, safeHttpUrl, type Gender } from '../lib/format';
 
 const PAY_PERIODS = ['monthly', 'daily', 'hourly'] as const;
 const LEVELS = ['Entry level', 'Junior', 'Mid-level', 'Senior'] as const;
@@ -78,6 +78,7 @@ function JobForm({ categories, quota, saved, editId }: { categories: Category[];
   const [categoryId, setCategoryId] = useState(saved?.categoryId ?? '');
   const [location, setLocation] = useState(saved?.location ?? '');
   const [vacancies, setVacancies] = useState(String(saved?.vacancies ?? 1));
+  const [gender, setGender] = useState<Gender>(jobGender(saved?.gender) ?? 'ANY');
   const [type, setType] = useState(saved?.type ?? 'FULL_TIME');
   const [salaryMin, setSalaryMin] = useState(saved?.salaryMin ? String(saved.salaryMin) : '');
   const [salaryMax, setSalaryMax] = useState(saved?.salaryMax ? String(saved.salaryMax) : '');
@@ -95,6 +96,8 @@ function JobForm({ categories, quota, saved, editId }: { categories: Category[];
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [doneId, setDoneId] = useState('');
+  // What the server made of it: a new employer job waits for an admin before it goes live.
+  const [doneStatus, setDoneStatus] = useState('');
 
   const min = Number(salaryMin);
   const max = Number(salaryMax);
@@ -102,14 +105,21 @@ function JobForm({ categories, quota, saved, editId }: { categories: Category[];
   const canFeature = Boolean(quota?.canFeature || saved?.featured);
 
   if (doneId) {
+    const live = doneStatus === 'PUBLISHED';
+    const inReview = doneStatus === 'PENDING_REVIEW';
+    const heading = inReview ? 'postJob.reviewTitle' : editing ? 'postJob.savedTitle' : 'postJob.liveTitle';
+    const text = inReview
+      ? editing ? 'postJob.savedReviewText' : 'postJob.reviewText'
+      : editing ? 'postJob.savedText' : 'postJob.liveText';
     return (
       <Screen title={editing ? t('postJob.editTitle') : t('postJob.title')}>
         <Card>
           <CheckCircle2 color={colors.accent} size={32} />
-          <H1>{t(editing ? 'postJob.savedTitle' : 'postJob.liveTitle')}</H1>
-          <Muted>{t(editing ? 'postJob.savedText' : 'postJob.liveText', { title: title.trim() })}</Muted>
-          <Button label={t('postJob.view')} onPress={() => router.replace(`/job/${doneId}`)} />
-          <Button label={t('postJob.dashboard')} variant="outline" onPress={() => router.replace('/(tabs)/hiring')} />
+          <H1>{t(heading)}</H1>
+          <Muted>{t(text, { title: title.trim() })}</Muted>
+          {/* A job waiting for review has no public page yet. */}
+          {live ? <Button label={t('postJob.view')} onPress={() => router.replace(`/job/${doneId}`)} /> : null}
+          <Button label={t('postJob.dashboard')} variant={live ? 'outline' : 'solid'} onPress={() => router.replace('/(tabs)/hiring')} />
         </Card>
       </Screen>
     );
@@ -148,6 +158,7 @@ function JobForm({ categories, quota, saved, editId }: { categories: Category[];
       salaryMax: max || empty,
       salaryType,
       vacancies: Number(vacancies) || 1,
+      gender,
       experienceLevel: experienceLevel || empty,
       yearsOfExperience: years.trim() || empty,
       qualification: qualification.trim() || empty,
@@ -161,6 +172,7 @@ function JobForm({ categories, quota, saved, editId }: { categories: Category[];
     };
     try {
       const job = editing ? await updateJob(editId!, body) : await createJob(body);
+      setDoneStatus(job.status ?? '');
       setDoneId(job.id ?? editId ?? '');
     } catch (failure) {
       setError(errorText(failure, t, editing ? 'postJob.saveFailed' : 'postJob.publishFailed'));
@@ -196,6 +208,10 @@ function JobForm({ categories, quota, saved, editId }: { categories: Category[];
         <Select label={t('postJob.category')} value={categoryId} onChange={setCategoryId} placeholder={t('postJob.chooseCategory')} options={categories.map((c) => ({ value: c.id, label: c.label }))} />
         <Field label={t('postJob.location')} value={location} onChangeText={setLocation} placeholder="Addis Ababa" />
         <Field label={t('postJob.openings')} value={vacancies} onChangeText={(value) => setVacancies(value.replace(/\D/g, ''))} keyboardType="number-pad" />
+        <View className="gap-1.5">
+          <Text className="text-sm font-semibold text-ink-900 dark:text-white">{t('postJob.gender')}</Text>
+          <Chips value={gender} onChange={(value) => setGender(value as Gender)} options={GENDERS.map((value) => ({ value, label: t(`postJob.genders.${value}`) }))} />
+        </View>
         <View className="gap-1.5">
           <Text className="text-sm font-semibold text-ink-900 dark:text-white">{t('postJob.jobType')}</Text>
           <Chips value={type} onChange={setType} options={JOB_TYPES.map((value) => ({ value, label: t(`search.types.${value}`) }))} />
@@ -252,6 +268,7 @@ function JobForm({ categories, quota, saved, editId }: { categories: Category[];
         <Toggle label={t('postJob.urgent')} hint={t('postJob.urgentText')} value={urgent} onChange={setUrgent} />
       </Card>
       {error ? <Notice tone="bad" text={error} /> : null}
+      {editing ? null : <Muted>{t('postJob.reviewNote')}</Muted>}
       <Muted>{t('postJob.editNote')}</Muted>
     </Screen>
   );

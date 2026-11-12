@@ -26,6 +26,8 @@ export type Job = {
   description: string;
   requirements: string | null;
   experienceLevel: string | null;
+  /** ANY, MALE or FEMALE; older imported jobs may hold other text (see jobGender). */
+  gender: string | null;
   vacancies: number;
   salaryType: string;
   tags: string[];
@@ -59,6 +61,7 @@ export function toJob(raw: any): Job {
     description: raw.description ?? '',
     requirements: raw.requirements ?? null,
     experienceLevel: raw.experienceLevel ?? null,
+    gender: raw.gender ?? null,
     vacancies: raw.vacancies ?? 1,
     salaryType: raw.salaryType ?? 'Monthly',
     tags: raw.tags ?? [],

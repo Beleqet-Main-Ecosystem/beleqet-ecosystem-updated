@@ -11,7 +11,7 @@ import { useTranslation } from '../../lib/i18n';
 import { useTheme } from '../../lib/theme';
 import { useLoad } from '../../lib/use-load';
 import { errorText } from '../../lib/api-error';
-import { daysUntil, formatSalary, fullDate, plainText, safeHttpUrl, timeAgo } from '../../lib/format';
+import { daysUntil, formatSalary, fullDate, jobGender, plainText, safeHttpUrl, timeAgo } from '../../lib/format';
 import { SITE_URL } from '../../lib/config';
 
 export default function JobDetail() {
@@ -70,6 +70,7 @@ export default function JobDetail() {
   const days = daysUntil(data.closesAt);
   const closed = days !== null && days < 0;
   const salary = formatSalary(data, t('search.upTo'));
+  const gender = jobGender(data.gender);
   const website = safeHttpUrl(data.companyWebsite);
 
   const footer = isEmployer(user) ? null : applied ? (
@@ -105,6 +106,8 @@ export default function JobDetail() {
         <H2>{t('job.overview')}</H2>
         {salary ? <Fact label={t('job.salary')} value={`${salary}${data.salaryType ? ` · ${data.salaryType}` : ''}`} /> : null}
         {data.experienceLevel ? <Fact label={t('job.experience')} value={data.experienceLevel} /> : null}
+        {/* Only a real requirement is worth a row; "Any" is the same as saying nothing. */}
+        {gender && gender !== 'ANY' ? <Fact label={t('job.gender')} value={t(`postJob.genders.${gender}`)} /> : null}
         <Fact label={t('job.openings')} value={String(data.vacancies)} />
         {data.createdAt ? <Fact label={t('job.posted')} value={timeAgo(data.createdAt, locale)} /> : null}
         {data.categoryLabel ? <Fact label={t('m.category')} value={data.categoryLabel} /> : null}
