@@ -13,6 +13,7 @@ import AuthLayout, { type BrandVariant } from './AuthLayout';
 import EmailCodeStep from './EmailCodeStep';
 import { focusRing, FormError, Heading, PasswordField, SubmitButton, TextField } from './fields';
 import SocialButtons from './SocialButtons';
+import TelegramRegisterPanel from './TelegramRegisterPanel';
 import { friendly } from './SignInForm';
 
 type Role = BrandVariant;
@@ -161,6 +162,7 @@ export default function RegisterFlow() {
           title={t('auth.roleTitle')}
           sub={t('auth.roleSub')}
         />
+        <TelegramRegisterPanel />
         <form
           onSubmit={(e) => {
             e.preventDefault();

@@ -261,7 +261,13 @@
     "emailCodeTooMany": "Too many wrong codes. Send a new code and try again.",
     "emailCodeExpired": "This page has expired. Sign in again to get a new code.",
     "emailCodeFormat": "Enter the 6-digit code from the email.",
-    "telegramFailed": "Telegram sign-in didn't open. Check your connection, or allow pop-ups for this site, then try again."
+    "telegramFailed": "Telegram sign-in didn't open. Check your connection, or allow pop-ups for this site, then try again.",
+    "telegramRegister": {
+      "title": "Register in the Beleqet Jobs bot",
+      "text": "Your Telegram isn't linked to a Beleqet account yet. Register in our Telegram bot: it takes about a minute, then you're signed in here automatically.",
+      "button": "Open the bot",
+      "haveAccount": "Already have an account? Sign in with your email below, then connect Telegram in Settings."
+    }
   },
   "postJob": {
     "gateTitle": "Sign in to post a job",

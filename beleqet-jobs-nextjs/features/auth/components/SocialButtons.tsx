@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import TelegramRegisterPanel from './TelegramRegisterPanel';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { oauthStartUrl, OAUTH_NEXT_KEY, OAUTH_TWO_FACTOR_KEY, signInWithTelegramLogin } from '@/lib/auth';
@@ -18,12 +19,14 @@ export default function SocialButtons() {
   const { setUser } = useAuth();
   const [telegramBusy, setTelegramBusy] = useState(false);
   const [telegramError, setTelegramError] = useState('');
+  const [notRegistered, setNotRegistered] = useState(false);
 
   // Telegram's script is small; loading it now lets its popup open straight from the click.
   useEffect(() => prepareTelegramLogin(), []);
 
   async function signInWithTelegram() {
     setTelegramError('');
+    setNotRegistered(false);
     setTelegramBusy(true);
     try {
       const { data, failed } = await askTelegram(locale);
@@ -32,6 +35,10 @@ export default function SocialButtons() {
         return;
       }
       const result = await signInWithTelegramLogin(data);
+      if (result.status === 'not-registered') {
+        setNotRegistered(true);
+        return;
+      }
       if (result.status === 'needs-code') {
         // The sign-in page asks for the two-step code, as after Google.
         remember();
@@ -77,6 +84,12 @@ export default function SocialButtons() {
         </button>
       </div>
       {telegramError && <p role="alert" className="text-sm font-semibold text-red-700 dark:text-red-300">{telegramError}</p>}
+      {notRegistered && (
+        <div role="status" className="flex flex-col gap-2">
+          <TelegramRegisterPanel always />
+          <p className="text-sm text-ink-700 dark:text-slate-300">{t('auth.telegramRegister.haveAccount')}</p>
+        </div>
+      )}
       <div aria-hidden="true" className="flex items-center gap-3 text-[13px] text-ink-500 dark:text-slate-400">
         <span className="h-px flex-1 bg-ink-200 dark:bg-slate-800" />
         {t('auth.orEmail')}

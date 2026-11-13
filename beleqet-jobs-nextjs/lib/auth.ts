@@ -243,27 +243,35 @@ export async function completeTwoFactor(tempToken: string, code: string, kind: '
   }
 }
 
+/** A Telegram account with no Beleqet account: it registers in the bot (accounts aren't made here). */
+export type TelegramSignInResult = LoginResult | { status: 'not-registered' };
+
+function telegramNotRegistered(error: unknown): boolean {
+  return axios.isAxiosError(error) && (error.response?.data as { errorCode?: string } | undefined)?.errorCode === 'ERR_TELEGRAM_NOT_REGISTERED';
+}
+
 /**
  * Sign in from a Telegram Mini App with Telegram's signed launch data, no password. Someone
- * without an account gets one with `role`; two-step sign-in still asks for its code.
+ * without an account stays a guest; two-step sign-in still asks for its code.
  */
-export async function signInWithTelegram(initData: string, role: 'JOB_SEEKER' | 'EMPLOYER'): Promise<LoginResult> {
+export async function signInWithTelegram(initData: string): Promise<TelegramSignInResult> {
   try {
-    const { data } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/telegram/tma-login', { initData, role });
+    const { data } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/telegram/tma-login', { initData });
     if ('requires2fa' in data && data.requires2fa) return { status: 'needs-code', tempToken: data.tempToken };
     const auth = data as AuthResponse;
     persist(auth.accessToken, auth.user, auth.refreshToken);
     return { status: 'signed-in', user: auth.user };
   } catch (error) {
+    if (telegramNotRegistered(error)) return { status: 'not-registered' };
     throw new Error(messageFrom(error));
   }
 }
 
 /**
- * "Sign in with Telegram" with the details Telegram's login popup returned. Someone new gets a
- * job-seeker account, like Google; two-step sign-in still asks for its code.
+ * "Sign in with Telegram" with the details Telegram's login popup returned: accounts linked to
+ * that Telegram only. Two-step sign-in still asks for its code.
  */
-export async function signInWithTelegramLogin(data: Record<string, string | number>): Promise<LoginResult> {
+export async function signInWithTelegramLogin(data: Record<string, string | number>): Promise<TelegramSignInResult> {
   try {
     const { data: answer } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/telegram/login', { data });
     if ('requires2fa' in answer && answer.requires2fa) return { status: 'needs-code', tempToken: answer.tempToken };
@@ -271,6 +279,7 @@ export async function signInWithTelegramLogin(data: Record<string, string | numb
     persist(auth.accessToken, auth.user, auth.refreshToken);
     return { status: 'signed-in', user: auth.user };
   } catch (error) {
+    if (telegramNotRegistered(error)) return { status: 'not-registered' };
     throw new Error(messageFrom(error));
   }
 }

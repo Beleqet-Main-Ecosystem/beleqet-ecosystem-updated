@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { UnauthorizedException, ConflictException } from '@nestjs/common';
+import { UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { TelegramTmaService } from './telegram-tma.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -202,58 +202,32 @@ describe('TelegramTmaService', () => {
       expect(mockAuthService.oauthSession).not.toHaveBeenCalled();
     });
 
-    it('provisions a new user account if telegramId does not exist in db', async () => {
+    it('makes no account for a Telegram user who never registered', async () => {
       mockPrisma.user.findUnique
         .mockResolvedValueOnce(null) // Not found by telegramId
-        .mockResolvedValueOnce(null); // Not found by synthetic email
+        .mockResolvedValueOnce(null); // Not found by the old placeholder email
 
-      mockPrisma.user.create.mockResolvedValueOnce({ id: 'usr-new-created' } as any);
-
-      const result = await service.authenticateTmaUser(initData);
-
-      expect(mockPrisma.user.create).toHaveBeenCalledWith({
-        data: {
-          email: 'tma_555444@tme.beleqet.local',
-          firstName: 'Sara',
-          lastName: 'T',
-          avatarUrl: null,
-          telegramId: '555444',
-          telegramUsername: null,
-          emailVerified: true,
-          signupMethod: 'TELEGRAM',
-          role: 'JOB_SEEKER',
-          wallet: { create: {} },
-        },
-        select: { id: true },
+      const attempt = service.authenticateTmaUser(initData);
+      await expect(attempt).rejects.toThrow(NotFoundException);
+      await expect(attempt).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: 'ERR_TELEGRAM_NOT_REGISTERED' }),
       });
-      expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-new-created');
-      expect(result).toEqual(expect.objectContaining({ accessToken: 'jwt-access-token' }));
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+      expect(mockAuthService.issueTokensForUserId).not.toHaveBeenCalled();
     });
 
-    it('provisions a new EMPLOYER account with an employer wallet when preferred role is specified', async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    it('still signs in an older account made with the placeholder email, and relinks it', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'usr-old-tma', isActive: true, role: 'JOB_SEEKER' });
 
-      mockPrisma.user.create.mockResolvedValueOnce({ id: 'usr-employer-created' } as any);
+      await service.authenticateTmaUser(initData);
 
-      const result = await service.authenticateTmaUser(initData, 'EMPLOYER');
-
-      expect(mockPrisma.user.create).toHaveBeenCalledWith({
-        data: {
-          email: 'tma_555444@tme.beleqet.local',
-          firstName: 'Sara',
-          lastName: 'T',
-          avatarUrl: null,
-          telegramId: '555444',
-          telegramUsername: null,
-          emailVerified: true,
-          signupMethod: 'TELEGRAM',
-          role: 'EMPLOYER',
-          employerWallet: { create: { balance: 0, lockedBalance: 0 } },
-        },
-        select: { id: true },
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'usr-old-tma' },
+        data: { telegramId: '555444' },
       });
-      expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-employer-created');
-      expect(result).toEqual(expect.objectContaining({ accessToken: 'jwt-access-token' }));
+      expect(mockAuthService.oauthSession).toHaveBeenCalledWith('usr-old-tma');
     });
   });
 
@@ -346,24 +320,15 @@ describe('TelegramTmaService', () => {
       expect(() => service.verifyLoginWidget({ id: 4242 })).toThrow(UnauthorizedException);
     });
 
-    it('creates a job-seeker account for someone new', async () => {
+    it('makes no account for someone new: they register in the bot', async () => {
       mockPrisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-      mockPrisma.user.create.mockResolvedValueOnce({ id: 'usr-widget' } as any);
 
-      await service.authenticateLoginWidget(
-        loginWidgetData({ id: 4242, first_name: 'Hana', last_name: 'B', auth_date: now() }),
-      );
-
-      expect(mockPrisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            telegramId: '4242',
-            role: 'JOB_SEEKER',
-            signupMethod: 'TELEGRAM',
-          }),
-        }),
-      );
-      expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-widget');
+      await expect(
+        service.authenticateLoginWidget(
+          loginWidgetData({ id: 4242, first_name: 'Hana', last_name: 'B', auth_date: now() }),
+        ),
+      ).rejects.toThrow('Register in the Beleqet Jobs bot first');
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
     });
 
     it('signs an existing account in, but never an admin', async () => {
