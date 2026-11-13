@@ -101,6 +101,12 @@ export function enforceKeepSignedIn(): void {
 
 // ── Token refresh ─────────────────────────────────────────────────────────────
 
+/**
+ * Fired when the server no longer accepts the stored session (expired, signed out elsewhere, or
+ * the account is gone), so the page stops acting signed in instead of failing request after request.
+ */
+export const SESSION_ENDED_EVENT = 'beleqet:session-ended';
+
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
@@ -109,8 +115,11 @@ async function refreshAccessToken(): Promise<string | null> {
     const { data } = await authApi.post<AuthResponse>('/auth/refresh', { refreshToken });
     persist(data.accessToken, data.user, data.refreshToken);
     return data.accessToken;
-  } catch {
+  } catch (error) {
+    // No connection says nothing about the session: keep it for when the connection is back.
+    if (axios.isAxiosError(error) && !error.response) return null;
     clearAuth();
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(SESSION_ENDED_EVENT));
     return null;
   }
 }
