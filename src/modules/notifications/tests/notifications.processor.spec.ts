@@ -134,6 +134,75 @@ describe('NotificationsProcessor', () => {
 
       await processor.sendTelegram(mockJob);
     });
+
+    describe('with Telegram on', () => {
+      const job = {
+        name: 'send-telegram',
+        data: { telegramId: '123', message: 'hello' },
+      } as Job<TelegramPayload, void, 'send-telegram'>;
+      const realFetch = global.fetch;
+      let fetchMock: jest.Mock;
+
+      function settings(values: Record<string, string>) {
+        configMock.get.mockImplementation(
+          (key: string, defaultValue?: unknown) => values[key] ?? defaultValue,
+        );
+      }
+
+      beforeEach(() => {
+        fetchMock = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
+        global.fetch = fetchMock as never;
+      });
+      afterEach(() => {
+        global.fetch = realFetch;
+      });
+
+      it('sends through the Jobs bot (the first Mini App token), the bot people opened', async () => {
+        settings({
+          TELEGRAM_ENABLED: 'true',
+          TELEGRAM_BOT_TOKEN: 'notify-bot',
+          TELEGRAM_MINI_APP_BOT_TOKENS: ' jobs-bot , other-bot',
+        });
+        await processor.sendTelegram(job);
+        expect(fetchMock.mock.calls[0][0]).toBe('https://api.telegram.org/botjobs-bot/sendMessage');
+      });
+
+      it('uses TELEGRAM_USER_BOT_TOKEN when set, and the main bot as a last resort', async () => {
+        settings({
+          TELEGRAM_ENABLED: 'true',
+          TELEGRAM_BOT_TOKEN: 'notify-bot',
+          TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot',
+          TELEGRAM_USER_BOT_TOKEN: 'chosen-bot',
+        });
+        await processor.sendTelegram(job);
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_BOT_TOKEN: 'notify-bot' });
+        await processor.sendTelegram(job);
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+          'https://api.telegram.org/botchosen-bot/sendMessage',
+          'https://api.telegram.org/botnotify-bot/sendMessage',
+        ]);
+      });
+
+      it("doesn't retry when the person blocked or never opened the bot", async () => {
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
+        fetchMock.mockResolvedValueOnce({
+          ok: false,
+          status: 403,
+          text: async () => 'Forbidden: bot was blocked by the user',
+        });
+        await expect(processor.sendTelegram(job)).resolves.toBeUndefined();
+      });
+
+      it('retries rate limits and server errors', async () => {
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
+        fetchMock.mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          text: async () => 'Too Many Requests',
+        });
+        await expect(processor.sendTelegram(job)).rejects.toThrow('429');
+      });
+    });
   });
 
   describe('sendPush', () => {

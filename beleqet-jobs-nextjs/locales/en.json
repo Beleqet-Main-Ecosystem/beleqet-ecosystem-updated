@@ -260,7 +260,8 @@
     "emailCodeWrong": "That code isn't right or has expired.",
     "emailCodeTooMany": "Too many wrong codes. Send a new code and try again.",
     "emailCodeExpired": "This page has expired. Sign in again to get a new code.",
-    "emailCodeFormat": "Enter the 6-digit code from the email."
+    "emailCodeFormat": "Enter the 6-digit code from the email.",
+    "telegramFailed": "Telegram sign-in didn't open. Check your connection, or allow pop-ups for this site, then try again."
   },
   "postJob": {
     "gateTitle": "Sign in to post a job",
@@ -948,7 +949,10 @@
       "portfolio": "Portfolio link",
       "portfolioInvalid": "Enter a full web address, like https://example.com",
       "expectedSalary": "Expected salary (ETB)",
-      "backToJob": "Back to the job"
+      "backToJob": "Back to the job",
+      "addEmailTitle": "Add your email (optional)",
+      "addEmailText": "You'll get updates about this application in Telegram. Adding an email also lets you sign in without Telegram and get updates by email.",
+      "addEmail": "Add email in Settings"
     },
     "moreFromEmployer": "More jobs from this employer",
     "gender": "Gender"
@@ -1405,7 +1409,10 @@
       "bio": "Summary",
       "linkedinUrl": "LinkedIn",
       "portfolioUrl": "Portfolio",
-      "githubUrl": "GitHub"
+      "githubUrl": "GitHub",
+      "gender": "Gender",
+      "country": "Country of residence",
+      "city": "City of residence"
     },
     "saveProfile": "Save profile",
     "saved": "Saved",
@@ -1577,6 +1584,39 @@
         "failed": "Failed, money returned",
         "processing": "Processing"
       }
+    },
+    "notSaid": "Not given",
+    "signIn": {
+      "title": "Sign-in and email",
+      "methodsLabel": "Ways you can sign in",
+      "methods": {
+        "PASSWORD": "Email and password",
+        "GOOGLE": "Google",
+        "LINKEDIN": "LinkedIn",
+        "TELEGRAM": "Telegram"
+      },
+      "email": "Email",
+      "confirmedBadge": "confirmed",
+      "unconfirmed": "not confirmed yet",
+      "noEmail": "No email yet. Add one to get updates by email too.",
+      "addEmail": "Add email",
+      "addEmailText": "We'll email you a 6-digit code to confirm it's yours.",
+      "sendCode": "Send code",
+      "code": "6-digit code",
+      "codeSent": "We sent a code to {email}. It works for 15 minutes; check your spam folder if you can’t find it.",
+      "confirm": "Confirm",
+      "resend": "Send a new code",
+      "cancel": "Cancel",
+      "confirmed": "Your email is confirmed.",
+      "setPassword": "To sign in with your email too, choose a password:",
+      "setPasswordLink": "set a password",
+      "telegramOn": "Connected",
+      "telegramOff": "Not connected. Connect it to sign in with Telegram and get notifications in the Beleqet Jobs bot.",
+      "connectTelegram": "Connect Telegram",
+      "telegramConnected": "Telegram is connected.",
+      "telegramFailed": "Telegram couldn't be connected. Please try again.",
+      "sendFailed": "We couldn't send the code. Please try again.",
+      "confirmFailed": "That code didn't work. Please try again."
     }
   },
   "emp": {
@@ -1705,7 +1745,8 @@
     "submit": "Send for review",
     "resubmit": "Send again",
     "inReview": "Waiting for approval. We'll email you when it's live.",
-    "rejectedReason": "Not approved: {reason}"
+    "rejectedReason": "Not approved: {reason}",
+    "telegramContact": "Telegram: @{username}"
   },
   "tax": {
     "title": "Salary tax calculator",

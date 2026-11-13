@@ -260,7 +260,8 @@
     "emailCodeWrong": "ኮዱ ትክክል አይደለም ወይም ጊዜው አልፏል።",
     "emailCodeTooMany": "ብዙ የተሳሳቱ ኮዶች ገብተዋል። አዲስ ኮድ አስልከው እንደገና ይሞክሩ።",
     "emailCodeExpired": "ይህ ገጽ ጊዜው አልፏል። አዲስ ኮድ ለማግኘት እንደገና ይግቡ።",
-    "emailCodeFormat": "ከኢሜይሉ ያለውን ባለ 6 አሃዝ ኮድ ያስገቡ።"
+    "emailCodeFormat": "ከኢሜይሉ ያለውን ባለ 6 አሃዝ ኮድ ያስገቡ።",
+    "telegramFailed": "በቴሌግራም መግባት አልተከፈተም። ግንኙነትዎን ይፈትሹ፣ ወይም ለዚህ ድረ-ገጽ ብቅ-ባይ መስኮቶችን (pop-ups) ይፍቀዱ፣ ከዚያ እንደገና ይሞክሩ።"
   },
   "postJob": {
     "gateTitle": "ስራ ለመለጠፍ ይግቡ",
@@ -945,7 +946,10 @@
       "portfolio": "የፖርትፎሊዮ ሊንክ",
       "portfolioInvalid": "ሙሉ የድረ ገጽ አድራሻ ያስገቡ፣ ለምሳሌ https://example.com",
       "expectedSalary": "የሚጠበቅ ደመወዝ (ብር)",
-      "backToJob": "ወደ ስራው ተመለስ"
+      "backToJob": "ወደ ስራው ተመለስ",
+      "addEmailTitle": "ኢሜልዎን ያክሉ (አማራጭ)",
+      "addEmailText": "ስለዚህ ማመልከቻ መረጃዎችን በቴሌግራም ያገኛሉ። ኢሜል ማከል ያለ ቴሌግራም ለመግባት እና መረጃዎችን በኢሜል ለማግኘትም ያስችላል።",
+      "addEmail": "በቅንብሮች ውስጥ ኢሜል ያክሉ"
     },
     "moreFromEmployer": "ከዚህ አሰሪ ተጨማሪ ስራዎች",
     "gender": "ጾታ"
@@ -1402,7 +1406,10 @@
       "bio": "ማጠቃለያ",
       "linkedinUrl": "LinkedIn",
       "portfolioUrl": "ፖርትፎሊዮ",
-      "githubUrl": "GitHub"
+      "githubUrl": "GitHub",
+      "gender": "ጾታ",
+      "country": "የሚኖሩበት አገር",
+      "city": "የሚኖሩበት ከተማ"
     },
     "saveProfile": "መገለጫ አስቀምጥ",
     "saved": "ተቀምጧል",
@@ -1574,6 +1581,39 @@
         "failed": "አልተሳካም፣ ገንዘቡ ተመልሷል",
         "processing": "በሂደት ላይ"
       }
+    },
+    "notSaid": "አልተገለጸም",
+    "signIn": {
+      "title": "መግቢያ እና ኢሜል",
+      "methodsLabel": "የሚገቡባቸው መንገዶች",
+      "methods": {
+        "PASSWORD": "ኢሜል እና የይለፍ ቃል",
+        "GOOGLE": "Google",
+        "LINKEDIN": "LinkedIn",
+        "TELEGRAM": "ቴሌግራም"
+      },
+      "email": "ኢሜል",
+      "confirmedBadge": "ተረጋግጧል",
+      "unconfirmed": "ገና አልተረጋገጠም",
+      "noEmail": "ገና ኢሜል የለም። መረጃዎችን በኢሜልም ለማግኘት ያክሉ።",
+      "addEmail": "ኢሜል ያክሉ",
+      "addEmailText": "የእርስዎ መሆኑን ለማረጋገጥ ባለ 6 አሃዝ ኮድ በኢሜል እንልክልዎታለን።",
+      "sendCode": "ኮድ ላክ",
+      "code": "ባለ 6 አሃዝ ኮድ",
+      "codeSent": "ወደ {email} ኮድ ልከናል። ለ15 ደቂቃ ያገለግላል፤ ካላገኙት የስፓም (spam) ማህደሩን ይመልከቱ።",
+      "confirm": "አረጋግጥ",
+      "resend": "አዲስ ኮድ ላክ",
+      "cancel": "ሰርዝ",
+      "confirmed": "ኢሜልዎ ተረጋግጧል።",
+      "setPassword": "በኢሜልዎም ለመግባት የይለፍ ቃል ይምረጡ፦",
+      "setPasswordLink": "የይለፍ ቃል ያዘጋጁ",
+      "telegramOn": "ተገናኝቷል",
+      "telegramOff": "አልተገናኘም። በቴሌግራም ለመግባት እና በBeleqet Jobs ቦት ማሳወቂያዎችን ለማግኘት ያገናኙት።",
+      "connectTelegram": "ቴሌግራምን አገናኝ",
+      "telegramConnected": "ቴሌግራም ተገናኝቷል።",
+      "telegramFailed": "ቴሌግራምን ማገናኘት አልተቻለም። እባክዎ እንደገና ይሞክሩ።",
+      "sendFailed": "ኮዱን መላክ አልቻልንም። እባክዎ እንደገና ይሞክሩ።",
+      "confirmFailed": "ኮዱ አልሰራም። እባክዎ እንደገና ይሞክሩ።"
     }
   },
   "emp": {
@@ -1702,7 +1742,8 @@
     "submit": "ለግምገማ ላክ",
     "resubmit": "እንደገና ላክ",
     "inReview": "ማረጋገጫ በመጠበቅ ላይ። ሲታተም በኢሜይል እናሳውቅዎታለን።",
-    "rejectedReason": "አልጸደቀም፦ {reason}"
+    "rejectedReason": "አልጸደቀም፦ {reason}",
+    "telegramContact": "ቴሌግራም: @{username}"
   },
   "tax": {
     "title": "የደመወዝ ግብር ማስያ",

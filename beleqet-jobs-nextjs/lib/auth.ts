@@ -259,6 +259,27 @@ export async function signInWithTelegram(initData: string, role: 'JOB_SEEKER' | 
   }
 }
 
+/**
+ * "Sign in with Telegram" with the details Telegram's login popup returned. Someone new gets a
+ * job-seeker account, like Google; two-step sign-in still asks for its code.
+ */
+export async function signInWithTelegramLogin(data: Record<string, string | number>): Promise<LoginResult> {
+  try {
+    const { data: answer } = await authApi.post<AuthResponse | { requires2fa: true; tempToken: string }>('/telegram/login', { data });
+    if ('requires2fa' in answer && answer.requires2fa) return { status: 'needs-code', tempToken: answer.tempToken };
+    const auth = answer as AuthResponse;
+    persist(auth.accessToken, auth.user, auth.refreshToken);
+    return { status: 'signed-in', user: auth.user };
+  } catch (error) {
+    throw new Error(messageFrom(error));
+  }
+}
+
+/** Telegram-only accounts have an internal address that is never shown or emailed. */
+export function isPlaceholderEmail(email: string | null | undefined): boolean {
+  return !email || /@(beleqet\.internal|tme\.beleqet\.local)$/i.test(email);
+}
+
 /** Always resolves the same way whether or not the email exists, like the API. */
 export async function requestPasswordReset(email: string): Promise<void> {
   try {

@@ -32,6 +32,8 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
   ChangeEmailDto,
+  AddEmailDto,
+  ConfirmAddedEmailDto,
 } from './dto/register.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
@@ -196,6 +198,31 @@ export class AuthController {
     @Headers('x-step-up-token') stepUpToken?: string,
   ) {
     return this.authService.changeEmail(user.userId, dto, stepUpToken);
+  }
+
+  @Post('email')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Add an email to a Telegram-only account (or fix an unconfirmed one) and email a code',
+  })
+  addEmail(@CurrentUser() user: CurrentUserPayload, @Body() dto: AddEmailDto) {
+    return this.authService.startEmailConfirmation(user.userId, dto.email);
+  }
+
+  @Post('email/confirm')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Confirm the signed-in account’s email with the 6-digit code' })
+  async confirmAddedEmail(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ConfirmAddedEmailDto,
+  ) {
+    await this.authService.confirmEmailCode(user.userId, dto.code);
+    return { confirmed: true };
   }
 
   // ─── Social Logins (Google + LinkedIn OAuth/OIDC) ─────────────────────────

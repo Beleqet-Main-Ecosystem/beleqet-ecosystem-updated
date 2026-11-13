@@ -14,6 +14,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JobStatus, Prisma } from '@prisma/client';
 import { openJobs } from './open-jobs';
 import { alertMatches } from '../job-alerts/job-alert-match';
+import { genderFits } from '../../common/utils/residence';
+import { escapeTelegramMarkdown } from '../../common/utils/telegram-escape';
 import { CreateJobDto, JobType, QueryJobsDto, UpdateJobDto } from './dto/create-job.dto';
 import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../queues/queues.constants';
 import {
@@ -62,8 +64,9 @@ export class JobsService {
 
   /**
    * Job posts allowed and used in the current billing period. Without an active
-   * subscription the Free plan applies, counted per calendar month. Every post
-   * created in the period counts, so deleting one doesn't give a post back.
+   * subscription the Free plan applies, counted per calendar month. A post counts once it is
+   * sent for review and keeps counting after approval, so deleting a live job doesn't give a
+   * post back. Drafts and rejected jobs (fixed and sent again, or not) don't count.
    */
   async getQuota(employerId: string) {
     const now = new Date();
@@ -87,7 +90,11 @@ export class JobsService {
       subscription?.currentPeriodStart ??
       new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     const used = await this.prisma.job.count({
-      where: { company: { userId: employerId }, createdAt: { gte: since } },
+      where: {
+        company: { userId: employerId },
+        createdAt: { gte: since },
+        OR: [{ approvedAt: { not: null } }, { status: 'PENDING_REVIEW' }],
+      },
     });
     const limit = features.maxJobPosts ?? (plan ? null : 1);
     return {
@@ -100,6 +107,14 @@ export class JobsService {
     };
   }
 
+  private assertPostLeft(quota: { max: number | null; used: number; plan: string }) {
+    if (quota.max !== null && quota.used >= quota.max) {
+      throw new ForbiddenException(
+        `You've used ${quota.max === 1 ? 'your 1 job post' : `all ${quota.max} job posts`} on the ${quota.plan} plan this period. Upgrade to post more.`,
+      );
+    }
+  }
+
   async create(employerId: string, dto: CreateJobDto) {
     const employer = await this.prisma.user.findUnique({
       where: { id: employerId },
@@ -110,11 +125,8 @@ export class JobsService {
 
     if (employer?.role !== 'ADMIN') {
       const quota = await this.getQuota(employerId);
-      if (quota.max !== null && quota.used >= quota.max) {
-        throw new ForbiddenException(
-          `You've used ${quota.max === 1 ? 'your 1 job post' : `all ${quota.max} job posts`} on the ${quota.plan} plan this period. Upgrade to post more.`,
-        );
-      }
+      // A draft is free; it counts when it's sent for review.
+      if (dto.status !== 'DRAFT') this.assertPostLeft(quota);
       if (dto.featured && !quota.canFeature) {
         throw new ForbiddenException(
           'Featured listings are included in the Pro and Enterprise plans.',
@@ -279,21 +291,31 @@ export class JobsService {
   }
 
   /**
-   * Email the people whose job alerts match this job, once each, skipping anyone who turned
-   * email off. (This used to email every job seeker about every job.)
+   * Tell the people whose job alerts match this job, once each, by email and in Telegram, each as
+   * they chose in their settings. A job that asks for one gender skips people of the other.
    */
   private async sendJobAlerts(job: any, jobUrl: string) {
     const alerts = await this.prisma.jobAlert.findMany({
-      where: {
-        isActive: true,
-        user: { isActive: true, NOT: { notificationPreference: { emailEnabled: false } } },
+      where: { isActive: true, user: { isActive: true } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            telegramId: true,
+            gender: true,
+            notificationPreference: { select: { emailEnabled: true, telegramEnabled: true } },
+          },
+        },
       },
-      include: { user: { select: { id: true, email: true, firstName: true } } },
     });
-    const recipients = new Map<string, { email: string; firstName: string }>();
+    type Seeker = (typeof alerts)[number]['user'];
+    const recipients = new Map<string, Seeker>();
     const matched: string[] = [];
     for (const alert of alerts) {
       if (alert.userId === job.company?.userId || !alertMatches(alert, job)) continue;
+      if (!genderFits(job.gender, alert.user.gender)) continue;
       matched.push(alert.id);
       recipients.set(alert.user.id, alert.user);
     }
@@ -304,16 +326,31 @@ export class JobsService {
       });
     }
 
+    const telegramText = escapeTelegramMarkdown(
+      `New job for you: ${job.title} at ${job.company.name}\n${jobUrl}`,
+    );
     for (const seeker of recipients.values()) {
-      jobAlertEmail(seeker.firstName, job.title, job.company.name, jobUrl)
-        .then((email) =>
-          this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
-            to: seeker.email,
-            subject: `New Job Opportunity: ${job.title} at ${job.company.name}`,
-            ...email,
-          }),
-        )
-        .catch(() => {});
+      const prefs = seeker.notificationPreference;
+      // Placeholder addresses (Telegram-only accounts) are skipped by the mail sender.
+      if (prefs?.emailEnabled !== false) {
+        jobAlertEmail(seeker.firstName, job.title, job.company.name, jobUrl)
+          .then((email) =>
+            this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+              to: seeker.email,
+              subject: `New Job Opportunity: ${job.title} at ${job.company.name}`,
+              ...email,
+            }),
+          )
+          .catch(() => {});
+      }
+      if (prefs?.telegramEnabled !== false && seeker.telegramId) {
+        this.notificationsQueue
+          .add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
+            telegramId: seeker.telegramId,
+            message: telegramText,
+          })
+          .catch(() => {});
+      }
     }
   }
 
@@ -482,6 +519,10 @@ export class JobsService {
       });
       data.status = nextStatus(job, dto.status as JobStatus, employer?.role === 'ADMIN');
       if (data.status === 'PENDING_REVIEW') data.reviewNote = null;
+      // A draft or a rejected job starts counting when it goes to review.
+      if (data.status === 'PENDING_REVIEW' && job.status !== 'PENDING_REVIEW' && !job.approvedAt) {
+        this.assertPostLeft(await this.getQuota(employerId));
+      }
       // Only an admin gets here with a job never approved: publishing it is approving it.
       const firstTimeLive = data.status === 'PUBLISHED' && !job.approvedAt;
       if (firstTimeLive) data.approvedAt = data.reviewedAt = new Date();

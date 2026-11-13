@@ -11,7 +11,7 @@ export const metadata: Metadata = createMetadata({
 });
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = 'October 23, 2026';
+  const lastUpdated = 'November 13, 2026';
 
   return (
     <div className="min-h-screen bg-[#f7f5ef] text-gray-900">
@@ -68,7 +68,7 @@ export default function PrivacyPolicyPage() {
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Account &amp; Profile Data
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-gray-600">
-                  Full name, email address, phone number, location (city/subcity in Ethiopia or remote), profile pictures, professional experience, education, skills, and portfolio links.
+                  Full name, email address, phone number, gender, country and city of residence, profile pictures, professional experience, education, skills, and portfolio links. Gender is used to match job posts that ask for one and is shown to employers you apply to.
                 </p>
               </div>
 
@@ -78,6 +78,15 @@ export default function PrivacyPolicyPage() {
                 </h3>
                 <p className="mt-2 text-xs leading-relaxed text-gray-600">
                   Resumes (CV) uploaded in PDF/DOCX format, cover letters, proposed freelance bids, milestones, and direct communications between employers and freelancers.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-gray-100 bg-[#faf9f5] p-5 sm:col-span-2">
+                <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Telegram Account Data
+                </h3>
+                <p className="mt-2 text-xs leading-relaxed text-gray-600">
+                  If you register in our Telegram bot or sign in with Telegram, we receive your Telegram user ID, name, username and profile photo from Telegram, and the phone number you choose to share with the bot. We use them to sign you in without a password, to send you notifications in the bot, and to let employers you apply to call you or message you on Telegram. An email address is optional for job seekers who sign up this way. To disconnect Telegram from your account, contact us.
                 </p>
               </div>
             </div>

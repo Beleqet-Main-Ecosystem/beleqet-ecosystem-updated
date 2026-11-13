@@ -95,6 +95,7 @@ export class AccountRepository implements IAccountRepository {
       data: {
         email: input.email.toLowerCase().trim(),
         emailVerified: input.emailVerified,
+        signupMethod: input.provider,
         firstName: input.firstName,
         lastName: input.lastName,
         avatarUrl: input.avatarUrl,

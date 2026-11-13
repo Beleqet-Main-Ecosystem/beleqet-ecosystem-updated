@@ -18,7 +18,37 @@ describe('TelegramTmaService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    $transaction: jest.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
   };
+
+  /** What Telegram's login button returns, signed the way Telegram signs it. */
+  function loginWidgetData(fields: Record<string, string | number>, botToken = jobsBotToken) {
+    const dataCheckString = Object.keys(fields)
+      .sort()
+      .map((key) => `${key}=${fields[key]}`)
+      .join('\n');
+    const secret = crypto.createHash('sha256').update(botToken).digest();
+    const hash = crypto.createHmac('sha256', secret).update(dataCheckString).digest('hex');
+    return { ...fields, hash };
+  }
+
+  /** An account found by telegramId, as linkTelegram reads it. */
+  function holder(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 'tg-only-account',
+      email: 'tma_777888@tme.beleqet.local',
+      defaultResumeUrl: null,
+      company: null,
+      _count: {
+        applications: 0,
+        bids: 0,
+        freelanceJobs: 0,
+        contractsAsClient: 0,
+        contractsAsFreelancer: 0,
+      },
+      ...overrides,
+    };
+  }
 
   const mockAuthService = {
     issueTokensForUserId: jest.fn().mockResolvedValue({
@@ -190,6 +220,7 @@ describe('TelegramTmaService', () => {
           telegramId: '555444',
           telegramUsername: null,
           emailVerified: true,
+          signupMethod: 'TELEGRAM',
           role: 'JOB_SEEKER',
           wallet: { create: {} },
         },
@@ -215,6 +246,7 @@ describe('TelegramTmaService', () => {
           telegramId: '555444',
           telegramUsername: null,
           emailVerified: true,
+          signupMethod: 'TELEGRAM',
           role: 'EMPLOYER',
           employerWallet: { create: { balance: 0, lockedBalance: 0 } },
         },
@@ -241,19 +273,133 @@ describe('TelegramTmaService', () => {
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: 'usr-session-2' },
-        data: { telegramId: '777888' },
+        data: { telegramId: '777888', telegramUsername: null },
       });
       expect(res.success).toBe(true);
       expect(res.telegramId).toBe('777888');
     });
 
-    it('throws ConflictException if telegramId is already linked to another user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValueOnce({ id: 'some-other-user-id' } as any);
+    it('throws ConflictException if telegramId belongs to another account with activity', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(
+        holder({ id: 'some-other-user-id', _count: { ...holder()._count, applications: 2 } }),
+      );
       const initData = generateTestInitData(testUser, nowSec);
 
       await expect(service.linkTelegramAccount('usr-session-2', initData)).rejects.toThrow(
         ConflictException,
       );
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('switches off an empty Telegram-only account and moves the link to the signed-in one', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(holder());
+      const initData = generateTestInitData(testUser, nowSec);
+
+      await service.linkTelegramAccount('usr-session-2', initData);
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'tg-only-account' },
+        data: { telegramId: null, telegramUsername: null, isActive: false },
+      });
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'usr-session-2' },
+        data: { telegramId: '777888', telegramUsername: null },
+      });
+    });
+
+    it('never treats an account with a real email as empty', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(holder({ email: 'someone@gmail.com' }));
+      const initData = generateTestInitData(testUser, nowSec);
+
+      await expect(service.linkTelegramAccount('usr-session-2', initData)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+  });
+
+  describe('Telegram login button (website and app)', () => {
+    const now = () => Math.floor(Date.now() / 1000) - 5;
+
+    it('accepts data signed with the Jobs bot token', () => {
+      const data = loginWidgetData({
+        id: 4242,
+        first_name: 'Hana',
+        username: 'hana_b',
+        auth_date: now(),
+      });
+      expect(service.verifyLoginWidget(data)).toEqual(
+        expect.objectContaining({ id: 4242, first_name: 'Hana', username: 'hana_b' }),
+      );
+    });
+
+    it('refuses changed fields, other bots and old data', () => {
+      const data = loginWidgetData({ id: 4242, first_name: 'Hana', auth_date: now() });
+      expect(() => service.verifyLoginWidget({ ...data, id: 4243 })).toThrow(UnauthorizedException);
+      expect(() =>
+        service.verifyLoginWidget(
+          loginWidgetData({ id: 4242, auth_date: now() }, '1:SOMEONE_ELSE'),
+        ),
+      ).toThrow(UnauthorizedException);
+      expect(() =>
+        service.verifyLoginWidget(loginWidgetData({ id: 4242, auth_date: now() - 2 * 86400 })),
+      ).toThrow('expired');
+      expect(() => service.verifyLoginWidget({ id: 4242 })).toThrow(UnauthorizedException);
+    });
+
+    it('creates a job-seeker account for someone new', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+      mockPrisma.user.create.mockResolvedValueOnce({ id: 'usr-widget' } as any);
+
+      await service.authenticateLoginWidget(
+        loginWidgetData({ id: 4242, first_name: 'Hana', last_name: 'B', auth_date: now() }),
+      );
+
+      expect(mockPrisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            telegramId: '4242',
+            role: 'JOB_SEEKER',
+            signupMethod: 'TELEGRAM',
+          }),
+        }),
+      );
+      expect(mockAuthService.issueTokensForUserId).toHaveBeenCalledWith('usr-widget');
+    });
+
+    it('signs an existing account in, but never an admin', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: 'usr-existing-1',
+        isActive: true,
+        role: 'EMPLOYER',
+        telegramUsername: null,
+      });
+      await service.authenticateLoginWidget(loginWidgetData({ id: 4242, auth_date: now() }));
+      expect(mockAuthService.oauthSession).toHaveBeenCalledWith('usr-existing-1');
+
+      mockPrisma.user.findUnique.mockResolvedValueOnce({
+        id: 'usr-admin',
+        isActive: true,
+        role: 'ADMIN',
+        telegramUsername: null,
+      });
+      await expect(
+        service.authenticateLoginWidget(loginWidgetData({ id: 4242, auth_date: now() })),
+      ).rejects.toThrow('Admins sign in with their password.');
+    });
+
+    it('connects Telegram to the signed-in account', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce(null);
+
+      const result = await service.connectWithLoginWidget(
+        'usr-web',
+        loginWidgetData({ id: 4242, username: 'hana_b', auth_date: now() }),
+      );
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'usr-web' },
+        data: { telegramId: '4242', telegramUsername: 'hana_b' },
+      });
+      expect(result).toEqual({ success: true, telegramId: '4242', username: 'hana_b' });
     });
   });
 });

@@ -47,6 +47,15 @@ export type Profile = {
   gdprConsent: boolean;
   emailVerified: boolean;
   avatarUrl: string | null;
+  /** Null for an account made in Telegram that hasn't added one. */
+  email?: string | null;
+  gender?: 'MALE' | 'FEMALE' | null;
+  /** ISO 3166-1 alpha-2, e.g. "ET". */
+  country?: string | null;
+  city?: string | null;
+  telegramId?: string | null;
+  telegramUsername?: string | null;
+  signInMethods?: ('PASSWORD' | 'GOOGLE' | 'LINKEDIN' | 'TELEGRAM')[];
 };
 
 export const fetchApplications = () => apiGet<Application[]>('/applications/my');
@@ -57,7 +66,7 @@ export function profileChecks(profile: Profile) {
   return [
     { key: 'headline', done: Boolean(profile.headline) },
     { key: 'summary', done: Boolean(profile.bio) },
-    { key: 'location', done: Boolean(profile.location) },
+    { key: 'location', done: Boolean(profile.city || profile.location) },
     { key: 'phone', done: Boolean(profile.phone) },
     { key: 'skills', done: profile.skills.length > 0 },
     { key: 'cv', done: Boolean(profile.defaultResumeUrl) },

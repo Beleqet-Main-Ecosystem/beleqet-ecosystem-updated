@@ -15,6 +15,25 @@ import { ConfigService } from '@nestjs/config';
 import { applicationReceivedEmail, applicationStatusEmail } from '../notifications/email-templates';
 import { openJobs } from '../jobs/open-jobs';
 import { primaryFrontendUrl } from '../../common/utils/frontend-url';
+import { isDeliverableEmail } from '../../common/utils/deliverable-email';
+
+/** How an employer can reach an applicant: email, phone, or Telegram for Telegram-only accounts. */
+const APPLICANT_CONTACT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  telegramUsername: true,
+  city: true,
+  country: true,
+  gender: true,
+} as const;
+
+/** A Telegram-only applicant's internal placeholder address is never shown. */
+function applicantContact<T extends { email: string }>(user: T) {
+  return { ...user, email: isDeliverableEmail(user.email) ? user.email : null };
+}
 
 @Injectable()
 export class ApplicationsService {
@@ -165,14 +184,15 @@ export class ApplicationsService {
     });
     if (!job) throw new NotFoundException('Job not found');
 
-    return this.prisma.application.findMany({
+    const applications = await this.prisma.application.findMany({
       where: { jobId },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
-        score: true,
-      },
+      include: { user: { select: APPLICANT_CONTACT }, score: true },
       orderBy: [{ score: { overallScore: 'desc' } }, { createdAt: 'asc' }],
     });
+    return applications.map((application) => ({
+      ...application,
+      user: applicantContact(application.user),
+    }));
   }
 
   /**
@@ -185,23 +205,14 @@ export class ApplicationsService {
       where: { id, OR: [{ userId: viewerId }, { job: { company: { userId: viewerId } } }] },
       include: {
         user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-            avatarUrl: true,
-            headline: true,
-            skills: true,
-          },
+          select: { ...APPLICANT_CONTACT, avatarUrl: true, headline: true, skills: true },
         },
         job: { include: { company: true } },
         score: true,
       },
     });
     if (!application) throw new NotFoundException(`Application ${id} not found`);
-    return application;
+    return { ...application, user: applicantContact(application.user) };
   }
 
   async updateStatus(id: string, status: string, employerId: string) {

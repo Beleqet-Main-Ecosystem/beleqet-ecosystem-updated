@@ -52,6 +52,8 @@ import {
   assertJobModeration,
   assertRemovalAllowed,
 } from './admin-rules';
+import { isDeliverableEmail } from '../../common/utils/deliverable-email';
+import { signInMethods } from '../users/sign-in-methods';
 
 enum ManagedRole {
   JOB_SEEKER = 'JOB_SEEKER',
@@ -150,7 +152,18 @@ export class AdminController {
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
-        select: safeUserSelect,
+        select: {
+          ...safeUserSelect,
+          signupMethod: true,
+          phone: true,
+          telegramId: true,
+          telegramUsername: true,
+          gender: true,
+          country: true,
+          city: true,
+          passwordHash: true,
+          oauthAccounts: { select: { provider: true } },
+        },
         orderBy: { createdAt: 'desc' },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
@@ -158,7 +171,13 @@ export class AdminController {
       this.prisma.user.count({ where }),
     ]);
     return {
-      data: users.map((u) => ({ ...u, twoFactorEnabled: u.twoFactor?.enabled ?? false })),
+      data: users.map(({ passwordHash, oauthAccounts, ...u }) => ({
+        ...u,
+        // Telegram-only accounts have an internal placeholder address.
+        email: isDeliverableEmail(u.email) ? u.email : null,
+        signInMethods: signInMethods({ passwordHash, telegramId: u.telegramId, oauthAccounts }),
+        twoFactorEnabled: u.twoFactor?.enabled ?? false,
+      })),
       total,
       page: query.page,
       limit: query.limit,

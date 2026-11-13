@@ -109,6 +109,22 @@ export class ChangePasswordDto {
   newPassword: string;
 }
 
+/** Add an email to a Telegram-only account, or fix an unconfirmed one; a code is emailed. */
+export class AddEmailDto {
+  @ApiProperty({ example: 'name@example.com', required: false })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+
+/** The 6-digit code from "add your email", for the signed-in account. */
+export class ConfirmAddedEmailDto {
+  @ApiProperty({ example: '482913' })
+  @IsString()
+  @Matches(/^s*(ds*){6}$/, { message: 'Enter the 6-digit code from the email.' })
+  code: string;
+}
+
 export class ChangeEmailDto {
   @ApiProperty({ example: 'newemail@example.com' })
   @IsEmail()

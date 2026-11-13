@@ -7,6 +7,7 @@ import { useTranslation } from '@/lib/i18n';
 import { apiGet, apiSend, fetchProfile } from '../api';
 import { card, Confirm, Failed, Field, Heading, input, link, muted, outline, shortDate, Toggle } from '../ui';
 import TwoStep from './TwoStep';
+import SignInSection from './SignInSection';
 import JobAlerts from './JobAlerts';
 import DeleteAccount from './DeleteAccount';
 import { errorText } from '@/lib/api-error';
@@ -127,6 +128,7 @@ export default function SettingsSection() {
         )}
       </section>
 
+      <SignInSection />
       <TwoStep />
 
       <section className={`${card} flex flex-col gap-3`}>

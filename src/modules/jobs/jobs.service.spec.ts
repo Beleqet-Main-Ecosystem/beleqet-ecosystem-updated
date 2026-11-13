@@ -263,3 +263,144 @@ describe('JobsService.findOne: who sees a job that is not public', () => {
     await expect(service.findOne('j1')).resolves.toMatchObject({ id: 'j1' });
   });
 });
+
+describe('JobsService: plan limit counts jobs sent for review, not drafts or rejected ones', () => {
+  function onFreePlan(used: number) {
+    const ctx = setup();
+    ctx.prisma.plan.findFirst.mockResolvedValue({ name: 'Free', features: { maxJobPosts: 1 } });
+    ctx.prisma.job.count.mockResolvedValue(used);
+    ctx.prisma.job.create.mockImplementation(({ data }) => ({ id: 'j9', ...data, company }));
+    return ctx;
+  }
+
+  it('counts only jobs that were approved or are waiting for review', async () => {
+    const { service, prisma } = onFreePlan(0);
+    await service.getQuota('emp1');
+    expect(prisma.job.count.mock.calls[0][0].where).toMatchObject({
+      company: { userId: 'emp1' },
+      OR: [{ approvedAt: { not: null } }, { status: 'PENDING_REVIEW' }],
+    });
+  });
+
+  it('refuses a second job for review on the Free plan, but still saves a draft', async () => {
+    const { service } = onFreePlan(1);
+    await expect(service.create('emp1', input)).rejects.toThrow('your 1 job post');
+    await expect(
+      service.create('emp1', { ...input, status: 'DRAFT' } as never),
+    ).resolves.toMatchObject({
+      status: 'DRAFT',
+    });
+  });
+
+  it('checks the limit when a draft or a rejected job is sent for review', async () => {
+    for (const status of ['DRAFT', 'REJECTED']) {
+      const { service, prisma } = onFreePlan(1);
+      prisma.job.findFirst.mockResolvedValue({
+        id: 'j1',
+        status,
+        approvedAt: null,
+        featured: false,
+      });
+      await expect(service.update('j1', 'emp1', { status: 'PUBLISHED' } as never)).rejects.toThrow(
+        'your 1 job post',
+      );
+      expect(prisma.job.update).not.toHaveBeenCalled();
+    }
+  });
+
+  it('reopens a job approved before without using another post', async () => {
+    const { service, prisma } = onFreePlan(1);
+    prisma.job.findFirst.mockResolvedValue({
+      id: 'j1',
+      status: 'CLOSED',
+      approvedAt: new Date(),
+      featured: false,
+    });
+    prisma.job.update.mockResolvedValue({ id: 'j1', status: 'PUBLISHED', company });
+    await service.update('j1', 'emp1', { status: 'PUBLISHED' } as never);
+    expect(prisma.job.update.mock.calls[0][0].data.status).toBe('PUBLISHED');
+  });
+});
+
+describe('JobsService: job alerts by email and Telegram', () => {
+  const seeker = (id: string, fields: Record<string, unknown> = {}) => ({
+    id: `alert-${id}`,
+    userId: id,
+    keywords: ['Accountant'],
+    location: null,
+    jobType: null,
+    minSalary: null,
+    user: {
+      id,
+      email: `${id}@mail.com`,
+      firstName: id,
+      telegramId: null,
+      gender: null,
+      notificationPreference: null,
+      ...fields,
+    },
+  });
+
+  async function approveWith(alerts: unknown[], jobGender: string | null = null) {
+    const ctx = setup();
+    ctx.prisma.jobAlert.findMany.mockResolvedValue(alerts);
+    ctx.prisma.job.findUniqueOrThrow.mockResolvedValue({
+      id: 'j1',
+      title: 'Accountant',
+      description: '',
+      tags: [],
+      location: 'Addis Ababa',
+      type: 'FULL_TIME',
+      salaryMin: null,
+      salaryMax: null,
+      gender: jobGender,
+      company: { ...company, user: employer },
+    });
+    await ctx.service.approve('j1');
+    for (let i = 0; i < 50; i++) await settle();
+    return ctx;
+  }
+
+  const telegramSends = (queue: { add: jest.Mock }) =>
+    queue.add.mock.calls.filter(([name]) => name === 'send-telegram').map(([, data]) => data);
+
+  it('sends a Telegram message to people with Telegram, as well as the email', async () => {
+    const { queue } = await approveWith([seeker('a', { telegramId: '555' })]);
+    expect(telegramSends(queue)).toEqual([
+      {
+        telegramId: '555',
+        message: expect.stringContaining('New job for you: Accountant at Acme'),
+      },
+    ]);
+  });
+
+  it('respects the channels each person turned off', async () => {
+    const { queue } = await approveWith([
+      seeker('a', {
+        telegramId: '555',
+        notificationPreference: { emailEnabled: true, telegramEnabled: false },
+      }),
+    ]);
+    expect(telegramSends(queue)).toEqual([]);
+  });
+
+  it('skips people of the other gender for a job that asks for one', async () => {
+    const { prisma, queue } = await approveWith(
+      [
+        seeker('man', { telegramId: '1', gender: 'MALE' }),
+        seeker('woman', { telegramId: '2', gender: 'FEMALE' }),
+        seeker('unsaid', { telegramId: '3' }),
+      ],
+      'FEMALE',
+    );
+    expect(
+      telegramSends(queue)
+        .map((data) => data.telegramId)
+        .sort(),
+    ).toEqual(['2', '3']);
+    expect(prisma.jobAlert.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['alert-woman', 'alert-unsaid'] } },
+      data: { lastSentAt: expect.any(Date) },
+    });
+  });
+});

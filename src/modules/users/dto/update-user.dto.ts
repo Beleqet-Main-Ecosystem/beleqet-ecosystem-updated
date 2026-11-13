@@ -1,6 +1,21 @@
 // dto/update-user.dto.ts
-import { IsString, IsOptional, IsObject, IsUrl, IsBoolean, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsObject,
+  IsUrl,
+  IsBoolean,
+  IsIn,
+  Matches,
+  MaxLength,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ClearableUrl } from '../../../common/decorators/clearable-url.decorator';
+import { CITY_MAX_LENGTH, COUNTRY_CODE, USER_GENDERS } from '../../../common/utils/residence';
+
+/** An empty string clears the field. */
+const emptyToNull = ({ value }: { value: unknown }) =>
+  typeof value === 'string' && value.trim() === '' ? null : value;
 
 export class SaveCvDraftDto {
   @IsObject() data: Record<string, unknown>;
@@ -28,11 +43,6 @@ export class UpdateUserDto {
   @ClearableUrl()
   avatarUrl?: string | null;
 
-  @ApiProperty({ example: '123456789', required: false })
-  @IsOptional()
-  @IsString()
-  telegramId?: string;
-
   @ApiProperty({ example: 'Senior Frontend Developer', required: false })
   @IsOptional()
   @IsString()
@@ -50,6 +60,33 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   location?: string;
+
+  @ApiProperty({ enum: USER_GENDERS, required: false, nullable: true })
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsIn(USER_GENDERS)
+  gender?: string | null;
+
+  @ApiProperty({
+    example: 'ET',
+    description: 'ISO 3166-1 alpha-2',
+    required: false,
+    nullable: true,
+  })
+  @Transform(({ value }) => {
+    const cleared = emptyToNull({ value });
+    return typeof cleared === 'string' ? cleared.trim().toUpperCase() : cleared;
+  })
+  @IsOptional()
+  @Matches(COUNTRY_CODE, { message: 'country must be a two-letter country code' })
+  country?: string | null;
+
+  @ApiProperty({ example: 'Addis Ababa', required: false, nullable: true })
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(CITY_MAX_LENGTH)
+  city?: string | null;
 
   @ApiProperty({ example: 'https://drive.google.com/resume.pdf', required: false })
   @ClearableUrl()

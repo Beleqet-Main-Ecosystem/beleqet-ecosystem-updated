@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 sys.path.append(os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'server'))
 from voting_routes import init_challenge_db, register_challenge_routes
 from aiohttp import web
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, WebAppInfo, KeyboardButton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, WebAppInfo, KeyboardButton
 from telegram.ext import ( Application, 
                           CommandHandler, 
                           MessageHandler, 
@@ -47,9 +47,34 @@ LANGUAGE, ROLE, NAME, PHONE, EMAIL, TG_USERNAME, PASSWORD, CHANGE_LANGUAGE, TRAD
 BROADCAST_MESSAGE, BROADCAST_BUTTON_TEXT, BROADCAST_BUTTON_URL, BROADCAST_CONFIRM = range(11, 15)
 # New states go after the old ones: conversations saved in bot_data.pickle keep their numbers.
 CONTACT_NAME, EMAIL_CODE, NEW_EMAIL = range(15, 18)
+# Job seekers: where they live. "I already have an account": email, then the emailed code.
+GENDER, COUNTRY, COUNTRY_TYPED, CITY, LINK_EMAIL, LINK_CODE = range(18, 24)
 
 MIN_PASSWORD_LENGTH = 8
 EMAIL_PATTERN = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+
+# Where most job seekers live, as buttons; anyone else types their country.
+COUNTRY_BUTTONS = [('ET', 'Ethiopia', 'ኢትዮጵያ'), ('SA', 'Saudi Arabia', 'ሳዑዲ አረቢያ'),
+                   ('AE', 'UAE', 'ዱባይ (UAE)'), ('KE', 'Kenya', 'ኬንያ'), ('DJ', 'Djibouti', 'ጅቡቲ')]
+
+# Typed country names (English, and the commonest in Amharic) to ISO codes.
+COUNTRY_NAMES = {
+    'ethiopia': 'ET', 'ኢትዮጵያ': 'ET', 'kenya': 'KE', 'ኬንያ': 'KE', 'djibouti': 'DJ', 'ጅቡቲ': 'DJ',
+    'somalia': 'SO', 'somaliland': 'SO', 'sudan': 'SD', 'south sudan': 'SS', 'eritrea': 'ER', 'uganda': 'UG',
+    'tanzania': 'TZ', 'rwanda': 'RW', 'egypt': 'EG', 'nigeria': 'NG', 'ghana': 'GH', 'south africa': 'ZA',
+    'saudi arabia': 'SA', 'saudi': 'SA', 'ሳዑዲ': 'SA', 'ሳዑዲ አረቢያ': 'SA',
+    'united arab emirates': 'AE', 'uae': 'AE', 'dubai': 'AE', 'ዱባይ': 'AE', 'qatar': 'QA', 'kuwait': 'KW',
+    'bahrain': 'BH', 'oman': 'OM', 'jordan': 'JO', 'lebanon': 'LB', 'ሊባኖስ': 'LB', 'israel': 'IL', 'yemen': 'YE',
+    'turkey': 'TR', 'türkiye': 'TR', 'united states': 'US', 'usa': 'US', 'america': 'US', 'አሜሪካ': 'US',
+    'canada': 'CA', 'united kingdom': 'GB', 'uk': 'GB', 'england': 'GB', 'germany': 'DE', 'france': 'FR',
+    'italy': 'IT', 'netherlands': 'NL', 'sweden': 'SE', 'norway': 'NO', 'switzerland': 'CH', 'australia': 'AU',
+    'china': 'CN', 'india': 'IN', 'japan': 'JP', 'south korea': 'KR', 'korea': 'KR', 'malaysia': 'MY',
+}
+
+# Ethiopian cities as buttons: stored as spelled in job locations, shown in the person's language.
+ETHIOPIAN_CITIES = [('Addis Ababa', 'አዲስ አበባ'), ('Adama', 'አዳማ'), ('Bahir Dar', 'ባሕር ዳር'),
+                    ('Dire Dawa', 'ድሬ ዳዋ'), ('Gondar', 'ጎንደር'), ('Hawassa', 'ሀዋሳ'), ('Jimma', 'ጅማ'),
+                    ('Jijiga', 'ጅጅጋ'), ('Mekele', 'መቀሌ'), ('Dessie', 'ደሴ')]
 
 TRANSLATIONS = {
     'en': {
@@ -111,6 +136,30 @@ Our team will review these promptly so you can start hiring your next great tale
         'enter_phone': "Please enter your phone number (Required):",
         'enter_tg_username': "Please enter your Telegram username.\nLet employers reach you directly! Enter your Telegram username to make it easier for recruiters to contact you about job opportunities.",
         'skip': "Skip ➡️",
+        'role_existing': "I already have an account",
+        'use_this_name': "Use: {name}",
+        'name_or_type': "What's your full name? Tap to use your Telegram name, or type it.",
+        'share_phone_prompt': "Now share your phone number with the button below, so employers can call you.",
+        'share_phone_button': "📱 Share my phone number",
+        'share_phone_only': "Please use the button below. It shares the number on your Telegram account.",
+        'phone_received': "Thanks, {phone} ✅",
+        'ask_gender': "What is your gender?",
+        'gender_male': "Male",
+        'gender_female': "Female",
+        'ask_country': "Which country do you live in?",
+        'other_country': "Other country",
+        'type_country': "Type the name of the country you live in, in English (for example: Kenya):",
+        'ask_city': "Which city do you live in? Tap it, or type it.",
+        'other_city': "Other city",
+        'type_city': "Type the name of the city you live in:",
+        'registration_details_no_email': "Name: {name}\nRole: {role}",
+        'link_enter_email': "Type the email address of your Beleqet account:",
+        'link_code_sent': "We sent a 6-digit code to {email}. Type it here to connect this Telegram to your account.\nNot there? Check your spam folder.",
+        'link_done': "Done! This Telegram is now connected to your account, {name}. Choose an option below:",
+        'link_failed': "Sorry, that didn't work: {error}",
+        'link_other_email': "Use another email",
+        'link_cancel': "Cancel",
+        'link_cancelled': "OK. Send /start whenever you want to register or connect your account.",
         'menu': {
             'dashboard': "Dashboard",
             'my_profile': "My Profile",
@@ -181,6 +230,30 @@ Our team will review these promptly so you can start hiring your next great tale
         'enter_phone': "እባክዎ ስልክ ቁጥርዎን ያስገቡ (ግዴታ):",
         'enter_tg_username': "እባክዎ የቴሌግራም ተጠቃሚ ስምዎን (ዩዘርኔም) ያስገቡ።\nአሰሪዎች በቀጥታ እንዲያገኙዎ ያድርጉ! ቀጣሪዎች ስለ ስራ እድሎች በቀላሉ ሊያነጋግሩዎ እንዲችሉ የቴሌግራም የተጠቃሚ ስምዎን ያስገቡ።",
         'skip': "ዝለል ➡️",
+        'role_existing': "መለያ አለኝ",
+        'use_this_name': "ይህን ይጠቀሙ፦ {name}",
+        'name_or_type': "ሙሉ ስምዎ ማን ነው? የቴሌግራም ስምዎን ለመጠቀም ይጫኑ፣ ወይም ይጻፉት።",
+        'share_phone_prompt': "አሁን ቀጣሪዎች እንዲደውሉልዎ ከታች ባለው ቁልፍ ስልክ ቁጥርዎን ያጋሩ።",
+        'share_phone_button': "📱 ስልክ ቁጥሬን አጋራ",
+        'share_phone_only': "እባክዎ ከታች ያለውን ቁልፍ ይጠቀሙ። በቴሌግራም መለያዎ ላይ ያለውን ቁጥር ያጋራል።",
+        'phone_received': "እናመሰግናለን፣ {phone} ✅",
+        'ask_gender': "ጾታዎ ምንድን ነው?",
+        'gender_male': "ወንድ",
+        'gender_female': "ሴት",
+        'ask_country': "የሚኖሩት በየትኛው አገር ነው?",
+        'other_country': "ሌላ አገር",
+        'type_country': "የሚኖሩበትን አገር ስም በእንግሊዝኛ ይጻፉ (ለምሳሌ፦ Kenya):",
+        'ask_city': "የሚኖሩት በየትኛው ከተማ ነው? ይጫኑት፣ ወይም ይጻፉት።",
+        'other_city': "ሌላ ከተማ",
+        'type_city': "የሚኖሩበትን ከተማ ስም ይጻፉ:",
+        'registration_details_no_email': "ስም: {name}\nሚና: {role}",
+        'link_enter_email': "የBeleqet መለያዎን ኢሜል አድራሻ ይጻፉ:",
+        'link_code_sent': "ባለ 6 አሃዝ ኮድ ወደ {email} ልከናል። ይህን ቴሌግራም ከመለያዎ ጋር ለማገናኘት ኮዱን እዚህ ይጻፉ።\nካላገኙት የስፓም (spam) ማህደሩን ይመልከቱ።",
+        'link_done': "ተጠናቋል! ይህ ቴሌግራም አሁን ከመለያዎ ጋር ተገናኝቷል፣ {name}። ከታች አማራጭ ይምረጡ:",
+        'link_failed': "ይቅርታ፣ አልተሳካም፦ {error}",
+        'link_other_email': "ሌላ ኢሜል ይጠቀሙ",
+        'link_cancel': "ሰርዝ",
+        'link_cancelled': "እሺ። ለመመዝገብ ወይም መለያዎን ለማገናኘት በፈለጉ ጊዜ /start ይላኩ።",
         'menu': {
             'dashboard': "ዳሽቦርድ",
             'my_profile': "የእኔ መገለጫ",
@@ -250,7 +323,43 @@ def registration_payload(user_data: dict, telegram_user) -> dict:
         'tg_username': getattr(telegram_user, 'username', None) or '',
         'job_title': user_data.get('job_title', ''),
         'company_name': user_data.get('company_name', ''),
+        'gender': user_data.get('gender'),
+        'country': user_data.get('country'),
+        'city': user_data.get('city'),
     }
+
+def country_from_text(text: str):
+    """ISO code for a typed country name or code ("Kenya", "ke", "ኬንያ"), or None."""
+    cleaned = re.sub(r'\s+', ' ', (text or '').strip()).lower()
+    if re.fullmatch(r'[a-z]{2}', cleaned):
+        return cleaned.upper()
+    return COUNTRY_NAMES.get(cleaned)
+
+
+def own_phone(message, telegram_user):
+    """The number from a shared contact, only when it's the person's own (Telegram-verified)."""
+    contact = getattr(message, 'contact', None)
+    if not contact or not contact.phone_number:
+        return None
+    if contact.user_id and telegram_user and contact.user_id != telegram_user.id:
+        return None
+    number = re.sub(r'[\s-]', '', contact.phone_number)
+    return number if number.startswith('+') else '+' + number
+
+
+def role_keyboard(lang: str) -> InlineKeyboardMarkup:
+    t = TRANSLATIONS[lang]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("Employer" if lang == 'en' else "ቀጣሪ", callback_data='employer'),
+         InlineKeyboardButton("Job Seeker" if lang == 'en' else "ሥራ ፈላጊ", callback_data='candidate')],
+        [InlineKeyboardButton(t['role_existing'], callback_data='existing')],
+    ])
+
+
+def full_telegram_name(telegram_user) -> str:
+    parts = [getattr(telegram_user, 'first_name', None), getattr(telegram_user, 'last_name', None)]
+    return ' '.join(p.strip() for p in parts if p and p.strip())
+
 
 MENU_URLS = {
     'candidate': {
@@ -499,11 +608,7 @@ async def handle_language_selection(update: Update, context: ContextTypes.DEFAUL
     context.user_data['language'] = lang
     logger.info(f"Language selected: {lang} for new user {query.from_user.id}")
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Employer" if lang == 'en' else "ቀጣሪ", callback_data='employer'),
-         InlineKeyboardButton("Job Seeker" if lang == 'en' else "ሥራ ፈላጊ", callback_data='candidate')]
-    ])
-    await query.edit_message_text(TRANSLATIONS[lang]['select_role'], reply_markup=keyboard)
+    await query.edit_message_text(TRANSLATIONS[lang]['select_role'], reply_markup=role_keyboard(lang))
     return ROLE
 
 async def change_language_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -569,16 +674,16 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
         'candidate': 'wp_job_board_pro_candidate'
     }
 
+    if role_input == 'existing':
+        await query.edit_message_text(TRANSLATIONS[lang]['link_enter_email'])
+        return LINK_EMAIL
+
     if role_input not in ROLE_MAP:
         if role_input in ['en', 'am']:
             if context.user_data.get('language') != role_input:
                 context.user_data['language'] = role_input
-                keyboard = InlineKeyboardMarkup([
-                    [InlineKeyboardButton("Employer" if role_input == 'en' else "ቀጣሪ", callback_data='employer'),
-                     InlineKeyboardButton("Job Seeker" if role_input == 'en' else "ሥራ ፈላጊ", callback_data='candidate')]
-                ])
                 try:
-                    await query.edit_message_text(TRANSLATIONS[role_input]['select_role'], reply_markup=keyboard)
+                    await query.edit_message_text(TRANSLATIONS[role_input]['select_role'], reply_markup=role_keyboard(role_input))
                 except telegram.error.BadRequest as e:
                     if "Message is not modified" not in str(e):
                         raise e
@@ -593,9 +698,14 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
     if role_input == 'employer':
         await query.edit_message_text(TRANSLATIONS[lang]['role_selected_employer'])
         return COMPANY_NAME
-    else:
-        await query.edit_message_text(TRANSLATIONS[lang]['role_selected_candidate'])
-        return NAME
+    # Job seekers: the name on their Telegram is one tap away.
+    name = full_telegram_name(query.from_user)
+    buttons = [[InlineKeyboardButton(TRANSLATIONS[lang]['use_this_name'].format(name=name)[:60], callback_data='use_tg_name')]] if name else []
+    await query.edit_message_text(
+        TRANSLATIONS[lang]['name_or_type'] if name else TRANSLATIONS[lang]['role_selected_candidate'],
+        reply_markup=InlineKeyboardMarkup(buttons) if buttons else None,
+    )
+    return NAME
     
 async def get_company_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     message = update.effective_message
@@ -617,17 +727,38 @@ async def get_contact_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['enter_phone'])
     return PHONE
 
+def share_phone_keyboard(lang: str) -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [[KeyboardButton(TRANSLATIONS[lang]['share_phone_button'], request_contact=True)]],
+        resize_keyboard=True, one_time_keyboard=True,
+    )
+
+
+async def ask_for_phone(chat_id: int, lang: str) -> int:
+    await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['share_phone_prompt'], reply_markup=share_phone_keyboard(lang))
+    return PHONE
+
+
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     message = update.effective_message
     if not message or not message.text:
         return NAME
     context.user_data['name'] = message.text.strip()
     lang = context.user_data.get('language', 'en')
-    await bot_context.rate_limiter.send_message(
-        message.chat_id,
-        TRANSLATIONS[lang]['enter_phone']
-    )
-    return PHONE
+    return await ask_for_phone(message.chat_id, lang)
+
+
+async def use_telegram_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get('language', 'en')
+    name = full_telegram_name(query.from_user) or 'Telegram User'
+    context.user_data['name'] = name
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    return await ask_for_phone(query.message.chat_id, lang)
 
 async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     message = update.effective_message
@@ -635,6 +766,17 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return PHONE
 
     lang = context.user_data.get('language', 'en')
+
+    # Job seekers share the number Telegram verified; it's how employers reach them.
+    if context.user_data.get('role_input') != 'employer':
+        phone = own_phone(message, update.effective_user)
+        if not phone:
+            await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['share_phone_only'], reply_markup=share_phone_keyboard(lang))
+            return PHONE
+        context.user_data['phone'] = phone
+        await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['phone_received'].format(phone=phone), reply_markup=ReplyKeyboardRemove())
+        return await ask_gender(message.chat_id, lang)
+
     phone_input = None
 
     if message.contact and message.contact.phone_number:
@@ -664,6 +806,90 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         TRANSLATIONS[lang]['enter_email']
     )
     return EMAIL
+
+async def ask_gender(chat_id: int, lang: str) -> int:
+    t = TRANSLATIONS[lang]
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(t['gender_male'], callback_data='gender_MALE'),
+                                      InlineKeyboardButton(t['gender_female'], callback_data='gender_FEMALE')]])
+    await bot_context.rate_limiter.send_message(chat_id, t['ask_gender'], reply_markup=keyboard)
+    return GENDER
+
+
+async def get_gender(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get('language', 'en')
+    context.user_data['gender'] = query.data.split('_', 1)[1]
+    t = TRANSLATIONS[lang]
+    rows = [[InlineKeyboardButton(en if lang == 'en' else am, callback_data=f'country_{code}')]
+            for code, en, am in COUNTRY_BUTTONS]
+    rows.append([InlineKeyboardButton(t['other_country'], callback_data='country_other')])
+    chosen = t['gender_male'] if context.user_data['gender'] == 'MALE' else t['gender_female']
+    await query.edit_message_text(f"{t['ask_gender']} {chosen}")
+    await bot_context.rate_limiter.send_message(query.message.chat_id, t['ask_country'], reply_markup=InlineKeyboardMarkup(rows))
+    return COUNTRY
+
+
+async def ask_city(chat_id: int, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = context.user_data.get('language', 'en')
+    t = TRANSLATIONS[lang]
+    if context.user_data.get('country') == 'ET':
+        labels = [en if lang == 'en' else am for en, am in ETHIOPIAN_CITIES]
+        rows = [[InlineKeyboardButton(labels[i], callback_data=f'city_{i}'),
+                 InlineKeyboardButton(labels[i + 1], callback_data=f'city_{i + 1}')]
+                for i in range(0, len(labels) - 1, 2)]
+        rows.append([InlineKeyboardButton(t['other_city'], callback_data='city_other')])
+        await bot_context.rate_limiter.send_message(chat_id, t['ask_city'], reply_markup=InlineKeyboardMarkup(rows))
+    else:
+        await bot_context.rate_limiter.send_message(chat_id, t['type_city'])
+    return CITY
+
+
+async def get_country(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get('language', 'en')
+    choice = query.data.split('_', 1)[1]
+    if choice == 'other':
+        await query.edit_message_text(TRANSLATIONS[lang]['type_country'])
+        return COUNTRY_TYPED
+    context.user_data['country'] = choice
+    names = {code: (en if lang == 'en' else am) for code, en, am in COUNTRY_BUTTONS}
+    await query.edit_message_text(f"{TRANSLATIONS[lang]['ask_country']} {names.get(choice, choice)}")
+    return await ask_city(query.message.chat_id, context)
+
+
+async def get_typed_country(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.effective_message
+    if not message or not message.text:
+        return COUNTRY_TYPED
+    # An unknown name isn't worth stopping for: the person can fix it in their profile.
+    context.user_data['country'] = country_from_text(message.text)
+    return await ask_city(message.chat_id, context)
+
+
+async def get_city(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    lang = context.user_data.get('language', 'en')
+    query = update.callback_query
+    if query:
+        await query.answer()
+        choice = query.data.split('_', 1)[1]
+        if choice == 'other':
+            await query.edit_message_text(TRANSLATIONS[lang]['type_city'])
+            return CITY
+        city = ETHIOPIAN_CITIES[int(choice)][0]
+        await query.edit_message_text(f"{TRANSLATIONS[lang]['ask_city']} {city}")
+        chat_id = query.message.chat_id
+    else:
+        message = update.effective_message
+        if not message or not message.text:
+            return CITY
+        city = re.sub(r'\s+', ' ', message.text).strip()[:80]
+        chat_id = message.chat_id
+    context.user_data['city'] = city
+    await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['enter_job_title'])
+    return JOB_TITLE
+
 
 async def check_email_exists(email: str) -> dict:
     try:
@@ -852,8 +1078,10 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
                 if status == 'pending':
                     msg += TRANSLATIONS[lang]['pending_approval']
 
-                details = TRANSLATIONS[lang]['registration_details'].format(
-                    name=user_data.get('name'), email=user_data.get('email'), role=role
+                details = (
+                    TRANSLATIONS[lang]['registration_details'].format(name=user_data.get('name'), email=user_data.get('email'), role=role)
+                    if user_data.get('email') else
+                    TRANSLATIONS[lang]['registration_details_no_email'].format(name=user_data.get('name'), role=role)
                 )
                 
                 if chat_id:
@@ -1044,6 +1272,91 @@ async def code_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['enter_new_email'])
         return NEW_EMAIL
     return await send_email_code(chat_id, context, str(query.from_user.id))
+
+
+# --- "I ALREADY HAVE AN ACCOUNT": link this Telegram to it with a code sent to its email ---
+
+def link_keyboard(lang: str) -> InlineKeyboardMarkup:
+    t = TRANSLATIONS[lang]
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t['code_resend'], callback_data='link_resend'),
+         InlineKeyboardButton(t['link_other_email'], callback_data='link_change')],
+        [InlineKeyboardButton(t['link_cancel'], callback_data='link_cancel')],
+    ])
+
+
+async def send_link_code(chat_id: int, context: ContextTypes.DEFAULT_TYPE, telegram_id: str) -> int:
+    lang = context.user_data.get('language') or 'en'
+    email = context.user_data.get('link_email')
+    status, data = await bot_api('link-account', {'telegram_id': telegram_id, 'email': email})
+    if status == 200 and data.get('sent'):
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['link_code_sent'].format(email=data.get('email') or email), reply_markup=link_keyboard(lang))
+        return LINK_CODE
+    await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['link_failed'].format(error=api_message(data)))
+    # No such account, or not an email: ask again. Too many codes, or no answer: stop here.
+    if status in (400, 403, 404):
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['link_enter_email'])
+        return LINK_EMAIL
+    return ConversationHandler.END
+
+
+async def get_link_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.effective_message
+    if not message or not message.text:
+        return LINK_EMAIL
+    lang = context.user_data.get('language') or 'en'
+    email = message.text.strip().lower()
+    if not re.match(EMAIL_PATTERN, email):
+        await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['invalid_email'])
+        return LINK_EMAIL
+    context.user_data['link_email'] = email
+    return await send_link_code(message.chat_id, context, str(update.effective_user.id))
+
+
+async def get_link_code(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.effective_message
+    if not message or not message.text:
+        return LINK_CODE
+    lang = context.user_data.get('language') or 'en'
+    code = six_digit_code(message.text)
+    if not code:
+        await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['code_format'])
+        return LINK_CODE
+    user = update.effective_user
+    status, data = await bot_api('link-account/confirm', {
+        'telegram_id': str(user.id),
+        'email': context.user_data.get('link_email'),
+        'code': code,
+        'tg_username': getattr(user, 'username', None) or '',
+    })
+    if status == 200 and data.get('linked'):
+        lang = data.get('language') or lang
+        role = normalize_role(data.get('role'))
+        context.user_data.update({'language': lang, 'role': role})
+        context.user_data.pop('link_email', None)
+        await bot_context.rate_limiter.send_message(
+            message.chat_id,
+            TRANSLATIONS[lang]['link_done'].format(name=data.get('first_name') or ''),
+            reply_markup=get_keyboard(role, lang, user.id in CONFIG['admin_ids']),
+        )
+        return ConversationHandler.END
+    await bot_context.rate_limiter.send_message(message.chat_id, TRANSLATIONS[lang]['link_failed'].format(error=api_message(data)), reply_markup=link_keyboard(lang))
+    return LINK_CODE
+
+
+async def link_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get('language') or 'en'
+    chat_id = query.message.chat_id
+    if query.data == 'link_cancel':
+        context.user_data.pop('link_email', None)
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['link_cancelled'])
+        return ConversationHandler.END
+    if query.data == 'link_change':
+        await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['link_enter_email'])
+        return LINK_EMAIL
+    return await send_link_code(chat_id, context, str(query.from_user.id))
 
 
 async def ask_to_confirm_email(chat_id: int, lang: str, account: dict) -> None:
@@ -1639,8 +1952,19 @@ async def main() -> None:
                 ROLE: [CallbackQueryHandler(handle_role_selection)],
                 COMPANY_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_company_name)],
                 CONTACT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_contact_name)],
-                NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
-                PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_phone)],
+                NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name),
+                       CallbackQueryHandler(use_telegram_name, pattern='^use_tg_name$')],
+                # A shared contact (job seekers) or a typed number (employers).
+                PHONE: [MessageHandler(filters.CONTACT | (filters.TEXT & ~filters.COMMAND), get_phone)],
+                GENDER: [CallbackQueryHandler(get_gender, pattern='^gender_(MALE|FEMALE)$')],
+                COUNTRY: [CallbackQueryHandler(get_country, pattern='^country_')],
+                COUNTRY_TYPED: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_typed_country)],
+                CITY: [CallbackQueryHandler(get_city, pattern='^city_'),
+                       MessageHandler(filters.TEXT & ~filters.COMMAND, get_city)],
+                LINK_EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_link_email),
+                             CallbackQueryHandler(link_button, pattern='^link_cancel$')],
+                LINK_CODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_link_code),
+                            CallbackQueryHandler(link_button, pattern='^link_(resend|change|cancel)$')],
                 EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
                 TG_USERNAME: [
                             MessageHandler(filters.TEXT & ~filters.COMMAND, get_tg_username),
