@@ -26,12 +26,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     // Opened from a Telegram bot: sign in with Telegram, so bot users never need a password.
-    // Pages wait (ready stays false) so they don't flash "Sign in" first.
-    const role = /^\/(post-job|employer)/.test(window.location.pathname) ? 'EMPLOYER' : 'JOB_SEEKER';
+    // Someone who hasn't registered in the bot browses as a guest. Pages wait (ready stays
+    // false) so they don't flash "Sign in" first.
     void loadTelegramWebApp()
       .then(async (webApp) => {
         if (!webApp) return;
-        const result = await signInWithTelegram(webApp.initData, role);
+        const result = await signInWithTelegram(webApp.initData);
         if (result.status === 'signed-in') setUser(result.user);
       })
       .catch(() => undefined) // Falls back to the normal sign-in page.

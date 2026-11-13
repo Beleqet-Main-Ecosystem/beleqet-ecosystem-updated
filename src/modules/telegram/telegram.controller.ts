@@ -36,7 +36,7 @@ export class TelegramController {
   })
   @ApiResponse({ status: 401, description: 'Invalid signature or expired timestamp' })
   async tmaLogin(@Body() dto: TmaAuthDto) {
-    return this.tmaService.authenticateTmaUser(dto.initData, dto.role);
+    return this.tmaService.authenticateTmaUser(dto.initData);
   }
 
   @Post('tma-link')

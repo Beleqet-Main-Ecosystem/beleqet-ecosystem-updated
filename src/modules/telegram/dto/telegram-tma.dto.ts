@@ -16,7 +16,8 @@ export class TmaAuthDto {
   initData: string;
 
   @ApiProperty({
-    description: 'Optional preferred user role upon new account onboarding',
+    description:
+      'Ignored. Telegram sign-in no longer creates accounts (they are made in the bot); kept so older clients still pass validation.',
     enum: TmaUserRole,
     required: false,
     example: TmaUserRole.JOB_SEEKER,

@@ -60,6 +60,8 @@ export const ERROR_CODES = {
   EMAIL_NOT_VERIFIED: 'ERR_EMAIL_NOT_VERIFIED',
   /** The account has only a placeholder address (a Telegram sign-up) and must add a real one. */
   EMAIL_REQUIRED: 'ERR_EMAIL_REQUIRED',
+  /** Signing in with a Telegram account that has no Beleqet account: register in the bot first. */
+  TELEGRAM_NOT_REGISTERED: 'ERR_TELEGRAM_NOT_REGISTERED',
   NOT_FOUND: 'ERR_RESOURCE_NOT_FOUND',
   CONFLICT: 'ERR_CONFLICT',
   UNPROCESSABLE: 'ERR_VALIDATION_FAILED',

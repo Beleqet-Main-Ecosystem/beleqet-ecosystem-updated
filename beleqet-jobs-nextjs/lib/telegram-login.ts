@@ -19,6 +19,26 @@ type TelegramLoginApi = {
   ) => void;
 };
 
+/** Where accounts are made: the bot asks for everything an employer needs to reach the person. */
+const JOBS_BOT = `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'BeleqetJobs_Bot'}`;
+
+/**
+ * The bot's registration, from a page the person wanted: a job brings them back to it once they've
+ * registered (the bot's "register_job-<id>" start link); anything else starts plain registration.
+ */
+export function botRegistrationUrl(next: string | null): string {
+  const job = next?.match(/^\/jobs\/([A-Za-z0-9-]{1,48})(?:\/|$|\?)/);
+  return `${JOBS_BOT}?start=${job ? `register_job-${job[1]}` : 'register'}`;
+}
+
+/** Inside Telegram, Telegram opens its own links (the Mini App steps aside); elsewhere, a new tab. */
+export function openInTelegram(url: string): void {
+  const webApp = (window as unknown as { Telegram?: { WebApp?: { openTelegramLink?: (link: string) => void; initData?: string } } })
+    .Telegram?.WebApp;
+  if (webApp?.initData && webApp.openTelegramLink) webApp.openTelegramLink(url);
+  else window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 let loading: Promise<TelegramLoginApi | null> | null = null;
 
 function loginApi(): TelegramLoginApi | null {

@@ -44,10 +44,10 @@ describe('TelegramController', () => {
   });
 
   describe('tmaLogin', () => {
-    it('delegates authentication and role to TelegramTmaService', async () => {
+    it('delegates authentication to TelegramTmaService; the old role field is ignored', async () => {
       const dto = { initData: 'query_id=test&hash=abc12345', role: TmaUserRole.EMPLOYER };
       const res = await controller.tmaLogin(dto);
-      expect(mockTmaService.authenticateTmaUser).toHaveBeenCalledWith(dto.initData, dto.role);
+      expect(mockTmaService.authenticateTmaUser).toHaveBeenCalledWith(dto.initData);
       expect(res).toEqual(expect.objectContaining({ accessToken: 'test-access-token' }));
     });
   });

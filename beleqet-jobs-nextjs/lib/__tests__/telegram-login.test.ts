@@ -1,7 +1,7 @@
 // @jest-environment jsdom
 
 import { isPlaceholderEmail } from "../auth";
-import { askTelegram, TELEGRAM_LOGIN_BOT_ID } from "../telegram-login";
+import { askTelegram, botRegistrationUrl, TELEGRAM_LOGIN_BOT_ID } from "../telegram-login";
 
 type Callback = (data: Record<string, string | number> | false) => void;
 
@@ -37,5 +37,19 @@ describe("isPlaceholderEmail", () => {
     expect(isPlaceholderEmail("telegram_42@beleqet.internal")).toBe(true);
     expect(isPlaceholderEmail(null)).toBe(true);
     expect(isPlaceholderEmail("hana@gmail.com")).toBe(false);
+  });
+});
+
+describe("botRegistrationUrl", () => {
+  it("brings someone who wanted a job back to it after registering in the bot", () => {
+    const id = "4f194529-2fc6-4511-aa7f-b37f6eba5e69";
+    expect(botRegistrationUrl(`/jobs/${id}/apply`)).toBe(`https://t.me/BeleqetJobs_Bot?start=register_job-${id}`);
+    expect(botRegistrationUrl(`/jobs/${id}`)).toBe(`https://t.me/BeleqetJobs_Bot?start=register_job-${id}`);
+  });
+
+  it("otherwise starts plain registration", () => {
+    expect(botRegistrationUrl("/post-job")).toBe("https://t.me/BeleqetJobs_Bot?start=register");
+    expect(botRegistrationUrl(null)).toBe("https://t.me/BeleqetJobs_Bot?start=register");
+    expect(botRegistrationUrl("/jobs?q=driver")).toBe("https://t.me/BeleqetJobs_Bot?start=register");
   });
 });

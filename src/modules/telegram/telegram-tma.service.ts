@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import { ERROR_CODES } from '../../common/filters/all-exceptions.filter';
 import { cleanTelegramUsername, linkTelegram } from './telegram-link';
 
 export interface TelegramUserData {
@@ -152,25 +153,19 @@ export class TelegramTmaService {
   }
 
   /**
-   * Authenticates a user from a Telegram Mini App.
-   * Logs in an existing account by telegramId or provisions a new passwordless profile with the preferred role and wallet.
+   * Signs in the account linked to the Telegram user who opened the Mini App. Someone without
+   * one is refused (ERR_TELEGRAM_NOT_REGISTERED) and browses as a guest until they register.
    */
-  async authenticateTmaUser(
-    initData: string,
-    preferredRole: 'JOB_SEEKER' | 'EMPLOYER' = 'JOB_SEEKER',
-  ) {
-    return this.signIn(this.verifyInitData(initData), preferredRole);
+  async authenticateTmaUser(initData: string) {
+    return this.signIn(this.verifyInitData(initData));
   }
 
-  /**
-   * "Sign in with Telegram" on the website or in the app, like Google. Someone new gets a
-   * job-seeker account; employers register in the bot or with their email.
-   */
+  /** "Sign in with Telegram" on the website or in the app: existing accounts only. */
   async authenticateLoginWidget(data: Record<string, unknown>) {
-    return this.signIn(this.verifyLoginWidget(data), 'JOB_SEEKER');
+    return this.signIn(this.verifyLoginWidget(data));
   }
 
-  private async signIn(userData: TelegramUserData, preferredRole: 'JOB_SEEKER' | 'EMPLOYER') {
+  private async signIn(userData: TelegramUserData) {
     const telegramIdStr = String(userData.id);
 
     const existingUser = await this.prisma.user.findUnique({
@@ -196,9 +191,8 @@ export class TelegramTmaService {
       return this.sessionFor(existingUser);
     }
 
+    // An account made before sign-in became sign-in only, whose Telegram link was lost.
     const syntheticEmail = `tma_${telegramIdStr}@tme.beleqet.local`;
-
-    // Ensure no conflict with synthetic email if previously created without telegramId
     const existingByEmail = await this.prisma.user.findUnique({
       where: { email: syntheticEmail },
       select: { id: true, isActive: true, role: true },
@@ -215,28 +209,13 @@ export class TelegramTmaService {
       return this.sessionFor(existingByEmail);
     }
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        email: syntheticEmail,
-        firstName: userData.first_name || 'Telegram',
-        lastName: userData.last_name || 'User',
-        avatarUrl: userData.photo_url || null,
-        telegramId: telegramIdStr,
-        telegramUsername: username,
-        emailVerified: true,
-        signupMethod: 'TELEGRAM',
-        role: preferredRole,
-        ...(preferredRole === 'EMPLOYER'
-          ? { employerWallet: { create: { balance: 0, lockedBalance: 0 } } }
-          : { wallet: { create: {} } }),
-      },
-      select: { id: true },
+    // Sign-in only: accounts are made in the bot, which asks for the phone, gender, residence and
+    // job title (or with an email). Creating one here left empty, unnamed accounts nobody chose.
+    throw new NotFoundException({
+      message:
+        'This Telegram account isn’t registered on Beleqet yet. Register in the Beleqet Jobs bot first (it takes a minute), or sign in with your email.',
+      errorCode: ERROR_CODES.TELEGRAM_NOT_REGISTERED,
     });
-
-    this.logger.log(
-      `Provisioned new Telegram account for ID ${telegramIdStr} as ${preferredRole} (${syntheticEmail})`,
-    );
-    return this.authService.issueTokensForUserId(newUser.id);
   }
 
   /**
