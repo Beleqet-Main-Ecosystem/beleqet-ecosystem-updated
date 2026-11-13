@@ -52,6 +52,8 @@ export interface TelegramWebApp {
     hideProgress: () => void;
     onClick: (callback: () => void) => void;
     offClick: (callback: () => void) => void;
+    /** Bot API 6.0+: colours of the button. */
+    setParams?: (params: { color?: string; text_color?: string }) => void;
   };
   BackButton: {
     isVisible: boolean;
@@ -78,6 +80,13 @@ export interface TelegramWebApp {
     callback?: (buttonId: string) => void,
   ) => void;
   onEvent: (eventType: string, callback: () => void) => void;
+  /** Newer clients only (Bot API 6.1+), so optional. */
+  colorScheme?: 'light' | 'dark';
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
+  setBottomBarColor?: (color: string) => void;
+  openTelegramLink?: (url: string) => void;
+  openLink?: (url: string) => void;
   offEvent: (eventType: string, callback: () => void) => void;
 }
 

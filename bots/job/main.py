@@ -51,6 +51,9 @@ CONTACT_NAME, EMAIL_CODE, NEW_EMAIL = range(15, 18)
 GENDER, COUNTRY, COUNTRY_TYPED, CITY, LINK_EMAIL, LINK_CODE = range(18, 24)
 
 MIN_PASSWORD_LENGTH = 8
+# Everything a registration collects; cleared when a new registration picks its role.
+REGISTRATION_KEYS = ('name', 'contact_name', 'company_name', 'phone', 'email', 'password', 'job_title',
+                     'gender', 'country', 'city', 'tg_username', 'link_email')
 EMAIL_PATTERN = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 
 # Where most job seekers live, as buttons; anyone else types their country.
@@ -314,8 +317,8 @@ def registration_payload(user_data: dict, telegram_user) -> dict:
         'name': user_data.get('name'),
         # The employer's own name; the company name goes to their company profile.
         'contact_name': user_data.get('contact_name', '') if role_input == 'employer' else '',
-        'email': user_data.get('email'),
-        'password': user_data.get('password'),
+        'email': user_data.get('email') if role_input == 'employer' else None,
+        'password': user_data.get('password') if role_input == 'employer' else None,
         'username': f"tg_{telegram_user.id}",
         'role': ROLE_BACKEND.get(role_input, user_data.get('role', 'candidate')),
         'language': user_data.get('language', 'en'),
@@ -361,19 +364,22 @@ def full_telegram_name(telegram_user) -> str:
     return ' '.join(p.strip() for p in parts if p and p.strip())
 
 
+# The buttons open the Mini App's own screens (the website's /tg pages, made for Telegram).
+MINI_APP = f"{CONFIG['mini_app_url']}/tg"
+
 MENU_URLS = {
     'candidate': {
-        'dashboard': f"{CONFIG['mini_app_url']}/dashboard",
-        'my_profile': f"{CONFIG['mini_app_url']}/profile",
-        'my_applications': f"{CONFIG['mini_app_url']}/applications",
-        'job_list': f"{CONFIG['mini_app_url']}/jobs",
+        'dashboard': MINI_APP,
+        'my_profile': f"{MINI_APP}/profile",
+        'my_applications': f"{MINI_APP}/applications",
+        'job_list': MINI_APP,
     },
     'employer': {
-        'post_job': f"{CONFIG['mini_app_url']}/post-job",
-        'dashboard': f"{CONFIG['mini_app_url']}/dashboard",
-        'my_profile': f"{CONFIG['mini_app_url']}/profile",
-        'my_jobs': f"{CONFIG['mini_app_url']}/dashboard",
-        'applicants': f"{CONFIG['mini_app_url']}/applications",
+        'post_job': f"{MINI_APP}/post-job",
+        'dashboard': f"{MINI_APP}/employer",
+        'my_profile': f"{MINI_APP}/profile",
+        'my_jobs': f"{MINI_APP}/employer",
+        'applicants': f"{MINI_APP}/employer",
     }
 }
 
@@ -504,7 +510,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # --- PRIORITY 2: Deep linking for viewing a JOB ---
     if context.args and context.args[0].startswith("job-"):
         job_slug = context.args[0].split("job-", 1)[1]
-        job_detail_url = f"{CONFIG['mini_app_url']}/jobs/{job_slug}"
+        job_detail_url = f"{MINI_APP}/jobs/{job_slug}"
         if not job_detail_url.startswith(('http://', 'https://')):
              job_detail_url = 'https://' + job_detail_url
              
@@ -690,6 +696,8 @@ async def handle_role_selection(update: Update, context: ContextTypes.DEFAULT_TY
             return ROLE
         return LANGUAGE
 
+    for key in REGISTRATION_KEYS:
+        context.user_data.pop(key, None)
     context.user_data.update({
         'role_input': role_input,
         'role': normalize_role(role_input)
@@ -1094,7 +1102,7 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
                 post_reg_job = context.user_data.get('post_registration_job')
                 if post_reg_job and chat_id:
                     clean_slug = post_reg_job.replace('job-', '')
-                    mini_app_job_url = f"{CONFIG['mini_app_url']}/jobs/{clean_slug}"
+                    mini_app_job_url = f"{MINI_APP}/jobs/{clean_slug}"
                     
                     if lang == 'am':
                         btn_text = "ስራውን ለመክፈት እዚህ ይጫኑ"
@@ -2049,10 +2057,10 @@ async def main() -> None:
             await bot_context.application.bot.set_chat_menu_button(
                 menu_button=MenuButtonWebApp(
                     text="Open App",
-                    web_app=WebAppInfo(url=CONFIG['mini_app_url'])
+                    web_app=WebAppInfo(url=MINI_APP)
                 )
             )
-            logger.info(f">>> Telegram Chat Menu Button set to {CONFIG['mini_app_url']} <<<")
+            logger.info(f">>> Telegram Chat Menu Button set to {MINI_APP} <<<")
         except Exception as e:
             logger.warning(f"Could not set chat menu button: {e}")
 

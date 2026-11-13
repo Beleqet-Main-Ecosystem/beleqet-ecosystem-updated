@@ -5,7 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTelegram } from './useTelegram';
 
 /** Routes considered "home" — BackButton is hidden on these. */
-const ROOT_PATHS = new Set(['/', '/home', '/jobs', '/feed']);
+// The Mini App's sections (app/tg) are roots too: Telegram shows Close there, not Back.
+const ROOT_PATHS = new Set(['/', '/home', '/jobs', '/feed', '/tg', '/tg/applications', '/tg/profile', '/tg/employer']);
 
 /**
  * Wires Telegram's native top-left BackButton to the Next.js router.
