@@ -51,7 +51,8 @@ type SavedJob = {
 };
 
 /** With editId the form loads one of the employer's own jobs and saves changes to it. */
-export default function PostJob({ categories, editId }: { categories: Category[]; editId?: string }) {
+/** `dashboardHref`: where "back to my jobs" goes; the Telegram Mini App passes its own employer home. */
+export default function PostJob({ categories, editId, dashboardHref = '/employer?tab=jobs' }: { categories: Category[]; editId?: string; dashboardHref?: string }) {
   const { t } = useTranslation();
   const { user, ready } = useAuth();
   const editing = Boolean(editId);
@@ -188,7 +189,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
   }
   if (editing && saved === undefined) return <div className="min-h-[60vh]" />;
   if (editing && saved === null) {
-    return <Gate title={t('postJob.editMissing')} text={t('postJob.editMissingText')} action={t('postJob.dashboard')} href="/employer?tab=jobs" />;
+    return <Gate title={t('postJob.editMissing')} text={t('postJob.editMissingText')} action={t('postJob.dashboard')} href={dashboardHref} />;
   }
 
   if (publishedId) {
@@ -206,7 +207,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
           <div className="mt-1.5 flex flex-wrap justify-center gap-2.5">
             {/* A job waiting for review has no public page yet. */}
             {publishedStatus === 'PUBLISHED' && <Link href={`/jobs/${publishedId}`} className={solid}>{t('postJob.view')}</Link>}
-            <Link href="/employer?tab=jobs" className={publishedStatus === 'PUBLISHED' ? outline : solid}>{t('postJob.dashboard')}</Link>
+            <Link href={dashboardHref} className={publishedStatus === 'PUBLISHED' ? outline : solid}>{t('postJob.dashboard')}</Link>
           </div>
         </section>
       </div>
@@ -485,7 +486,7 @@ export default function PostJob({ categories, editId }: { categories: Category[]
           {editing ? (
             <>
               <button type="submit" disabled={publishing} className={solid}>{t(publishing ? 'postJob.saving' : 'postJob.save')}</button>
-              <Link href="/employer?tab=jobs" className={outline}>{t('postJob.cancel')}</Link>
+              <Link href={dashboardHref} className={outline}>{t('postJob.cancel')}</Link>
             </>
           ) : (
             <>

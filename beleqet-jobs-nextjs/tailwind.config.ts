@@ -49,6 +49,18 @@ const config: Config = {
         pageBg: "#F6F7F4",
         muted: "#4D5967",
         border: "#E3E8EC",
+        /* Telegram Mini App: the home page's greens (frontend-main/app/globals.css). */
+        mini: {
+          deep: "#073B25",
+          ink: "#123626",
+          ink2: "#0E2C1E",
+          lime: "#7ED957",
+          limeDeep: "#5FBF3E",
+          onLime: "#123014",
+          tag: "#2C5E1D",
+          bg: "#F5F8F5",
+          muted: "#5C6B62",
+        },
         ink: {
           DEFAULT: "#121922",
           0: '#ffffff',
@@ -101,6 +113,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "var(--font-ethiopic)", "ui-sans-serif", "system-ui", "sans-serif"],
+        /* Headings in the home page style (Sora), as in the Telegram Mini App. */
+        display: ["var(--font-sora)", "var(--font-ethiopic)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       borderRadius: {
         md: "8px",

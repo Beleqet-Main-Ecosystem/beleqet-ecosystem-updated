@@ -14,6 +14,7 @@ import { homePageMetadata } from '@/lib/seo/generate-metadata';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/lib/i18n';
 import { TelegramInitializer } from '@/components/TelegramInitializer';
+import WebsiteOnly from '@/components/WebsiteOnly';
 import { inter, ethiopic, sora } from './fonts';
 
 /* Dynamically-load non-critical client modules — not needed on first paint */
@@ -57,8 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                */}
               <TelegramInitializer />
               <WebSiteSchema />
-              <Header />
-              <VerifyEmailBanner />
+              <WebsiteOnly>
+                <Header />
+                <VerifyEmailBanner />
+              </WebsiteOnly>
               {/*
                * pb-24 on mobile ensures content isn't hidden behind the
                * fixed MobileBottomNav (~70px + safe-area-inset-bottom).
@@ -68,12 +71,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {children}
                 <Toaster position="top-right" richColors />
               </main>
-              <Footer />
-              <Suspense fallback={null}><ChatWidget /></Suspense>
-              {/* Mobile-only: fixed bottom tab bar */}
-              <Suspense fallback={null}><MobileBottomNav /></Suspense>
-              {/* GDPR consent banner — lazy, mobile-optimised */}
-              <Suspense fallback={null}><GdprConsentBanner /></Suspense>
+              <WebsiteOnly>
+                <Footer />
+                <Suspense fallback={null}><ChatWidget /></Suspense>
+                {/* Mobile-only: fixed bottom tab bar */}
+                <Suspense fallback={null}><MobileBottomNav /></Suspense>
+                {/* GDPR consent banner — lazy, mobile-optimised */}
+                <Suspense fallback={null}><GdprConsentBanner /></Suspense>
+              </WebsiteOnly>
             </QueryProvider>
           </AuthProvider>
         </ThemeProvider>

@@ -438,6 +438,39 @@ async def async_test_link_existing_account():
     print("  [PASS] async_test_link_existing_account")
 
 
+async def async_test_new_registration_forgets_old_answers():
+    """Registering as a job seeker after an employer registration sends no leftover email."""
+    sender = RecordingSender()
+    original = bot.bot_context.rate_limiter
+    bot.bot_context.rate_limiter = sender
+    try:
+        context = FakeContext()
+        context.user_data = {'language': 'en', 'email': 'boss@firm.com', 'password': 'Old-pass-123',
+                             'company_name': 'Old Co', 'role_input': 'employer'}
+        state = await bot.handle_role_selection(FakeCallbackUpdate('candidate'), context)
+        assert state == bot.NAME
+        for key in ('email', 'password', 'company_name'):
+            assert key not in context.user_data, key
+        assert context.user_data['role_input'] == 'candidate'
+
+        # Even if one slipped through, a job seeker's registration carries no email or password.
+        seeker = bot.registration_payload({'role_input': 'candidate', 'email': 'x@y.com', 'password': 'secret-123'}, FakeTelegramUser(5))
+        assert seeker['email'] is None and seeker['password'] is None
+    finally:
+        bot.bot_context.rate_limiter = original
+    print("  [PASS] async_test_new_registration_forgets_old_answers")
+
+
+def test_buttons_open_the_mini_app():
+    """Every menu button and job link opens the Mini App's own screens (/tg)."""
+    for role_links in bot.MENU_URLS.values():
+        for url in role_links.values():
+            assert url.startswith(bot.MINI_APP), url
+    assert bot.MINI_APP.endswith('/tg')
+    assert bot.MENU_URLS['employer']['post_job'].endswith('/tg/post-job')
+    print("  [PASS] test_buttons_open_the_mini_app")
+
+
 def test_sgs_challenge_init_data():
     valid_data = make_valid_init_data(5719730488)
     verified = verify_init_data(valid_data, TEST_BOT_TOKEN)
@@ -527,11 +560,13 @@ def main():
     test_job_seeker_residence_and_phone()
     asyncio.run(async_test_job_seeker_steps())
     asyncio.run(async_test_link_existing_account())
+    asyncio.run(async_test_new_registration_forgets_old_answers())
+    test_buttons_open_the_mini_app()
     test_sgs_challenge_init_data()
     asyncio.run(async_test_sgs_challenge_strict_single_vote())
     test_webhook_secret_token_verification()
     print("==================================================")
-    print(" ALL 14 / 14 TESTS PASSED SUCCESSFULLY! (100% OK)")
+    print(" ALL 16 / 16 TESTS PASSED SUCCESSFULLY! (100% OK)")
     print("==================================================")
 
 
