@@ -15,6 +15,7 @@ import CompanySection from './sections/CompanySection';
 import FreelanceWork from './sections/FreelanceWork';
 import PlanSection from './sections/PlanSection';
 import TwoStep from './sections/TwoStep';
+import SignInSection from './sections/SignInSection';
 import DeleteAccount from './sections/DeleteAccount';
 import { card, Confirm, Empty, Failed, Heading, muted, outline, shortDate, solid } from './ui';
 import { errorText } from '@/lib/api-error';
@@ -217,6 +218,7 @@ export default function EmployerDashboard() {
         {tab === 'settings' && (
           <>
             <Heading title={t('emp.tabs.settings')} />
+            <SignInSection />
             <TwoStep />
             <DeleteAccount />
           </>

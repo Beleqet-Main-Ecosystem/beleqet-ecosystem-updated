@@ -155,7 +155,8 @@ def test_translations_complete_in_both_languages():
     en, am = TRANSLATIONS['en'], TRANSLATIONS['am']
     assert set(en) == set(am), f"missing: {set(en) ^ set(am)}"
     assert set(en['menu']) == set(am['menu'])
-    for key in ('enter_email', 'enter_contact_name', 'password_too_short', 'code_sent', 'confirm_to_post'):
+    for key in ('enter_email', 'enter_contact_name', 'password_too_short', 'code_sent', 'confirm_to_post',
+                'share_phone_prompt', 'ask_gender', 'ask_country', 'ask_city', 'link_code_sent'):
         assert en[key] and am[key]
     assert '{email}' in en['code_sent'] and '{email}' in am['code_sent']
     print("  [PASS] test_translations_complete_in_both_languages")
@@ -215,9 +216,10 @@ def test_password_and_code_rules():
 
 
 class FakeMessage:
-    def __init__(self, text, chat_id=7):
+    def __init__(self, text, chat_id=7, contact=None):
         self.text = text
         self.chat_id = chat_id
+        self.contact = contact
 
 
 class FakeUpdate:
@@ -225,6 +227,7 @@ class FakeUpdate:
         self.effective_message = FakeMessage(text, user_id)
         self.effective_user = FakeTelegramUser(user_id)
         self.message = self.effective_message
+        self.callback_query = None
 
 
 class FakeContext:
@@ -235,9 +238,46 @@ class FakeContext:
 class RecordingSender:
     def __init__(self):
         self.sent = []
+        self.markups = []
 
     async def send_message(self, chat_id, text, **kwargs):
         self.sent.append(text)
+        self.markups.append(kwargs.get('reply_markup'))
+
+
+class FakeContact:
+    def __init__(self, phone_number, user_id):
+        self.phone_number = phone_number
+        self.user_id = user_id
+
+
+class FakeQuery:
+    def __init__(self, data, user):
+        self.data = data
+        self.from_user = user
+        self.message = FakeMessage(None, user.id)
+        self.edits = []
+
+    async def answer(self):
+        pass
+
+    async def edit_message_text(self, text, reply_markup=None):
+        self.edits.append(text)
+
+    async def edit_message_reply_markup(self, reply_markup=None):
+        pass
+
+
+class FakeCallbackUpdate:
+    def __init__(self, data, user_id=7):
+        self.effective_user = FakeTelegramUser(user_id)
+        self.callback_query = FakeQuery(data, self.effective_user)
+        self.effective_message = self.callback_query.message
+        self.message = None
+
+
+def button_data(markup):
+    return [button.callback_data for row in markup.inline_keyboard for button in row]
 
 
 async def async_test_email_code_step():
@@ -287,6 +327,115 @@ async def async_test_email_code_step():
     finally:
         bot.bot_api, bot.handle_menu_selection, bot.bot_context.rate_limiter = original
     print("  [PASS] async_test_email_code_step")
+
+
+def test_job_seeker_residence_and_phone():
+    """Typed countries, the person's own shared number, and what reaches the API."""
+    assert bot.country_from_text(' Kenya ') == 'KE'
+    assert bot.country_from_text('saudi  arabia') == 'SA'
+    assert bot.country_from_text('ኢትዮጵያ') == 'ET'
+    assert bot.country_from_text('de') == 'DE'
+    assert bot.country_from_text('Atlantis') is None
+
+    me = FakeTelegramUser(7)
+    assert bot.own_phone(FakeMessage(None, contact=FakeContact('251911223344', 7)), me) == '+251911223344'
+    assert bot.own_phone(FakeMessage(None, contact=FakeContact('+971 50 123 4567', 7)), me) == '+971501234567'
+    # Someone else's contact card isn't the person's number.
+    assert bot.own_phone(FakeMessage(None, contact=FakeContact('+251911000000', 99)), me) is None
+    assert bot.own_phone(FakeMessage('0911223344'), me) is None
+
+    seeker = bot.registration_payload({
+        'role_input': 'candidate', 'name': 'Hana Bekele', 'phone': '+251911223344',
+        'gender': 'FEMALE', 'country': 'ET', 'city': 'Hawassa', 'job_title': 'Nurse',
+    }, FakeTelegramUser(42, 'hana_b'))
+    assert (seeker['gender'], seeker['country'], seeker['city']) == ('FEMALE', 'ET', 'Hawassa')
+    assert seeker['email'] is None and seeker['password'] is None
+    print("  [PASS] test_job_seeker_residence_and_phone")
+
+
+async def async_test_job_seeker_steps():
+    """Phone by the share button only, then gender, country and city, then the job title."""
+    sender = RecordingSender()
+    original = bot.bot_context.rate_limiter
+    bot.bot_context.rate_limiter = sender
+    try:
+        context = FakeContext()
+        context.user_data = {'language': 'en', 'role_input': 'candidate', 'role': 'Candidate'}
+
+        state = await bot.get_phone(FakeUpdate('0911223344'), context)
+        assert state == bot.PHONE and 'phone' not in context.user_data
+        assert sender.sent[-1] == TRANSLATIONS['en']['share_phone_only']
+
+        shared = FakeUpdate(None)
+        shared.effective_message.contact = FakeContact('251911223344', 7)
+        state = await bot.get_phone(shared, context)
+        assert state == bot.GENDER and context.user_data['phone'] == '+251911223344'
+
+        state = await bot.get_gender(FakeCallbackUpdate('gender_FEMALE'), context)
+        assert state == bot.COUNTRY and context.user_data['gender'] == 'FEMALE'
+        assert 'country_ET' in button_data(sender.markups[-1])
+
+        state = await bot.get_country(FakeCallbackUpdate('country_ET'), context)
+        assert state == bot.CITY and context.user_data['country'] == 'ET'
+        assert 'city_0' in button_data(sender.markups[-1])
+
+        state = await bot.get_city(FakeCallbackUpdate('city_5'), context)
+        assert state == bot.JOB_TITLE and context.user_data['city'] == 'Hawassa'
+
+        # Outside Ethiopia: type the country, then the city.
+        state = await bot.get_country(FakeCallbackUpdate('country_other'), context)
+        assert state == bot.COUNTRY_TYPED
+        state = await bot.get_typed_country(FakeUpdate('Lebanon'), context)
+        assert state == bot.CITY and context.user_data['country'] == 'LB'
+        assert sender.sent[-1] == TRANSLATIONS['en']['type_city']
+        state = await bot.get_city(FakeUpdate('  Beirut '), context)
+        assert state == bot.JOB_TITLE and context.user_data['city'] == 'Beirut'
+    finally:
+        bot.bot_context.rate_limiter = original
+    print("  [PASS] async_test_job_seeker_steps")
+
+
+async def async_test_link_existing_account():
+    """Email, the code sent to it, and the menu of the account it unlocks."""
+    calls = []
+    answers = {}
+
+    async def fake_api(path, payload):
+        calls.append((path, payload))
+        return answers[path]
+
+    sender = RecordingSender()
+    original = (bot.bot_api, bot.bot_context.rate_limiter)
+    bot.bot_api, bot.bot_context.rate_limiter = fake_api, sender
+    try:
+        context = FakeContext()
+        context.user_data = {'language': 'en'}
+
+        state = await bot.get_link_email(FakeUpdate('not-an-email'), context)
+        assert state == bot.LINK_EMAIL and calls == []
+
+        answers['link-account'] = (404, {'message': 'No Beleqet account uses that email.'})
+        state = await bot.get_link_email(FakeUpdate('Boss@Firm.com'), context)
+        assert state == bot.LINK_EMAIL and 'No Beleqet account' in sender.sent[-2]
+
+        answers['link-account'] = (200, {'sent': True, 'email': 'boss@firm.com'})
+        state = await bot.get_link_email(FakeUpdate('boss@firm.com'), context)
+        assert state == bot.LINK_CODE
+        assert calls[-1] == ('link-account', {'telegram_id': '7', 'email': 'boss@firm.com'})
+
+        answers['link-account/confirm'] = (400, {'message': 'That code is not right or has expired.'})
+        state = await bot.get_link_code(FakeUpdate('111 111'), context)
+        assert state == bot.LINK_CODE and 'not right' in sender.sent[-1]
+
+        answers['link-account/confirm'] = (200, {'linked': True, 'role': 'employer', 'language': 'am', 'first_name': 'Abebe'})
+        state = await bot.get_link_code(FakeUpdate('123456'), context)
+        assert state == bot.ConversationHandler.END
+        assert calls[-1][1]['code'] == '123456' and calls[-1][1]['email'] == 'boss@firm.com'
+        assert context.user_data['role'] == 'Employer' and context.user_data['language'] == 'am'
+        assert sender.sent[-1] == TRANSLATIONS['am']['link_done'].format(name='Abebe')
+    finally:
+        bot.bot_api, bot.bot_context.rate_limiter = original
+    print("  [PASS] async_test_link_existing_account")
 
 
 def test_sgs_challenge_init_data():
@@ -375,11 +524,14 @@ def main():
     test_registration_payload_keeps_everything()
     test_password_and_code_rules()
     asyncio.run(async_test_email_code_step())
+    test_job_seeker_residence_and_phone()
+    asyncio.run(async_test_job_seeker_steps())
+    asyncio.run(async_test_link_existing_account())
     test_sgs_challenge_init_data()
     asyncio.run(async_test_sgs_challenge_strict_single_vote())
     test_webhook_secret_token_verification()
     print("==================================================")
-    print(" ALL 11 / 11 TESTS PASSED SUCCESSFULLY! (100% OK)")
+    print(" ALL 14 / 14 TESTS PASSED SUCCESSFULLY! (100% OK)")
     print("==================================================")
 
 

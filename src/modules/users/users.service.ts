@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isDeliverableEmail } from '../../common/utils/deliverable-email';
+import { signInMethods } from './sign-in-methods';
 import {
   UpdateUserDto,
   CreateCompanyDto,
@@ -30,6 +32,9 @@ export class UsersService {
         headline: true,
         bio: true,
         location: true,
+        gender: true,
+        country: true,
+        city: true,
         defaultResumeUrl: true,
         portfolioUrl: true,
         githubUrl: true,
@@ -37,10 +42,20 @@ export class UsersService {
         skills: true,
         gdprConsent: true,
         emailVerified: true,
+        telegramUsername: true,
+        signupMethod: true,
+        passwordHash: true,
+        oauthAccounts: { select: { provider: true } },
       },
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+    const { passwordHash, oauthAccounts, ...profile } = user;
+    return {
+      ...profile,
+      // A Telegram-only account has an internal placeholder address; it is never shown.
+      email: isDeliverableEmail(user.email) ? user.email : null,
+      signInMethods: signInMethods({ passwordHash, telegramId: user.telegramId, oauthAccounts }),
+    };
   }
 
   async update(id: string, dto: UpdateUserDto) {
@@ -52,9 +67,12 @@ export class UsersService {
         : dto.gdprConsent
           ? { gdprConsentDate: now, gdprConsentRevoked: false, gdprConsentRevokedAt: null }
           : { gdprConsentRevoked: true, gdprConsentRevokedAt: now };
+    // The city is the place people see; `location` keeps showing it on older screens.
+    const place =
+      dto.city !== undefined && dto.location === undefined ? { location: dto.city } : {};
     return this.prisma.user.update({
       where: { id },
-      data: { ...dto, ...consent },
+      data: { ...dto, ...place, ...consent },
       select: {
         id: true,
         email: true,
@@ -69,6 +87,9 @@ export class UsersService {
         headline: true,
         bio: true,
         location: true,
+        gender: true,
+        country: true,
+        city: true,
         defaultResumeUrl: true,
         portfolioUrl: true,
         githubUrl: true,

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, User, Briefcase, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { isPlaceholderEmail } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 
 export const roleMeta: Record<string, { label: string; className: string }> = {
@@ -89,7 +90,7 @@ export default function HeaderAuth() {
                 <p className="truncate text-sm font-semibold text-ink-900">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="truncate text-xs text-ink-600">{user.email}</p>
+                {!isPlaceholderEmail(user.email) && <p className="truncate text-xs text-ink-600">{user.email}</p>}
               </div>
             </div>
             <span

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -15,10 +16,13 @@ import { Telegraf } from 'telegraf';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { isDeliverableEmail } from '../../common/utils/deliverable-email';
+import { cityName, countryCode, userGender } from '../../common/utils/residence';
+import { linkTelegram } from './telegram-link';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const EMAIL_CODE_EVENT = 'telegram.email_code';
-const EMAIL_CODES_PER_DAY = 5;
+/** One event per code emailed to link an existing account from the bot; five a day per Telegram account. */
+const LINK_CODE_EVENT = 'telegram.link_code';
+const LINK_CODES_PER_DAY = 5;
 
 /** Text for a Telegram message sent with parse_mode HTML. */
 export function escapeHtml(text: string): string {
@@ -474,57 +478,96 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
    */
   async requestEmailCode(telegramId: string, email?: string) {
     const user = await this.botUser(telegramId);
-    let address = user.email;
-    const wanted = typeof email === 'string' ? email.toLowerCase().trim() : '';
-    if (wanted && wanted !== user.email) {
-      if (!EMAIL_PATTERN.test(wanted) || !isDeliverableEmail(wanted)) {
-        throw new BadRequestException('That does not look like an email address.');
-      }
-      if (user.emailVerified && isDeliverableEmail(user.email)) {
-        throw new ConflictException(`Your email ${user.email} is already confirmed.`);
-      }
-      const taken = await this.prisma.user.findUnique({
-        where: { email: wanted },
-        select: { id: true },
-      });
-      if (taken) {
-        throw new ConflictException('That email belongs to another account. Use a different one.');
-      }
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { email: wanted, emailVerified: false },
-      });
-      address = wanted;
-    } else if (user.emailVerified && isDeliverableEmail(user.email)) {
-      return { sent: false, already_confirmed: true, email: user.email };
-    }
-    if (!isDeliverableEmail(address)) {
-      throw new BadRequestException('Send your email address first.');
-    }
+    return this.auth.startEmailConfirmation(user.id, email);
+  }
+
+  /**
+   * "I already have a Beleqet account": emails a code to that account so the person can prove it's
+   * theirs. Admin accounts are never linked from the bot.
+   */
+  async startLinking(telegramId: string, email: string | undefined) {
+    if (!telegramId) throw new BadRequestException('Missing telegram_id');
+    const account = await this.accountToLink(email);
+    const holder = await this.prisma.user.findUnique({
+      where: { telegramId },
+      select: { id: true },
+    });
+    if (holder?.id === account.id) return { sent: false, already_linked: true };
 
     const sentToday = await this.prisma.eventLog.count({
       where: {
-        eventType: EMAIL_CODE_EVENT,
-        entityId: user.id,
+        eventType: LINK_CODE_EVENT,
+        entityId: telegramId,
         createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       },
     });
-    if (sentToday >= EMAIL_CODES_PER_DAY) {
+    if (sentToday >= LINK_CODES_PER_DAY) {
       throw new HttpException(
         'You asked for too many codes today. Try again tomorrow.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-    if (!(await this.auth.sendEmailCodeTo(user.id))) {
+    if (!(await this.auth.sendEmailCodeTo(account.id))) {
       throw new HttpException(
-        'We sent you a code less than a minute ago. Wait a minute, then ask again.',
+        'We sent a code less than a minute ago. Wait a minute, then ask again.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
     await this.prisma.eventLog.create({
-      data: { eventType: EMAIL_CODE_EVENT, entityId: user.id, entityType: 'User', payload: {} },
+      data: {
+        eventType: LINK_CODE_EVENT,
+        entityId: telegramId,
+        entityType: 'Telegram',
+        payload: {},
+      },
     });
-    return { sent: true, already_confirmed: false, email: address };
+    return { sent: true, email: account.email };
+  }
+
+  /** Checks the code and links this Telegram account to the account that received it. */
+  async confirmLinking(
+    telegramId: string,
+    email: string | undefined,
+    code: string | undefined,
+    username?: string,
+  ) {
+    if (!telegramId) throw new BadRequestException('Missing telegram_id');
+    const account = await this.accountToLink(email);
+    await this.auth.confirmEmailCode(account.id, code ?? '');
+    await linkTelegram(this.prisma, account.id, { id: telegramId, username });
+    return {
+      linked: true,
+      role: account.role === 'EMPLOYER' ? 'employer' : 'candidate',
+      language: account.notificationPreference?.language === 'am' ? 'am' : 'en',
+      first_name: account.firstName,
+    };
+  }
+
+  private async accountToLink(email: string | undefined) {
+    const address = typeof email === 'string' ? email.toLowerCase().trim() : '';
+    if (!EMAIL_PATTERN.test(address) || !isDeliverableEmail(address)) {
+      throw new BadRequestException('That does not look like an email address.');
+    }
+    const account = await this.prisma.user.findUnique({
+      where: { email: address },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+        firstName: true,
+        notificationPreference: { select: { language: true } },
+      },
+    });
+    if (!account || !account.isActive) {
+      throw new NotFoundException(
+        'No Beleqet account uses that email. Check it, or register as new instead.',
+      );
+    }
+    if (account.role === 'ADMIN') {
+      throw new ForbiddenException('Admin accounts can’t be linked to Telegram here.');
+    }
+    return account;
   }
 
   /** Checks the 6-digit code a bot user typed and confirms their email. */
@@ -631,6 +674,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
         : 'JOB_SEEKER';
     const language = data.language === 'am' ? 'am' : 'en';
     const companyName = role === 'EMPLOYER' ? text(data.company_name) : '';
+    const city = cityName(data.city);
+    const jobTitle = role === 'JOB_SEEKER' ? text(data.job_title) : '';
 
     if (telegramId) {
       const linked = await this.prisma.user.findFirst({
@@ -669,7 +714,12 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           firstName,
           lastName,
           phone: text(data.phone) || null,
-          headline: role === 'JOB_SEEKER' ? text(data.job_title) || null : null,
+          headline: jobTitle || null,
+          gender: userGender(data.gender),
+          country: countryCode(data.country),
+          city,
+          location: city,
+          signupMethod: 'TELEGRAM_BOT',
           role: role as any,
           isActive: true,
           ...(passwordHash ? { passwordHash } : {}),
@@ -677,6 +727,14 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
           emailVerified: placeholder,
           notificationPreference: { create: { language } },
           ...(companyName ? { company: { create: { name: companyName } } } : {}),
+          // Job seekers hear about jobs like theirs, near them, from the start; editable on the website.
+          ...(role === 'JOB_SEEKER' && (jobTitle || city)
+            ? {
+                jobAlerts: {
+                  create: { keywords: jobTitle ? [jobTitle] : [], location: city },
+                },
+              }
+            : {}),
         },
       });
       return {

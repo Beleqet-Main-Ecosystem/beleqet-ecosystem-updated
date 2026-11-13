@@ -21,6 +21,14 @@ model User {
   telegramId            String?               @unique
   /// "@name" without the @, as Telegram last reported it (bot sign-up, Mini App sign-in).
   telegramUsername      String?
+  /// "MALE" or "FEMALE"; matched against a job's gender requirement.
+  gender                String?
+  /// Country of residence, ISO 3166-1 alpha-2 ("ET").
+  country               String?
+  /// City of residence, spelled like job locations ("Addis Ababa").
+  city                  String?
+  /// How the account was created. Ways to sign in now are worked out from the account itself.
+  signupMethod          SignupMethod          @default(EMAIL)
   isActive              Boolean               @default(true)
   emailVerified         Boolean               @default(false)
   /// Set on successful session issuance (password/OAuth/2FA). Used by admin active-user metrics.
@@ -212,6 +220,16 @@ model SearchHistory {
 }
 
 enum OAuthProvider {
+  GOOGLE
+  LINKEDIN
+}
+
+/// EMAIL: website or app sign-up. TELEGRAM_BOT: registered in the Jobs bot. TELEGRAM: Telegram
+/// sign-in on the website (from the bot's buttons or the Telegram login button).
+enum SignupMethod {
+  EMAIL
+  TELEGRAM_BOT
+  TELEGRAM
   GOOGLE
   LINKEDIN
 }

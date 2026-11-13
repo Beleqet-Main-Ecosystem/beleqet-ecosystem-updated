@@ -12,7 +12,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { Throttle, SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import { TelegramTmaService } from './telegram-tma.service';
 import { TelegramService } from './telegram.service';
-import { TmaAuthDto } from './dto/telegram-tma.dto';
+import { TelegramLoginDto, TmaAuthDto } from './dto/telegram-tma.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { BotApiGuard } from './guards/bot-api.guard';
@@ -48,6 +48,26 @@ export class TelegramController {
   @ApiResponse({ status: 409, description: 'Telegram ID already linked to another account' })
   async tmaLink(@CurrentUser() user: CurrentUserPayload, @Body() dto: TmaAuthDto) {
     return this.tmaService.linkTelegramAccount(user.userId, dto.initData);
+  }
+
+  @Post('login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sign in with Telegram (login button) on the website or in the app' })
+  @ApiResponse({ status: 401, description: 'Invalid signature or expired login data' })
+  async telegramLogin(@Body() dto: TelegramLoginDto) {
+    return this.tmaService.authenticateLoginWidget(dto.data);
+  }
+
+  @Post('connect')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Connect a Telegram account to the signed-in account (login button)' })
+  @ApiResponse({ status: 409, description: 'That Telegram account has its own active account' })
+  async connect(@CurrentUser() user: CurrentUserPayload, @Body() dto: TelegramLoginDto) {
+    return this.tmaService.connectWithLoginWidget(user.userId, dto.data);
   }
 
   @Post('webhook')
@@ -130,5 +150,31 @@ export class TelegramController {
   @ApiOperation({ summary: 'Confirm a bot user email with the 6-digit code they typed' })
   async confirmEmail(@Body() body: { telegram_id: string; code: string }) {
     return this.telegramService.confirmEmailCode(String(body?.telegram_id ?? ''), body?.code);
+  }
+
+  // "I already have a Beleqet account" in the bot: a code to that account's email proves it's theirs.
+  @Post('link-account')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Email a code to an existing account so a bot user can link it' })
+  async startLinking(@Body() body: { telegram_id: string; email: string }) {
+    return this.telegramService.startLinking(String(body?.telegram_id ?? ''), body?.email);
+  }
+
+  @Post('link-account/confirm')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Link a bot user to an existing account with the emailed code' })
+  async confirmLinking(
+    @Body() body: { telegram_id: string; email: string; code: string; tg_username?: string },
+  ) {
+    return this.telegramService.confirmLinking(
+      String(body?.telegram_id ?? ''),
+      body?.email,
+      body?.code,
+      body?.tg_username,
+    );
   }
 }

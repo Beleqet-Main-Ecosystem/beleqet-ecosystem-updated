@@ -146,7 +146,7 @@ export class NotificationsProcessor extends WorkerHost {
   async sendTelegram(job: BullMQJob<TelegramPayload>): Promise<void> {
     const telegramEnabled = this.config.get<string>('TELEGRAM_ENABLED', 'false');
     if (telegramEnabled !== 'true') return;
-    const botToken = this.config.get<string>('TELEGRAM_BOT_TOKEN');
+    const botToken = this.personalBotToken();
     if (!botToken) return;
     try {
       const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -160,6 +160,14 @@ export class NotificationsProcessor extends WorkerHost {
       });
       if (!response.ok) {
         const body = await response.text();
+        // 400/403: the person blocked the bot, never opened it, or the chat is gone. Trying again
+        // won't change that, so don't retry. Rate limits and server errors are retried.
+        if (response.status === 400 || response.status === 403) {
+          this.logger.warn(
+            `Telegram → ${job.data.telegramId} not delivered (${response.status}): ${body}`,
+          );
+          return;
+        }
         throw new Error(`Telegram API ${response.status}: ${body}`);
       }
       this.logger.debug(`Telegram → ${job.data.telegramId}`);
@@ -167,6 +175,22 @@ export class NotificationsProcessor extends WorkerHost {
       this.logger.warn(`Telegram failed: ${(e as Error).message}`);
       throw e;
     }
+  }
+
+  /**
+   * The bot people actually talk to: Telegram lets a bot message only those who opened it (or
+   * allowed it when signing in with Telegram). That's the Jobs bot, the first of
+   * TELEGRAM_MINI_APP_BOT_TOKENS, unless TELEGRAM_USER_BOT_TOKEN names another. TELEGRAM_BOT_TOKEN
+   * (channel posts, admin alerts) is the last resort.
+   */
+  private personalBotToken(): string | undefined {
+    const explicit = this.config.get<string>('TELEGRAM_USER_BOT_TOKEN')?.trim();
+    if (explicit) return explicit;
+    const jobsBot = (this.config.get<string>('TELEGRAM_MINI_APP_BOT_TOKENS') ?? '')
+      .split(',')
+      .map((token) => token.trim())
+      .find((token) => token && token !== 'your_bot_token_here');
+    return jobsBot || this.config.get<string>('TELEGRAM_BOT_TOKEN') || undefined;
   }
 
   /**

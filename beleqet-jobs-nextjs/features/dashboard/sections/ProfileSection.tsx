@@ -7,12 +7,13 @@ import { useTranslation } from '@/lib/i18n';
 import { initials, safeHttpUrl } from '@/features/jobs/format';
 import { uploadAttachment } from '@/features/freelance/actions';
 import { apiGet, apiSend, fetchProfile, type Profile } from '../api';
+import { COUNTRY_CODES, countryName, ETHIOPIAN_CITIES } from '../residence';
 import { card, Failed, Field, Heading, input, link, muted, outline, solid } from '../ui';
 import { errorText } from '@/lib/api-error';
 
 type Slot = { id: string; startTime: string; endTime: string };
 
-const TEXT_FIELDS = ['firstName', 'lastName', 'headline', 'location', 'phone'] as const;
+const TEXT_FIELDS = ['firstName', 'lastName', 'headline', 'phone'] as const;
 const LINK_FIELDS = ['linkedinUrl', 'portfolioUrl', 'githubUrl'] as const;
 
 export default function ProfileSection() {
@@ -94,6 +95,10 @@ export default function ProfileSection() {
     try {
       const body: Record<string, unknown> = { skills: profile!.skills, bio: profile!.bio ?? '' };
       for (const field of TEXT_FIELDS) body[field] = profile![field] ?? '';
+      // Empty clears them.
+      body.gender = profile!.gender ?? '';
+      body.country = profile!.country ?? '';
+      body.city = profile!.city?.trim() ?? '';
       // An empty link clears it.
       for (const field of LINK_FIELDS) body[field] = profile![field] ? safeHttpUrl(profile![field]) : '';
       await apiSend('PATCH', '/users/profile', body);
@@ -169,6 +174,27 @@ export default function ProfileSection() {
               <input type={field === 'phone' ? 'tel' : 'text'} value={profile[field] ?? ''} onChange={(event) => change({ [field]: event.target.value })} className={input} />
             </Field>
           ))}
+          <Field label={t('dash.fields.gender')}>
+            <select value={profile.gender ?? ''} onChange={(event) => change({ gender: (event.target.value || null) as Profile['gender'] })} className={input}>
+              <option value="">{t('dash.notSaid')}</option>
+              <option value="MALE">{t('postJob.genders.MALE')}</option>
+              <option value="FEMALE">{t('postJob.genders.FEMALE')}</option>
+            </select>
+          </Field>
+          <Field label={t('dash.fields.country')}>
+            <select value={profile.country ?? ''} onChange={(event) => change({ country: event.target.value || null })} className={input}>
+              <option value="">{t('dash.notSaid')}</option>
+              {[...COUNTRY_CODES, ...(profile.country && !COUNTRY_CODES.includes(profile.country) ? [profile.country] : [])].map((code) => (
+                <option key={code} value={code}>{countryName(code, locale)}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label={t('dash.fields.city')}>
+            <input type="text" list="beleqet-cities" autoComplete="address-level2" value={profile.city ?? ''} onChange={(event) => change({ city: event.target.value })} className={input} />
+            <datalist id="beleqet-cities">
+              {ETHIOPIAN_CITIES.map((city) => <option key={city} value={city} />)}
+            </datalist>
+          </Field>
         </div>
         <Field label={t('dash.fields.bio')}>
           <textarea rows={4} value={profile.bio ?? ''} onChange={(event) => change({ bio: event.target.value })} className={`${input} resize-y py-3 leading-normal`} />

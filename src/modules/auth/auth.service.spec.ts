@@ -368,3 +368,91 @@ describe('AuthService', () => {
     });
   });
 });
+
+describe('AuthService.startEmailConfirmation (bot and website "add your email")', () => {
+  const prisma = {
+    user: { findUnique: jest.fn(), update: jest.fn() },
+    eventLog: { count: jest.fn(), create: jest.fn() },
+  };
+  const svc = Object.assign(Object.create(AuthService.prototype), { prisma }) as AuthService;
+  const sendEmailCodeTo = jest.fn();
+  (svc as unknown as { sendEmailCodeTo: jest.Mock }).sendEmailCodeTo = sendEmailCodeTo;
+  const person = (fields: Record<string, unknown>) => ({
+    id: 'u1',
+    email: 'boss@firm.com',
+    emailVerified: false,
+    ...fields,
+  });
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    prisma.eventLog.count.mockResolvedValue(0);
+    sendEmailCodeTo.mockResolvedValue(true);
+  });
+
+  it('sends a code to the address on the account', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(person({}));
+    await expect(svc.startEmailConfirmation('u1')).resolves.toMatchObject({
+      sent: true,
+      email: 'boss@firm.com',
+    });
+    expect(sendEmailCodeTo).toHaveBeenCalledWith('u1');
+    expect(prisma.eventLog.create).toHaveBeenCalled();
+  });
+
+  it('lets a Telegram-only account add its first real email, unconfirmed', async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce(person({ email: 'tma_42@tme.beleqet.local', emailVerified: true }))
+      .mockResolvedValueOnce(null);
+    await svc.startEmailConfirmation('u1', ' New@Firm.com ');
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { email: 'new@firm.com', emailVerified: false },
+    });
+    expect(sendEmailCodeTo).toHaveBeenCalledWith('u1');
+  });
+
+  it('refuses the email of another account, and replacing a confirmed one', async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce(person({}))
+      .mockResolvedValueOnce({ id: 'someone-else' });
+    await expect(svc.startEmailConfirmation('u1', 'taken@firm.com')).rejects.toThrow(
+      'belongs to another account',
+    );
+    prisma.user.findUnique.mockResolvedValueOnce(person({ emailVerified: true }));
+    await expect(svc.startEmailConfirmation('u1', 'other@firm.com')).rejects.toThrow(
+      'already confirmed',
+    );
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(sendEmailCodeTo).not.toHaveBeenCalled();
+  });
+
+  it('needs an address before a code, and refuses a placeholder one', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(
+      person({ email: 'telegram_42@beleqet.internal', emailVerified: true }),
+    );
+    await expect(svc.startEmailConfirmation('u1')).rejects.toThrow('email address first');
+    prisma.user.findUnique.mockResolvedValueOnce(person({}));
+    await expect(svc.startEmailConfirmation('u1', 'x@beleqet.internal')).rejects.toThrow(
+      'does not look like an email',
+    );
+  });
+
+  it('allows five codes a day and one a minute', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(person({}));
+    prisma.eventLog.count.mockResolvedValueOnce(5);
+    await expect(svc.startEmailConfirmation('u1')).rejects.toThrow('too many codes today');
+    prisma.user.findUnique.mockResolvedValueOnce(person({}));
+    sendEmailCodeTo.mockResolvedValueOnce(false);
+    await expect(svc.startEmailConfirmation('u1')).rejects.toThrow('less than a minute ago');
+  });
+
+  it('says so when the email is already confirmed, without sending', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(person({ emailVerified: true }));
+    await expect(svc.startEmailConfirmation('u1')).resolves.toMatchObject({
+      sent: false,
+      already_confirmed: true,
+    });
+    expect(sendEmailCodeTo).not.toHaveBeenCalled();
+  });
+});

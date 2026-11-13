@@ -4,6 +4,8 @@ import {
   ConflictException,
   Logger,
   BadRequestException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -56,6 +58,10 @@ const EMAIL_CODE_ATTEMPT = 'EMAIL_VERIFICATION_CODE_ATTEMPT';
 const EMAIL_CODE_MINUTES = 15;
 const EMAIL_CODE_MAX_ATTEMPTS = 5;
 const EMAIL_CODE_RESEND_GAP_MS = 60 * 1000;
+const EMAIL_PATTERN = /^[^s@]+@[^s@]+.[^s@]+$/;
+/** One event per code emailed from the bot or the website's "add your email"; five a day. */
+export const EMAIL_CODE_EVENT = 'telegram.email_code';
+export const EMAIL_CODES_PER_DAY = 5;
 
 /** Sign-up and sign-in answer for an account that still has to enter its email code. */
 export interface EmailVerificationChallenge {
@@ -254,6 +260,72 @@ export class AuthService {
     });
     if (!user) throw new BadRequestException('This account no longer exists.');
     return this.sendEmailCode(user);
+  }
+
+  /**
+   * Emails a 6-digit code so a signed-in person (website) or a bot user can confirm their email.
+   * With `email`, first sets that address: a Telegram-only account adding one, or a typo being
+   * fixed. A confirmed address isn't replaced here (that is change-email, with the password).
+   * At most one code a minute and five a day.
+   */
+  async startEmailConfirmation(userId: string, email?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, emailVerified: true },
+    });
+    if (!user) throw new BadRequestException('This account no longer exists.');
+    let address = user.email;
+    const confirmed = user.emailVerified && isDeliverableEmail(user.email);
+    const wanted = typeof email === 'string' ? email.toLowerCase().trim() : '';
+    if (wanted && wanted !== user.email) {
+      if (!EMAIL_PATTERN.test(wanted) || !isDeliverableEmail(wanted)) {
+        throw new BadRequestException('That does not look like an email address.');
+      }
+      if (confirmed) {
+        throw new ConflictException(`Your email ${user.email} is already confirmed.`);
+      }
+      const taken = await this.prisma.user.findUnique({
+        where: { email: wanted },
+        select: { id: true },
+      });
+      if (taken) {
+        throw new ConflictException('That email belongs to another account. Use a different one.');
+      }
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { email: wanted, emailVerified: false },
+      });
+      address = wanted;
+    } else if (confirmed) {
+      return { sent: false, already_confirmed: true, email: user.email };
+    }
+    if (!isDeliverableEmail(address)) {
+      throw new BadRequestException('Send your email address first.');
+    }
+
+    const sentToday = await this.prisma.eventLog.count({
+      where: {
+        eventType: EMAIL_CODE_EVENT,
+        entityId: user.id,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    });
+    if (sentToday >= EMAIL_CODES_PER_DAY) {
+      throw new HttpException(
+        'You asked for too many codes today. Try again tomorrow.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (!(await this.sendEmailCodeTo(user.id))) {
+      throw new HttpException(
+        'We sent you a code less than a minute ago. Wait a minute, then ask again.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    await this.prisma.eventLog.create({
+      data: { eventType: EMAIL_CODE_EVENT, entityId: user.id, entityType: 'User', payload: {} },
+    });
+    return { sent: true, already_confirmed: false, email: address };
   }
 
   /**

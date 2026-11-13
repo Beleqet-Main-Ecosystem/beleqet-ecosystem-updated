@@ -16,7 +16,8 @@ const LIMIT = 25;
 
 type User = {
   id: string;
-  email: string;
+  /** Null for accounts made in Telegram without an email. */
+  email: string | null;
   firstName: string;
   lastName: string;
   role: string;
@@ -25,6 +26,13 @@ type User = {
   emailVerified: boolean;
   twoFactorEnabled: boolean;
   createdAt: string;
+  signupMethod?: 'EMAIL' | 'TELEGRAM_BOT' | 'TELEGRAM' | 'GOOGLE' | 'LINKEDIN';
+  signInMethods?: ('PASSWORD' | 'GOOGLE' | 'LINKEDIN' | 'TELEGRAM')[];
+  phone?: string | null;
+  telegramUsername?: string | null;
+  gender?: 'MALE' | 'FEMALE' | null;
+  country?: string | null;
+  city?: string | null;
 };
 type Page = { data: User[]; total: number; page: number; limit: number };
 type Pending =
@@ -122,19 +130,37 @@ export default function UsersPage() {
         {users.data?.data.map((person) => {
           const self = person.id === me?.id;
           return (
-            <div key={person.id} data-user={person.email} className={row}>
+            <div key={person.id} data-user={person.email ?? person.id} className={row}>
               <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-1">
                 <span className="flex flex-wrap items-center gap-2">
                   <b className="text-ink-900 dark:text-white">{fullName(person)}</b>
                   {self && <Badge>{t('users.you')}</Badge>}
                   {!person.isActive && <Badge tone="red">{t('users.suspended')}</Badge>}
                 </span>
-                <span className={`${muted} break-all`}>{person.email}</span>
+                <span className={`${muted} break-all`}>{person.email ?? t('users.noEmail')}</span>
+                {(person.phone || person.telegramUsername || person.city || person.gender) && (
+                  <span className={`${muted} break-all`}>
+                    {[
+                      person.phone,
+                      person.telegramUsername && `@${person.telegramUsername}`,
+                      [person.city, person.country].filter(Boolean).join(', '),
+                      person.gender && t(`users.gender.${person.gender}`),
+                    ].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+                {person.signupMethod && (
+                  <span className={muted}>
+                    {t('users.signedUpVia', { method: t(`users.signup.${person.signupMethod}`) })}
+                    {person.signInMethods?.length
+                      ? ` · ${t('users.signsInWith', { methods: person.signInMethods.map((method) => t(`users.method.${method}`)).join(', ') })}`
+                      : ''}
+                  </span>
+                )}
                 <span className="flex flex-wrap gap-1.5">
                   <Badge tone={person.role === 'ADMIN' ? 'amber' : 'gray'}>{t(`roles.${person.role}`)}</Badge>
                   {person.twoFactorEnabled && <Badge tone="green">{t('users.twoStep')}</Badge>}
                   {person.kycVerified && <Badge tone="green">{t('users.kyc')}</Badge>}
-                  {!person.emailVerified && <Badge>{t('users.emailUnverified')}</Badge>}
+                  {person.email && !person.emailVerified && <Badge>{t('users.emailUnverified')}</Badge>}
                 </span>
               </div>
               <span className={`${muted} w-[110px] pt-1`}>{t('users.joined', { date: formatDate(person.createdAt, locale) })}</span>

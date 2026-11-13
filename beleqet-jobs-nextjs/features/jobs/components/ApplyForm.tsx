@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, MapPin } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { authenticatedFetch } from '@/lib/auth';
+import { authenticatedFetch, isPlaceholderEmail } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 import { daysUntil, safeHttpUrl } from '../format';
 import { ApiError, errorText } from '@/lib/api-error';
@@ -36,9 +36,13 @@ export type ApplyJob = {
  * Apply on Beleqet, as its own page: the profile CV or a new upload, an optional cover letter,
  * portfolio and expected salary. Signed-out visitors are sent to sign in and brought back here.
  */
+/** Set once an account made in Telegram has been offered to add an email after applying. */
+const EMAIL_NUDGE_KEY = 'beleqet_email_nudge_seen';
+
 export default function ApplyForm({ job }: { job: ApplyJob }) {
   const { t } = useTranslation();
   const { user, ready } = useAuth();
+  const [emailNudge, setEmailNudge] = useState(false);
   const router = useRouter();
   const [profileCv, setProfileCv] = useState<string | null>(null);
   const [cvChoice, setCvChoice] = useState<'profile' | 'upload'>('upload');
@@ -48,6 +52,17 @@ export default function ApplyForm({ job }: { job: ApplyJob }) {
   const [portfolio, setPortfolio] = useState('');
   const [salary, setSalary] = useState('');
   const [status, setStatus] = useState<'checking' | 'form' | 'sending' | 'sent' | 'duplicate'>('checking');
+  // Once, after an application from an account made in Telegram; it is only a suggestion.
+  useEffect(() => {
+    if (status !== 'sent' || !user || !isPlaceholderEmail(user.email)) return;
+    try {
+      if (localStorage.getItem(EMAIL_NUDGE_KEY)) return;
+      localStorage.setItem(EMAIL_NUDGE_KEY, '1');
+    } catch {
+      return;
+    }
+    setEmailNudge(true);
+  }, [status, user]);
   const [error, setError] = useState('');
   const busy = status === 'sending';
   const jobHref = `/jobs/${job.id}`;
@@ -172,6 +187,13 @@ export default function ApplyForm({ job }: { job: ApplyJob }) {
               {t('job.apply.keepBrowsing')}
             </Link>
           </div>
+          {emailNudge && (
+            <div className="flex max-w-md flex-col gap-1.5 rounded-lg bg-[#F6F7F4] p-4 text-left dark:bg-slate-800">
+              <b className="text-[15px] text-ink-900 dark:text-white">{t('job.apply.addEmailTitle')}</b>
+              <p className="text-sm leading-relaxed text-ink-700 dark:text-slate-300">{t('job.apply.addEmailText')}</p>
+              <Link href="/dashboard?tab=settings" className="text-sm font-bold text-forest hover:underline dark:text-limeAccent">{t('job.apply.addEmail')}</Link>
+            </div>
+          )}
         </section>
       )}
 

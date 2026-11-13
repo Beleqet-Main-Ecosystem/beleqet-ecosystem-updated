@@ -7,7 +7,7 @@ import { useTranslation } from '@/lib/i18n';
 import { initials, safeHttpUrl } from '@/features/jobs/format';
 import { apiGet, apiSend, type ApplicationStatus } from '../api';
 import type { EmployerJob } from '../EmployerDashboard';
-import { card, Empty, Failed, Heading, input, muted, outline, shortDate, solid } from '../ui';
+import { card, Empty, Failed, Heading, input, link, muted, outline, shortDate, solid } from '../ui';
 import { errorText } from '@/lib/api-error';
 
 type Applicant = {
@@ -17,7 +17,18 @@ type Applicant = {
   coverLetter?: string;
   resumeUrl?: string;
   expectedSalary?: number;
-  user: { id: string; firstName: string; lastName: string; email: string; skills?: string[] };
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    /** Null for people who signed up in Telegram without one. */
+    email: string | null;
+    phone?: string | null;
+    telegramUsername?: string | null;
+    city?: string | null;
+    gender?: 'MALE' | 'FEMALE' | null;
+    skills?: string[];
+  };
   score?: { overallScore: number; summary?: string };
 };
 
@@ -108,7 +119,19 @@ export default function ApplicantsSection({ jobs, selectedId }: { jobs: Employer
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-limeAccent" aria-hidden="true">{initials(name)}</span>
               <span className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5">
                 <b className="text-ink-900 dark:text-white">{name}</b>
-                <span className={`break-all ${muted}`}>{[row.user.email, shortDate(row.createdAt, locale)].join(' · ')}</span>
+                <span className={`break-all ${muted}`}>
+                  {[row.user.email, row.user.city, row.user.gender ? t(`postJob.genders.${row.user.gender}`) : null, shortDate(row.createdAt, locale)].filter(Boolean).join(' · ')}
+                </span>
+                {(row.user.phone || row.user.telegramUsername) && (
+                  <span className="flex flex-wrap gap-x-3 text-[13px]">
+                    {row.user.phone && <a href={`tel:${row.user.phone.replace(/[^+\d]/g, '')}`} className={link}>{row.user.phone}</a>}
+                    {row.user.telegramUsername && (
+                      <a href={`https://t.me/${row.user.telegramUsername}`} target="_blank" rel="noopener noreferrer" className={link}>
+                        {t('emp.telegramContact').replace('{username}', row.user.telegramUsername)}
+                      </a>
+                    )}
+                  </span>
+                )}
                 {row.expectedSalary ? <span className={muted}>{t('emp.expects').replace('{amount}', `ETB ${row.expectedSalary.toLocaleString('en-US')}`)}</span> : null}
               </span>
               {row.score && <span className="rounded-md bg-[#EEF5EF] px-2 py-0.5 text-xs font-bold text-forest dark:bg-forest/30 dark:text-limeAccent">{t('emp.match').replace('{score}', String(Math.round(row.score.overallScore)))}</span>}

@@ -277,7 +277,11 @@ describe('TelegramService email codes for bot users', () => {
     user: { findUnique: jest.fn(), update: jest.fn() },
     eventLog: { count: jest.fn(), create: jest.fn() },
   };
-  const auth = { sendEmailCodeTo: jest.fn(), confirmEmailCode: jest.fn() };
+  const auth = {
+    sendEmailCodeTo: jest.fn(),
+    confirmEmailCode: jest.fn(),
+    startEmailConfirmation: jest.fn(),
+  };
   const service = new TelegramService(
     { get: () => undefined } as never,
     prisma as never,
@@ -291,76 +295,15 @@ describe('TelegramService email codes for bot users', () => {
     ...fields,
   });
 
-  beforeEach(() => {
-    jest.resetAllMocks();
-    prisma.eventLog.count.mockResolvedValue(0);
-    auth.sendEmailCodeTo.mockResolvedValue(true);
-  });
+  beforeEach(() => jest.resetAllMocks());
 
-  it('sends a code to the address on the account', async () => {
+  it('sends the code through the same steps as the website', async () => {
     prisma.user.findUnique.mockResolvedValueOnce(person({}));
-    await expect(service.requestEmailCode('42')).resolves.toMatchObject({
+    auth.startEmailConfirmation.mockResolvedValueOnce({ sent: true, email: 'new@firm.com' });
+    await expect(service.requestEmailCode('42', 'new@firm.com')).resolves.toMatchObject({
       sent: true,
-      email: 'boss@firm.com',
     });
-    expect(auth.sendEmailCodeTo).toHaveBeenCalledWith('u1');
-    expect(prisma.eventLog.create).toHaveBeenCalled();
-  });
-
-  it('lets a Telegram sign-up add its first real email, unconfirmed', async () => {
-    prisma.user.findUnique
-      .mockResolvedValueOnce(person({ email: 'tma_42@tme.beleqet.local', emailVerified: true }))
-      .mockResolvedValueOnce(null);
-    await service.requestEmailCode('42', ' New@Firm.com ');
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: 'u1' },
-      data: { email: 'new@firm.com', emailVerified: false },
-    });
-    expect(auth.sendEmailCodeTo).toHaveBeenCalledWith('u1');
-  });
-
-  it('refuses the email of another account, and replacing a confirmed one', async () => {
-    prisma.user.findUnique
-      .mockResolvedValueOnce(person({}))
-      .mockResolvedValueOnce({ id: 'someone-else' });
-    await expect(service.requestEmailCode('42', 'taken@firm.com')).rejects.toThrow(
-      'belongs to another account',
-    );
-    prisma.user.findUnique.mockResolvedValueOnce(person({ emailVerified: true }));
-    await expect(service.requestEmailCode('42', 'other@firm.com')).rejects.toThrow(
-      'already confirmed',
-    );
-    expect(prisma.user.update).not.toHaveBeenCalled();
-    expect(auth.sendEmailCodeTo).not.toHaveBeenCalled();
-  });
-
-  it('needs an address before a code, and refuses a placeholder one', async () => {
-    prisma.user.findUnique.mockResolvedValueOnce(
-      person({ email: 'telegram_42@beleqet.internal', emailVerified: true }),
-    );
-    await expect(service.requestEmailCode('42')).rejects.toThrow('email address first');
-    prisma.user.findUnique.mockResolvedValueOnce(person({}));
-    await expect(service.requestEmailCode('42', 'x@beleqet.internal')).rejects.toThrow(
-      'does not look like an email',
-    );
-  });
-
-  it('allows five codes a day and one a minute', async () => {
-    prisma.user.findUnique.mockResolvedValueOnce(person({}));
-    prisma.eventLog.count.mockResolvedValueOnce(5);
-    await expect(service.requestEmailCode('42')).rejects.toThrow('too many codes today');
-    prisma.user.findUnique.mockResolvedValueOnce(person({}));
-    auth.sendEmailCodeTo.mockResolvedValueOnce(false);
-    await expect(service.requestEmailCode('42')).rejects.toThrow('less than a minute ago');
-  });
-
-  it('says so when the email is already confirmed, without sending', async () => {
-    prisma.user.findUnique.mockResolvedValueOnce(person({ emailVerified: true }));
-    await expect(service.requestEmailCode('42')).resolves.toMatchObject({
-      sent: false,
-      already_confirmed: true,
-    });
-    expect(auth.sendEmailCodeTo).not.toHaveBeenCalled();
+    expect(auth.startEmailConfirmation).toHaveBeenCalledWith('u1', 'new@firm.com');
   });
 
   it('confirms with the code the person typed, through the same check as the website', async () => {
@@ -375,5 +318,142 @@ describe('TelegramService email codes for bot users', () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
     await expect(service.requestEmailCode('404')).rejects.toThrow('not registered');
     await expect(service.confirmEmailCode('', '123456')).rejects.toThrow('not registered');
+    expect(auth.startEmailConfirmation).not.toHaveBeenCalled();
+  });
+});
+
+describe('TelegramService linking an existing account from the bot', () => {
+  const prisma = {
+    user: { findUnique: jest.fn(), update: jest.fn() },
+    eventLog: { count: jest.fn(), create: jest.fn() },
+    $transaction: jest.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
+  };
+  const auth = { sendEmailCodeTo: jest.fn(), confirmEmailCode: jest.fn() };
+  const service = new TelegramService(
+    { get: () => undefined } as never,
+    prisma as never,
+    auth as never,
+  );
+  const account = (fields: Record<string, unknown> = {}) => ({
+    id: 'web-1',
+    email: 'boss@firm.com',
+    role: 'EMPLOYER',
+    isActive: true,
+    firstName: 'Abebe',
+    notificationPreference: { language: 'am' },
+    ...fields,
+  });
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    prisma.$transaction.mockImplementation((operations: Promise<unknown>[]) =>
+      Promise.all(operations),
+    );
+    prisma.eventLog.count.mockResolvedValue(0);
+    auth.sendEmailCodeTo.mockResolvedValue(true);
+  });
+
+  it('emails a code to the account, counting codes per Telegram account', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(account()).mockResolvedValueOnce(null);
+    await expect(service.startLinking('42', ' Boss@Firm.com ')).resolves.toEqual({
+      sent: true,
+      email: 'boss@firm.com',
+    });
+    expect(auth.sendEmailCodeTo).toHaveBeenCalledWith('web-1');
+    expect(prisma.eventLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ eventType: 'telegram.link_code', entityId: '42' }),
+    });
+  });
+
+  it('says plainly when no account uses the email, and never links admins', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    await expect(service.startLinking('42', 'nobody@firm.com')).rejects.toThrow(
+      'No Beleqet account uses that email',
+    );
+    prisma.user.findUnique.mockResolvedValueOnce(account({ role: 'ADMIN' }));
+    await expect(service.startLinking('42', 'boss@firm.com')).rejects.toThrow('Admin accounts');
+    expect(auth.sendEmailCodeTo).not.toHaveBeenCalled();
+  });
+
+  it('stops after five codes a day for one Telegram account', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(account()).mockResolvedValueOnce(null);
+    prisma.eventLog.count.mockResolvedValueOnce(5);
+    await expect(service.startLinking('42', 'boss@firm.com')).rejects.toThrow('too many codes');
+  });
+
+  it('links the Telegram account once the emailed code is right', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(account()).mockResolvedValueOnce(null);
+    await expect(
+      service.confirmLinking('42', 'boss@firm.com', '123456', 'abebe_k'),
+    ).resolves.toEqual({ linked: true, role: 'employer', language: 'am', first_name: 'Abebe' });
+    expect(auth.confirmEmailCode).toHaveBeenCalledWith('web-1', '123456');
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'web-1' },
+      data: { telegramId: '42', telegramUsername: 'abebe_k' },
+    });
+  });
+
+  it('links nothing when the code is wrong', async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(account());
+    auth.confirmEmailCode.mockRejectedValueOnce(new Error('That code is not right'));
+    await expect(service.confirmLinking('42', 'boss@firm.com', '000000')).rejects.toThrow(
+      'not right',
+    );
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('TelegramService job seeker registration without email', () => {
+  const prisma = {
+    user: { findFirst: jest.fn(), create: jest.fn() },
+  };
+  const service = new TelegramService(
+    { get: () => undefined } as never,
+    prisma as never,
+    {} as never,
+  );
+
+  it('needs no email or password, keeps where they live, and starts a job alert', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue({ id: 's', role: 'JOB_SEEKER', emailVerified: true });
+    await service.registerFromBot({
+      telegram_id: '77',
+      role: 'candidate',
+      name: 'Hana Bekele',
+      phone: '+251911223344',
+      gender: 'female',
+      country: 'et',
+      city: ' Addis  Ababa ',
+      job_title: 'Accountant',
+      tg_username: 'hana_b',
+    });
+    const data = prisma.user.create.mock.calls[0][0].data;
+    expect(data).toMatchObject({
+      email: 'telegram_77@beleqet.internal',
+      emailVerified: true,
+      phone: '+251911223344',
+      gender: 'FEMALE',
+      country: 'ET',
+      city: 'Addis Ababa',
+      location: 'Addis Ababa',
+      signupMethod: 'TELEGRAM_BOT',
+      headline: 'Accountant',
+      jobAlerts: { create: { keywords: ['Accountant'], location: 'Addis Ababa' } },
+    });
+    expect(data).not.toHaveProperty('passwordHash');
+  });
+
+  it('ignores a gender or country it does not know', async () => {
+    prisma.user.findFirst.mockResolvedValue(null);
+    prisma.user.create.mockResolvedValue({ id: 's', role: 'JOB_SEEKER', emailVerified: true });
+    await service.registerFromBot({
+      telegram_id: '78',
+      role: 'candidate',
+      gender: 'x',
+      country: 'Ethiopia',
+    });
+    const data = prisma.user.create.mock.calls.at(-1)[0].data;
+    expect(data).toMatchObject({ gender: null, country: null, city: null });
+    expect(data).not.toHaveProperty('jobAlerts');
   });
 });
