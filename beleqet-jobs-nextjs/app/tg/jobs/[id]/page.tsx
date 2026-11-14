@@ -103,7 +103,7 @@ export default function MiniAppJob() {
         <dl className="grid grid-cols-2 gap-2">
           {facts.map((fact) => (
             <div key={fact.k} className={`${card} flex flex-col gap-0.5 p-3`}>
-              <dt className="text-xs text-mini-muted dark:text-slate-400">{fact.k}</dt>
+              <dt className="text-xs text-mini-muted dark:text-mini-dmuted">{fact.k}</dt>
               <dd className="text-sm font-bold leading-snug text-ink-900 dark:text-white">{fact.v}</dd>
             </div>
           ))}
@@ -118,7 +118,7 @@ export default function MiniAppJob() {
         {blocks.length > 0 && (
           <section aria-labelledby="about-job" className={`${card} flex flex-col gap-2 p-4`}>
             <h2 id="about-job" className="text-base font-extrabold text-ink-900 dark:text-white">{t('mini.job.about')}</h2>
-            <div className="flex flex-col gap-2 text-[15px] leading-relaxed text-ink-700 dark:text-slate-300">
+            <div className="flex flex-col gap-2 text-[15px] leading-relaxed text-ink-700 dark:text-mini-dsoft">
               {shown.map((block, i) =>
                 block.kind === 'heading' ? (
                   <h3 key={i} className="mt-1 font-bold text-ink-900 dark:text-white">{block.text}</h3>

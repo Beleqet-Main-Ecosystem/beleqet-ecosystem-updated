@@ -119,12 +119,12 @@ export default function MiniAppApplicants() {
                 {row.user.email && <span className={`${muted} break-all`}>{row.user.email}</span>}
               </span>
               {row.score && (
-                <span className="shrink-0 rounded-md bg-mini-ink px-2 py-0.5 text-xs font-extrabold tabular-nums text-mini-lime">
+                <span className="shrink-0 rounded-md bg-mini-button px-2 py-0.5 text-xs font-extrabold tabular-nums text-mini-lime">
                   {t('mini.applicants.match').replace('{score}', String(Math.round(row.score.overallScore)))}
                 </span>
               )}
             </div>
-            {row.coverLetter && <p className="line-clamp-3 text-sm leading-relaxed text-ink-700 dark:text-slate-300">{row.coverLetter}</p>}
+            {row.coverLetter && <p className="line-clamp-3 text-sm leading-relaxed text-ink-700 dark:text-mini-dsoft">{row.coverLetter}</p>}
             <div className="grid grid-cols-3 gap-1.5">
               {cv ? (
                 <a href={cv} target="_blank" rel="noopener noreferrer" className={`${outlineButton} gap-1.5 !px-2`}><FileText className="h-4 w-4" aria-hidden="true" />CV</a>
@@ -137,20 +137,20 @@ export default function MiniAppApplicants() {
                 <span className={`${outlineButton} !px-2 opacity-50`}>{t('mini.applicants.noPhone')}</span>
               )}
               {row.user.telegramUsername ? (
-                <button type="button" onClick={() => message(row.user.telegramUsername!)} aria-label={t('mini.applicants.message').replace('{name}', name)} className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-mini-ink px-2 text-sm font-bold text-white">
+                <button type="button" onClick={() => message(row.user.telegramUsername!)} aria-label={t('mini.applicants.message').replace('{name}', name)} className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-mini-button px-2 text-sm font-bold text-white">
                   <Send className="h-4 w-4" aria-hidden="true" />Telegram
                 </button>
               ) : (
                 <span className={`${outlineButton} !px-2 opacity-50`}>{t('mini.applicants.noTelegram')}</span>
               )}
             </div>
-            <label className="flex items-center gap-2.5 text-[13px] text-mini-muted dark:text-slate-400">
+            <label className="flex items-center gap-2.5 text-[13px] text-mini-muted dark:text-mini-dmuted">
               {t('mini.applicants.stage')}
               <select
                 value={row.status}
                 onChange={(e) => void move(row.id, e.target.value as ApplicationStatus)}
                 aria-label={t('mini.applicants.stageFor').replace('{name}', name)}
-                className="h-10 flex-1 rounded-xl border border-ink-300 bg-white px-2.5 text-sm font-bold text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                className="h-10 flex-1 rounded-xl border border-ink-300 bg-white px-2.5 text-sm font-bold text-ink-900 dark:border-mini-dborder dark:bg-mini-dcard dark:text-white"
               >
                 {row.status === 'WITHDRAWN' && <option value="WITHDRAWN">{t('dash.status.WITHDRAWN')}</option>}
                 {STAGES.map((stage) => <option key={stage} value={stage}>{t(`dash.status.${stage}`)}</option>)}

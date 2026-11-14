@@ -54,11 +54,13 @@ export default function MiniAppApplications() {
         {apps?.map((app) => {
           const { reached, ended } = stageOf(app.status);
           const company = app.job.company?.name ?? '';
+          // The pill names the step the tracker shows; offers and endings keep their own word.
+          const label = ended || app.status === 'OFFERED' ? t(`dash.status.${app.status}`) : t(`mini.stages.${STAGES[reached]}`);
           const pill = ended
             ? 'bg-[#FDECEC] text-[#9B2C2C] dark:bg-[#3A1A1A] dark:text-[#F5B4B4]'
             : reached >= 2
               ? 'bg-mini-lime text-mini-onLime'
-              : 'bg-ink-100 text-ink-700 dark:bg-slate-800 dark:text-slate-200';
+              : 'bg-ink-100 text-ink-700 dark:bg-mini-dborder dark:text-mini-dtext';
           return (
             <article key={app.id} className={`${card} flex flex-col gap-2.5 p-3.5`}>
               <Link href={`/tg/jobs/${app.jobId}`} className="flex items-start gap-3">
@@ -67,13 +69,13 @@ export default function MiniAppApplications() {
                   <b className="text-[15px] text-ink-900 dark:text-white">{app.job.title}</b>
                   <span className={muted}>{[company, t('mini.apps.applied').replace('{date}', shortDate(app.createdAt, locale))].filter(Boolean).join(' · ')}</span>
                 </span>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-extrabold ${pill}`}>{t(`dash.status.${app.status}`)}</span>
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-extrabold ${pill}`}>{label}</span>
               </Link>
               <ol aria-label={t('mini.apps.progress')} className="grid grid-cols-4 gap-1">
                 {STAGES.map((stage, i) => (
                   <li key={stage} className="flex flex-col gap-1.5">
-                    <span aria-hidden="true" className={`h-[5px] rounded-full ${i <= reached ? (ended ? 'bg-ink-400 dark:bg-slate-600' : 'bg-mini-tag dark:bg-mini-lime') : 'bg-ink-200 dark:bg-slate-800'}`} />
-                    <span className={`text-[11px] ${i === reached ? 'font-extrabold text-ink-900 dark:text-white' : 'text-mini-muted dark:text-slate-400'}`}>{t(`mini.stages.${stage}`)}</span>
+                    <span aria-hidden="true" className={`h-[5px] rounded-full ${i <= reached ? (ended ? 'bg-ink-400 dark:bg-mini-dmuted' : 'bg-mini-tag dark:bg-mini-lime') : 'bg-ink-200 dark:bg-mini-dborder'}`} />
+                    <span className={`text-[11px] ${i === reached ? 'font-extrabold text-ink-900 dark:text-white' : 'text-mini-muted dark:text-mini-dmuted'}`}>{t(`mini.stages.${stage}`)}</span>
                   </li>
                 ))}
               </ol>

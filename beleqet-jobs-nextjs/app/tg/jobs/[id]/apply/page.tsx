@@ -115,7 +115,7 @@ export default function MiniAppApply() {
               <Check className="h-8 w-8" strokeWidth={3} />
             </span>
             <h1 role="status" className={heading}>{t(step === 'sent' ? 'mini.apply.sentTitle' : 'mini.apply.duplicateTitle')}</h1>
-            <p className="text-[15px] leading-relaxed text-ink-700 dark:text-slate-300">
+            <p className="text-[15px] leading-relaxed text-ink-700 dark:text-mini-dsoft">
               {(step === 'sent' ? t('mini.apply.sentText') : t('mini.apply.duplicateText')).replace('{title}', job.title).replace('{company}', job.company)}
             </p>
           </div>
@@ -149,16 +149,16 @@ export default function MiniAppApply() {
         <fieldset className="flex flex-col gap-2">
           <legend className="pb-2 text-[15px] font-extrabold">{t('mini.apply.cv')}</legend>
           {profile?.defaultResumeUrl && (
-            <label className={`${card} flex items-start gap-3 p-3.5 ${useProfileCv ? '!border-2 !border-mini-ink dark:!border-mini-lime' : ''}`}>
-              <input type="radio" name="cv" checked={useProfileCv} onChange={() => setUseProfileCv(true)} className="mt-0.5 h-5 w-5 accent-mini-ink" />
+            <label className={`${card} flex items-start gap-3 p-3.5 ${useProfileCv ? '!border-2 !border-mini-button dark:!border-mini-lime' : ''}`}>
+              <input type="radio" name="cv" checked={useProfileCv} onChange={() => setUseProfileCv(true)} className="mt-0.5 h-5 w-5 accent-mini-button" />
               <span className="flex flex-col gap-0.5">
                 <b className="text-[15px]">{t('mini.apply.profileCv')}</b>
                 <span className={muted}>{t('mini.apply.profileCvHint')}</span>
               </span>
             </label>
           )}
-          <label className={`${card} flex items-start gap-3 p-3.5 ${!useProfileCv ? '!border-2 !border-mini-ink dark:!border-mini-lime' : ''}`}>
-            <input type="radio" name="cv" checked={!useProfileCv} onChange={() => { setUseProfileCv(false); fileRef.current?.click(); }} className="mt-0.5 h-5 w-5 accent-mini-ink" />
+          <label className={`${card} flex items-start gap-3 p-3.5 ${!useProfileCv ? '!border-2 !border-mini-button dark:!border-mini-lime' : ''}`}>
+            <input type="radio" name="cv" checked={!useProfileCv} onChange={() => { setUseProfileCv(false); fileRef.current?.click(); }} className="mt-0.5 h-5 w-5 accent-mini-button" />
             <span className="flex min-w-0 flex-col gap-0.5">
               <b className="truncate text-[15px]">{file ? file.name : t('mini.apply.upload')}</b>
               <span className={muted}>{t('mini.apply.uploadHint')}</span>
@@ -182,23 +182,23 @@ export default function MiniAppApply() {
 
         <label className="flex flex-col gap-2">
           <span className="text-[15px] font-extrabold">
-            {t('mini.apply.note')} <span className="font-medium text-mini-muted dark:text-slate-400">({t('mini.apply.optional')})</span>
+            {t('mini.apply.note')} <span className="font-medium text-mini-muted dark:text-mini-dmuted">({t('mini.apply.optional')})</span>
           </span>
           <textarea
             rows={4}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder={t('mini.apply.notePlaceholder')}
-            className="resize-none rounded-xl border border-ink-300 bg-white p-3 text-base leading-normal dark:border-slate-700 dark:bg-slate-900"
+            className="resize-none rounded-xl border border-ink-300 bg-white p-3 text-base leading-normal dark:border-mini-dborder dark:bg-mini-dcard"
           />
           {noteShort && <span className="text-[13px] text-[#9A3412] dark:text-[#F2C26B]">{t('job.apply.coverShort').replace('{n}', String(NOTE_MIN - note.trim().length))}</span>}
         </label>
 
         <section className={`${card} flex flex-col gap-2.5 p-3.5`}>
           <b className="text-sm">{t('mini.apply.employerSees')}</b>
-          <span className="text-sm leading-relaxed text-ink-700 dark:text-slate-300">{contact}</span>
-          <label className="flex items-start gap-2.5 text-sm leading-snug text-ink-700 dark:text-slate-300">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-mini-ink" />
+          <span className="text-sm leading-relaxed text-ink-700 dark:text-mini-dsoft">{contact}</span>
+          <label className="flex items-start gap-2.5 text-sm leading-snug text-ink-700 dark:text-mini-dsoft">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-mini-button" />
             <span>{t('job.apply.consent')}</span>
           </label>
         </section>
