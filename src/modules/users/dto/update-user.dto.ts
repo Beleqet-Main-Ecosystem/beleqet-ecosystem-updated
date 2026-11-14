@@ -8,6 +8,11 @@ import {
   IsIn,
   Matches,
   MaxLength,
+  IsArray,
+  ArrayMaxSize,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ClearableUrl } from '../../../common/decorators/clearable-url.decorator';
@@ -164,9 +169,15 @@ export class CreateCompanyDto {
   @ClearableUrl() linkedinUrl?: string | null;
   @ClearableUrl() twitterUrl?: string | null;
   @ClearableUrl() facebookUrl?: string | null;
-  @IsOptional() @IsString() coverImageUrl?: string;
-  @IsOptional() @IsString({ each: true }) benefits?: string[];
-  @IsOptional() foundedYear?: number;
+  @ClearableUrl() coverImageUrl?: string | null;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
+  benefits?: string[];
+  /** null clears it. */
+  @IsOptional() @IsInt() @Min(1800) @Max(2100) foundedYear?: number | null;
 }
 
 /** Editing the company profile: every field optional, and links can be cleared. */

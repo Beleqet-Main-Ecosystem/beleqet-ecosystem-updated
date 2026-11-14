@@ -1752,7 +1752,29 @@
     "resubmit": "Send again",
     "inReview": "Waiting for approval. We'll email you when it's live.",
     "rejectedReason": "Not approved: {reason}",
-    "telegramContact": "Telegram: @{username}"
+    "telegramContact": "Telegram: @{username}",
+    "websiteLabel": "Website",
+    "linkedin": "LinkedIn",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "founded": "Founded",
+    "foundedYear": "Year founded",
+    "benefits": "Benefits",
+    "benefitsHint": "One per line, for example:\nHealth insurance\nTransport allowance",
+    "cover": "Cover image",
+    "coverHint": "A wide picture of your office, team or work. JPG, PNG or WebP, up to 10 MB.",
+    "addCover": "Add cover image",
+    "changeCover": "Change cover image",
+    "removeCover": "Remove cover image",
+    "notAdded": "Not added",
+    "contact": "Contact",
+    "contactSub": "The details you registered with.",
+    "contactPerson": "Contact person",
+    "phone": "Phone",
+    "email": "Email",
+    "telegram": "Telegram",
+    "errLink": "Enter a full link, like https://example.com",
+    "errYear": "Enter the year founded as 4 digits, between 1800 and {year}."
   },
   "tax": {
     "title": "Salary tax calculator",
@@ -2261,7 +2283,10 @@
         "CLOSED": "Closed",
         "ARCHIVED": "Archived",
         "REJECTED": "Needs changes"
-      }
+      },
+      "company": "Company details",
+      "companyEmpty": "Add your industry, location and more",
+      "editCompany": "Edit company details"
     },
     "applicants": {
       "title": "Applicants",
