@@ -69,8 +69,8 @@ export default function MiniAppProfile() {
       <main className="flex flex-1 flex-col gap-3 p-4">
         <dl className={`${card} flex flex-col px-3.5`}>
           {rows.map((row, i) => (
-            <div key={row.k} className={`flex min-h-[50px] items-center gap-2.5 ${i ? 'border-t border-ink-100 dark:border-slate-800' : ''}`}>
-              <dt className="w-28 shrink-0 text-[13px] text-mini-muted dark:text-slate-400">{row.k}</dt>
+            <div key={row.k} className={`flex min-h-[50px] items-center gap-2.5 ${i ? 'border-t border-ink-100 dark:border-mini-dborder' : ''}`}>
+              <dt className="w-28 shrink-0 text-[13px] text-mini-muted dark:text-mini-dmuted">{row.k}</dt>
               <dd className="min-w-0 flex-1 break-words text-sm font-semibold">{row.v}</dd>
             </div>
           ))}
@@ -108,7 +108,7 @@ export default function MiniAppProfile() {
                 type="button"
                 aria-pressed={locale === code}
                 onClick={() => chooseLanguage(code)}
-                className={`h-9 rounded-full px-3.5 text-sm font-bold ${locale === code ? 'bg-mini-ink text-mini-lime dark:bg-mini-lime dark:text-mini-onLime' : 'border border-ink-300 dark:border-slate-700'}`}
+                className={`h-9 rounded-full px-3.5 text-sm font-bold ${locale === code ? 'bg-mini-button text-mini-lime dark:bg-mini-lime dark:text-mini-onLime' : 'border border-ink-300 dark:border-mini-dborder'}`}
               >
                 {code === 'en' ? 'English' : 'አማርኛ'}
               </button>

@@ -95,7 +95,7 @@ export default function MiniAppFeed() {
             <h1 className="font-display text-xl font-bold tracking-[-0.02em]">{greeting}</h1>
             {about && <p className="text-[13px] text-white/70">{about}</p>}
           </div>
-          <label className="flex h-[46px] items-center gap-2.5 rounded-xl bg-white px-3.5 text-mini-muted dark:bg-slate-900 dark:text-slate-400">
+          <label className="flex h-[46px] items-center gap-2.5 rounded-xl bg-white px-3.5 text-mini-muted dark:bg-mini-dcard dark:text-mini-dmuted">
             <span className="sr-only">{t('mini.feed.search')}</span>
             <Search className="h-[18px] w-[18px]" aria-hidden="true" />
             <input
@@ -131,7 +131,7 @@ export default function MiniAppFeed() {
         {failed && (
           <div className={`${card} flex flex-col items-center gap-3 p-6 text-center`}>
             <p className={muted}>{t('mini.feed.failed')}</p>
-            <button type="button" onClick={() => load(1)} className="rounded-xl border border-ink-300 px-4 py-2.5 text-sm font-bold dark:border-slate-700">{t('mini.retry')}</button>
+            <button type="button" onClick={() => load(1)} className="rounded-xl border border-ink-300 px-4 py-2.5 text-sm font-bold dark:border-mini-dborder">{t('mini.retry')}</button>
           </div>
         )}
         {!failed && jobs === null && <div className="min-h-[50vh]" aria-busy="true" />}
@@ -139,7 +139,7 @@ export default function MiniAppFeed() {
           <div className={`${card} flex flex-col items-center gap-3 p-6 text-center`}>
             <b className="text-[15px]">{t('mini.feed.none')}</b>
             {filter.id !== 'all' && (
-              <button type="button" onClick={() => setFilterId('all')} className="rounded-xl border border-ink-300 px-4 py-2.5 text-sm font-bold dark:border-slate-700">{t('mini.feed.seeAll')}</button>
+              <button type="button" onClick={() => setFilterId('all')} className="rounded-xl border border-ink-300 px-4 py-2.5 text-sm font-bold dark:border-mini-dborder">{t('mini.feed.seeAll')}</button>
             )}
           </div>
         )}
@@ -160,11 +160,11 @@ export default function MiniAppFeed() {
                     <span className="shrink-0 rounded-md bg-mini-lime px-1.5 py-0.5 text-[11px] font-extrabold text-mini-onLime">{t('mini.badge.new')}</span>
                   ) : null}
                 </span>
-                <span className="text-[13px] text-ink-700 dark:text-slate-300">{job.company}</span>
+                <span className="text-[13px] text-ink-700 dark:text-mini-dsoft">{job.company}</span>
                 <span className={muted}>{[job.location, typeLabel].filter(Boolean).join(' · ')}</span>
                 <span className="mt-1 flex items-center justify-between gap-2">
                   <b className="text-sm text-ink-900 dark:text-white">{pay}</b>
-                  <span className="shrink-0 text-xs text-mini-muted dark:text-slate-400">{postedAgo(job.createdAt, locale, job.postedAgo)}</span>
+                  <span className="shrink-0 text-xs text-mini-muted dark:text-mini-dmuted">{postedAgo(job.createdAt, locale, job.postedAgo)}</span>
                 </span>
               </span>
             </Link>
@@ -172,7 +172,7 @@ export default function MiniAppFeed() {
         })}
 
         {jobs && jobs.length > 0 && page < pages && (
-          <button type="button" onClick={() => load(page + 1)} className="min-h-12 rounded-xl border border-ink-300 bg-white text-[15px] font-bold dark:border-slate-700 dark:bg-slate-900">
+          <button type="button" onClick={() => load(page + 1)} className="min-h-12 rounded-xl border border-ink-300 bg-white text-[15px] font-bold dark:border-mini-dborder dark:bg-mini-dcard">
             {t('mini.feed.more')}
           </button>
         )}

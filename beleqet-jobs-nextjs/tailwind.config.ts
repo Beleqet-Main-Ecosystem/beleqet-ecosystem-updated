@@ -51,7 +51,9 @@ const config: Config = {
         border: "#E3E8EC",
         /* Telegram Mini App: the home page's greens (frontend-main/app/globals.css). */
         mini: {
+          /* Primary. Filled buttons, selected chips and tiles use the darker shade. */
           deep: "#073B25",
+          button: "#052E1D",
           ink: "#123626",
           ink2: "#0E2C1E",
           lime: "#7ED957",
@@ -60,6 +62,14 @@ const config: Config = {
           tag: "#2C5E1D",
           bg: "#F5F8F5",
           muted: "#5C6B62",
+          /* Dark theme (Telegram dark): green-tinted surfaces from the Mini App design. */
+          dbg: "#0F1712",
+          dcard: "#17221C",
+          dborder: "#26362D",
+          dtab: "#121C16",
+          dtext: "#E9EEEA",
+          dsoft: "#C9D3CC",
+          dmuted: "#A7B5AC",
         },
         ink: {
           DEFAULT: "#121922",

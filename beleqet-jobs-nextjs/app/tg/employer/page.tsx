@@ -27,8 +27,8 @@ const PILL: Record<string, string> = {
   PUBLISHED: 'bg-mini-lime text-mini-onLime',
   PENDING_REVIEW: 'bg-[#FFF4DE] text-[#7A4B00] dark:bg-[#2E2615] dark:text-[#F2C26B]',
   REJECTED: 'bg-[#FDECEC] text-[#9B2C2C] dark:bg-[#3A1A1A] dark:text-[#F5B4B4]',
-  DRAFT: 'bg-ink-100 text-ink-700 dark:bg-slate-800 dark:text-slate-200',
-  CLOSED: 'bg-ink-100 text-ink-700 dark:bg-slate-800 dark:text-slate-200',
+  DRAFT: 'bg-ink-100 text-ink-700 dark:bg-mini-dborder dark:text-mini-dtext',
+  CLOSED: 'bg-ink-100 text-ink-700 dark:bg-mini-dborder dark:text-mini-dtext',
 };
 
 /** An employer's home in the Mini App: what's live, what waits for review, and who applied. */
@@ -89,7 +89,7 @@ export default function MiniAppEmployer() {
           </div>
           <div className="grid grid-cols-3 gap-2">
             {stats.map((stat) => (
-              <div key={stat.label} className="flex flex-col gap-0.5 rounded-xl bg-mini-ink p-2.5">
+              <div key={stat.label} className="flex flex-col gap-0.5 rounded-xl bg-mini-button p-2.5">
                 <b className={`text-[22px] tabular-nums ${stat.lime ? 'text-mini-lime' : 'text-white'}`}>{jobs ? stat.n : '–'}</b>
                 <span className="text-xs text-white/75">{stat.label}</span>
               </div>
@@ -128,7 +128,7 @@ export default function MiniAppEmployer() {
                 </span>
                 <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-extrabold ${PILL[job.status] ?? PILL.DRAFT}`}>{t(`mini.employer.status.${job.status}`)}</span>
               </span>
-              <span className={`text-[13px] font-semibold leading-snug ${job.status === 'REJECTED' ? 'text-[#9B2C2C] dark:text-[#F5B4B4]' : job.status === 'PUBLISHED' ? 'text-mini-tag dark:text-mini-lime' : 'text-mini-muted dark:text-slate-400'}`}>{line}</span>
+              <span className={`text-[13px] font-semibold leading-snug ${job.status === 'REJECTED' ? 'text-[#9B2C2C] dark:text-[#F5B4B4]' : job.status === 'PUBLISHED' ? 'text-mini-tag dark:text-mini-lime' : 'text-mini-muted dark:text-mini-dmuted'}`}>{line}</span>
             </Link>
           );
         })}

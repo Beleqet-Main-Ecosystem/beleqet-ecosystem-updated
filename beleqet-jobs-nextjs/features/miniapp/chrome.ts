@@ -12,7 +12,8 @@ export const MINI_COLORS = {
   lime: '#7ED957',
   onLime: '#123014',
   bgLight: '#F5F8F5',
-  bgDark: '#06130A',
+  bgDark: '#0F1712',
+  barDark: '#121C16',
 } as const;
 
 /**
@@ -31,7 +32,7 @@ export function useMiniAppChrome(): void {
       try {
         webApp.setHeaderColor?.(MINI_COLORS.deep);
         webApp.setBackgroundColor?.(dark ? MINI_COLORS.bgDark : MINI_COLORS.bgLight);
-        webApp.setBottomBarColor?.(dark ? MINI_COLORS.bgDark : '#FFFFFF');
+        webApp.setBottomBarColor?.(dark ? MINI_COLORS.barDark : '#FFFFFF');
         webApp.MainButton.setParams?.({ color: MINI_COLORS.lime, text_color: MINI_COLORS.onLime });
       } catch {
         // Older Telegram clients lack some of these; the defaults are fine there.
