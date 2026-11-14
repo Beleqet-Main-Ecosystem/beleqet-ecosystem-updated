@@ -1749,7 +1749,29 @@
     "resubmit": "እንደገና ላክ",
     "inReview": "ማረጋገጫ በመጠበቅ ላይ። ሲታተም በኢሜይል እናሳውቅዎታለን።",
     "rejectedReason": "አልጸደቀም፦ {reason}",
-    "telegramContact": "ቴሌግራም: @{username}"
+    "telegramContact": "ቴሌግራም: @{username}",
+    "websiteLabel": "ድረ ገጽ",
+    "linkedin": "LinkedIn",
+    "facebook": "Facebook",
+    "twitter": "X (Twitter)",
+    "founded": "የተመሰረተበት ዓመት",
+    "foundedYear": "የተመሰረተበት ዓመት",
+    "benefits": "ጥቅማ ጥቅሞች",
+    "benefitsHint": "በአንድ መስመር አንድ፣ ለምሳሌ፦\nየጤና መድን\nየትራንስፖርት አበል",
+    "cover": "የሽፋን ምስል",
+    "coverHint": "የቢሮዎ፣ የቡድንዎ ወይም የስራዎ ሰፊ ምስል። JPG፣ PNG ወይም WebP፣ እስከ 10 MB።",
+    "addCover": "የሽፋን ምስል ጨምር",
+    "changeCover": "የሽፋን ምስል ቀይር",
+    "removeCover": "የሽፋን ምስል አስወግድ",
+    "notAdded": "አልተጨመረም",
+    "contact": "የመገኛ መረጃ",
+    "contactSub": "ሲመዘገቡ የሰጡት መረጃ።",
+    "contactPerson": "ተጠሪ ሰው",
+    "phone": "ስልክ",
+    "email": "ኢሜል",
+    "telegram": "ቴሌግራም",
+    "errLink": "ሙሉ ሊንክ ያስገቡ፣ ለምሳሌ https://example.com",
+    "errYear": "የተመሰረተበትን ዓመት በ4 አሃዝ ያስገቡ፣ ከ1800 እስከ {year}።"
   },
   "tax": {
     "title": "የደመወዝ ግብር ማስያ",
@@ -2258,7 +2280,10 @@
         "CLOSED": "ተዘግቷል",
         "ARCHIVED": "ተቀምጧል",
         "REJECTED": "ማስተካከያ ይፈልጋል"
-      }
+      },
+      "company": "የድርጅት መረጃ",
+      "companyEmpty": "ዘርፍ፣ አካባቢ እና ሌሎችንም ያክሉ",
+      "editCompany": "የድርጅት መረጃ አስተካክል"
     },
     "applicants": {
       "title": "አመልካቾች",
