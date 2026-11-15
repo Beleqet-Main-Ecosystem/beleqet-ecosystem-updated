@@ -454,7 +454,7 @@
     "employerDashboard": "የአሰሪ ዳሽቦርድ",
     "browseProjects": "ፕሮጀክቶችን ያስሱ",
     "postProject": "ፕሮጀክት ለጥፍ",
-    "howEscrowWorks": "Escrow እንዴት ይሰራል",
+    "howEscrowWorks": "ኤስክሮው እንዴት ይሰራል",
     "privacy": "የግላዊነት ፖሊሲ",
     "location": "አዲስ አበባ፣ ኢትዮጵያ።"
   },
@@ -511,7 +511,8 @@
       "EMPLOYER": "አሰሪ",
       "FREELANCER": "ፍሪላንሰር",
       "ADMIN": "አስተዳዳሪ"
-    }
+    },
+    "brandTagline": "ስራ · ፍሪላንስ"
   },
   "nav": {
     "careerTools": "የሙያ መሣሪያዎች",
@@ -533,8 +534,8 @@
     "viewAll": "ሁሉንም ይመልከቱ",
     "bid": "ጨረታ",
     "bids": "ጨረታዎች",
-    "escrowFixed": "Escrow · ቋሚ ዋጋ",
-    "escrowHourly": "Escrow · በሰዓት",
+    "escrowFixed": "ኤስክሮው · ቋሚ ዋጋ",
+    "escrowHourly": "ኤስክሮው · በሰዓት",
     "hero": {
       "badge": "የኢትዮጵያ የስራ እና የፍሪላንስ መገናኛ",
       "modeLabel": "ለምን መጡ?",
@@ -571,8 +572,8 @@
     "trust": {
       "label": "ሰዎች በለቀትን የሚጠቀሙበት ምክንያት",
       "payWith": "ይክፈሉ እና ክፍያ ይቀበሉ በ",
-      "escrow": "በEscrow የተጠበቁ የፍሪላንስ ውሎች",
-      "languages": "አማርኛ እና English",
+      "escrow": "በኤስክሮው የተጠበቁ የፍሪላንስ ውሎች",
+      "languages": "አማርኛ እና እንግሊዝኛ",
       "telegram": "አዳዲስ ስራዎች በቴሌግራም"
     },
     "latest": {
@@ -614,7 +615,7 @@
         "who": "ለስራ ፈላጊዎች",
         "title": "ቀጣዩን ስራዎን ያግኙ",
         "cta": "ስራ ፈልግ",
-        "step1": "ፕሮፋይልዎን ይፍጠሩ፣ በነፃው CV Maker ሲቪ ያዘጋጁ።",
+        "step1": "ፕሮፋይልዎን ይፍጠሩ፣ በነፃው ሲቪ አዘጋጅ ሲቪ ያዘጋጁ።",
         "step2": "በርዕስ፣ በሙያ ወይም በከተማ ይፈልጉ፣ በቀጥታ ለአሰሪው ያመልክቱ።",
         "step3": "እያንዳንዱን ማመልከቻ ይከታተሉ፣ አዳዲስ ተዛማጅ ስራዎችን በቴሌግራም ያግኙ።"
       },
@@ -632,16 +633,16 @@
         "cta": "ፕሮጀክት ለጥፍ",
         "step1": "ፕሮጀክቱን ይግለጹ፣ በጀት ያስቀምጡ።",
         "step2": "የፍሪላንሰሮችን ጨረታ አወዳድረው አንዱን ይቀበሉ።",
-        "step3": "Escrowን ይሙሉ፣ ክፍያውን በየደረጃው ይልቀቁ።"
+        "step3": "ኤስክሮውን ይሙሉ፣ ክፍያውን በየደረጃው ይልቀቁ።"
       }
     },
     "escrow": {
-      "badge": "BeleqetSafe Escrow",
+      "badge": "BeleqetSafe ኤስክሮው",
       "title": "ገንዘቡ የሚንቀሳቀሰው ስራው ሲሰራ ብቻ ነው።",
       "sub": "ደንበኛው ውሉን ቀድሞ ይሞላል፤ ፍሪላንሰሩ ገንዘቡ መኖሩን አውቆ ይጀምራል። እያንዳንዱ ደረጃ የሚከፈለው ደንበኛው ስራውን ካጸደቀ በኋላ ብቻ ነው።",
       "step1": {
         "title": "ይሙሉ",
-        "text": "ደንበኛው የተስማሙበትን መጠን ወደ Escrow ይከፍላል።"
+        "text": "ደንበኛው የተስማሙበትን መጠን ወደ ኤስክሮው ይከፍላል።"
       },
       "step2": {
         "title": "ያስረክቡ",
@@ -672,7 +673,7 @@
         },
         "disputes": {
           "k": "አለመግባባቶች",
-          "v": "ማንኛውም ወገን ሊከፍት ይችላል። በለቀት ጉዳዩን እስኪመረምር ድረስ Escrow ይታገዳል።"
+          "v": "ማንኛውም ወገን ሊከፍት ይችላል። በለቀት ጉዳዩን እስኪመረምር ድረስ ኤስክሮው ይታገዳል።"
         }
       },
       "cta": "የፍሪላንስ ፕሮጀክት ለጥፍ"
@@ -688,7 +689,54 @@
       "human-resource-and-talent-management": "የሰው ሀብት",
       "construction-and-civil-engineering": "ኮንስትራክሽን እና ሲቪል ምህንድስና",
       "health-care": "ጤና",
-      "teaching-and-tutor": "ማስተማር"
+      "teaching-and-tutor": "ማስተማር",
+      "advisory-and-consultancy": "ምክር እና የማማከር አገልግሎት",
+      "aeronautics-and-aerospace": "አቪዬሽን እና ኤሮስፔስ",
+      "agriculture": "ግብርና",
+      "architecture-and-urban-planning": "አርክቴክቸር እና የከተማ ፕላን",
+      "beauty-and-grooming": "ውበት እና የፀጉር ስራ",
+      "broker-and-case-closer": "ደላላ እና ጉዳይ አስፈጻሚ",
+      "business-and-commerce": "ንግድ",
+      "chemical-and-biomedical-engineering": "ኬሚካል እና ባዮሜዲካል ምህንድስና",
+      "clothing-and-textile": "አልባሳት እና ጨርቃ ጨርቅ",
+      "customer-service-and-care": "የደንበኞች አገልግሎት",
+      "data-mining-and-analytics": "ዳታ እና ትንተና",
+      "documentation-and-writing-services": "ሰነድ ዝግጅት እና ጽሑፍ",
+      "entertainment": "መዝናኛ",
+      "environmental-and-energy-engineering": "የአካባቢ እና የኢነርጂ ምህንድስና",
+      "event-management-and-organization": "የዝግጅት አስተዳደር",
+      "fashion-design": "የፋሽን ዲዛይን",
+      "food-and-drink-preparation-or-service": "ምግብ እና መጠጥ ዝግጅት",
+      "gardening-and-landscaping": "የአትክልት እና የግቢ ውበት",
+      "horticulture": "ሆርቲካልቸር",
+      "hospitality-and-tourism": "ሆቴል እና ቱሪዝም",
+      "information-technology": "ኢንፎርሜሽን ቴክኖሎጂ",
+      "installation-and-maintenance-technician": "ተከላ እና ጥገና",
+      "janitorial-and-other-office-services": "የጽዳት እና የቢሮ አገልግሎት",
+      "labor-work-and-masonry": "የጉልበት ስራ እና ግንበኝነት",
+      "law": "ህግ",
+      "livestock-and-animal-husbandry": "የእንስሳት እርባታ",
+      "logistic-and-supply-chain": "ሎጂስቲክስ እና አቅርቦት",
+      "manufacturing-and-production": "ማምረት",
+      "marketing-and-advertisement": "ማርኬቲንግ እና ማስታወቂያ",
+      "mechanical-and-electrical-engineering": "መካኒካል እና ኤሌክትሪካል ምህንድስና",
+      "media-and-communication": "ሚዲያ እና ኮሙኒኬሽን",
+      "multimedia-content-production": "የመልቲሚዲያ ይዘት ዝግጅት",
+      "pharmaceutical": "ፋርማሲ",
+      "project-management-and-administration": "የፕሮጀክት አስተዳደር",
+      "psychiatry-psychology-and-social-work": "ስነ ልቦና እና ማህበራዊ ስራ",
+      "purchasing-and-procurement": "ግዢ",
+      "research-and-data-analytics": "ምርምር እና የዳታ ትንተና",
+      "secretarial-and-office-management": "ጸሐፊነት እና የቢሮ አስተዳደር",
+      "security-and-safety": "ጥበቃ እና ደህንነት",
+      "shop-and-office-attendant": "የሱቅ እና የቢሮ አስተናጋጅ",
+      "training-and-consultancy": "ስልጠና እና ማማከር",
+      "training-and-mentorship": "ስልጠና እና አማካሪነት",
+      "translation-and-transcription": "ትርጉም እና ግልባጭ",
+      "transportation": "ትራንስፖርት",
+      "transportation-and-delivery": "ትራንስፖርት እና ማድረስ",
+      "veterinary": "የእንስሳት ህክምና",
+      "woodwork-and-carpentry": "የእንጨት ስራ እና አናጢነት"
     },
     "features": {
       "eyebrow": "ሁሉም በአንድ ቦታ",
@@ -711,7 +759,7 @@
           "text": "ሲቪዎን ይጫኑ፤ የመገናኛ መረጃዎንና ችሎታዎን እንሞላለን። አረጋግጠው ይጨርሱ።"
         },
         "cvMaker": {
-          "name": "CV Maker",
+          "name": "ሲቪ አዘጋጅ",
           "text": "ንጹህ፣ አንድ ገጽ ሲቪ አዘጋጅተው በPDF ያውርዱ።"
         },
         "tracker": {
@@ -747,7 +795,7 @@
           "text": "የፍሪላንሰሮችን ጨረታ በዋጋና በጊዜ አወዳድረው አንዱን ይቀበሉ።"
         },
         "escrow": {
-          "name": "BeleqetSafe Escrow",
+          "name": "BeleqetSafe ኤስክሮው",
           "text": "ገንዘቡ በደህና ተይዞ በእያንዳንዱ የጸደቀ ደረጃ ይለቀቃል።"
         },
         "workspace": {
@@ -797,7 +845,7 @@
     },
     "cta": {
       "title": "ይቀጥራሉ ወይስ ስራ ይፈልጋሉ? በደቂቃዎች ይጀምሩ።",
-      "sub": "ለማመልከት፣ ስራ ለመለጠፍ ወይም የመጀመሪያ በEscrow የተጠበቀ ፕሮጀክትዎን ለመጀመር ነፃ መለያ ይፍጠሩ።",
+      "sub": "ለማመልከት፣ ስራ ለመለጠፍ ወይም የመጀመሪያ በኤስክሮው የተጠበቀ ፕሮጀክትዎን ለመጀመር ነፃ መለያ ይፍጠሩ።",
       "findJobs": "ስራ ፈልግ",
       "postJob": "ስራ ለጥፍ"
     },
@@ -810,6 +858,43 @@
       "Web development": "ድረ ገጽ ልማት",
       "Translation": "ትርጉም",
       "Bookkeeping": "የሂሳብ መዝገብ"
+    },
+    "home": {
+      "modeLabel": "ምን እየፈለጉ ነው?",
+      "tabJobs": "ስራ",
+      "tabFreelance": "ፍሪላንስ",
+      "jobs": {
+        "titleLead": "የወደፊት የስራ እድልዎን ",
+        "titleAccent": "በፍጥነት",
+        "titleTail": " ያግኙ።",
+        "sub": "የተረጋገጡ የስራ እድሎችን በመላው ኢትዮጵያ ያግኙ። በቀላሉ ይፈልጉ፣ ያመልክቱ እና በፍጥነት ይቀጠሩ።",
+        "kwLabel": "የስራ መጠሪያ፣ ሙያ ወይም ድርጅት",
+        "kwPlaceholder": "የስራ መጠሪያ ወይም ቁልፍ ቃል",
+        "locLabel": "አካባቢ",
+        "locPlaceholder": "ከተማ",
+        "searchBtn": "ስራ ፈልግ",
+        "boardTitle": "አዳዲስ የስራ እድሎች",
+        "boardFoot": "ሁሉንም ክፍት ስራዎች ይመልከቱ",
+        "boardEmpty": "አሰሪዎች ስራ እንደለጠፉ እዚህ ይታያል።"
+      },
+      "freelance": {
+        "titleLead": "የፍሪላንስ ፕሮጀክትዎን ",
+        "titleAccent": "በአስተማማኝ",
+        "titleTail": " ይስሩ።",
+        "sub": "ከኢትዮጵያውያን ደንበኞች ፕሮጀክቶችን ያግኙ፣ ክፍያዎን በኤስክሮው በአስተማማኝ ይቀበሉ፣ የፍሪላንስ ስራዎን በልበ ሙሉነት ያሳድጉ።",
+        "kwLabel": "ሙያ ወይም አገልግሎት",
+        "kwPlaceholder": "ምን አይነት ፕሮጀክት ይፈልጋሉ?",
+        "searchBtn": "ፕሮጀክት ፈልግ",
+        "boardTitle": "አዳዲስ ፕሮጀክቶች",
+        "boardFoot": "ሁሉንም ፕሮጀክቶች ይመልከቱ",
+        "boardEmpty": "ደንበኞች ፕሮጀክት እንደለጠፉ እዚህ ይታያል።"
+      },
+      "stats": {
+        "label": "ቤለቀት በቁጥር",
+        "activeJobs": "ክፍት ስራዎች",
+        "companies": "ቀጣሪ ድርጅቶች",
+        "seekers": "የተመዘገቡ ስራ ፈላጊዎች"
+      }
     }
   },
   "search": {

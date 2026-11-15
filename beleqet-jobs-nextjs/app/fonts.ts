@@ -13,7 +13,7 @@ export const ethiopic = Noto_Sans_Ethiopic({
   display: 'swap',
 });
 
-// Headline font of the home page design (features/old-home).
+// Headline font (Sora): the home hero, the logo and font-display headings.
 export const sora = Sora({
   subsets: ['latin'],
   variable: '--font-sora',

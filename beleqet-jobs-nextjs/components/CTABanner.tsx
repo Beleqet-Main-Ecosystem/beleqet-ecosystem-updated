@@ -30,7 +30,7 @@ export default function CTABanner() {
               href="https://t.me/BeleqetJobs"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-bold text-white transition hover:bg-brandGreen"
+              className="inline-flex items-center gap-2 rounded-full bg-obsidian px-6 py-3.5 text-sm font-bold text-white transition hover:bg-brandGreen"
             >
               {t('homeSections.joinTelegram')} <Send className="h-4 w-4" />
             </a>

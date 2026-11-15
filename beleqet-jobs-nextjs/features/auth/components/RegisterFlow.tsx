@@ -128,7 +128,7 @@ export default function RegisterFlow() {
             logout();
             setOtherRole(false);
           }}
-          className={`flex min-h-[50px] items-center justify-center rounded-md bg-primary text-base font-extrabold text-limeAccent dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
+          className={`flex min-h-[50px] items-center justify-center rounded-md bg-obsidian text-base font-extrabold text-limeAccent dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
         >
           {t('auth.signOutContinue')}
         </button>

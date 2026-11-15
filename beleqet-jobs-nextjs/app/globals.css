@@ -53,7 +53,22 @@ html.dark .text-brandGreen {
 
 ::selection {
   background: #d8ff3e;
-  color: #041603;
+  color: #052e1d;
+}
+
+/* Home hero: a faint diamond check near the top and bottom edges. */
+.hero-diamonds::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgb(126 217 87 / 0.05) 25%, transparent 25%) -13px 0 / 26px 26px,
+    linear-gradient(225deg, rgb(126 217 87 / 0.05) 25%, transparent 25%) -13px 0 / 26px 26px,
+    linear-gradient(315deg, rgb(126 217 87 / 0.05) 25%, transparent 25%) 0 0 / 26px 26px,
+    linear-gradient(45deg, rgb(126 217 87 / 0.05) 25%, transparent 25%) 0 0 / 26px 26px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 8%, #000 14%, transparent 34%, transparent 80%, #000 94%);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 8%, #000 14%, transparent 34%, transparent 80%, #000 94%);
 }
 
 /* ------------------------------------------------------------------ */

@@ -11,7 +11,7 @@ import {
 import type { Category, Job } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { categoryLabel, featuredCategories } from '@/features/jobs/categories';
-import { formatSalary, initials } from '@/features/jobs/format';
+import { formatSalary, initials, postedAgo } from '@/features/jobs/format';
 
 const TELEGRAM_CHANNEL = 'https://t.me/BeleqetJobs';
 const ANDROID_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL;
@@ -65,7 +65,7 @@ function TrustItem({ icon: Icon, text, className = 'inline-flex' }: { icon: Luci
 /* ─────────────────────────────── Latest jobs ─────────────────────────────── */
 
 export function LatestJobs({ jobs }: { jobs: Job[] }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   return (
     <section aria-labelledby="latest-h" className={`${wrap} pt-12 md:pt-20 lg:pt-24`}>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4 md:mb-8">
@@ -83,6 +83,7 @@ export function LatestJobs({ jobs }: { jobs: Job[] }) {
           <div className="flex flex-col gap-3 md:grid md:grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] md:gap-4">
             {jobs.map((job, i) => {
               const pay = formatSalary(job, t('search.upTo')) ?? t('landing.salaryNotListed');
+              const type = job.typeCode ? t(`search.types.${job.typeCode}`) : job.type;
               return (
                 <Link
                   key={job.id}
@@ -103,13 +104,13 @@ export function LatestJobs({ jobs }: { jobs: Job[] }) {
                     </span>
                   </span>
                   <span className="hidden flex-wrap gap-1.5 md:flex">
-                    {job.type && <span className="rounded-full bg-[#EEF5EF] px-2.5 py-1 text-xs font-semibold text-forest dark:bg-forest/20 dark:text-limeAccent">{job.type}</span>}
+                    {type && <span className="rounded-full bg-[#EEF5EF] px-2.5 py-1 text-xs font-semibold text-forest dark:bg-forest/20 dark:text-limeAccent">{type}</span>}
                     {job.location && <span className="rounded-full bg-ink-100 px-2.5 py-1 text-xs font-semibold text-ink-700 dark:bg-slate-800 dark:text-slate-300">{job.location}</span>}
                   </span>
                   <span className="mt-auto flex items-center justify-between gap-3 border-t border-ink-100 pt-3 md:pt-3.5 dark:border-slate-800">
                     <b className="text-sm font-bold md:text-[15px]">{pay}</b>
-                    {job.type && <span className="rounded-full bg-[#EEF5EF] px-2.5 py-0.5 text-xs font-semibold text-forest md:hidden dark:bg-forest/20 dark:text-limeAccent">{job.type}</span>}
-                    <span className="hidden shrink-0 text-[13px] text-ink-600 md:inline dark:text-slate-400">{job.postedAgo}</span>
+                    {type && <span className="rounded-full bg-[#EEF5EF] px-2.5 py-0.5 text-xs font-semibold text-forest md:hidden dark:bg-forest/20 dark:text-limeAccent">{type}</span>}
+                    <span className="hidden shrink-0 text-[13px] text-ink-600 md:inline dark:text-slate-400">{postedAgo(job.createdAt, locale, job.postedAgo)}</span>
                   </span>
                 </Link>
               );
@@ -143,7 +144,7 @@ const WHY: { key: string; icon: LucideIcon }[] = [
 
 export function WhyBeleqet() {
   const { t } = useTranslation();
-  const cta = `min-h-12 items-center justify-center rounded-md bg-primary px-5 text-[15px] font-bold text-white hover:bg-primary2 dark:bg-limeAccent dark:text-obsidian ${focusRing}`;
+  const cta = `min-h-12 items-center justify-center rounded-md bg-obsidian px-5 text-[15px] font-bold text-white hover:bg-primary2 dark:bg-limeAccent dark:text-obsidian ${focusRing}`;
   return (
     <section aria-labelledby="why-h" className={`${wrap} ${sectionGap}`}>
       <div className="grid grid-cols-1 items-start gap-2 md:gap-12 lg:grid-cols-2">
@@ -272,7 +273,7 @@ export function EscrowSection() {
           </dl>
           <Link
             href="/freelance/post"
-            className={`mt-[18px] hidden min-h-12 items-center justify-center rounded-md bg-primary text-[15px] font-bold text-limeAccent hover:bg-primary2 md:flex ${focusRing}`}
+            className={`mt-[18px] hidden min-h-12 items-center justify-center rounded-md bg-obsidian text-[15px] font-bold text-limeAccent hover:bg-primary2 md:flex ${focusRing}`}
           >
             {t('landing.escrow.cta')}
           </Link>
@@ -394,7 +395,7 @@ export function FeatureTabs() {
               aria-pressed={tab === id}
               onClick={() => setTab(id)}
               className={`min-h-10 rounded-[7px] px-1 text-xs leading-tight transition-colors md:px-3.5 md:text-sm ${focusRing} ${
-                tab === id ? 'bg-primary font-bold text-white dark:bg-limeAccent dark:text-obsidian' : 'font-semibold text-ink-700 hover:bg-ink-50 dark:text-slate-300 dark:hover:bg-slate-800'
+                tab === id ? 'bg-obsidian font-bold text-white dark:bg-limeAccent dark:text-obsidian' : 'font-semibold text-ink-700 hover:bg-ink-50 dark:text-slate-300 dark:hover:bg-slate-800'
               }`}
             >
               {t(`landing.features.tabs.${id}`)}
@@ -437,7 +438,7 @@ export function AppAndTelegram() {
     <section aria-label={t('landing.channels.label')} className={`${wrap} ${sectionGap}`}>
       <div className={`grid grid-cols-1 gap-3 md:gap-4 ${solo ? '' : 'lg:grid-cols-2'}`}>
         {ANDROID_URL && (
-          <div className="flex flex-col gap-2.5 rounded-2xl bg-primary2 px-5 py-[22px] text-white md:gap-3.5 md:p-10">
+          <div className="flex flex-col gap-2.5 rounded-2xl bg-primary px-5 py-[22px] text-white md:gap-3.5 md:p-10">
             <span className="hidden h-11 w-11 place-items-center rounded-[10px] bg-limeAccent text-obsidian md:grid">
               <Play className="h-[22px] w-[22px]" aria-hidden="true" />
             </span>
@@ -470,7 +471,7 @@ export function AppAndTelegram() {
               href={TELEGRAM_CHANNEL}
               rel="noopener noreferrer"
               target="_blank"
-              className={`flex min-h-12 items-center justify-center rounded-md bg-primary px-[18px] text-[15px] font-bold text-white dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
+              className={`flex min-h-12 items-center justify-center rounded-md bg-obsidian px-[18px] text-[15px] font-bold text-white dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
             >
               {t('landing.channels.joinChannel')}
             </a>
@@ -504,7 +505,7 @@ export function CtaBand() {
           <p className="hidden text-[17px] leading-relaxed text-[#1B3A12] md:block">{t('landing.cta.sub')}</p>
         </div>
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
-          <Link href="/jobs" className={`flex min-h-[50px] items-center justify-center rounded-md bg-primary px-6 text-base font-bold text-limeAccent md:min-h-[52px] ${ring}`}>
+          <Link href="/jobs" className={`flex min-h-[50px] items-center justify-center rounded-md bg-obsidian px-6 text-base font-bold text-limeAccent md:min-h-[52px] ${ring}`}>
             {t('landing.cta.findJobs')}
           </Link>
           <Link href="/post-job" className={`flex min-h-[50px] items-center justify-center rounded-md border-2 border-primary px-6 text-base font-bold text-obsidian md:min-h-[52px] ${ring}`}>

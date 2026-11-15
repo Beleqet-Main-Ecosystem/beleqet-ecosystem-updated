@@ -148,7 +148,7 @@ export default async function AboutPage() {
           <div className="flex flex-wrap gap-3">
             <Link
               href="/jobs"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-white"
+              className="inline-flex items-center gap-2 rounded-full bg-obsidian px-5 py-3 text-sm font-bold text-white"
             >
               Find jobs <ArrowRight className="h-4 w-4" />
             </Link>

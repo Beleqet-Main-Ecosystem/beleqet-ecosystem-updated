@@ -80,7 +80,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
   /** The apply control for this job's method, in a given visual style. */
   const applyControl = (tone: 'lime' | 'dark') => {
     const base = `inline-flex min-h-12 items-center justify-center gap-2 rounded-md px-6 text-base font-extrabold ${focusRing}`;
-    const style = tone === 'lime' ? 'bg-limeAccent text-obsidian hover:bg-[#c8ef2e]' : 'bg-primary text-limeAccent hover:bg-primary2 dark:bg-limeAccent dark:text-obsidian dark:hover:bg-[#c8ef2e]';
+    const style = tone === 'lime' ? 'bg-limeAccent text-obsidian hover:bg-[#c8ef2e]' : 'bg-obsidian text-limeAccent hover:bg-primary2 dark:bg-limeAccent dark:text-obsidian dark:hover:bg-[#c8ef2e]';
     if (closed) return null;
     if (applied) {
       return (
@@ -243,7 +243,7 @@ export default function JobDetail({ job, description, requirements, similar }: P
             )}
             <div className="mt-3.5 hidden flex-col md:flex [&>*]:w-full">
               {closed ? (
-                <Link href={category ? `/jobs?category=${encodeURIComponent(category.id)}` : '/jobs'} className={`flex min-h-12 items-center justify-center rounded-md bg-primary text-[15px] font-bold text-white ${focusRing}`}>
+                <Link href={category ? `/jobs?category=${encodeURIComponent(category.id)}` : '/jobs'} className={`flex min-h-12 items-center justify-center rounded-md bg-obsidian text-[15px] font-bold text-white ${focusRing}`}>
                   {t('job.findSimilar')}
                 </Link>
               ) : applied ? (

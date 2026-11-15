@@ -22,8 +22,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#041603",
-        primary2: "#0A2C03",
+        /* Brand dark green (#073B25) for bands, heroes and tiles; filled buttons use the darker obsidian. */
+        primary: "#073B25",
+        primary2: "#04241A",
         brandGreen: "#00653B",
         limeAccent: "#d8ff3e",   // hero/dashboard highlight — use instead of hardcoded #d8ff3e
         darkGreen: "#015230",
@@ -44,7 +45,7 @@ const config: Config = {
         },
         surface: "#FFFFFF",
         canvas: "#F6F7F4",
-        obsidian: "#041603",
+        obsidian: "#052E1D",
         forest: "#00653B",
         pageBg: "#F6F7F4",
         muted: "#4D5967",
@@ -146,10 +147,21 @@ const config: Config = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        /* Home hero: a board row turning over to show the next listing, and the floating cards. */
+        "board-flip": {
+          "0%, 100%": { transform: "rotateX(0deg)" },
+          "45%": { transform: "rotateX(-92deg)" },
+        },
+        bob: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
       },
       animation: {
         "slide-in-right": "slide-in-right 200ms ease-out forwards",
         "fade-in": "fade-in 200ms ease-out forwards",
+        "board-flip": "board-flip 600ms cubic-bezier(0.34,1.56,0.64,1)",
+        bob: "bob 4.5s ease-in-out infinite",
       },
       /* ── Mobile spacing helpers ──────────────────────────── */
       spacing: {

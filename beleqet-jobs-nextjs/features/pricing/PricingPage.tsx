@@ -70,7 +70,7 @@ export default function PricingPage({ plans }: { plans: Plan[] }) {
                 return (
                   <article
                     key={plan.id}
-                    className={`flex flex-col gap-4 rounded-xl border p-6 ${dark ? 'border-[#0A2C03] bg-[#0A2C03] text-white' : 'border-ink-200 bg-surface text-ink-900 dark:border-slate-800 dark:bg-slate-900 dark:text-white'}`}
+                    className={`flex flex-col gap-4 rounded-xl border p-6 ${dark ? 'border-primary bg-primary text-white' : 'border-ink-200 bg-surface text-ink-900 dark:border-slate-800 dark:bg-slate-900 dark:text-white'}`}
                   >
                     <div className="flex flex-col gap-1.5">
                       <div className="flex items-center justify-between gap-2">

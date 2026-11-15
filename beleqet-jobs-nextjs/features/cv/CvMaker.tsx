@@ -303,7 +303,7 @@ function Preview({ cv, skills, jobs, schools }: { cv: CvData; skills: string[]; 
   const contact = [cv.email, cv.phone, cv.location, cv.website].filter(Boolean).join(' · ');
   return (
     <article className="flex min-h-[640px] flex-col gap-5 bg-white px-8 py-9 text-[#121922] shadow-[0_20px_60px_rgba(4,22,3,.12)] print:min-h-0 print:shadow-none">
-      <header className="flex flex-col gap-1 border-b-2 border-[#041603] pb-4">
+      <header className="flex flex-col gap-1 border-b-2 border-primary pb-4">
         <b className="text-[26px] font-extrabold tracking-[-0.02em]">{cv.fullName || t('cv.yourName')}</b>
         <span className="text-[15px] font-semibold text-[#00653B]">{cv.title || t('cv.jobTitle')}</span>
         {contact && <span className="text-xs text-[#4D5967]">{contact}</span>}

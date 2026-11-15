@@ -147,7 +147,7 @@ export default function ContactPage() {
               )}
               <button
                 disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-sm font-bold text-white hover:bg-brandGreen disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-obsidian py-3.5 text-sm font-bold text-white hover:bg-brandGreen disabled:opacity-60"
               >
                 {loading ? 'Sending…' : 'Send message'}
                 <Send className="h-4 w-4" />

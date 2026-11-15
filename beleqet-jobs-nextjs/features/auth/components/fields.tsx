@@ -92,7 +92,7 @@ export function SubmitButton({ busy, busyLabel, children, disabled }: { busy?: b
       type="submit"
       disabled={busy || disabled}
       aria-busy={busy || undefined}
-      className={`min-h-[50px] rounded-md bg-primary text-base font-extrabold text-limeAccent transition-colors hover:bg-primary2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
+      className={`min-h-[50px] rounded-md bg-obsidian text-base font-extrabold text-limeAccent transition-colors hover:bg-primary2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-limeAccent dark:text-obsidian ${focusRing}`}
     >
       {busy ? busyLabel ?? children : children}
     </button>

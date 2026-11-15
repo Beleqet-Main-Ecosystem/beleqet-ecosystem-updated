@@ -180,7 +180,7 @@ export default function ApplyForm({ job }: { job: ApplyJob }) {
             {status === 'sent' ? t('job.apply.sentText').replace('{company}', job.company) : t('job.apply.duplicateText')}
           </p>
           <div className="flex flex-wrap justify-center gap-2.5">
-            <Link href="/applications" className={`inline-flex min-h-12 items-center rounded-lg bg-primary px-5 text-base font-bold text-white ${focusRing}`}>
+            <Link href="/applications" className={`inline-flex min-h-12 items-center rounded-lg bg-obsidian px-5 text-base font-bold text-white ${focusRing}`}>
               {t('job.apply.track')}
             </Link>
             <Link href="/jobs" className={`inline-flex min-h-12 items-center rounded-lg border border-ink-300 bg-surface px-5 text-base font-bold text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white ${focusRing}`}>
@@ -303,7 +303,7 @@ export default function ApplyForm({ job }: { job: ApplyJob }) {
             <button
               type="submit"
               disabled={!canSend}
-              className={`min-h-[52px] rounded-lg px-6 text-base font-extrabold ${focusRing} ${canSend ? 'bg-primary text-limeAccent' : 'cursor-not-allowed bg-ink-200 text-ink-500'}`}
+              className={`min-h-[52px] rounded-lg px-6 text-base font-extrabold ${focusRing} ${canSend ? 'bg-obsidian text-limeAccent' : 'cursor-not-allowed bg-ink-200 text-ink-500'}`}
             >
               {busy ? t('job.apply.sending') : t('job.apply.send')}
             </button>

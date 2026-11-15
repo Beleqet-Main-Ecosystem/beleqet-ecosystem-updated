@@ -221,7 +221,7 @@ export default function GigSearchPage({ search, result, categories }: Props) {
                 type="button"
                 disabled={refreshing}
                 onClick={() => startTransition(() => router.refresh())}
-                className={`min-h-12 rounded-md bg-primary px-[18px] text-[15px] font-bold text-white ${focusRing}`}
+                className={`min-h-12 rounded-md bg-obsidian px-[18px] text-[15px] font-bold text-white ${focusRing}`}
               >
                 {t('freelance.retry')}
               </button>
