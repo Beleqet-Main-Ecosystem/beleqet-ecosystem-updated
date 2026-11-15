@@ -123,7 +123,7 @@ export default function JobSearch({ search, result, categories }: Props) {
                   <button
                     type="button"
                     onClick={() => startTransition(() => router.refresh())}
-                    className={`min-h-12 rounded-md bg-primary px-[18px] text-[15px] font-bold text-white ${focusRing}`}
+                    className={`min-h-12 rounded-md bg-obsidian px-[18px] text-[15px] font-bold text-white ${focusRing}`}
                   >
                     {t('search.retry')}
                   </button>
@@ -135,7 +135,7 @@ export default function JobSearch({ search, result, categories }: Props) {
                 title={t('search.pastEndTitle')}
                 text={t('search.pastEndText')}
                 actions={
-                  <Link href={jobSearchHref(search, { page: 1 })} className={`inline-flex min-h-12 items-center rounded-md bg-primary px-[18px] text-[15px] font-bold text-white ${focusRing}`}>
+                  <Link href={jobSearchHref(search, { page: 1 })} className={`inline-flex min-h-12 items-center rounded-md bg-obsidian px-[18px] text-[15px] font-bold text-white ${focusRing}`}>
                     {t('search.firstPage')}
                   </Link>
                 }
@@ -160,7 +160,7 @@ export default function JobSearch({ search, result, categories }: Props) {
                       href={TELEGRAM_CHANNEL}
                       rel="noopener noreferrer"
                       target="_blank"
-                      className={`inline-flex min-h-12 items-center rounded-md bg-primary px-[18px] text-[15px] font-bold text-white ${focusRing}`}
+                      className={`inline-flex min-h-12 items-center rounded-md bg-obsidian px-[18px] text-[15px] font-bold text-white ${focusRing}`}
                     >
                       {t('search.alertsCta')}
                     </a>
@@ -457,7 +457,7 @@ function FilterSheet({ onClose, countText, children }: { onClose: () => void; co
         </div>
         <div className="overflow-y-auto px-4 pb-4">{children}</div>
         <div className="border-t border-ink-200 p-4 dark:border-slate-800">
-          <button type="button" onClick={onClose} className={`min-h-12 w-full rounded-md bg-primary text-base font-bold text-white ${focusRing}`}>
+          <button type="button" onClick={onClose} className={`min-h-12 w-full rounded-md bg-obsidian text-base font-bold text-white ${focusRing}`}>
             {countText ? t('search.showResults').replace('{count}', countText) : t('search.done')}
           </button>
         </div>

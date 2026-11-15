@@ -39,13 +39,13 @@ export default function HeaderAuth() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  if (!ready) return <div className="h-9 w-9 animate-pulse rounded-full bg-white/15" />;
+  if (!ready) return <div className="h-9 w-9 animate-pulse rounded-full bg-ink-100 dark:bg-slate-800" />;
 
   if (!user) {
     return (
       <Link
         href="/login"
-        className="inline-flex min-h-11 items-center rounded-md px-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+        className="inline-flex min-h-11 items-center rounded-md px-3.5 text-sm font-semibold text-ink-900 transition-colors hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest dark:text-white dark:hover:bg-slate-800"
       >
         {t('nav.signIn')}
       </Link>
@@ -65,16 +65,16 @@ export default function HeaderAuth() {
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={`${user.firstName} ${user.lastName}`}
-        className="flex min-h-11 items-center gap-2 rounded-full border border-white/20 py-1 pl-1 pr-2 transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+        className="flex min-h-11 items-center gap-2 rounded-full border border-ink-200 py-1 pl-1 pr-2 transition-colors hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest dark:border-slate-700 dark:hover:bg-slate-800"
       >
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-limeAccent text-xs font-extrabold uppercase text-obsidian">
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-extrabold uppercase text-limeAccent">
           {initials}
         </span>
-        <span className="hidden max-w-[7rem] truncate text-sm font-semibold text-white sm:block">
+        <span className="hidden max-w-[7rem] truncate text-sm font-semibold text-ink-900 sm:block dark:text-white">
           {user.firstName}
         </span>
         <ChevronDown
-          className={`h-4 w-4 text-white/70 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 text-ink-500 transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"
         />
       </button>

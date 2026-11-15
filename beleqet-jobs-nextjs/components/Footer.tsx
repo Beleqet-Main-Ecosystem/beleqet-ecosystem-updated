@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import BrandLogo from '@/components/BrandLogo';
 import { useTranslation } from '@/lib/i18n';
 
 const TELEGRAM_URL = 'https://t.me/BeleqetJobs';
@@ -55,12 +54,9 @@ function SiteFooter() {
         <div className="col-span-2 flex flex-col gap-3.5 md:col-span-1">
           <Link
             href="/"
-            className="flex items-center gap-2.5 self-start rounded-md text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+            className="self-start rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
           >
-            <Image src="/logo-icon.png" alt="" width={32} height={32} className="h-8 w-8 rounded-md object-contain" />
-            <span className="text-lg font-extrabold tracking-[-0.02em]">
-              Beleqet<span className="text-limeAccent">.</span>
-            </span>
+            <BrandLogo tone="light" />
           </Link>
           <p className="max-w-xs text-sm leading-6">{t('footer.tagline')}</p>
         </div>
@@ -97,8 +93,6 @@ function SiteFooter() {
   );
 }
 
-/** The home page (/) brings its own footer, the earlier landing design (features/old-home). */
 export default function Footer() {
-  const pathname = usePathname();
-  return pathname === '/' ? null : <SiteFooter />;
+  return <SiteFooter />;
 }

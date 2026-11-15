@@ -16,7 +16,7 @@ export default function PostJobButton({ className = '' }: { className?: string }
   return (
     <Link
       href="/post-job"
-      className={`inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brandGreen ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-full bg-obsidian px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-brandGreen ${className}`}
     >
       <Plus className="h-4 w-4" /> {t('postJob.button')}
     </Link>

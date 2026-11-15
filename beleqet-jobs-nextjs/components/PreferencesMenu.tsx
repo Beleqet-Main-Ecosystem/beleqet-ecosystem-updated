@@ -50,7 +50,7 @@ export default function PreferencesMenu() {
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={t("prefs.label")}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-white/20 px-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-ink-200 px-2.5 text-[13px] font-bold text-ink-900 transition-colors hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
       >
         <Globe className="h-4 w-4" aria-hidden="true" />
         <span>{locale === "am" ? "አማ" : "EN"}</span>

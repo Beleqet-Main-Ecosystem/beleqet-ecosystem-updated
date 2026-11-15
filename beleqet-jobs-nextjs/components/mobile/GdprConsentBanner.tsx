@@ -151,7 +151,7 @@ export default function GdprConsentBanner() {
           <div className="mt-4 flex gap-2">
             <button
               onClick={() => handleChoice("accepted")}
-              className="flex-1 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-white active:scale-[0.97] transition-transform"
+              className="flex-1 rounded-xl bg-obsidian px-4 py-3 text-xs font-bold text-white active:scale-[0.97] transition-transform"
             >
               {t("gdpr.acceptAll")}
             </button>

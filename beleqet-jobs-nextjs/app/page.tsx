@@ -1,17 +1,51 @@
-import OldHomePage from '@/features/old-home/OldHomePage';
-import { fetchJobs, fetchStats } from '@/features/old-home/old-home-api';
+import HomeHero from '@/components/landing/HomeHero';
+import {
+  AppAndTelegram,
+  CategoryLinks,
+  CtaBand,
+  EscrowSection,
+  FeatureTabs,
+  HowItWorks,
+  LatestJobs,
+  TrustStrip,
+  WhyBeleqet,
+} from '@/components/landing/LandingSections';
 import { homePageMetadata } from '@/lib/seo/generate-metadata';
+import {
+  fetchCategories,
+  fetchJobs,
+  fetchOpenGigs,
+  fetchPlatformStats,
+  type Gig,
+  type Job,
+} from '@/lib/api';
+import { loadForPage } from '@/lib/build-safe';
 
 export const revalidate = 60;
 export const metadata = homePageMetadata();
 
-/** The home page is the earlier landing design (features/old-home), fed with live jobs and platform stats. */
+/** The home page: the green hero with search and live listings, then the sections from the landing design. */
 export default async function HomePage() {
-  const [jobsData, gigsData, stats] = await Promise.all([
-    fetchJobs({ limit: 5, type: 'FULL_TIME' }),
-    fetchJobs({ limit: 5, type: 'CONTRACT' }),
-    fetchStats(),
+  const [jobs, gigs, categories, stats] = await Promise.all([
+    loadForPage<Job[]>('HomePage fetchJobs', () => fetchJobs({ limit: 8 }), []),
+    // Gigs only feed the hero's freelance board, so a failure there shouldn't take the page down.
+    fetchOpenGigs(6).catch((): Gig[] => []),
+    fetchCategories(),
+    fetchPlatformStats(),
   ]);
 
-  return <OldHomePage featuredJobs={jobsData.items ?? []} featuredGigs={gigsData.items ?? []} stats={stats} appUrl="" />;
+  return (
+    <>
+      <HomeHero jobs={jobs} gigs={gigs} stats={stats} />
+      <TrustStrip />
+      <LatestJobs jobs={jobs.slice(0, 6)} />
+      <WhyBeleqet />
+      <HowItWorks />
+      <EscrowSection />
+      <CategoryLinks categories={categories} />
+      <FeatureTabs />
+      <AppAndTelegram />
+      <CtaBand />
+    </>
+  );
 }

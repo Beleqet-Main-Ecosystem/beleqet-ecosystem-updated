@@ -2,9 +2,9 @@
 
 import { lazy, Suspense, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, ChevronDown } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
 import HeaderAuth from "@/components/HeaderAuth";
 import NotificationBell from "@/components/NotificationBell";
 import PreferencesMenu from "@/components/PreferencesMenu";
@@ -81,10 +81,10 @@ function SiteHeader() {
         key={item.href}
         href={item.href}
         aria-current={active ? "page" : undefined}
-        className={`rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent ${
+        className={`rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest ${
           active
-            ? "bg-white/[0.08] font-semibold text-white"
-            : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white"
+            ? "bg-[#EEF5EF] font-semibold text-primary dark:bg-slate-800 dark:text-white"
+            : "font-medium text-ink-700 hover:bg-ink-100 hover:text-ink-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
         }`}
       >
         {item.label}
@@ -94,24 +94,14 @@ function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-primary">
+      <header className="sticky top-0 z-50 border-b border-ink-200 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/95">
         <div className="mx-auto flex h-[72px] max-w-[1200px] items-center gap-8 px-4 sm:px-6 lg:px-10">
           <Link
             href="/"
-            className="flex shrink-0 items-center gap-2.5 rounded-md text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent"
+            className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest"
             aria-label={t("header.home")}
           >
-            <Image
-              src="/logo-icon.png"
-              alt=""
-              width={36}
-              height={36}
-              className="h-9 w-9 rounded-md object-contain"
-              priority
-            />
-            <span className="text-[20px] font-extrabold leading-none tracking-[-0.02em]">
-              Beleqet<span className="text-limeAccent">.</span>
-            </span>
+            <BrandLogo priority />
           </Link>
 
           {/* Desktop nav */}
@@ -124,10 +114,10 @@ function SiteHeader() {
                 onClick={() => setToolsOpen((v) => !v)}
                 aria-expanded={toolsOpen}
                 aria-haspopup="true"
-                className={`flex items-center gap-1 rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent ${
+                className={`flex items-center gap-1 rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest ${
                   isToolsActive || toolsOpen
-                    ? "bg-white/[0.08] font-semibold text-white"
-                    : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white"
+                    ? "bg-[#EEF5EF] font-semibold text-primary dark:bg-slate-800 dark:text-white"
+                    : "font-medium text-ink-700 hover:bg-ink-100 hover:text-ink-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
                 }`}
               >
                 {t("nav.careerTools")}
@@ -171,14 +161,14 @@ function SiteHeader() {
             </div>
             <Link
               href="/post-job"
-              className="hidden min-h-11 items-center rounded-md bg-limeAccent px-4 text-sm font-bold text-obsidian transition-colors hover:bg-[#c8ef2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex"
+              className="hidden min-h-11 items-center rounded-md bg-limeAccent px-4 text-sm font-bold text-obsidian transition-colors hover:bg-[#c8ef2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 sm:inline-flex"
             >
               {t("header.postJob")}
             </Link>
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-white/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-limeAccent lg:hidden"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-ink-200 text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-forest lg:hidden dark:border-slate-700 dark:text-white"
               aria-label={t("header.openMenu")}
               aria-expanded={drawerOpen}
               aria-controls="mobile-drawer"
@@ -206,8 +196,6 @@ function SiteHeader() {
   );
 }
 
-/** The home page (/) brings its own header, the earlier landing design (features/old-home). */
 export default function Header() {
-  const pathname = usePathname();
-  return pathname === "/" ? null : <SiteHeader />;
+  return <SiteHeader />;
 }

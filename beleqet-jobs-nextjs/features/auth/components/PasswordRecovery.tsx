@@ -31,7 +31,7 @@ function BackToSignIn() {
   );
 }
 
-const primaryLink = `flex min-h-[50px] items-center justify-center rounded-md bg-primary text-base font-extrabold text-limeAccent dark:bg-limeAccent dark:text-obsidian ${focusRing}`;
+const primaryLink = `flex min-h-[50px] items-center justify-center rounded-md bg-obsidian text-base font-extrabold text-limeAccent dark:bg-limeAccent dark:text-obsidian ${focusRing}`;
 
 /** Step 1 of recovery: ask for the email. The answer is the same whether or not the account exists. */
 export function ForgotPasswordForm() {
