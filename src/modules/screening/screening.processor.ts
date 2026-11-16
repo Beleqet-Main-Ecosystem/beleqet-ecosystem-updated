@@ -24,8 +24,17 @@ import {
   SCORING,
 } from '../queues/queues.constants';
 import { recruiterApplicationEmail } from '../notifications/email-templates';
-import { escapeTelegramMarkdown } from '../../common/utils/telegram-escape';
 import { primaryFrontendUrl } from '../../common/utils/frontend-url';
+import {
+  applicantTelegram,
+  employerNewApplicationTelegram,
+} from '../applications/application-telegram';
+
+/** What's needed to message someone in the Jobs bot. */
+const TELEGRAM_CONTACT = {
+  telegramId: true,
+  notificationPreference: { select: { telegramEnabled: true, language: true } },
+} as const;
 
 // ── Payload types ──────────────────────────────────────────────────────────
 
@@ -43,6 +52,7 @@ interface ScreenCandidatePayload {
 
 interface NotifyRecruiterPayload {
   applicationId: string;
+  jobId: string;
   jobTitle: string;
   companyId: string;
   applicantName: string;
@@ -208,6 +218,27 @@ export class ScreeningProcessor extends WorkerHost {
       metadata: { applicationId, jobId: job.data.jobId, score: scoreResult.overallScore },
     });
 
+    // The applicant also hears about a shortlist or a rejection in the Jobs bot.
+    if (isShortlisted || isAutoRejected) {
+      const [applicant, company] = await Promise.all([
+        this.prisma.user.findUnique({ where: { id: job.data.userId }, select: TELEGRAM_CONTACT }),
+        this.prisma.company.findUnique({
+          where: { id: job.data.companyId },
+          select: { name: true },
+        }),
+      ]);
+      const telegram =
+        applicant &&
+        applicantTelegram(
+          applicant,
+          newStatus,
+          jobTitle,
+          company?.name ?? '',
+          primaryFrontendUrl(this.config.get<string>('FRONTEND_URL')),
+        );
+      if (telegram) await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, telegram);
+    }
+
     if (isShortlisted) {
       // Auto-schedule interview if score is very high
       if (scoreResult.overallScore >= 90) {
@@ -253,7 +284,7 @@ export class ScreeningProcessor extends WorkerHost {
 
     const company = await this.prisma.company.findUnique({
       where: { id: job.data.companyId },
-      include: { user: true },
+      include: { user: { include: { notificationPreference: true } } },
     });
 
     if (company) {
@@ -282,12 +313,16 @@ export class ScreeningProcessor extends WorkerHost {
         this.logger.error(`Failed to send recruiter application email: ${err.message}`);
       }
 
-      if (company.user.telegramId) {
-        await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, {
-          telegramId: company.user.telegramId,
-          message: `📋 New application for *${escapeTelegramMarkdown(job.data.jobTitle)}*\nApplicant: ${escapeTelegramMarkdown(job.data.applicantName)}\n\nReview → ${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/dashboard/applications/${job.data.applicationId}`,
-        });
-      }
+      // Links to the job's applicants on the website (the old /dashboard/applications/<id> link
+      // was a page that doesn't exist), with a button that opens them in the Mini App.
+      const telegram = employerNewApplicationTelegram(
+        company.user,
+        job.data.jobId,
+        job.data.jobTitle,
+        job.data.applicantName,
+        primaryFrontendUrl(this.config.get<string>('FRONTEND_URL')),
+      );
+      if (telegram) await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_TELEGRAM, telegram);
     }
   }
 

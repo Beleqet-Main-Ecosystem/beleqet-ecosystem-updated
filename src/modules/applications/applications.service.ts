@@ -16,6 +16,14 @@ import { applicationReceivedEmail, applicationStatusEmail } from '../notificatio
 import { openJobs } from '../jobs/open-jobs';
 import { primaryFrontendUrl } from '../../common/utils/frontend-url';
 import { isDeliverableEmail } from '../../common/utils/deliverable-email';
+import { applicantTelegram } from './application-telegram';
+import type { TelegramPayload } from '../notifications/notifications.processor';
+
+/** What's needed to message the applicant in the Jobs bot. */
+const TELEGRAM_CONTACT = {
+  telegramId: true,
+  notificationPreference: { select: { telegramEnabled: true, language: true } },
+} as const;
 
 /** How an employer can reach an applicant: email, phone, or Telegram for Telegram-only accounts. */
 const APPLICANT_CONTACT = {
@@ -82,7 +90,9 @@ export class ApplicationsService {
           status: 'SUBMITTED',
         },
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true, ...TELEGRAM_CONTACT },
+          },
           job: { select: { id: true, title: true, companyId: true } },
         },
       });
@@ -142,7 +152,12 @@ export class ApplicationsService {
       .add(ANALYTICS_JOBS.UPDATE_JOB_STATS, { jobId: dto.jobId })
       .catch((err) => this.logger.error('Failed to enqueue UPDATE_JOB_STATS', err.message));
 
-    const applicationUrl = `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/applications`;
+    const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
+    const applicationUrl = `${frontendUrl}/applications`;
+    // People who registered in the bot have no real email: Telegram is how they hear back.
+    this.queueTelegram(
+      applicantTelegram(application.user, 'RECEIVED', job.title, job.company.name, frontendUrl),
+    );
     applicationReceivedEmail({
       firstName: application.user.firstName,
       jobTitle: job.title,
@@ -219,8 +234,8 @@ export class ApplicationsService {
     const application = await this.prisma.application.findFirst({
       where: { id, job: { company: { userId: employerId } } },
       include: {
-        user: { select: { email: true, firstName: true } },
-        job: { select: { title: true } },
+        user: { select: { email: true, firstName: true, ...TELEGRAM_CONTACT } },
+        job: { select: { title: true, company: { select: { name: true } } } },
       },
     });
 
@@ -250,12 +265,23 @@ export class ApplicationsService {
       metadata: { applicationId: id },
     });
 
+    const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
+    this.queueTelegram(
+      applicantTelegram(
+        application.user,
+        status,
+        application.job.title,
+        application.job.company.name,
+        frontendUrl,
+      ),
+    );
+
     try {
       const email = await applicationStatusEmail({
         firstName: application.user.firstName,
         jobTitle: application.job.title,
         status,
-        applicationUrl: `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/applications`,
+        applicationUrl: `${frontendUrl}/applications`,
       });
       await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
         to: application.user.email,
@@ -266,6 +292,14 @@ export class ApplicationsService {
       this.logger.error(`Failed to enqueue application status email: ${err.message}`);
     }
     return updated;
+  }
+
+  /** Queues a Jobs bot message; a queue failure is logged and never fails the request. */
+  private queueTelegram(payload: TelegramPayload | null) {
+    if (!payload) return;
+    this.notificationsQueue
+      .add(NOTIFICATION_JOBS.SEND_TELEGRAM, payload)
+      .catch((err) => this.logger.error('Failed to enqueue Telegram message', err.message));
   }
 
   async withdraw(id: string, userId: string) {
