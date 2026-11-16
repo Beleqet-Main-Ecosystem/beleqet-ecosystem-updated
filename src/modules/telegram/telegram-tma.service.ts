@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
+import { APP_CALLBACK, AppOAuthHandoff } from '../auth/app-oauth';
 import { ERROR_CODES } from '../../common/filters/all-exceptions.filter';
 import { cleanTelegramUsername, linkTelegram } from './telegram-link';
 
@@ -23,6 +30,7 @@ export class TelegramTmaService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
+    @Optional() private readonly appHandoff?: AppOAuthHandoff,
   ) {}
 
   /**
@@ -163,6 +171,30 @@ export class TelegramTmaService {
   /** "Sign in with Telegram" on the website or in the app: existing accounts only. */
   async authenticateLoginWidget(data: Record<string, unknown>) {
     return this.signIn(this.verifyLoginWidget(data));
+  }
+
+  /**
+   * "Continue with Telegram" in the mobile app. The website page that shows Telegram's sign-in sends
+   * the signed details here with the app's challenge. The answer is where to send that browser: a
+   * beleqet:// link carrying only a one-time code, worthless without the app's secret (see
+   * app-oauth.ts), or the two-step sign-in token, as with Google and LinkedIn.
+   */
+  async appLoginWithWidget(
+    data: Record<string, unknown>,
+    challenge: string,
+  ): Promise<{ redirect: string }> {
+    if (!this.appHandoff) throw new UnauthorizedException();
+    const outcome = await this.authenticateLoginWidget(data);
+    if ('requires2fa' in outcome) {
+      return {
+        redirect: `${APP_CALLBACK}?${new URLSearchParams({ twoFactor: outcome.tempToken })}`,
+      };
+    }
+    const code = await this.appHandoff.issue(challenge, {
+      accessToken: outcome.accessToken,
+      refreshToken: outcome.refreshToken,
+    });
+    return { redirect: `${APP_CALLBACK}?${new URLSearchParams({ code })}` };
   }
 
   private async signIn(userData: TelegramUserData) {

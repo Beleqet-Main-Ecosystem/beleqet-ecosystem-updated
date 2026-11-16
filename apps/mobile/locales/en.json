@@ -74,7 +74,9 @@
     "auth": {
       "google": "Continue with Google",
       "changeRole": "Change account type",
-      "resetInBrowser": "The link opens in your browser. Set your new password there, then sign in here."
+      "resetInBrowser": "The link opens in your browser. Set your new password there, then sign in here.",
+      "telegram": "Continue with Telegram",
+      "telegramNotRegistered": "This Telegram account isn’t registered yet. Register in the Beleqet Jobs bot (about a minute), then sign in here."
     },
     "verify": {
       "done": "I've confirmed it"
@@ -95,7 +97,8 @@
       "changePhoto": "Change photo",
       "addSkill": "Add a skill",
       "uploadCv": "Upload a new CV",
-      "booked": "Booked"
+      "booked": "Booked",
+      "notSaid": "Not said"
     },
     "resume": {
       "apply": "Fill my profile with these"
@@ -192,6 +195,13 @@
       "webOnly": "Case studies and the gallery are edited on the website; saving here keeps them as they are."
     },
     "projectTitle": "Project",
-    "uploadAudio": "Upload an audio file"
+    "uploadAudio": "Upload an audio file",
+    "countries": {
+      "ET": "Ethiopia",
+      "SA": "Saudi Arabia",
+      "AE": "UAE",
+      "KE": "Kenya",
+      "DJ": "Djibouti"
+    }
   }
 }

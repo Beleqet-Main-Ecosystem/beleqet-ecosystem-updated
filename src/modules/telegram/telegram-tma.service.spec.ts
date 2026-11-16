@@ -352,6 +352,69 @@ describe('TelegramTmaService', () => {
       ).rejects.toThrow('Admins sign in with their password.');
     });
 
+    describe('in the mobile app', () => {
+      const challenge = 'c'.repeat(43);
+      const handoff = { issue: jest.fn().mockResolvedValue('one-time-code') };
+      const appService = () =>
+        new TelegramTmaService(
+          mockConfig as never,
+          mockPrisma as never,
+          mockAuthService as never,
+          handoff as never,
+        );
+      const existing = {
+        id: 'usr-existing-1',
+        isActive: true,
+        role: 'JOB_SEEKER',
+        telegramUsername: null,
+      };
+
+      it('sends the app a one-time code bound to its challenge, never the session', async () => {
+        mockPrisma.user.findUnique.mockResolvedValueOnce(existing);
+        const result = await appService().appLoginWithWidget(
+          loginWidgetData({ id: 4242, auth_date: now() }),
+          challenge,
+        );
+        expect(handoff.issue).toHaveBeenCalledWith(challenge, {
+          accessToken: 'jwt-access-token',
+          refreshToken: 'jwt-refresh-token',
+        });
+        expect(result).toEqual({ redirect: 'beleqet://auth/callback?code=one-time-code' });
+        expect(result.redirect).not.toContain('jwt-');
+      });
+
+      it('passes on two-step sign-in like Google does', async () => {
+        mockPrisma.user.findUnique.mockResolvedValueOnce(existing);
+        mockAuthService.oauthSession.mockResolvedValueOnce({
+          requires2fa: true,
+          tempToken: 'temp-1',
+        });
+        await expect(
+          appService().appLoginWithWidget(
+            loginWidgetData({ id: 4242, auth_date: now() }),
+            challenge,
+          ),
+        ).resolves.toEqual({ redirect: 'beleqet://auth/callback?twoFactor=temp-1' });
+      });
+
+      it('refuses a Telegram account that never registered, and forged data', async () => {
+        mockPrisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+        await expect(
+          appService().appLoginWithWidget(
+            loginWidgetData({ id: 4242, auth_date: now() }),
+            challenge,
+          ),
+        ).rejects.toThrow('Register in the Beleqet Jobs bot first');
+        await expect(
+          appService().appLoginWithWidget(
+            { ...loginWidgetData({ id: 4242, auth_date: now() }), id: 99 },
+            challenge,
+          ),
+        ).rejects.toThrow(UnauthorizedException);
+        expect(handoff.issue).not.toHaveBeenCalled();
+      });
+    });
+
     it('connects Telegram to the signed-in account', async () => {
       mockPrisma.user.findUnique.mockResolvedValueOnce(null);
 

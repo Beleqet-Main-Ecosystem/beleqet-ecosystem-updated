@@ -34,6 +34,11 @@ export function rememberAppChallenge(req: SessionRequest): void {
   else delete req.session.appChallenge;
 }
 
+/** A well-formed app challenge: the base64url SHA-256 hash of the app's secret. */
+export function isAppChallenge(value: unknown): value is string {
+  return typeof value === 'string' && CHALLENGE.test(value);
+}
+
 /** The app's challenge for this sign-in, removed from the session as it is read. */
 export function takeAppChallenge(req: SessionRequest): string | null {
   const challenge = req.session?.appChallenge;
