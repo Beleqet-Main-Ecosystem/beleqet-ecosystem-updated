@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsEnum, IsObject } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsEnum, IsObject, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum TmaUserRole {
@@ -38,4 +38,11 @@ export class TelegramLoginDto {
   })
   @IsObject()
   data: Record<string, string | number>;
+}
+
+/** Telegram's sign-in for the mobile app: the signed details plus the app's challenge (see app-oauth.ts). */
+export class TelegramAppLoginDto extends TelegramLoginDto {
+  @ApiProperty({ description: "base64url SHA-256 of the app's one-time secret" })
+  @Matches(/^[A-Za-z0-9_-]{43}$/)
+  challenge: string;
 }

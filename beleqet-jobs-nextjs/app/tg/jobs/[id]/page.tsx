@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, Bookmark } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from '@/lib/i18n';
 import type { Job } from '@/lib/api';
-import { apiGet } from '@/features/dashboard/api';
+import { apiGet, apiSend } from '@/features/dashboard/api';
 import { daysUntil, formatSalary, jobGender, postedAgo, safeHttpUrl } from '@/features/jobs/format';
 import { parseDescription, type DescriptionBlock } from '@/features/jobs/description';
 import { useTelegram } from '@/hooks/useTelegram';
@@ -23,7 +23,11 @@ export default function MiniAppJob() {
   const [job, setJob] = useState<Job | null | undefined>(undefined);
   const [failed, setFailed] = useState(false);
   const [applied, setApplied] = useState(false);
+  // null until known; job seekers only.
+  const [saved, setSaved] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
   const [full, setFull] = useState(false);
+  const canSave = Boolean(user) && user?.role !== 'EMPLOYER';
 
   useEffect(() => {
     setFailed(false);
@@ -36,6 +40,27 @@ export default function MiniAppJob() {
       .then((rows) => setApplied((rows ?? []).some((row) => row.jobId === id)))
       .catch(() => undefined);
   }, [user, id]);
+
+  useEffect(() => {
+    if (!canSave) return;
+    apiGet<Array<{ jobId: string }>>('/users/saved-jobs')
+      .then((rows) => setSaved((rows ?? []).some((row) => row.jobId === id)))
+      .catch(() => undefined);
+  }, [canSave, id]);
+
+  async function toggleSaved() {
+    if (saving || saved === null) return;
+    setSaving(true);
+    try {
+      await apiSend(saved ? 'DELETE' : 'POST', `/users/saved-jobs/${id}`);
+      setSaved(!saved);
+      webApp?.HapticFeedback?.impactOccurred?.('light');
+    } catch {
+      webApp?.HapticFeedback?.notificationOccurred?.('error');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const blocks = useMemo<DescriptionBlock[]>(
     () => (job ? [...parseDescription(job.description), ...parseDescription(job.requirements)] : []),
@@ -82,7 +107,7 @@ export default function MiniAppJob() {
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-3">
             <CompanyMark name={job.company} logo={job.companyLogo} size={52} />
-            <span className="flex min-w-0 flex-col gap-1">
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="text-sm text-white/85">{job.company}</span>
               {job.companyVerified && (
                 <span className="inline-flex items-center gap-1 self-start rounded-full bg-mini-lime/15 px-2 py-0.5 text-xs font-bold text-mini-lime">
@@ -91,6 +116,18 @@ export default function MiniAppJob() {
                 </span>
               )}
             </span>
+            {canSave && saved !== null && (
+              <button
+                type="button"
+                onClick={() => void toggleSaved()}
+                disabled={saving}
+                aria-pressed={saved}
+                aria-label={t(saved ? 'mini.job.unsave' : 'mini.job.save')}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/20 text-mini-lime disabled:opacity-60"
+              >
+                <Bookmark className={`h-5 w-5 ${saved ? 'fill-current' : ''}`} aria-hidden="true" />
+              </button>
+            )}
           </div>
           <h1 className="font-display text-[26px] font-bold leading-tight tracking-[-0.03em]">{job.title}</h1>
           <p className="text-sm text-white/70">

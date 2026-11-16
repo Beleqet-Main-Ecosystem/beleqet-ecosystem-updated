@@ -15,7 +15,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
-  const [busy, setBusy] = useState<'' | 'password' | 'google'>('');
+  const [busy, setBusy] = useState<'' | 'password' | 'google' | 'telegram'>('');
   const [error, setError] = useState('');
 
   async function submit() {
@@ -37,17 +37,18 @@ export default function Login() {
     }
   }
 
-  async function google() {
+  async function withProvider(provider: 'google' | 'telegram') {
     setError('');
-    setBusy('google');
+    setBusy(provider);
     try {
-      const result = await signInWithProvider('google');
+      const result = await signInWithProvider(provider);
       if (!result) return;
       if (result.status === 'signed-in') await afterSignIn(result.user, next);
       else if (result.status === 'needs-code') router.push({ pathname: '/(auth)/two-factor', params: { tempToken: result.tempToken, next } });
       else if (result.status === 'confirm') setError(t('auth.oauthConfirm'));
-    } catch {
-      setError(t('auth.oauthFailed'));
+    } catch (failure) {
+      // Telegram sign-in doesn't make accounts: they're made in the bot.
+      setError(t((failure as Error)?.message === 'telegram-not-registered' ? 'm.auth.telegramNotRegistered' : 'auth.oauthFailed'));
     } finally {
       setBusy('');
     }
@@ -55,7 +56,8 @@ export default function Login() {
 
   return (
     <AuthShell title={t('auth.welcomeBack')} sub={t('auth.signInSub')}>
-      <Button label={t('m.auth.google')} variant="outline" onPress={google} busy={busy === 'google'} disabled={Boolean(busy)} />
+      <Button label={t('m.auth.google')} variant="outline" onPress={() => withProvider('google')} busy={busy === 'google'} disabled={Boolean(busy)} />
+      <Button label={t('m.auth.telegram')} variant="outline" onPress={() => withProvider('telegram')} busy={busy === 'telegram'} disabled={Boolean(busy)} />
       <View className="flex-row items-center gap-3">
         <View className="h-px flex-1 bg-ink-200 dark:bg-slate-800" />
         <Text className="text-[13px] text-ink-500 dark:text-slate-400">{t('auth.orEmail')}</Text>

@@ -20,6 +20,8 @@ export interface InAppPayload {
 export interface TelegramPayload {
   telegramId: string;
   message: string;
+  /** A button under the message that opens a Mini App screen (private chats only). */
+  button?: { text: string; url: string };
 }
 
 export interface EmailPayload {
@@ -156,6 +158,13 @@ export class NotificationsProcessor extends WorkerHost {
           chat_id: job.data.telegramId,
           text: job.data.message,
           parse_mode: 'Markdown',
+          ...(job.data.button && {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: job.data.button.text, web_app: { url: job.data.button.url } }],
+              ],
+            },
+          }),
         }),
       });
       if (!response.ok) {

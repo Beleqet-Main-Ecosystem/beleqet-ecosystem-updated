@@ -3,3 +3,7 @@ python-dotenv
 pytz
 python-telegram-bot-calendar
 aiosqlite
+fastapi
+uvicorn[standard]
+httpx
+pydantic

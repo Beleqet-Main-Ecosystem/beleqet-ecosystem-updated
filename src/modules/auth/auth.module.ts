@@ -93,6 +93,7 @@ import { TwoFactorModule } from '../two-factor/two-factor.module';
   ],
   exports: [
     AuthService,
+    AppOAuthHandoff,
     AccountLinkingService,
     TokenEncryptionService,
     JwtModule,

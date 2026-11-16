@@ -12,7 +12,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagg
 import { Throttle, SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import { TelegramTmaService } from './telegram-tma.service';
 import { TelegramService } from './telegram.service';
-import { TelegramLoginDto, TmaAuthDto } from './dto/telegram-tma.dto';
+import { TelegramAppLoginDto, TelegramLoginDto, TmaAuthDto } from './dto/telegram-tma.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { BotApiGuard } from './guards/bot-api.guard';
@@ -58,6 +58,19 @@ export class TelegramController {
   @ApiResponse({ status: 401, description: 'Invalid signature or expired login data' })
   async telegramLogin(@Body() dto: TelegramLoginDto) {
     return this.tmaService.authenticateLoginWidget(dto.data);
+  }
+
+  @Post('app-login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sign in with Telegram for the mobile app: answers with the beleqet:// link to open',
+  })
+  @ApiResponse({ status: 401, description: 'Invalid signature or expired login data' })
+  @ApiResponse({ status: 404, description: 'This Telegram account is not registered' })
+  async telegramAppLogin(@Body() dto: TelegramAppLoginDto) {
+    return this.tmaService.appLoginWithWidget(dto.data, dto.challenge);
   }
 
   @Post('connect')

@@ -2243,7 +2243,8 @@
       "label": "Sections",
       "jobs": "Jobs",
       "applications": "Applications",
-      "profile": "Profile"
+      "profile": "Profile",
+      "saved": "Saved"
     },
     "badge": {
       "applied": "APPLIED",
@@ -2288,7 +2289,9 @@
       "about": "About the role",
       "more": "Read full description",
       "less": "Show less",
-      "safety": "Employers on Beleqet never ask you to pay to apply."
+      "safety": "Employers on Beleqet never ask you to pay to apply.",
+      "save": "Save this job",
+      "unsave": "Saved. Tap to remove it"
     },
     "apply": {
       "eyebrow": "Apply",
@@ -2389,6 +2392,47 @@
       "noTelegram": "No Telegram",
       "stage": "Stage",
       "stageFor": "Stage for {name}"
+    },
+    "saved": {
+      "title": "Saved jobs",
+      "sub": "{count} saved",
+      "signedOut": "Register in the Beleqet Jobs bot to save jobs.",
+      "failed": "Your saved jobs couldn’t be loaded.",
+      "none": "No saved jobs yet.",
+      "noneText": "Tap the bookmark on a job to keep it here.",
+      "closed": "Closed",
+      "removeLabel": "Remove {title} from saved jobs",
+      "removeFailed": "It couldn’t be removed. Try again."
+    },
+    "post": {
+      "stepOf": "Step {n} of {total}",
+      "steps": {
+        "basics": "The job",
+        "pay": "Pay",
+        "details": "Details",
+        "review": "Review and send"
+      },
+      "next": "Next",
+      "back": "Back",
+      "send": "Send for review",
+      "saveChanges": "Save changes",
+      "sending": "Sending…",
+      "count": "{count} of at least {min} characters",
+      "backToJobs": "Back to my jobs",
+      "registerTitle": "Register as an employer",
+      "registerText": "Employers register in the Beleqet Jobs bot with their company email. Then you can post jobs here."
     }
+  },
+  "appLogin": {
+    "title": "Sign in to the Beleqet app",
+    "text": "Continue with the Telegram account you registered with in the Beleqet Jobs bot.",
+    "button": "Continue with Telegram",
+    "working": "Signing you in…",
+    "unregisteredTitle": "This Telegram account isn’t registered",
+    "unregisteredText": "Register in the Beleqet Jobs bot first. It takes about a minute. Then go back to the app and sign in.",
+    "register": "Register in the bot",
+    "back": "Back to the app",
+    "failed": "Telegram sign-in didn’t work. Go back to the app and try again.",
+    "badLink": "Open this page from the sign-in screen of the Beleqet app."
   }
 }

@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { X } from 'lucide-react-native';
-import { Screen, Card, H2, Muted, Field, Button, Notice, Failed, Loading, Avatar, DateTimeField, Badge } from '../components/ui';
+import { Screen, Card, H2, Muted, Field, Button, Notice, Failed, Loading, Avatar, DateTimeField, Badge, Chips } from '../components/ui';
 import { fetchProfile, updateProfile, type Profile } from '../api/seeker';
 import { addSlot, fetchSlots, removeSlot, type Slot } from '../api/interviews';
 import { uploadFile } from '../lib/api';
@@ -17,6 +17,8 @@ import { dateTime, safeHttpUrl } from '../lib/format';
 
 const TEXT_FIELDS = ['firstName', 'lastName', 'headline', 'location', 'phone'] as const;
 const LINK_FIELDS = ['linkedinUrl', 'portfolioUrl', 'githubUrl'] as const;
+/** The countries the bot offers as buttons; any other one a profile already has is added. */
+const COUNTRIES = ['ET', 'SA', 'AE', 'KE', 'DJ'];
 const MAX_BYTES = 10 * 1024 * 1024;
 const CV_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
@@ -62,6 +64,9 @@ export default function ProfileScreen() {
       const body: Record<string, unknown> = { skills: profile!.skills, bio: profile!.bio ?? '' };
       for (const field of TEXT_FIELDS) body[field] = profile![field] ?? '';
       for (const field of LINK_FIELDS) body[field] = profile![field] ? safeHttpUrl(profile![field]) : '';
+      body.gender = profile!.gender ?? '';
+      body.country = profile!.country ?? '';
+      body.city = profile!.city?.trim() ?? '';
       await updateProfile(body as Partial<Profile>);
       setSaved(true);
       await refreshUser();
@@ -171,6 +176,30 @@ export default function ProfileScreen() {
           />
         ))}
         <Field label={t('dash.fields.bio')} value={profile.bio ?? ''} onChangeText={(bio) => change({ bio })} multiline />
+        <View className="gap-2">
+          <Text className="text-sm font-semibold text-ink-900 dark:text-white">{t('dash.fields.gender')}</Text>
+          <Chips
+            value={profile.gender ?? ''}
+            onChange={(gender) => change({ gender: (gender || null) as Profile['gender'] })}
+            options={[
+              { value: '', label: t('m.profile.notSaid') },
+              { value: 'MALE', label: t('postJob.genders.MALE') },
+              { value: 'FEMALE', label: t('postJob.genders.FEMALE') },
+            ]}
+          />
+        </View>
+        <View className="gap-2">
+          <Text className="text-sm font-semibold text-ink-900 dark:text-white">{t('dash.fields.country')}</Text>
+          <Chips
+            value={profile.country ?? ''}
+            onChange={(country) => change({ country: country || null })}
+            options={[...COUNTRIES, ...(profile.country && !COUNTRIES.includes(profile.country) ? [profile.country] : [])].map((code) => ({
+              value: code,
+              label: t(`m.countries.${code}`) === `m.countries.${code}` ? code : t(`m.countries.${code}`),
+            }))}
+          />
+        </View>
+        <Field label={t('dash.fields.city')} value={profile.city ?? ''} onChangeText={(city) => change({ city })} autoComplete="postal-address-locality" />
       </Card>
 
       <Card>

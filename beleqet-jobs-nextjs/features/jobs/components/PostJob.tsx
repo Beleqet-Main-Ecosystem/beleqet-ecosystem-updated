@@ -6,15 +6,13 @@ import { CheckCircle2, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
-import { GENDERS, initials, jobGender, type Gender } from '../format';
+import { GENDERS, initials, type Gender } from '../format';
 import { JOB_TYPES, type JobTypeCode } from '../search-params';
+import { fieldsFromJob, jobProblem, jobRequestBody, LEVELS, PAY_PERIODS, type JobFields, type SavedJob } from '../post-job-fields';
 import CompanySetup from './CompanySetup';
 import { apiError, errorText } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
-const PAY_PERIODS = ['monthly', 'daily', 'hourly'] as const;
-const LEVELS = ['Entry level', 'Junior', 'Mid-level', 'Senior'] as const;
-const MIN_DESCRIPTION = 50;
 
 const input = 'min-h-12 w-full min-w-0 rounded-lg border border-ink-300 bg-surface px-3.5 text-base text-ink-900 focus:outline-none focus:ring-2 focus:ring-forest dark:border-slate-700 dark:bg-slate-950 dark:text-white';
 const labelText = 'text-sm font-bold text-ink-900 dark:text-white';
@@ -25,30 +23,6 @@ const outline = 'inline-flex min-h-12 items-center justify-center rounded-lg bor
 
 type Category = { id: string; label: string };
 type Plan = { name: string; maxPosts: number | null; canFeature: boolean };
-type SavedJob = {
-  id: string;
-  title: string;
-  categoryId: string;
-  location: string;
-  vacancies: number | null;
-  type: JobTypeCode;
-  salaryMin: number | null;
-  salaryMax: number | null;
-  salaryType: string | null;
-  description: string;
-  requirements: string | null;
-  experienceLevel: string | null;
-  yearsOfExperience: string | null;
-  qualification: string | null;
-  gender: string | null;
-  tags: string[];
-  applyType: string | null;
-  applyUrl: string | null;
-  applyEmail: string | null;
-  deadline: string | null;
-  featured: boolean;
-  urgent: boolean;
-};
 
 /** With editId the form loads one of the employer's own jobs and saves changes to it. */
 /** `dashboardHref`: where "back to my jobs" goes; the Telegram Mini App passes its own employer home. */
@@ -92,25 +66,25 @@ export default function PostJob({ categories, editId, dashboardHref = '/employer
   const canPost = user?.role === 'EMPLOYER' || user?.role === 'ADMIN';
 
   const fill = useCallback((job: SavedJob) => {
-    setTitle(job.title);
-    setCategoryId(job.categoryId);
-    setLocation(job.location);
-    setVacancies(String(job.vacancies ?? 1));
-    setGender(jobGender(job.gender) ?? 'ANY');
-    setType(job.type);
-    setSalaryMin(job.salaryMin ? String(job.salaryMin) : '');
-    setSalaryMax(job.salaryMax ? String(job.salaryMax) : '');
-    const period = PAY_PERIODS.find((item) => item === job.salaryType?.toLowerCase());
-    setSalaryType(period ?? 'monthly');
-    setDescription(job.description);
-    setRequirements(job.requirements ?? '');
-    setExperienceLevel(job.experienceLevel ?? '');
-    setYears(job.yearsOfExperience ?? '');
-    setQualification(job.qualification ?? '');
-    setTags(job.tags ?? []);
-    setDeadline(job.deadline ? job.deadline.slice(0, 10) : '');
-    setFeatured(job.featured);
-    setUrgent(job.urgent);
+    const f = fieldsFromJob(job);
+    setTitle(f.title);
+    setCategoryId(f.categoryId);
+    setLocation(f.location);
+    setVacancies(f.vacancies);
+    setGender(f.gender);
+    setType(f.type);
+    setSalaryMin(f.salaryMin);
+    setSalaryMax(f.salaryMax);
+    setSalaryType(f.salaryType);
+    setDescription(f.description);
+    setRequirements(f.requirements);
+    setExperienceLevel(f.experienceLevel);
+    setYears(f.years);
+    setQualification(f.qualification);
+    setTags(f.tags);
+    setDeadline(f.deadline);
+    setFeatured(f.featured);
+    setUrgent(f.urgent);
   }, []);
 
   const loadJob = useCallback(async () => {
@@ -235,51 +209,22 @@ export default function PostJob({ categories, editId, dashboardHref = '/employer
     }
   }
 
-  function problem(): string {
-    if (title.trim().length < 3) return t('postJob.errTitle');
-    if (!categoryId) return t('postJob.errCategory');
-    if (!location.trim()) return t('postJob.errLocation');
-    if (min && max && max < min) return t('postJob.errSalary');
-    if (description.trim().length < MIN_DESCRIPTION) return t('postJob.errDescription');
-    return '';
-  }
+  const fields: JobFields = {
+    title, categoryId, location, vacancies, gender, type, salaryMin, salaryMax, salaryType, description,
+    requirements, experienceLevel, years, qualification, tags, deadline, featured, urgent,
+  };
 
   async function publish(event: FormEvent) {
     event.preventDefault();
-    const issue = problem();
-    setError(issue);
+    const issue = jobProblem(fields);
+    setError(issue ? t(issue) : '');
     if (issue) return;
     setPublishing(true);
-    // An edit sends null so a field the employer emptied is cleared, not left as it was.
-    const empty = editing ? null : undefined;
     try {
       const response = await authenticatedFetch(editing ? `${API_URL}/jobs/${editId}` : `${API_URL}/jobs`, {
         method: editing ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim(),
-          requirements: requirements.trim() || empty,
-          location: location.trim(),
-          type,
-          categoryId,
-          salaryMin: min || empty,
-          salaryMax: max || empty,
-          salaryType,
-          vacancies: Number(vacancies) || 1,
-          gender,
-          experienceLevel: experienceLevel || empty,
-          yearsOfExperience: years.trim() || empty,
-          qualification: qualification.trim() || empty,
-          tags,
-          deadline: deadline || empty,
-          // Applications always come through Beleqet; saving an older job also clears its link or email.
-          applyType: empty,
-          applyUrl: empty,
-          applyEmail: empty,
-          featured: canFeature ? featured : undefined,
-          urgent,
-        }),
+        body: JSON.stringify(jobRequestBody(fields, { editing, canFeature })),
       });
       // A 403 is the plan's job limit or an unconfirmed email; errorText shows which.
       if (!response.ok) throw await apiError(response);

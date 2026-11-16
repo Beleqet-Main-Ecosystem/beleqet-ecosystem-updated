@@ -67,7 +67,8 @@ class TestAcademyBotQA(unittest.TestCase):
             self.cur.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (self.payment_handler_id,))
         self.conn.commit()
         
-        self.bot_token = "8767167572:AAH7RgPEc7EqSJxF2pqwd45mGYFy0GXANaU"
+        # Only used to sign fake Telegram init data in these tests; not a real bot.
+        self.bot_token = "123456:test-token-for-signing-only"
 
     def tearDown(self):
         self.conn.close()

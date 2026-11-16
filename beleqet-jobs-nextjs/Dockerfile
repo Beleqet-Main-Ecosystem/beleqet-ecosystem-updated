@@ -21,9 +21,15 @@ COPY beleqet-jobs-nextjs/ .
 ARG NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
 ARG NEXT_PUBLIC_APP_URL=https://beleqetjobs.com
 ARG NEXT_PUBLIC_SITE_URL=https://beleqetjobs.com
+# Home page "Open the mini app": the Jobs bot's main Mini App (set in @BotFather).
+ARG NEXT_PUBLIC_TELEGRAM_MINI_APP_URL=https://t.me/BeleqetJobs_Bot?startapp
+# Home page Android card: empty hides it. Set to the Play listing once the app is public there.
+ARG NEXT_PUBLIC_ANDROID_APP_URL=
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_TELEGRAM_MINI_APP_URL=$NEXT_PUBLIC_TELEGRAM_MINI_APP_URL
+ENV NEXT_PUBLIC_ANDROID_APP_URL=$NEXT_PUBLIC_ANDROID_APP_URL
 ENV NEXT_IGNORE_INCORRECT_LOCKFILE=1
 
 RUN npm run build
