@@ -13,7 +13,8 @@ import time
 import httpx
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 app = FastAPI()
 
@@ -29,7 +30,7 @@ app.add_middleware(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("referral-api")
 
-DB_FILE = "referrals.db"
+DB_FILE = os.path.join(BASE_DIR, "referrals.db")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 PROMO_BOT_API_URL = os.getenv("PROMO_BOT_API_URL", "https://beleqet-promo-miniapp.beleqet.com/api/internal/transfer_points")
 TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "")
@@ -152,17 +153,32 @@ async def request_withdrawal(req: WithdrawRequest, x_telegram_init_data: str = H
                 {"text": "Reject ❌", "callback_data": f"reject:{withdrawal_id}"},
             ]]
         }
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            await client.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                json={
-                    # Routed to the dedicated payment handler, or the primary admin if none is set.
-                    "chat_id": os.getenv("PAYMENT_HANDLER_ID", os.getenv("ADMIN_ID")),
-                    "text": admin_message,
-                    "parse_mode": "Markdown",
-                    "reply_markup": keyboard,
-                },
-            )
+        # Dispatch notification to admin/payment handler with rollback if Telegram API fails
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                    json={
+                        # Routed to the dedicated payment handler, or the primary admin if none is set.
+                        "chat_id": os.getenv("PAYMENT_HANDLER_ID", os.getenv("ADMIN_ID")),
+                        "text": admin_message,
+                        "parse_mode": "Markdown",
+                        "reply_markup": keyboard,
+                    },
+                )
+                if res.status_code != 200:
+                    raise Exception(f"Telegram API returned {res.status_code}: {res.text}")
+        except Exception as telegram_err:
+            log.error("Telegram notification failed for withdrawal #%s; refunding points: %s", withdrawal_id, telegram_err)
+            try:
+                async with aiosqlite.connect(DB_FILE) as db:
+                    await db.execute("UPDATE users SET score = score + ? WHERE user_id = ?", (req.amount, req.user_id))
+                    await db.execute("UPDATE withdrawals SET status = 'failed' WHERE id = ?", (withdrawal_id,))
+                    await db.commit()
+            except Exception:
+                log.critical("Could not refund %s points to %s after failed withdrawal notification", req.amount, req.user_id, exc_info=True)
+            raise HTTPException(status_code=502, detail="Failed to notify administrators. Your points have been refunded.")
+
         return {"status": "success", "message": "Withdrawal requested successfully!"}
     except HTTPException:
         raise

@@ -12,9 +12,15 @@
 #
 # Sequence: back up the database -> pull the images -> apply migrations with the
 # new API image -> retag the images the compose services run -> restart the API,
-# admin and website -> health checks. If a health check fails, the previous
-# images come back automatically (migrations are not undone: they only ever add,
-# so the previous code keeps working; restore the backup by hand if ever needed).
+# admin and website -> health checks -> update the Telegram bots. If a health check
+# fails, the previous images come back automatically (migrations are not undone:
+# they only ever add, so the previous code keeps working; restore the backup by
+# hand if ever needed).
+#
+# The bots (bots/<name> in git) run from $BOTS_ROOT/<name> under systemd with their
+# own .env, Python environment and data files, none of which are in git. Only their
+# code is copied from this checkout; a bot restarts only when its code changed, and
+# the files it replaced are kept in this deploy's backup folder.
 # =============================================================================
 set -Eeuo pipefail
 
@@ -38,6 +44,21 @@ HEALTH_URLS=(
   "http://127.0.0.1:4000/api/v1/health"
   "http://127.0.0.1:3000/login"
   "http://127.0.0.1:3001/"
+)
+
+BOTS_ROOT="${BOTS_ROOT:-/opt/beleqet}"
+# bots/<name> -> the systemd services that run it
+declare -A BOT_SERVICES=(
+  [job]="beleqet-jobs-bot"
+  [beleqet-bot]="beleqet-bot beleqet-bot-api"
+  [shareandwin]="shareandwin-bot shareandwin-api"
+)
+# Never copied: settings, the Python environment, data the bots write, uploads and tests.
+BOT_EXCLUDES=(
+  --exclude='.env*' --exclude='venv/' --exclude='__pycache__/' --exclude='*.pyc'
+  --exclude='*.db' --exclude='*.db-*' --exclude='*.sqlite*' --exclude='bot_persistence*'
+  --exclude='*.pickle' --exclude='*.log' --exclude='*.bak*' --exclude='uploads/'
+  --exclude='test_*.py' --exclude='tests/'
 )
 
 log() { printf '[deploy] %s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
@@ -76,13 +97,56 @@ database_url() {
   grep -oE 'DATABASE_URL=postgresql://[^ ]+' docker-compose.override.yml | head -1 | cut -d= -f2-
 }
 
-log "1/6 backing up the database"
+services_active() {
+  local unit
+  for unit in "$@"; do systemctl is-active --quiet "$unit" || return 1; done
+}
+
+# Copies each bot's code into place and restarts the bots whose code changed. A bot that doesn't
+# come back up gets its previous files back. Returns non-zero if any bot needed that.
+deploy_bots() {
+  local bot dir owner changes failed=0
+  for bot in "${!BOT_SERVICES[@]}"; do
+    dir="$BOTS_ROOT/$bot"
+    if [ ! -d "bots/$bot" ] || [ ! -d "$dir" ]; then
+      log "    $bot: not set up on this server, skipped"
+      continue
+    fi
+    owner="$(stat -c %U:%G "$dir")"
+    changes="$(rsync -rlci --chown="$owner" --backup --backup-dir="$BACKUP_ROOT/$STAMP/bots/$bot" \
+      "${BOT_EXCLUDES[@]}" "bots/$bot/" "$dir/" | grep '^>f' || true)"
+    if [ -z "$changes" ]; then
+      log "    $bot: unchanged"
+      continue
+    fi
+    log "    $bot: $(wc -l <<< "$changes") file(s) updated"
+    if grep -q ' requirements.txt$' <<< "$changes"; then
+      # Unpinned names: installs what's missing, never upgrades or downgrades what's there.
+      sudo -u "${owner%%:*}" "$dir/venv/bin/pip" install -q -r "$dir/requirements.txt" ||
+        log "    $bot: installing its Python packages failed"
+    fi
+    # shellcheck disable=SC2086 # one or more service names
+    systemctl restart ${BOT_SERVICES[$bot]}
+    sleep 5
+    # shellcheck disable=SC2086
+    if ! services_active ${BOT_SERVICES[$bot]}; then
+      log "    $bot did not start; putting its previous files back"
+      cp -a "$BACKUP_ROOT/$STAMP/bots/$bot/." "$dir/" 2> /dev/null || true
+      # shellcheck disable=SC2086
+      systemctl restart ${BOT_SERVICES[$bot]}
+      failed=1
+    fi
+  done
+  return "$failed"
+}
+
+log "1/7 backing up the database"
 mkdir -p "$BACKUP_ROOT/$STAMP" && chmod 700 "$BACKUP_ROOT" "$BACKUP_ROOT/$STAMP"
 docker exec "$DB_CONTAINER" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$BACKUP_ROOT/$STAMP/database.dump"
 [ -s "$BACKUP_ROOT/$STAMP/database.dump" ] || fail "database backup is empty"
 log "    saved $BACKUP_ROOT/$STAMP/database.dump"
 
-log "2/6 pulling images for $SHA"
+log "2/7 pulling images for $SHA"
 cleanup_images all-rollbacks
 if [ "$(free_gb)" -lt "$MIN_FREE_GB" ]; then
   fail "only $(free_gb) GB free on / (need $MIN_FREE_GB GB); nothing was changed. Free space, then deploy again"
@@ -91,11 +155,11 @@ for service in "${!IMAGES[@]}"; do
   docker pull -q "$NAMESPACE/${IMAGES[$service]}:$SHA" > /dev/null
 done
 
-log "3/6 applying database migrations"
+log "3/7 applying database migrations"
 docker run --rm --network "$NETWORK" -e DATABASE_URL="$(database_url)" \
   "$NAMESPACE/beleqet-backend:$SHA" ./node_modules/.bin/prisma migrate deploy
 
-log "4/6 keeping the running images as rollback-$STAMP and switching to $SHA"
+log "4/7 keeping the running images as rollback-$STAMP and switching to $SHA"
 for service in "${!IMAGES[@]}"; do
   docker tag "$PROJECT-$service:latest" "$PROJECT-$service:rollback-$STAMP" 2>/dev/null || true
   docker tag "$NAMESPACE/${IMAGES[$service]}:$SHA" "$PROJECT-$service:latest"
@@ -117,16 +181,18 @@ healthy() {
   done
 }
 
-log "5/6 restarting the API, admin and website"
+log "5/7 restarting the API, admin and website"
 restart
 
-log "6/6 health checks"
+log "6/7 health checks"
 if healthy; then
   echo "$SHA" > .beleqet-production-sha
   cleanup_images newest
   # Automatic backups (named by timestamp) beyond the newest $KEEP_BACKUPS go; hand-made ones stay.
   find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[0-9]{8}-[0-9]{6}'     | sort | head -n -"$KEEP_BACKUPS" | xargs -r rm -rf
   log "live: $SHA (rollback images tagged rollback-$STAMP, $(free_gb) GB free)"
+  log "7/7 updating the Telegram bots"
+  deploy_bots || fail "the API, admin and website are live, but a bot didn't start with the new code and was put back"
   exit 0
 fi
 
