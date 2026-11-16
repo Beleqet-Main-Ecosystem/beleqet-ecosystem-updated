@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Briefcase, ClipboardCheck, UserRound } from 'lucide-react';
+import { Bookmark, Briefcase, ClipboardCheck, UserRound } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { initials } from '@/features/jobs/format';
 
@@ -37,6 +37,7 @@ export function Band({ children }: { children: React.ReactNode }) {
 
 const TABS = [
   { href: '/tg', key: 'jobs', Icon: Briefcase },
+  { href: '/tg/saved', key: 'saved', Icon: Bookmark },
   { href: '/tg/applications', key: 'applications', Icon: ClipboardCheck },
   { href: '/tg/profile', key: 'profile', Icon: UserRound },
 ] as const;
@@ -46,7 +47,7 @@ export function TabBar() {
   const { t } = useTranslation();
   const pathname = usePathname();
   return (
-    <nav aria-label={t('mini.tabs.label')} className="sticky bottom-0 z-10 grid grid-cols-3 border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] dark:border-mini-dborder dark:bg-mini-dtab">
+    <nav aria-label={t('mini.tabs.label')} className="sticky bottom-0 z-10 grid grid-cols-4 border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] dark:border-mini-dborder dark:bg-mini-dtab">
       {TABS.map(({ href, key, Icon }) => {
         const active = href === '/tg' ? pathname === '/tg' : pathname.startsWith(href);
         return (
