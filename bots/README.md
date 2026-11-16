@@ -3,6 +3,12 @@
 > Full-stack Telegram bot ecosystem for Ethiopia's leading job board and referral reward platform.
 > This monorepo contains three production services that run together behind Nginx on a VPS (accessible over a VPN).
 
+> **Deploying changes:** edit the bots here, never on the server. Every merge to `main` runs
+> `scripts/deploy/deploy-production.sh`, which copies each bot's code into `/opt/beleqet/<bot>` and
+> restarts only the bots that changed. A bot's `.env`, `venv`, databases and uploads stay on the
+> server and are never overwritten; if a bot doesn't start with the new code, its previous files
+> are put back. The setup steps below are only for a new server.
+
 ## Table of Contents
 
 1. Project Overview
