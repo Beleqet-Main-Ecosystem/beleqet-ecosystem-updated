@@ -183,6 +183,28 @@ describe('NotificationsProcessor', () => {
         ]);
       });
 
+      it('adds a button that opens a Mini App screen when the message has one', async () => {
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
+        await processor.sendTelegram({
+          ...job,
+          data: {
+            telegramId: '123',
+            message: 'hello',
+            button: { text: 'Track', url: 'https://beleqetjobs.com/tg/applications' },
+          },
+        } as Job<TelegramPayload, void, 'send-telegram'>);
+        await processor.sendTelegram(job);
+        const [withButton, without] = fetchMock.mock.calls.map(([, init]) =>
+          JSON.parse((init as { body: string }).body),
+        );
+        expect(withButton.reply_markup).toEqual({
+          inline_keyboard: [
+            [{ text: 'Track', web_app: { url: 'https://beleqetjobs.com/tg/applications' } }],
+          ],
+        });
+        expect(without.reply_markup).toBeUndefined();
+      });
+
       it("doesn't retry when the person blocked or never opened the bot", async () => {
         settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
         fetchMock.mockResolvedValueOnce({
