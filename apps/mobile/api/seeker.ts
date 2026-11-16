@@ -40,6 +40,10 @@ export type Profile = {
   emailVerified: boolean;
   avatarUrl: string | null;
   telegramId?: string | null;
+  /** Residence, also asked by the bot at registration. */
+  gender?: 'MALE' | 'FEMALE' | null;
+  country?: string | null;
+  city?: string | null;
   createdAt?: string;
 };
 

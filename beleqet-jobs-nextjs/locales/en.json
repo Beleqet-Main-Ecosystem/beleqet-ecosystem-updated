@@ -2390,5 +2390,17 @@
       "stage": "Stage",
       "stageFor": "Stage for {name}"
     }
+  },
+  "appLogin": {
+    "title": "Sign in to the Beleqet app",
+    "text": "Continue with the Telegram account you registered with in the Beleqet Jobs bot.",
+    "button": "Continue with Telegram",
+    "working": "Signing you in…",
+    "unregisteredTitle": "This Telegram account isn’t registered",
+    "unregisteredText": "Register in the Beleqet Jobs bot first. It takes about a minute. Then go back to the app and sign in.",
+    "register": "Register in the bot",
+    "back": "Back to the app",
+    "failed": "Telegram sign-in didn’t work. Go back to the app and try again.",
+    "badLink": "Open this page from the sign-in screen of the Beleqet app."
   }
 }

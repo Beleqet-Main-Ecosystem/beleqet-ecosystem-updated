@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { apiClient, persistTokens } from '../api/client';
 import { fetchMe, type Me } from '../api/auth';
 import { toApiError } from './api-error';
-import { API_URL } from './config';
+import { API_URL, SITE_URL } from './config';
 
 const RETURN_URL = 'beleqet://auth/callback';
 
@@ -18,15 +18,20 @@ function base64Url(base64: string) {
 }
 
 /**
- * Google or LinkedIn sign-in in an in-app browser. The app keeps a one-time secret and sends only
- * its SHA-256 hash; the API answers through beleqet:// with a single-use code that is worth nothing
- * without the secret, so another app that grabbed the redirect couldn't sign in with it.
- * Resolves null when the person closed the browser.
+ * Google, LinkedIn or Telegram sign-in in an in-app browser. The app keeps a one-time secret and
+ * sends only its SHA-256 hash; the API answers through beleqet:// with a single-use code that is
+ * worth nothing without the secret, so another app that grabbed the redirect couldn't sign in with it.
+ * Telegram's sign-in only works on beleqetjobs.com, so it starts on a page there instead of the API.
+ * Resolves null when the person closed the browser. Throws with the error the page or API sent back,
+ * e.g. "telegram-not-registered".
  */
-export async function signInWithProvider(provider: 'google' | 'linkedin'): Promise<ProviderResult | null> {
+export async function signInWithProvider(provider: 'google' | 'linkedin' | 'telegram'): Promise<ProviderResult | null> {
   const verifier = Array.from(Crypto.getRandomBytes(32), (byte) => byte.toString(16).padStart(2, '0')).join('');
   const challenge = base64Url(await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, verifier, { encoding: Crypto.CryptoEncoding.BASE64 }));
-  const start = `${API_URL}/auth/${provider}?app_challenge=${encodeURIComponent(challenge)}`;
+  const start =
+    provider === 'telegram'
+      ? `${SITE_URL}/telegram-app-login?app_challenge=${encodeURIComponent(challenge)}`
+      : `${API_URL}/auth/${provider}?app_challenge=${encodeURIComponent(challenge)}`;
 
   const result = await WebBrowser.openAuthSessionAsync(start, RETURN_URL);
   if (result.type !== 'success') return null;
