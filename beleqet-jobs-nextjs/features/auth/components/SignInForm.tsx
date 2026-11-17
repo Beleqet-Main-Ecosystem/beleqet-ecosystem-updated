@@ -187,7 +187,7 @@ export default function SignInForm() {
       <Heading title={t('auth.welcomeBack')} sub={t('auth.signInSub')} />
       <TelegramRegisterPanel />
       {notice && <p role="status" className="rounded-lg border border-[#B9D88A] bg-[#F1F7EC] px-4 py-3 text-sm text-ink-900 dark:border-limeAccent/40 dark:bg-slate-900 dark:text-white">{notice}</p>}
-      <SocialButtons employerNote />
+      <SocialButtons />
       <form onSubmit={signIn} className="flex flex-col gap-4">
         <TextField
           label={t('auth.email')}
