@@ -9,6 +9,7 @@
 
 import {
   buildProfilePayload,
+  cvFromProfile,
   emptyCv,
   extractErrorMessage,
   mergeExtractedProfile,
@@ -262,5 +263,60 @@ describe('resumeToCvImport', () => {
     expect(next.fullName).toBe('Abebe Kebede Tesfaye');
     expect(next.title).toBe('Audit Associate');
     expect(filled.has('experience')).toBe(true);
+  });
+});
+
+describe('cvFromProfile', () => {
+  const profile = {
+    firstName: 'Ahmed',
+    lastName: 'Mahmud Ali',
+    email: 'ahmed@example.com',
+    phone: '+251900000000',
+    headline: 'Software Developer',
+    bio: 'Builds web platforms.',
+    location: 'Addis Ababa',
+    city: 'Adama',
+    portfolioUrl: 'https://ahmed.dev',
+    skills: ['NestJS', 'Next.js'],
+  };
+
+  it('reads back what "Save to my profile" wrote', () => {
+    const cv = cvFromProfile(profile);
+    expect(cv).toMatchObject({
+      fullName: 'Ahmed Mahmud Ali',
+      title: 'Software Developer',
+      email: 'ahmed@example.com',
+      phone: '+251900000000',
+      location: 'Addis Ababa',
+      website: 'https://ahmed.dev',
+      summary: 'Builds web platforms.',
+      skills: 'NestJS, Next.js',
+    });
+    expect(buildProfilePayload(cv)).toEqual({
+      firstName: 'Ahmed',
+      lastName: 'Mahmud Ali',
+      phone: '+251900000000',
+      headline: 'Software Developer',
+      bio: 'Builds web platforms.',
+      location: 'Addis Ababa',
+      skills: ['NestJS', 'Next.js'],
+    });
+  });
+
+  it('starts jobs, schools and languages empty, since the profile has none', () => {
+    const cv = cvFromProfile(profile);
+    expect(cv.experience).toEqual(emptyCv.experience);
+    expect(cv.education).toEqual(emptyCv.education);
+    expect(cv.languages).toBe('');
+  });
+
+  it('falls back to the city and leaves out an internal email', () => {
+    const cv = cvFromProfile({ ...profile, location: null, email: 'tma_42@tme.beleqet.local' }, true);
+    expect(cv.location).toBe('Adama');
+    expect(cv.email).toBe('');
+  });
+
+  it('gives an empty CV for an empty profile', () => {
+    expect(cvFromProfile({})).toEqual(emptyCv);
   });
 });
