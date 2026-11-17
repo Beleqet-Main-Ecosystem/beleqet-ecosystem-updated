@@ -9,7 +9,7 @@ from urllib.parse import parse_qsl, unquote
 import json
 
 from werkzeug.utils import secure_filename
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 import os
 from dotenv import load_dotenv
@@ -26,9 +26,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DB_PATH = os.getenv("DB_PATH", "database.db")
-ADMIN_ID = os.getenv("ADMIN_ID", "")
+ADMIN_ID = os.getenv("ADMIN_ID", "").strip()
 WEBHOOK_DOMAIN = os.getenv("WEBHOOK_DOMAIN", "").strip().rstrip("/")
-TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "")
+# Sent by Telegram with every webhook call, so nobody else can post fake updates.
+WEBHOOK_SECRET_TOKEN = os.getenv("WEBHOOK_SECRET_TOKEN", "").strip()
+# Shared with the referral bots; no transfers are accepted while it's unset.
+TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "").strip()
+INIT_DATA_MAX_AGE_SECONDS = 24 * 3600
 
 app = Flask(__name__)
 CORS(app)
@@ -109,7 +113,16 @@ def api_services():
 
     return jsonify({"status": "success", "services": modified_services})
 
+def data_check_hash(fields, bot_token):
+    """Telegram's hash of the Mini App's initData fields, keyed with the bot token."""
+    data_check_string = "\n".join(
+        f"{k}={v}" for k, v in sorted(fields.items())
+    )
+    secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    return hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
 def validate_telegram_data(auth_header):
+    """The Telegram user in the Mini App's initData, or None if Telegram didn't sign it or it's too old."""
     if not auth_header or not auth_header.startswith("tma "):
         return None
     init_data = auth_header[4:].strip()
@@ -118,22 +131,28 @@ def validate_telegram_data(auth_header):
     except Exception as e:
         logger.warning("initData parse failed: %s", e)
         return None
-    
+
     hash_value = parsed_data.pop('hash', None)
-    parsed_data.pop('signature', None)
     if not hash_value:
         return None
-        
-    data_check_string = "\n".join(
-        f"{k}={v}" for k, v in sorted(parsed_data.items())
-    )
-    
+
     bot_token = os.getenv("BOT_TOKEN")
     if not bot_token:
         logger.error("BOT_TOKEN env var is missing!")
         return None
-    
+
+    # Accounts differ on whether `signature` is part of the hashed fields; either way only
+    # Telegram (holding the bot token) can produce a match.
+    without_signature = {k: v for k, v in parsed_data.items() if k != 'signature'}
+    if not any(
+        hmac.compare_digest(data_check_hash(fields, bot_token), hash_value)
+        for fields in (parsed_data, without_signature)
+    ):
+        return None
+
     try:
+        if time.time() - int(parsed_data.get('auth_date', '0')) > INIT_DATA_MAX_AGE_SECONDS:
+            return None
         return json.loads(parsed_data.get('user', '{}'))
     except Exception:
         return None
@@ -222,6 +241,8 @@ def health_check():
 
 @app.route('/api/internal/transfer_points', methods=['POST'])
 def transfer_points():
+    if not TRANSFER_SECRET_KEY:
+        return jsonify({"status": "error", "message": "Transfers are not set up"}), 503
     secret = request.headers.get("X-Transfer-Secret")
     if not secret or not hmac.compare_digest(secret, TRANSFER_SECRET_KEY):
         return jsonify({"status": "error", "message": "Unauthorized: Invalid transfer secret key"}), 401
@@ -799,12 +820,18 @@ def sync_orders():
     return jsonify({"status": "success", "updated": updated_count, "refunded": refund_amount})
 
 
+# The Mini App is these two files. Nothing else in this folder (.env, the database, the
+# payment screenshots in uploads/) is ever served.
+PUBLIC_FILES = {'index.html', 'styles.css'}
+
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
 
 @app.route('/<path:path>')
 def static_files(path):
+    if path not in PUBLIC_FILES:
+        abort(404)
     return send_from_directory('.', path)
 
 # --- TELEGRAM BOT HANDLERS & WEBHOOK ---
@@ -815,9 +842,11 @@ def set_webhook():
         return "Bot token not configured", 500
     if not WEBHOOK_DOMAIN:
         return "WEBHOOK_DOMAIN env var not set", 500
+    if not WEBHOOK_SECRET_TOKEN:
+        return "WEBHOOK_SECRET_TOKEN env var not set", 500
     webhook_url = f"{WEBHOOK_DOMAIN}/webhook"
     bot.remove_webhook()
-    success = bot.set_webhook(url=webhook_url)
+    success = bot.set_webhook(url=webhook_url, secret_token=WEBHOOK_SECRET_TOKEN)
     if success:
         return f"Webhook set successfully to {webhook_url}", 200
     else:
@@ -827,6 +856,9 @@ def set_webhook():
 def webhook():
     if not bot:
         return "Bot not configured", 500
+    received = request.headers.get('X-Telegram-Bot-Api-Secret-Token', '')
+    if not WEBHOOK_SECRET_TOKEN or not hmac.compare_digest(received, WEBHOOK_SECRET_TOKEN):
+        return "Forbidden", 403
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
         update = telebot.types.Update.de_json(json_string)
@@ -918,15 +950,20 @@ if bot:
                 "💳 **የክፍያ አማራጮች (Chapa):**\n"
                 "በሚኒ አፑ ውስጥ 'Add Fund' የሚለውን በመጫን በቴሌብር (Telebirr) ወይም በባንክ አካውንትዎን በራስ ሰር መሙላት ይችላሉ።"
             )
+        elif call.data.startswith(("approve_deposit_", "reject_deposit_")) and str(call.from_user.id) != ADMIN_ID:
+            # The buttons are only on the admin's copy, but a crafted callback can come from anyone.
+            bot.answer_callback_query(call.id, "Only the admin can do this.")
         elif call.data.startswith("approve_deposit_"):
             deposit_id = call.data.split("_")[-1]
             conn = get_db()
             c = conn.cursor()
             c.execute("SELECT user_id, amount, status FROM manual_deposits WHERE id = ?", (deposit_id,))
             row = c.fetchone()
-            if row and row[2] == 'pending':
+            # Only the click that moves it out of 'pending' credits the balance, so a double click pays once.
+            if row and row[2] == 'pending' and c.execute(
+                "UPDATE manual_deposits SET status = 'approved' WHERE id = ? AND status = 'pending'", (deposit_id,)
+            ).rowcount == 1:
                 user_id, amount = row[0], row[1]
-                c.execute("UPDATE manual_deposits SET status = 'approved' WHERE id = ?", (deposit_id,))
                 c.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
                 conn.commit()
                 bot.edit_message_caption(
@@ -949,9 +986,10 @@ if bot:
             c = conn.cursor()
             c.execute("SELECT user_id, status FROM manual_deposits WHERE id = ?", (deposit_id,))
             row = c.fetchone()
-            if row and row[1] == 'pending':
+            if row and row[1] == 'pending' and c.execute(
+                "UPDATE manual_deposits SET status = 'rejected' WHERE id = ? AND status = 'pending'", (deposit_id,)
+            ).rowcount == 1:
                 user_id = row[0]
-                c.execute("UPDATE manual_deposits SET status = 'rejected' WHERE id = ?", (deposit_id,))
                 conn.commit()
                 bot.edit_message_caption(
                     caption=f"{call.message.caption}\n\n❌ *Status: REJECTED*", 
