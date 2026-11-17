@@ -218,7 +218,7 @@ export default function RegisterFlow() {
           </>
         }
       />
-      {/* Google and LinkedIn accounts start as job seekers, so only offer them for that role. */}
+      {/* Google accounts start as job seekers, so only offer it for that role. */}
       {role === 'JOB_SEEKER' && <SocialButtons />}
       <form onSubmit={submit} className="flex flex-col gap-3.5" noValidate>
         <div className="grid grid-cols-2 gap-2.5">

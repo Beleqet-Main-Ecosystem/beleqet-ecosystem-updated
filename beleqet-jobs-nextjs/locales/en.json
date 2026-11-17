@@ -235,6 +235,7 @@
     "errGeneric": "Something went wrong. Please try again.",
     "keepSignedIn": "Keep me signed in",
     "orEmail": "or with email",
+    "employerNote": "Employers: sign in with your email or Telegram. Google is for job seekers.",
     "oauthFailed": "Google or LinkedIn sign-in didn’t finish. Try again, or sign in with your email.",
     "oauthConfirm": "You already have an account with that email. We’ve emailed you a link to connect it; open it, then sign in.",
     "otherRoleTitle": "You need {role} account for this",
