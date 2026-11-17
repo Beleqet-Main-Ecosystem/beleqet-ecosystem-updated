@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beleqet Promotion</title>
+    <link href="styles.css" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .tab-active {
+            background-color: #6366f1;
+            color: white;
+        }
+
+        .tab-inactive {
+            background-color: transparent;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        /* Modal animation classes */
+        .modal-enter {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        @media (min-width: 640px) {
+            .modal-enter {
+                transform: translateY(0) scale(0.95);
+            }
+        }
+
+        .modal-enter-active {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+    <!-- Telegram Restriction Overlay -->
+    <div id="telegram-only-modal"
+        class="hidden fixed inset-0 bg-slate-950/95 z-[200] flex flex-col items-center justify-center p-6 text-center text-white backdrop-blur-md">
+        <div class="bg-gradient-to-tr from-indigo-600 via-purple-600 to-indigo-500 w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-indigo-500/30 mb-6 text-4xl animate-bounce">
+            🚀
+        </div>
+        <h2 class="text-3xl font-black mb-3 tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Telegram Exclusive App</h2>
+        <p class="text-slate-400 text-sm max-w-xs font-medium mb-8 leading-relaxed">
+            Beleqet Promotion can only be accessed directly from within Telegram. Please launch the mini-app using our Telegram Bot!
+        </p>
+        <a id="bot-redirect-btn" href="https://t.me/Beleqet_PromotionBot"
+            class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-500/20 hover:opacity-95 active:scale-95 transition-all uppercase tracking-wide text-sm flex items-center gap-2">
+            <span>Open in Telegram</span>
+            <span>➔</span>
+        </a>
+    </div>
+
+    <div
+        class="max-w-md mx-auto min-h-screen flex flex-col justify-between bg-slate-50 shadow-xl overflow-hidden relative">
+        <!-- Header for Home -->
+        <header id="main-header"
+            class="flex justify-between items-center bg-white px-4 py-3 border-b border-slate-200 shadow-sm z-10 relative sticky top-0">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-fuchsia-400 rounded-full flex items-center justify-center font-bold text-white shadow-inner text-lg"
+                    id="header-avatar-initial">B</div>
+                <div>
+                    <h1 id="username" class="font-bold text-sm text-slate-800">Guest</h1>
+                    <p class="text-[10px] text-slate-500 font-medium tracking-wide flex items-center gap-1">
+                        BALANCE: <span id="user-balance" class="font-bold text-slate-800">ETB 0.00</span>
+                    </p>
+                </div>
+            </div>
+            <button onclick="openAddFund()"
+                class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white text-[10px] px-3 py-2 rounded-xl font-bold shadow-md shadow-blue-500/20 flex items-center space-x-1 transition-all active:scale-95">
+                <span>+ Add Fund</span>
+            </button>
+        </header>
+
+        <!-- Home View -->
+        <main id="home-view" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+            <!-- Platform Filters -->
+            <div class="flex flex-col pb-4 relative">
+                <div id="platforms-container"
+                    class="flex flex-wrap justify-center gap-2 overflow-hidden max-h-[64px] transition-[max-height] duration-300 ease-in-out">
+                    <button onclick="filterPlatform('all')"
+                        class="bg-indigo-500 text-white text-xs px-4 py-1.5 rounded-xl font-semibold shadow-sm transition">All</button>
+                    <button onclick="filterPlatform('facebook')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #2563eb;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
+                        </svg>
+                        Facebook</button>
+                    <button onclick="filterPlatform('instagram')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #db2777;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                        </svg>
+                        Instagram</button>
+                    <button onclick="filterPlatform('telegram')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #3b82f6;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.717-.962 4.084-1.362 5.411-.168.56-.505 1.247-1.11.85-1.12-.736-2.502-1.657-3.504-2.28-.445-.276-.788-.737-.024-1.425 1.096-1.025 2.455-2.228 3.328-3.036.198-.184.341-.546-.226-.168-1.463 1.01-3.655 2.507-4.482 3.078-.501.345-1.01.503-1.499.491-.568-.014-1.353-.244-1.921-.43-.76-.248-.962-.486-.882-.894.043-.225.295-.497.662-.777 4.195-2.023 6.942-3.155 8.166-3.65 1.264-.51 1.543-.604 1.721-.607.13-.002.324.03.447.116.103.072.164.195.181.332.015.118-.018.344-.045.548z" />
+                        </svg>
+                        Telegram</button>
+                    <button onclick="filterPlatform('tiktok')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #000000;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v7.2c0 1.63-.33 3.25-1.07 4.67-1.04 2.02-3.12 3.59-5.4 3.9-2.12.29-4.32-.16-5.99-1.49-1.64-1.28-2.6-3.23-2.73-5.27-.12-2.14.73-4.22 2.21-5.7 1.53-1.52 3.73-2.22 5.86-1.91v4.11c-1.5-.16-3.08.18-4.07 1.34-1.07 1.25-1.12 3.12-.13 4.41.97 1.25 2.72 1.54 4.15.93 1.27-.55 1.95-1.9 1.96-3.27V.02z" />
+                        </svg>
+                        TikTok</button>
+                    <button onclick="filterPlatform('youtube')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #dc2626;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.5 12 3.5 12 3.5s-7.505 0-9.377.55a3.016 3.016 0 00-2.122 2.136C0 8.07 0 12 0 12s0 3.93.501 5.814a3.016 3.016 0 002.122 2.136c1.872.55 9.377.55 9.377.55s7.505 0 9.377-.55a3.016 3.016 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                        </svg>
+                        YouTube</button>
+                    <button onclick="filterPlatform('twitter')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #000000;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+                        </svg>
+                        Twitter</button>
+                    <button onclick="filterPlatform('spotify')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #1ed760;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.54.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.781-.18-.6.18-1.2.78-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.56.3z" />
+                        </svg>
+                        Spotify</button>
+                    <button onclick="filterPlatform('twitch')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #9146FF;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
+                        </svg>
+                        Twitch</button>
+                    <button onclick="filterPlatform('linkedin')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px; color: #0a66c2;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                        </svg>
+                        LinkedIn</button>
+                    <button onclick="filterPlatform('google')"
+                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
+                        <svg style="width: 14px; height: 14px;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                fill="#4285F4" />
+                            <path
+                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                fill="#34A853" />
+                            <path
+                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                fill="#FBBC05" />
+                            <path
+                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                fill="#EA4335" />
+                        </svg>
+                        Google</button>
+                    <button onclick="filterPlatform('premium')"
+                        class="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-amber-100">
+                        <svg style="width: 14px; height: 14px; color: #d97706;" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z" />
+                        </svg>
+                        Premium</button>
+                </div>
+                <!-- See More Button -->
+                <div class="flex justify-center mt-2 absolute bottom-[-10px] left-1/2 -translate-x-1/2 z-10">
+                    <button onclick="togglePlatforms()" id="see-more-platforms-btn"
+                        class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-3 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1 active:scale-95 transition-transform shadow-sm hover:bg-indigo-100">
+                        <span id="see-more-text">See More</span>
+                        <svg id="see-more-icon" class="w-3 h-3 transition-transform duration-300" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- New Order Form -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5"><span
+                        class="text-indigo-500">✨</span> New Order</h2>
+
+                <div>
+                    <div class="relative">
+                        <span
+                            class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">🔍</span>
+                        <input type="text" id="search-service" placeholder="Search by name, platform..."
+                            oninput="searchServices()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Category</label>
+                        <select id="category-select" onchange="selectCategory()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700">
+                            <option value="all">Loading...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Service</label>
+                        <select id="service-select" onchange="selectService()"
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700">
+                            <option value="">Loading...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="service-card"
+                    class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3 flex justify-between items-center transition-all">
+                    <div>
+                        <span id="serv-id"
+                            class="text-[10px] text-indigo-500 font-bold bg-indigo-100 px-1.5 py-0.5 rounded">#---</span>
+                        <h3 id="serv-name" class="text-xs font-bold text-slate-800 mt-1">Select a service</h3>
+                    </div>
+                    <div id="serv-rate"
+                        class="text-xs font-bold text-indigo-600 bg-white px-2 py-1 rounded-lg shadow-sm border border-indigo-50 whitespace-nowrap">
+                        ETB 0.00/1K</div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Link
+                        or Username</label>
+                    <div class="relative">
+                        <span
+                            class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">🔗</span>
+                        <input type="text" id="order-link" placeholder="https://instagram.com/..."
+                            class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Quantity</label>
+                    <input type="number" id="order-qty" value="100" min="100" max="10000000" oninput="calculateTotal()"
+                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-semibold transition">
+                    <div class="text-[10px] text-slate-400 mt-1 ml-1 font-medium"><span id="min-max-text">Min: 100 Max:
+                            10,000,000</span></div>
+                </div>
+
+                <div
+                    class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs">
+                    <span class="text-slate-500 font-medium">Order Total</span>
+                    <span id="order-total" class="font-bold text-slate-800 text-sm">ETB 0.00</span>
+                </div>
+                <div class="flex justify-between text-slate-400 border-t border-slate-100 pt-1 text-[10px] px-1 hidden">
+                    <span>Balance After Order</span>
+                    <span id="balance-after" class="font-semibold text-emerald-500">ETB 0.0000</span>
+                </div>
+
+                <button onclick="submitOrder()"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95 text-sm">
+                    Submit Order
+                </button>
+            </div>
+        </main>
+
+        <!-- Orders View -->
+        <main id="orders-view" class="hidden flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
+            <div class="sticky top-0 bg-slate-50 pt-4 pb-2 px-4 z-10 border-b border-slate-100">
+                <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-200 text-[11px] font-bold">
+                    <button onclick="setOrderTab('all')" id="tab-all"
+                        class="flex-1 py-1.5 rounded-lg tab-active transition-all">All</button>
+                    <button onclick="setOrderTab('active')" id="tab-active"
+                        class="flex-1 py-1.5 rounded-lg tab-inactive transition-all">Active</button>
+                    <button onclick="setOrderTab('completed')" id="tab-completed"
+                        class="flex-1 py-1.5 rounded-lg tab-inactive transition-all">Done</button>
+                    <button onclick="setOrderTab('canceled')" id="tab-canceled"
+                        class="flex-1 py-1.5 rounded-lg tab-inactive transition-all">Cancelled</button>
+                </div>
+            </div>
+
+            <div id="orders-container" class="px-4 py-4 space-y-3">
+                <!-- Orders injected here -->
+            </div>
+        </main>
+
+        <!-- Add Funds View -->
+        <main id="add-funds-view" class="hidden flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+            <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                <div>
+                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Current Balance</div>
+                    <div class="text-xl font-bold text-slate-800" id="funds-balance-display">ETB 0.00</div>
+                </div>
+                <button onclick="openAddFund()"
+                    class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs px-4 py-2 rounded-xl font-bold transition-all active:scale-95 flex items-center gap-1">
+                    <span>+ Add</span>
+                </button>
+            </div>
+
+            <h3 class="text-sm font-bold text-slate-800 pt-2 flex items-center gap-1"><span>📜</span> History</h3>
+            <div id="transactions-container" class="space-y-3">
+                <!-- Transactions -->
+            </div>
+        </main>
+
+        <!-- Profile View -->
+        <main id="profile-view" class="hidden flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5 pb-8">
+
+            <!-- User Info Header -->
+            <div class="text-center pt-2">
+                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-fuchsia-400 to-indigo-400 rounded-full flex items-center justify-center font-bold text-white text-3xl shadow-lg ring-4 ring-white mb-3"
+                    id="profile-avatar">B</div>
+                <h2 class="text-lg font-bold text-slate-800" id="profile-name-display">Loading...</h2>
+                <p class="text-xs text-slate-500 font-medium" id="profile-username-display">@loading...</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-3 gap-2">
+                <div
+                    class="bg-white rounded-2xl p-3 text-center border border-slate-200 shadow-sm flex flex-col justify-center h-20">
+                    <div class="font-bold text-slate-800 text-sm" id="profile-stat-balance">ETB 0.00</div>
+                    <div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-1">Balance</div>
+                </div>
+                <div
+                    class="bg-white rounded-2xl p-3 text-center border border-slate-200 shadow-sm flex flex-col justify-center h-20">
+                    <div class="font-bold text-slate-800 text-lg" id="profile-stat-orders">0</div>
+                    <div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-1">Orders</div>
+                </div>
+                <div
+                    class="bg-white rounded-2xl p-3 text-center border border-slate-200 shadow-sm flex flex-col justify-center h-20">
+                    <div class="font-bold text-slate-800 text-lg" id="profile-stat-active">0</div>
+                    <div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-1">Active Orders
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invite Section -->
+            <div>
+                <h3 class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 ml-1">Invite Friends &
+                    Earn</h3>
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-start gap-3">
+                        <div
+                            class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-xl shrink-0">
+                            🎁</div>
+                        <p class="text-xs text-slate-600 font-medium leading-relaxed">Earn <span
+                                class="font-bold text-slate-800">ETB 1</span> for every friend who joins with your link
+                            and deposits <span class="font-bold text-slate-800">ETB 50+</span>.</p>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-slate-50 rounded-xl p-2 text-center">
+                            <div class="font-bold text-slate-800" id="referral-invited-display">0</div>
+                            <div class="text-[8px] text-slate-500 uppercase font-semibold mt-0.5">Invited</div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-2 text-center">
+                            <div class="font-bold text-slate-800" id="referral-joined-display">0</div>
+                            <div class="text-[8px] text-slate-500 uppercase font-semibold mt-0.5">Joined</div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-2 text-center border border-slate-200 shadow-sm bg-white">
+                            <div class="font-bold text-slate-800" id="referral-earned-display">ETB 0.00</div>
+                            <div class="text-[8px] text-slate-500 uppercase font-semibold mt-0.5">Earned</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Your
+                            Invite Link</div>
+                        <div class="flex gap-2">
+                            <input type="text" id="invite-link-input"
+                                value="https://t.me/Beleqet_PromotionBot?start=ref123" readonly
+                                class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-600 focus:outline-none font-mono">
+                            <button onclick="copyInviteLink()"
+                                class="bg-slate-100 border border-slate-200 rounded-xl px-3 text-slate-600 hover:bg-slate-200 transition active:scale-95">📋</button>
+                        </div>
+                    </div>
+
+                    <button onclick="shareInviteLink()"
+                        class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition text-sm flex items-center justify-center gap-2">
+                        <span>📤</span> Share My Link
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div>
+                <h3 class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 ml-1">Settings</h3>
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-500">
+                                🔔</div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">Notifications</div>
+                                <div class="text-[10px] text-slate-500">Order updates & alerts</div>
+                            </div>
+                        </div>
+                        <div id="notif-toggle" onclick="toggleNotifications()"
+                            class="w-10 h-6 bg-indigo-500 rounded-full flex items-center p-1 cursor-pointer transition-colors duration-300">
+                            <div id="notif-toggle-knob"
+                                class="w-4 h-4 bg-white rounded-full ml-auto shadow-sm transform transition-transform duration-300">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 pt-2">
+                        <h4 class="text-xs font-bold text-slate-800 mb-3">Edit Profile</h4>
+                        <div>
+                            <label
+                                class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-1">First
+                                Name</label>
+                            <input type="text" id="prof-first"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 font-medium text-slate-700">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-1">Last
+                                Name</label>
+                            <input type="text" id="prof-last"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 font-medium text-slate-700">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-1">Email</label>
+                            <input type="email" id="prof-email"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 font-medium text-slate-700">
+                        </div>
+                        <button onclick="saveProfile()"
+                            class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-3 rounded-xl transition active:scale-95 text-xs mt-2">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <footer class="bg-white border-t border-slate-200 px-2 py-2 pb-safe z-20">
+            <div class="grid grid-cols-4 gap-1">
+                <button id="nav-home" onclick="showTab('home')"
+                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-indigo-600 transition">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                        </path>
+                    </svg>
+                    <span class="text-[10px] font-semibold">Home</span>
+                </button>
+                <button id="nav-orders" onclick="showTab('orders')"
+                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                        </path>
+                    </svg>
+                    <span class="text-[10px] font-semibold">Orders</span>
+                </button>
+                <button id="nav-add-funds" onclick="showTab('add-funds')"
+                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                        </path>
+                    </svg>
+                    <span class="text-[10px] font-semibold">Add Funds</span>
+                </button>
+                <button id="nav-profile" onclick="showTab('profile')"
+                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span class="text-[10px] font-semibold">Profile</span>
+                </button>
+            </div>
+            <div class="text-center text-[9px] text-slate-400 mt-1 font-medium">@Beleqet_PromotionBot</div>
+        </footer>
+
+        <!-- Add Fund Modal -->
+        <div id="add-fund-modal"
+            class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
+            <div
+                class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl modal-enter transition-all duration-300">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                        <span>💳</span> <span>Add Funds</span>
+                    </h3>
+                    <button onclick="closeAddFundModal()"
+                        class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition font-bold">✕</button>
+                </div>
+
+                <p class="text-xs text-slate-500 mb-4">Select an amount or enter a custom value (Min: 10 ETB).</p>
+
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    <button onclick="setFundAmount(50)"
+                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">50
+                        ETB</button>
+                    <button onclick="setFundAmount(100)"
+                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">100
+                        ETB</button>
+                    <button onclick="setFundAmount(500)"
+                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">500
+                        ETB</button>
+                    <button onclick="setFundAmount(1000)"
+                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">1000
+                        ETB</button>
+                </div>
+
+                <div class="relative mb-6">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-bold">ETB</span>
+                    <input type="number" id="custom-fund-amount" placeholder="Enter amount" min="10"
+                        class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl pl-12 pr-4 py-3 text-sm text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-inner">
+                </div>
+
+                <button onclick="processAddFund()" id="process-fund-btn"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95">
+                    Proceed to Pay (Chapa)
+                </button>
+                <div class="text-center mt-3 text-xs text-slate-400 font-bold">OR</div>
+                <button onclick="openManualFundModal()"
+                    class="w-full mt-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold py-3 rounded-xl shadow-sm transition-all transform active:scale-95">
+                    🏦 Manual CBE Transfer
+                </button>
+            </div>
+        </div>
+
+        <!-- Manual Fund Modal -->
+        <div id="manual-fund-modal"
+            class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
+            <div
+                class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl modal-enter transition-all duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                        <span>🏦</span> <span>CBE Transfer</span>
+                    </h3>
+                    <button onclick="closeManualFundModal()"
+                        class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition font-bold">×</button>
+                </div>
+
+                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-4">
+                    <p class="text-xs text-indigo-800 font-medium mb-1">Transfer funds to:</p>
+                    <p class="font-bold text-slate-800 text-sm">CBE Account: <span
+                            class="text-indigo-600">1000123456789</span></p>
+                    <p class="font-bold text-slate-800 text-sm">Name: <span class="text-indigo-600">Beleqet
+                            Promotion</span></p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Amount Sent (ETB)</label>
+                        <input type="number" id="manual-fund-amount" placeholder="e.g. 500"
+                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-inner">
+                    </div>
+
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Transaction Number</label>
+                        <input type="text" id="manual-fund-txn" placeholder="e.g. FT212345678"
+                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-inner">
+                    </div>
+
+                    <div class="relative">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Upload Screenshot</label>
+                        <input type="file" id="manual-fund-screenshot" accept="image/*"
+                            class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    </div>
+                </div>
+
+                <button onclick="submitManualFund()" id="submit-manual-btn"
+                    class="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95">
+                    Submit for Approval
+                </button>
+            </div>
+        </div>
+
+        <!-- Profile Completion Modal -->
+        <div id="profile-modal"
+            class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl modal-enter transition-all duration-300">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                        <span>👤</span> <span>Complete Profile</span>
+                    </h3>
+                    <button onclick="closeProfileModal()"
+                        class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition font-bold">✕</button>
+                </div>
+
+                <p class="text-xs text-slate-500 mb-5">We need a bit more information before you can add funds.</p>
+
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">First
+                            Name</label>
+                        <input type="text" id="modal-prof-first"
+                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Last
+                            Name</label>
+                        <input type="text" id="modal-prof-last"
+                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label
+                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Email</label>
+                        <input type="email" id="modal-prof-email"
+                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none transition">
+                    </div>
+                </div>
+
+                <button onclick="saveProfileFromModal()" id="modal-save-prof-btn"
+                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95">
+                    Save & Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"
+        class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center space-y-2 pointer-events-none w-max">
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Enforce Telegram-only access
+        if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetBot = urlParams.get('bot') || "Beleqet_PromotionBot";
+            const botBtn = document.getElementById('bot-redirect-btn');
+            if (botBtn) botBtn.href = `https://t.me/${targetBot}`;
+            
+            document.getElementById('telegram-only-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            throw new Error("Access restricted: Please open inside Telegram Mini App context.");
+        }
+
+        const telegramUserId = tg.initDataUnsafe?.user?.id;
+
+        async function apiFetch(url, options = {}) {
+            const headers = options.headers || {};
+            if (tg.initData) {
+                headers['Authorization'] = 'tma ' + tg.initData;
+            }
+            if (!headers['Content-Type'] && options.method && options.method !== 'GET') {
+                headers['Content-Type'] = 'application/json';
+            }
+            options.headers = headers;
+            return fetch(url, options);
+        }
+
+        function showAppAlert(msg) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-2.5 rounded-2xl shadow-lg text-sm font-bold text-white flex items-center gap-2 transform transition-all duration-300 -translate-y-10 opacity-0 pointer-events-auto max-w-[90vw] text-center leading-tight`;
+
+            const isError = msg.toLowerCase().includes('error') || msg.toLowerCase().includes('ስህተት') || msg.toLowerCase().includes('fill out') || msg.toLowerCase().includes('minimum');
+            const isSuccess = msg.toLowerCase().includes('success') || msg.toLowerCase().includes('ተልኳል') || msg.toLowerCase().includes('copied') || msg.toLowerCase().includes('updated');
+
+            if (isError) {
+                toast.classList.add('bg-rose-500', 'shadow-rose-500/20');
+                toast.innerHTML = `<span>⚠️</span> <span>${escapeHtml(msg)}</span>`;
+            } else if (isSuccess) {
+                toast.classList.add('bg-emerald-500', 'shadow-emerald-500/20');
+                toast.innerHTML = `<span>✅</span> <span>${escapeHtml(msg)}</span>`;
+            } else {
+                toast.classList.add('bg-slate-800', 'shadow-slate-500/20');
+                toast.innerHTML = `<span>ℹ️</span> <span>${escapeHtml(msg)}</span>`;
+            }
+
+            container.appendChild(toast);
+
+            // Animate in
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    toast.classList.remove('-translate-y-10', 'opacity-0');
+                    toast.classList.add('translate-y-0', 'opacity-100');
+                });
+            });
+
+            // Animate out and remove
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        const API_BASE_URL = ''; // Relative path inherently uses the deployed domain
+
+        // Sanitize strings to prevent XSS when using innerHTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
+        let currentRate = 0.00; // per 1000 items
+        let userBalance = 0.0000;
+        let allServices = [];
+        let currentServiceId = null;
+        let userProfile = { first_name: '', last_name: '', email: '' };
+
+        let allOrdersData = [];
+        let currentOrderTab = 'all';
+
+        let telegramUsername = 'Guest';
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            telegramUsername = tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name;
+            document.getElementById('username').innerText = telegramUsername;
+            document.getElementById('profile-name-display').innerText = tg.initDataUnsafe.user.first_name || telegramUsername;
+
+            const urlParamsBot = new URLSearchParams(window.location.search);
+            const botName = urlParamsBot.get('bot') || 'Beleqet_PromotionBot';
+            const refLinkInput = document.getElementById('referral-link-input');
+            if (refLinkInput) {
+                refLinkInput.value = `https://t.me/${botName}?start=${telegramUserId}`;
+            }
+            document.getElementById('profile-username-display').innerText = '@' + telegramUsername;
+            document.getElementById('header-avatar-initial').innerText = (tg.initDataUnsafe.user.first_name || telegramUsername).charAt(0).toUpperCase();
+            document.getElementById('profile-avatar').innerText = (tg.initDataUnsafe.user.first_name || telegramUsername).charAt(0).toUpperCase();
+        } else {
+            document.getElementById('username').innerText = 'Guest';
+            document.getElementById('profile-name-display').innerText = 'Guest';
+            document.getElementById('profile-username-display').innerText = '@guest';
+            document.getElementById('profile-avatar').innerText = 'G';
+            document.getElementById('header-avatar-initial').innerText = 'G';
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const botUsername = urlParams.get('bot') || "Beleqet_PromotionBot";
+        document.getElementById('invite-link-input').value = `https://t.me/${botUsername}?start=${telegramUserId}`;
+
+        async function registerUser() {
+            try {
+                let startParam = null;
+                if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
+                    startParam = tg.initDataUnsafe.start_param;
+                } else {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.has('start_param')) {
+                        startParam = urlParams.get('start_param');
+                    }
+                }
+                await apiFetch(`${API_BASE_URL}/api/user/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: telegramUserId,
+                        start_param: startParam
+                    })
+                });
+            } catch (e) {
+                console.error("Error registering user", e);
+            }
+        }
+
+
+        async function fetchUser() {
+            try {
+                try {
+                    await apiFetch(`${API_BASE_URL}/api/pay/verify_pending/${telegramUserId}`);
+                } catch (e) { }
+
+                const response = await apiFetch(`${API_BASE_URL}/api/user/${telegramUserId}`);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    userBalance = parseFloat(data.user.balance);
+                    const balanceText = `ETB ${userBalance.toFixed(2)}`;
+                    ['user-balance', 'header-balance', 'funds-balance-display', 'profile-stat-balance'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.innerText = balanceText;
+                    });
+
+                    userProfile.first_name = data.user.first_name || '';
+                    userProfile.last_name = data.user.last_name || '';
+                    userProfile.email = data.user.email || '';
+
+                    if (data.user.notifications !== undefined) {
+                        userProfile.notifications = data.user.notifications;
+                        updateNotifUI(data.user.notifications);
+                    }
+
+                    if (userProfile.first_name) {
+                        const unEl = document.getElementById('username');
+                        if (unEl) unEl.innerText = userProfile.first_name;
+
+                        const pName = document.getElementById('profile-name-display');
+                        if (pName) pName.innerText = userProfile.first_name + ' ' + userProfile.last_name;
+
+                        const hAv = document.getElementById('header-avatar-initial');
+                        if (hAv) hAv.innerText = userProfile.first_name.charAt(0).toUpperCase();
+
+                        const pAv = document.getElementById('profile-avatar');
+                        if (pAv) pAv.innerText = userProfile.first_name.charAt(0).toUpperCase();
+                    }
+
+                    document.getElementById('prof-first').value = userProfile.first_name;
+                    document.getElementById('prof-last').value = userProfile.last_name;
+                    document.getElementById('prof-email').value = userProfile.email;
+
+                    if (data.user.referred_count !== undefined) {
+                        document.getElementById('referral-invited-display').innerText = data.user.referred_count;
+                        document.getElementById('referral-joined-display').innerText = data.user.referred_count;
+                    }
+                    if (data.user.referral_earnings !== undefined) {
+                        document.getElementById('referral-earned-display').innerText = `ETB ${parseFloat(data.user.referral_earnings).toFixed(2)}`;
+                    }
+                }
+            } catch (e) { console.error("Error fetching user", e); }
+        }
+
+        async function saveProfile() {
+            const fName = document.getElementById('prof-first').value;
+            const lName = document.getElementById('prof-last').value;
+            const em = document.getElementById('prof-email').value;
+
+            if (!fName || !lName || !em) {
+                showAppAlert("Please fill out all fields!");
+                return;
+            }
+
+            tg.MainButton.showProgress();
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/user/profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name: fName,
+                        last_name: lName,
+                        email: em
+                    })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showAppAlert(data.message);
+                    fetchUser();
+                } else {
+                    showAppAlert("Error: " + data.message);
+                }
+            } catch (e) {
+                showAppAlert("Network error.");
+            } finally {
+                tg.MainButton.hideProgress();
+            }
+        }
+
+        function showTab(tab) {
+            document.getElementById('home-view').classList.add('hidden');
+            document.getElementById('profile-view').classList.add('hidden');
+            document.getElementById('orders-view').classList.add('hidden');
+            document.getElementById('add-funds-view').classList.add('hidden');
+
+            const inactiveClass = "flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition";
+            const activeClass = "flex flex-col items-center justify-center py-2 px-1 rounded-xl text-indigo-600 transition";
+
+            document.getElementById('nav-home').className = inactiveClass;
+            document.getElementById('nav-profile').className = inactiveClass;
+            document.getElementById('nav-orders').className = inactiveClass;
+            document.getElementById('nav-add-funds').className = inactiveClass;
+
+            // Only show header on home tab
+            if (tab === 'home') document.getElementById('main-header').classList.remove('hidden');
+            else document.getElementById('main-header').classList.add('hidden');
+
+            if (tab === 'home') {
+                document.getElementById('home-view').classList.remove('hidden');
+                document.getElementById('nav-home').className = activeClass;
+            } else if (tab === 'profile') {
+                document.getElementById('profile-view').classList.remove('hidden');
+                document.getElementById('nav-profile').className = activeClass;
+            } else if (tab === 'orders') {
+                document.getElementById('orders-view').classList.remove('hidden');
+                document.getElementById('nav-orders').className = activeClass;
+                fetchOrders();
+            } else if (tab === 'add-funds') {
+                document.getElementById('add-funds-view').classList.remove('hidden');
+                document.getElementById('nav-add-funds').className = activeClass;
+                fetchTransactions();
+            }
+        }
+
+        async function fetchTransactions() {
+            const txContainer = document.getElementById('transactions-container');
+            txContainer.innerHTML = '<div class="text-center text-slate-400 text-xs py-4 font-medium">Loading transactions...</div>';
+
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/transactions/${telegramUserId}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    if (data.transactions.length === 0) {
+                        txContainer.innerHTML = '<div class="text-center text-slate-400 text-xs py-6 font-medium">No transactions found.</div>';
+                        return;
+                    }
+
+                    txContainer.innerHTML = '';
+                    data.transactions.forEach(tx => {
+                        let statusColor = "bg-yellow-100 text-yellow-700";
+                        if (tx.status.toLowerCase() === 'success') statusColor = "bg-emerald-100 text-emerald-700";
+                        else if (tx.status.toLowerCase() === 'failed' || tx.status.toLowerCase() === 'error') statusColor = "bg-red-100 text-red-700";
+
+                        const txCard = `
+                            <div class="bg-white border border-slate-200 rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800">Deposit</h4>
+                                    <div class="text-[10px] text-slate-500 mt-0.5 truncate w-40 font-mono">Ref: ${escapeHtml(tx.tx_ref)}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-bold text-emerald-600">+ETB ${parseFloat(tx.amount).toFixed(2)}</div>
+                                    <div class="text-[9px] font-bold ${statusColor} uppercase mt-1 px-2 py-0.5 rounded inline-block tracking-wider">${escapeHtml(tx.status)}</div>
+                                </div>
+                            </div>
+                        `;
+                        txContainer.innerHTML += txCard;
+                    });
+                } else {
+                    txContainer.innerHTML = `<div class="text-center text-red-500 text-xs py-4 font-bold">Error: ${data.message}</div>`;
+                }
+            } catch (e) {
+                txContainer.innerHTML = '<div class="text-center text-red-500 text-xs py-4 font-bold">Failed to load transactions.</div>';
+            }
+        }
+
+        async function fetchOrders() {
+            const ordersContainer = document.getElementById('orders-container');
+            if (allOrdersData.length === 0) ordersContainer.innerHTML = '<div class="text-center text-slate-400 text-xs py-6 font-medium">Loading orders...</div>';
+
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/orders/${telegramUserId}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    allOrdersData = data.orders;
+
+                    // Update Profile Stats
+                    document.getElementById('profile-stat-orders').innerText = allOrdersData.length;
+                    const activeCount = allOrdersData.filter(o => o.status.toLowerCase() === 'processing' || o.status.toLowerCase() === 'pending').length;
+                    document.getElementById('profile-stat-active').innerText = activeCount;
+
+                    renderOrders();
+                } else {
+                    ordersContainer.innerHTML = `<div class="text-center text-red-500 text-xs py-4 font-bold">Error: ${data.message}</div>`;
+                }
+            } catch (e) {
+                ordersContainer.innerHTML = '<div class="text-center text-red-500 text-xs py-4 font-bold">Failed to load orders.</div>';
+            }
+        }
+
+        function setOrderTab(tab) {
+            currentOrderTab = tab;
+            ['all', 'active', 'completed', 'canceled'].forEach(t => {
+                document.getElementById('tab-' + t).className = (t === tab)
+                    ? 'flex-1 py-1.5 rounded-lg tab-active transition-all'
+                    : 'flex-1 py-1.5 rounded-lg tab-inactive transition-all';
+            });
+            renderOrders();
+        }
+
+        function renderOrders() {
+            const ordersContainer = document.getElementById('orders-container');
+            if (allOrdersData.length === 0) {
+                ordersContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 mt-8">
+                        <div class="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center text-4xl mb-4 shadow-inner">📦</div>
+                        <h3 class="font-bold text-slate-800 text-lg mb-1">No orders here</h3>
+                        <p class="text-xs text-slate-500 text-center max-w-[200px] mb-6 font-medium">Place your first order to get started.</p>
+                        <button onclick="showTab('home')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition active:scale-95 text-sm">Go to Home</button>
+                    </div>
+                `;
+                return;
+            }
+
+            let filtered = allOrdersData;
+            if (currentOrderTab === 'active') {
+                filtered = allOrdersData.filter(o => o.status.toLowerCase() === 'processing' || o.status.toLowerCase() === 'pending');
+            } else if (currentOrderTab === 'completed') {
+                filtered = allOrdersData.filter(o => o.status.toLowerCase() === 'completed');
+            } else if (currentOrderTab === 'canceled') {
+                filtered = allOrdersData.filter(o => o.status.toLowerCase() === 'canceled' || o.status.toLowerCase() === 'cancelled');
+            }
+
+            if (filtered.length === 0) {
+                ordersContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-12 mt-8">
+                        <p class="text-xs text-slate-500 font-medium bg-slate-100 px-4 py-2 rounded-xl">No orders found in this category.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            ordersContainer.innerHTML = '';
+            filtered.forEach(order => {
+                const service = allServices.find(s => String(s.service) === String(order.service_id));
+                const serviceName = service ? escapeHtml(service.name) : `Service #${escapeHtml(String(order.service_id))}`;
+
+                let statusColor = "bg-yellow-100 text-yellow-700";
+                if (order.status.toLowerCase() === 'completed') statusColor = "bg-emerald-100 text-emerald-700";
+                else if (order.status.toLowerCase() === 'canceled' || order.status.toLowerCase() === 'cancelled') statusColor = "bg-red-100 text-red-700";
+                else if (order.status.toLowerCase() === 'processing' || order.status.toLowerCase() === 'pending') statusColor = "bg-blue-100 text-blue-700";
+
+                const orderCard = `
+                    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                        <div class="flex justify-between items-start gap-2">
+                            <div>
+                                <div class="text-[10px] text-indigo-500 font-bold mb-0.5">Order #${escapeHtml(String(order.id))}</div>
+                                <h4 class="text-xs font-bold text-slate-800 leading-tight w-48 line-clamp-2">${serviceName}</h4>
+                            </div>
+                            <span class="text-[9px] font-bold ${statusColor} uppercase px-2 py-1 rounded-md tracking-wider shrink-0">${escapeHtml(order.status)}</span>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-2.5 text-[10px] text-slate-600 font-mono break-all border border-slate-100">
+                            ${escapeHtml(order.link)}
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] border-t border-slate-100 pt-3">
+                            <span class="text-slate-500">Qty: <b class="text-slate-800 font-bold">${order.quantity}</b></span>
+                            <span class="text-slate-500">Cost: <b class="text-emerald-600 font-bold">ETB ${parseFloat(order.cost).toFixed(4)}</b></span>
+                        </div>
+                    </div>
+                `;
+                ordersContainer.innerHTML += orderCard;
+            });
+        }
+
+        async function fetchServices() {
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/services`);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    allServices = data.services;
+                    populateCategories();
+                }
+            } catch (e) {
+                console.error("Error fetching services", e);
+            }
+        }
+
+        function populateCategories() {
+            const categories = [...new Set(allServices.map(s => s.category))];
+            const catSelect = document.getElementById('category-select');
+            catSelect.innerHTML = '<option value="all">All Categories</option>';
+            categories.forEach(c => {
+                if (c) {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.innerText = c;
+                    catSelect.appendChild(opt);
+                }
+            });
+            selectCategory();
+        }
+
+        function selectCategory() {
+            const category = document.getElementById('category-select').value;
+            let filtered = allServices;
+            if (category !== 'all') {
+                filtered = allServices.filter(s => s.category === category);
+            }
+            populateServices(filtered);
+        }
+
+        function populateServices(services) {
+            const servSelect = document.getElementById('service-select');
+            servSelect.innerHTML = '';
+            if (services.length === 0) {
+                const opt = document.createElement('option');
+                opt.innerText = "No services available";
+                servSelect.appendChild(opt);
+                return;
+            }
+            services.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.service;
+                opt.innerText = `${s.name} (ETB ${s.rate}/1K)`;
+                servSelect.appendChild(opt);
+            });
+            selectService();
+        }
+
+        function selectService() {
+            const serviceId = document.getElementById('service-select').value;
+            const s = allServices.find(s => String(s.service) === String(serviceId));
+            if (s) {
+                currentServiceId = s.service;
+                currentRate = parseFloat(s.rate);
+
+                document.getElementById('serv-id').innerText = `#${s.service}`;
+                document.getElementById('serv-name').innerText = s.name;
+                document.getElementById('serv-rate').innerText = `ETB ${parseFloat(s.rate).toFixed(2)}/1K`;
+
+                document.getElementById('order-qty').min = s.min || 100;
+                document.getElementById('order-qty').max = s.max || 10000000;
+                document.getElementById('order-qty').value = s.min || 100;
+                document.getElementById('min-max-text').innerText = `Min: ${s.min} Max: ${s.max}`;
+
+                const categoryLower = (s.category || '').toLowerCase();
+                const linkInput = document.getElementById('order-link');
+                if (categoryLower.includes('telegram')) {
+                    linkInput.placeholder = 'https://t.me/your_channel_or_group';
+                } else if (categoryLower.includes('instagram')) {
+                    linkInput.placeholder = 'https://instagram.com/your_profile';
+                } else if (categoryLower.includes('facebook')) {
+                    linkInput.placeholder = 'https://facebook.com/your_page';
+                } else if (categoryLower.includes('tiktok')) {
+                    linkInput.placeholder = 'https://tiktok.com/@your_username';
+                } else if (categoryLower.includes('youtube')) {
+                    linkInput.placeholder = 'https://youtube.com/c/your_channel';
+                } else if (categoryLower.includes('twitter')) {
+                    linkInput.placeholder = 'https://twitter.com/your_username';
+                } else if (categoryLower.includes('spotify')) {
+                    linkInput.placeholder = 'https://open.spotify.com/artist/your_id';
+                } else if (categoryLower.includes('twitch')) {
+                    linkInput.placeholder = 'https://twitch.tv/your_channel';
+                } else if (categoryLower.includes('linkedin')) {
+                    linkInput.placeholder = 'https://linkedin.com/in/your_profile';
+                } else if (categoryLower.includes('google')) {
+                    linkInput.placeholder = 'https://your_website.com/';
+                } else if (categoryLower.includes('snapchat')) {
+                    linkInput.placeholder = 'https://snapchat.com/add/your_username';
+                } else {
+                    linkInput.placeholder = 'Enter target link...';
+                }
+
+                calculateTotal();
+            }
+        }
+
+        function calculateTotal() {
+            const qty = document.getElementById('order-qty').value || 0;
+            const total = (qty * currentRate) / 1000;
+            document.getElementById('order-total').innerText = `ETB ${total.toFixed(4)}`;
+
+            const remaining = userBalance - total;
+            document.getElementById('balance-after').innerText = `ETB ${remaining.toFixed(4)}`;
+        }
+
+        function togglePlatforms() {
+            const container = document.getElementById('platforms-container');
+            const icon = document.getElementById('see-more-icon');
+            const text = document.getElementById('see-more-text');
+            if (container.classList.contains('max-h-[64px]')) {
+                container.classList.remove('max-h-[64px]');
+                container.classList.add('max-h-[500px]'); // arbitrary large height
+                icon.classList.add('rotate-180');
+                text.innerText = 'See Less';
+            } else {
+                container.classList.add('max-h-[64px]');
+                container.classList.remove('max-h-[500px]');
+                icon.classList.remove('rotate-180');
+                text.innerText = 'See More';
+            }
+        }
+
+        function filterPlatform(platform) {
+            const categoryMapping = {
+                'facebook': 'Facebook',
+                'instagram': 'Instagram',
+                'telegram': 'Telegram',
+                'tiktok': 'TikTok',
+                'youtube': 'YouTube',
+                'premium': 'Telegram New Services',
+                'twitter': 'Twitter',
+                'spotify': 'Spotify',
+                'twitch': 'Twitch',
+                'linkedin': 'Linkedin',
+                'google': 'Google'
+            };
+
+            if (platform === 'all') {
+                document.getElementById('category-select').value = 'all';
+                selectCategory();
+                return;
+            }
+
+            const prefix = categoryMapping[platform];
+            if (prefix) {
+                const catSelect = document.getElementById('category-select');
+                let found = false;
+                for (let i = 0; i < catSelect.options.length; i++) {
+                    if (catSelect.options[i].value.toLowerCase().includes(prefix.toLowerCase())) {
+                        catSelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (found) {
+                    selectCategory();
+                } else {
+                    const filtered = allServices.filter(s => s.category && s.category.toLowerCase().includes(prefix.toLowerCase()));
+                    populateServices(filtered);
+                }
+            }
+        }
+
+        function searchServices() {
+            const query = document.getElementById('search-service').value.toLowerCase();
+            const filtered = allServices.filter(s =>
+                String(s.service).toLowerCase().includes(query) ||
+                (s.name && s.name.toLowerCase().includes(query)) ||
+                (s.category && s.category.toLowerCase().includes(query))
+            );
+            populateServices(filtered);
+        }
+
+        function openAddFund() {
+            const modal = document.getElementById('add-fund-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.firstElementChild.classList.add('modal-enter-active');
+            }, 10);
+            document.getElementById('custom-fund-amount').value = '';
+        }
+
+        function closeAddFundModal() {
+            const modal = document.getElementById('add-fund-modal');
+            modal.firstElementChild.classList.remove('modal-enter-active');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        function setFundAmount(amount) {
+            document.getElementById('custom-fund-amount').value = amount;
+        }
+
+        function openManualFundModal() {
+            closeAddFundModal();
+            const modal = document.getElementById('manual-fund-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.firstElementChild.classList.add('modal-enter-active');
+            }, 10);
+            document.getElementById('manual-fund-amount').value = '';
+            document.getElementById('manual-fund-txn').value = '';
+            document.getElementById('manual-fund-screenshot').value = '';
+        }
+
+        function closeManualFundModal() {
+            const modal = document.getElementById('manual-fund-modal');
+            modal.firstElementChild.classList.remove('modal-enter-active');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        async function submitManualFund() {
+            const amount = document.getElementById('manual-fund-amount').value;
+            const txn = document.getElementById('manual-fund-txn').value;
+            const screenshotInput = document.getElementById('manual-fund-screenshot');
+
+            if (!amount || amount < 10) {
+                showAppAlert("Please enter a valid amount (Min: 10 ETB)");
+                return;
+            }
+            if (!txn) {
+                showAppAlert("Please enter the transaction number");
+                return;
+            }
+            if (!screenshotInput.files || screenshotInput.files.length === 0) {
+                showAppAlert("Please upload a screenshot");
+                return;
+            }
+
+            const btn = document.getElementById('submit-manual-btn');
+            const originalText = btn.innerText;
+            btn.innerText = 'Submitting...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('amount', amount);
+            formData.append('transaction_number', txn);
+            formData.append('screenshot', screenshotInput.files[0]);
+
+            try {
+                const headers = {};
+                if (tg.initData) {
+                    headers['Authorization'] = 'tma ' + tg.initData;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/api/deposit/manual`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAppAlert(result.message);
+                    closeManualFundModal();
+                } else {
+                    showAppAlert(result.message || 'Error submitting request');
+                }
+            } catch (err) {
+                console.error(err);
+                showAppAlert("Network error submitting request");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        function openProfileModal() {
+            const modal = document.getElementById('profile-modal');
+            modal.classList.remove('hidden');
+
+            document.getElementById('modal-prof-first').value = userProfile.first_name || '';
+            document.getElementById('modal-prof-last').value = userProfile.last_name || '';
+            document.getElementById('modal-prof-email').value = userProfile.email || '';
+
+            setTimeout(() => {
+                modal.firstElementChild.classList.add('modal-enter-active');
+            }, 10);
+        }
+
+        function closeProfileModal() {
+            const modal = document.getElementById('profile-modal');
+            modal.firstElementChild.classList.remove('modal-enter-active');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        async function saveProfileFromModal() {
+            const fName = document.getElementById('modal-prof-first').value;
+            const lName = document.getElementById('modal-prof-last').value;
+            const em = document.getElementById('modal-prof-email').value;
+
+            if (!fName || !lName || !em) {
+                showAppAlert("Please fill out all fields!");
+                return;
+            }
+
+            const btn = document.getElementById('modal-save-prof-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            tg.MainButton.showProgress();
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/user/profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        first_name: fName,
+                        last_name: lName,
+                        email: em
+                    })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showAppAlert("Profile updated! You can now proceed to pay.");
+                    userProfile.first_name = fName;
+                    userProfile.last_name = lName;
+                    userProfile.email = em;
+
+                    document.getElementById('prof-first').value = fName;
+                    document.getElementById('prof-last').value = lName;
+                    document.getElementById('prof-email').value = em;
+
+                    closeProfileModal();
+                    fetchUser(); // Refresh UI names
+                } else {
+                    showAppAlert("Error: " + data.message);
+                }
+            } catch (e) {
+                showAppAlert("Network error.");
+            } finally {
+                tg.MainButton.hideProgress();
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function processAddFund() {
+            if (!userProfile.email || !userProfile.first_name || !userProfile.last_name) {
+                openProfileModal();
+                return;
+            }
+
+            const amountStr = document.getElementById('custom-fund-amount').value;
+            const amount = parseFloat(amountStr);
+            if (isNaN(amount) || amount < 10) {
+                showAppAlert("Minimum amount is 10 ETB.");
+                return;
+            }
+
+            const btn = document.getElementById('process-fund-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+            btn.classList.add('opacity-70');
+
+            try {
+                tg.MainButton.showProgress();
+                const response = await apiFetch(`${API_BASE_URL}/api/pay/initialize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: amount
+                    })
+                });
+                const result = await response.json();
+
+                if (result.status === 'success' && result.checkout_url) {
+                    closeAddFundModal();
+                    tg.openLink(result.checkout_url);
+                } else {
+                    showAppAlert(`Payment error: ${result.message}`);
+                }
+            } catch (e) {
+                showAppAlert("Network error. Could not reach server.");
+            } finally {
+                tg.MainButton.hideProgress();
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-70');
+            }
+        }
+
+        async function submitOrder() {
+            const link = document.getElementById('order-link').value;
+            const qty = document.getElementById('order-qty').value;
+
+            if (!link) {
+                showAppAlert("Please enter a link or username.");
+                return;
+            }
+            if (!currentServiceId) {
+                showAppAlert("Please select a service.");
+                return;
+            }
+
+            const orderBtn = document.querySelector('button[onclick="submitOrder()"]');
+            const originalText = orderBtn.innerText;
+            orderBtn.innerText = "Processing...";
+            orderBtn.disabled = true;
+
+            try {
+                const response = await apiFetch(`${API_BASE_URL}/api/order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        service: currentServiceId,
+                        link: link,
+                        quantity: qty,
+                        payment_type: 'balance'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showAppAlert(`Order sent successfully! Order ID: ${result.order_id}`);
+                    fetchUser(); // update balance
+                } else {
+                    showAppAlert(`Error: ${result.message}`);
+                }
+            } catch (error) {
+                showAppAlert("A server error occurred!");
+            } finally {
+                orderBtn.innerText = originalText;
+                orderBtn.disabled = false;
+            }
+        }
+
+        function copyInviteLink() {
+            const linkInput = document.getElementById('invite-link-input');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(linkInput.value).then(() => {
+                    showAppAlert("Invite link copied!");
+                }).catch(() => {
+                    linkInput.select();
+                    document.execCommand('copy');
+                    showAppAlert("Invite link copied!");
+                });
+            } else {
+                linkInput.select();
+                document.execCommand('copy');
+                showAppAlert("Invite link copied!");
+            }
+        }
+
+        function shareInviteLink() {
+            const link = document.getElementById('invite-link-input').value;
+            const text = "Join Beleqet Promotion and earn together!";
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+            tg.openTelegramLink(shareUrl);
+        }
+
+        // Auto-refresh when returning to the Mini App (e.g., from Chapa payment)
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && typeof telegramUserId !== 'undefined' && telegramUserId !== 'default_user') {
+                fetchUser();
+                fetchTransactions();
+            }
+        });
+
+        async function toggleNotifications() {
+            if (!userProfile) return;
+            const current = userProfile.notifications;
+            const newState = !current;
+            userProfile.notifications = newState;
+            updateNotifUI(newState);
+
+            try {
+                await apiFetch(`${API_BASE_URL}/api/user/notifications`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: newState })
+                });
+            } catch (e) {
+                userProfile.notifications = current;
+                updateNotifUI(current);
+            }
+        }
+
+        function updateNotifUI(enabled) {
+            const toggle = document.getElementById('notif-toggle');
+            const knob = document.getElementById('notif-toggle-knob');
+            if (!toggle || !knob) return;
+
+            if (enabled) {
+                toggle.classList.remove('bg-slate-400');
+                toggle.classList.add('bg-indigo-500');
+                knob.classList.add('ml-auto');
+            } else {
+                toggle.classList.remove('bg-indigo-500');
+                toggle.classList.add('bg-slate-400');
+                knob.classList.remove('ml-auto');
+            }
+        }
+
+        // Setup theme based on Telegram
+        if (tg.colorScheme === 'dark') {
+            // Optional: Handle dark mode gracefully if Telegram enforces it, but the UI is forced light currently
+        }
+        tg.setHeaderColor('#ffffff'); // match header
+        tg.setBackgroundColor('#f8fafc'); // match bg-slate-50
+
+        // Initialize
+        registerUser().then(fetchUser);
+        fetchServices();
+        fetchOrders(); // preload orders for stats
+    </script>
+</body>
+
+</html>
