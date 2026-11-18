@@ -1,14 +1,14 @@
 /**
- * generate-assets.js
+ * generate-mobile-assets.js
  * Generates all required Expo mobile app PNG assets using sharp.
- * Run: node generate-assets.js
+ * Run from the repo root: node scripts/dev/generate-mobile-assets.js
  */
 
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 
-const OUT = path.join(__dirname, 'apps', 'mobile', 'assets');
+const OUT = path.join(__dirname, '..', '..', 'apps', 'mobile', 'assets');
 fs.mkdirSync(OUT, { recursive: true });
 
 // ── Beleqet brand colours ──────────────────────────────────────────────────

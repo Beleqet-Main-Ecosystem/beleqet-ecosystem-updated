@@ -12,7 +12,7 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-Sign in with an `ADMIN` account. Accounts with two-step sign-in are asked for their code. Sign-up can't create admins; an existing admin makes them on the Users page, or `node create-admin.js` from the repo root creates one locally.
+Sign in with an `ADMIN` account. Accounts with two-step sign-in are asked for their code. Sign-up can't create admins; an existing admin makes them on the Users page, or `node scripts/dev/create-admin.js` from the repo root creates one locally.
 
 ## Pages
 

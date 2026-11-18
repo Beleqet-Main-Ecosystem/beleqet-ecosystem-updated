@@ -10,7 +10,6 @@
     "prisma",
     "scripts",
     "src/**/frontend",
-    "web",
     "tools",
     "apps/mobile"
   ]
