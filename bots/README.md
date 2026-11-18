@@ -41,6 +41,7 @@ The **Beleqet Platform** is composed of three cooperating Telegram bots and asso
 | beleqet-bot | Beleqet Academy referral rewards and mini-app | beleqetaca-api.beleqet.com | 8000 |
 | shareandwin | Beleqet Jobs share-and-win referral rewards | beleqetjobs-api.beleqet.com | 8001 |
 | job | Beleqet Jobs registration bot + SGS Challenge mini-app (webhook mode) | webhook.beleqet.com | 8080 |
+| promo | Beleqet Promotion: SMM shop and the wallet the referral bots transfer to (see `promo/README.md`) | beleqet-promo-miniapp.beleqet.com | 8002 |
 
 All three services share the beleqet.com root domain and are secured with Let's Encrypt TLS certificates managed by Certbot.
 
@@ -296,8 +297,8 @@ CREATE TABLE challenge_coupons (
 | PAYMENT_HANDLER_ID | Telegram ID that receives withdrawal requests |
 | TARGET_CHATS | Comma-separated list of channel IDs to monitor |
 | WELCOME_PHOTO_FILE_ID | Local path or Telegram file ID for welcome photo |
-| PROMO_BOT_API_URL | (optional) Internal URL for Promo SMM Bot transfer endpoint |
-| TRANSFER_SECRET_KEY | (optional) Shared secret for Promo Bot API auth |
+| PROMO_BOT_API_URL | Promotion bot's transfer endpoint; on the server `http://127.0.0.1:8002/api/internal/transfer_points` |
+| TRANSFER_SECRET_KEY | Shared secret for transfers, same value as in `promo/.env`; leave it out to switch transfers off |
 
 ### shareandwin/.env
 

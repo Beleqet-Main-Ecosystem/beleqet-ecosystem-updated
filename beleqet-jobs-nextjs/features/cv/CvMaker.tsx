@@ -4,17 +4,19 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronDown, Download, Sparkles } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { authenticatedFetch } from '@/lib/auth';
+import { authenticatedFetch, isPlaceholderEmail } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
 import { errorText, apiError } from '@/lib/api-error';
 import {
   buildProfilePayload,
+  cvFromProfile,
   emptyCv,
   mergeExtractedProfile,
   type CvData,
   type Education,
   type Experience,
   type ExtractedProfile,
+  type ProfileFields,
 } from '@/lib/resume-brain/mapping';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
@@ -53,12 +55,20 @@ export default function CvMaker() {
       setStatus(t('cv.imported'));
       return;
     }
+    // Fills the form unless the person has already started typing.
+    const start = (next: CvData) => setCv((old) => (old === emptyCv ? next : old));
     if (user) {
       authenticatedFetch(`${API_URL}/users/cv-draft`)
         .then(async (response) => {
+          if (!response.ok) return;
           // An empty body means there is no draft yet.
-          const draft = response.ok ? await response.json().catch(() => null) : null;
-          if (draft?.data) setCv(draft.data);
+          const draft = await response.json().catch(() => null);
+          if (draft?.data) return start(draft.data);
+          // No draft: start from what the profile already holds, so the CV doesn't open empty.
+          const profile = await authenticatedFetch(`${API_URL}/users/profile`);
+          if (!profile.ok) return;
+          const fields: ProfileFields = await profile.json();
+          start(cvFromProfile(fields, isPlaceholderEmail(fields.email)));
         })
         .catch(() => undefined);
     } else {
@@ -86,17 +96,21 @@ export default function CvMaker() {
   const updateEducation = (id: number, key: keyof Education, value: string) =>
     field('education', cv.education.map((item) => (item.id === id ? { ...item, [key]: value } : item)));
 
+  async function saveServerDraft() {
+    const response = await authenticatedFetch(`${API_URL}/users/cv-draft`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: cv }),
+    });
+    if (!response.ok) throw await apiError(response);
+  }
+
   async function saveDraft() {
     setBusy('draft');
     setError('');
     try {
       if (user) {
-        const response = await authenticatedFetch(`${API_URL}/users/cv-draft`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: cv }),
-        });
-        if (!response.ok) throw await apiError(response);
+        await saveServerDraft();
       } else {
         localStorage.setItem(LOCAL_DRAFT, JSON.stringify(cv));
       }
@@ -127,6 +141,8 @@ export default function CvMaker() {
         body: JSON.stringify(payload),
       });
       if (!response.ok) throw await apiError(response);
+      // Keep the whole CV as well: the profile has no room for jobs, schools or languages.
+      await saveServerDraft();
       setStatus(t('cv.profileSaved'));
     } catch (problem) {
       setError(errorText(problem, t, 'cv.profileFailed'));

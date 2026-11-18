@@ -52,6 +52,7 @@ declare -A BOT_SERVICES=(
   [job]="beleqet-jobs-bot"
   [beleqet-bot]="beleqet-bot beleqet-bot-api"
   [shareandwin]="shareandwin-bot shareandwin-api"
+  [promo]="promo-bot"
 )
 # Never copied: settings, the Python environment, data the bots write, uploads and tests.
 BOT_EXCLUDES=(
