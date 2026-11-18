@@ -365,8 +365,9 @@ jobs:
     name: Docker build, stack smoke test & scan
     # The slowest job (about 9 minutes). It runs on main, where it builds the images the deploy
     # uses, so a bad image still never reaches production; pull requests skip it to get feedback
-    # in about half the time.
-    if: github.event_name == 'push'
+    # in about half the time. A manual run (workflow_dispatch) on any branch runs it too, for
+    # changes to Dockerfiles or build paths; only a push to main publishes the images.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
