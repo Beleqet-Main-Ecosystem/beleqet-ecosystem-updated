@@ -50,7 +50,7 @@ const config: Config = {
         pageBg: "#F6F7F4",
         muted: "#4D5967",
         border: "#E3E8EC",
-        /* Telegram Mini App: the home page's greens (frontend-main/app/globals.css). */
+        /* Telegram Mini App: the greens of the earlier home page. */
         mini: {
           /* Primary. Filled buttons, selected chips and tiles use the darker shade. */
           deep: "#073B25",
