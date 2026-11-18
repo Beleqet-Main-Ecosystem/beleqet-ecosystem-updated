@@ -9,7 +9,7 @@
  *   explicitly set for above-the-fold images.
  */
 
-/** Admin lives in its own app (frontend/), on its own address, so admin sessions stay off this site. */
+/** Admin lives in its own app (apps/admin/), on its own address, so admin sessions stay off this site. */
 const ADMIN_URL = (process.env.NEXT_PUBLIC_ADMIN_URL || "https://admin.beleqetjobs.com").replace(/\/$/, "");
 
 /** @type {import('next').NextConfig} */

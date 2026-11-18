@@ -31,7 +31,7 @@
     "node_modules",
     "dist",
     "coverage",
-    "frontend",
+    "apps/admin",
     "apps/mobile",
     "beleqet-jobs-nextjs",
     "src/**/frontend"

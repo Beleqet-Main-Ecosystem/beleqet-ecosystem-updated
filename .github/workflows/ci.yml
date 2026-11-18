@@ -49,7 +49,7 @@ jobs:
 
       - name: Lint Dockerfiles (hadolint, fail on errors)
         run: |
-          for df in Dockerfile frontend/Dockerfile beleqet-jobs-nextjs/Dockerfile; do
+          for df in Dockerfile apps/admin/Dockerfile beleqet-jobs-nextjs/Dockerfile; do
             echo "hadolint: $df"
             docker run --rm -i hadolint/hadolint:v2.12.0 \
               hadolint --failure-threshold error - < "$df"
@@ -223,13 +223,13 @@ jobs:
           echo "API smoke tests passed"
           kill "$BACKEND_PID"
 
-  # ── Admin frontend (frontend/) ─────────────────────────────────────────────
+  # ── Admin frontend (apps/admin/) ───────────────────────────────────────────
   admin-frontend:
     name: Admin frontend quality & build
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: apps/admin
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -237,7 +237,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: apps/admin/package-lock.json
 
       - run: npm ci
       - run: npm run lint
@@ -341,7 +341,7 @@ jobs:
           if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
           BACKEND_PID=$!
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
-          cd frontend
+          cd apps/admin
           npm ci
           npx playwright install --with-deps chromium
           npx playwright test --trace retain-on-failure
@@ -353,8 +353,8 @@ jobs:
         with:
           name: playwright-report
           path: |
-            frontend/playwright-report/
-            frontend/test-results/
+            apps/admin/playwright-report/
+            apps/admin/test-results/
             playwright-report/
             test-results/
           retention-days: 7
@@ -382,13 +382,13 @@ jobs:
       - name: Ensure frontend lockfiles contain swc deps
         run: |
           set -e
-          cd frontend
+          cd apps/admin
           npm ci
           npm i --package-lock-only
-          cd ../beleqet-jobs-nextjs
+          cd ../../beleqet-jobs-nextjs
           npm ci
           npm i --package-lock-only
-          cd ..
+          cd ../..
 
       - name: Build backend image
         run: >-
@@ -398,7 +398,7 @@ jobs:
         run: >-
           docker build
           -t "${{ steps.meta.outputs.namespace }}/beleqet-admin-frontend:${{ github.sha }}"
-          frontend
+          apps/admin
 
       - name: Build jobs frontend image
         run: >-
@@ -579,10 +579,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: apps/admin/package-lock.json
 
       - name: Admin frontend production dependency audit
-        working-directory: frontend
+        working-directory: apps/admin
         run: |
           npm ci
           npm audit --omit=dev || true

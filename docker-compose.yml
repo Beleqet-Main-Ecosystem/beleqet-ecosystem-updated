@@ -86,7 +86,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ./apps/admin
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1

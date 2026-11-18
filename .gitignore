@@ -8,9 +8,9 @@ build/
 out/
 *.tsbuildinfo
 dist/
-frontend/dist-test/
-frontend/.next/
-frontend/out/
+apps/admin/dist-test/
+apps/admin/.next/
+apps/admin/out/
 server/dist/
 server/build/
 
@@ -67,7 +67,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Next.js auto-generated
-frontend/next-env.d.ts
+apps/admin/next-env.d.ts
 beleqet-jobs-nextjs/next-env.d.ts
 
 # OS metadata
@@ -141,7 +141,7 @@ Redis.zip
 Redis/
 runs.json
 .env.staging
-frontend/.env.local
+apps/admin/.env.local
 
 # Python artifacts
 __pycache__/
