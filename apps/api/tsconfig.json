@@ -31,9 +31,6 @@
     "node_modules",
     "dist",
     "coverage",
-    "apps/admin",
-    "apps/mobile",
-    "apps/web",
     "src/**/frontend"
   ]
 }

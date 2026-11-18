@@ -12,7 +12,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+// tools/ci/integration -> apps/api -> the repository root
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..', '..');
 const COMPOSE_FILE = path.join(REPO_ROOT, 'docker-compose.staging.yml');
 
 const FULL_ENV = [

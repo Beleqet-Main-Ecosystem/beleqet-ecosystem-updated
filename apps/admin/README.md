@@ -12,7 +12,7 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-Sign in with an `ADMIN` account. Accounts with two-step sign-in are asked for their code. Sign-up can't create admins; an existing admin makes them on the Users page, or `node scripts/dev/create-admin.js` from the repo root creates one locally.
+Sign in with an `ADMIN` account. Accounts with two-step sign-in are asked for their code. Sign-up can't create admins; an existing admin makes them on the Users page, or `node scripts/dev/create-admin.js` in `apps/api` creates one locally.
 
 ## Pages
 
@@ -32,7 +32,7 @@ Sign in with an `ADMIN` account. Accounts with two-step sign-in are asked for th
 | Audit log | Every change made through the API, with CSV export |
 | Email log | Every email sent; failed ones can be sent again |
 
-The API enforces the safety rules too (`src/modules/admin/admin-rules.ts`): admins can't demote, suspend or delete themselves, the last active admin can't be removed, and moderation only takes listings down.
+The API enforces the safety rules too (`apps/api/src/modules/admin/admin-rules.ts`): admins can't demote, suspend or delete themselves, the last active admin can't be removed, and moderation only takes listings down.
 
 ## Tests
 

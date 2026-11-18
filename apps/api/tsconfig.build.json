@@ -3,14 +3,11 @@
   "exclude": [
     "node_modules",
     "dist",
-    "apps/admin",
-    "apps/web",
     "**/*spec.ts",
     "test",
     "prisma",
     "scripts",
     "src/**/frontend",
-    "tools",
-    "apps/mobile"
+    "tools"
   ]
 }

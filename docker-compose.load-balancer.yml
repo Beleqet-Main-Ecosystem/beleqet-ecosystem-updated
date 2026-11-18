@@ -21,7 +21,7 @@ services:
 
   backend-1:
     build:
-      context: .
+      context: ./apps/api
       dockerfile: Dockerfile
     container_name: beleqet-backend-1
     restart: unless-stopped
@@ -52,7 +52,7 @@ services:
 
   backend-2:
     build:
-      context: .
+      context: ./apps/api
       dockerfile: Dockerfile
     container_name: beleqet-backend-2
     restart: unless-stopped

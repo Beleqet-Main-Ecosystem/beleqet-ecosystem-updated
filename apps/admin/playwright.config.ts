@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 /**
  * Runs against a live API. Needs an admin account: ADMIN_EMAIL / ADMIN_PASSWORD
- * (CI creates one with scripts/dev/create-admin.js). API_URL defaults to the local API.
+ * (CI creates one with apps/api/scripts/dev/create-admin.js). API_URL defaults to the local API.
  */
 const API_URL = process.env.API_URL ?? 'http://127.0.0.1:4000/api/v1';
 const PORT = Number(process.env.PORT ?? 3002);

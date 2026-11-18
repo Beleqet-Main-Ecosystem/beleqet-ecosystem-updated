@@ -49,7 +49,7 @@ jobs:
 
       - name: Lint Dockerfiles (hadolint, fail on errors)
         run: |
-          for df in Dockerfile apps/admin/Dockerfile apps/web/Dockerfile; do
+          for df in apps/api/Dockerfile apps/admin/Dockerfile apps/web/Dockerfile; do
             echo "hadolint: $df"
             docker run --rm -i hadolint/hadolint:v2.12.0 \
               hadolint --failure-threshold error - < "$df"
@@ -81,6 +81,9 @@ jobs:
   backend-quality:
     name: Backend lint, format, types, build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -88,7 +91,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
 
       - run: npm ci
       - run: npm run prisma:generate
@@ -105,6 +108,9 @@ jobs:
   backend-unit:
     name: Backend unit tests & coverage
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
     services:
       postgres:
         image: postgres:15-alpine
@@ -135,11 +141,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
 
       - run: npm ci
       - name: Create synthetic test environment
-        run: bash scripts/ci/create-test-env.sh .env
+        run: bash ../../scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
         env:
@@ -157,7 +163,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: backend-coverage
-          path: coverage/lcov-report/
+          path: apps/api/coverage/lcov-report/
           retention-days: 7
           if-no-files-found: ignore
 
@@ -165,6 +171,9 @@ jobs:
   backend-integration:
     name: Backend integration & E2E
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
     services:
       postgres:
         image: postgres:15-alpine
@@ -195,11 +204,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
 
       - run: npm ci
       - name: Create synthetic test environment
-        run: bash scripts/ci/create-test-env.sh .env
+        run: bash ../../scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
         env:
@@ -217,8 +226,8 @@ jobs:
         run: |
           if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
           BACKEND_PID=$!
-          bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health 30 2
-          bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 10 2
+          bash ../../scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health 30 2
+          bash ../../scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 10 2
           curl -fsS http://127.0.0.1:4000/api/v1/jobs/categories > /dev/null
           echo "API smoke tests passed"
           kill "$BACKEND_PID"
@@ -281,6 +290,9 @@ jobs:
   playwright-e2e:
     name: Playwright E2E (blocking)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
     services:
       postgres:
         image: postgres:15-alpine
@@ -311,11 +323,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
 
       - run: npm ci
       - name: Create synthetic test environment
-        run: bash scripts/ci/create-test-env.sh .env
+        run: bash ../../scripts/ci/create-test-env.sh .env
       - run: npm run prisma:generate
       - name: Apply database migrations
         env:
@@ -340,8 +352,8 @@ jobs:
         run: |
           if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
           BACKEND_PID=$!
-          bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
-          cd apps/admin
+          bash ../../scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
+          cd ../admin
           npm ci
           npx playwright install --with-deps chromium
           npx playwright test --trace retain-on-failure
@@ -392,7 +404,7 @@ jobs:
 
       - name: Build backend image
         run: >-
-          docker build -t "${{ steps.meta.outputs.namespace }}/beleqet-backend:${{ github.sha }}" .
+          docker build -t "${{ steps.meta.outputs.namespace }}/beleqet-backend:${{ github.sha }}" apps/api
 
       - name: Build admin frontend image
         run: >-
@@ -563,16 +575,17 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
 
       # Gate: unresolved CRITICAL findings in production dependencies fail CI.
       # HIGH/moderate findings are reported in the logs for tracking (see
       # docs/CI_CD_AUDIT.md) without blocking unrelated changes.
       - name: Backend production dependency audit
+        working-directory: apps/api
         run: |
           npm ci
           npm audit --omit=dev || true
-          node scripts/ci/audit-gate.js
+          node ../../scripts/ci/audit-gate.js
 
       - name: Setup Node.js for admin frontend
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -586,7 +599,7 @@ jobs:
         run: |
           npm ci
           npm audit --omit=dev || true
-          node ../scripts/ci/audit-gate.js
+          node ../../scripts/ci/audit-gate.js
 
       - name: Setup Node.js for jobs frontend
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -600,7 +613,7 @@ jobs:
         run: |
           npm ci
           npm audit --omit=dev || true
-          node ../scripts/ci/audit-gate.js
+          node ../../scripts/ci/audit-gate.js
 
   # ── Single aggregate gate for branch protection ────────────────────────────
   ci-success:

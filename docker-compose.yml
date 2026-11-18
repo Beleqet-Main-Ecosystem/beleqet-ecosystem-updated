@@ -23,7 +23,7 @@ services:
 
   backend:
     build:
-      context: .
+      context: ./apps/api
       dockerfile: Dockerfile
     container_name: beleqet2-backend
     restart: unless-stopped

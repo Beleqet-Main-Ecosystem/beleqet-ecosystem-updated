@@ -1,4 +1,4 @@
-/** Matches the API rule (src/modules/admin/admin-rules.ts): only take-downs, never re-opening. */
+/** Matches the API rule (apps/api/src/modules/admin/admin-rules.ts): only take-downs, never re-opening. */
 export function canTakeDown(listing: { type: 'JOB' | 'GIG'; status: string }): boolean {
   return listing.type === 'JOB' ? listing.status !== 'ARCHIVED' : listing.status === 'OPEN' || listing.status === 'DRAFT';
 }

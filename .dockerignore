@@ -1,21 +1,11 @@
-node_modules
+# Build context of the website image (apps/web/Dockerfile), which builds from the
+# repository root because it needs packages/common as well as apps/web. The API and
+# admin images build from their own folders, with their own .dockerignore.
+*
+!apps/web
+!packages/common
 apps/web/node_modules
 apps/web/.next
-dist
-coverage
-.git
-.gitignore
-apps/admin
-*.log
-.env
-.env.local
-.env.development
-.env.*.local
-.vscode
-.idea
-Dockerfile
-docker-compose.yml
-README.md
-docs
-test
-*.md
+apps/web/.env*
+packages/common/node_modules
+**/*.log

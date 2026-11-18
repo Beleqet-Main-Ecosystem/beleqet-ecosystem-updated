@@ -1,0 +1,20 @@
+# Build context of the API image (apps/api/Dockerfile).
+node_modules
+dist
+coverage
+temp-storage
+*.log
+.env
+.env.local
+.env.development
+.env.*.local
+.vscode
+.idea
+Dockerfile
+docs
+test
+*.md
+# Developer tools: the image needs only the scripts the API runs itself
+# (speech-to-text and the permission seed).
+scripts/dev
+scripts/wordpress-migration

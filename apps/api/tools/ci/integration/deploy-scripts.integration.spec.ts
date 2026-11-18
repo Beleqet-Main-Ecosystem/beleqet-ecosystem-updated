@@ -15,7 +15,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+// tools/ci/integration -> apps/api -> the repository root
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..', '..', '..');
 const DEPLOY_DIR = path.join(REPO_ROOT, 'scripts', 'deploy');
 
 const TARGET_SHA = 'a'.repeat(40);
