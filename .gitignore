@@ -29,7 +29,7 @@ dist/
 coverage/
 *.tsbuildinfo
 
-# Next.js (web/)
+# Next.js
 .next/
 out/
 next-env.d.ts
