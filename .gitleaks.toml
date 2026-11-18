@@ -21,8 +21,6 @@ paths = [
   # Documentation files containing example/sample IDs (not real credentials).
   '''WEBHOOK_SUMMARY\.md$''',
   '''WEBHOOK_IMPLEMENTATION\.md$''',
-  # Deployment helper scripts with parameterized values.
-  '''scripts/deploy/vps-update-chapa-rebuild\.sh$''',
   # Standalone bot microservices & guides
   '''^bots/''',
   # Compiled / generated output directories.
