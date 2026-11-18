@@ -111,16 +111,19 @@ docker-compose.override.yml
 beleqend_jobs.sql
 users_export.json
 users-migration.json
-# CI/CD tooling under scripts/ci and scripts/deploy is tracked;
-# everything else in scripts/ stays ignored (ad-hoc local tooling).
+# scripts/ holds the tracked tooling listed in scripts/README.md; anything else
+# put there stays ignored (ad-hoc local tooling).
 scripts/*
+!scripts/README.md
 !scripts/ci/
 !scripts/deploy/
-!scripts/export-wp-users.ts
-!scripts/import-users.ts
+!scripts/dev/
+!scripts/wordpress-migration/
 !scripts/post-build.js
 # Creates the admin, employer and freelancer role permissions; CI and fresh servers need it.
 !scripts/seed-rbac.js
+# Run by the API's speech-to-text (src/modules/chat-to-text).
+!scripts/transcribe-with-faster-whisper.py
 .agents/
 issue_pr_matches.md
 AGENTS.md

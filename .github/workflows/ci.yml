@@ -330,7 +330,7 @@ jobs:
           REDIS_PORT: '6379'
         run: |
           node scripts/seed-rbac.js
-          node create-admin.js
+          node scripts/dev/create-admin.js
 
       - name: Run admin Playwright E2E tests with backend
         env:
