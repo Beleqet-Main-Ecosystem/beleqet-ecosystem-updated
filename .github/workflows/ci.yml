@@ -49,7 +49,7 @@ jobs:
 
       - name: Lint Dockerfiles (hadolint, fail on errors)
         run: |
-          for df in Dockerfile apps/admin/Dockerfile beleqet-jobs-nextjs/Dockerfile; do
+          for df in Dockerfile apps/admin/Dockerfile apps/web/Dockerfile; do
             echo "hadolint: $df"
             docker run --rm -i hadolint/hadolint:v2.12.0 \
               hadolint --failure-threshold error - < "$df"
@@ -248,13 +248,13 @@ jobs:
       - name: Production build
         run: npm run build
 
-  # ── Jobs frontend (beleqet-jobs-nextjs/) ───────────────────────────────────
+  # ── Jobs frontend (apps/web/) ───────────────────────────────────
   jobs-frontend:
     name: Jobs frontend quality, tests & build
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: beleqet-jobs-nextjs
+        working-directory: apps/web
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -262,13 +262,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: beleqet-jobs-nextjs/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - run: npm ci
       - run: npm run lint
       - name: TypeScript validation
         run: npx tsc --noEmit
-      # Jest owns all test files under beleqet-jobs-nextjs/ after the
+      # Jest owns all test files under apps/web/ after the
       # vitest→jest migration (PR #179). Both test and test:unit map to jest.
       - name: Jest suite
         run: npm run test:unit -- --runInBand
@@ -385,7 +385,7 @@ jobs:
           cd apps/admin
           npm ci
           npm i --package-lock-only
-          cd ../../beleqet-jobs-nextjs
+          cd ../../apps/web
           npm ci
           npm i --package-lock-only
           cd ../..
@@ -403,7 +403,7 @@ jobs:
       - name: Build jobs frontend image
         run: >-
           docker build
-          -f beleqet-jobs-nextjs/Dockerfile
+          -f apps/web/Dockerfile
           -t "${{ steps.meta.outputs.namespace }}/beleqet-jobs-frontend:${{ github.sha }}"
           .
 
@@ -593,10 +593,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: beleqet-jobs-nextjs/package-lock.json
+          cache-dependency-path: apps/web/package-lock.json
 
       - name: Jobs frontend production dependency audit
-        working-directory: beleqet-jobs-nextjs
+        working-directory: apps/web
         run: |
           npm ci
           npm audit --omit=dev || true

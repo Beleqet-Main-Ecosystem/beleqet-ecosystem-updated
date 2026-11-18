@@ -33,7 +33,7 @@
     "coverage",
     "apps/admin",
     "apps/mobile",
-    "beleqet-jobs-nextjs",
+    "apps/web",
     "src/**/frontend"
   ]
 }

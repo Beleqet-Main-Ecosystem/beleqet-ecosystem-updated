@@ -1,6 +1,6 @@
 # Beleqet admin
 
-The admin app, served at admin.beleqetjobs.com. It is a separate Next.js app from the website (`beleqet-jobs-nextjs/`), so an admin's session lives on its own address and nothing on the public site can read it. The website's `/admin` redirects here.
+The admin app, served at admin.beleqetjobs.com. It is a separate Next.js app from the website (`apps/web/`), so an admin's session lives on its own address and nothing on the public site can read it. The website's `/admin` redirects here.
 
 It uses the website's colours, dark mode and English/Amharic switch, and talks to the same API.
 

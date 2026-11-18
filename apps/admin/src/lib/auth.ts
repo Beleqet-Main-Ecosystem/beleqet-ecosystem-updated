@@ -1,6 +1,6 @@
 /**
  * Admin sign-in. The session lives on the admin origin only, so nothing on the public
- * website can read it. Same API and token flow as the website (beleqet-jobs-nextjs/lib/auth.ts).
+ * website can read it. Same API and token flow as the website (apps/web/lib/auth.ts).
  */
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';

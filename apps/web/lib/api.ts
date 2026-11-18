@@ -1,5 +1,5 @@
 /**
- * Jobs and platform API for the beleqet-jobs-nextjs web frontend.
+ * Jobs and platform API for the website (apps/web).
  *
  * Core domain types are imported from @beleqet/common so this file stays
  * in sync with the backend DTOs automatically.

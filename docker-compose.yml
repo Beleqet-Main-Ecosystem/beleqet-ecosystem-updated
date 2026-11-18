@@ -102,7 +102,7 @@ services:
   jobs-frontend:
     build:
       context: .
-      dockerfile: beleqet-jobs-nextjs/Dockerfile
+      dockerfile: apps/web/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
     container_name: beleqet2-jobs-frontend

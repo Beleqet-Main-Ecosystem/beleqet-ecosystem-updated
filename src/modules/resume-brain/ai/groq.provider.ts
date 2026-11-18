@@ -16,7 +16,7 @@ import {
  * that already ships with this repo (see screening.processor.ts) rather than
  * pulling in a new dependency — we just repoint its `baseURL`. It also reuses
  * the exact same `GROQ_API_KEY` / `GROQ_MODEL` env vars the Next.js frontend
- * already uses (beleqet-jobs-nextjs/lib/groq.ts), so a single config drives
+ * already uses (apps/web/lib/groq.ts), so a single config drives
  * both ends.
  *
  * Default model: `openai/gpt-oss-20b` (matches the frontend default; Groq retired

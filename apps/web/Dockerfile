@@ -12,11 +12,11 @@ WORKDIR /repo
 COPY packages/common ./packages/common
 
 # Install jobs-frontend deps
-WORKDIR /repo/beleqet-jobs-nextjs
-COPY beleqet-jobs-nextjs/package.json beleqet-jobs-nextjs/package-lock.json ./
+WORKDIR /repo/apps/web
+COPY apps/web/package.json apps/web/package-lock.json ./
 RUN npm ci
 
-COPY beleqet-jobs-nextjs/ .
+COPY apps/web/ .
 
 ARG NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
 ARG NEXT_PUBLIC_APP_URL=https://beleqetjobs.com
@@ -37,9 +37,9 @@ RUN npm run build
 # ── Prune stage ───────────────────────────────────────────────────────────────
 FROM node:22-alpine3.21 AS pruner
 
-WORKDIR /repo/beleqet-jobs-nextjs
+WORKDIR /repo/apps/web
 COPY packages/common /repo/packages/common
-COPY beleqet-jobs-nextjs/package.json beleqet-jobs-nextjs/package-lock.json ./
+COPY apps/web/package.json apps/web/package-lock.json ./
 RUN npm ci --omit=dev
 
 # ── Production stage ──────────────────────────────────────────────────────────
@@ -58,11 +58,11 @@ RUN rm -rf \
   /usr/local/bin/corepack \
   /opt/yarn-v*
 
-COPY --from=pruner --chown=node:node /repo/beleqet-jobs-nextjs/package.json ./
-COPY --from=pruner --chown=node:node /repo/beleqet-jobs-nextjs/node_modules ./node_modules
-COPY --from=builder --chown=node:node /repo/beleqet-jobs-nextjs/.next ./.next
-COPY --from=builder --chown=node:node /repo/beleqet-jobs-nextjs/public ./public
-COPY --from=builder --chown=node:node /repo/beleqet-jobs-nextjs/next.config.js ./next.config.js
+COPY --from=pruner --chown=node:node /repo/apps/web/package.json ./
+COPY --from=pruner --chown=node:node /repo/apps/web/node_modules ./node_modules
+COPY --from=builder --chown=node:node /repo/apps/web/.next ./.next
+COPY --from=builder --chown=node:node /repo/apps/web/public ./public
+COPY --from=builder --chown=node:node /repo/apps/web/next.config.js ./next.config.js
 
 USER node
 

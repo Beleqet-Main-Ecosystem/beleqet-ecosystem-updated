@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss';
 
-/** Same tokens as the website (beleqet-jobs-nextjs/tailwind.config.ts), so both look like one product. */
+/** Same tokens as the website (apps/web/tailwind.config.ts), so both look like one product. */
 const config: Config = {
   darkMode: 'class',
   content: ['./src/**/*.{ts,tsx}'],

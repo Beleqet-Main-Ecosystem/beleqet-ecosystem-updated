@@ -1,6 +1,6 @@
 node_modules
-beleqet-jobs-nextjs/node_modules
-beleqet-jobs-nextjs/.next
+apps/web/node_modules
+apps/web/.next
 dist
 coverage
 .git

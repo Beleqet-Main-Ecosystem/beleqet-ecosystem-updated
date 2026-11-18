@@ -1,5 +1,5 @@
 /**
- * Auth API for the beleqet-jobs-nextjs web frontend.
+ * Auth API for the website (apps/web).
  *
  * Core domain types (AuthUser, LoginDto, RegisterDto) are imported from
  * @beleqet/common to stay aligned with the backend DTOs.

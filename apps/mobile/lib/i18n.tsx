@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import * as SecureStore from 'expo-secure-store';
 import { getLocales } from 'expo-localization';
 // The website's translations, so the app and the site say the same thing in both languages.
-import webEn from '../../../beleqet-jobs-nextjs/locales/en.json';
-import webAm from '../../../beleqet-jobs-nextjs/locales/am.json';
+import webEn from '../../web/locales/en.json';
+import webAm from '../../web/locales/am.json';
 // Text only the app needs, under the "m." prefix.
 import appEn from '../locales/en.json';
 import appAm from '../locales/am.json';

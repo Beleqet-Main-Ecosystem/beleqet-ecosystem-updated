@@ -4,7 +4,7 @@
     "node_modules",
     "dist",
     "apps/admin",
-    "beleqet-jobs-nextjs",
+    "apps/web",
     "**/*spec.ts",
     "test",
     "prisma",

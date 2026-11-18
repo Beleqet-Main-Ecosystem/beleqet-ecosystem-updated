@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useI18n } from '@/lib/i18n';
 
-/* Same classes as the website dashboard (beleqet-jobs-nextjs/features/dashboard/ui.tsx). */
+/* Same classes as the website dashboard (apps/web/features/dashboard/ui.tsx). */
 export const card = 'rounded-xl border border-ink-200 bg-surface p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900';
 export const solid = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-obsidian px-4 text-sm font-bold text-white disabled:opacity-50 dark:bg-limeAccent dark:text-obsidian';
 export const outline = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-ink-300 bg-surface px-4 text-sm font-bold text-ink-900 hover:bg-ink-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800';
