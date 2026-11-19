@@ -1,5 +1,11 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Compiled files go to dist/src/ (dist/main.js is a shim, scripts/post-build.js), and the
+    // i18n and email-template assets to dist/src/ (nest-cli.json). Pinned so the output doesn't
+    // depend on which other .ts files happen to be in the folder.
+    "rootDir": "."
+  },
   "exclude": [
     "node_modules",
     "dist",
