@@ -5,7 +5,7 @@
 # Usage: rollback.sh <failing-sha>
 #
 # Reads the last recorded successful SHA, validates it (full 40-hex, distinct
-# from the failing SHA — same rules as tools/ci/rollback.ts), rewrites the
+# from the failing SHA — same rules as apps/api/tools/ci/rollback.ts), rewrites the
 # image references, restarts the stack, and re-checks backend health.
 #
 # CONTAINERS ONLY: the database is never rolled back here. Prisma migrations

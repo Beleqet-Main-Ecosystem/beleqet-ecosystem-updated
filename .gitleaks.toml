@@ -24,7 +24,7 @@ paths = [
   # Standalone bot microservices & guides
   '''^bots/''',
   # Compiled / generated output directories.
-  '''^dist/''',
+  '''(^|/)dist/''',
   '''(^|/)\.next/''',
 ]
 regexes = [

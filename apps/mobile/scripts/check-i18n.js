@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const web = path.resolve(root, '../../beleqet-jobs-nextjs/locales');
+const web = path.resolve(root, '../web/locales');
 const dicts = {
   en: [require(path.join(root, 'locales/en.json')), require(path.join(web, 'en.json'))],
   am: [require(path.join(root, 'locales/am.json')), require(path.join(web, 'am.json'))],

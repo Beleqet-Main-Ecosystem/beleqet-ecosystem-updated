@@ -7,7 +7,7 @@ Branch: `feat/mobile-parity`.
 ## Rules
 
 - No business logic in the app: the API decides; the app shows what it says.
-- Text comes from the website's `beleqet-jobs-nextjs/locales/{en,am}.json`; mobile-only text lives in
+- Text comes from the website's `apps/web/locales/{en,am}.json`; mobile-only text lives in
   `apps/mobile/locales/{en,am}.json` under `m.`. `npm run check:i18n` fails on a missing key.
 - Errors go through `lib/api-error.ts` (`errorText`), the same rules as the website.
 - Never show made-up data. A failed request shows an error with Retry.

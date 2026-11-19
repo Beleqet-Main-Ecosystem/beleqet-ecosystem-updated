@@ -4,7 +4,7 @@ name: Deploy Staging
 # succeeds for a push to main (i.e. after a pull request merges). Pull-request
 # events can NEVER reach this workflow: the only triggers are workflow_run
 # (which always executes this file from the default branch) and manual
-# dispatch. The guard logic mirrors tools/ci/deployment-policy.ts, which is
+# dispatch. The guard logic mirrors apps/api/tools/ci/deployment-policy.ts, which is
 # unit-tested in CI.
 #
 # Manual dispatch supports dry_run=true from any branch (validates and plans,
@@ -106,9 +106,10 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: apps/api/package-lock.json
 
       - run: npm ci
+        working-directory: apps/api
 
       - name: Detect staging credentials
         id: creds
@@ -152,6 +153,7 @@ jobs:
           STAGING_JOBS_HEALTH_URL: ${{ secrets.STAGING_JOBS_HEALTH_URL }}
           STAGING_GHCR_USERNAME: ${{ secrets.STAGING_GHCR_USERNAME }}
           STAGING_GHCR_TOKEN: ${{ secrets.STAGING_GHCR_TOKEN }}
+        working-directory: apps/api
         run: npx ts-node --transpile-only tools/ci/environment-validator.ts staging-deploy
 
       - name: Compute image namespace
@@ -167,9 +169,9 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then
             # Dry run: prove the images BUILD at this SHA without any registry
             # or server contact.
-            docker build -t "$NAMESPACE/beleqet-backend:$TARGET_SHA" .
-            docker build -t "$NAMESPACE/beleqet-admin-frontend:$TARGET_SHA" frontend
-            docker build -f beleqet-jobs-nextjs/Dockerfile -t "$NAMESPACE/beleqet-jobs-frontend:$TARGET_SHA" .
+            docker build -t "$NAMESPACE/beleqet-backend:$TARGET_SHA" apps/api
+            docker build -t "$NAMESPACE/beleqet-admin-frontend:$TARGET_SHA" apps/admin
+            docker build -f apps/web/Dockerfile -t "$NAMESPACE/beleqet-jobs-frontend:$TARGET_SHA" .
           else
             # Real deploy: the CI run for this SHA already pushed the images;
             # verify their manifests exist before touching the server.
@@ -253,6 +255,7 @@ jobs:
           BACKEND_URL: ${{ secrets.STAGING_BACKEND_HEALTH_URL }}
           ADMIN_URL: ${{ secrets.STAGING_ADMIN_HEALTH_URL }}
           JOBS_URL: ${{ secrets.STAGING_JOBS_HEALTH_URL }}
+        working-directory: apps/api
         run: |
           npx ts-node --transpile-only tools/ci/health-check.ts "$BACKEND_URL" 20 5000 3000
           npx ts-node --transpile-only tools/ci/health-check.ts "$ADMIN_URL" 20 5000 3000

@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// Colour names match beleqet-jobs-nextjs/tailwind.config.ts, so classes read the same on web and mobile.
+// Colour names match apps/web/tailwind.config.ts, so classes read the same on web and mobile.
 module.exports = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './features/**/*.{ts,tsx}'],
   presets: [require('nativewind/preset')],
