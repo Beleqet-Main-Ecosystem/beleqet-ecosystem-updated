@@ -24,19 +24,19 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 os.environ.update({
     "BOT_TOKEN": BOT_TOKEN,
     "ADMIN_ID": str(ADMIN),
-    "DB_PATH": os.path.join(WORK_DIR, "database.db"),
+    "DATA_DIR": os.path.join(WORK_DIR, "data"),
     "TRANSFER_SECRET_KEY": "test-transfer-secret",
     "WEBHOOK_SECRET_TOKEN": "test-webhook-secret",
     "WEBHOOK_DOMAIN": "https://promo.example",
 })
-# The server serves files from its own folder and writes uploads to the one it runs in (the same
-# folder on the server). Both point at a scratch folder here, holding the files it must never hand out.
+# The server serves files from its own folder, with its data/ folder inside it (the same layout as on
+# the server). Both point at a scratch folder here, holding the files it must never hand out.
 os.chdir(WORK_DIR)
 for name, text in {"index.html": "<html></html>", "styles.css": "body{}", ".env": "BOT_TOKEN=secret", "server.py": "#"}.items():
     with open(name, "w") as f:
         f.write(text)
-os.makedirs("uploads", exist_ok=True)
-with open(os.path.join("uploads", "proof.png"), "wb") as f:
+os.makedirs(os.path.join("data", "uploads"), exist_ok=True)
+with open(os.path.join("data", "uploads", "proof.png"), "wb") as f:
     f.write(b"png")
 
 sys.path.insert(0, HERE)
@@ -81,7 +81,7 @@ class FilesTest(PromoBotTest):
         self.assertEqual(self.client.get("/styles.css").status_code, 200)
 
     def test_never_serves_settings_database_code_or_uploads(self):
-        for path in ("/.env", "/database.db", "/database.db-wal", "/server.py", "/uploads/proof.png", "/../.env"):
+        for path in ("/.env", "/data/promo.db", "/data/promo.db-wal", "/server.py", "/data/uploads/proof.png", "/../.env"):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 404)
 

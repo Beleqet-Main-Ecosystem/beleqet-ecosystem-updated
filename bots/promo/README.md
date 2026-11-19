@@ -27,7 +27,8 @@ gunicorn with one worker on `127.0.0.1:8002`. nginx serves it at
 `https://beleqet-promo-miniapp.beleqet.com` (see the file of that name here).
 
 Every merge to `main` copies the code there and restarts it (`scripts/deploy/deploy-production.sh`).
-Its `.env`, `venv`, `database.db` and `uploads/` stay on the server and are never overwritten.
+Its `.env`, `venv` and `data/` (the database `promo.db` and the payment screenshots in `uploads/`)
+stay on the server and are never overwritten; `data/` is backed up every night.
 
 Only `index.html` and `styles.css` are served. The bot's `.env`, its database and the payment
 screenshots never are.

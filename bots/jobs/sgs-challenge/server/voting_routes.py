@@ -13,10 +13,12 @@ from aiohttp import web
 
 logger = logging.getLogger(__name__)
 
-# bots/jobs/sgs_challenge.db, wherever the bot is started from (it used to follow the working folder).
-CHALLENGE_DB_PATH = os.getenv("SGS_CHALLENGE_DB_PATH") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "..", "sgs_challenge.db"
-)
+# The Jobs bot's data/ folder (bots/jobs/data), wherever the bot is started from.
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data")
+CHALLENGE_DB_PATH = os.getenv("SGS_CHALLENGE_DB_PATH") or os.path.join(DATA_DIR, "sgs-challenge.db")
+# Creators' photos, served at /challenge/uploads/ (main.py).
+UPLOADS_DIR = os.path.join(DATA_DIR, "sgs-challenge-uploads")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 ALLOWED_AVATAR_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 # What a voucher is worth, as shown to voters (set SGS_VOUCHER_OFFER, e.g. "10% off any Super SGS Furniture order").
 VOUCHER_OFFER = os.getenv("SGS_VOUCHER_OFFER") or "a discount at Super SGS Furniture"
@@ -75,6 +77,7 @@ def verify_init_data(init_data: str, bot_token: str):
     return pairs
 
 async def init_challenge_db(path: str = CHALLENGE_DB_PATH):
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     db = await aiosqlite.connect(path)
     await db.execute("""
         CREATE TABLE IF NOT EXISTS challenge_creators (
@@ -524,7 +527,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
                 if old_avatar_url != new_avatar_url and old_avatar_url.startswith("/challenge/uploads/"):
                     # Only ever a file directly inside uploads/, whatever the stored URL says.
                     filename = os.path.basename(old_avatar_url.split("/challenge/uploads/")[-1])
-                    filepath = os.path.join(os.path.dirname(__file__), '..', 'app', 'uploads', filename)
+                    filepath = os.path.join(UPLOADS_DIR, filename)
                     if os.path.exists(filepath):
                         try:
                             os.remove(filepath)
@@ -548,7 +551,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             row = await cur.fetchone()
             if row and row[0] and row[0].startswith("/challenge/uploads/"):
                 filename = os.path.basename(row[0].split("/challenge/uploads/")[-1])
-                filepath = os.path.join(os.path.dirname(__file__), '..', 'app', 'uploads', filename)
+                filepath = os.path.join(UPLOADS_DIR, filename)
                 if os.path.exists(filepath):
                     try:
                         os.remove(filepath)
@@ -578,8 +581,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         file_field = data['file']
         filename = file_field.filename
         
-        uploads_dir = os.path.join(os.path.dirname(__file__), '..', 'app', 'uploads')
-        os.makedirs(uploads_dir, exist_ok=True)
+        uploads_dir = UPLOADS_DIR
         
         # Images only: anything else saved here would be served from the Mini App's own address.
         extension = os.path.splitext(filename or "")[1].lower()

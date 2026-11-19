@@ -30,7 +30,10 @@ app.add_middleware(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("referral-api")
 
-DB_FILE = os.path.join(BASE_DIR, "referrals.db")
+# Everything the bot writes lives in data/, which deploys never touch and the nightly backup copies.
+DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_FILE = os.path.join(DATA_DIR, "boost.db")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 PROMO_BOT_API_URL = os.getenv("PROMO_BOT_API_URL", "https://beleqet-promo-miniapp.beleqet.com/api/internal/transfer_points")
 TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "")

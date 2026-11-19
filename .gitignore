@@ -55,6 +55,9 @@ pnpm-debug.log*
 *.db-shm
 *.db-wal
 
+# What the bots write (databases, saved conversations, uploads); it stays on the server.
+/bots/*/data/
+
 # OS files
 .DS_Store
 Thumbs.db
