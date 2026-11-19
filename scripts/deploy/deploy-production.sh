@@ -5,8 +5,8 @@
 # Usage (on the server, from the deploy directory):
 #   sudo bash scripts/deploy/deploy-production.sh <40-char-git-sha>
 #
-# Production runs from /srv/beleqet-staging with docker-compose.yml plus the
-# server-only docker-compose.override.yml; neither is replaced here. CI publishes
+# Production runs from /srv/beleqet-staging with the repository's docker-compose.yml;
+# its secrets come from the server-only, root-only .env next to it. CI publishes
 # the API, admin and website images to GHCR for every commit on main, so the
 # server pulls them instead of building (it lacks the disk space to build).
 #
@@ -66,7 +66,7 @@ log() { printf '[deploy] %s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 fail() { log "ERROR: $*"; exit 1; }
 
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || fail "give the full 40-character commit SHA to deploy"
-[ -f docker-compose.yml ] && [ -f docker-compose.override.yml ] || fail "run this from the production deploy directory"
+[ -f docker-compose.yml ] && [ -f .env ] || fail "run this from the production deploy directory"
 
 # Keeps only what a deploy needs. Every release used to leave about 4 GB behind until the disk filled.
 #   cleanup_images all-rollbacks  before pulling: the running images (latest) and the target version.
@@ -94,8 +94,10 @@ free_gb() {
   df -BG --output=avail / | tail -1 | tr -dc '0-9'
 }
 
+# The API's database URL exactly as compose gives it to the container (from .env).
 database_url() {
-  grep -oE 'DATABASE_URL=postgresql://[^ ]+' docker-compose.override.yml | head -1 | cut -d= -f2-
+  docker compose config --format json |
+    python3 -c 'import json, sys; print(json.load(sys.stdin)["services"]["backend"]["environment"]["DATABASE_URL"])'
 }
 
 services_active() {

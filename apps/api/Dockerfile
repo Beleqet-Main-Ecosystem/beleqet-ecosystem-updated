@@ -53,7 +53,7 @@ HEALTHCHECK --interval=20s --timeout=10s --start-period=180s --retries=15 \
   CMD wget -qO- http://127.0.0.1:4000/api/v1/health || exit 1
 
 # Start the server only. Migrations are a separate, explicitly controlled
-# deployment step (scripts/deploy/migrate.sh) — the container never mutates the
+# deployment step (scripts/deploy/deploy-production.sh) — the container never mutates the
 # schema on start. Exec form with the node binary directly: npm/npx are stripped
 # from this image above, so any npm-based CMD would fail to start.
 CMD ["node", "dist/main"]

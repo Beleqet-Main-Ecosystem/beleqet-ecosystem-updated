@@ -133,7 +133,7 @@ apps/api/src/i18n/am/
 Redis.zip
 Redis/
 runs.json
-.env.staging
+.env.ci
 apps/admin/.env.local
 
 # Python artifacts

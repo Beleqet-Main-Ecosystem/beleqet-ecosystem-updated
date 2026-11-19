@@ -2,7 +2,7 @@ name: CI
 
 # Validates every pull request and push to main across all three applications,
 # builds and smoke-tests the production Docker images, and (on push to main
-# only) publishes SHA-tagged images to GHCR for the staging deploy workflow.
+# only) publishes SHA-tagged images to GHCR for the production deploy.
 
 on:
   pull_request:
@@ -104,7 +104,7 @@ jobs:
       - name: NestJS production build
         run: npm run build
 
-  # ── Backend unit tests + CI/CD helper tests ────────────────────────────────
+  # ── Backend unit tests ─────────────────────────────────────────────────────
   backend-unit:
     name: Backend unit tests & coverage
     runs-on: ubuntu-latest
@@ -155,8 +155,6 @@ jobs:
         run: npm test
       - name: Jest coverage
         run: npm run test:cov
-      - name: CI/CD helper tests (unit + integration)
-        run: npm run test:ci-cd
 
       - name: Upload coverage report
         if: always()
@@ -419,14 +417,14 @@ jobs:
           -t "${{ steps.meta.outputs.namespace }}/beleqet-jobs-frontend:${{ github.sha }}"
           .
 
-      - name: Create synthetic staging environment
+      - name: Create synthetic CI environment
         run: |
-          cat > .env.staging <<'EOF'
-          STAGING_DB_USER=ci_smoke_user
-          STAGING_DB_PASSWORD=ci_smoke_password
-          STAGING_DB_NAME=ci_smoke_db
-          STAGING_FRONTEND_URLS=http://localhost:3000,http://localhost:3001
-          STAGING_APP_BASE_URL=http://localhost:4000
+          cat > .env.ci <<'EOF'
+          CI_DB_USER=ci_smoke_user
+          CI_DB_PASSWORD=ci_smoke_password
+          CI_DB_NAME=ci_smoke_db
+          CI_FRONTEND_URLS=http://localhost:3000,http://localhost:3001
+          CI_APP_BASE_URL=http://localhost:4000
           JWT_ACCESS_SECRET=ci_smoke_jwt_secret_synthetic_0000000000000000000000000000000000
           SESSION_SECRET=ci_smoke_session_secret_synthetic
           TOTP_ENCRYPTION_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
@@ -458,39 +456,39 @@ jobs:
           JOBS_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-jobs-frontend:${{ github.sha }}
           EOF
 
-      - name: Validate staging compose renders
+      - name: Validate CI compose renders
         run: >-
-          docker compose --env-file .env.staging --env-file .env.images
-          -f docker-compose.staging.yml config > /dev/null
+          docker compose --env-file .env.ci --env-file .env.images
+          -f docker-compose.ci.yml config > /dev/null
 
       - name: Start database and cache
         run: |
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml up -d --wait db redis
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml up -d --wait db redis
 
       - name: Apply migrations (single controlled step)
         run: |
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml run --rm --no-deps backend \
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml run --rm --no-deps backend \
             ./node_modules/.bin/prisma migrate deploy
 
       - name: Backend startup diagnosis (boot-test)
         run: |
-          source .env.staging
+          source .env.ci
           source .env.images
           echo "--- Start backend via compose (same network as db/redis) ---"
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml up -d backend
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml up -d backend
           echo "Waiting up to 30s for backend to start and register logs..."
           sleep 30
           echo "--- Backend boot logs (last 200 lines) ---"
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml logs --tail 200 backend || true
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml logs --tail 200 backend || true
 
       - name: Start full stack and verify every container becomes healthy
         run: |
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml up -d --wait
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml up -d --wait
           bash scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 3
           bash scripts/deploy/health-check.sh http://127.0.0.1:3000/ 20 3
           bash scripts/deploy/health-check.sh http://127.0.0.1:3001/ 20 3
@@ -499,20 +497,20 @@ jobs:
         if: failure()
         run: |
           echo "=== Container states ==="
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml ps || true
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml ps || true
           echo "=== BACKEND CRASH LOGS (last 200 lines) ==="
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml logs --tail 200 backend || true
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml logs --tail 200 backend || true
           echo "=== ALL SERVICE LOGS (last 50 lines each) ==="
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml logs --tail 50 || true
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml logs --tail 50 || true
 
       - name: Tear down smoke stack
         if: always()
         run: |
-          docker compose --env-file .env.staging --env-file .env.images \
-            -f docker-compose.staging.yml down -v || true
+          docker compose --env-file .env.ci --env-file .env.images \
+            -f docker-compose.ci.yml down -v || true
 
       - name: Scan images for critical vulnerabilities (trivy)
         run: |
@@ -578,8 +576,8 @@ jobs:
           cache-dependency-path: apps/api/package-lock.json
 
       # Gate: unresolved CRITICAL findings in production dependencies fail CI.
-      # HIGH/moderate findings are reported in the logs for tracking (see
-      # docs/CI_CD_AUDIT.md) without blocking unrelated changes.
+      # HIGH/moderate findings are reported in the logs for tracking, without
+      # blocking unrelated changes.
       - name: Backend production dependency audit
         working-directory: apps/api
         run: |

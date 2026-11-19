@@ -1,14 +1,16 @@
 # =============================================================================
-# Beleqet — staging stack
+# Beleqet — the full stack for CI's smoke test
 #
-# Rendered on the staging server by scripts/deploy/deploy-staging.sh:
-#   docker compose --env-file .env.staging --env-file .env.images \
-#     -f docker-compose.staging.yml config
+# CI's Docker job starts the images it just built with this file and checks
+# that every container becomes healthy (.github/workflows/ci.yml):
+#   docker compose --env-file .env.ci --env-file .env.images \
+#     -f docker-compose.ci.yml up -d --wait
 #
-# All secrets come from .env.staging (server-side, never committed) via
-# required interpolation (${VAR:?...}) — this file contains no credentials and
-# refuses to render when a required variable is missing. Image references are
-# exact commit-SHA tags written to .env.images by the deploy script.
+# Settings come from .env.ci (synthetic values the job writes) via required
+# interpolation (${VAR:?...}): this file holds no credentials and refuses to
+# render when a required variable is missing. Image references are the exact
+# commit-SHA tags the job writes to .env.images. Production uses
+# docker-compose.yml instead.
 # =============================================================================
 
 services:
@@ -16,9 +18,9 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${STAGING_DB_USER:?STAGING_DB_USER is required}
-      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD:?STAGING_DB_PASSWORD is required}
-      POSTGRES_DB: ${STAGING_DB_NAME:?STAGING_DB_NAME is required}
+      POSTGRES_USER: ${CI_DB_USER:?CI_DB_USER is required}
+      POSTGRES_PASSWORD: ${CI_DB_PASSWORD:?CI_DB_PASSWORD is required}
+      POSTGRES_DB: ${CI_DB_NAME:?CI_DB_NAME is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -43,13 +45,13 @@ services:
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required (set by the deploy script)}
     restart: unless-stopped
     ports:
-      - '${STAGING_BACKEND_PORT:-4000}:4000'
+      - '${CI_BACKEND_PORT:-4000}:4000'
     environment:
       NODE_ENV: staging
       PORT: 4000
-      FRONTEND_URL: ${STAGING_FRONTEND_URLS:?STAGING_FRONTEND_URLS is required}
-      APP_BASE_URL: ${STAGING_APP_BASE_URL:?STAGING_APP_BASE_URL is required}
-      DATABASE_URL: postgresql://${STAGING_DB_USER}:${STAGING_DB_PASSWORD}@db:5432/${STAGING_DB_NAME}
+      FRONTEND_URL: ${CI_FRONTEND_URLS:?CI_FRONTEND_URLS is required}
+      APP_BASE_URL: ${CI_APP_BASE_URL:?CI_APP_BASE_URL is required}
+      DATABASE_URL: postgresql://${CI_DB_USER}:${CI_DB_PASSWORD}@db:5432/${CI_DB_NAME}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ''
@@ -130,7 +132,7 @@ services:
     image: ${ADMIN_IMAGE:?ADMIN_IMAGE is required (set by the deploy script)}
     restart: unless-stopped
     ports:
-      - '${STAGING_ADMIN_PORT:-3000}:3000'
+      - '${CI_ADMIN_PORT:-3000}:3000'
     environment:
       NODE_ENV: production
     depends_on:
@@ -147,7 +149,7 @@ services:
     image: ${JOBS_IMAGE:?JOBS_IMAGE is required (set by the deploy script)}
     restart: unless-stopped
     ports:
-      - '${STAGING_JOBS_PORT:-3001}:3001'
+      - '${CI_JOBS_PORT:-3001}:3001'
     environment:
       NODE_ENV: production
       PORT: 3001

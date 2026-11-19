@@ -13,14 +13,10 @@ description = "Documented placeholders and synthetic test fixtures (no real cred
 paths = [
   # Committed templates: placeholders only, instructions say so inline.
   '''\.env\.example$''',
-  '''\.env\.staging\.example$''',
   # Generates the synthetic CI test environment (all values fake).
   '''scripts/ci/create-test-env\.sh$''',
   # Jest/Vitest spec files use synthetic mock data by policy.
   '''[^/]+\.spec\.ts$''',
-  # Documentation files containing example/sample IDs (not real credentials).
-  '''WEBHOOK_SUMMARY\.md$''',
-  '''WEBHOOK_IMPLEMENTATION\.md$''',
   # Standalone bot microservices & guides
   '''^bots/''',
   # Compiled / generated output directories.
