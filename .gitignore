@@ -129,7 +129,7 @@ next_readme.md
 temp-storage/
 **/temp-storage/
 
-# Production server only (/srv/beleqet-staging): users' uploads, mounted into the API, and
+# Production server only (/srv/beleqet): users' uploads, mounted into the API, and
 # the deploy's record of the commit that's live (scripts/deploy/deploy-production.sh).
 /uploads-local/
 /.beleqet-production-sha
