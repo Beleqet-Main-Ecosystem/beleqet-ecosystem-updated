@@ -22,7 +22,7 @@ services:
       POSTGRES_PASSWORD: ${CI_DB_PASSWORD:?CI_DB_PASSWORD is required}
       POSTGRES_DB: ${CI_DB_NAME:?CI_DB_NAME is required}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 10s
@@ -41,11 +41,11 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required (set by the deploy script)}
+  api:
+    image: ${API_IMAGE:?API_IMAGE is required (written by the CI job)}
     restart: unless-stopped
     ports:
-      - '${CI_BACKEND_PORT:-4000}:4000'
+      - '${CI_API_PORT:-4000}:4000'
     environment:
       NODE_ENV: staging
       PORT: 4000
@@ -83,7 +83,7 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
       # Payment services read these in their constructors (getOrThrow), so
-      # the backend cannot boot without them — use sandbox/test keys.
+      # the API cannot boot without them — use sandbox/test keys.
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?STRIPE_SECRET_KEY is required (test key)}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?STRIPE_WEBHOOK_SECRET is required (test value)}
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID:?PAYPAL_CLIENT_ID is required (sandbox)}
@@ -128,15 +128,15 @@ services:
       retries: 10
       start_period: 60s
 
-  admin-frontend:
-    image: ${ADMIN_IMAGE:?ADMIN_IMAGE is required (set by the deploy script)}
+  admin:
+    image: ${ADMIN_IMAGE:?ADMIN_IMAGE is required (written by the CI job)}
     restart: unless-stopped
     ports:
       - '${CI_ADMIN_PORT:-3000}:3000'
     environment:
       NODE_ENV: production
     depends_on:
-      backend:
+      api:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/login || exit 1']
@@ -145,16 +145,16 @@ services:
       retries: 5
       start_period: 60s
 
-  jobs-frontend:
-    image: ${JOBS_IMAGE:?JOBS_IMAGE is required (set by the deploy script)}
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE is required (written by the CI job)}
     restart: unless-stopped
     ports:
-      - '${CI_JOBS_PORT:-3001}:3001'
+      - '${CI_WEB_PORT:-3001}:3001'
     environment:
       NODE_ENV: production
       PORT: 3001
     depends_on:
-      backend:
+      api:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3001/ || exit 1']
@@ -164,5 +164,5 @@ services:
       start_period: 60s
 
 volumes:
-  postgres_data:
+  db_data:
   redis_data:

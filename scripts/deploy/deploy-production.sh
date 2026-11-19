@@ -5,7 +5,7 @@
 # Usage (on the server, from the deploy directory):
 #   sudo bash scripts/deploy/deploy-production.sh <40-char-git-sha>
 #
-# Production runs from /srv/beleqet-staging with the repository's docker-compose.yml;
+# Production runs from /srv/beleqet with the repository's docker-compose.yml;
 # its secrets come from the server-only, root-only .env next to it. CI publishes
 # the API, admin and website images to GHCR for every commit on main, so the
 # server pulls them instead of building (it lacks the disk space to build).
@@ -26,19 +26,19 @@ set -Eeuo pipefail
 
 SHA="${1:-}"
 NAMESPACE="${IMAGE_NAMESPACE:-ghcr.io/beleqet-main-ecosystem/beleqet-ecosystem-updated}"
-PROJECT="${COMPOSE_PROJECT:-beleqet-staging}"
+PROJECT="${COMPOSE_PROJECT:-beleqet}"
 NETWORK="${COMPOSE_NETWORK:-${PROJECT}_default}"
 BACKUP_ROOT="${BACKUP_ROOT:-/srv/backups}"
-DB_CONTAINER="${DB_CONTAINER:-beleqet2-postgres}"
+DB_CONTAINER="${DB_CONTAINER:-beleqet-db}"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
 MIN_FREE_GB="${MIN_FREE_GB:-5}"
 KEEP_BACKUPS="${KEEP_BACKUPS:-10}"
 
-# compose service -> GHCR image name
+# compose service -> GHCR image name (the running image is tagged $PROJECT-<service>:latest)
 declare -A IMAGES=(
-  [backend]=beleqet-backend
-  [frontend]=beleqet-admin-frontend
-  [jobs-frontend]=beleqet-jobs-frontend
+  [api]=beleqet-api
+  [admin]=beleqet-admin
+  [web]=beleqet-web
 )
 HEALTH_URLS=(
   "http://127.0.0.1:4000/api/v1/health"
@@ -49,10 +49,10 @@ HEALTH_URLS=(
 BOTS_ROOT="${BOTS_ROOT:-/opt/beleqet}"
 # bots/<name> -> the systemd services that run it
 declare -A BOT_SERVICES=(
-  [job]="beleqet-jobs-bot"
-  [beleqet-bot]="beleqet-bot beleqet-bot-api"
-  [shareandwin]="shareandwin-bot shareandwin-api"
-  [promo]="promo-bot"
+  [jobs]="beleqet-jobs-bot"
+  [boost]="beleqet-boost-bot beleqet-boost-api"
+  [go]="beleqet-go-bot beleqet-go-api"
+  [promo]="beleqet-promo-bot"
 )
 # Never copied: settings, the Python environment, data the bots write, uploads and tests.
 BOT_EXCLUDES=(
@@ -97,7 +97,7 @@ free_gb() {
 # The API's database URL exactly as compose gives it to the container (from .env).
 database_url() {
   docker compose config --format json |
-    python3 -c 'import json, sys; print(json.load(sys.stdin)["services"]["backend"]["environment"]["DATABASE_URL"])'
+    python3 -c 'import json, sys; print(json.load(sys.stdin)["services"]["api"]["environment"]["DATABASE_URL"])'
 }
 
 services_active() {
@@ -160,7 +160,7 @@ done
 
 log "3/7 applying database migrations"
 docker run --rm --network "$NETWORK" -e DATABASE_URL="$(database_url)" \
-  "$NAMESPACE/beleqet-backend:$SHA" ./node_modules/.bin/prisma migrate deploy
+  "$NAMESPACE/${IMAGES[api]}:$SHA" ./node_modules/.bin/prisma migrate deploy
 
 log "4/7 keeping the running images as rollback-$STAMP and switching to $SHA"
 for service in "${!IMAGES[@]}"; do
@@ -169,7 +169,7 @@ for service in "${!IMAGES[@]}"; do
 done
 
 restart() {
-  docker compose up -d --no-deps --no-build backend frontend jobs-frontend
+  docker compose up -d --no-deps --no-build "${!IMAGES[@]}"
 }
 
 healthy() {

@@ -1,14 +1,19 @@
 # Production: the API, website and admin with their database and cache, as they run on the
-# server (/srv/beleqet-staging). Every secret is a ${VAR} filled from that folder's .env, which
+# server (/srv/beleqet). Every secret is a ${VAR} filled from that folder's .env, which
 # is root-only and not in git. Deploys pull the images CI built (no builds on the server); see
 # scripts/deploy/deploy-production.sh.
 #
 # Running it elsewhere: put the variables in a .env next to this file, and create Beleqet Pay's
 # network once (docker network create beleqet-network), which the API joins.
+#
+# One name per app everywhere: the folder apps/<name>, the service <name>, the container
+# beleqet-<name> and the image beleqet-<name>.
+name: beleqet
+
 services:
   db:
     image: postgres:15-alpine
-    container_name: beleqet2-postgres
+    container_name: beleqet-db
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -17,22 +22,22 @@ services:
     ports:
       - '127.0.0.1:5435:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
-    container_name: beleqet2-redis
+    container_name: beleqet-redis
     restart: always
     ports:
       - '127.0.0.1:6380:6379'
     volumes:
       - redis_data:/data
 
-  backend:
+  api:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-    container_name: beleqet2-backend
+    container_name: beleqet-api
     restart: unless-stopped
     networks:
       - default
@@ -116,28 +121,28 @@ services:
       - db
       - redis
 
-  frontend:
+  admin:
     build:
       context: ./apps/admin
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
-    container_name: beleqet2-frontend
+    container_name: beleqet-admin
     restart: unless-stopped
     ports:
       - '127.0.0.1:3000:3000'
     environment:
       - NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
     depends_on:
-      - backend
+      - api
 
-  jobs-frontend:
+  web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=https://api.beleqetjobs.com/api/v1
-    container_name: beleqet2-jobs-frontend
+    container_name: beleqet-web
     restart: unless-stopped
     ports:
       - '127.0.0.1:3001:3001'
@@ -146,10 +151,10 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GROQ_MODEL=${GROQ_MODEL}
     depends_on:
-      - backend
+      - api
 
 volumes:
-  postgres_data:
+  db_data:
   redis_data:
 
 networks:

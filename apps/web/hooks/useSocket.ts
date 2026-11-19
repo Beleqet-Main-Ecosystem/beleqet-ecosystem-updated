@@ -13,7 +13,7 @@ export type SocketStatus =
  * Options accepted by useSocket.
  */
 export interface UseSocketOptions {
-  /** Base URL of the backend Socket.io server, e.g. https://beleqet-backend-rakz.onrender.com */
+  /** Base URL of the backend Socket.io server, e.g. https://api.beleqetjobs.com */
   url: string;
   /** JWT access token to authenticate the connection (sent as handshake.auth.token) */
   token?: string;

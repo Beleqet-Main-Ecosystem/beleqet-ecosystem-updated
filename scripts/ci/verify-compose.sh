@@ -55,9 +55,9 @@ UNSUBSCRIBE_SECRET=synthetic_unsubscribe_secret_64chars_minimum_for_production_u
 EOF
 images_env="$workdir/env.images"
 cat >"$images_env" <<'EOF'
-BACKEND_IMAGE=ghcr.io/example/beleqet-backend:0000000000000000000000000000000000000000
-ADMIN_IMAGE=ghcr.io/example/beleqet-admin-frontend:0000000000000000000000000000000000000000
-JOBS_IMAGE=ghcr.io/example/beleqet-jobs-frontend:0000000000000000000000000000000000000000
+API_IMAGE=ghcr.io/example/beleqet-api:0000000000000000000000000000000000000000
+ADMIN_IMAGE=ghcr.io/example/beleqet-admin:0000000000000000000000000000000000000000
+WEB_IMAGE=ghcr.io/example/beleqet-web:0000000000000000000000000000000000000000
 EOF
 
 log "rendering docker-compose.ci.yml with full synthetic env"

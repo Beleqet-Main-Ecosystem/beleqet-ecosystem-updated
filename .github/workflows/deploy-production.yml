@@ -12,7 +12,7 @@ name: Deploy Production
 #   PROD_HOST, PROD_PORT, PROD_USER  where to connect (the user needs passwordless sudo)
 #   PROD_SSH_KEY                     private key whose public half is in that user's authorized_keys
 #   PROD_KNOWN_HOSTS                 output of: ssh-keyscan -p <port> <host>
-#   PROD_DEPLOY_PATH                 optional, defaults to /srv/beleqet-staging
+#   PROD_DEPLOY_PATH                 optional, defaults to /srv/beleqet
 
 on:
   workflow_run:
@@ -81,7 +81,7 @@ jobs:
           SHA: ${{ steps.target.outputs.sha }}
         run: |
           namespace="ghcr.io/${GITHUB_REPOSITORY,,}"
-          for image in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
+          for image in beleqet-api beleqet-admin beleqet-web; do
             docker manifest inspect "$namespace/$image:$SHA" > /dev/null
           done
 
@@ -114,7 +114,7 @@ jobs:
           ssh -i ~/.ssh/production_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
             -p "${PORT:-22}" "$USER@$HOST" \
             "set -e
-             cd '${DEPLOY_PATH:-/srv/beleqet-staging}'
+             cd '${DEPLOY_PATH:-/srv/beleqet}'
              git_() { sudo git -c safe.directory='*' \"\$@\"; }
              git_ fetch -q origin main
              git_ checkout -q -f -B deploy/auto '$SHA'
