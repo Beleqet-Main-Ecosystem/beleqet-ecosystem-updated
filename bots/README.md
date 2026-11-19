@@ -1033,67 +1033,23 @@ sqlite3 /opt/beleqet/jobs/data/sgs-challenge.db \
 
 ## 15. Backup and Recovery
 
-### Automated Daily Backup
+Every night at 02:30 (server time, UTC) `beleqet-backup-bots` copies each bot's `data/` folder and
+`.env` into `/var/backups/beleqet/bots/bots-<date>-<time>.tar.gz` (root only, kept 14 days). The
+script and its schedule are in `scripts/backup/`, and every deploy installs them (see `scripts/README.md`).
+
+### Restore from a backup
 
 ```bash
-# Create backup script
-sudo tee /usr/local/bin/beleqet-backup.sh > /dev/null <<'SCRIPT'
-#!/bin/bash
-BACKUP_DIR="/var/backups/beleqet/"
-mkdir -p ""
+ls /var/backups/beleqet/bots/                     # pick a night
+ARCHIVE=/var/backups/beleqet/bots/bots-20261120-023001.tar.gz
 
-echo "Starting backup to ..."
-
-cp /opt/beleqet/boost/data/boost.db    "/boost-referrals.db"
-cp /opt/beleqet/go/data/go.db    "/go-referrals.db"
-cp /opt/beleqet/jobs/data/sgs-challenge.db        "/sgs_challenge.db"
-cp /opt/beleqet/boost/bot_persistence "/boost-persistence" 2>/dev/null || true
-cp /opt/beleqet/go/bot_persistence  "/go-persistence" 2>/dev/null || true
-
-# Keep only last 30 days of backups
-find /var/backups/beleqet -maxdepth 1 -type d -mtime +30 -exec rm -rf {} + 2>/dev/null || true
-
-echo "Backup complete: "
-SCRIPT
-
-sudo chmod +x /usr/local/bin/beleqet-backup.sh
-
-# Schedule to run at 2:00 AM every day
-echo "0 2 * * * root /usr/local/bin/beleqet-backup.sh >> /var/log/beleqet-backup.log 2>&1" \
-  | sudo tee /etc/cron.d/beleqet-backup
-
-# Test it immediately
-sudo /usr/local/bin/beleqet-backup.sh
+# Stop the bot, put its data/ back (the current files are replaced), start it again.
+sudo systemctl stop beleqet-boost-bot beleqet-boost-api
+sudo tar -xzf "$ARCHIVE" -C /opt/beleqet boost/data
+sudo systemctl start beleqet-boost-bot beleqet-boost-api
 ```
 
-### Restore from Backup
-
-```bash
-# Stop all services first
-sudo systemctl stop beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
-
-# Set the date to restore from
-RESTORE_DATE="2026-10-01"
-
-# Restore databases
-cp /var/backups/beleqet//boost-referrals.db \
-   /opt/beleqet/boost/data/boost.db
-cp /var/backups/beleqet//go-referrals.db \
-   /opt/beleqet/go/data/go.db
-cp /var/backups/beleqet//sgs_challenge.db \
-   /opt/beleqet/jobs/data/sgs-challenge.db
-
-# Restore persistence (if needed)
-cp /var/backups/beleqet//boost-persistence \
-   /opt/beleqet/boost/bot_persistence
-cp /var/backups/beleqet//go-persistence \
-   /opt/beleqet/go/bot_persistence
-
-# Restart services
-sudo systemctl start beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
-
-echo "Restore complete."
-```
+The archive holds `<bot>/data/` and `<bot>/.env` for boost, go, jobs and promo.
 
 ---
 
@@ -1307,8 +1263,8 @@ sudo journalctl -f -u beleqet-boost-bot -u beleqet-boost-api -u beleqet-go-bot -
 cd /opt/beleqet && git pull
 sudo systemctl restart beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
-# Run manual backup
-sudo /usr/local/bin/beleqet-backup.sh
+# Run the bot backup now
+sudo beleqet-backup-bots
 
 # Reload Nginx after config change
 sudo nginx -t && sudo systemctl reload nginx
@@ -1361,7 +1317,8 @@ ssh ubuntu@10.8.0.1
 ### Backup Location
 
 ```
-/var/backups/beleqet/<YYYY-MM-DD>/
+/var/backups/beleqet/bots/    (bot data, nightly, 14 days)
+/var/backups/beleqet/db/      (main database, nightly, 14 days)
 ```
 
 ---

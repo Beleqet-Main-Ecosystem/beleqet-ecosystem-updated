@@ -118,6 +118,7 @@ users-migration.json
 # else put there stays ignored (ad-hoc local tooling). Each app keeps its own scripts.
 scripts/*
 !scripts/README.md
+!scripts/backup/
 !scripts/ci/
 !scripts/deploy/
 .agents/

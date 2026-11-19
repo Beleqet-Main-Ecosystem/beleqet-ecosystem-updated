@@ -12,10 +12,10 @@
 #
 # Sequence: back up the database -> pull the images -> apply migrations with the
 # new API image -> retag the images the compose services run -> restart the API,
-# admin and website -> health checks -> update the Telegram bots. If a health check
-# fails, the previous images come back automatically (migrations are not undone:
-# they only ever add, so the previous code keeps working; restore the backup by
-# hand if ever needed).
+# admin and website -> health checks -> install the nightly backup scripts -> update
+# the Telegram bots. If a health check fails, the previous images come back
+# automatically (migrations are not undone: they only ever add, so the previous code
+# keeps working; restore the backup by hand if ever needed).
 #
 # The bots (bots/<name> in git) run from $BOTS_ROOT/<name> under systemd with their
 # own .env, Python environment and data/ folder (everything they write), none of which
@@ -28,7 +28,7 @@ SHA="${1:-}"
 NAMESPACE="${IMAGE_NAMESPACE:-ghcr.io/beleqet-main-ecosystem/beleqet-ecosystem-updated}"
 PROJECT="${COMPOSE_PROJECT:-beleqet}"
 NETWORK="${COMPOSE_NETWORK:-${PROJECT}_default}"
-BACKUP_ROOT="${BACKUP_ROOT:-/srv/backups}"
+BACKUP_ROOT="${BACKUP_ROOT:-/var/backups/beleqet/deploys}"
 DB_CONTAINER="${DB_CONTAINER:-beleqet-db}"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
 MIN_FREE_GB="${MIN_FREE_GB:-5}"
@@ -70,6 +70,13 @@ declare -A OLD_DATA=(
   [jobs]="bot_data.pickle:persistence.pickle sgs_challenge.db:sgs-challenge.db sgs-challenge/app/uploads:sgs-challenge-uploads"
   [promo]="database.db:promo.db uploads:uploads"
 )
+# The nightly backups (scripts/backup) -> where they are installed, and their mode.
+BACKUP_SCRIPTS=(
+  "scripts/backup/db.sh:/usr/local/sbin/beleqet-backup-db:700"
+  "scripts/backup/bots.sh:/usr/local/sbin/beleqet-backup-bots:700"
+  "scripts/backup/beleqet-backup.cron:/etc/cron.d/beleqet-backup:644"
+)
+
 log() { printf '[deploy] %s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 fail() { log "ERROR: $*"; exit 1; }
 
@@ -145,6 +152,17 @@ undo_data_moves() {
   for move in "${MOVED[@]}"; do mv "${move#*|}" "${move%%|*}"; done
 }
 
+install_backup_scripts() {
+  local entry src dest mode updated=""
+  for entry in "${BACKUP_SCRIPTS[@]}"; do
+    IFS=: read -r src dest mode <<< "$entry"
+    cmp -s "$src" "$dest" && continue
+    install -m "$mode" -o root -g root "$src" "$dest"
+    updated+=" ${dest##*/}"
+  done
+  log "    ${updated:+updated:$updated}${updated:-unchanged}"
+}
+
 # Copies each bot's code into place and restarts the bots whose code changed, moving their data
 # into data/ on the way if it's still in its old place. A bot that doesn't come back up gets its
 # previous files (and data in its old place) back. Returns non-zero if any bot needed that.
@@ -190,13 +208,13 @@ deploy_bots() {
   return "$failed"
 }
 
-log "1/7 backing up the database"
+log "1/8 backing up the database"
 mkdir -p "$BACKUP_ROOT/$STAMP" && chmod 700 "$BACKUP_ROOT" "$BACKUP_ROOT/$STAMP"
 docker exec "$DB_CONTAINER" sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$BACKUP_ROOT/$STAMP/database.dump"
 [ -s "$BACKUP_ROOT/$STAMP/database.dump" ] || fail "database backup is empty"
 log "    saved $BACKUP_ROOT/$STAMP/database.dump"
 
-log "2/7 pulling images for $SHA"
+log "2/8 pulling images for $SHA"
 cleanup_images all-rollbacks
 if [ "$(free_gb)" -lt "$MIN_FREE_GB" ]; then
   fail "only $(free_gb) GB free on / (need $MIN_FREE_GB GB); nothing was changed. Free space, then deploy again"
@@ -205,11 +223,11 @@ for service in "${!IMAGES[@]}"; do
   docker pull -q "$NAMESPACE/${IMAGES[$service]}:$SHA" > /dev/null
 done
 
-log "3/7 applying database migrations"
+log "3/8 applying database migrations"
 docker run --rm --network "$NETWORK" -e DATABASE_URL="$(database_url)" \
   "$NAMESPACE/${IMAGES[api]}:$SHA" ./node_modules/.bin/prisma migrate deploy
 
-log "4/7 keeping the running images as rollback-$STAMP and switching to $SHA"
+log "4/8 keeping the running images as rollback-$STAMP and switching to $SHA"
 for service in "${!IMAGES[@]}"; do
   docker tag "$PROJECT-$service:latest" "$PROJECT-$service:rollback-$STAMP" 2>/dev/null || true
   docker tag "$NAMESPACE/${IMAGES[$service]}:$SHA" "$PROJECT-$service:latest"
@@ -231,17 +249,19 @@ healthy() {
   done
 }
 
-log "5/7 restarting the API, admin and website"
+log "5/8 restarting the API, admin and website"
 restart
 
-log "6/7 health checks"
+log "6/8 health checks"
 if healthy; then
   echo "$SHA" > .beleqet-production-sha
   cleanup_images newest
   # Automatic backups (named by timestamp) beyond the newest $KEEP_BACKUPS go; hand-made ones stay.
   find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended -regex '.*/[0-9]{8}-[0-9]{6}'     | sort | head -n -"$KEEP_BACKUPS" | xargs -r rm -rf
   log "live: $SHA (rollback images tagged rollback-$STAMP, $(free_gb) GB free)"
-  log "7/7 updating the Telegram bots"
+  log "7/8 installing the nightly backup scripts"
+  install_backup_scripts
+  log "8/8 updating the Telegram bots"
   deploy_bots || fail "the API, admin and website are live, but a bot didn't start with the new code and was put back"
   exit 0
 fi
