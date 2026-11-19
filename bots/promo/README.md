@@ -24,7 +24,7 @@ that server's database, so here it starts with empty wallets.
 
 Like the other bots, it runs from `/opt/beleqet/promo` under systemd: the service is `beleqet-promo-bot`,
 gunicorn with one worker on `127.0.0.1:8002`. nginx serves it at
-`https://beleqet-promo-miniapp.beleqet.com` (see the file of that name here).
+`https://beleqet-promo-miniapp.beleqet.com` (see `infra/nginx/promo.conf`).
 
 Every merge to `main` copies the code there and restarts it (`scripts/deploy/deploy-production.sh`).
 Its `.env`, `venv` and `data/` (the database `promo.db` and the payment screenshots in `uploads/`)

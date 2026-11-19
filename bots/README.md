@@ -92,7 +92,6 @@ bel/
 |   +-- api.py               (FastAPI REST, Port 8000)
 |   +-- requirements.txt
 |   +-- Promo.jpg
-|   +-- beleqetaca-api.beleqet.com  (Nginx vhost config)
 |   +-- data/                (on the server only, never in git)
 |       +-- boost.db             (SQLite, created on first start)
 |       +-- persistence.pickle   (saved conversations)
@@ -103,7 +102,6 @@ bel/
 |   +-- api.py               (FastAPI REST, Port 8001)
 |   +-- requirements.txt
 |   +-- Promo.jpg
-|   +-- beleqetjobs-api.beleqet.com (Nginx vhost config)
 |   +-- data/
 |       +-- go.db
 |       +-- persistence.pickle
@@ -112,7 +110,6 @@ bel/
     +-- .env
     +-- main.py              (Bot + aiohttp webhook, 1376 lines)
     +-- requirements.txt
-    +-- telegram-bot         (Nginx vhost config)
     +-- sgs-challenge/
     |   +-- app/
     |   |   +-- index.html   (SGS Challenge Telegram Mini App)
@@ -125,6 +122,8 @@ bel/
         +-- sgs-challenge.db        (SQLite for the SGS Challenge)
         +-- sgs-challenge-uploads/  (creators' photos)
 ```
+
+The nginx site configs are in `infra/nginx/` at the repository root.
 
 
 ---
@@ -612,24 +611,13 @@ sudo certbot renew --dry-run
 
 ### Step 7 - Nginx Configuration
 
+The site configs are in `infra/nginx/` (see its README). From the production checkout:
+
 ```bash
-# boost API (port 8000)
-sudo cp /opt/beleqet/boost/beleqetaca-api.beleqet.com \
-        /etc/nginx/sites-available/beleqetaca-api.beleqet.com
-sudo ln -s /etc/nginx/sites-available/beleqetaca-api.beleqet.com \
-           /etc/nginx/sites-enabled/
-
-# go API (port 8001)
-sudo cp /opt/beleqet/go/beleqetjobs-api.beleqet.com \
-        /etc/nginx/sites-available/beleqetjobs-api.beleqet.com
-sudo ln -s /etc/nginx/sites-available/beleqetjobs-api.beleqet.com \
-           /etc/nginx/sites-enabled/
-
-# job bot webhook (port 8080)
-sudo cp /opt/beleqet/jobs/telegram-bot \
-        /etc/nginx/sites-available/webhook.beleqet.com
-sudo ln -s /etc/nginx/sites-available/webhook.beleqet.com \
-           /etc/nginx/sites-enabled/
+for site in boost-api go-api promo; do
+  sudo cp /srv/beleqet/infra/nginx/$site.conf /etc/nginx/sites-available/$site.conf
+  sudo ln -s /etc/nginx/sites-available/$site.conf /etc/nginx/sites-enabled/
+done
 
 # Remove the default site
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -830,90 +818,8 @@ curl -I https://webhook.beleqet.com
 
 ## 11. Nginx Config Reference
 
-### beleqetaca-api.beleqet.com (proxies to Port 8000)
-
-```nginx
-server {
-    server_name beleqetaca-api.beleqet.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    listen 443 ssl;
-    ssl_certificate     /etc/letsencrypt/live/beleqetaca-api.beleqet.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/beleqetaca-api.beleqet.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-}
-
-server {
-    listen 80;
-    server_name beleqetaca-api.beleqet.com;
-    return 301 https://$host$request_uri;
-}
-```
-
-### beleqetjobs-api.beleqet.com (proxies to Port 8001)
-
-```nginx
-server {
-    server_name beleqetjobs-api.beleqet.com;
-
-    location / {
-        proxy_pass          http://127.0.0.1:8001;
-        proxy_http_version  1.1;
-        proxy_set_header    Host $host;
-        proxy_set_header    X-Real-IP $remote_addr;
-        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header    X-Forwarded-Proto $scheme;
-        proxy_set_header    Upgrade $http_upgrade;
-        proxy_set_header    Connection "upgrade";
-    }
-
-    listen 443 ssl;
-    ssl_certificate     /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-}
-
-server {
-    listen 80;
-    server_name beleqetjobs-api.beleqet.com;
-    return 301 https://$host$request_uri;
-}
-```
-
-### webhook.beleqet.com (proxies to Port 8080)
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name webhook.beleqet.com;
-
-    location / {
-        proxy_pass          http://127.0.0.1:8080;
-        proxy_set_header    Host $host;
-        proxy_set_header    X-Real-IP $remote_addr;
-        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header    X-Forwarded-Proto $scheme;
-    }
-
-    ssl_certificate     /etc/letsencrypt/live/webhook.beleqet.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/webhook.beleqet.com/privkey.pem;
-}
-
-server {
-    listen 80;
-    server_name webhook.beleqet.com;
-    return 301 https://$host$request_uri;
-}
-```
+The live configs are in `infra/nginx/`: `boost-api.conf` (port 8000), `go-api.conf` (port 8001),
+`promo.conf` (port 8002) and `beleqetjobs.conf`, which also serves the SGS Challenge (port 8082).
 
 ---
 
@@ -1436,9 +1342,10 @@ ssh ubuntu@10.8.0.1
 /etc/systemd/system/beleqet-go-api.service
 /etc/systemd/system/beleqet-jobs-bot.service
 
-/etc/nginx/sites-available/beleqetaca-api.beleqet.com
-/etc/nginx/sites-available/beleqetjobs-api.beleqet.com
-/etc/nginx/sites-available/webhook.beleqet.com
+/etc/nginx/sites-available/boost-api.conf      (copies of infra/nginx/)
+/etc/nginx/sites-available/go-api.conf
+/etc/nginx/sites-available/promo.conf
+/etc/nginx/sites-available/beleqetjobs.conf
 
 /etc/wireguard/wg0.conf
 ```
