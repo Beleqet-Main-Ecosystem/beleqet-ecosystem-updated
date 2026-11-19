@@ -21,6 +21,7 @@
 # own .env, Python environment and data/ folder (everything they write), none of which
 # are in git. Only their code is copied from this checkout; a bot restarts only when
 # its code changed, and the files it replaced are kept in this deploy's backup folder.
+# A bot's Mini App (bots/<name>/miniapp) is built here into miniapp/dist, which nginx serves.
 # =============================================================================
 set -Eeuo pipefail
 
@@ -54,12 +55,14 @@ declare -A BOT_SERVICES=(
   [go]="beleqet-go-bot beleqet-go-api"
   [promo]="beleqet-promo-bot"
 )
-# Never copied: settings, the Python environment, data/ (everything a bot writes) and tests. The
-# database and pickle patterns are a safety net, should one ever be committed.
+# Never copied: settings, the Python environment, data/ (everything a bot writes), the Mini App's
+# packages and build, and tests. The database and pickle patterns are a safety net, should one
+# ever be committed.
 BOT_EXCLUDES=(
   --exclude='/data/' --exclude='.env*' --exclude='venv/' --exclude='__pycache__/' --exclude='*.pyc'
   --exclude='*.db' --exclude='*.db-*' --exclude='*.sqlite*' --exclude='*.pickle'
   --exclude='*.log' --exclude='*.bak*' --exclude='test_*.py' --exclude='tests/'
+  --exclude='node_modules/' --exclude='/miniapp/dist/' --exclude='/miniapp/dist.new/'
 )
 # Where each bot's data was before it all moved into its data/ folder (Nov 2026), as
 # "old path:new name in data/". A deploy moves what is still there while the bot is stopped;
@@ -163,6 +166,24 @@ install_backup_scripts() {
   log "    ${updated:+updated:$updated}${updated:-unchanged}"
 }
 
+# Builds a bot's Mini App as the bot's user. The new build replaces the one nginx serves only once
+# it has succeeded; node_modules goes afterwards (it's only needed to build).
+build_miniapp() {
+  local bot=$1 app=$2/miniapp user=${3%%:*}
+  log "    $bot: building its Mini App"
+  rm -rf "$app/dist.new"
+  # shellcheck disable=SC2016 # expanded by the inner shell
+  if sudo -u "$user" -H NPM_CONFIG_UPDATE_NOTIFIER=false sh -c 'cd "$1" && npm ci --no-audit --no-fund --loglevel=error && npm run build -- --outDir dist.new' \
+    sh "$app" > /dev/null; then
+    rm -rf "$app/dist" "$app/node_modules"
+    mv "$app/dist.new" "$app/dist"
+    return 0
+  fi
+  log "    $bot: its Mini App didn't build; the previous build stays"
+  rm -rf "$app/dist.new" "$app/node_modules"
+  return 1
+}
+
 # Copies each bot's code into place and restarts the bots whose code changed, moving their data
 # into data/ on the way if it's still in its old place. A bot that doesn't come back up gets its
 # previous files (and data in its old place) back. Returns non-zero if any bot needed that.
@@ -177,11 +198,17 @@ deploy_bots() {
     owner="$(stat -c %U:%G "$dir")"
     changes="$(rsync -rlci --chown="$owner" --backup --backup-dir="$BACKUP_ROOT/$STAMP/bots/$bot" \
       "${BOT_EXCLUDES[@]}" "bots/$bot/" "$dir/" | grep '^>f' || true)"
+    if [ -f "$dir/miniapp/package.json" ] && { grep -q ' miniapp/' <<< "$changes" || [ ! -d "$dir/miniapp/dist" ]; }; then
+      build_miniapp "$bot" "$dir" "$owner" || failed=1
+    fi
     if [ -z "$changes" ]; then
       log "    $bot: unchanged"
       continue
     fi
     log "    $bot: $(wc -l <<< "$changes") file(s) updated"
+    if ! grep -qv ' miniapp/' <<< "$changes"; then
+      continue  # only the Mini App changed: nginx serves the new build, the bot keeps running
+    fi
     if grep -q ' requirements.txt$' <<< "$changes"; then
       # Unpinned names: installs what's missing, never upgrades or downgrades what's there.
       sudo -u "${owner%%:*}" "$dir/venv/bin/pip" install -q -r "$dir/requirements.txt" ||
@@ -262,7 +289,7 @@ if healthy; then
   log "7/8 installing the nightly backup scripts"
   install_backup_scripts
   log "8/8 updating the Telegram bots"
-  deploy_bots || fail "the API, admin and website are live, but a bot didn't start with the new code and was put back"
+  deploy_bots || fail "the API, admin and website are live, but a bot didn't start with the new code (it was put back) or its Mini App didn't build; see above"
   exit 0
 fi
 

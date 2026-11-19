@@ -255,6 +255,31 @@ jobs:
       - name: Production build
         run: npm run build
 
+  # ── The bots' Mini Apps (bots/<bot>/miniapp/) ──────────────────────
+  bots-miniapps:
+    name: Bot Mini App (${{ matrix.bot }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bot: [boost, go]
+    defaults:
+      run:
+        working-directory: bots/${{ matrix.bot }}/miniapp
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: bots/${{ matrix.bot }}/miniapp/package-lock.json
+
+      - run: npm ci
+      - name: TypeScript validation
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+
   # ── Website (apps/web/) ───────────────────────────────────────────
   web:
     name: Website quality, tests & build
@@ -623,6 +648,7 @@ jobs:
       - api-unit
       - api-integration
       - admin
+      - bots-miniapps
       - web
       - playwright-e2e
       - docker-build
