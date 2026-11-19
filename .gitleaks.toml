@@ -17,8 +17,6 @@ paths = [
   '''scripts/ci/create-test-env\.sh$''',
   # Jest/Vitest spec files use synthetic mock data by policy.
   '''[^/]+\.spec\.ts$''',
-  '''WEBHOOK_SUMMARY\.md$''',
-  '''WEBHOOK_IMPLEMENTATION\.md$''',
   # Standalone bot microservices & guides
   '''^bots/''',
   # Compiled / generated output directories.
