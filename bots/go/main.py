@@ -58,7 +58,7 @@ if WELCOME_PHOTO_FILE_ID and not os.path.isabs(WELCOME_PHOTO_FILE_ID):
     if os.path.exists(local_photo_path):
         WELCOME_PHOTO_FILE_ID = local_photo_path
 CHANNEL_INVITE_LINK = os.getenv("CHANNEL_INVITE_LINK", "https://t.me/BeleqetJobs")
-WEBAPP_URL = os.getenv("WEBAPP_URL", "https://beleqetjobs-miniapp.beleqet.com/")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "https://go.beleqetjobs.com/")
 
 # --- 🗄️ ASYNC DATABASE SETUP ---
 async def setup_database():

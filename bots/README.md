@@ -38,10 +38,10 @@ The **Beleqet Platform** is composed of three cooperating Telegram bots and asso
 
 | Service | Bot Purpose | Domain | Port |
 |---|---|---|---|
-| boost | Beleqet Academy referral rewards and mini-app | beleqetaca-api.beleqet.com | 8000 |
-| go | Beleqet Jobs share-and-win referral rewards | beleqetjobs-api.beleqet.com | 8001 |
+| boost | Beleqet Academy referral rewards and mini-app | boost.beleqetjobs.com | 8000 |
+| go | Beleqet Jobs share-and-win referral rewards | go.beleqetjobs.com | 8001 |
 | jobs | Beleqet Jobs registration bot + SGS Challenge mini-app (webhook mode) | webhook.beleqet.com | 8080 |
-| promo | Beleqet Promotion: SMM shop and the wallet the referral bots transfer to (see `promo/README.md`) | beleqet-promo-miniapp.beleqet.com | 8002 |
+| promo | Beleqet Promotion: SMM shop and the wallet the referral bots transfer to (see `promo/README.md`) | promo.beleqetjobs.com | 8002 |
 
 All three services share the beleqet.com root domain and are secured with Let's Encrypt TLS certificates managed by Certbot.
 
@@ -59,8 +59,8 @@ Internet / Telegram API
 |                                                       |
 |   +---------------------------------------------+    |
 |   |         Nginx (Port 80 / 443)               |    |
-|   |  beleqetaca-api.beleqet.com  --> :8000       |    |
-|   |  beleqetjobs-api.beleqet.com --> :8001       |    |
+|   |  boost.beleqetjobs.com       --> :8000       |    |
+|   |  go.beleqetjobs.com          --> :8001       |    |
 |   |  webhook.beleqet.com          --> :8080       |    |
 |   +---------------------------------------------+    |
 |                                                       |
@@ -166,7 +166,7 @@ The nginx site configs are in `infra/nginx/` at the repository root.
 - Multiple admin IDs loaded from ADMIN_IDS (comma-separated)
 - Internal transfer source tag is "Share & Win Bot"
 - FastAPI runs on port 8001
-- Nginx proxies beleqetjobs-api.beleqet.com to port 8001
+- Nginx serves go.beleqetjobs.com: the Mini App, and /api/ from port 8001
 
 **Running mode:** python-telegram-bot POLLING mode + FastAPI server on port 8001
 
@@ -386,9 +386,9 @@ Minimum server specs:
 DNS records required (all pointing to your server public IP):
 
 ```
-beleqetaca-api.beleqet.com  A  <SERVER_PUBLIC_IP>
-beleqetjobs-api.beleqet.com A  <SERVER_PUBLIC_IP>
-webhook.beleqet.com          A  <SERVER_PUBLIC_IP>
+boost.beleqetjobs.com   A  <SERVER_PUBLIC_IP>   (Cloudflare: proxied)
+go.beleqetjobs.com      A  <SERVER_PUBLIC_IP>   (Cloudflare: proxied)
+promo.beleqetjobs.com   A  <SERVER_PUBLIC_IP>   (Cloudflare: proxied)
 ```
 
 ---
@@ -591,21 +591,10 @@ chmod 600 /opt/beleqet/jobs/.env
 
 ---
 
-### Step 6 - SSL Certificates with Certbot
+### Step 6 - Certificates
 
-DNS records MUST already point to your server IP before running this:
-
-```bash
-sudo certbot --nginx \
-  -d beleqetaca-api.beleqet.com \
-  -d beleqetjobs-api.beleqet.com \
-  -d webhook.beleqet.com \
-  --non-interactive --agree-tos \
-  -m admin@beleqet.com
-
-# Verify auto-renewal works
-sudo certbot renew --dry-run
-```
+None needed: like beleqetjobs.com, the bots' sites are behind Cloudflare (proxied DNS records),
+which serves the public certificate. nginx uses the origin certificate in `/etc/nginx/ssl/`.
 
 ---
 
@@ -614,7 +603,7 @@ sudo certbot renew --dry-run
 The site configs are in `infra/nginx/` (see its README). From the production checkout:
 
 ```bash
-for site in boost-api go-api promo; do
+for site in boost go promo; do
   sudo cp /srv/beleqet/infra/nginx/$site.conf /etc/nginx/sites-available/$site.conf
   sudo ln -s /etc/nginx/sites-available/$site.conf /etc/nginx/sites-enabled/
 done
@@ -794,8 +783,8 @@ curl "https://api.telegram.org/bot/getWebhookInfo"
 sudo systemctl is-active beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 # 2. Test API endpoints
-curl -s https://beleqetaca-api.beleqet.com/api/user/123/stats
-curl -s https://beleqetjobs-api.beleqet.com/api/user/123/stats
+curl -s https://boost.beleqetjobs.com/api/user/123/stats   # 401: only the Mini App, signed by Telegram, gets an answer
+curl -s https://go.beleqetjobs.com/api/user/123/stats
 curl -s https://webhook.beleqet.com/
 
 # 3. Check SQLite databases exist
@@ -808,8 +797,8 @@ sudo nginx -t
 sudo systemctl status nginx
 
 # 5. Test SSL
-curl -I https://beleqetaca-api.beleqet.com
-curl -I https://beleqetjobs-api.beleqet.com
+curl -I https://boost.beleqetjobs.com
+curl -I https://go.beleqetjobs.com
 curl -I https://webhook.beleqet.com
 ```
 
@@ -818,8 +807,9 @@ curl -I https://webhook.beleqet.com
 
 ## 11. Nginx Config Reference
 
-The live configs are in `infra/nginx/`: `boost-api.conf` (port 8000), `go-api.conf` (port 8001),
-`promo.conf` (port 8002) and `beleqetjobs.conf`, which also serves the SGS Challenge (port 8082).
+The live configs are in `infra/nginx/`: `boost.conf` and `go.conf` (each bot's Mini App, and its API
+on port 8000 or 8001 under /api/), `promo.conf` (port 8002) and `beleqetjobs.conf`, which also
+serves the SGS Challenge (port 8082).
 
 ---
 
@@ -827,7 +817,7 @@ The live configs are in `infra/nginx/`: `boost-api.conf` (port 8000), `go-api.co
 
 ### boost FastAPI (Port 8000)
 
-Base URL: https://beleqetaca-api.beleqet.com
+Base URL: https://boost.beleqetjobs.com
 
 | Method | Path | Description |
 |---|---|---|
@@ -870,7 +860,7 @@ POST /api/transfer - Request body:
 
 ### go FastAPI (Port 8001)
 
-Base URL: https://beleqetjobs-api.beleqet.com
+Base URL: https://go.beleqetjobs.com
 
 Identical API surface as boost. Same three endpoints with the same request/response formats.
 The transfer source tag is "Share & Win Bot" (vs "Beleqet Academy Bot").
@@ -1083,9 +1073,8 @@ For production security, restrict to your actual domains:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://beleqetaca-miniapp.beleqet.com",
-        "https://beleqetjobs-miniapp.beleqet.com",
-        "https://webhook.beleqet.com",
+        "https://boost.beleqetjobs.com",
+        "https://go.beleqetjobs.com",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
@@ -1231,8 +1220,8 @@ sudo journalctl -xe --unit=beleqet-jobs-bot
 
 | Service | Public URL | Internal Port |
 |---|---|---|
-| Academy Bot REST API | https://beleqetaca-api.beleqet.com | 8000 |
-| Jobs Share and Win REST API | https://beleqetjobs-api.beleqet.com | 8001 |
+| Boost Mini App and API | https://boost.beleqetjobs.com | 8000 |
+| Go Mini App and API | https://go.beleqetjobs.com | 8001 |
 | Jobs Bot Webhook | https://webhook.beleqet.com/webhook | 8080 |
 | SGS Challenge Mini App | https://webhook.beleqet.com/challenge/ | 8080 |
 | Health Check | https://webhook.beleqet.com/ | 8080 |
@@ -1298,8 +1287,8 @@ ssh ubuntu@10.8.0.1
 /etc/systemd/system/beleqet-go-api.service
 /etc/systemd/system/beleqet-jobs-bot.service
 
-/etc/nginx/sites-available/boost-api.conf      (copies of infra/nginx/)
-/etc/nginx/sites-available/go-api.conf
+/etc/nginx/sites-available/boost.conf          (copies of infra/nginx/)
+/etc/nginx/sites-available/go.conf
 /etc/nginx/sites-available/promo.conf
 /etc/nginx/sites-available/beleqetjobs.conf
 
