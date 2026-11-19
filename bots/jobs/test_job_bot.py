@@ -1,4 +1,4 @@
-"""Automated QA Test Suite for Beleqet Jobs Bot (`bots/job`)
+"""Automated QA Test Suite for Beleqet Jobs Bot (`bots/jobs`)
 and the SGS Creative Challenge Mini App.
 
 Tests cover:
@@ -23,7 +23,7 @@ from urllib.parse import quote
 
 import aiosqlite
 
-# Ensure bots/job and sgs-challenge/server are on sys.path
+# Ensure bots/jobs and sgs-challenge/server are on sys.path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
@@ -547,7 +547,7 @@ def test_webhook_secret_token_verification():
 
 def main():
     print("==================================================")
-    print(" RUNNING BELEQET JOBS BOT (`bots/job`) TEST SUITE")
+    print(" RUNNING BELEQET JOBS BOT (`bots/jobs`) TEST SUITE")
     print("==================================================")
     test_role_normalization()
     test_keyboard_generation()

@@ -9,8 +9,8 @@
 
 1. [What Is This Project?](#1-what-is-this-project)
 2. [Understanding the Folder Structure](#2-understanding-the-folder-structure)
-3. [Bot 1: beleqet-bot (Academy Rewards)](#3-bot-1-beleqet-bot--academy-rewards-bot)
-4. [Bot 2: shareandwin (Jobs Rewards)](#4-bot-2-shareandwin--jobs-rewards-bot)
+3. [Bot 1: boost (Academy Rewards)](#3-bot-1-boost--academy-rewards-bot)
+4. [Bot 2: go (Jobs Rewards)](#4-bot-2-go--jobs-rewards-bot)
 5. [Bot 3: job (Registration + SGS Challenge)](#5-bot-3-job--registration--sgs-challenge)
 6. [How the Three Bots Connect to Each Other](#6-how-the-three-bots-connect-to-each-other)
 7. [The Database — How Data Is Stored](#7-the-database--how-data-is-stored)
@@ -54,9 +54,9 @@ It means one parent folder contains multiple separate projects. All three bots l
 
 ```
 beleqet/               ← The monorepo (parent folder)
-  ├── beleqet-bot/     ← Project 1: a complete, independent Python program
-  ├── shareandwin/     ← Project 2: another complete, independent Python program
-  └── job/             ← Project 3: another complete, independent Python program
+  ├── boost/     ← Project 1: a complete, independent Python program
+  ├── go/     ← Project 2: another complete, independent Python program
+  └── jobs/             ← Project 3: another complete, independent Python program
 ```
 
 Each sub-folder has its own:
@@ -74,7 +74,7 @@ Let's look at every file and what it does:
 ```
 beleqet/
 │
-├── beleqet-bot/
+├── boost/
 │   ├── main.py                       ← The Telegram bot itself (781 lines)
 │   ├── api.py                        ← A small web server for the Mini App (192 lines)
 │   ├── .env                          ← Secret config values (bot token, admin IDs, etc.)
@@ -84,7 +84,7 @@ beleqet/
 │   ├── Promo.jpg                     ← Welcome image sent to new users
 │   └── beleqetaca-api.beleqet.com    ← Nginx config file (traffic routing rules)
 │
-├── shareandwin/
+├── go/
 │   ├── main.py                       ← The Telegram bot (781 lines, nearly identical to above)
 │   ├── api.py                        ← Small web server (port 8001)
 │   ├── .env                          ← Different secret values
@@ -94,7 +94,7 @@ beleqet/
 │   ├── Promo.jpg                     ← Welcome image
 │   └── beleqetjobs-api.beleqet.com   ← Nginx config file
 │
-└── job/
+└── jobs/
     ├── main.py                       ← The job bot + web server (1376 lines, most complex)
     ├── .env                          ← Config for job bot
     ├── requirements.txt              ← Different libraries
@@ -112,7 +112,7 @@ beleqet/
 
 ---
 
-## 3. Bot 1: beleqet-bot — Academy Rewards Bot
+## 3. Bot 1: boost — Academy Rewards Bot
 
 ### What It Does (User's Perspective)
 
@@ -128,11 +128,11 @@ beleqet/
 
 ---
 
-## 4. Bot 2: shareandwin — Jobs Rewards Bot
+## 4. Bot 2: go — Jobs Rewards Bot
 
-This is nearly copy-paste identical to `beleqet-bot`. The differences:
+This is nearly copy-paste identical to `boost`. The differences:
 
-| Feature | beleqet-bot | shareandwin |
+| Feature | boost | go |
 |---|---|---|
 | Bot name | BeleqetBoost_Bot | BeleqetJobsInviteAndWin_Bot |
 | Channel | Beleqet Academy | Beleqet Jobs |
@@ -156,7 +156,7 @@ This is the most complex service. It does TWO completely different things inside
 - Telegram Mini App dashboard launcher
 
 ### Part B: SGS Challenge Voting Mini App
-- Located in `job/sgs-challenge/`
+- Located in `jobs/sgs-challenge/`
 - Embedded voting mini-app for TikTok creators
 - Protected with HMAC-SHA256 signature verification
 
@@ -164,7 +164,7 @@ This is the most complex service. It does TWO completely different things inside
 
 ## 6. How the Three Bots Connect to Each Other
 
-- `beleqet-bot` and `shareandwin` communicate with external Promo SMM Bot via HTTP for point transfers.
+- `boost` and `go` communicate with external Promo SMM Bot via HTTP for point transfers.
 - `job` communicates with WordPress via HTTP for user account registration.
 - The three bots run independently on the same server behind Nginx.
 
@@ -173,9 +173,9 @@ This is the most complex service. It does TWO completely different things inside
 ## 7. The Database — How Data Is Stored
 
 SQLite databases live directly on disk as `.db` files:
-- `beleqet-bot/referrals.db`
-- `shareandwin/referrals.db`
-- `job/sgs_challenge.db`
+- `boost/referrals.db`
+- `go/referrals.db`
+- `jobs/sgs_challenge.db`
 
 ---
 
@@ -207,8 +207,8 @@ sudo apt install -y python3 python3-pip python3-venv nginx certbot python3-certb
 In local Windows PowerShell:
 ```powershell
 ssh ubuntu@10.8.0.1 "sudo mkdir -p /opt/beleqet && sudo chown ubuntu:ubuntu /opt/beleqet"
-scp -r "C:\Users\m\Downloads\Telegram Desktop\beleqet\beleqet-bot" ubuntu@10.8.0.1:/opt/beleqet/
-scp -r "C:\Users\m\Downloads\Telegram Desktop\beleqet\shareandwin" ubuntu@10.8.0.1:/opt/beleqet/
+scp -r "C:\Users\m\Downloads\Telegram Desktop\beleqet\boost" ubuntu@10.8.0.1:/opt/beleqet/
+scp -r "C:\Users\m\Downloads\Telegram Desktop\beleqet\go" ubuntu@10.8.0.1:/opt/beleqet/
 scp -r "C:\Users\m\Downloads\Telegram Desktop\beleqet\job" ubuntu@10.8.0.1:/opt/beleqet/
 ```
 
@@ -216,7 +216,7 @@ scp -r "C:\Users\m\Downloads\Telegram Desktop\beleqet\job" ubuntu@10.8.0.1:/opt/
 On VPS:
 ```bash
 # Service 1
-cd /opt/beleqet/beleqet-bot
+cd /opt/beleqet/boost
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -224,7 +224,7 @@ pip install fastapi "uvicorn[standard]" httpx
 deactivate
 
 # Service 2
-cd /opt/beleqet/shareandwin
+cd /opt/beleqet/go
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -232,7 +232,7 @@ pip install fastapi "uvicorn[standard]" httpx
 deactivate
 
 # Service 3
-cd /opt/beleqet/job
+cd /opt/beleqet/jobs
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -241,9 +241,9 @@ deactivate
 
 ### Phase 5: Lock File Permissions
 ```bash
-chmod 600 /opt/beleqet/beleqet-bot/.env
-chmod 600 /opt/beleqet/shareandwin/.env
-chmod 600 /opt/beleqet/job/.env
+chmod 600 /opt/beleqet/boost/.env
+chmod 600 /opt/beleqet/go/.env
+chmod 600 /opt/beleqet/jobs/.env
 ```
 
 ### Phase 6: SSL & Nginx Configuration
@@ -257,9 +257,9 @@ sudo certbot --nginx \
   -m admin@beleqet.com
 
 # Nginx vhosts
-sudo cp /opt/beleqet/beleqet-bot/beleqetaca-api.beleqet.com /etc/nginx/sites-available/
-sudo cp /opt/beleqet/shareandwin/beleqetjobs-api.beleqet.com /etc/nginx/sites-available/
-sudo cp /opt/beleqet/job/telegram-bot /etc/nginx/sites-available/webhook.beleqet.com
+sudo cp /opt/beleqet/boost/beleqetaca-api.beleqet.com /etc/nginx/sites-available/
+sudo cp /opt/beleqet/go/beleqetjobs-api.beleqet.com /etc/nginx/sites-available/
+sudo cp /opt/beleqet/jobs/telegram-bot /etc/nginx/sites-available/webhook.beleqet.com
 
 sudo ln -s /etc/nginx/sites-available/beleqetaca-api.beleqet.com /etc/nginx/sites-enabled/
 sudo ln -s /etc/nginx/sites-available/beleqetjobs-api.beleqet.com /etc/nginx/sites-enabled/
@@ -271,21 +271,21 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ### Phase 7: Systemd Services
 Setup systemd files for:
-- `beleqet-bot.service`
-- `beleqet-bot-api.service`
-- `shareandwin-bot.service`
-- `shareandwin-api.service`
+- `beleqet-boost-bot.service`
+- `beleqet-boost-api.service`
+- `beleqet-go-bot.service`
+- `beleqet-go-api.service`
 - `beleqet-jobs-bot.service`
 
 Enable & Start:
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl enable --now beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 ```
 
 ### Phase 8: Webhook Registration (job bot only)
 ```bash
-BOT_TOKEN=$(grep BOT_TOKEN /opt/beleqet/job/.env | cut -d'"' -f2)
+BOT_TOKEN=$(grep BOT_TOKEN /opt/beleqet/jobs/.env | cut -d'"' -f2)
 curl -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
   -H "Content-Type: application/json" \
   -d '{
@@ -297,8 +297,8 @@ curl -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
 
 ### Phase 9: Database WAL Mode
 ```bash
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db "PRAGMA journal_mode=WAL;"
-sqlite3 /opt/beleqet/shareandwin/referrals.db  "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/boost/referrals.db "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/go/referrals.db  "PRAGMA journal_mode=WAL;"
 ```
 
 ---
@@ -307,7 +307,7 @@ sqlite3 /opt/beleqet/shareandwin/referrals.db  "PRAGMA journal_mode=WAL;"
 
 ### Logs
 ```bash
-sudo journalctl -f -u beleqet-bot -u beleqet-bot-api -u shareandwin-bot -u shareandwin-api -u beleqet-jobs-bot
+sudo journalctl -f -u beleqet-boost-bot -u beleqet-boost-api -u beleqet-go-bot -u beleqet-go-api -u beleqet-jobs-bot
 ```
 
 ### Restarting
@@ -319,7 +319,7 @@ sudo systemctl restart beleqet-jobs-bot
 
 ## 11. Troubleshooting Guide
 
-- **Bot not responding:** Check `sudo systemctl status beleqet-bot` and `sudo journalctl -n 50 -u beleqet-bot`.
+- **Bot not responding:** Check `sudo systemctl status beleqet-boost-bot` and `sudo journalctl -n 50 -u beleqet-boost-bot`.
 - **502 Bad Gateway:** The FastAPI backend is down. Check port 8000/8001 via `ss -tlnp`.
 - **Database locked:** Ensure WAL mode is active on SQLite files.
 - **Webhook issues:** Run `curl "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"`.
