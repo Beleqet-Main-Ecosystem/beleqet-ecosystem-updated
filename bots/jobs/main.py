@@ -11,7 +11,7 @@ from collections import defaultdict
 from dotenv import load_dotenv
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'server'))
-from voting_routes import init_challenge_db, register_challenge_routes
+from voting_routes import UPLOADS_DIR as CHALLENGE_UPLOADS_DIR, init_challenge_db, register_challenge_routes
 from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, WebAppInfo, KeyboardButton
 from telegram.ext import ( Application, 
@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 LANGUAGE, ROLE, NAME, PHONE, EMAIL, TG_USERNAME, PASSWORD, CHANGE_LANGUAGE, TRADE_LICENSE, JOB_TITLE, COMPANY_NAME = range(11)
 BROADCAST_MESSAGE, BROADCAST_BUTTON_TEXT, BROADCAST_BUTTON_URL, BROADCAST_CONFIRM = range(11, 15)
-# New states go after the old ones: conversations saved in bot_data.pickle keep their numbers.
+# New states go after the old ones: conversations saved in data/persistence.pickle keep their numbers.
 CONTACT_NAME, EMAIL_CODE, NEW_EMAIL = range(15, 18)
 # Job seekers: where they live. "I already have an account": email, then the emailed code.
 GENDER, COUNTRY, COUNTRY_TYPED, CITY, LINK_EMAIL, LINK_CODE = range(18, 24)
@@ -1913,8 +1913,10 @@ async def main() -> None:
 
     unique_user_agent = 'BeleqetJobBot/1.0'
 
-    # Initialize persistence
-    persistence = PicklePersistence(filepath='bot_data.pickle')
+    # Saved conversations, in data/ with everything else the bot writes (deploys never touch it).
+    data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    persistence = PicklePersistence(filepath=os.path.join(data_dir, 'persistence.pickle'))
 
     async with aiohttp.ClientSession(
     headers={
@@ -2037,6 +2039,8 @@ async def main() -> None:
             
         app.router.add_get('/challenge', challenge_index)
         app.router.add_get('/challenge/', challenge_index)
+        # Creators' photos live in data/; registered first, so it wins over the app folder below.
+        app.router.add_static('/challenge/uploads/', path=CHALLENGE_UPLOADS_DIR, name='challenge_uploads')
         app.router.add_static('/challenge/', path=os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'app'), name='challenge_static')
         
         runner = web.AppRunner(app)

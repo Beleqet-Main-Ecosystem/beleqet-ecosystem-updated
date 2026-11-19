@@ -4,7 +4,7 @@ import os
 import sqlite3
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "referrals.db")
+DB_FILE = os.path.join(BASE_DIR, "data", "boost.db")
 
 def print_help():
     print("""
@@ -75,7 +75,7 @@ def reset_user(user_id: int):
     cur.execute("DELETE FROM withdrawals WHERE user_id = ?", (user_id,))
     con.commit()
     con.close()
-    print(f"\n[OK] User {user_id} has been completely wiped from referrals.db.")
+    print(f"\n[OK] User {user_id} has been completely wiped from the database.")
     print("This Telegram account is now BRAND NEW to the bot and can be used to test invite links again.")
 
 def set_score(user_id: int, score: int):

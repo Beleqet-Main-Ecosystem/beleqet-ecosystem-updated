@@ -25,7 +25,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.getenv("DB_PATH", "database.db")
+# Everything the bot writes (its database, the payment screenshots) lives in data/, which deploys
+# never touch and the nightly backup copies. DATA_DIR moves it, for the tests.
+DATA_DIR = os.getenv("DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DB_PATH = os.path.join(DATA_DIR, "promo.db")
 ADMIN_ID = os.getenv("ADMIN_ID", "").strip()
 WEBHOOK_DOMAIN = os.getenv("WEBHOOK_DOMAIN", "").strip().rstrip("/")
 # Sent by Telegram with every webhook call, so nobody else can post fake updates.
@@ -37,7 +40,7 @@ INIT_DATA_MAX_AGE_SECONDS = 24 * 3600
 app = Flask(__name__)
 CORS(app)
 
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = os.path.join(DATA_DIR, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -820,8 +823,8 @@ def sync_orders():
     return jsonify({"status": "success", "updated": updated_count, "refunded": refund_amount})
 
 
-# The Mini App is these two files. Nothing else in this folder (.env, the database, the
-# payment screenshots in uploads/) is ever served.
+# The Mini App is these two files. Nothing else in this folder (.env, the code, data/ with the
+# database and the payment screenshots) is ever served.
 PUBLIC_FILES = {'index.html', 'styles.css'}
 
 @app.route('/')

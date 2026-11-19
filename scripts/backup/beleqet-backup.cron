@@ -1,0 +1,7 @@
+# Nightly backups, from scripts/backup in the repository; the deploy installs this file as
+# /etc/cron.d/beleqet-backup. The server runs on UTC: 02:00 UTC is 05:00 in Addis Ababa.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+0 2 * * * root /usr/local/sbin/beleqet-backup-db >> /var/log/beleqet-backup.log 2>&1
+30 2 * * * root /usr/local/sbin/beleqet-backup-bots >> /var/log/beleqet-backup.log 2>&1

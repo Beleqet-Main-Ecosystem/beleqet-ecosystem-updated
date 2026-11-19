@@ -47,8 +47,11 @@ PAYMENT_HANDLER_ID = int(os.getenv("PAYMENT_HANDLER_ID")) if os.getenv("PAYMENT_
 CONFIGURED_ADMIN_IDS = [
     int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()
 ]
-DB_FILE = os.path.join(BASE_DIR, "referrals.db")
-PERSISTENCE_FILE = os.path.join(BASE_DIR, "bot_persistence")
+# Everything the bot writes lives in data/, which deploys never touch and the nightly backup copies.
+DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_FILE = os.path.join(DATA_DIR, "go.db")
+PERSISTENCE_FILE = os.path.join(DATA_DIR, "persistence.pickle")
 WELCOME_PHOTO_FILE_ID = os.getenv("WELCOME_PHOTO_FILE_ID", "Promo.jpg")
 if WELCOME_PHOTO_FILE_ID and not os.path.isabs(WELCOME_PHOTO_FILE_ID):
     local_photo_path = os.path.join(BASE_DIR, WELCOME_PHOTO_FILE_ID)

@@ -5,8 +5,8 @@
 
 > **Deploying changes:** edit the bots here, never on the server. Every merge to `main` runs
 > `scripts/deploy/deploy-production.sh`, which copies each bot's code into `/opt/beleqet/<bot>` and
-> restarts only the bots that changed. A bot's `.env`, `venv`, databases and uploads stay on the
-> server and are never overwritten; if a bot doesn't start with the new code, its previous files
+> restarts only the bots that changed. A bot's `.env`, `venv` and `data/` folder (its databases and uploads) stay on
+> the server and are never overwritten; if a bot doesn't start with the new code, its previous files
 > are put back. The setup steps below are only for a new server.
 
 ## Table of Contents
@@ -74,7 +74,7 @@ Internet / Telegram API
 |   +-----------+    +-----------+                       |
 |                                                       |
 |   +---------------------------------------------------+|
-|   | SQLite: referrals.db (x2)  sgs_challenge.db      ||
+|   | SQLite: one in each bot's data/ folder           ||
 |   +---------------------------------------------------+|
 +-------------------------------------------------------+
 ```
@@ -91,36 +91,39 @@ bel/
 |   +-- main.py              (Telegram bot, polling, 781 lines)
 |   +-- api.py               (FastAPI REST, Port 8000)
 |   +-- requirements.txt
-|   +-- referrals.db         (auto-created SQLite)
-|   +-- bot_persistence      (PicklePersistence state)
 |   +-- Promo.jpg
-|   +-- beleqetaca-api.beleqet.com  (Nginx vhost config)
+|   +-- data/                (on the server only, never in git)
+|       +-- boost.db             (SQLite, created on first start)
+|       +-- persistence.pickle   (saved conversations)
 |
 +-- go/
 |   +-- .env
 |   +-- main.py              (Telegram bot, polling, 781 lines)
 |   +-- api.py               (FastAPI REST, Port 8001)
 |   +-- requirements.txt
-|   +-- referrals.db
-|   +-- bot_persistence
 |   +-- Promo.jpg
-|   +-- beleqetjobs-api.beleqet.com (Nginx vhost config)
+|   +-- data/
+|       +-- go.db
+|       +-- persistence.pickle
 |
 +-- jobs/
     +-- .env
     +-- main.py              (Bot + aiohttp webhook, 1376 lines)
     +-- requirements.txt
-    +-- sgs_challenge.db     (SQLite for SGS Challenge)
-    +-- telegram-bot         (Nginx vhost config)
     +-- sgs-challenge/
-        +-- app/
-        |   +-- index.html   (SGS Challenge Telegram Mini App)
-        |   +-- style.css
-        |   +-- app.js
-        |   +-- uploads/
-        +-- server/
-            +-- voting_routes.py  (aiohttp routes for challenge API)
+    |   +-- app/
+    |   |   +-- index.html   (SGS Challenge Telegram Mini App)
+    |   |   +-- style.css
+    |   |   +-- app.js
+    |   +-- server/
+    |       +-- voting_routes.py  (aiohttp routes for challenge API)
+    +-- data/                (on the server only, never in git)
+        +-- persistence.pickle      (saved conversations)
+        +-- sgs-challenge.db        (SQLite for the SGS Challenge)
+        +-- sgs-challenge-uploads/  (creators' photos)
 ```
+
+The nginx site configs are in `infra/nginx/` at the repository root.
 
 
 ---
@@ -191,7 +194,7 @@ bel/
 - Telegram Mini App init data verified with HMAC-SHA256
 - Admin panel: add/edit creators, reset votes, set active/inactive status
 - Winner tracking with coupon code generation for employers
-- Separate sgs_challenge.db SQLite database
+- Separate SQLite database, `data/sgs-challenge.db`
 
 **Infrastructure:**
 - Combined aiohttp web server (port 8080) + Telegram polling
@@ -204,7 +207,7 @@ bel/
 
 ## 5. Database Schema
 
-### referrals.db (used by boost and go)
+### boost.db and go.db (one each, same tables)
 
 ```sql
 CREATE TABLE users (
@@ -252,7 +255,7 @@ CREATE TABLE scheduled_posts (
 );
 ```
 
-### sgs_challenge.db (used by job)
+### sgs-challenge.db (jobs)
 
 ```sql
 CREATE TABLE challenge_creators (
@@ -608,24 +611,13 @@ sudo certbot renew --dry-run
 
 ### Step 7 - Nginx Configuration
 
+The site configs are in `infra/nginx/` (see its README). From the production checkout:
+
 ```bash
-# boost API (port 8000)
-sudo cp /opt/beleqet/boost/beleqetaca-api.beleqet.com \
-        /etc/nginx/sites-available/beleqetaca-api.beleqet.com
-sudo ln -s /etc/nginx/sites-available/beleqetaca-api.beleqet.com \
-           /etc/nginx/sites-enabled/
-
-# go API (port 8001)
-sudo cp /opt/beleqet/go/beleqetjobs-api.beleqet.com \
-        /etc/nginx/sites-available/beleqetjobs-api.beleqet.com
-sudo ln -s /etc/nginx/sites-available/beleqetjobs-api.beleqet.com \
-           /etc/nginx/sites-enabled/
-
-# job bot webhook (port 8080)
-sudo cp /opt/beleqet/jobs/telegram-bot \
-        /etc/nginx/sites-available/webhook.beleqet.com
-sudo ln -s /etc/nginx/sites-available/webhook.beleqet.com \
-           /etc/nginx/sites-enabled/
+for site in boost-api go-api promo; do
+  sudo cp /srv/beleqet/infra/nginx/$site.conf /etc/nginx/sites-available/$site.conf
+  sudo ln -s /etc/nginx/sites-available/$site.conf /etc/nginx/sites-enabled/
+done
 
 # Remove the default site
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -807,9 +799,9 @@ curl -s https://beleqetjobs-api.beleqet.com/api/user/123/stats
 curl -s https://webhook.beleqet.com/
 
 # 3. Check SQLite databases exist
-ls -lh /opt/beleqet/boost/referrals.db
-ls -lh /opt/beleqet/go/referrals.db
-ls -lh /opt/beleqet/jobs/sgs_challenge.db
+ls -lh /opt/beleqet/boost/data/boost.db
+ls -lh /opt/beleqet/go/data/go.db
+ls -lh /opt/beleqet/jobs/data/sgs-challenge.db
 
 # 4. Check Nginx
 sudo nginx -t
@@ -826,90 +818,8 @@ curl -I https://webhook.beleqet.com
 
 ## 11. Nginx Config Reference
 
-### beleqetaca-api.beleqet.com (proxies to Port 8000)
-
-```nginx
-server {
-    server_name beleqetaca-api.beleqet.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    listen 443 ssl;
-    ssl_certificate     /etc/letsencrypt/live/beleqetaca-api.beleqet.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/beleqetaca-api.beleqet.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-}
-
-server {
-    listen 80;
-    server_name beleqetaca-api.beleqet.com;
-    return 301 https://$host$request_uri;
-}
-```
-
-### beleqetjobs-api.beleqet.com (proxies to Port 8001)
-
-```nginx
-server {
-    server_name beleqetjobs-api.beleqet.com;
-
-    location / {
-        proxy_pass          http://127.0.0.1:8001;
-        proxy_http_version  1.1;
-        proxy_set_header    Host $host;
-        proxy_set_header    X-Real-IP $remote_addr;
-        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header    X-Forwarded-Proto $scheme;
-        proxy_set_header    Upgrade $http_upgrade;
-        proxy_set_header    Connection "upgrade";
-    }
-
-    listen 443 ssl;
-    ssl_certificate     /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/beleqetjobs-api.beleqet.com/privkey.pem;
-    include             /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
-}
-
-server {
-    listen 80;
-    server_name beleqetjobs-api.beleqet.com;
-    return 301 https://$host$request_uri;
-}
-```
-
-### webhook.beleqet.com (proxies to Port 8080)
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name webhook.beleqet.com;
-
-    location / {
-        proxy_pass          http://127.0.0.1:8080;
-        proxy_set_header    Host $host;
-        proxy_set_header    X-Real-IP $remote_addr;
-        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header    X-Forwarded-Proto $scheme;
-    }
-
-    ssl_certificate     /etc/letsencrypt/live/webhook.beleqet.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/webhook.beleqet.com/privkey.pem;
-}
-
-server {
-    listen 80;
-    server_name webhook.beleqet.com;
-    return 301 https://$host$request_uri;
-}
-```
+The live configs are in `infra/nginx/`: `boost-api.conf` (port 8000), `go-api.conf` (port 8001),
+`promo.conf` (port 8002) and `beleqetjobs.conf`, which also serves the SGS Challenge (port 8082).
 
 ---
 
@@ -1007,7 +917,7 @@ Use the Manage Admins button in the admin keyboard menu:
 Or directly via SQLite on the server:
 
 ```bash
-sqlite3 /opt/beleqet/boost/referrals.db \
+sqlite3 /opt/beleqet/boost/data/boost.db \
   "INSERT OR IGNORE INTO admins (user_id) VALUES (YOUR_TELEGRAM_ID);"
 ```
 
@@ -1098,21 +1008,21 @@ sudo systemctl status beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet
 
 ```bash
 # Total users in Academy bot
-sqlite3 /opt/beleqet/boost/referrals.db "SELECT COUNT(*) FROM users;"
+sqlite3 /opt/beleqet/boost/data/boost.db "SELECT COUNT(*) FROM users;"
 
 # Top 10 referrers by score
-sqlite3 /opt/beleqet/boost/referrals.db \
+sqlite3 /opt/beleqet/boost/data/boost.db \
   "SELECT user_id, username, score FROM users ORDER BY score DESC LIMIT 10;"
 
 # Pending withdrawals
-sqlite3 /opt/beleqet/boost/referrals.db \
+sqlite3 /opt/beleqet/boost/data/boost.db \
   "SELECT id, user_id, amount, phone_number, request_timestamp FROM withdrawals WHERE status='pending';"
 
 # All admins
-sqlite3 /opt/beleqet/boost/referrals.db "SELECT * FROM admins;"
+sqlite3 /opt/beleqet/boost/data/boost.db "SELECT * FROM admins;"
 
 # SGS Challenge vote leaderboard
-sqlite3 /opt/beleqet/jobs/sgs_challenge.db \
+sqlite3 /opt/beleqet/jobs/data/sgs-challenge.db \
   "SELECT c.name, c.handle, COUNT(v.id) as votes
    FROM challenge_creators c
    LEFT JOIN challenge_votes v ON c.id = v.creator_id
@@ -1123,67 +1033,23 @@ sqlite3 /opt/beleqet/jobs/sgs_challenge.db \
 
 ## 15. Backup and Recovery
 
-### Automated Daily Backup
+Every night at 02:30 (server time, UTC) `beleqet-backup-bots` copies each bot's `data/` folder and
+`.env` into `/var/backups/beleqet/bots/bots-<date>-<time>.tar.gz` (root only, kept 14 days). The
+script and its schedule are in `scripts/backup/`, and every deploy installs them (see `scripts/README.md`).
+
+### Restore from a backup
 
 ```bash
-# Create backup script
-sudo tee /usr/local/bin/beleqet-backup.sh > /dev/null <<'SCRIPT'
-#!/bin/bash
-BACKUP_DIR="/var/backups/beleqet/"
-mkdir -p ""
+ls /var/backups/beleqet/bots/                     # pick a night
+ARCHIVE=/var/backups/beleqet/bots/bots-20261120-023001.tar.gz
 
-echo "Starting backup to ..."
-
-cp /opt/beleqet/boost/referrals.db    "/boost-referrals.db"
-cp /opt/beleqet/go/referrals.db    "/go-referrals.db"
-cp /opt/beleqet/jobs/sgs_challenge.db        "/sgs_challenge.db"
-cp /opt/beleqet/boost/bot_persistence "/boost-persistence" 2>/dev/null || true
-cp /opt/beleqet/go/bot_persistence  "/go-persistence" 2>/dev/null || true
-
-# Keep only last 30 days of backups
-find /var/backups/beleqet -maxdepth 1 -type d -mtime +30 -exec rm -rf {} + 2>/dev/null || true
-
-echo "Backup complete: "
-SCRIPT
-
-sudo chmod +x /usr/local/bin/beleqet-backup.sh
-
-# Schedule to run at 2:00 AM every day
-echo "0 2 * * * root /usr/local/bin/beleqet-backup.sh >> /var/log/beleqet-backup.log 2>&1" \
-  | sudo tee /etc/cron.d/beleqet-backup
-
-# Test it immediately
-sudo /usr/local/bin/beleqet-backup.sh
+# Stop the bot, put its data/ back (the current files are replaced), start it again.
+sudo systemctl stop beleqet-boost-bot beleqet-boost-api
+sudo tar -xzf "$ARCHIVE" -C /opt/beleqet boost/data
+sudo systemctl start beleqet-boost-bot beleqet-boost-api
 ```
 
-### Restore from Backup
-
-```bash
-# Stop all services first
-sudo systemctl stop beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
-
-# Set the date to restore from
-RESTORE_DATE="2026-10-01"
-
-# Restore databases
-cp /var/backups/beleqet//boost-referrals.db \
-   /opt/beleqet/boost/referrals.db
-cp /var/backups/beleqet//go-referrals.db \
-   /opt/beleqet/go/referrals.db
-cp /var/backups/beleqet//sgs_challenge.db \
-   /opt/beleqet/jobs/sgs_challenge.db
-
-# Restore persistence (if needed)
-cp /var/backups/beleqet//boost-persistence \
-   /opt/beleqet/boost/bot_persistence
-cp /var/backups/beleqet//go-persistence \
-   /opt/beleqet/go/bot_persistence
-
-# Restart services
-sudo systemctl start beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
-
-echo "Restore complete."
-```
+The archive holds `<bot>/data/` and `<bot>/.env` for boost, go, jobs and promo.
 
 ---
 
@@ -1236,8 +1102,8 @@ The job bot implements a token bucket rate limiter (1 msg/sec per chat, burst of
 Enable Write-Ahead Logging to prevent "database is locked" errors when the bot and FastAPI access SQLite simultaneously:
 
 ```bash
-sqlite3 /opt/beleqet/boost/referrals.db "PRAGMA journal_mode=WAL;"
-sqlite3 /opt/beleqet/go/referrals.db  "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/boost/data/boost.db "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/go/data/go.db  "PRAGMA journal_mode=WAL;"
 ```
 
 ### 7. SSL/TLS
@@ -1307,11 +1173,11 @@ sudo journalctl -u nginx -n 20
 sudo systemctl stop beleqet-boost-bot beleqet-boost-api
 
 # Find which process holds the lock
-fuser /opt/beleqet/boost/referrals.db
+fuser /opt/beleqet/boost/data/boost.db
 kill <PID>
 
 # Enable WAL mode (prevents future lock contention)
-sqlite3 /opt/beleqet/boost/referrals.db "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/boost/data/boost.db "PRAGMA journal_mode=WAL;"
 
 # Restart
 sudo systemctl start beleqet-boost-bot beleqet-boost-api
@@ -1397,8 +1263,8 @@ sudo journalctl -f -u beleqet-boost-bot -u beleqet-boost-api -u beleqet-go-bot -
 cd /opt/beleqet && git pull
 sudo systemctl restart beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
-# Run manual backup
-sudo /usr/local/bin/beleqet-backup.sh
+# Run the bot backup now
+sudo beleqet-backup-bots
 
 # Reload Nginx after config change
 sudo nginx -t && sudo systemctl reload nginx
@@ -1432,9 +1298,10 @@ ssh ubuntu@10.8.0.1
 /etc/systemd/system/beleqet-go-api.service
 /etc/systemd/system/beleqet-jobs-bot.service
 
-/etc/nginx/sites-available/beleqetaca-api.beleqet.com
-/etc/nginx/sites-available/beleqetjobs-api.beleqet.com
-/etc/nginx/sites-available/webhook.beleqet.com
+/etc/nginx/sites-available/boost-api.conf      (copies of infra/nginx/)
+/etc/nginx/sites-available/go-api.conf
+/etc/nginx/sites-available/promo.conf
+/etc/nginx/sites-available/beleqetjobs.conf
 
 /etc/wireguard/wg0.conf
 ```
@@ -1450,7 +1317,8 @@ ssh ubuntu@10.8.0.1
 ### Backup Location
 
 ```
-/var/backups/beleqet/<YYYY-MM-DD>/
+/var/backups/beleqet/bots/    (bot data, nightly, 14 days)
+/var/backups/beleqet/db/      (main database, nightly, 14 days)
 ```
 
 ---

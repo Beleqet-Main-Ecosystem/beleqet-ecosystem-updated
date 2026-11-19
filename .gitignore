@@ -55,6 +55,9 @@ pnpm-debug.log*
 *.db-shm
 *.db-wal
 
+# What the bots write (databases, saved conversations, uploads); it stays on the server.
+/bots/*/data/
+
 # OS files
 .DS_Store
 Thumbs.db
@@ -115,6 +118,7 @@ users-migration.json
 # else put there stays ignored (ad-hoc local tooling). Each app keeps its own scripts.
 scripts/*
 !scripts/README.md
+!scripts/backup/
 !scripts/ci/
 !scripts/deploy/
 .agents/
@@ -129,7 +133,7 @@ next_readme.md
 temp-storage/
 **/temp-storage/
 
-# Production server only (/srv/beleqet-staging): users' uploads, mounted into the API, and
+# Production server only (/srv/beleqet): users' uploads, mounted into the API, and
 # the deploy's record of the commit that's live (scripts/deploy/deploy-production.sh).
 /uploads-local/
 /.beleqet-production-sha
