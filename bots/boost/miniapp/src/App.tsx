@@ -10,8 +10,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-// API Configuration
-const API_BASE_URL = 'https://beleqetaca-api.beleqet.com';
+// The API is served from the same address as this page, under /api. Every request carries the
+// initData Telegram signed for this user; the API refuses requests without it.
+const api = (path: string, options: { method?: string; body?: string } = {}) =>
+  fetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': WebApp.initData },
+  });
 
 interface UserData {
   id: number;
@@ -75,7 +80,7 @@ export default function App() {
 
   const loadData = async (userId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/${userId}/stats`);
+      const response = await api(`/api/user/${userId}/stats`);
       if (response.ok) {
         const data = await response.json();
         setStats({
@@ -124,9 +129,8 @@ export default function App() {
     if (!withdrawAmount || !withdrawPhone) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
+      const response = await api('/api/withdraw', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userData?.id,
           amount: parseInt(withdrawAmount),
@@ -153,14 +157,13 @@ export default function App() {
     if (!airtimeAmount || !airtimePhone) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
+      const response = await api('/api/withdraw', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: userData?.id,
           amount: parseInt(airtimeAmount),
-          // We combine the provider and phone number so no backend changes are needed!
-          phone_number: `${airtimeProvider} - ${airtimePhone}` 
+          phone_number: airtimePhone,
+          airtime_provider: airtimeProvider
         })
       });
 

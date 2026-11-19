@@ -41,15 +41,19 @@ TRANSFER_SOURCE = "Beleqet Academy Bot"
 MIN_TRANSFER_AMOUNT = 1
 MIN_WITHDRAWAL_AMOUNT = 50
 INIT_DATA_MAX_AGE_SECONDS = 24 * 3600
-# Set to "false" only while the Mini App is being updated to send X-Telegram-Init-Data.
+# The Mini App (miniapp/) sends X-Telegram-Init-Data with every request. "false" turns the check off,
+# which lets anyone read any balance and request withdrawals from it: never in production.
 REQUIRE_TELEGRAM_AUTH = os.getenv("REQUIRE_TELEGRAM_AUTH", "true").lower() != "false"
 PHONE_PATTERN = re.compile(r"^\+?[0-9]{9,15}$")
+AIRTIME_PROVIDERS = ("EthioTelecom", "Safaricom")
 
 
 class WithdrawRequest(BaseModel):
     user_id: int
     amount: int
     phone_number: str
+    # Set when the payout is airtime from this provider instead of cash.
+    airtime_provider: str | None = None
 
 
 class TransferRequest(BaseModel):
@@ -127,6 +131,10 @@ async def request_withdrawal(req: WithdrawRequest, x_telegram_init_data: str = H
     phone = req.phone_number.replace(" ", "").replace("-", "")
     if not PHONE_PATTERN.match(phone):
         raise HTTPException(status_code=400, detail="Enter a valid phone number.")
+    if req.airtime_provider is not None and req.airtime_provider not in AIRTIME_PROVIDERS:
+        raise HTTPException(status_code=400, detail="Choose EthioTelecom or Safaricom for airtime.")
+    # Where the payout goes, as the admin sees it and the withdrawal records it.
+    pay_to = f"{phone} ({req.airtime_provider} airtime)" if req.airtime_provider else phone
 
     try:
         async with aiosqlite.connect(DB_FILE) as db:
@@ -135,7 +143,7 @@ async def request_withdrawal(req: WithdrawRequest, x_telegram_init_data: str = H
                 raise HTTPException(status_code=400, detail=f"Insufficient balance. Your withdrawable balance is {current} ETB.")
             cursor = await db.execute(
                 "INSERT INTO withdrawals (user_id, amount, phone_number, status) VALUES (?, ?, ?, 'pending')",
-                (req.user_id, req.amount, phone),
+                (req.user_id, req.amount, pay_to),
             )
             withdrawal_id = cursor.lastrowid
             async with db.execute("SELECT COUNT(*) FROM successful_referrals WHERE referrer_id = ? AND is_active = 1", (req.user_id,)) as t_cursor:
@@ -146,7 +154,7 @@ async def request_withdrawal(req: WithdrawRequest, x_telegram_init_data: str = H
             f"🚨 **New Withdrawal Request #{withdrawal_id}** 🚨\n\n"
             f"From User ID: `{req.user_id}`\n"
             f"Amount: {req.amount} Birr\n"
-            f"Phone: `{phone}`\n\n"
+            f"Phone: `{pay_to}`\n\n"
             f"✅ Database Report: {active_referrals} members currently active in channel."
         )
         # The bot reads the user and amount from the database when the admin decides; the button only names the request.
