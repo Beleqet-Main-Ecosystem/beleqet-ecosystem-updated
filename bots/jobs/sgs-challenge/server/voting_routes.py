@@ -13,7 +13,7 @@ from aiohttp import web
 
 logger = logging.getLogger(__name__)
 
-# bots/job/sgs_challenge.db, wherever the bot is started from (it used to follow the working folder).
+# bots/jobs/sgs_challenge.db, wherever the bot is started from (it used to follow the working folder).
 CHALLENGE_DB_PATH = os.getenv("SGS_CHALLENGE_DB_PATH") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "..", "sgs_challenge.db"
 )

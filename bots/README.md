@@ -38,9 +38,9 @@ The **Beleqet Platform** is composed of three cooperating Telegram bots and asso
 
 | Service | Bot Purpose | Domain | Port |
 |---|---|---|---|
-| beleqet-bot | Beleqet Academy referral rewards and mini-app | beleqetaca-api.beleqet.com | 8000 |
-| shareandwin | Beleqet Jobs share-and-win referral rewards | beleqetjobs-api.beleqet.com | 8001 |
-| job | Beleqet Jobs registration bot + SGS Challenge mini-app (webhook mode) | webhook.beleqet.com | 8080 |
+| boost | Beleqet Academy referral rewards and mini-app | beleqetaca-api.beleqet.com | 8000 |
+| go | Beleqet Jobs share-and-win referral rewards | beleqetjobs-api.beleqet.com | 8001 |
+| jobs | Beleqet Jobs registration bot + SGS Challenge mini-app (webhook mode) | webhook.beleqet.com | 8080 |
 | promo | Beleqet Promotion: SMM shop and the wallet the referral bots transfer to (see `promo/README.md`) | beleqet-promo-miniapp.beleqet.com | 8002 |
 
 All three services share the beleqet.com root domain and are secured with Let's Encrypt TLS certificates managed by Certbot.
@@ -86,7 +86,7 @@ Internet / Telegram API
 ```
 bel/
 +-- README.md
-+-- beleqet-bot/
++-- boost/
 |   +-- .env
 |   +-- main.py              (Telegram bot, polling, 781 lines)
 |   +-- api.py               (FastAPI REST, Port 8000)
@@ -96,7 +96,7 @@ bel/
 |   +-- Promo.jpg
 |   +-- beleqetaca-api.beleqet.com  (Nginx vhost config)
 |
-+-- shareandwin/
++-- go/
 |   +-- .env
 |   +-- main.py              (Telegram bot, polling, 781 lines)
 |   +-- api.py               (FastAPI REST, Port 8001)
@@ -106,7 +106,7 @@ bel/
 |   +-- Promo.jpg
 |   +-- beleqetjobs-api.beleqet.com (Nginx vhost config)
 |
-+-- job/
++-- jobs/
     +-- .env
     +-- main.py              (Bot + aiohttp webhook, 1376 lines)
     +-- requirements.txt
@@ -127,7 +127,7 @@ bel/
 
 ## 4. Services At a Glance
 
-### 4.1 beleqet-bot - Academy / Boost Bot
+### 4.1 boost - Academy / Boost Bot
 
 **Purpose:** A referral rewards bot for the Beleqet Academy channel. Users share a unique invite link; when a new user joins through that link and stays in the channel, the referrer earns 1 point (= 1 ETB). Points can be withdrawn to a phone number (mobile money) or transferred to the Beleqet SMM Promo Bot.
 
@@ -153,11 +153,11 @@ bel/
 
 ---
 
-### 4.2 shareandwin - Jobs Invite-and-Win Bot
+### 4.2 go - Jobs Invite-and-Win Bot
 
-**Purpose:** Nearly identical architecture to beleqet-bot but serves the Beleqet Jobs channel (BeleqetJobsInviteAndWin_Bot). Users invite friends; each active referral earns 1 point.
+**Purpose:** Nearly identical architecture to boost but serves the Beleqet Jobs channel (BeleqetJobsInviteAndWin_Bot). Users invite friends; each active referral earns 1 point.
 
-**Key Differences from beleqet-bot:**
+**Key Differences from boost:**
 - Points attributed to the Beleqet Jobs channel (-1001199095627)
 - Welcome video is a URL-based MP4 hosted on the website
 - Multiple admin IDs loaded from ADMIN_IDS (comma-separated)
@@ -204,7 +204,7 @@ bel/
 
 ## 5. Database Schema
 
-### referrals.db (used by beleqet-bot and shareandwin)
+### referrals.db (used by boost and go)
 
 ```sql
 CREATE TABLE users (
@@ -286,7 +286,7 @@ CREATE TABLE challenge_coupons (
 
 ## 6. Environment Variables Reference
 
-### beleqet-bot/.env
+### boost/.env
 
 | Variable | Description |
 |---|---|
@@ -300,7 +300,7 @@ CREATE TABLE challenge_coupons (
 | PROMO_BOT_API_URL | Promotion bot's transfer endpoint; on the server `http://127.0.0.1:8002/api/internal/transfer_points` |
 | TRANSFER_SECRET_KEY | Shared secret for transfers, same value as in `promo/.env`; leave it out to switch transfers off |
 
-### shareandwin/.env
+### go/.env
 
 | Variable | Description |
 |---|---|
@@ -313,7 +313,7 @@ CREATE TABLE challenge_coupons (
 | WELCOME_VIDEO_FILE_ID | URL to welcome MP4 video |
 | WELCOME_PHOTO_FILE_ID | Local path or file ID for welcome photo |
 
-### job/.env
+### jobs/.env
 
 | Variable | Description |
 |---|---|
@@ -334,7 +334,7 @@ CREATE TABLE challenge_coupons (
 
 ## 7. Dependencies
 
-### beleqet-bot and shareandwin (requirements.txt)
+### boost and go (requirements.txt)
 
 ```
 python-telegram-bot[job-queue]   # Telegram bot library with APScheduler
@@ -527,8 +527,8 @@ cd /opt/beleqet
 Option B - SCP over VPN (from your local machine while connected):
 
 ```bash
-scp -r ./beleqet-bot  ubuntu@10.8.0.1:/opt/beleqet/
-scp -r ./shareandwin  ubuntu@10.8.0.1:/opt/beleqet/
+scp -r ./boost  ubuntu@10.8.0.1:/opt/beleqet/
+scp -r ./go  ubuntu@10.8.0.1:/opt/beleqet/
 scp -r ./job          ubuntu@10.8.0.1:/opt/beleqet/
 ```
 
@@ -543,8 +543,8 @@ sudo chown -R ubuntu:ubuntu /opt/beleqet
 ### Step 4 - Python Virtual Environments
 
 ```bash
-# Service 1: beleqet-bot
-cd /opt/beleqet/beleqet-bot
+# Service 1: boost
+cd /opt/beleqet/boost
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
@@ -552,8 +552,8 @@ pip install -r requirements.txt
 pip install fastapi "uvicorn[standard]" httpx
 deactivate
 
-# Service 2: shareandwin
-cd /opt/beleqet/shareandwin
+# Service 2: go
+cd /opt/beleqet/go
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
@@ -562,7 +562,7 @@ pip install fastapi "uvicorn[standard]" httpx
 deactivate
 
 # Service 3: job
-cd /opt/beleqet/job
+cd /opt/beleqet/jobs
 python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
@@ -576,14 +576,14 @@ deactivate
 
 ```bash
 # Edit each file with your production values
-nano /opt/beleqet/beleqet-bot/.env
-nano /opt/beleqet/shareandwin/.env
-nano /opt/beleqet/job/.env
+nano /opt/beleqet/boost/.env
+nano /opt/beleqet/go/.env
+nano /opt/beleqet/jobs/.env
 
 # Lock down permissions
-chmod 600 /opt/beleqet/beleqet-bot/.env
-chmod 600 /opt/beleqet/shareandwin/.env
-chmod 600 /opt/beleqet/job/.env
+chmod 600 /opt/beleqet/boost/.env
+chmod 600 /opt/beleqet/go/.env
+chmod 600 /opt/beleqet/jobs/.env
 ```
 
 ---
@@ -609,20 +609,20 @@ sudo certbot renew --dry-run
 ### Step 7 - Nginx Configuration
 
 ```bash
-# beleqet-bot API (port 8000)
-sudo cp /opt/beleqet/beleqet-bot/beleqetaca-api.beleqet.com \
+# boost API (port 8000)
+sudo cp /opt/beleqet/boost/beleqetaca-api.beleqet.com \
         /etc/nginx/sites-available/beleqetaca-api.beleqet.com
 sudo ln -s /etc/nginx/sites-available/beleqetaca-api.beleqet.com \
            /etc/nginx/sites-enabled/
 
-# shareandwin API (port 8001)
-sudo cp /opt/beleqet/shareandwin/beleqetjobs-api.beleqet.com \
+# go API (port 8001)
+sudo cp /opt/beleqet/go/beleqetjobs-api.beleqet.com \
         /etc/nginx/sites-available/beleqetjobs-api.beleqet.com
 sudo ln -s /etc/nginx/sites-available/beleqetjobs-api.beleqet.com \
            /etc/nginx/sites-enabled/
 
 # job bot webhook (port 8080)
-sudo cp /opt/beleqet/job/telegram-bot \
+sudo cp /opt/beleqet/jobs/telegram-bot \
         /etc/nginx/sites-available/webhook.beleqet.com
 sudo ln -s /etc/nginx/sites-available/webhook.beleqet.com \
            /etc/nginx/sites-enabled/
@@ -641,8 +641,8 @@ sudo nginx -t && sudo systemctl reload nginx
 Create all service files:
 
 ```bash
-# --- beleqet-bot: Telegram polling bot ---
-sudo tee /etc/systemd/system/beleqet-bot.service > /dev/null <<EOF
+# --- boost: Telegram polling bot ---
+sudo tee /etc/systemd/system/beleqet-boost-bot.service > /dev/null <<EOF
 [Unit]
 Description=Beleqet Academy Bot (Telegram Polling)
 After=network.target
@@ -650,9 +650,9 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/opt/beleqet/beleqet-bot
-EnvironmentFile=/opt/beleqet/beleqet-bot/.env
-ExecStart=/opt/beleqet/beleqet-bot/venv/bin/python main.py
+WorkingDirectory=/opt/beleqet/boost
+EnvironmentFile=/opt/beleqet/boost/.env
+ExecStart=/opt/beleqet/boost/venv/bin/python main.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -662,8 +662,8 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# --- beleqet-bot: FastAPI server (port 8000) ---
-sudo tee /etc/systemd/system/beleqet-bot-api.service > /dev/null <<EOF
+# --- boost: FastAPI server (port 8000) ---
+sudo tee /etc/systemd/system/beleqet-boost-api.service > /dev/null <<EOF
 [Unit]
 Description=Beleqet Academy FastAPI Server (Port 8000)
 After=network.target
@@ -671,9 +671,9 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/opt/beleqet/beleqet-bot
-EnvironmentFile=/opt/beleqet/beleqet-bot/.env
-ExecStart=/opt/beleqet/beleqet-bot/venv/bin/uvicorn api:app --host 127.0.0.1 --port 8000
+WorkingDirectory=/opt/beleqet/boost
+EnvironmentFile=/opt/beleqet/boost/.env
+ExecStart=/opt/beleqet/boost/venv/bin/uvicorn api:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -683,8 +683,8 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# --- shareandwin: Telegram polling bot ---
-sudo tee /etc/systemd/system/shareandwin-bot.service > /dev/null <<EOF
+# --- go: Telegram polling bot ---
+sudo tee /etc/systemd/system/beleqet-go-bot.service > /dev/null <<EOF
 [Unit]
 Description=Beleqet Jobs Share-and-Win Bot (Telegram Polling)
 After=network.target
@@ -692,9 +692,9 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/opt/beleqet/shareandwin
-EnvironmentFile=/opt/beleqet/shareandwin/.env
-ExecStart=/opt/beleqet/shareandwin/venv/bin/python main.py
+WorkingDirectory=/opt/beleqet/go
+EnvironmentFile=/opt/beleqet/go/.env
+ExecStart=/opt/beleqet/go/venv/bin/python main.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -704,8 +704,8 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# --- shareandwin: FastAPI server (port 8001) ---
-sudo tee /etc/systemd/system/shareandwin-api.service > /dev/null <<EOF
+# --- go: FastAPI server (port 8001) ---
+sudo tee /etc/systemd/system/beleqet-go-api.service > /dev/null <<EOF
 [Unit]
 Description=Beleqet Jobs Share-and-Win FastAPI Server (Port 8001)
 After=network.target
@@ -713,9 +713,9 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/opt/beleqet/shareandwin
-EnvironmentFile=/opt/beleqet/shareandwin/.env
-ExecStart=/opt/beleqet/shareandwin/venv/bin/uvicorn api:app --host 127.0.0.1 --port 8001
+WorkingDirectory=/opt/beleqet/go
+EnvironmentFile=/opt/beleqet/go/.env
+ExecStart=/opt/beleqet/go/venv/bin/uvicorn api:app --host 127.0.0.1 --port 8001
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -725,7 +725,7 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# --- job: Combined aiohttp + Bot (port 8080) ---
+# --- jobs: Combined aiohttp + Bot (port 8080) ---
 sudo tee /etc/systemd/system/beleqet-jobs-bot.service > /dev/null <<EOF
 [Unit]
 Description=Beleqet Jobs Registration Bot + SGS Challenge (Port 8080)
@@ -734,9 +734,9 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/opt/beleqet/job
-EnvironmentFile=/opt/beleqet/job/.env
-ExecStart=/opt/beleqet/job/venv/bin/python main.py
+WorkingDirectory=/opt/beleqet/jobs
+EnvironmentFile=/opt/beleqet/jobs/.env
+ExecStart=/opt/beleqet/jobs/venv/bin/python main.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -755,28 +755,28 @@ EOF
 sudo systemctl daemon-reload
 
 # Enable auto-start on boot
-sudo systemctl enable beleqet-bot beleqet-bot-api
-sudo systemctl enable shareandwin-bot shareandwin-api
+sudo systemctl enable beleqet-boost-bot beleqet-boost-api
+sudo systemctl enable beleqet-go-bot beleqet-go-api
 sudo systemctl enable beleqet-jobs-bot
 
 # Start immediately
-sudo systemctl start beleqet-bot beleqet-bot-api
-sudo systemctl start shareandwin-bot shareandwin-api
+sudo systemctl start beleqet-boost-bot beleqet-boost-api
+sudo systemctl start beleqet-go-bot beleqet-go-api
 sudo systemctl start beleqet-jobs-bot
 
 # Check status
-sudo systemctl status beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl status beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 ```
 
 ---
 
 ### Step 10 - Register Telegram Webhook (Job Bot Only)
 
-beleqet-bot and shareandwin use polling - no webhook needed for them.
+boost and go use polling - no webhook needed for them.
 Only the job bot requires webhook registration:
 
 ```bash
-# Replace with your actual values from job/.env
+# Replace with your actual values from jobs/.env
 BOT_TOKEN="<JOB_BOT_TOKEN>"
 WEBHOOK_URL="https://webhook.beleqet.com/webhook"
 SECRET_TOKEN="<WEBHOOK_SECRET_TOKEN>"
@@ -799,7 +799,7 @@ curl "https://api.telegram.org/bot/getWebhookInfo"
 
 ```bash
 # 1. Check all services are active
-sudo systemctl is-active beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl is-active beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 # 2. Test API endpoints
 curl -s https://beleqetaca-api.beleqet.com/api/user/123/stats
@@ -807,9 +807,9 @@ curl -s https://beleqetjobs-api.beleqet.com/api/user/123/stats
 curl -s https://webhook.beleqet.com/
 
 # 3. Check SQLite databases exist
-ls -lh /opt/beleqet/beleqet-bot/referrals.db
-ls -lh /opt/beleqet/shareandwin/referrals.db
-ls -lh /opt/beleqet/job/sgs_challenge.db
+ls -lh /opt/beleqet/boost/referrals.db
+ls -lh /opt/beleqet/go/referrals.db
+ls -lh /opt/beleqet/jobs/sgs_challenge.db
 
 # 4. Check Nginx
 sudo nginx -t
@@ -915,7 +915,7 @@ server {
 
 ## 12. API Endpoint Reference
 
-### beleqet-bot FastAPI (Port 8000)
+### boost FastAPI (Port 8000)
 
 Base URL: https://beleqetaca-api.beleqet.com
 
@@ -958,11 +958,11 @@ POST /api/transfer - Request body:
 
 ---
 
-### shareandwin FastAPI (Port 8001)
+### go FastAPI (Port 8001)
 
 Base URL: https://beleqetjobs-api.beleqet.com
 
-Identical API surface as beleqet-bot. Same three endpoints with the same request/response formats.
+Identical API surface as boost. Same three endpoints with the same request/response formats.
 The transfer source tag is "Share & Win Bot" (vs "Beleqet Academy Bot").
 
 ---
@@ -997,7 +997,7 @@ SGS Challenge API routes (registered by voting_routes.py):
 
 ## 13. Admin Operations
 
-### Managing Admins (beleqet-bot / shareandwin)
+### Managing Admins (boost / go)
 
 Use the Manage Admins button in the admin keyboard menu:
 - Add Admin - send a Telegram user ID to grant admin rights
@@ -1007,7 +1007,7 @@ Use the Manage Admins button in the admin keyboard menu:
 Or directly via SQLite on the server:
 
 ```bash
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db \
+sqlite3 /opt/beleqet/boost/referrals.db \
   "INSERT OR IGNORE INTO admins (user_id) VALUES (YOUR_TELEGRAM_ID);"
 ```
 
@@ -1065,20 +1065,20 @@ Actions:
 ```bash
 # All five services at once
 sudo journalctl -f \
-  -u beleqet-bot \
-  -u beleqet-bot-api \
-  -u shareandwin-bot \
-  -u shareandwin-api \
+  -u beleqet-boost-bot \
+  -u beleqet-boost-api \
+  -u beleqet-go-bot \
+  -u beleqet-go-api \
   -u beleqet-jobs-bot
 
 # Single service
-sudo journalctl -f -u beleqet-bot
+sudo journalctl -f -u beleqet-boost-bot
 
 # Last 100 lines with timestamps
 sudo journalctl -n 100 -u beleqet-jobs-bot
 
 # Since a specific time
-sudo journalctl -u beleqet-bot --since "2026-10-01 08:00:00"
+sudo journalctl -u beleqet-boost-bot --since "2026-10-01 08:00:00"
 ```
 
 ### Nginx Logs
@@ -1091,28 +1091,28 @@ sudo tail -f /var/log/nginx/error.log
 ### Service Status Overview
 
 ```bash
-sudo systemctl status beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl status beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 ```
 
 ### Useful Database Queries
 
 ```bash
 # Total users in Academy bot
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db "SELECT COUNT(*) FROM users;"
+sqlite3 /opt/beleqet/boost/referrals.db "SELECT COUNT(*) FROM users;"
 
 # Top 10 referrers by score
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db \
+sqlite3 /opt/beleqet/boost/referrals.db \
   "SELECT user_id, username, score FROM users ORDER BY score DESC LIMIT 10;"
 
 # Pending withdrawals
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db \
+sqlite3 /opt/beleqet/boost/referrals.db \
   "SELECT id, user_id, amount, phone_number, request_timestamp FROM withdrawals WHERE status='pending';"
 
 # All admins
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db "SELECT * FROM admins;"
+sqlite3 /opt/beleqet/boost/referrals.db "SELECT * FROM admins;"
 
 # SGS Challenge vote leaderboard
-sqlite3 /opt/beleqet/job/sgs_challenge.db \
+sqlite3 /opt/beleqet/jobs/sgs_challenge.db \
   "SELECT c.name, c.handle, COUNT(v.id) as votes
    FROM challenge_creators c
    LEFT JOIN challenge_votes v ON c.id = v.creator_id
@@ -1134,11 +1134,11 @@ mkdir -p ""
 
 echo "Starting backup to ..."
 
-cp /opt/beleqet/beleqet-bot/referrals.db    "/beleqet-bot-referrals.db"
-cp /opt/beleqet/shareandwin/referrals.db    "/shareandwin-referrals.db"
-cp /opt/beleqet/job/sgs_challenge.db        "/sgs_challenge.db"
-cp /opt/beleqet/beleqet-bot/bot_persistence "/beleqet-bot-persistence" 2>/dev/null || true
-cp /opt/beleqet/shareandwin/bot_persistence  "/shareandwin-persistence" 2>/dev/null || true
+cp /opt/beleqet/boost/referrals.db    "/boost-referrals.db"
+cp /opt/beleqet/go/referrals.db    "/go-referrals.db"
+cp /opt/beleqet/jobs/sgs_challenge.db        "/sgs_challenge.db"
+cp /opt/beleqet/boost/bot_persistence "/boost-persistence" 2>/dev/null || true
+cp /opt/beleqet/go/bot_persistence  "/go-persistence" 2>/dev/null || true
 
 # Keep only last 30 days of backups
 find /var/backups/beleqet -maxdepth 1 -type d -mtime +30 -exec rm -rf {} + 2>/dev/null || true
@@ -1160,27 +1160,27 @@ sudo /usr/local/bin/beleqet-backup.sh
 
 ```bash
 # Stop all services first
-sudo systemctl stop beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl stop beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 # Set the date to restore from
 RESTORE_DATE="2026-10-01"
 
 # Restore databases
-cp /var/backups/beleqet//beleqet-bot-referrals.db \
-   /opt/beleqet/beleqet-bot/referrals.db
-cp /var/backups/beleqet//shareandwin-referrals.db \
-   /opt/beleqet/shareandwin/referrals.db
+cp /var/backups/beleqet//boost-referrals.db \
+   /opt/beleqet/boost/referrals.db
+cp /var/backups/beleqet//go-referrals.db \
+   /opt/beleqet/go/referrals.db
 cp /var/backups/beleqet//sgs_challenge.db \
-   /opt/beleqet/job/sgs_challenge.db
+   /opt/beleqet/jobs/sgs_challenge.db
 
 # Restore persistence (if needed)
-cp /var/backups/beleqet//beleqet-bot-persistence \
-   /opt/beleqet/beleqet-bot/bot_persistence
-cp /var/backups/beleqet//shareandwin-persistence \
-   /opt/beleqet/shareandwin/bot_persistence
+cp /var/backups/beleqet//boost-persistence \
+   /opt/beleqet/boost/bot_persistence
+cp /var/backups/beleqet//go-persistence \
+   /opt/beleqet/go/bot_persistence
 
 # Restart services
-sudo systemctl start beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl start beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 echo "Restore complete."
 ```
@@ -1236,8 +1236,8 @@ The job bot implements a token bucket rate limiter (1 msg/sec per chat, burst of
 Enable Write-Ahead Logging to prevent "database is locked" errors when the bot and FastAPI access SQLite simultaneously:
 
 ```bash
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db "PRAGMA journal_mode=WAL;"
-sqlite3 /opt/beleqet/shareandwin/referrals.db  "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/boost/referrals.db "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/go/referrals.db  "PRAGMA journal_mode=WAL;"
 ```
 
 ### 7. SSL/TLS
@@ -1254,13 +1254,13 @@ sqlite3 /opt/beleqet/shareandwin/referrals.db  "PRAGMA journal_mode=WAL;"
 
 ```bash
 # Check if the service is running and active
-sudo systemctl status beleqet-bot
+sudo systemctl status beleqet-boost-bot
 
 # Check for errors in the last 10 minutes
-sudo journalctl -u beleqet-bot --since "10 minutes ago"
+sudo journalctl -u beleqet-boost-bot --since "10 minutes ago"
 
 # Test manually (Ctrl+C to stop)
-cd /opt/beleqet/beleqet-bot
+cd /opt/beleqet/boost
 source venv/bin/activate
 python main.py
 ```
@@ -1269,14 +1269,14 @@ python main.py
 
 ```bash
 # The upstream FastAPI process is down
-sudo systemctl status beleqet-bot-api
+sudo systemctl status beleqet-boost-api
 
 # Check if the port is actually listening
 ss -tlnp | grep 8000
 ss -tlnp | grep 8001
 
 # Start manually to see error output
-cd /opt/beleqet/beleqet-bot
+cd /opt/beleqet/boost
 source venv/bin/activate
 uvicorn api:app --host 127.0.0.1 --port 8000 --reload
 ```
@@ -1304,17 +1304,17 @@ sudo journalctl -u nginx -n 20
 
 ```bash
 # Stop services to release the lock
-sudo systemctl stop beleqet-bot beleqet-bot-api
+sudo systemctl stop beleqet-boost-bot beleqet-boost-api
 
 # Find which process holds the lock
-fuser /opt/beleqet/beleqet-bot/referrals.db
+fuser /opt/beleqet/boost/referrals.db
 kill <PID>
 
 # Enable WAL mode (prevents future lock contention)
-sqlite3 /opt/beleqet/beleqet-bot/referrals.db "PRAGMA journal_mode=WAL;"
+sqlite3 /opt/beleqet/boost/referrals.db "PRAGMA journal_mode=WAL;"
 
 # Restart
-sudo systemctl start beleqet-bot beleqet-bot-api
+sudo systemctl start beleqet-boost-bot beleqet-boost-api
 ```
 
 ### SSL Certificate Expired
@@ -1334,13 +1334,13 @@ sudo systemctl reload nginx
 
 ```bash
 # The file must exist at this exact path
-ls /opt/beleqet/job/sgs-challenge/server/voting_routes.py
+ls /opt/beleqet/jobs/sgs-challenge/server/voting_routes.py
 
 # If missing, check the sgs-challenge directory was transferred
-ls /opt/beleqet/job/sgs-challenge/
+ls /opt/beleqet/jobs/sgs-challenge/
 
 # Re-upload just that directory
-scp -r ./sgs-challenge ubuntu@10.8.0.1:/opt/beleqet/job/
+scp -r ./sgs-challenge ubuntu@10.8.0.1:/opt/beleqet/jobs/
 sudo systemctl restart beleqet-jobs-bot
 ```
 
@@ -1351,7 +1351,7 @@ sudo systemctl restart beleqet-jobs-bot
 sudo systemctl daemon-reload
 
 # Then restart
-sudo systemctl restart beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl restart beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 # Check for errors
 sudo journalctl -xe --unit=beleqet-jobs-bot
@@ -1375,27 +1375,27 @@ sudo journalctl -xe --unit=beleqet-jobs-bot
 
 | Description | Service Unit Name |
 |---|---|
-| Academy Bot Telegram polling | beleqet-bot |
-| Academy Bot FastAPI (port 8000) | beleqet-bot-api |
-| Share and Win Bot polling | shareandwin-bot |
-| Share and Win FastAPI (port 8001) | shareandwin-api |
+| Academy Bot Telegram polling | boost |
+| Academy Bot FastAPI (port 8000) | beleqet-boost-api |
+| Share and Win Bot polling | beleqet-go-bot |
+| Share and Win FastAPI (port 8001) | beleqet-go-api |
 | Jobs Bot aiohttp + polling (port 8080) | beleqet-jobs-bot |
 
 ### Essential Commands
 
 ```bash
 # Restart all services
-sudo systemctl restart beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl restart beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 # Stop all services
-sudo systemctl stop beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl stop beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 # Follow all logs simultaneously
-sudo journalctl -f -u beleqet-bot -u beleqet-bot-api -u shareandwin-bot -u shareandwin-api -u beleqet-jobs-bot
+sudo journalctl -f -u beleqet-boost-bot -u beleqet-boost-api -u beleqet-go-bot -u beleqet-go-api -u beleqet-jobs-bot
 
 # Pull latest code and restart (Git workflow)
 cd /opt/beleqet && git pull
-sudo systemctl restart beleqet-bot beleqet-bot-api shareandwin-bot shareandwin-api beleqet-jobs-bot
+sudo systemctl restart beleqet-boost-bot beleqet-boost-api beleqet-go-bot beleqet-go-api beleqet-jobs-bot
 
 # Run manual backup
 sudo /usr/local/bin/beleqet-backup.sh
@@ -1426,10 +1426,10 @@ ssh ubuntu@10.8.0.1
 ### Service File Locations on Server
 
 ```
-/etc/systemd/system/beleqet-bot.service
-/etc/systemd/system/beleqet-bot-api.service
-/etc/systemd/system/shareandwin-bot.service
-/etc/systemd/system/shareandwin-api.service
+/etc/systemd/system/beleqet-boost-bot.service
+/etc/systemd/system/beleqet-boost-api.service
+/etc/systemd/system/beleqet-go-bot.service
+/etc/systemd/system/beleqet-go-api.service
 /etc/systemd/system/beleqet-jobs-bot.service
 
 /etc/nginx/sites-available/beleqetaca-api.beleqet.com
@@ -1442,9 +1442,9 @@ ssh ubuntu@10.8.0.1
 ### Code Locations on Server
 
 ```
-/opt/beleqet/beleqet-bot/
-/opt/beleqet/shareandwin/
-/opt/beleqet/job/
+/opt/beleqet/boost/
+/opt/beleqet/go/
+/opt/beleqet/jobs/
 ```
 
 ### Backup Location

@@ -77,9 +77,9 @@ jobs:
           tar -xzf gitleaks.tar.gz gitleaks && rm gitleaks.tar.gz
           ./gitleaks detect --source . --config .gitleaks.toml --log-opts="$RANGE" --redact --no-banner
 
-  # ── Backend static quality ─────────────────────────────────────────────────
-  backend-quality:
-    name: Backend lint, format, types, build
+  # ── API static quality ─────────────────────────────────────────────────────
+  api-quality:
+    name: API lint, format, types, build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -104,9 +104,9 @@ jobs:
       - name: NestJS production build
         run: npm run build
 
-  # ── Backend unit tests ─────────────────────────────────────────────────────
-  backend-unit:
-    name: Backend unit tests & coverage
+  # ── API unit tests ─────────────────────────────────────────────────────────
+  api-unit:
+    name: API unit tests & coverage
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -160,14 +160,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: backend-coverage
+          name: api-coverage
           path: apps/api/coverage/lcov-report/
           retention-days: 7
           if-no-files-found: ignore
 
-  # ── Backend integration, NestJS E2E, and API smoke tests ───────────────────
-  backend-integration:
-    name: Backend integration & E2E
+  # ── API integration, NestJS E2E and smoke tests ────────────────────────
+  api-integration:
+    name: API integration & E2E
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -220,19 +220,19 @@ jobs:
       - name: NestJS E2E tests
         run: npm run test:e2e -- --runInBand
 
-      - name: Boot backend and run API health smoke tests
+      - name: Boot the API and run its health smoke tests
         run: |
           if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
-          BACKEND_PID=$!
+          API_PID=$!
           bash ../../scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health 30 2
           bash ../../scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 10 2
           curl -fsS http://127.0.0.1:4000/api/v1/jobs/categories > /dev/null
           echo "API smoke tests passed"
-          kill "$BACKEND_PID"
+          kill "$API_PID"
 
-  # ── Admin frontend (apps/admin/) ───────────────────────────────────────────
-  admin-frontend:
-    name: Admin frontend quality & build
+  # ── Admin (apps/admin/) ──────────────────────────────────────────────────
+  admin:
+    name: Admin quality & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -255,9 +255,9 @@ jobs:
       - name: Production build
         run: npm run build
 
-  # ── Jobs frontend (apps/web/) ───────────────────────────────────
-  jobs-frontend:
-    name: Jobs frontend quality, tests & build
+  # ── Website (apps/web/) ───────────────────────────────────────────
+  web:
+    name: Website quality, tests & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -342,20 +342,20 @@ jobs:
           node scripts/seed-rbac.js
           node scripts/dev/create-admin.js
 
-      - name: Run admin Playwright E2E tests with backend
+      - name: Run the admin Playwright E2E tests against the API
         env:
           API_URL: http://127.0.0.1:4000/api/v1
           ADMIN_EMAIL: admin@beleqet.com
           ADMIN_PASSWORD: SecurePass123!
         run: |
           if [ -f "dist/main.js" ]; then node dist/main & else node dist/src/main & fi
-          BACKEND_PID=$!
+          API_PID=$!
           bash ../../scripts/deploy/health-check.sh http://127.0.0.1:4000/api/v1/health/ready 30 2
           cd ../admin
           npm ci
           npx playwright install --with-deps chromium
           npx playwright test --trace retain-on-failure
-          kill "$BACKEND_PID"
+          kill "$API_PID"
 
       - name: Upload Playwright report and traces on failure
         if: failure()
@@ -400,21 +400,21 @@ jobs:
           npm i --package-lock-only
           cd ../..
 
-      - name: Build backend image
+      - name: Build API image
         run: >-
-          docker build -t "${{ steps.meta.outputs.namespace }}/beleqet-backend:${{ github.sha }}" apps/api
+          docker build -t "${{ steps.meta.outputs.namespace }}/beleqet-api:${{ github.sha }}" apps/api
 
-      - name: Build admin frontend image
+      - name: Build admin image
         run: >-
           docker build
-          -t "${{ steps.meta.outputs.namespace }}/beleqet-admin-frontend:${{ github.sha }}"
+          -t "${{ steps.meta.outputs.namespace }}/beleqet-admin:${{ github.sha }}"
           apps/admin
 
-      - name: Build jobs frontend image
+      - name: Build website image
         run: >-
           docker build
           -f apps/web/Dockerfile
-          -t "${{ steps.meta.outputs.namespace }}/beleqet-jobs-frontend:${{ github.sha }}"
+          -t "${{ steps.meta.outputs.namespace }}/beleqet-web:${{ github.sha }}"
           .
 
       - name: Create synthetic CI environment
@@ -451,9 +451,9 @@ jobs:
           UNSUBSCRIBE_SECRET=synthetic_unsubscribe_secret_64chars_minimum_for_production_use
           EOF
           cat > .env.images <<EOF
-          BACKEND_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-backend:${{ github.sha }}
-          ADMIN_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-admin-frontend:${{ github.sha }}
-          JOBS_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-jobs-frontend:${{ github.sha }}
+          API_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-api:${{ github.sha }}
+          ADMIN_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-admin:${{ github.sha }}
+          WEB_IMAGE=${{ steps.meta.outputs.namespace }}/beleqet-web:${{ github.sha }}
           EOF
 
       - name: Validate CI compose renders
@@ -469,21 +469,21 @@ jobs:
       - name: Apply migrations (single controlled step)
         run: |
           docker compose --env-file .env.ci --env-file .env.images \
-            -f docker-compose.ci.yml run --rm --no-deps backend \
+            -f docker-compose.ci.yml run --rm --no-deps api \
             ./node_modules/.bin/prisma migrate deploy
 
-      - name: Backend startup diagnosis (boot-test)
+      - name: API startup diagnosis (boot-test)
         run: |
           source .env.ci
           source .env.images
-          echo "--- Start backend via compose (same network as db/redis) ---"
+          echo "--- Start the API via compose (same network as db/redis) ---"
           docker compose --env-file .env.ci --env-file .env.images \
-            -f docker-compose.ci.yml up -d backend
-          echo "Waiting up to 30s for backend to start and register logs..."
+            -f docker-compose.ci.yml up -d api
+          echo "Waiting up to 30s for the API to start and register logs..."
           sleep 30
-          echo "--- Backend boot logs (last 200 lines) ---"
+          echo "--- API boot logs (last 200 lines) ---"
           docker compose --env-file .env.ci --env-file .env.images \
-            -f docker-compose.ci.yml logs --tail 200 backend || true
+            -f docker-compose.ci.yml logs --tail 200 api || true
 
       - name: Start full stack and verify every container becomes healthy
         run: |
@@ -499,9 +499,9 @@ jobs:
           echo "=== Container states ==="
           docker compose --env-file .env.ci --env-file .env.images \
             -f docker-compose.ci.yml ps || true
-          echo "=== BACKEND CRASH LOGS (last 200 lines) ==="
+          echo "=== API CRASH LOGS (last 200 lines) ==="
           docker compose --env-file .env.ci --env-file .env.images \
-            -f docker-compose.ci.yml logs --tail 200 backend || true
+            -f docker-compose.ci.yml logs --tail 200 api || true
           echo "=== ALL SERVICE LOGS (last 50 lines each) ==="
           docker compose --env-file .env.ci --env-file .env.images \
             -f docker-compose.ci.yml logs --tail 50 || true
@@ -527,7 +527,7 @@ jobs:
             echo "trivy database not available from $repo, trying the next mirror"
           done
           [ -n "$db_ready" ] || { echo "::error::no trivy database mirror answered"; exit 1; }
-          for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
+          for svc in beleqet-api beleqet-admin beleqet-web; do
             image="${{ steps.meta.outputs.namespace }}/${svc}:${{ github.sha }}"
             echo "trivy: $image"
             docker run --rm \
@@ -558,7 +558,7 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
             -u "${{ github.actor }}" --password-stdin
-          for svc in beleqet-backend beleqet-admin-frontend beleqet-jobs-frontend; do
+          for svc in beleqet-api beleqet-admin beleqet-web; do
             docker push "${{ steps.meta.outputs.namespace }}/${svc}:${{ github.sha }}"
           done
 
@@ -578,35 +578,35 @@ jobs:
       # Gate: unresolved CRITICAL findings in production dependencies fail CI.
       # HIGH/moderate findings are reported in the logs for tracking, without
       # blocking unrelated changes.
-      - name: Backend production dependency audit
+      - name: API production dependency audit
         working-directory: apps/api
         run: |
           npm ci
           npm audit --omit=dev || true
           node ../../scripts/ci/audit-gate.js
 
-      - name: Setup Node.js for admin frontend
+      - name: Setup Node.js for the admin
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: apps/admin/package-lock.json
 
-      - name: Admin frontend production dependency audit
+      - name: Admin production dependency audit
         working-directory: apps/admin
         run: |
           npm ci
           npm audit --omit=dev || true
           node ../../scripts/ci/audit-gate.js
 
-      - name: Setup Node.js for jobs frontend
+      - name: Setup Node.js for the website
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
-      - name: Jobs frontend production dependency audit
+      - name: Website production dependency audit
         working-directory: apps/web
         run: |
           npm ci
@@ -619,11 +619,11 @@ jobs:
     if: always()
     needs:
       - repo-validation
-      - backend-quality
-      - backend-unit
-      - backend-integration
-      - admin-frontend
-      - jobs-frontend
+      - api-quality
+      - api-unit
+      - api-integration
+      - admin
+      - web
       - playwright-e2e
       - docker-build
       - security

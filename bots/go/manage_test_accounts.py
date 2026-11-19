@@ -65,7 +65,7 @@ def reset_user(user_id: int):
     cur.execute("DELETE FROM withdrawals WHERE user_id = ?", (user_id,))
     con.commit()
     con.close()
-    print(f"\n[OK] User {user_id} has been completely wiped from shareandwin referrals.db.")
+    print(f"\n[OK] User {user_id} has been completely wiped from the Go bot's referrals.db.")
 
 def set_score(user_id: int, score: int):
     con = get_db()
@@ -74,7 +74,7 @@ def set_score(user_id: int, score: int):
     cur.execute("UPDATE users SET score = ? WHERE user_id = ?", (score, user_id))
     con.commit()
     con.close()
-    print(f"\n[OK] Set user {user_id} balance to {score} ETB in shareandwin.")
+    print(f"\n[OK] Set user {user_id} balance to {score} ETB in the Go bot.")
 
 def main():
     if len(sys.argv) < 3:

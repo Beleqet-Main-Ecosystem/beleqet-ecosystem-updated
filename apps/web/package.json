@@ -1,5 +1,5 @@
 {
-  "name": "beleqet-jobs-frontend",
+  "name": "beleqet-web",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -11,8 +11,7 @@
     "test:unit": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "docker:build": "docker build -t beleqet-jobs-frontend .",
-    "docker:dev": "docker compose up --build"
+    "docker:build": "docker build -f Dockerfile -t beleqet-web ../.."
   },
   "dependencies": {
     "@beleqet/common": "file:../../packages/common",

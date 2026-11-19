@@ -11,7 +11,7 @@ WORKDIR /repo
 # Copy shared package first so npm can resolve file: dependency
 COPY packages/common ./packages/common
 
-# Install jobs-frontend deps
+# Install the website's dependencies
 WORKDIR /repo/apps/web
 COPY apps/web/package.json apps/web/package-lock.json ./
 RUN npm ci

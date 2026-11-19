@@ -2,14 +2,14 @@
 # =============================================================================
 # Automated PostgreSQL Backup Script for Beleqet Ecosystem
 # Target VPS: 178.105.7.221
-# Deployment path: /srv/beleqet-staging
+# Deployment path: /srv/beleqet
 #
 # Retention: 14 days of local daily compressed dumps
 # Optional: Telegram alert upon backup failure
 # =============================================================================
 set -euo pipefail
 
-DEPLOY_PATH="/srv/beleqet-staging"
+DEPLOY_PATH="/srv/beleqet"
 BACKUP_DIR="/var/backups/beleqet/postgres"
 ENV_FILE="$DEPLOY_PATH/.env.staging"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
