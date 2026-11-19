@@ -13,7 +13,6 @@ description = "Documented placeholders and synthetic test fixtures (no real cred
 paths = [
   # Committed templates: placeholders only, instructions say so inline.
   '''\.env\.example$''',
-  '''\.env\.staging\.example$''',
   # Generates the synthetic CI test environment (all values fake).
   '''scripts/ci/create-test-env\.sh$''',
   # Jest/Vitest spec files use synthetic mock data by policy.

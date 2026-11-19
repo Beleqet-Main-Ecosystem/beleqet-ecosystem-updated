@@ -6,7 +6,7 @@
 #
 # Exits 0 on the first HTTP 2xx response, 1 after max_attempts failures.
 # Prints only the URL host/path and status codes — never response bodies,
-# never credentials. Mirrors the retry semantics of apps/api/tools/ci/health-check.ts.
+# never credentials.
 # =============================================================================
 set -Eeuo pipefail
 

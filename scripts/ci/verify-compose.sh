@@ -2,9 +2,8 @@
 # =============================================================================
 # verify-compose.sh — render every Compose file with synthetic values
 #
-# Fails when any Compose file is syntactically invalid or when
-# docker-compose.staging.yml renders despite a missing required variable
-# (its ${VAR:?} guards are part of the deployment safety contract).
+# Fails when either Compose file is invalid, or when docker-compose.ci.yml
+# renders despite a missing required variable (its ${VAR:?} guards).
 # =============================================================================
 set -Eeuo pipefail
 
@@ -18,25 +17,18 @@ command -v docker >/dev/null 2>&1 || {
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 
-# ── Development compose files (self-contained defaults) ──────────────────────
+# ── Production compose: its settings come from the server's .env ─────────────
 log "rendering docker-compose.yml"
 docker compose -f docker-compose.yml config >/dev/null
 
-# The overlay moves `backend` behind the pre-existing `standalone` profile
-# while `frontend` still depends on it, so the file set only renders with the
-# profile active (pre-existing constraint, documented in docs/CI_CD_AUDIT.md).
-log "rendering docker-compose.yml + load-balancer overlay"
-docker compose -f docker-compose.yml -f docker-compose.load-balancer.yml \
-  --profile standalone config >/dev/null
-
-# ── Staging compose: must render with a complete synthetic environment ───────
-staging_env="$workdir/env.staging"
-cat >"$staging_env" <<'EOF'
-STAGING_DB_USER=synthetic_user
-STAGING_DB_PASSWORD=synthetic_password
-STAGING_DB_NAME=synthetic_db
-STAGING_FRONTEND_URLS=http://localhost:3000,http://localhost:3001
-STAGING_APP_BASE_URL=http://localhost:4000
+# ── CI compose: must render with a complete synthetic environment ────────────
+ci_env="$workdir/env.ci"
+cat >"$ci_env" <<'EOF'
+CI_DB_USER=synthetic_user
+CI_DB_PASSWORD=synthetic_password
+CI_DB_NAME=synthetic_db
+CI_FRONTEND_URLS=http://localhost:3000,http://localhost:3001
+CI_APP_BASE_URL=http://localhost:4000
 JWT_ACCESS_SECRET=synthetic_jwt_secret
 SESSION_SECRET=synthetic_session_secret
 TOTP_ENCRYPTION_KEY=synthetic_totp_key
@@ -68,15 +60,15 @@ ADMIN_IMAGE=ghcr.io/example/beleqet-admin-frontend:00000000000000000000000000000
 JOBS_IMAGE=ghcr.io/example/beleqet-jobs-frontend:0000000000000000000000000000000000000000
 EOF
 
-log "rendering docker-compose.staging.yml with full synthetic env"
-docker compose --env-file "$staging_env" --env-file "$images_env" \
-  -f docker-compose.staging.yml config >/dev/null
+log "rendering docker-compose.ci.yml with full synthetic env"
+docker compose --env-file "$ci_env" --env-file "$images_env" \
+  -f docker-compose.ci.yml config >/dev/null
 
-# ── Staging compose: must REFUSE to render without required variables ────────
-log "verifying staging compose rejects a missing required variable"
+# ── CI compose: must REFUSE to render without required variables ─────────────
+log "verifying the CI compose rejects a missing required variable"
 if docker compose --env-file "$images_env" \
-  -f docker-compose.staging.yml config >/dev/null 2>&1; then
-  log "ERROR: staging compose rendered without its required variables"
+  -f docker-compose.ci.yml config >/dev/null 2>&1; then
+  log "ERROR: the CI compose rendered without its required variables"
   exit 1
 fi
 
