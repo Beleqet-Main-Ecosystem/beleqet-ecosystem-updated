@@ -24,7 +24,7 @@ that server's database, so here it starts with empty wallets.
 
 Like the other bots, it runs from `/opt/beleqet/promo` under systemd: the service is `beleqet-promo-bot`,
 gunicorn with one worker on `127.0.0.1:8002`. nginx serves it at
-`https://beleqet-promo-miniapp.beleqet.com` (see `infra/nginx/promo.conf`).
+`https://promo.beleqetjobs.com` (see `infra/nginx/promo.conf`).
 
 Every merge to `main` copies the code there and restarts it (`scripts/deploy/deploy-production.sh`).
 Its `.env`, `venv` and `data/` (the database `promo.db` and the payment screenshots in `uploads/`)
@@ -71,12 +71,11 @@ Keep it to one worker: the bot's handlers and SQLite expect a single process.
 Then:
 
 1. Start it: `sudo systemctl daemon-reload && sudo systemctl enable --now beleqet-promo-bot`.
-2. Add the site: copy `beleqet-promo-miniapp.beleqet.com` to `/etc/nginx/sites-available/`, link it
-   in `sites-enabled`, then `sudo nginx -t && sudo systemctl reload nginx`.
-3. Once the domain's DNS points at the server, get its certificate:
-   `sudo certbot --nginx -d beleqet-promo-miniapp.beleqet.com`.
-4. Once `BOT_TOKEN` and `WEBHOOK_SECRET_TOKEN` are set, connect the bot to Telegram by opening
-   `https://beleqet-promo-miniapp.beleqet.com/set_webhook` once.
+2. Add the site: copy `infra/nginx/promo.conf` to `/etc/nginx/sites-available/`, link it in
+   `sites-enabled`, then `sudo nginx -t && sudo systemctl reload nginx`. The `promo` DNS record in
+   Cloudflare (proxied) points at the server; Cloudflare serves the certificate.
+3. Once `BOT_TOKEN` and `WEBHOOK_SECRET_TOKEN` are set, connect the bot to Telegram by opening
+   `https://promo.beleqetjobs.com/set_webhook` once.
 
 ## Transfers from the referral bots
 

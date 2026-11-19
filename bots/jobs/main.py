@@ -31,7 +31,7 @@ CONFIG = {
     'candidate_promo_photo_id': os.getenv("CANDIDATE_PROMO_PHOTO_ID"),
     'employer_promo_photo_id': os.getenv("EMPLOYER_PROMO_PHOTO_ID"),
     'admin_ids': [int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip()],
-    'challenge_mini_app_url': (os.getenv("CHALLENGE_MINI_APP_URL") or "https://webhook.beleqet.com/challenge").rstrip('/'),
+    'challenge_mini_app_url': (os.getenv("CHALLENGE_MINI_APP_URL") or "https://beleqetjobs.com/challenge").rstrip('/'),
 }
 
 # --- More verbose logging setup ---
