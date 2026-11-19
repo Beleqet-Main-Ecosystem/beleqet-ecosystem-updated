@@ -109,18 +109,15 @@ jobs:
           HOST="$(printf '%s' "$HOST" | tr -d '[:space:]')"
           USER="$(printf '%s' "$USER" | tr -d '[:space:]')"
           DEPLOY_PATH="$(printf '%s' "$DEPLOY_PATH" | tr -d '[:space:]')"
-          # Update the code to the commit (keeping the server's own docker-compose.yml), then run the
-          # deploy script from that commit. The server-side override file is never tracked by git.
+          # Update the code to the commit, then run the deploy script from that commit. The
+          # repository's docker-compose.yml is production's; its secrets stay in the server's .env.
           ssh -i ~/.ssh/production_key -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 \
             -p "${PORT:-22}" "$USER@$HOST" \
             "set -e
              cd '${DEPLOY_PATH:-/srv/beleqet-staging}'
              git_() { sudo git -c safe.directory='*' \"\$@\"; }
-             sudo cp docker-compose.yml /tmp/compose.production.yml
              git_ fetch -q origin main
              git_ checkout -q -f -B deploy/auto '$SHA'
-             sudo cp /tmp/compose.production.yml docker-compose.yml
-             sudo rm -f /tmp/compose.production.yml
              sudo bash scripts/deploy/deploy-production.sh '$SHA'"
 
       - name: Remove the SSH key

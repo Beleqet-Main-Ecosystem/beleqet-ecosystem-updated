@@ -13,11 +13,11 @@
 | `bots/` | The Telegram bots (Python) |
 | `packages/common/` | Types and enums shared by the apps |
 | `scripts/` | CI and deploy tooling |
-| `infrastructure/` | nginx configuration samples |
 | `docs/` | Documentation; `docs/archive/` keeps old status reports |
 
 Each app installs and runs from its own folder, for example `cd apps/api && npm ci && npm run start:dev`.
-`docker-compose.yml` at the root builds and runs the API, website and admin together.
+`docker-compose.yml` at the root is production: the API, website and admin with their database and cache.
+`docker-compose.ci.yml` starts the same images with test settings for CI.
 
 ## 🚀 የፕሮጀክት ግብ 
 የእኛ ዓላማ የላቀ ቴክኖሎጂን (AI, Scalability, Security) በመጠቀም የሥራ ፈጣሪዎችን እና ባለሙያዎችን በብቃት ማገናኘት ነው።
