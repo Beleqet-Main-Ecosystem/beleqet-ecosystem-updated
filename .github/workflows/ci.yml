@@ -576,8 +576,8 @@ jobs:
           cache-dependency-path: apps/api/package-lock.json
 
       # Gate: unresolved CRITICAL findings in production dependencies fail CI.
-      # HIGH/moderate findings are reported in the logs for tracking (see
-      # docs/CI_CD_AUDIT.md) without blocking unrelated changes.
+      # HIGH/moderate findings are reported in the logs for tracking, without
+      # blocking unrelated changes.
       - name: Backend production dependency audit
         working-directory: apps/api
         run: |
