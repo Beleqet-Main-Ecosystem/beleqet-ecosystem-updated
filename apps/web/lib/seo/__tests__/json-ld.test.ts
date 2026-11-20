@@ -1,4 +1,4 @@
-import { jsonLd } from '../seo/schemas/json-ld';
+import { jsonLd } from '../schemas/json-ld';
 
 describe('jsonLd', () => {
   it('cannot be used to close the script tag', () => {

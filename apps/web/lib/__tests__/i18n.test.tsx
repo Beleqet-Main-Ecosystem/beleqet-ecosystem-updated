@@ -35,7 +35,6 @@ beforeAll(() => {
     EUR: "€",
   };
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   global.Intl = {
     ...originalIntl,
     NumberFormat: function (
@@ -65,7 +64,6 @@ beforeAll(() => {
       } as any;
     },
   } as any;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
 });
 
 afterAll(() => {
@@ -147,7 +145,6 @@ describe("formatCurrency", () => {
     it("falls back to manual formatting when Intl.NumberFormat throws", () => {
       /* Temporarily break Intl.NumberFormat to trigger the catch branch. */
       const saved = global.Intl.NumberFormat;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global.Intl as any).NumberFormat = () => {
         throw new Error("ICU data not available");
       };

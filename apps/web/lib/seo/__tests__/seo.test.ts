@@ -1,6 +1,6 @@
-import { getSeoConfig } from "@/lib/seo/config";
-import { buildCanonical, isNoindexRoute, stripTrackingParams } from "@/lib/seo/canonical";
-import { ROUTE_REGISTRY, INDEXABLE_ROUTES, NOINDEX_ROUTES } from "@/lib/seo/route-registry";
+import { getSeoConfig } from "../config";
+import { buildCanonical, isNoindexRoute, stripTrackingParams } from "../canonical";
+import { ROUTE_REGISTRY, INDEXABLE_ROUTES, NOINDEX_ROUTES } from "../route-registry";
 import {
   createMetadata,
   homePageMetadata,
@@ -22,7 +22,7 @@ import {
   verifyEmailPageMetadata,
   notFoundPageMetadata,
   type JobMeta,
-} from "@/lib/seo/generate-metadata";
+} from "../generate-metadata";
 
 beforeEach(() => {
   process.env.NEXT_PUBLIC_SITE_URL = "https://beleqet.com";

@@ -1,10 +1,10 @@
-import { applyOrderIndices, reorderItems, sortByOrderIndex } from './reorder';
+import { applyOrderIndices, reorderItems, sortByOrderIndex } from '../utils/reorder';
 import {
   createEmptyPortfolio,
   switchTemplate,
   parsePortfolioData,
-} from './portfolio-state';
-import { emptyLocalized, readLocalized, setLocalized } from './localized';
+} from '../utils/portfolio-state';
+import { emptyLocalized, readLocalized, setLocalized } from '../utils/localized';
 import { INDUSTRY_TAXONOMY } from '../constants/industries';
 
 describe('reorderItems', () => {

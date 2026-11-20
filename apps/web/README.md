@@ -25,19 +25,18 @@ Live deployment: https://beleqet-interview-task-mu.vercel.app
 ## Project structure
 
 ```
-app/
-  layout.tsx          Root layout, header/footer shell, metadata
-  page.tsx             Homepage (Hero, stats, categories, featured jobs, why-choose, CTA)
-  jobs/page.tsx         Job listing with search + category/type filters
-  jobs/[id]/page.tsx     Job detail page (statically generated per job)
-  applications/, employer/, profile/, admin/   Authenticated role-based pages
-  about/, pricing/, contact/, cv-maker/, post-job/   Supporting and workflow pages
-  login/page.tsx, register/page.tsx   Two-section auth pages wired to the backend
-components/            Reusable UI: Header, Footer, Hero, JobCard, AuthShell, forms, etc.
-lib/api.ts              axios client + zod-validated mappers for jobs & categories
-lib/auth.ts             axios auth calls (register/login) + token persistence
-lib/mockData.ts         Static marketing content only (stats, popular searches)
+app/                  Routes only: each folder is a page (page.tsx, layout.tsx, loading.tsx)
+  tg/                 The Telegram Mini App pages
+features/<feature>/   Everything one feature needs: its components, hooks, API calls, types;
+                      tests in features/<feature>/__tests__/ (jobs, freelance, dashboard,
+                      portfolio, chat, forum, resume-brain, miniapp, ...)
+components/           Shared by many pages: Header, Footer, AuthProvider, mobile/ navigation, ui/
+lib/                  Shared helpers: api.ts, auth.ts, i18n.tsx, seo/, telegram/ (Mini App helpers and hooks)
+locales/{en,am}.json  All website text, one section per area (read with useTranslation)
 ```
+
+A page imports from its feature with `@/features/<feature>/...`; inside a feature, files import each
+other relatively. Tests sit in a `__tests__/` folder next to the code they test.
 
 ## Data & auth (live backend)
 
@@ -46,7 +45,7 @@ Job, category, and detail data are fetched **live** from the NestJS API and vali
 - `lib/api.ts` — `fetchJobs` / `fetchJob` / `fetchCategories`, consumed in Server Components
   (`app/page.tsx`, `app/jobs/page.tsx`, `app/jobs/[id]/page.tsx`) with ISR caching (`revalidate`).
 - `lib/auth.ts` + `components/AuthProvider.tsx` — register/login, JWT persistence, and an
-  auth-aware header. `components/JobsListing.tsx` filters client-side over server-fetched data.
+  auth-aware header.
 - Job cards use context-specific dark/light variants and expose an authenticated save/unsave action.
 - Job seekers can apply with a cover letter, resume, portfolio, and expected salary, then track
   applications and saved jobs.
