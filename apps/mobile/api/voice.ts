@@ -1,4 +1,4 @@
-/** Chat-to-Text: speech to text. Same endpoints as the website (lib/chat-to-text-api.ts). */
+/** Chat-to-Text: speech to text. Same endpoints as the website (features/chat-to-text/api.ts). */
 import * as SecureStore from 'expo-secure-store';
 import { get, send, upload, type PickedFile } from '../lib/api';
 

@@ -17,7 +17,7 @@ import {
   type Experience,
   type ExtractedProfile,
   type ProfileFields,
-} from '@/lib/resume-brain/mapping';
+} from '@/features/resume-brain/mapping';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const LOCAL_DRAFT = 'beleqet_cv_draft';

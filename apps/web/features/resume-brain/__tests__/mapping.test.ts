@@ -16,7 +16,7 @@ import {
   resumeToCvImport,
   type CvData,
   type ExtractedProfile,
-} from './mapping';
+} from '../mapping';
 
 function makeCv(overrides: Partial<CvData> = {}): CvData {
   return { ...emptyCv, ...overrides };

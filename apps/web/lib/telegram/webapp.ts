@@ -1,4 +1,4 @@
-import type { TelegramWebApp } from '@/hooks/useTelegram';
+import type { TelegramWebApp } from './useTelegram';
 
 const SCRIPT_URL = 'https://telegram.org/js/telegram-web-app.js';
 

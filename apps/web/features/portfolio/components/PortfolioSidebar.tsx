@@ -2,7 +2,7 @@
 
 import { SECTION_LABELS } from '../constants/sections';
 import type { LanguageCode, PortfolioSectionId } from '../types';
-import { SortableList } from '../components/SortableList';
+import { SortableList } from './SortableList';
 import { cn } from '@/lib/utils';
 
 type PortfolioSidebarProps = {

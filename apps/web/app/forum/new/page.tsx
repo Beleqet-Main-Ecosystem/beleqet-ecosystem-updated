@@ -6,8 +6,8 @@ import { X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { forumCard, forumSolid } from '@/features/forum/ForumList';
 import { getToken } from '@/lib/auth';
-import { FORUM_CONFIG } from '@/lib/config/forum';
-import { createThread } from '@/lib/forum-api';
+import { FORUM_CONFIG } from '@/features/forum/config';
+import { createThread } from '@/features/forum/api';
 import { useTranslation } from '@/lib/i18n';
 import { errorText } from '@/lib/api-error';
 

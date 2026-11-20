@@ -1,7 +1,7 @@
 // @jest-environment jsdom
 
-import { isPlaceholderEmail } from "../auth";
-import { askTelegram, botRegistrationUrl, TELEGRAM_LOGIN_BOT_ID } from "../telegram-login";
+import { isPlaceholderEmail } from "@/lib/auth";
+import { askTelegram, botRegistrationUrl, TELEGRAM_LOGIN_BOT_ID } from "../login";
 
 type Callback = (data: Record<string, string | number> | false) => void;
 

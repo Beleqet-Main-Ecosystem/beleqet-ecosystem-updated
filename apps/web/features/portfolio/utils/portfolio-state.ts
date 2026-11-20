@@ -1,7 +1,7 @@
 import { DEFAULT_SECTION_ORDER } from '../constants/sections';
 import type { MasterProfileData } from '../types';
-import { createId } from '../utils/ids';
-import { emptyLocalized } from '../utils/localized';
+import { createId } from './ids';
+import { emptyLocalized } from './localized';
 
 /**
  * Returns a fresh master profile with sensible defaults for the builder.

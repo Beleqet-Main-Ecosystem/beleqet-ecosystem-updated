@@ -1,4 +1,4 @@
-/** Community forum. Same endpoints and limits as the website (lib/forum-api.ts, lib/config/forum.ts). */
+/** Community forum. Same endpoints and limits as the website (features/forum/api.ts, features/forum/config.ts). */
 import { get, send } from '../lib/api';
 
 export const FORUM_LIMITS = { MIN_TITLE: 5, MAX_TITLE: 200, MIN_CONTENT: 20, MAX_CONTENT: 10000, MAX_TAGS: 10, MAX_TAG: 30 };

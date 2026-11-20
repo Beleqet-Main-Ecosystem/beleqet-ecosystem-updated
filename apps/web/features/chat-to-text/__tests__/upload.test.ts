@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { useTranscription } from '../../hooks/useTranscription';
+import { useTranscription } from '../useTranscription';
 
 describe('useTranscription upload support', () => {
   it('exposes an upload transcription helper', () => {

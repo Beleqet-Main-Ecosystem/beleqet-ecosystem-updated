@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Send } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n';
 import { apiError } from '@/lib/api-error';
-import { botRegistrationUrl, TELEGRAM_LOGIN_BOT_ID } from '@/lib/telegram-login';
+import { botRegistrationUrl, TELEGRAM_LOGIN_BOT_ID } from '@/lib/telegram/login';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
 const APP_RETURN = 'beleqet://auth/callback';

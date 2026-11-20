@@ -1,6 +1,6 @@
 import ForumList from '@/features/forum/ForumList';
-import { FORUM_CONFIG } from '@/lib/config/forum';
-import { getThreads, type ForumThread, type PaginatedResponse } from '@/lib/forum-api';
+import { FORUM_CONFIG } from '@/features/forum/config';
+import { getThreads, type ForumThread, type PaginatedResponse } from '@/features/forum/api';
 
 export const revalidate = FORUM_CONFIG.CACHE.REVALIDATE_SECONDS;
 

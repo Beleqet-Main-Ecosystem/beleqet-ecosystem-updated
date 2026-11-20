@@ -1,4 +1,4 @@
-import HomeHero from '@/components/landing/HomeHero';
+import HomeHero from '@/features/home/HomeHero';
 import {
   AppAndTelegram,
   CategoryLinks,
@@ -9,7 +9,7 @@ import {
   LatestJobs,
   TrustStrip,
   WhyBeleqet,
-} from '@/components/landing/LandingSections';
+} from '@/features/home/LandingSections';
 import { homePageMetadata } from '@/lib/seo/generate-metadata';
 import {
   fetchCategories,

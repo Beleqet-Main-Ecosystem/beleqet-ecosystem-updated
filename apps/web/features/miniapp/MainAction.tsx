@@ -2,8 +2,8 @@
 
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTelegram } from '@/hooks/useTelegram';
-import { useTelegramMainButton } from '@/hooks/useTelegramMainButton';
+import { useTelegram } from '@/lib/telegram/useTelegram';
+import { useTelegramMainButton } from '@/lib/telegram/useTelegramMainButton';
 
 type Props = {
   text: string;

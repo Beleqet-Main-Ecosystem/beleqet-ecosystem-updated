@@ -5,7 +5,7 @@ import TelegramRegisterPanel from './TelegramRegisterPanel';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { oauthStartUrl, OAUTH_NEXT_KEY, OAUTH_TWO_FACTOR_KEY, signInWithTelegramLogin } from '@/lib/auth';
-import { askTelegram, prepareTelegramLogin } from '@/lib/telegram-login';
+import { askTelegram, prepareTelegramLogin } from '@/lib/telegram/login';
 import { useTranslation } from '@/lib/i18n';
 import { homeFor, safeNextPath } from '../redirect';
 import { focusRing } from './fields';

@@ -9,7 +9,7 @@ import { useTranslation } from '@/lib/i18n';
 import { searchJobs, type Job } from '@/lib/api';
 import { apiGet, fetchProfile, type Profile } from '@/features/dashboard/api';
 import { formatSalary, postedAgo } from '@/features/jobs/format';
-import { botRegistrationUrl, openInTelegram } from '@/lib/telegram-login';
+import { botRegistrationUrl, openInTelegram } from '@/lib/telegram/login';
 import { Band, CompanyMark, TabBar, card, chipOff, chipOn, muted } from '@/features/miniapp/ui';
 
 type Filter = { id: string; label: string; params: { q?: string; location?: string; type?: string } };

@@ -1,5 +1,5 @@
 import { isMiniAppPath } from "../mini-app";
-import { stageOf } from "../../features/miniapp/stages";
+import { stageOf } from "@/features/miniapp/stages";
 
 describe("Telegram Mini App pages", () => {
   it("are /tg and everything under it, nothing else", () => {

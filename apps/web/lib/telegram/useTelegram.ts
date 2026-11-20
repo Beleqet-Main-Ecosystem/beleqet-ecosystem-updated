@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { loadTelegramWebApp } from '@/lib/telegram-webapp';
+import { loadTelegramWebApp } from './webapp';
 
 /**
  * Represents the subset of the Telegram WebApp API used across the app.

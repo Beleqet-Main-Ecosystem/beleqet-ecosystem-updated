@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
-import type { ISpeechConversation, ITranscript } from './chat-to-text-types';
+import type { ISpeechConversation, ITranscript } from './types';
 
 const DEFAULT_API_BASE_URL = 'https://api.beleqetjobs.com';
 

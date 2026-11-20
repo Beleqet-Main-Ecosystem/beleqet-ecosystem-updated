@@ -1,11 +1,11 @@
 import { create } from 'zustand';
-import type { ITranscript } from '@/lib/chat-to-text-types';
+import type { ITranscript } from './types';
 import {
   createSpeechConversation,
   deleteTranscript as deleteTranscriptApi,
   fetchConversationTranscripts,
   getChatToTextErrorMessage,
-} from '@/lib/chat-to-text-api';
+} from './api';
 
 const CONVERSATION_ID_STORAGE_KEY = 'beleqet.chat-to-text.conversation-id';
 const THEME_STORAGE_KEY = 'beleqet-theme';

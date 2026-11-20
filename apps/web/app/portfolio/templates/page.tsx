@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { TemplateSelector } from '@/portfolio/components/TemplateSelector';
-import { usePortfolioTranslations } from '@/portfolio/hooks/usePortfolioTranslations';
+import { TemplateSelector } from '@/features/portfolio/components/TemplateSelector';
+import { usePortfolioTranslations } from '@/features/portfolio/hooks/usePortfolioTranslations';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 

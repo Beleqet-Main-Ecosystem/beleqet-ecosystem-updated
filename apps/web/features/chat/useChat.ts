@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { socket } from "@/lib/socket";
-import { ChatMessage } from "@/types/chat";
+import { socket } from "./socket";
+import { ChatMessage } from "./types";
 
 export function useChat(roomId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);

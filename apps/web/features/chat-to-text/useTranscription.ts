@@ -1,7 +1,7 @@
 
 import { useRef, useCallback } from 'react';
-import { transcribeAudio, transcribeStreamChunk, getChatToTextErrorMessage } from '@/lib/chat-to-text-api';
-import { useTranscriptionStore } from '@/store/transcription.store';
+import { transcribeAudio, transcribeStreamChunk, getChatToTextErrorMessage } from './api';
+import { useTranscriptionStore } from './transcription.store';
 
 export function useTranscription() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);

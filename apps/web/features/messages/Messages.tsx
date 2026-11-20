@@ -7,7 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { getToken } from '@/lib/auth';
 import { useTranslation } from '@/lib/i18n';
-import { useSocket, useSocketEvent } from '@/hooks/useSocket';
+import { useSocket, useSocketEvent } from './useSocket';
 import { initials } from '@/features/jobs/format';
 import { apiGet, apiSend } from '@/features/dashboard/api';
 import { card, Empty, Failed, Heading, muted, solid } from '@/features/dashboard/ui';

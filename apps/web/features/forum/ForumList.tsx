@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
-import type { ForumThread, PaginatedResponse } from '@/lib/forum-api';
+import type { ForumThread, PaginatedResponse } from './api';
 import { useTranslation } from '@/lib/i18n';
 import { postedAgo } from '@/features/jobs/format';
 

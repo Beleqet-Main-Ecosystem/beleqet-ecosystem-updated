@@ -15,10 +15,6 @@
     "incremental": true,
     "plugins": [{ "name": "next" }],
     "paths": {
-      // The portfolio feature's shared code lives at app/portfolio/portfolio
-      // (nested under its Next.js route segment); this maps the @/portfolio/*
-      // imports used throughout it to that actual location.
-      "@/portfolio/*": ["./app/portfolio/portfolio/*"],
       "@/*": ["./*"]
     }
   },

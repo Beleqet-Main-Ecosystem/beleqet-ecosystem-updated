@@ -1,6 +1,6 @@
 "use client";
 
-import { useChat } from "@/hooks/useChat";
+import { useChat } from "./useChat";
 import ChatHeader from "./ChatHeader";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";

@@ -1,6 +1,6 @@
 // @jest-environment jsdom
 
-import { isTelegramLaunch, loadTelegramWebApp } from "../telegram-webapp";
+import { isTelegramLaunch, loadTelegramWebApp } from "../webapp";
 
 describe("Telegram Mini App launch", () => {
   afterEach(() => {

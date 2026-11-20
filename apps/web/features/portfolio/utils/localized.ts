@@ -1,4 +1,4 @@
-import type { LanguageCode, LocalizedText } from '@/portfolio/types';
+import type { LanguageCode, LocalizedText } from '../types';
 
 /**
  * Creates an empty localized text object for all supported languages.

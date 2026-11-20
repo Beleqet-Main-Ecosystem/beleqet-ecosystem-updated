@@ -1,6 +1,6 @@
 'use client';
 
-import type { LanguageCode } from '@/portfolio/types';
+import type { LanguageCode } from '../types';
 import { cn } from '@/lib/utils';
 
 type LanguageSwitcherProps = {

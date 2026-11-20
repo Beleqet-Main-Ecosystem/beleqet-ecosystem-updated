@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Briefcase, Pencil, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { usePortfolioQuery } from '@/portfolio/queries/portfolio-queries';
-import { usePortfolioTranslations } from '@/portfolio/hooks/usePortfolioTranslations';
+import { usePortfolioQuery } from '@/features/portfolio/queries/portfolio-queries';
+import { usePortfolioTranslations } from '@/features/portfolio/hooks/usePortfolioTranslations';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
