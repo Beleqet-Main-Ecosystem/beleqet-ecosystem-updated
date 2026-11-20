@@ -27,16 +27,11 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { SalaryModule } from './modules/salary/salary.module';
-import { VideoInterviewModule } from './modules/video-interview/video-interview.module';
-import { PlagiarismModule } from './modules/plagiarism/plagiarism.module';
 import { InterviewPlannerModule } from '@modules/interview-planner/interview-planner.module';
-import { ReviewModule } from './modules/review/review.module';
 import { ChatToTextModule } from './modules/chat-to-text/chat-to-text.module';
 import { ManualPaymentModule } from './modules/manual-payment/manual-payment.module';
 import { BeleqetPayModule } from './modules/beleqet-pay/beleqet-pay.module';
-import { DbIndexMasterModule } from './modules/db-index-master/db-index-master.module';
 import { APP_GUARD } from '@nestjs/core';
-import { AnomalySensorModule } from './modules/anomaly-sensor/anomaly-sensor.module';
 import { AdminStatsModule } from './modules/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/dispute-manager/dispute-manager.module';
 
@@ -45,16 +40,12 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { GraphqlConfigModule } from './graphql/graphql.module';
 import { GraphqlTurboModule } from './modules/graphql-turbo/graphql-turbo.module';
 import { TwoFactorModule } from './modules/two-factor/two-factor.module';
-import { KycModule } from './modules/kyc/kyc.module';
 import { AiFeedModule } from './modules/ai-feed/ai-feed.module';
 import { ResumeBrainModule } from './modules/resume-brain/resume-brain.module';
-import { EncryptedInboxModule } from './modules/encrypted-inbox/encrypted-inbox.module';
-import { UserPreferencesModule } from './modules/user-preferences/user-preferences.module';
 import { CommunityForumModule } from './modules/community-forum/forum.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { JobAlertsModule } from './modules/job-alerts/job-alerts.module';
 import { GdprGuardModule } from './modules/gdpr-guard/gdpr-guard.module';
-import { SmartSkillTesterModule } from './modules/smart-skill-tester/smart-skill-tester.module';
 import { TaxCalculatorModule } from './modules/tax-calculator/tax-calculator.module';
 import { HealthModule } from './modules/health/health.module';
 import { PlansModule } from './modules/plans/plans.module';
@@ -62,9 +53,6 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { BillingModule } from './modules/billing/billing.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { RbacModule } from './modules/rbac/rbac.module';
-import { FaqBotModule } from './modules/faq-bot/faq-bot.module';
-import { MatchingModule } from './modules/matching/matching.module';
-import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.module';
 
 @Module({
   imports: [
@@ -121,7 +109,8 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
       ],
     }),
 
-    //  Feature modules
+    //  Feature modules. Unfinished ones (server code only, no screen yet) are in
+    //  modules/unfinished/ and switched off; see its README.
     PrismaModule,
     QueuesModule,
     RedisModule,
@@ -141,24 +130,16 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     UploadsModule,
     TelegramModule,
     ContactModule,
-    VideoInterviewModule,
-    PlagiarismModule,
     InterviewPlannerModule,
-    AnomalySensorModule,
     AdminStatsModule,
     DisputeManagerModule,
-    DbIndexMasterModule,
     PaymentsModule,
     // ── Fixed: PerformanceWorkerModule removed from imports array ──
     GraphqlConfigModule,
     GraphqlTurboModule,
     TwoFactorModule,
-    KycModule,
     AiFeedModule,
     ResumeBrainModule,
-    EncryptedInboxModule,
-    UserPreferencesModule,
-    SmartSkillTesterModule,
     SalaryModule,
     TaxCalculatorModule,
     HealthModule,
@@ -166,7 +147,6 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     SubscriptionsModule,
     BillingModule,
     SchedulerModule,
-    ReviewModule,
     ChatToTextModule,
     ManualPaymentModule,
     BeleqetPayModule,
@@ -176,9 +156,6 @@ import { PromotedEngineModule } from './modules/promoted-engine/promoted-engine.
     // Was never registered, so admin erasure and self-service deletion were unreachable.
     GdprGuardModule,
     RbacModule,
-    FaqBotModule,
-    MatchingModule,
-    PromotedEngineModule,
   ],
   providers: [
     {
