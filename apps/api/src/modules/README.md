@@ -11,7 +11,7 @@ every module except the ones in `unfinished/`.
 | `freelance` | `freelance` (gigs, bids, contracts), `dispute-manager` |
 | `payments` | `chapa`, `payments` (PayPal, Stripe), `manual-payment` (bank transfer receipts), `plans`, `subscriptions`, `billing` (provider events into subscriptions), `escrow` (BeleqetSafe), `wallet`, `beleqet-pay` (client for Beleqet Pay, not used yet) |
 | `messaging` | `notifications`, `push`, `email-automation`, `telegram`, `chat`, `chat-to-text` (voice assistant), `community-forum`, `contact` |
-| `admin` | `admin`, `admin-stats`, `reports` |
+| `admin` | `admin`, `admin-stats`, `reports`, `fraud-alert` (the admin's Fraud alerts page; loaded by `AdminModule`) with `anomaly-sensor` and `plagiarism` |
 | `platform` | `audit` (the audit trail), `analytics`, `health`, `queues`, `redis`, `scheduler`, `uploads` (file storage) |
 | `unfinished` | Server code only, switched off until finished: see [`unfinished/README.md`](unfinished/README.md) |
 
