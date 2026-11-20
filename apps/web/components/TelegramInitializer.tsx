@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTelegram } from '@/hooks/useTelegram';
-import { useTelegramTheme } from '@/hooks/useTelegramTheme';
-import { useTelegramBackButton } from '@/hooks/useTelegramBackButton';
-import { useTelegramDeepLink } from '@/hooks/useTelegramDeepLink';
+import { useTelegram } from '@/lib/telegram/useTelegram';
+import { useTelegramTheme } from '@/lib/telegram/useTelegramTheme';
+import { useTelegramBackButton } from '@/lib/telegram/useTelegramBackButton';
+import { useTelegramDeepLink } from '@/lib/telegram/useTelegramDeepLink';
 
 /**
  * Single component that bootstraps the full Telegram Mini App integration.

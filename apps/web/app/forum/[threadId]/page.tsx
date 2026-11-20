@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import ThreadView from '@/features/forum/ThreadView';
-import { getThread } from '@/lib/forum-api';
+import { getThread } from '@/features/forum/api';
 
 export default async function ThreadDetailPage({ params }: { params: { threadId: string } }) {
   const thread = await getThread(params.threadId).catch(() => null);

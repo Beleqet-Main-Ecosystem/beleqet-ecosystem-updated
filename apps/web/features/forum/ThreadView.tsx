@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowUp, Lock } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { getToken } from '@/lib/auth';
-import { createReply, toggleReplyUpvote, toggleThreadUpvote, type ForumReply, type ForumThread } from '@/lib/forum-api';
+import { createReply, toggleReplyUpvote, toggleThreadUpvote, type ForumReply, type ForumThread } from './api';
 import { useTranslation } from '@/lib/i18n';
 import { postedAgo } from '@/features/jobs/format';
 import { forumCard, forumSolid } from './ForumList';

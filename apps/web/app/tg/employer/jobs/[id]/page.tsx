@@ -9,7 +9,7 @@ import { errorText } from '@/lib/api-error';
 import { apiGet, apiSend, type ApplicationStatus } from '@/features/dashboard/api';
 import { shortDate } from '@/features/dashboard/ui';
 import { safeHttpUrl } from '@/features/jobs/format';
-import { useTelegram } from '@/hooks/useTelegram';
+import { useTelegram } from '@/lib/telegram/useTelegram';
 import { CompanyMark, card, chipOff, chipOn, heading, muted, outlineButton } from '@/features/miniapp/ui';
 
 type Applicant = {

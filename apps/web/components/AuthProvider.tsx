@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { AuthUser, clearAuth, enforceKeepSignedIn, getStoredUser, SESSION_ENDED_EVENT, signInWithTelegram } from '@/lib/auth';
-import { isTelegramLaunch, loadTelegramWebApp } from '@/lib/telegram-webapp';
+import { isTelegramLaunch, loadTelegramWebApp } from '@/lib/telegram/webapp';
 
 type AuthContextValue = {
   user: AuthUser | null;

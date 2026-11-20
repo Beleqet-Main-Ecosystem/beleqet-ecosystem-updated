@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { isMiniAppPath } from '@/lib/mini-app';
+import { isMiniAppPath } from '@/lib/telegram/mini-app';
 
 /** The website's own chrome, left out of the Telegram Mini App, which has its own. */
 export default function WebsiteOnly({ children }: { children: React.ReactNode }) {

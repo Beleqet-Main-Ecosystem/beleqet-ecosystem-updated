@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { useTelegram } from '@/hooks/useTelegram';
+import { useTelegram } from '@/lib/telegram/useTelegram';
 import { useTranslation, type SupportedLocale } from '@/lib/i18n';
 import { apiGet } from '@/features/dashboard/api';
 

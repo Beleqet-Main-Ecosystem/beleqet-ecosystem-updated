@@ -18,7 +18,7 @@ import WebsiteOnly from '@/components/WebsiteOnly';
 import { inter, ethiopic, sora } from './fonts';
 
 /* Dynamically-load non-critical client modules — not needed on first paint */
-const ChatWidget = dynamic(() => import('@/components/ChatWidget'), { ssr: false });
+const ChatWidget = dynamic(() => import('@/features/chat/ChatWidget'), { ssr: false });
 const MobileBottomNav = dynamic(() => import('@/components/mobile/MobileBottomNav'), { ssr: false });
 const GdprConsentBanner = dynamic(() => import('@/components/mobile/GdprConsentBanner'), { ssr: false });
 

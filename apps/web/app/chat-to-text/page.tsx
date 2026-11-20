@@ -4,10 +4,10 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { Mic, Square } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
-import { useTranscription } from '@/hooks/useTranscription';
-import { SUPPORTED_LANGUAGES, type ITranscript, type Language } from '@/lib/chat-to-text-types';
+import { useTranscription } from '@/features/chat-to-text/useTranscription';
+import { SUPPORTED_LANGUAGES, type ITranscript, type Language } from '@/features/chat-to-text/types';
 import { useTranslation } from '@/lib/i18n';
-import { hydrateConversationId, useTranscriptionStore } from '@/store/transcription.store';
+import { hydrateConversationId, useTranscriptionStore } from '@/features/chat-to-text/transcription.store';
 
 const card = 'rounded-xl border border-ink-200 bg-surface p-5 md:p-6 dark:border-slate-800 dark:bg-slate-900';
 const outline = 'inline-flex min-h-11 items-center justify-center rounded-lg border border-ink-300 bg-surface px-4 text-sm font-bold text-ink-900 dark:border-slate-700 dark:bg-slate-900 dark:text-white';

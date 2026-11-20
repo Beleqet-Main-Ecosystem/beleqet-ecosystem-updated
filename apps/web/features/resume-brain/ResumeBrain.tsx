@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Check, Upload, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from '@/lib/i18n';
-import { resumeToCvImport } from '@/lib/resume-brain/mapping';
-import { autofillProfile, deleteResume, messageFromResumeBrainError, uploadResume } from '@/components/resume-brain/api';
-import type { PersonalInfo, UploadResumeResponse } from '@/components/resume-brain/types';
+import { resumeToCvImport } from './mapping';
+import { autofillProfile, deleteResume, messageFromResumeBrainError, uploadResume } from './api';
+import type { PersonalInfo, UploadResumeResponse } from './types';
 import { CV_IMPORT_KEY } from '@/features/cv/CvMaker';
 
 const STEPS = ['upload', 'reading', 'review', 'done'] as const;

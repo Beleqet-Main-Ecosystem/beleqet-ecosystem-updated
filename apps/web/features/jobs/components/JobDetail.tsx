@@ -5,7 +5,7 @@ import Link from 'next/link';
 import ReportButton from '@/features/reports/ReportButton';
 import { useRouter } from 'next/navigation';
 import { Check, ExternalLink, Share2, ShieldCheck } from 'lucide-react';
-import SaveJobButton from '@/components/SaveJobButton';
+import SaveJobButton from './SaveJobButton';
 import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import type { Job } from '@/lib/api';

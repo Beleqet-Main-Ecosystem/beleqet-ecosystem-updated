@@ -1,5 +1,5 @@
-import FeedClient from './FeedClient';
-import FeedHeading from './FeedHeading';
+import FeedClient from '@/features/feed/FeedClient';
+import FeedHeading from '@/features/feed/FeedHeading';
 
 export default function FeedPage() {
   return (

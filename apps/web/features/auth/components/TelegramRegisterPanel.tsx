@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { isTelegramLaunch } from '@/lib/telegram-webapp';
-import { botRegistrationUrl, openInTelegram } from '@/lib/telegram-login';
+import { isTelegramLaunch } from '@/lib/telegram/webapp';
+import { botRegistrationUrl, openInTelegram } from '@/lib/telegram/login';
 import { safeNextPath } from '../redirect';
 import { focusRing } from './fields';
 

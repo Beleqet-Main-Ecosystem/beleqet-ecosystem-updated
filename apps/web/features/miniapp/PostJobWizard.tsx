@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { authenticatedFetch } from '@/lib/auth';
 import { apiError, errorText } from '@/lib/api-error';
 import { useTranslation } from '@/lib/i18n';
-import { botRegistrationUrl, openInTelegram } from '@/lib/telegram-login';
+import { botRegistrationUrl, openInTelegram } from '@/lib/telegram/login';
 import { GENDERS, type Gender } from '@/features/jobs/format';
 import { JOB_TYPES } from '@/features/jobs/search-params';
 import CompanySetup from '@/features/jobs/components/CompanySetup';

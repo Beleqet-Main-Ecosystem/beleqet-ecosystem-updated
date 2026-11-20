@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
-import { askTelegram } from '@/lib/telegram-login';
+import { askTelegram } from '@/lib/telegram/login';
 import { errorText } from '@/lib/api-error';
 import { apiSend, fetchProfile, type Profile } from '../api';
 import { card, Field, input, link, muted, outline, solid } from '../ui';

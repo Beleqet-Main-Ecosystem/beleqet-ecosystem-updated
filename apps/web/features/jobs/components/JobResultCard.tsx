@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { BriefcaseBusiness, Clock3, MapPin } from 'lucide-react';
-import SaveJobButton from '@/components/SaveJobButton';
+import SaveJobButton from './SaveJobButton';
 import type { Job } from '@/lib/api';
 import { useTranslation } from '@/lib/i18n';
 import { formatSalary, initials, postedAgo } from '../format';
