@@ -17,7 +17,7 @@ import session = require('express-session');
 import { IoRedisSessionStore } from './common/session/ioredis-session.store';
 import type Redis from 'ioredis';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
-import { REDIS_CLIENT } from './modules/redis/redis.module';
+import { REDIS_CLIENT } from './modules/platform/redis/redis.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');

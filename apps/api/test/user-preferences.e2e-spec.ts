@@ -4,9 +4,9 @@ import { randomUUID } from 'crypto';
 import * as request from 'supertest';
 import { CurrentUserPayload } from '../src/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
-import { UserPreferencesController } from '../src/modules/user-preferences/user-preferences.controller';
-import { UserPreferencesRepository } from '../src/modules/user-preferences/user-preferences.repository';
-import { UserPreferencesService } from '../src/modules/user-preferences/user-preferences.service';
+import { UserPreferencesController } from '../src/modules/unfinished/user-preferences/user-preferences.controller';
+import { UserPreferencesRepository } from '../src/modules/unfinished/user-preferences/user-preferences.repository';
+import { UserPreferencesService } from '../src/modules/unfinished/user-preferences/user-preferences.service';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 

@@ -4,7 +4,7 @@ import * as request from 'supertest';
 import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { AuthService } from '../src/modules/auth/auth.service';
+import { AuthService } from '../src/modules/accounts/auth/auth.service';
 
 describe('Freelance & Escrow Lifecycle (e2e)', () => {
   let app: INestApplication;

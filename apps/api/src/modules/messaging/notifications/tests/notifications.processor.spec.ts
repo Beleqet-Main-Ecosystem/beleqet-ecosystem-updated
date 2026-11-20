@@ -1,0 +1,258 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { Job } from 'bullmq';
+import { NotificationsProcessor } from '../notifications.processor';
+import { PrismaService } from '../../../../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import {
+  InAppPayload,
+  EmailPayload,
+  TelegramPayload,
+  PushPayload,
+  SmsPayload,
+} from '../notifications.processor';
+
+describe('NotificationsProcessor', () => {
+  let processor: NotificationsProcessor;
+
+  const prismaMock = {
+    notification: {
+      create: jest.fn(),
+    },
+  };
+
+  const configMock = {
+    get: jest.fn(<T>(key: string, defaultValue?: T): T | undefined => {
+      const values: Record<string, unknown> = {
+        SMTP_HOST: 'smtp.test.com',
+        SMTP_PORT: 587,
+        SMTP_USER: 'user',
+        SMTP_PASSWORD: 'pass',
+        SMTP_SECURE: 'false',
+        SMTP_FROM: 'test@test.com',
+        TELEGRAM_BOT_TOKEN: 'token-123',
+      };
+
+      return (values[key] as T) ?? defaultValue;
+    }),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        NotificationsProcessor,
+
+        {
+          provide: PrismaService,
+          useValue: prismaMock,
+        },
+
+        {
+          provide: ConfigService,
+          useValue: configMock,
+        },
+      ],
+    }).compile();
+
+    processor = module.get(NotificationsProcessor);
+
+    jest.clearAllMocks();
+  });
+
+  describe('sendInApp', () => {
+    it('should create database notification', async () => {
+      const mockJob = {
+        name: 'send-in-app',
+        data: {
+          userId: 'user-1',
+          type: 'INTERVIEW',
+          title: 'Interview',
+          body: 'Scheduled',
+          metadata: {},
+        },
+      } as Job<InAppPayload, void, 'send-in-app'>;
+
+      await processor.sendInApp(mockJob);
+
+      expect(prismaMock.notification.create).toHaveBeenCalledWith({
+        data: {
+          userId: 'user-1',
+          type: 'INTERVIEW',
+          title: 'Interview',
+          body: 'Scheduled',
+          channel: 'IN_APP',
+          metadata: {},
+        },
+      });
+    });
+  });
+
+  describe('sendEmail', () => {
+    it('should send email successfully', async () => {
+      const mockJob = {
+        name: 'send-email',
+        data: {
+          to: 'user@test.com',
+          subject: 'Interview',
+          html: '<p>Hello</p>',
+        },
+      } as Job<EmailPayload, void, 'send-email'>;
+
+      const transporter = (processor as unknown as { transporter: { sendMail: jest.Mock } })
+        .transporter;
+      const spy = jest.spyOn(transporter, 'sendMail').mockResolvedValue(true);
+
+      await processor.sendEmail(mockJob);
+
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should ignore missing email', async () => {
+      const mockJob = {
+        name: 'send-email',
+        data: {
+          to: '',
+          subject: 'test',
+          html: 'test',
+        },
+      } as Job<EmailPayload, void, 'send-email'>;
+
+      await processor.sendEmail(mockJob);
+    });
+  });
+
+  describe('sendTelegram', () => {
+    it('should skip when bot token missing', async () => {
+      configMock.get.mockReturnValue(undefined);
+
+      const mockJob = {
+        name: 'send-telegram',
+        data: {
+          telegramId: '123',
+          message: 'hello',
+        },
+      } as Job<TelegramPayload, void, 'send-telegram'>;
+
+      await processor.sendTelegram(mockJob);
+    });
+
+    describe('with Telegram on', () => {
+      const job = {
+        name: 'send-telegram',
+        data: { telegramId: '123', message: 'hello' },
+      } as Job<TelegramPayload, void, 'send-telegram'>;
+      const realFetch = global.fetch;
+      let fetchMock: jest.Mock;
+
+      function settings(values: Record<string, string>) {
+        configMock.get.mockImplementation(
+          (key: string, defaultValue?: unknown) => values[key] ?? defaultValue,
+        );
+      }
+
+      beforeEach(() => {
+        fetchMock = jest.fn().mockResolvedValue({ ok: true, text: async () => '' });
+        global.fetch = fetchMock as never;
+      });
+      afterEach(() => {
+        global.fetch = realFetch;
+      });
+
+      it('sends through the Jobs bot (the first Mini App token), the bot people opened', async () => {
+        settings({
+          TELEGRAM_ENABLED: 'true',
+          TELEGRAM_BOT_TOKEN: 'notify-bot',
+          TELEGRAM_MINI_APP_BOT_TOKENS: ' jobs-bot , other-bot',
+        });
+        await processor.sendTelegram(job);
+        expect(fetchMock.mock.calls[0][0]).toBe('https://api.telegram.org/botjobs-bot/sendMessage');
+      });
+
+      it('uses TELEGRAM_USER_BOT_TOKEN when set, and the main bot as a last resort', async () => {
+        settings({
+          TELEGRAM_ENABLED: 'true',
+          TELEGRAM_BOT_TOKEN: 'notify-bot',
+          TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot',
+          TELEGRAM_USER_BOT_TOKEN: 'chosen-bot',
+        });
+        await processor.sendTelegram(job);
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_BOT_TOKEN: 'notify-bot' });
+        await processor.sendTelegram(job);
+        expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+          'https://api.telegram.org/botchosen-bot/sendMessage',
+          'https://api.telegram.org/botnotify-bot/sendMessage',
+        ]);
+      });
+
+      it('adds a button that opens a Mini App screen when the message has one', async () => {
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
+        await processor.sendTelegram({
+          ...job,
+          data: {
+            telegramId: '123',
+            message: 'hello',
+            button: { text: 'Track', url: 'https://beleqetjobs.com/tg/applications' },
+          },
+        } as Job<TelegramPayload, void, 'send-telegram'>);
+        await processor.sendTelegram(job);
+        const [withButton, without] = fetchMock.mock.calls.map(([, init]) =>
+          JSON.parse((init as { body: string }).body),
+        );
+        expect(withButton.reply_markup).toEqual({
+          inline_keyboard: [
+            [{ text: 'Track', web_app: { url: 'https://beleqetjobs.com/tg/applications' } }],
+          ],
+        });
+        expect(without.reply_markup).toBeUndefined();
+      });
+
+      it("doesn't retry when the person blocked or never opened the bot", async () => {
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
+        fetchMock.mockResolvedValueOnce({
+          ok: false,
+          status: 403,
+          text: async () => 'Forbidden: bot was blocked by the user',
+        });
+        await expect(processor.sendTelegram(job)).resolves.toBeUndefined();
+      });
+
+      it('retries rate limits and server errors', async () => {
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
+        fetchMock.mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          text: async () => 'Too Many Requests',
+        });
+        await expect(processor.sendTelegram(job)).rejects.toThrow('429');
+      });
+    });
+  });
+
+  describe('sendPush', () => {
+    it('should log push notification when user id provided', async () => {
+      const mockJob = {
+        name: 'send-push',
+        data: {
+          userId: 'user-1',
+          title: 'Test Push',
+          body: 'Push Body',
+        },
+      } as Job<PushPayload, void, 'send-push'>;
+
+      await processor.sendPush(mockJob);
+    });
+  });
+
+  describe('sendSms', () => {
+    it('should log sms notification when phone number provided', async () => {
+      const mockJob = {
+        name: 'send-sms',
+        data: {
+          to: '+1234567890',
+          message: 'SMS message',
+        },
+      } as Job<SmsPayload, void, 'send-sms'>;
+
+      await processor.sendSms(mockJob);
+    });
+  });
+});

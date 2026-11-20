@@ -1,0 +1,111 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../../common/guards/optional-jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../../common/guards/verified-email.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { JobsService } from './jobs.service';
+import { CreateJobDto, QueryJobsDto, UpdateJobDto } from './dto/create-job.dto';
+import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
+
+@ApiTags('jobs')
+@Controller('jobs')
+export class JobsController {
+  constructor(private readonly svc: JobsService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Search & browse job listings (public)' })
+  findAll(@Query() query: QueryJobsDto) {
+    return this.svc.findAll(query);
+  }
+
+  @Get('my/quota')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Job posts allowed and used in the caller's billing period" })
+  myQuota(@CurrentUser() user: CurrentUserPayload) {
+    return this.svc.getQuota(user.userId);
+  }
+
+  @Get('my')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
+  @ApiBearerAuth()
+  myJobs(@CurrentUser() user: CurrentUserPayload) {
+    return this.svc.findByCompany(user.userId);
+  }
+
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all job categories' })
+  getCategories() {
+    return this.svc.getCategories();
+  }
+
+  @Get('popular')
+  @ApiOperation({ summary: 'Search suggestions from real searches, open jobs and project skills' })
+  popularSearches() {
+    return this.svc.popularSearches();
+  }
+
+  @Get('stats')
+  @ApiOperation({ summary: 'Get public platform statistics (homepage StatsBar)' })
+  getPlatformStats() {
+    return this.svc.getPlatformStats();
+  }
+
+  @Get(':id')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({
+    summary: 'One job; drafts and jobs in review only for their employer and admins',
+  })
+  findOne(@Param('id') id: string, @CurrentUser() user?: CurrentUserPayload) {
+    return this.svc.findOne(id, user);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard, VerifiedEmailGuard)
+  @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a job listing (employer only)' })
+  create(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateJobDto) {
+    return this.svc.create(user.userId, dto);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
+  @ApiBearerAuth()
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateJobDto,
+  ) {
+    return this.svc.update(id, user.userId, dto);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER', 'ADMIN')
+  @RequirePermissions('create:jobs')
+  @ApiBearerAuth()
+  remove(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.svc.remove(id, user.userId);
+  }
+}

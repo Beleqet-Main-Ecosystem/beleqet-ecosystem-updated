@@ -12,7 +12,7 @@
 import {
   ADMIN_STATS_FIXTURES,
   EXPECTED_FROM_FIXTURES,
-} from '../src/modules/admin-stats/__fixtures__/admin-stats.fixtures';
+} from '../src/modules/admin/admin-stats/__fixtures__/admin-stats.fixtures';
 
 function printFixtureChecklist(): void {
   console.log('=== Admin Stats Phase 4 — Fixture Calculator ===\n');

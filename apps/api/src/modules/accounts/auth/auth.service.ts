@@ -1,0 +1,853 @@
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Logger,
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
+import { createHmac, randomInt } from 'crypto';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { RegisterDto, ChangePasswordDto, ChangeEmailDto } from './dto/register.dto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../../platform/queues/queues.constants';
+import {
+  passwordResetEmail,
+  verificationEmail,
+  verificationCodeEmail,
+  loginAlertEmail,
+  logoutAlertEmail,
+  welcomeEmail,
+} from '../../messaging/notifications/email-templates';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { TwoFactorService } from '../two-factor/two-factor.service';
+import { primaryFrontendUrl } from '../../../common/utils/frontend-url';
+import { isDeliverableEmail } from '../../../common/utils/deliverable-email';
+
+/** Safe account fields that may be returned after successful authentication. */
+export interface AuthenticatedUserResponse {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
+/** Token pair and safe account summary returned by successful authentication. */
+export interface AuthenticatedSessionResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthenticatedUserResponse;
+}
+const _PLATFORM_FEE_PCT = 0.1;
+
+/**
+ * Accounts created from this moment must confirm their email with a 6-digit code before they can
+ * sign in. Older accounts (almost none confirmed while email was broken) keep the softer rule:
+ * they can sign in, but posting, applying and paying wait for a confirmed email (VerifiedEmailGuard).
+ */
+export const STRICT_EMAIL_VERIFICATION_FROM = new Date('2026-11-06T00:00:00Z');
+const EMAIL_CODE = 'EMAIL_VERIFICATION_CODE';
+const EMAIL_CODE_ATTEMPT = 'EMAIL_VERIFICATION_CODE_ATTEMPT';
+const EMAIL_CODE_MINUTES = 15;
+const EMAIL_CODE_MAX_ATTEMPTS = 5;
+const EMAIL_CODE_RESEND_GAP_MS = 60 * 1000;
+const EMAIL_PATTERN = /^[^s@]+@[^s@]+.[^s@]+$/;
+/** One event per code emailed from the bot or the website's "add your email"; five a day. */
+export const EMAIL_CODE_EVENT = 'telegram.email_code';
+export const EMAIL_CODES_PER_DAY = 5;
+
+/** Sign-up and sign-in answer for an account that still has to enter its email code. */
+export interface EmailVerificationChallenge {
+  requiresEmailVerification: true;
+  verificationToken: string;
+  email: string;
+}
+
+@Injectable()
+export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+    private readonly config: ConfigService,
+    private readonly twoFactorService: TwoFactorService,
+    @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  async register(dto: RegisterDto) {
+    const normalizedEmail = dto.email.toLowerCase().trim();
+    const existing = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (existing) throw new ConflictException('Email already registered');
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        passwordHash,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        role: dto.role ?? 'JOB_SEEKER',
+      },
+      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+    });
+
+    this.logger.log(`New user registered: ${user.email} (${user.role})`);
+
+    // The account is signed in only after its email code is entered (verifyEmailCode).
+    const challenge = await this.emailCodeChallenge(user);
+
+    // Send personalised welcome email
+    const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
+    const dashboardUrl =
+      user.role === 'EMPLOYER'
+        ? `${frontendUrl}/employer`
+        : user.role === 'FREELANCER'
+          ? `${frontendUrl}/profile`
+          : `${frontendUrl}/jobs`;
+    welcomeEmail(user.firstName, user.role, dashboardUrl)
+      .then((email) =>
+        this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+          to: user.email,
+          subject: `Welcome to Beleqet, ${user.firstName}!`,
+          ...email,
+        }),
+      )
+      .catch((err) =>
+        this.logger.error(`Failed to enqueue welcome email for ${user.email}: ${err.message}`),
+      );
+
+    return challenge;
+  }
+
+  async validateUser(email: string, password: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user || !user.isActive) {
+      this.eventEmitter.emit('auth.login.failed', {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Must run BEFORE any hash-migration logic below: passwordHash is nullable
+    // for OAuth-only users, and the WordPress-hash normalization calls
+    // .startsWith() directly on it, which would throw on null otherwise.
+    if (user.passwordHash === null) {
+      throw new UnauthorizedException(
+        'This account uses social login. Try signing in with Google or LinkedIn instead.',
+      );
+    }
+
+    let hashToCompare = user.passwordHash;
+    // WordPress migration support: normalize '$wp$2y$' to standard bcrypt '$2y$'
+    if (hashToCompare.startsWith('$wp$')) {
+      hashToCompare = hashToCompare.replace('$wp$', '$');
+    }
+
+    const valid = await bcrypt.compare(password, hashToCompare);
+    if (!valid) {
+      this.eventEmitter.emit('auth.login.failed', {
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
+      });
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Re-hash to standard format automatically on successful login so we migrate away from $wp$ over time
+    if (hashToCompare !== user.passwordHash) {
+      const newHash = await bcrypt.hash(password, 12);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash },
+      });
+    }
+
+    this.eventEmitter.emit('auth.login.success', {
+      email: normalizedEmail,
+      timestamp: new Date().toISOString(),
+    });
+    return user;
+  }
+
+  async login(
+    user: { id: string; email: string; firstName: string; lastName: string; role: string },
+    userAgent?: string,
+  ) {
+    const twoFactorRecord = await this.prisma.userTwoFactor.findUnique({
+      where: { userId: user.id, enabled: true },
+      select: { id: true },
+    });
+
+    if (twoFactorRecord) {
+      const { tempToken, factorId } = await this.twoFactorService.generateTempToken(user.id);
+      loginAlertEmail(user.firstName, userAgent)
+        .then((email) =>
+          this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+            to: user.email,
+            subject: 'New login detected on your Beleqet account',
+            ...email,
+          }),
+        )
+        .catch((err) =>
+          this.logger.error(
+            `Failed to enqueue login alert email for ${user.email}: ${err.message}`,
+          ),
+        );
+      return { requires2fa: true, tempToken, factorId };
+    }
+
+    loginAlertEmail(user.firstName, userAgent)
+      .then((email) =>
+        this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+          to: user.email,
+          subject: 'New login detected on your Beleqet account',
+          ...email,
+        }),
+      )
+      .catch((err) =>
+        this.logger.error(`Failed to enqueue login alert email for ${user.email}: ${err.message}`),
+      );
+    await this.touchLastLogin(user.id);
+    return this.issueTokens(user);
+  }
+
+  /**
+   * Sign-in with email and password. A new account that has not entered its email code yet gets
+   * a fresh code instead of a session; everyone else signs in as before (login).
+   */
+  async passwordLogin(
+    user: {
+      id: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      emailVerified?: boolean;
+      createdAt?: Date;
+    },
+    userAgent?: string,
+  ) {
+    if (this.needsEmailCodeBeforeSignIn(user)) return this.emailCodeChallenge(user);
+    return this.login(user, userAgent);
+  }
+
+  /** Checks the 6-digit code, confirms the email and signs the account in. */
+  async verifyEmailCode(verificationToken: string, code: string) {
+    const userId = this.readVerificationTicket(verificationToken);
+    await this.confirmEmailCode(userId, code);
+    return this.oauthSession(userId);
+  }
+
+  /**
+   * Emails a 6-digit code to the account's address (the Telegram bot's email step). False when
+   * one went out less than a minute ago.
+   */
+  async sendEmailCodeTo(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true },
+    });
+    if (!user) throw new BadRequestException('This account no longer exists.');
+    return this.sendEmailCode(user);
+  }
+
+  /**
+   * Emails a 6-digit code so a signed-in person (website) or a bot user can confirm their email.
+   * With `email`, first sets that address: a Telegram-only account adding one, or a typo being
+   * fixed. A confirmed address isn't replaced here (that is change-email, with the password).
+   * At most one code a minute and five a day.
+   */
+  async startEmailConfirmation(userId: string, email?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, emailVerified: true },
+    });
+    if (!user) throw new BadRequestException('This account no longer exists.');
+    let address = user.email;
+    const confirmed = user.emailVerified && isDeliverableEmail(user.email);
+    const wanted = typeof email === 'string' ? email.toLowerCase().trim() : '';
+    if (wanted && wanted !== user.email) {
+      if (!EMAIL_PATTERN.test(wanted) || !isDeliverableEmail(wanted)) {
+        throw new BadRequestException('That does not look like an email address.');
+      }
+      if (confirmed) {
+        throw new ConflictException(`Your email ${user.email} is already confirmed.`);
+      }
+      const taken = await this.prisma.user.findUnique({
+        where: { email: wanted },
+        select: { id: true },
+      });
+      if (taken) {
+        throw new ConflictException('That email belongs to another account. Use a different one.');
+      }
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { email: wanted, emailVerified: false },
+      });
+      address = wanted;
+    } else if (confirmed) {
+      return { sent: false, already_confirmed: true, email: user.email };
+    }
+    if (!isDeliverableEmail(address)) {
+      throw new BadRequestException('Send your email address first.');
+    }
+
+    const sentToday = await this.prisma.eventLog.count({
+      where: {
+        eventType: EMAIL_CODE_EVENT,
+        entityId: user.id,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+    });
+    if (sentToday >= EMAIL_CODES_PER_DAY) {
+      throw new HttpException(
+        'You asked for too many codes today. Try again tomorrow.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (!(await this.sendEmailCodeTo(user.id))) {
+      throw new HttpException(
+        'We sent you a code less than a minute ago. Wait a minute, then ask again.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    await this.prisma.eventLog.create({
+      data: { eventType: EMAIL_CODE_EVENT, entityId: user.id, entityType: 'User', payload: {} },
+    });
+    return { sent: true, already_confirmed: false, email: address };
+  }
+
+  /**
+   * Checks a 6-digit code and confirms the account's email, with the same expiry and attempt
+   * limit as the website. Throws a message the person can act on when the code is wrong.
+   */
+  async confirmEmailCode(userId: string, code: string): Promise<void> {
+    const digits = (code ?? '').replace(/\s/g, '');
+    if (!/^\d{6}$/.test(digits)) {
+      throw new BadRequestException('Enter the 6-digit code from the email.');
+    }
+
+    const windowStart = new Date(Date.now() - EMAIL_CODE_MINUTES * 60 * 1000);
+    const failures = await this.prisma.verificationToken.count({
+      where: { userId, type: EMAIL_CODE_ATTEMPT, createdAt: { gt: windowStart } },
+    });
+    if (failures >= EMAIL_CODE_MAX_ATTEMPTS) {
+      throw new BadRequestException('Too many wrong codes. Send a new code and try again.');
+    }
+
+    const stored = await this.prisma.verificationToken.findUnique({
+      where: { token: this.emailCodeKey(userId, digits) },
+    });
+    if (!stored || stored.type !== EMAIL_CODE || stored.expiresAt < new Date()) {
+      await this.prisma.verificationToken.create({
+        data: {
+          userId,
+          token: `eva:${userId}:${uuidv4()}`,
+          type: EMAIL_CODE_ATTEMPT,
+          expiresAt: new Date(Date.now() + EMAIL_CODE_MINUTES * 60 * 1000),
+        },
+      });
+      throw new BadRequestException('That code is not right or has expired.');
+    }
+
+    await this.prisma.user.update({ where: { id: userId }, data: { emailVerified: true } });
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId, type: { in: [EMAIL_CODE, EMAIL_CODE_ATTEMPT, 'EMAIL_VERIFICATION'] } },
+    });
+  }
+
+  /** A new code for an account on the code screen; at most one a minute. */
+  async resendEmailCode(verificationToken: string) {
+    const userId = this.readVerificationTicket(verificationToken);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, emailVerified: true },
+    });
+    if (!user) throw new BadRequestException('This account no longer exists.');
+    if (user.emailVerified) return { sent: false, alreadyVerified: true };
+    const sent = await this.sendEmailCode(user);
+    return { sent, alreadyVerified: false };
+  }
+
+  private needsEmailCodeBeforeSignIn(user: {
+    email: string;
+    role: string;
+    emailVerified?: boolean;
+    createdAt?: Date;
+  }): boolean {
+    return (
+      user.emailVerified === false &&
+      user.role !== 'ADMIN' &&
+      Boolean(user.createdAt && user.createdAt >= STRICT_EMAIL_VERIFICATION_FROM) &&
+      isDeliverableEmail(user.email)
+    );
+  }
+
+  private async emailCodeChallenge(user: {
+    id: string;
+    email: string;
+    firstName: string;
+  }): Promise<EmailVerificationChallenge> {
+    // A queue hiccup must not block sign-up: the code screen can send another.
+    await this.sendEmailCode(user).catch((err: Error) =>
+      this.logger.error(`Failed to enqueue verification code for ${user.id}: ${err.message}`),
+    );
+    return {
+      requiresEmailVerification: true,
+      verificationToken: this.jwt.sign(
+        { sub: user.id, purpose: 'verify_email' },
+        { secret: this.verificationTicketSecret(), expiresIn: '2h' },
+      ),
+      email: user.email,
+    };
+  }
+
+  /** Emails a fresh code, replacing earlier ones. False when one went out less than a minute ago. */
+  private async sendEmailCode(user: { id: string; email: string; firstName: string }) {
+    const recent = await this.prisma.verificationToken.findFirst({
+      where: {
+        userId: user.id,
+        type: EMAIL_CODE,
+        createdAt: { gt: new Date(Date.now() - EMAIL_CODE_RESEND_GAP_MS) },
+      },
+      select: { id: true },
+    });
+    if (recent) return false;
+
+    const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId: user.id, type: { in: [EMAIL_CODE, EMAIL_CODE_ATTEMPT] } },
+    });
+    await this.prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        token: this.emailCodeKey(user.id, code),
+        type: EMAIL_CODE,
+        expiresAt: new Date(Date.now() + EMAIL_CODE_MINUTES * 60 * 1000),
+      },
+    });
+    const email = await verificationCodeEmail(user.firstName, code, EMAIL_CODE_MINUTES);
+    await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+      to: user.email,
+      subject: `${code} is your Beleqet verification code`,
+      ...email,
+    });
+    return true;
+  }
+
+  /** Codes are stored only as a keyed hash, scoped to the account. */
+  private emailCodeKey(userId: string, code: string): string {
+    const hash = createHmac('sha256', this.verificationTicketSecret())
+      .update(`${userId}:${code}`)
+      .digest('hex');
+    return `evc:${userId}:${hash}`;
+  }
+
+  private verificationTicketSecret(): string {
+    return (
+      this.config.get<string>('TOTP_TEMP_SECRET') ?? this.config.get<string>('JWT_ACCESS_SECRET')!
+    );
+  }
+
+  private readVerificationTicket(verificationToken: string): string {
+    try {
+      const payload = this.jwt.verify(verificationToken, {
+        secret: this.verificationTicketSecret(),
+      }) as { sub?: string; purpose?: string };
+      if (payload.purpose === 'verify_email' && payload.sub) return payload.sub;
+    } catch {
+      // falls through
+    }
+    throw new BadRequestException('This code screen has expired. Sign in again to get a new code.');
+  }
+
+  async refresh(token: string) {
+    const storedToken = await this.prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    // Rotate token
+    await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
+    return this.issueTokens(storedToken.user);
+  }
+
+  async logout(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    });
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+    if (user) {
+      logoutAlertEmail(user.firstName)
+        .then((email) =>
+          this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+            to: user.email,
+            subject: 'You have logged out from Beleqet',
+            ...email,
+          }),
+        )
+        .catch((err) =>
+          this.logger.error(
+            `Failed to enqueue logout alert email for ${user.email}: ${err.message}`,
+          ),
+        );
+    }
+  }
+
+  async sendVerificationEmail(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return;
+
+    const token = uuidv4();
+    await this.prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        token,
+        type: 'EMAIL_VERIFICATION',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      },
+    });
+
+    const verifyUrl = `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/auth/verify-email?token=${token}`;
+    const email = await verificationEmail(user.firstName, verifyUrl);
+
+    await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+      to: user.email,
+      subject: 'Verify your Beleqet Account',
+      ...email,
+    });
+  }
+
+  /** A new verification link; earlier ones stop working so only the latest email counts. */
+  async resendVerification(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { emailVerified: true },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (user.emailVerified) return { success: true, alreadyVerified: true };
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId, type: 'EMAIL_VERIFICATION' },
+    });
+    await this.sendVerificationEmail(userId);
+    return { success: true, alreadyVerified: false };
+  }
+
+  async verifyEmail(token: string) {
+    const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
+    if (
+      !verificationToken ||
+      verificationToken.type !== 'EMAIL_VERIFICATION' ||
+      verificationToken.expiresAt < new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    await this.prisma.user.update({
+      where: { id: verificationToken.userId },
+      data: { emailVerified: true },
+    });
+
+    await this.prisma.verificationToken.delete({ where: { id: verificationToken.id } });
+    return { success: true, message: 'Email verified successfully' };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user) return { success: true, message: 'If an account exists, a reset link was sent.' };
+
+    const token = uuidv4();
+    await this.prisma.verificationToken.create({
+      data: {
+        userId: user.id,
+        token,
+        type: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour
+      },
+    });
+
+    const resetUrl = `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/auth/reset-password?token=${token}`;
+    const emailContent = await passwordResetEmail(user.firstName, resetUrl);
+
+    await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+      to: user.email,
+      subject: 'Reset your Beleqet Password',
+      ...emailContent,
+    });
+
+    return { success: true, message: 'If an account exists, a reset link was sent.' };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const verificationToken = await this.prisma.verificationToken.findUnique({ where: { token } });
+    if (
+      !verificationToken ||
+      verificationToken.type !== 'PASSWORD_RESET' ||
+      verificationToken.expiresAt < new Date()
+    ) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: verificationToken.userId },
+      data: { passwordHash },
+    });
+
+    await this.prisma.refreshToken.deleteMany({ where: { userId: verificationToken.userId } });
+    await this.prisma.verificationToken.deleteMany({
+      where: { userId: verificationToken.userId, type: 'PASSWORD_RESET' },
+    });
+    return { success: true, message: 'Password reset successfully' };
+  }
+
+  private async requireStepUpOrThrow(userId: string, stepUpToken?: string): Promise<void> {
+    const twoFactorRecord = await this.prisma.userTwoFactor.findUnique({
+      where: { userId, enabled: true },
+    });
+    if (!twoFactorRecord) return;
+
+    if (!stepUpToken) {
+      const tempSecret = this.config.get<string>('TOTP_TEMP_SECRET')!;
+      const challengeToken = this.jwt.sign(
+        { sub: userId, purpose: '2fa_step_up_challenge', iat: Math.floor(Date.now() / 1000) },
+        { secret: tempSecret, expiresIn: '5m' },
+      );
+      throw new UnauthorizedException({
+        requiresStepUp: true,
+        message: 'Step-up verification required. Please re-verify your identity.',
+        stepUpToken: challengeToken,
+      });
+    }
+
+    const tempSecret = this.config.get<string>('TOTP_TEMP_SECRET')!;
+    let payload: Record<string, any>;
+    try {
+      payload = this.jwt.verify(stepUpToken, { secret: tempSecret }) as any;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired step-up token');
+    }
+
+    if (payload.purpose !== '2fa_step_up' || !payload['2fa_verified_at']) {
+      throw new UnauthorizedException('Invalid step-up token purpose');
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (now - payload['2fa_verified_at'] > 15 * 60) {
+      const challengeToken = this.jwt.sign(
+        { sub: userId, purpose: '2fa_step_up_challenge', iat: now },
+        { secret: tempSecret, expiresIn: '5m' },
+      );
+      throw new UnauthorizedException({
+        requiresStepUp: true,
+        message: 'Step-up verification has expired. Please re-verify.',
+        stepUpToken: challengeToken,
+      });
+    }
+
+    if (payload.sub !== userId) {
+      throw new UnauthorizedException('Step-up token does not match current user');
+    }
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto, stepUpToken?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    // OAuth-only users have no password to compare against — fail gracefully
+    // instead of passing null into bcrypt.compare.
+    if (user.passwordHash === null) {
+      throw new BadRequestException(
+        'This account uses social login and has no password to change.',
+      );
+    }
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) throw new BadRequestException('Current password is incorrect');
+
+    await this.requireStepUpOrThrow(userId, stepUpToken);
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+
+    // Invalidate all sessions except the current one
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+
+    this.logger.log(`Password changed for user ${userId}`);
+    return { success: true, message: 'Password changed successfully' };
+  }
+
+  async changeEmail(userId: string, dto: ChangeEmailDto, stepUpToken?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.newEmail.toLowerCase().trim() },
+    });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Email is already in use');
+    }
+
+    // OAuth-only users have no password to verify this change with — fail
+    // gracefully instead of passing null into bcrypt.compare.
+    if (user.passwordHash === null) {
+      throw new BadRequestException(
+        'This account uses social login and has no password to verify this change.',
+      );
+    }
+
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!valid) throw new BadRequestException('Password is incorrect');
+
+    await this.requireStepUpOrThrow(userId, stepUpToken);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { email: dto.newEmail.toLowerCase().trim(), emailVerified: false },
+    });
+
+    // Send verification to new email
+    await this.sendVerificationEmail(userId).catch((err) =>
+      this.logger.error(`Failed to send verification email: ${err.message}`),
+    );
+
+    this.logger.log(`Email changed for user ${userId} to ${dto.newEmail}`);
+    return {
+      success: true,
+      message: 'Email changed successfully. Verification sent to new address.',
+    };
+  }
+
+  /**
+   * Issues tokens for a user by their ID (used by OAuth paths and Controllers).
+   */
+  async issueTokensForUserId(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+    });
+
+    if (!user) throw new UnauthorizedException('User not found');
+    await this.touchLastLogin(user.id);
+    return this.issueTokens(user);
+  }
+
+  /**
+   * Session for someone who just signed in with Google or LinkedIn. A disabled account is
+   * refused, and an account with two-step sign-in still has to enter its code.
+   */
+  async oauthSession(
+    userId: string,
+  ): Promise<
+    { requires2fa: true; tempToken: string } | Awaited<ReturnType<AuthService['issueTokens']>>
+  > {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
+    });
+    if (!user || !user.isActive) throw new UnauthorizedException('This account is not active');
+
+    const twoFactor = await this.prisma.userTwoFactor.findUnique({
+      where: { userId, enabled: true },
+      select: { id: true },
+    });
+    if (twoFactor) {
+      const { tempToken } = await this.twoFactorService.generateTempToken(userId);
+      return { requires2fa: true, tempToken };
+    }
+
+    await this.touchLastLogin(user.id);
+    return this.issueTokens(user);
+  }
+
+  /** Records a successful authentication for admin active-user metrics. */
+  private async touchLastLogin(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
+    });
+  }
+
+  /**
+   * Signs a fresh access token and issues a new rotating refresh token
+   * for the given user, enforcing a cap of 5 concurrent sessions.
+   */
+  public async issueTokens(user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }): Promise<AuthenticatedSessionResponse> {
+    const payload = { sub: user.id, email: user.email, role: user.role };
+
+    const accessToken = this.jwt.sign(payload, {
+      secret: this.config.get<string>('JWT_ACCESS_SECRET'),
+      expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES', '15m'),
+    });
+
+    const refreshTokenStr = uuidv4();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Enforce concurrent session limit (cap at 5 active sessions)
+    const activeTokens = await this.prisma.refreshToken.findMany({
+      where: { userId: user.id },
+      orderBy: { expiresAt: 'asc' },
+    });
+
+    if (activeTokens.length >= 5) {
+      const excessCount = activeTokens.length - 4; // Keep under limit
+      const tokensToRemove = activeTokens.slice(0, excessCount).map((t) => t.id);
+      await this.prisma.refreshToken.deleteMany({
+        where: { id: { in: tokensToRemove } },
+      });
+    }
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        token: refreshTokenStr,
+        expiresAt,
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken: refreshTokenStr,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
+    };
+  }
+}

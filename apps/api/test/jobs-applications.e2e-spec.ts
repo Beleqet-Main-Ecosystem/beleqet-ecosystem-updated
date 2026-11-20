@@ -5,8 +5,8 @@ import { randomUUID } from 'crypto';
 import Redis from 'ioredis';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { REDIS_CLIENT } from '../src/modules/redis/redis.module';
-import { AuthService } from '../src/modules/auth/auth.service';
+import { REDIS_CLIENT } from '../src/modules/platform/redis/redis.module';
+import { AuthService } from '../src/modules/accounts/auth/auth.service';
 
 describe('Jobs & Applications (e2e)', () => {
   let app: INestApplication;

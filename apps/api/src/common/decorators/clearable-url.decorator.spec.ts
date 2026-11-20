@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { UpdateUserDto } from '../../modules/users/dto/update-user.dto';
+import { UpdateUserDto } from '../../modules/accounts/users/dto/update-user.dto';
 
 describe('ClearableUrl', () => {
   const check = (portfolioUrl: unknown) => {

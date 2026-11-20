@@ -48,7 +48,10 @@
     "LOG_ENTRY_CREATED": "A new audit log entry was recorded.",
     "IMMUTABLE_VIOLATION_ATTEMPT": "An attempt to modify an immutable audit log entry was blocked.",
     "FILTER_NO_RESULTS": "No audit log entries match your current filters.",
-    "EXPORT_SUCCESS": "Audit log export completed successfully."
+    "EXPORT_SUCCESS": "Audit log export completed successfully.",
+    "LIST_SUCCESS": "Audit logs retrieved",
+    "NOT_FOUND": "Audit log not found",
+    "TITLE": "Audit Logs"
   },
   "admin-stats": {
     "DASHBOARD_TITLE": "Dashboard Statistics",
@@ -56,12 +59,6 @@
     "TOTAL_REVENUE": "Total Platform Revenue",
     "ACTIVE_CONTRACTS": "Active Contracts",
     "COMPLETED_JOBS": "Completed Jobs"
-  },
-  "audit-logging": {
-    "LIST_SUCCESS": "Audit logs retrieved",
-    "EXPORT_SUCCESS": "Audit logs exported",
-    "NOT_FOUND": "Audit log not found",
-    "TITLE": "Audit Logs"
   },
   "dispute-manager": {
     "DISPUTE_RESOLVED": "Dispute resolved successfully",

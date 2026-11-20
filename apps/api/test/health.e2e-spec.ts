@@ -1,10 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { HealthController } from '../src/modules/health/health.controller';
-import { HealthService } from '../src/modules/health/health.service';
+import { HealthController } from '../src/modules/platform/health/health.controller';
+import { HealthService } from '../src/modules/platform/health/health.service';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { REDIS_CLIENT } from '../src/modules/redis/redis.module';
+import { REDIS_CLIENT } from '../src/modules/platform/redis/redis.module';
 
 /**
  * Integration test for the health endpoints.

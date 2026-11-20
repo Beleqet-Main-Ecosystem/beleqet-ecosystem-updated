@@ -4,8 +4,8 @@ import * as request from 'supertest';
 import { randomUUID } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { AuthService } from '../src/modules/auth/auth.service';
-import { ChapaClient } from '../src/modules/chapa/chapa.client';
+import { AuthService } from '../src/modules/accounts/auth/auth.service';
+import { ChapaClient } from '../src/modules/payments/chapa/chapa.client';
 
 describe('Wallet & Payments Lifecycle (e2e)', () => {
   let app: INestApplication;

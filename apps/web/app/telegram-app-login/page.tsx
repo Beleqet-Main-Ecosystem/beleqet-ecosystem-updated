@@ -30,7 +30,7 @@ function telegramResult(hash: string): Record<string, string | number> | null {
  * "Continue with Telegram" for the Android app. Telegram's sign-in only works on the domain set for
  * the Jobs bot (beleqetjobs.com), so the app opens this page with its challenge. The page sends the
  * person to Telegram's own sign-in page and back, gives the signed details to the API, and returns to
- * the app with a one-time code (apps/api/src/modules/auth/app-oauth.ts). Full-page redirects, no popup: popups
+ * the app with a one-time code (apps/api/src/modules/accounts/auth/app-oauth.ts). Full-page redirects, no popup: popups
  * don't work in the in-app browser the app signs in with.
  */
 function TelegramAppLogin() {

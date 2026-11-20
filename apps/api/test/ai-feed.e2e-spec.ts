@@ -1,7 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
-import { AiFeedModule } from '../src/modules/ai-feed/ai-feed.module';
+import { AiFeedModule } from '../src/modules/jobs/ai-feed/ai-feed.module';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
