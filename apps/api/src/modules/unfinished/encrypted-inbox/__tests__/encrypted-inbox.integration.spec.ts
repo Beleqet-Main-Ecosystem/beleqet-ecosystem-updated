@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../../../../app.module';
+import { EncryptedInboxModule } from '../encrypted-inbox.module';
 
 /**
  * Integration test for the Encrypted Inbox module.
@@ -17,7 +18,8 @@ describe('Encrypted Inbox (Integration)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      // Switched off in AppModule (src/modules/unfinished), so the test adds it.
+      imports: [AppModule, EncryptedInboxModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
