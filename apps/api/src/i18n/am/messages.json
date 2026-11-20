@@ -48,7 +48,10 @@
     "LOG_ENTRY_CREATED": "አዲስ የኦዲት መዝገብ ተመዝግቧል።",
     "IMMUTABLE_VIOLATION_ATTEMPT": "የማይለወጥ የኦዲት መዝገብን ለመቀየር የተደረገ ሙከራ ታግዷል።",
     "FILTER_NO_RESULTS": "ከአሁኑ ማጣሪያዎችዎ ጋር የሚዛመድ የኦዲት መዝገብ የለም።",
-    "EXPORT_SUCCESS": "የኦዲት መዝገብ ወደ ውጪ መላክ በተሳካ ሁኔታ ተጠናቅቋል።"
+    "EXPORT_SUCCESS": "የኦዲት መዝገብ ወደ ውጪ መላክ በተሳካ ሁኔታ ተጠናቅቋል።",
+    "LIST_SUCCESS": "የኦዲት መዝገቦች ተገኝተዋል",
+    "NOT_FOUND": "የኦዲት መዝገብ አልተገኘም",
+    "TITLE": "የኦዲት መዝገቦች"
   },
   "tax": {
     "unsupportedJurisdiction": "ያልተደገፈ የግብር ክልል \"{countryCode}\". የሚደገፉት፦ ET, US።",
@@ -124,11 +127,5 @@
       "export_audit": "የGDPR መረጃ ማውጣት ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል",
       "delete_audit": "የGDPR መረጃ መሰረዝ ለማጭበርበር ማስጠንቀቂያዎች ተከናውኗል"
     }
-  },
-  "audit-logging": {
-    "LIST_SUCCESS": "የኦዲት መዝገቦች ተገኝተዋል",
-    "EXPORT_SUCCESS": "የኦዲት መዝገቦች ተልኳዋቸዋል",
-    "NOT_FOUND": "የኦዲት መዝገብ አልተገኘም",
-    "TITLE": "የኦዲት መዝገቦች"
   }
 }

@@ -5,7 +5,7 @@ import { IsInt, IsObject, IsOptional, IsString, MaxLength, Min, MinLength } from
  * Used internally and for optional admin/manual writes.
  */
 export class CreateAuditLogDto {
-  /** Machine-readable event name (e.g. HTTP_REQUEST, AccountLinkSucceeded). */
+  /** Machine-readable event name (e.g. USER_LOGIN, AccountLinkSucceeded). */
   @IsString()
   @MinLength(2)
   @MaxLength(120)

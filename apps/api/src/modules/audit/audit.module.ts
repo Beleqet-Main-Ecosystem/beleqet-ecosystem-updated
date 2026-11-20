@@ -1,19 +1,20 @@
-import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma/prisma.module';
-import { AuditService } from './audit.service';
-import { AuditController } from './audit.controller';
-import { AuditInterceptor } from './interceptors/audit.interceptor';
+import { Global, Module } from '@nestjs/common';
 import { AUDIT_LOGGER } from '../../common/interfaces/audit-logger.interface';
+import { WalletModule } from '../wallet/wallet.module';
+import { AuditController } from './audit.controller';
+import { AuditService } from './audit.service';
 
 /**
- * Cross-cutting audit trail module. Exports `AuditService` (for direct
- * calls like `logPaymentTransaction`) and `AuditInterceptor` (for
- * declarative `@AuditLog()` logging on any controller method).
+ * The audit trail (`events_log`): business events (sign-ins, account links, role changes, admin
+ * actions, payments) written through AuditService, and the admin's audit log viewer
+ * (/admin/audit-logs). Global, like a logger: any module can inject AuditService or AUDIT_LOGGER.
+ * Web requests are not recorded here; nginx keeps those.
  */
+@Global()
 @Module({
-  imports: [PrismaModule],
+  imports: [WalletModule],
   controllers: [AuditController],
-  providers: [AuditService, AuditInterceptor, { provide: AUDIT_LOGGER, useExisting: AuditService }],
-  exports: [AuditService, AuditInterceptor, AUDIT_LOGGER],
+  providers: [AuditService, { provide: AUDIT_LOGGER, useExisting: AuditService }],
+  exports: [AuditService, AUDIT_LOGGER],
 })
 export class AuditModule {}

@@ -18,6 +18,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PushModule } from './modules/push/push.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { QueuesModule } from './modules/queues/queues.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { FreelanceModule } from './modules/freelance/freelance.module';
 import { EscrowModule } from './modules/escrow/escrow.module';
 import { WalletModule } from './modules/wallet/wallet.module';
@@ -114,6 +115,7 @@ import { RbacModule } from './modules/rbac/rbac.module';
     PrismaModule,
     QueuesModule,
     RedisModule,
+    AuditModule,
     AuthModule,
     UsersModule,
     JobsModule,

@@ -3,7 +3,7 @@ import { AdminController } from './admin.controller';
 import { QueuesModule } from '../queues/queues.module';
 import { ChatModule } from '../chat/chat.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { AuditLoggingModule } from '../audit-logging/audit-logging.module';
+import { AuditModule } from '../audit/audit.module';
 import { DisputeManagerModule } from '../dispute-manager/dispute-manager.module';
 import { JobsModule } from '../jobs/jobs.module';
 
@@ -12,7 +12,7 @@ import { JobsModule } from '../jobs/jobs.module';
     QueuesModule,
     ChatModule,
     NotificationsModule,
-    AuditLoggingModule,
+    AuditModule,
     DisputeManagerModule,
     JobsModule,
   ],

@@ -41,7 +41,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatService } from '../chat/chat.service';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
-import { AuditLoggingService } from '../audit-logging/audit-logging.service';
+import { AuditService } from '../audit/audit.service';
 import {
   assertAccountChangeAllowed,
   assertGigModeration,
@@ -121,7 +121,7 @@ export class AdminController {
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
     private readonly notificationsService: NotificationsService,
-    private readonly auditLoggingService: AuditLoggingService,
+    private readonly auditService: AuditService,
     private readonly disputes: DisputeManagerService,
     private readonly jobs: JobsService,
   ) {}
@@ -378,7 +378,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Approve a job waiting for review: it goes live and is announced' })
   async approveJob(@Param('id') id: string, @CurrentUser() admin: CurrentUserPayload) {
     const job = await this.jobs.approve(id);
-    void this.auditLoggingService.createSafe({
+    void this.auditService.createSafe({
       eventType: 'job.approved',
       entityId: id,
       entityType: 'Job',
@@ -398,7 +398,7 @@ export class AdminController {
     @CurrentUser() admin: CurrentUserPayload,
   ) {
     const job = await this.jobs.reject(id, dto.note);
-    void this.auditLoggingService.createSafe({
+    void this.auditService.createSafe({
       eventType: 'job.rejected',
       entityId: id,
       entityType: 'Job',
@@ -580,7 +580,7 @@ export class AdminController {
       select: { enabled: true },
     });
 
-    void this.auditLoggingService.createSafe({
+    void this.auditService.createSafe({
       eventType: 'gdpr.export.user_data',
       entityId: userId,
       entityType: 'User',
@@ -591,7 +591,7 @@ export class AdminController {
       processedBy: AdminController.name,
       actorUserId: admin.userId,
     });
-    const auditLogs = await this.auditLoggingService.findByUserForGdpr(userId);
+    const auditLogs = await this.auditService.findByUserForGdpr(userId);
 
     return {
       data: {

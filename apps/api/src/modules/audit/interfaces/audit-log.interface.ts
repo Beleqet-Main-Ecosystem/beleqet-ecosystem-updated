@@ -49,6 +49,3 @@ export interface AuditLogListResponse {
   message: string;
   currency: string;
 }
-
-/** DI token for the unified audit logger. */
-export const AUDIT_LOGGING_SERVICE = Symbol('AUDIT_LOGGING_SERVICE');
