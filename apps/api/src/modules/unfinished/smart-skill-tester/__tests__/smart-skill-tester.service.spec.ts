@@ -7,7 +7,7 @@ import {
   AiChatProvider,
   AiCompletion,
   AiUsage,
-} from '../../../resume-brain/ai/ai-chat-provider.interface';
+} from '../../../jobs/resume-brain/ai/ai-chat-provider.interface';
 import { GenerateQuestionsDto, SkillLevel } from '../dto/generate-questions.dto';
 import { SubmitAnswersDto } from '../dto/submit-answers.dto';
 import { SmartSkillTesterService } from '../smart-skill-tester.service';

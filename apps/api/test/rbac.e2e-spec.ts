@@ -4,7 +4,7 @@ import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { REDIS_CLIENT } from '../src/modules/redis/redis.module';
+import { REDIS_CLIENT } from '../src/modules/platform/redis/redis.module';
 
 describe('RbacModule (e2e)', () => {
   let app: INestApplication;

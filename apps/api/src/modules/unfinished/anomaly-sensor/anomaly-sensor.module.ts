@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { QUEUE_NAMES } from '../../queues/queues.constants';
+import { QUEUE_NAMES } from '../../platform/queues/queues.constants';
 import { PrismaModule } from '../../../prisma/prisma.module';
 import { AlertingService } from './alerting.service';
 import { AnomalySensorService } from './anomaly-sensor.service';

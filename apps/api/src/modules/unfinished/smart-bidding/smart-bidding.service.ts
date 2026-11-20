@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { REDIS_CLIENT } from '../../redis/redis.module';
+import { REDIS_CLIENT } from '../../platform/redis/redis.module';
 import Redis from 'ioredis';
 import OpenAI from 'openai';
 import { PredictBidResponseDto } from './dto/predict-bid-response.dto';

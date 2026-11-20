@@ -1,0 +1,193 @@
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { Throttle, SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
+import { TelegramTmaService } from './telegram-tma.service';
+import { TelegramService } from './telegram.service';
+import { TelegramAppLoginDto, TelegramLoginDto, TmaAuthDto } from './dto/telegram-tma.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { CurrentUser, CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { BotApiGuard } from './guards/bot-api.guard';
+
+@ApiTags('telegram')
+@Controller('telegram')
+export class TelegramController {
+  constructor(
+    private readonly tmaService: TelegramTmaService,
+    private readonly telegramService: TelegramService,
+  ) {}
+
+  @Post('tma-login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } }) // 20 authentication attempts / minute per IP
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Authenticate user from Telegram Mini App initData with rate limiting' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully authenticated and returned JWT token pair',
+  })
+  @ApiResponse({ status: 401, description: 'Invalid signature or expired timestamp' })
+  async tmaLogin(@Body() dto: TmaAuthDto) {
+    return this.tmaService.authenticateTmaUser(dto.initData);
+  }
+
+  @Post('tma-link')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Link verified Telegram account to logged-in user session' })
+  @ApiResponse({ status: 200, description: 'Telegram account linked successfully' })
+  @ApiResponse({ status: 409, description: 'Telegram ID already linked to another account' })
+  async tmaLink(@CurrentUser() user: CurrentUserPayload, @Body() dto: TmaAuthDto) {
+    return this.tmaService.linkTelegramAccount(user.userId, dto.initData);
+  }
+
+  @Post('login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sign in with Telegram (login button) on the website or in the app' })
+  @ApiResponse({ status: 401, description: 'Invalid signature or expired login data' })
+  async telegramLogin(@Body() dto: TelegramLoginDto) {
+    return this.tmaService.authenticateLoginWidget(dto.data);
+  }
+
+  @Post('app-login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Sign in with Telegram for the mobile app: answers with the beleqet:// link to open',
+  })
+  @ApiResponse({ status: 401, description: 'Invalid signature or expired login data' })
+  @ApiResponse({ status: 404, description: 'This Telegram account is not registered' })
+  async telegramAppLogin(@Body() dto: TelegramAppLoginDto) {
+    return this.tmaService.appLoginWithWidget(dto.data, dto.challenge);
+  }
+
+  @Post('connect')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Connect a Telegram account to the signed-in account (login button)' })
+  @ApiResponse({ status: 409, description: 'That Telegram account has its own active account' })
+  async connect(@CurrentUser() user: CurrentUserPayload, @Body() dto: TelegramLoginDto) {
+    return this.tmaService.connectWithLoginWidget(user.userId, dto.data);
+  }
+
+  @Post('webhook')
+  @SkipThrottle() // High-volume Telegram server updates should bypass rate limiters
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Telegram bot HTTP webhook receiver for horizontally scaled production',
+  })
+  async handleWebhook(@Body() update: any) {
+    return this.telegramService.handleWebhookUpdate(update);
+  }
+
+  @Get('check-user')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @ApiOperation({ summary: 'Check if Telegram user is registered (WordPress migration drop-in)' })
+  async checkUser(@Query('telegram_id') telegramId?: string, @Query('email') email?: string) {
+    return this.telegramService.checkUser(telegramId, email);
+  }
+
+  @Get('get-all-telegram-ids')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @ApiOperation({ summary: 'Retrieve all registered Telegram IDs for broadcasts' })
+  async getAllTelegramIds() {
+    return this.telegramService.getAllTelegramIds();
+  }
+
+  @Post('update-payment-status')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update manual payment approval status from Telegram admin actions' })
+  async updatePaymentStatus(@Body() body: { order_id: string; status: string }) {
+    return this.telegramService.updatePaymentStatus(body.order_id, body.status);
+  }
+
+  @Post('link-telegram')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Link Telegram ID to account via token' })
+  async linkTelegram(@Body() body: { token: string; telegram_id: string }) {
+    return this.telegramService.linkTelegramByToken(body.token, body.telegram_id);
+  }
+
+  @Post('update-language')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update user language preference from Telegram' })
+  async updateLanguage(@Body() body: { telegram_id: string; language: string }) {
+    return this.telegramService.updateLanguage(body.telegram_id, body.language);
+  }
+
+  @Post('register')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Candidate / Employer bot registration endpoint' })
+  async registerFromBot(@Body() body: any) {
+    return this.telegramService.registerFromBot(body);
+  }
+
+  // Limited per Telegram account in the service (one code a minute, five a day): all bot traffic
+  // comes from one address, so a per-IP limit would lock out every bot user at once.
+  @Post('email-code')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Email a 6-digit code to a bot user, optionally setting the address' })
+  async requestEmailCode(@Body() body: { telegram_id: string; email?: string }) {
+    return this.telegramService.requestEmailCode(String(body?.telegram_id ?? ''), body?.email);
+  }
+
+  @Post('confirm-email')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirm a bot user email with the 6-digit code they typed' })
+  async confirmEmail(@Body() body: { telegram_id: string; code: string }) {
+    return this.telegramService.confirmEmailCode(String(body?.telegram_id ?? ''), body?.code);
+  }
+
+  // "I already have a Beleqet account" in the bot: a code to that account's email proves it's theirs.
+  @Post('link-account')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Email a code to an existing account so a bot user can link it' })
+  async startLinking(@Body() body: { telegram_id: string; email: string }) {
+    return this.telegramService.startLinking(String(body?.telegram_id ?? ''), body?.email);
+  }
+
+  @Post('link-account/confirm')
+  @UseGuards(BotApiGuard)
+  @SkipThrottle()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Link a bot user to an existing account with the emailed code' })
+  async confirmLinking(
+    @Body() body: { telegram_id: string; email: string; code: string; tg_username?: string },
+  ) {
+    return this.telegramService.confirmLinking(
+      String(body?.telegram_id ?? ''),
+      body?.email,
+      body?.code,
+      body?.tg_username,
+    );
+  }
+}

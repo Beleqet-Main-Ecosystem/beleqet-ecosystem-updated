@@ -4,7 +4,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { I18nService } from 'nestjs-i18n';
 import { FraudAlertService } from './fraud-alert.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { QUEUE_NAMES } from '../../queues/queues.constants';
+import { QUEUE_NAMES } from '../../platform/queues/queues.constants';
 import { AnomalySensorService } from '../anomaly-sensor/anomaly-sensor.service';
 import { PlagiarismService } from '../plagiarism/plagiarism.service';
 

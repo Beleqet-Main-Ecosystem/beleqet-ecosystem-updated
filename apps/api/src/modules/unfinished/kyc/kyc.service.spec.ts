@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { KycService } from './kyc.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { UploadsService } from '../../uploads/uploads.service';
+import { UploadsService } from '../../platform/uploads/uploads.service';
 import { KycDocumentType, KycStatus } from '@prisma/client';
 import { ConflictException, BadRequestException } from '@nestjs/common';
 import { KycModule } from './kyc.module';

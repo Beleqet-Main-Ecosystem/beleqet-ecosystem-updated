@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { QUEUE_NAMES } from '../../queues/queues.constants';
+import { QUEUE_NAMES } from '../../platform/queues/queues.constants';
 
 interface IndexJobPayload {
   action: 'upsert' | 'delete';

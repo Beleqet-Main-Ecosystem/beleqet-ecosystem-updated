@@ -2,10 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bullmq';
 import { FaqBotCurrencyService } from './services/faq-bot-currency.service';
-import { WalletService } from '../../wallet/wallet.service';
-import { ChapaClient } from '../../chapa/chapa.client';
+import { WalletService } from '../../payments/wallet/wallet.service';
+import { ChapaClient } from '../../payments/chapa/chapa.client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { QUEUE_NAMES } from '../../queues/queues.constants';
+import { QUEUE_NAMES } from '../../platform/queues/queues.constants';
 
 /**
  * Integration test: verifies the FAQ Bot module connects to the existing

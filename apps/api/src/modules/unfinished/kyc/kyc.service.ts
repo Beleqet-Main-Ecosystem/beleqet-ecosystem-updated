@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { UploadsService } from '../../uploads/uploads.service';
+import { UploadsService } from '../../platform/uploads/uploads.service';
 import { KycProvider } from './providers/kyc-provider.interface';
 import { KycDocumentType, KycStatus } from '@prisma/client';
 import { KycUploadFile } from './kyc.controller';

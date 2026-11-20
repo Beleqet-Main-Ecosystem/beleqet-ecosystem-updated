@@ -1,0 +1,315 @@
+import { Injectable, NotFoundException, ConflictException, Logger, Optional } from '@nestjs/common';
+import { PushService } from '../../messaging/push/push.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { CreateApplicationDto } from './dto/create-application.dto';
+import {
+  QUEUE_NAMES,
+  APPLICATION_JOBS,
+  ANALYTICS_JOBS,
+  NOTIFICATION_JOBS,
+} from '../../platform/queues/queues.constants';
+import { ConfigService } from '@nestjs/config';
+import {
+  applicationReceivedEmail,
+  applicationStatusEmail,
+} from '../../messaging/notifications/email-templates';
+import { openJobs } from '../jobs/open-jobs';
+import { primaryFrontendUrl } from '../../../common/utils/frontend-url';
+import { isDeliverableEmail } from '../../../common/utils/deliverable-email';
+import { applicantTelegram } from './application-telegram';
+import type { TelegramPayload } from '../../messaging/notifications/notifications.processor';
+
+/** What's needed to message the applicant in the Jobs bot. */
+const TELEGRAM_CONTACT = {
+  telegramId: true,
+  notificationPreference: { select: { telegramEnabled: true, language: true } },
+} as const;
+
+/** How an employer can reach an applicant: email, phone, or Telegram for Telegram-only accounts. */
+const APPLICANT_CONTACT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  telegramUsername: true,
+  city: true,
+  country: true,
+  gender: true,
+} as const;
+
+/** A Telegram-only applicant's internal placeholder address is never shown. */
+function applicantContact<T extends { email: string }>(user: T) {
+  return { ...user, email: isDeliverableEmail(user.email) ? user.email : null };
+}
+
+@Injectable()
+export class ApplicationsService {
+  private readonly logger = new Logger(ApplicationsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+    @InjectQueue(QUEUE_NAMES.APPLICATION)
+    private readonly applicationQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.ANALYTICS)
+    private readonly analyticsQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.NOTIFICATIONS)
+    private readonly notificationsQueue: Queue,
+    private readonly config: ConfigService,
+    @Optional() private readonly push?: PushService,
+  ) {}
+
+  async submit(userId: string, dto: CreateApplicationDto) {
+    const job = await this.prisma.job.findFirst({
+      // Published and before its deadline: a closed or expired job takes no more applications.
+      where: { id: dto.jobId, ...openJobs() },
+      include: { company: true },
+    });
+    if (!job) {
+      throw new NotFoundException(`Job ${dto.jobId} not found or no longer accepting applications`);
+    }
+
+    const existing = await this.prisma.application.findUnique({
+      where: { jobId_userId: { jobId: dto.jobId, userId } },
+    });
+    if (existing) {
+      throw new ConflictException('You have already applied to this job');
+    }
+
+    const application = await this.prisma.$transaction(async (tx: any) => {
+      const app = await tx.application.create({
+        data: {
+          jobId: dto.jobId,
+          userId,
+          coverLetter: dto.coverLetter,
+          resumeUrl: dto.resumeUrl,
+          portfolioUrl: dto.portfolioUrl,
+          expectedSalary: dto.expectedSalary,
+          screeningAnswers: dto.screeningAnswers,
+          status: 'SUBMITTED',
+        },
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true, ...TELEGRAM_CONTACT },
+          },
+          job: { select: { id: true, title: true, companyId: true } },
+        },
+      });
+
+      await tx.eventLog.create({
+        data: {
+          eventType: 'application.submitted',
+          entityId: app.id,
+          entityType: 'Application',
+          payload: {
+            applicationId: app.id,
+            jobId: dto.jobId,
+            userId,
+            jobTitle: job.title,
+            companyId: job.companyId,
+          },
+          processedBy: ApplicationsService.name,
+        },
+      });
+
+      return app;
+    });
+
+    this.applicationQueue
+      .add(
+        APPLICATION_JOBS.SCREEN_CANDIDATE,
+        {
+          applicationId: application.id,
+          userId,
+          jobId: dto.jobId,
+          jobTitle: job.title,
+          jobDescription: job.description,
+          jobRequirements: job.requirements,
+          coverLetter: dto.coverLetter,
+          resumeUrl: dto.resumeUrl,
+          companyId: job.companyId,
+        },
+        { priority: 1 },
+      )
+      .catch((err) => this.logger.error('Failed to enqueue SCREEN_CANDIDATE', err.message));
+
+    this.applicationQueue
+      .add(
+        APPLICATION_JOBS.NOTIFY_RECRUITER,
+        {
+          applicationId: application.id,
+          jobId: dto.jobId,
+          jobTitle: job.title,
+          companyId: job.companyId,
+          applicantName: `${application.user.firstName} ${application.user.lastName}`,
+        },
+        { priority: 2 },
+      )
+      .catch((err) => this.logger.error('Failed to enqueue NOTIFY_RECRUITER', err.message));
+
+    this.analyticsQueue
+      .add(ANALYTICS_JOBS.UPDATE_JOB_STATS, { jobId: dto.jobId })
+      .catch((err) => this.logger.error('Failed to enqueue UPDATE_JOB_STATS', err.message));
+
+    const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
+    const applicationUrl = `${frontendUrl}/applications`;
+    // People who registered in the bot have no real email: Telegram is how they hear back.
+    this.queueTelegram(
+      applicantTelegram(application.user, 'RECEIVED', job.title, job.company.name, frontendUrl),
+    );
+    applicationReceivedEmail({
+      firstName: application.user.firstName,
+      jobTitle: job.title,
+      companyName: job.company.name,
+      applicationUrl,
+    })
+      .then((email) =>
+        this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+          to: application.user.email,
+          subject: `Application received — ${job.title}`,
+          ...email,
+        }),
+      )
+      .catch((err) =>
+        this.logger.error('Failed to enqueue application confirmation email', err.message),
+      );
+
+    this.eventEmitter.emit('application.submitted', {
+      applicationId: application.id,
+      jobId: dto.jobId,
+      userId,
+    });
+
+    this.logger.log(`Application ${application.id} submitted — screening queued`);
+    return application;
+  }
+
+  async findByUser(userId: string) {
+    return this.prisma.application.findMany({
+      where: { userId },
+      include: { job: { include: { company: true } }, score: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findByJob(jobId: string, employerId: string) {
+    const job = await this.prisma.job.findFirst({
+      where: { id: jobId, company: { userId: employerId } },
+    });
+    if (!job) throw new NotFoundException('Job not found');
+
+    const applications = await this.prisma.application.findMany({
+      where: { jobId },
+      include: { user: { select: APPLICANT_CONTACT }, score: true },
+      orderBy: [{ score: { overallScore: 'desc' } }, { createdAt: 'asc' }],
+    });
+    return applications.map((application) => ({
+      ...application,
+      user: applicantContact(application.user),
+    }));
+  }
+
+  /**
+   * One application, for the person who applied or the employer hiring for the job; anyone else
+   * gets the same 404 as a missing id. (It used to be open to every signed-in user, with the
+   * applicant's whole account row, password hash included.)
+   */
+  async findOne(id: string, viewerId: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { id, OR: [{ userId: viewerId }, { job: { company: { userId: viewerId } } }] },
+      include: {
+        user: {
+          select: { ...APPLICANT_CONTACT, avatarUrl: true, headline: true, skills: true },
+        },
+        job: { include: { company: true } },
+        score: true,
+      },
+    });
+    if (!application) throw new NotFoundException(`Application ${id} not found`);
+    return { ...application, user: applicantContact(application.user) };
+  }
+
+  async updateStatus(id: string, status: string, employerId: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { id, job: { company: { userId: employerId } } },
+      include: {
+        user: { select: { email: true, firstName: true, ...TELEGRAM_CONTACT } },
+        job: { select: { title: true, company: { select: { name: true } } } },
+      },
+    });
+
+    if (!application) {
+      throw new NotFoundException(
+        `Application ${id} not found or you don't have permission to update it`,
+      );
+    }
+
+    const updated = await this.prisma.application.update({
+      where: { id },
+      data: { status: status as never },
+    });
+    await this.prisma.notification.create({
+      data: {
+        userId: application.userId,
+        channel: 'IN_APP',
+        type: 'APPLICATION_STATUS',
+        title: 'Application status updated',
+        body: `Your application status is now ${status.replaceAll('_', ' ').toLowerCase()}.`,
+        metadata: { applicationId: id },
+      },
+    });
+    await this.push?.sendToUser(application.userId, {
+      title: 'Application status updated',
+      body: `${application.job.title}: ${status.replaceAll('_', ' ').toLowerCase()}.`,
+      metadata: { applicationId: id },
+    });
+
+    const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
+    this.queueTelegram(
+      applicantTelegram(
+        application.user,
+        status,
+        application.job.title,
+        application.job.company.name,
+        frontendUrl,
+      ),
+    );
+
+    try {
+      const email = await applicationStatusEmail({
+        firstName: application.user.firstName,
+        jobTitle: application.job.title,
+        status,
+        applicationUrl: `${frontendUrl}/applications`,
+      });
+      await this.notificationsQueue.add(NOTIFICATION_JOBS.SEND_EMAIL, {
+        to: application.user.email,
+        subject: `Application update — ${application.job.title}`,
+        ...email,
+      });
+    } catch (err: any) {
+      this.logger.error(`Failed to enqueue application status email: ${err.message}`);
+    }
+    return updated;
+  }
+
+  /** Queues a Jobs bot message; a queue failure is logged and never fails the request. */
+  private queueTelegram(payload: TelegramPayload | null) {
+    if (!payload) return;
+    this.notificationsQueue
+      .add(NOTIFICATION_JOBS.SEND_TELEGRAM, payload)
+      .catch((err) => this.logger.error('Failed to enqueue Telegram message', err.message));
+  }
+
+  async withdraw(id: string, userId: string) {
+    const application = await this.prisma.application.findFirst({
+      where: { id, userId, status: { in: ['SUBMITTED', 'SCREENING', 'SHORTLISTED'] } },
+    });
+    if (!application) throw new NotFoundException('Application cannot be withdrawn');
+    return this.prisma.application.update({ where: { id }, data: { status: 'WITHDRAWN' } });
+  }
+}

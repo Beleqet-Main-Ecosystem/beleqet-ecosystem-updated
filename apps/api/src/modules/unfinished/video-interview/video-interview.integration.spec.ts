@@ -5,7 +5,7 @@ import { I18nService } from 'nestjs-i18n';
 import { VideoInterviewService } from './video-interview.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../../queues/queues.constants';
+import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../../platform/queues/queues.constants';
 
 /**
  * Integration-style coverage: AI Video Interview coexists with the

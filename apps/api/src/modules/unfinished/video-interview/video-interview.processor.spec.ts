@@ -12,7 +12,7 @@ import {
   VIDEO_INTERVIEW_JOBS,
   REFERRAL_JOBS,
   JOB_ALERT_JOBS,
-} from '../../queues/queues.constants';
+} from '../../platform/queues/queues.constants';
 
 const mockPrisma = {
   videoResponse: {

@@ -4,7 +4,7 @@ import { I18nService } from 'nestjs-i18n';
 import { FraudAlertController } from './fraud-alert.controller';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
-import { QUEUE_NAMES } from '../../queues/queues.constants';
+import { QUEUE_NAMES } from '../../platform/queues/queues.constants';
 
 const mockFraudQueue = {
   add: jest.fn().mockResolvedValue({ id: 'test-job-id' }),

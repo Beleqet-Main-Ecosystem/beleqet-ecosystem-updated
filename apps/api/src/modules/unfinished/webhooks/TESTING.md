@@ -218,7 +218,7 @@ prismaService.model.operation.mockResolvedValue(mockData);
 ## Expected Test Output
 
 ```
-PASS  src/modules/webhooks/controllers/webhooks.controller.spec.ts (5.234 s)
+PASS  src/modules/unfinished/webhooks/controllers/webhooks.controller.spec.ts (5.234 s)
   WebhooksController
     handleStripe
       ✓ should successfully process a Stripe webhook (23 ms)
@@ -234,7 +234,7 @@ PASS  src/modules/webhooks/controllers/webhooks.controller.spec.ts (5.234 s)
     getRetryHistory
       ✓ should return retry history for a webhook (3 ms)
 
-PASS  src/modules/webhooks/services/webhook-verifier.service.spec.ts (2.156 s)
+PASS  src/modules/unfinished/webhooks/services/webhook-verifier.service.spec.ts (2.156 s)
   WebhookVerifierService
     verifyStripe
       ✓ should verify a valid Stripe signature (8 ms)
@@ -247,7 +247,7 @@ PASS  src/modules/webhooks/services/webhook-verifier.service.spec.ts (2.156 s)
       ✓ should verify a valid Chapa signature (7 ms)
       ✓ should throw error on invalid Chapa signature (3 ms)
 
-PASS  src/modules/webhooks/services/i18n.service.spec.ts (1.876 s)
+PASS  src/modules/unfinished/webhooks/services/i18n.service.spec.ts (1.876 s)
   I18nService
     getLocalizationContext
       ✓ should return default English context (2 ms)
@@ -265,7 +265,7 @@ PASS  src/modules/webhooks/services/i18n.service.spec.ts (1.876 s)
       ✓ should format date in English (2 ms)
       ✓ should format date in different timezone (1 ms)
 
-PASS  src/modules/webhooks/services/gdpr.service.spec.ts (1.654 s)
+PASS  src/modules/unfinished/webhooks/services/gdpr.service.spec.ts (1.654 s)
   GDPRService
     getComplianceMetadata
       ✓ should return GDPR compliance metadata (2 ms)

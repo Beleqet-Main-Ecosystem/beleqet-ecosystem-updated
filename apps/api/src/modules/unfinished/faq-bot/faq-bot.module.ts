@@ -8,7 +8,7 @@ import { AiStreamService } from './services/ai-stream.service';
 import { FaqBotConsentService } from './services/faq-bot-consent.service';
 import { FaqBotCurrencyService } from './services/faq-bot-currency.service';
 import { PrismaModule } from '../../../prisma/prisma.module';
-import { WalletModule } from '../../wallet/wallet.module';
+import { WalletModule } from '../../payments/wallet/wallet.module';
 
 @Module({
   imports: [PrismaModule, WalletModule],

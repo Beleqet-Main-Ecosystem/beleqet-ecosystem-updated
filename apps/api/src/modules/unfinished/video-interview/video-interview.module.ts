@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { QUEUE_NAMES } from '../../queues/queues.constants';
+import { QUEUE_NAMES } from '../../platform/queues/queues.constants';
 import { VideoInterviewController } from './video-interview.controller';
 import { VideoInterviewService } from './video-interview.service';
 import { VideoInterviewProcessor } from './video-interview.processor';

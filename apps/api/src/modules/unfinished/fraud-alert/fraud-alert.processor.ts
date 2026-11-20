@@ -9,7 +9,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { QUEUE_NAMES, FRAUD_JOBS } from '../../queues/queues.constants';
+import { QUEUE_NAMES, FRAUD_JOBS } from '../../platform/queues/queues.constants';
 import { FraudAlertService } from './fraud-alert.service';
 
 interface ScanUserPayload {

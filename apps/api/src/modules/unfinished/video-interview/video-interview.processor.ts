@@ -9,7 +9,7 @@ import { unlink } from 'fs/promises';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { FfmpegService } from './ffmpeg.service';
-import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../../queues/queues.constants';
+import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../../platform/queues/queues.constants';
 
 interface TranscribeJobData {
   responseId: string;

@@ -70,7 +70,7 @@ services:
       # The common EncryptionModule refuses to boot without a 64-char hex key.
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required (64 hex chars)}
       # The auth module refuses to boot without the full OAuth set (see
-      # src/modules/auth/config/auth.config.ts), so these are required here.
+      # src/modules/accounts/auth/config/auth.config.ts), so these are required here.
       OAUTH_TOKEN_ENCRYPTION_KEY: ${OAUTH_TOKEN_ENCRYPTION_KEY:?OAUTH_TOKEN_ENCRYPTION_KEY is required (base64, 32 bytes decoded)}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}

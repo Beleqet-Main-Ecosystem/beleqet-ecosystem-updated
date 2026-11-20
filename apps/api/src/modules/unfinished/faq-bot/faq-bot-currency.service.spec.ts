@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { FaqBotCurrencyService } from './services/faq-bot-currency.service';
-import { WalletService } from '../../wallet/wallet.service';
+import { WalletService } from '../../payments/wallet/wallet.service';
 
 describe('FaqBotCurrencyService', () => {
   let service: FaqBotCurrencyService;

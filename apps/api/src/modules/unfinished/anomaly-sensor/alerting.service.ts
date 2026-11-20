@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../../queues/queues.constants';
+import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../../platform/queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
 
 /**

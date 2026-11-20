@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KycController } from './kyc.controller';
 import { KycService } from './kyc.service';
-import { UploadsModule } from '../../uploads/uploads.module';
+import { UploadsModule } from '../../platform/uploads/uploads.module';
 import { PrismaModule } from '../../../prisma/prisma.module';
 import { MockKycProvider } from './providers/mock-kyc-provider.service';
 import { OpenAiKycProvider } from './providers/openai-kyc-provider.service';

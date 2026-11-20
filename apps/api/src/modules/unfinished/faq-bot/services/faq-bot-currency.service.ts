@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { WalletService } from '../../../wallet/wallet.service';
+import { WalletService } from '../../../payments/wallet/wallet.service';
 
 /** Supported display currencies for FAQ answers. */
 export type SupportedCurrency = 'ETB' | 'USD' | 'EUR';

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { SmartBiddingService } from './smart-bidding.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { REDIS_CLIENT } from '../../redis/redis.module';
+import { REDIS_CLIENT } from '../../platform/redis/redis.module';
 import { NotFoundException } from '@nestjs/common';
 
 describe('SmartBiddingService', () => {

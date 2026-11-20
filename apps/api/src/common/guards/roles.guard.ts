@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
-import { REDIS_CLIENT } from '../../modules/redis/redis.module';
+import { REDIS_CLIENT } from '../../modules/platform/redis/redis.module';
 import Redis from 'ioredis';
 
 @Injectable()

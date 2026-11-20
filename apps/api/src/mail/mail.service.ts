@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
-import { IEmailSender } from '../modules/auth/interfaces/email-sender.interface';
+import { IEmailSender } from '../modules/accounts/auth/interfaces/email-sender.interface';
 import { loadMailEnvConfig } from './mail.config';
 import { isDeliverableEmail } from '../common/utils/deliverable-email';
 

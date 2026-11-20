@@ -15,7 +15,7 @@ import { CircuitBreakerService } from './circuit-breaker.service';
 import { assertAllowedVideoUrl } from './ffmpeg.service';
 import { CreateInterviewSessionDto } from './dto/create-interview-session.dto';
 import { SubmitResponseDto } from './dto/submit-response.dto';
-import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../../queues/queues.constants';
+import { QUEUE_NAMES, VIDEO_INTERVIEW_JOBS } from '../../platform/queues/queues.constants';
 import { ConfigService } from '@nestjs/config';
 
 /** GDPR retention period: 90 days in milliseconds. */

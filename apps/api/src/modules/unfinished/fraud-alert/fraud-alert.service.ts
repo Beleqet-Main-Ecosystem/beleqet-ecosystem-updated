@@ -21,7 +21,7 @@ import { Queue } from 'bullmq';
 import { I18nService, I18nContext } from 'nestjs-i18n';
 import { FraudRuleType, FraudSeverity } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../../queues/queues.constants';
+import { QUEUE_NAMES, NOTIFICATION_JOBS } from '../../platform/queues/queues.constants';
 import { AnomalySensorService } from '../anomaly-sensor/anomaly-sensor.service';
 import { PlagiarismService } from '../plagiarism/plagiarism.service';
 

@@ -12,7 +12,7 @@ import { I18nService } from 'nestjs-i18n';
 import { VideoInterviewService } from './video-interview.service';
 import { CircuitBreakerService } from './circuit-breaker.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { QUEUE_NAMES } from '../../queues/queues.constants';
+import { QUEUE_NAMES } from '../../platform/queues/queues.constants';
 
 const mockPrisma = {
   application: { findFirst: jest.fn() },

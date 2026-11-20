@@ -6,7 +6,7 @@ import { I18nService, I18nContext } from 'nestjs-i18n';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
-import { QUEUE_NAMES, FRAUD_JOBS } from '../../queues/queues.constants';
+import { QUEUE_NAMES, FRAUD_JOBS } from '../../platform/queues/queues.constants';
 
 @ApiTags('fraud-alert')
 @ApiBearerAuth()
