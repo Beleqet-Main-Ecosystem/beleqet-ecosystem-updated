@@ -26,9 +26,11 @@
       "versionCode": 26,
       "permissions": [
         "RECORD_AUDIO",
-        "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE"
+      ],
+      "blockedPermissions": [
+        "android.permission.CAMERA"
       ]
     },
     "web": {
