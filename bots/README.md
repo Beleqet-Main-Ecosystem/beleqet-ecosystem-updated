@@ -101,8 +101,15 @@ bots/
 |   .env, venv and data/ (boost.db or go.db, persistence.pickle), none of them in git.
 |
 +-- jobs/
-    +-- .env
-    +-- main.py              (Bot + aiohttp webhook, 1376 lines)
+    +-- main.py              (starts it: the handlers, the aiohttp web server, polling)
+    +-- config.py            (settings from .env, logging, conversation states)
+    +-- texts.py             (everything the bot says, English and Amharic)
+    +-- common.py            (shared helpers: roles, keyboards, account lookup, rate-limited sending)
+    +-- registration.py      (/start and each registration question)
+    +-- accounts.py          (email confirmation codes, linking an existing account)
+    +-- menu.py              (the main menu's buttons)
+    +-- webhook.py           (health check, errors, the website's webhook)
+    +-- admin.py             (broadcasts, payment decisions)
     +-- requirements.txt
     +-- sgs-challenge/
     |   +-- app/
