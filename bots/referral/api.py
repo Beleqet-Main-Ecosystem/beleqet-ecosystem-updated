@@ -12,9 +12,11 @@ import re
 import time
 import httpx
 from dotenv import load_dotenv
+import profiles
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
+BOT = profiles.current()  # Boost or Go: see profiles.py
 
 app = FastAPI()
 
@@ -33,11 +35,11 @@ log = logging.getLogger("referral-api")
 # Everything the bot writes lives in data/, which deploys never touch and the nightly backup copies.
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
-DB_FILE = os.path.join(DATA_DIR, "boost.db")
+DB_FILE = os.path.join(DATA_DIR, BOT.db_file)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 PROMO_BOT_API_URL = os.getenv("PROMO_BOT_API_URL", "http://127.0.0.1:8002/api/internal/transfer_points")
 TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "")
-TRANSFER_SOURCE = "Beleqet Academy Bot"
+TRANSFER_SOURCE = BOT.transfer_source
 MIN_TRANSFER_AMOUNT = 1
 MIN_WITHDRAWAL_AMOUNT = 50
 INIT_DATA_MAX_AGE_SECONDS = 24 * 3600
@@ -120,7 +122,7 @@ async def get_user_stats(user_id: int, x_telegram_init_data: str = Header(None))
         return {"balance": balance, "totalReferrals": total_referrals, "activeReferrals": active_referrals}
     except Exception:
         log.exception("stats failed for %s", user_id)
-        raise HTTPException(status_code=500, detail="Could not load your stats. Please try again.")
+        raise HTTPException(status_code=500, detail="Could not load your stats. Please try again.") from None
 
 
 @app.post("/api/withdraw")
@@ -188,14 +190,14 @@ async def request_withdrawal(req: WithdrawRequest, x_telegram_init_data: str = H
                     await db.commit()
             except Exception:
                 log.critical("Could not refund %s points to %s after failed withdrawal notification", req.amount, req.user_id, exc_info=True)
-            raise HTTPException(status_code=502, detail="Failed to notify administrators. Your points have been refunded.")
+            raise HTTPException(status_code=502, detail="Failed to notify administrators. Your points have been refunded.") from None
 
         return {"status": "success", "message": "Withdrawal requested successfully!"}
     except HTTPException:
         raise
     except Exception:
         log.exception("withdrawal failed for %s", req.user_id)
-        raise HTTPException(status_code=500, detail="Your request could not be completed. Please try again.")
+        raise HTTPException(status_code=500, detail="Your request could not be completed. Please try again.") from None
 
 
 @app.post("/api/transfer")
@@ -234,7 +236,7 @@ async def transfer_points_to_promo(req: TransferRequest, x_telegram_init_data: s
                     await db.commit()
             except Exception:
                 log.critical("could not refund %s points to %s", req.amount, req.user_id, exc_info=True)
-            raise HTTPException(status_code=502, detail="Transfer to Promo Bot failed. Your points have been refunded.")
+            raise HTTPException(status_code=502, detail="Transfer to Promo Bot failed. Your points have been refunded.") from None
 
         return {
             "status": "success",
@@ -245,4 +247,4 @@ async def transfer_points_to_promo(req: TransferRequest, x_telegram_init_data: s
         raise
     except Exception:
         log.exception("transfer failed for %s", req.user_id)
-        raise HTTPException(status_code=500, detail="Your request could not be completed. Please try again.")
+        raise HTTPException(status_code=500, detail="Your request could not be completed. Please try again.") from None

@@ -2,8 +2,8 @@
 
 "Beleqet Promotion" is a Telegram bot with a Mini App where people buy social media promotion
 (TikTok, Instagram, Telegram, Facebook and YouTube followers, likes and views) with a wallet in
-birr. It's also where the referral bots send their rewards: the Boost (`bots/boost`) and Go
-(`bots/go`) bots move points into a user's Promotion wallet.
+birr. It's also where the referral bots send their rewards: the Boost and Go bots (both run
+from `bots/referral`) move points into a user's Promotion wallet.
 
 - **Orders** go to the SMM panel (smmland.com). Its USD prices are shown in birr at the live rate
   plus 20%. Cancelled and partial orders are refunded when the user's orders sync.

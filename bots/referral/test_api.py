@@ -1,5 +1,5 @@
 """The Mini App's API (api.py): only the signed-in Telegram user reads or spends their balance, and
-an airtime payout names its provider. Run from bots/boost: python -m unittest test_api"""
+an airtime payout names its provider. Run from bots/referral: python -m pytest test_api.py"""
 import hashlib
 import hmac
 import json
@@ -13,7 +13,7 @@ from unittest import mock
 from urllib.parse import urlencode
 
 BOT_TOKEN = "123456:TEST-token_for_tests_only"
-os.environ.update({"BOT_TOKEN": BOT_TOKEN, "ADMIN_ID": "1000", "REQUIRE_TELEGRAM_AUTH": "true"})
+os.environ.update({"BOT_TOKEN": BOT_TOKEN, "ADMIN_ID": "1000", "REQUIRE_TELEGRAM_AUTH": "true", "BOT_NAME": "boost"})
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import api  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

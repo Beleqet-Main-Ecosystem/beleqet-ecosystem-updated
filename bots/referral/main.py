@@ -30,19 +30,20 @@ from telegram.ext import (
     filters,
 )
 from telegram_bot_calendar import DetailedTelegramCalendar
-from telegram import ChatMemberUpdated
 from telegram.ext import ChatMemberHandler
+import profiles
 
 # --- ⚙️ CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
+BOT = profiles.current()  # Boost or Go: see profiles.py
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 TARGET_CHATS = [
     int(x.strip()) for x in os.getenv("TARGET_CHATS", "-1001669125004,-1001199095627,-1002877767689,-1001989588782").split(",") if x.strip()
 ]
-CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1001199095627"))
-PRIMARY_ADMIN_ID = int(os.getenv("ADMIN_ID", "6359221369"))
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", BOT.channel_id))
+PRIMARY_ADMIN_ID = int(os.getenv("ADMIN_ID", BOT.admin_id))
 PAYMENT_HANDLER_ID = int(os.getenv("PAYMENT_HANDLER_ID")) if os.getenv("PAYMENT_HANDLER_ID") else None
 CONFIGURED_ADMIN_IDS = [
     int(x.strip()) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()
@@ -50,15 +51,15 @@ CONFIGURED_ADMIN_IDS = [
 # Everything the bot writes lives in data/, which deploys never touch and the nightly backup copies.
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
-DB_FILE = os.path.join(DATA_DIR, "go.db")
+DB_FILE = os.path.join(DATA_DIR, BOT.db_file)
 PERSISTENCE_FILE = os.path.join(DATA_DIR, "persistence.pickle")
-WELCOME_PHOTO_FILE_ID = os.getenv("WELCOME_PHOTO_FILE_ID", "Promo.jpg")
+WELCOME_PHOTO_FILE_ID = os.getenv("WELCOME_PHOTO_FILE_ID", BOT.welcome_photo)
 if WELCOME_PHOTO_FILE_ID and not os.path.isabs(WELCOME_PHOTO_FILE_ID):
     local_photo_path = os.path.join(BASE_DIR, WELCOME_PHOTO_FILE_ID)
     if os.path.exists(local_photo_path):
         WELCOME_PHOTO_FILE_ID = local_photo_path
-CHANNEL_INVITE_LINK = os.getenv("CHANNEL_INVITE_LINK", "https://t.me/BeleqetJobs")
-WEBAPP_URL = os.getenv("WEBAPP_URL", "https://go.beleqetjobs.com/")
+CHANNEL_INVITE_LINK = os.getenv("CHANNEL_INVITE_LINK", BOT.channel_invite_link)
+WEBAPP_URL = os.getenv("WEBAPP_URL", BOT.webapp_url)
 
 # --- 🗄️ ASYNC DATABASE SETUP ---
 async def setup_database():
@@ -141,7 +142,7 @@ async def post_init(application: Application):
         from telegram import MenuButtonWebApp
         await application.bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(
-                text="Launch Beleqet Go",
+                text=BOT.menu_button,
                 web_app=WebAppInfo(url=WEBAPP_URL)
             )
         )
@@ -197,7 +198,7 @@ main_menu_markup = ReplyKeyboardMarkup(main_menu_keyboard, resize_keyboard=True)
 
 # For admins
 admin_menu_keyboard = [
-    [KeyboardButton("📱 Mini App ይክፈቱ", web_app=WebAppInfo(url=WEBAPP_URL))],
+    [KeyboardButton(BOT.admin_open_app, web_app=WebAppInfo(url=WEBAPP_URL))],
     [KeyboardButton("📣 Broadcast Message"), KeyboardButton("📢 Post to Channel")],
     [KeyboardButton("👑 Manage Admins"), KeyboardButton("📊 User Stats")],
     [KeyboardButton("🗓️ Scheduled Posts")]
@@ -264,7 +265,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     join_button_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton("Join Our Channel 📢", url=CHANNEL_INVITE_LINK)],
-        [InlineKeyboardButton("Mini App ይክፈቱ 📱", web_app=WebAppInfo(url=WEBAPP_URL))]
+        [InlineKeyboardButton(BOT.welcome_open_app, web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
 
     # WELCOME_PHOTO_FILE_ID may be a Telegram file id or a local image path; fall back to text either way.
@@ -685,7 +686,7 @@ async def manage_scheduled_posts(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text("There are no scheduled posts.")
         return
         
-    for job_id, post_text, scheduled_time, repeat in posts:
+    for job_id, post_text, scheduled_time, _repeat in posts:
         keyboard = [
             [
                 InlineKeyboardButton("Duplicate 📑", callback_data=f"duplicate_post:{job_id}"),
@@ -752,7 +753,7 @@ async def handle_inline_query(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = user.id
 
     referral_link = (
-        f"https://t.me/BeleqetJobsInviteAndWin_Bot?start={user_id}"
+        f"https://t.me/{BOT.bot_username}?start={user_id}"
     )
 
     invite_text = f"""

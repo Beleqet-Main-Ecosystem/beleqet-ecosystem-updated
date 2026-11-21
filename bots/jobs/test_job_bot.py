@@ -31,8 +31,13 @@ SERVER_DIR = os.path.join(BASE_DIR, "sgs-challenge", "server")
 if SERVER_DIR not in sys.path:
     sys.path.insert(0, SERVER_DIR)
 
-import main as bot
-from main import TRANSLATIONS, get_keyboard, normalize_role
+import accounts
+import common
+import config
+import registration
+from common import get_keyboard, normalize_role
+from texts import TRANSLATIONS
+from telegram.ext import ConversationHandler
 from voting_routes import init_challenge_db, verify_init_data
 
 TEST_BOT_TOKEN = "123456:TEST-ONLY-not-a-real-bot-token"  # only signs fake Telegram data in these tests
@@ -170,7 +175,7 @@ class FakeTelegramUser:
 
 def test_registration_payload_keeps_everything():
     """The employer's own name, company, phone, language and Telegram's username all reach the API."""
-    employer = bot.registration_payload({
+    employer = common.registration_payload({
         'role_input': 'employer',
         'company_name': 'Abyssinia Tech PLC',
         'contact_name': 'Ahmed Dawud',
@@ -188,7 +193,7 @@ def test_registration_payload_keeps_everything():
     # From Telegram, not typed: it can't be someone else's username.
     assert employer['tg_username'] == 'ahmed_recruiter'
 
-    seeker = bot.registration_payload({
+    seeker = common.registration_payload({
         'role_input': 'candidate',
         'name': 'Sara Tesfaye',
         'job_title': 'Accountant',
@@ -203,15 +208,15 @@ def test_registration_payload_keeps_everything():
 
 
 def test_password_and_code_rules():
-    assert not bot.password_ok('short')
-    assert not bot.password_ok('1234567')
-    assert bot.password_ok('12345678')
-    assert bot.six_digit_code('123456') == '123456'
-    assert bot.six_digit_code(' 123 456 ') == '123456'
-    assert bot.six_digit_code('12345') is None
-    assert bot.six_digit_code('abc123') is None
-    assert bot.menu_key_for('ሥራ መለጠፍ') == ('post_job', 'am')
-    assert bot.menu_key_for('123456') is None
+    assert not common.password_ok('short')
+    assert not common.password_ok('1234567')
+    assert common.password_ok('12345678')
+    assert common.six_digit_code('123456') == '123456'
+    assert common.six_digit_code(' 123 456 ') == '123456'
+    assert common.six_digit_code('12345') is None
+    assert common.six_digit_code('abc123') is None
+    assert common.menu_key_for('ሥራ መለጠፍ') == ('post_job', 'am')
+    assert common.menu_key_for('123456') is None
     print("  [PASS] test_password_and_code_rules")
 
 
@@ -295,56 +300,56 @@ async def async_test_email_code_step():
         menu_presses.append(update.effective_message.text)
 
     sender = RecordingSender()
-    original = (bot.bot_api, bot.handle_menu_selection, bot.bot_context.rate_limiter)
-    bot.bot_api, bot.handle_menu_selection, bot.bot_context.rate_limiter = fake_api, fake_menu, sender
+    original = (accounts.bot_api, accounts.handle_menu_selection, common.bot_context.rate_limiter)
+    accounts.bot_api, accounts.handle_menu_selection, common.bot_context.rate_limiter = fake_api, fake_menu, sender
     try:
         context = FakeContext()
 
-        state = await bot.handle_email_code(FakeUpdate('12ab'), context)
-        assert state == bot.EMAIL_CODE and calls == []
+        state = await accounts.handle_email_code(FakeUpdate('12ab'), context)
+        assert state == config.EMAIL_CODE and calls == []
         assert sender.sent[-1] == TRANSLATIONS['en']['code_format']
 
         answers['confirm-email'] = (400, {'message': 'That code is not right or has expired.'})
-        state = await bot.handle_email_code(FakeUpdate('111 111'), context)
-        assert state == bot.EMAIL_CODE
+        state = await accounts.handle_email_code(FakeUpdate('111 111'), context)
+        assert state == config.EMAIL_CODE
         assert 'not right' in sender.sent[-1]
 
         answers['confirm-email'] = (200, {'confirmed': True})
-        state = await bot.handle_email_code(FakeUpdate('123 456'), context)
-        assert state == bot.ConversationHandler.END
+        state = await accounts.handle_email_code(FakeUpdate('123 456'), context)
+        assert state == ConversationHandler.END
         assert calls[-1] == ('confirm-email', {'telegram_id': '7', 'code': '123456'})
         assert sender.sent[-1].startswith(TRANSLATIONS['en']['code_confirmed'])
 
         # A menu button ends the step and does what it says, instead of counting as a wrong code.
-        state = await bot.handle_email_code(FakeUpdate('Jobs'), context)
-        assert state == bot.ConversationHandler.END and menu_presses == ['Jobs']
+        state = await accounts.handle_email_code(FakeUpdate('Jobs'), context)
+        assert state == ConversationHandler.END and menu_presses == ['Jobs']
 
         # A taken email asks for another one.
         answers['email-code'] = (409, {'message': 'That email belongs to another account.'})
-        state = await bot.handle_new_email(FakeUpdate('taken@firm.com'), context)
-        assert state == bot.NEW_EMAIL
+        state = await accounts.handle_new_email(FakeUpdate('taken@firm.com'), context)
+        assert state == config.NEW_EMAIL
         assert calls[-1] == ('email-code', {'telegram_id': '7', 'email': 'taken@firm.com'})
     finally:
-        bot.bot_api, bot.handle_menu_selection, bot.bot_context.rate_limiter = original
+        accounts.bot_api, accounts.handle_menu_selection, common.bot_context.rate_limiter = original
     print("  [PASS] async_test_email_code_step")
 
 
 def test_job_seeker_residence_and_phone():
     """Typed countries, the person's own shared number, and what reaches the API."""
-    assert bot.country_from_text(' Kenya ') == 'KE'
-    assert bot.country_from_text('saudi  arabia') == 'SA'
-    assert bot.country_from_text('ኢትዮጵያ') == 'ET'
-    assert bot.country_from_text('de') == 'DE'
-    assert bot.country_from_text('Atlantis') is None
+    assert common.country_from_text(' Kenya ') == 'KE'
+    assert common.country_from_text('saudi  arabia') == 'SA'
+    assert common.country_from_text('ኢትዮጵያ') == 'ET'
+    assert common.country_from_text('de') == 'DE'
+    assert common.country_from_text('Atlantis') is None
 
     me = FakeTelegramUser(7)
-    assert bot.own_phone(FakeMessage(None, contact=FakeContact('251911223344', 7)), me) == '+251911223344'
-    assert bot.own_phone(FakeMessage(None, contact=FakeContact('+971 50 123 4567', 7)), me) == '+971501234567'
+    assert common.own_phone(FakeMessage(None, contact=FakeContact('251911223344', 7)), me) == '+251911223344'
+    assert common.own_phone(FakeMessage(None, contact=FakeContact('+971 50 123 4567', 7)), me) == '+971501234567'
     # Someone else's contact card isn't the person's number.
-    assert bot.own_phone(FakeMessage(None, contact=FakeContact('+251911000000', 99)), me) is None
-    assert bot.own_phone(FakeMessage('0911223344'), me) is None
+    assert common.own_phone(FakeMessage(None, contact=FakeContact('+251911000000', 99)), me) is None
+    assert common.own_phone(FakeMessage('0911223344'), me) is None
 
-    seeker = bot.registration_payload({
+    seeker = common.registration_payload({
         'role_input': 'candidate', 'name': 'Hana Bekele', 'phone': '+251911223344',
         'gender': 'FEMALE', 'country': 'ET', 'city': 'Hawassa', 'job_title': 'Nurse',
     }, FakeTelegramUser(42, 'hana_b'))
@@ -356,42 +361,42 @@ def test_job_seeker_residence_and_phone():
 async def async_test_job_seeker_steps():
     """Phone by the share button only, then gender, country and city, then the job title."""
     sender = RecordingSender()
-    original = bot.bot_context.rate_limiter
-    bot.bot_context.rate_limiter = sender
+    original = common.bot_context.rate_limiter
+    common.bot_context.rate_limiter = sender
     try:
         context = FakeContext()
         context.user_data = {'language': 'en', 'role_input': 'candidate', 'role': 'Candidate'}
 
-        state = await bot.get_phone(FakeUpdate('0911223344'), context)
-        assert state == bot.PHONE and 'phone' not in context.user_data
+        state = await registration.get_phone(FakeUpdate('0911223344'), context)
+        assert state == config.PHONE and 'phone' not in context.user_data
         assert sender.sent[-1] == TRANSLATIONS['en']['share_phone_only']
 
         shared = FakeUpdate(None)
         shared.effective_message.contact = FakeContact('251911223344', 7)
-        state = await bot.get_phone(shared, context)
-        assert state == bot.GENDER and context.user_data['phone'] == '+251911223344'
+        state = await registration.get_phone(shared, context)
+        assert state == config.GENDER and context.user_data['phone'] == '+251911223344'
 
-        state = await bot.get_gender(FakeCallbackUpdate('gender_FEMALE'), context)
-        assert state == bot.COUNTRY and context.user_data['gender'] == 'FEMALE'
+        state = await registration.get_gender(FakeCallbackUpdate('gender_FEMALE'), context)
+        assert state == config.COUNTRY and context.user_data['gender'] == 'FEMALE'
         assert 'country_ET' in button_data(sender.markups[-1])
 
-        state = await bot.get_country(FakeCallbackUpdate('country_ET'), context)
-        assert state == bot.CITY and context.user_data['country'] == 'ET'
+        state = await registration.get_country(FakeCallbackUpdate('country_ET'), context)
+        assert state == config.CITY and context.user_data['country'] == 'ET'
         assert 'city_0' in button_data(sender.markups[-1])
 
-        state = await bot.get_city(FakeCallbackUpdate('city_5'), context)
-        assert state == bot.JOB_TITLE and context.user_data['city'] == 'Hawassa'
+        state = await registration.get_city(FakeCallbackUpdate('city_5'), context)
+        assert state == config.JOB_TITLE and context.user_data['city'] == 'Hawassa'
 
         # Outside Ethiopia: type the country, then the city.
-        state = await bot.get_country(FakeCallbackUpdate('country_other'), context)
-        assert state == bot.COUNTRY_TYPED
-        state = await bot.get_typed_country(FakeUpdate('Lebanon'), context)
-        assert state == bot.CITY and context.user_data['country'] == 'LB'
+        state = await registration.get_country(FakeCallbackUpdate('country_other'), context)
+        assert state == config.COUNTRY_TYPED
+        state = await registration.get_typed_country(FakeUpdate('Lebanon'), context)
+        assert state == config.CITY and context.user_data['country'] == 'LB'
         assert sender.sent[-1] == TRANSLATIONS['en']['type_city']
-        state = await bot.get_city(FakeUpdate('  Beirut '), context)
-        assert state == bot.JOB_TITLE and context.user_data['city'] == 'Beirut'
+        state = await registration.get_city(FakeUpdate('  Beirut '), context)
+        assert state == config.JOB_TITLE and context.user_data['city'] == 'Beirut'
     finally:
-        bot.bot_context.rate_limiter = original
+        common.bot_context.rate_limiter = original
     print("  [PASS] async_test_job_seeker_steps")
 
 
@@ -405,69 +410,69 @@ async def async_test_link_existing_account():
         return answers[path]
 
     sender = RecordingSender()
-    original = (bot.bot_api, bot.bot_context.rate_limiter)
-    bot.bot_api, bot.bot_context.rate_limiter = fake_api, sender
+    original = (accounts.bot_api, common.bot_context.rate_limiter)
+    accounts.bot_api, common.bot_context.rate_limiter = fake_api, sender
     try:
         context = FakeContext()
         context.user_data = {'language': 'en'}
 
-        state = await bot.get_link_email(FakeUpdate('not-an-email'), context)
-        assert state == bot.LINK_EMAIL and calls == []
+        state = await accounts.get_link_email(FakeUpdate('not-an-email'), context)
+        assert state == config.LINK_EMAIL and calls == []
 
         answers['link-account'] = (404, {'message': 'No Beleqet account uses that email.'})
-        state = await bot.get_link_email(FakeUpdate('Boss@Firm.com'), context)
-        assert state == bot.LINK_EMAIL and 'No Beleqet account' in sender.sent[-2]
+        state = await accounts.get_link_email(FakeUpdate('Boss@Firm.com'), context)
+        assert state == config.LINK_EMAIL and 'No Beleqet account' in sender.sent[-2]
 
         answers['link-account'] = (200, {'sent': True, 'email': 'boss@firm.com'})
-        state = await bot.get_link_email(FakeUpdate('boss@firm.com'), context)
-        assert state == bot.LINK_CODE
+        state = await accounts.get_link_email(FakeUpdate('boss@firm.com'), context)
+        assert state == config.LINK_CODE
         assert calls[-1] == ('link-account', {'telegram_id': '7', 'email': 'boss@firm.com'})
 
         answers['link-account/confirm'] = (400, {'message': 'That code is not right or has expired.'})
-        state = await bot.get_link_code(FakeUpdate('111 111'), context)
-        assert state == bot.LINK_CODE and 'not right' in sender.sent[-1]
+        state = await accounts.get_link_code(FakeUpdate('111 111'), context)
+        assert state == config.LINK_CODE and 'not right' in sender.sent[-1]
 
         answers['link-account/confirm'] = (200, {'linked': True, 'role': 'employer', 'language': 'am', 'first_name': 'Abebe'})
-        state = await bot.get_link_code(FakeUpdate('123456'), context)
-        assert state == bot.ConversationHandler.END
+        state = await accounts.get_link_code(FakeUpdate('123456'), context)
+        assert state == ConversationHandler.END
         assert calls[-1][1]['code'] == '123456' and calls[-1][1]['email'] == 'boss@firm.com'
         assert context.user_data['role'] == 'Employer' and context.user_data['language'] == 'am'
         assert sender.sent[-1] == TRANSLATIONS['am']['link_done'].format(name='Abebe')
     finally:
-        bot.bot_api, bot.bot_context.rate_limiter = original
+        accounts.bot_api, common.bot_context.rate_limiter = original
     print("  [PASS] async_test_link_existing_account")
 
 
 async def async_test_new_registration_forgets_old_answers():
     """Registering as a job seeker after an employer registration sends no leftover email."""
     sender = RecordingSender()
-    original = bot.bot_context.rate_limiter
-    bot.bot_context.rate_limiter = sender
+    original = common.bot_context.rate_limiter
+    common.bot_context.rate_limiter = sender
     try:
         context = FakeContext()
         context.user_data = {'language': 'en', 'email': 'boss@firm.com', 'password': 'Old-pass-123',
                              'company_name': 'Old Co', 'role_input': 'employer'}
-        state = await bot.handle_role_selection(FakeCallbackUpdate('candidate'), context)
-        assert state == bot.NAME
+        state = await registration.handle_role_selection(FakeCallbackUpdate('candidate'), context)
+        assert state == config.NAME
         for key in ('email', 'password', 'company_name'):
             assert key not in context.user_data, key
         assert context.user_data['role_input'] == 'candidate'
 
         # Even if one slipped through, a job seeker's registration carries no email or password.
-        seeker = bot.registration_payload({'role_input': 'candidate', 'email': 'x@y.com', 'password': 'secret-123'}, FakeTelegramUser(5))
+        seeker = common.registration_payload({'role_input': 'candidate', 'email': 'x@y.com', 'password': 'secret-123'}, FakeTelegramUser(5))
         assert seeker['email'] is None and seeker['password'] is None
     finally:
-        bot.bot_context.rate_limiter = original
+        common.bot_context.rate_limiter = original
     print("  [PASS] async_test_new_registration_forgets_old_answers")
 
 
 def test_buttons_open_the_mini_app():
     """Every menu button and job link opens the Mini App's own screens (/tg)."""
-    for role_links in bot.MENU_URLS.values():
+    for role_links in common.MENU_URLS.values():
         for url in role_links.values():
-            assert url.startswith(bot.MINI_APP), url
-    assert bot.MINI_APP.endswith('/tg')
-    assert bot.MENU_URLS['employer']['post_job'].endswith('/tg/post-job')
+            assert url.startswith(common.MINI_APP), url
+    assert common.MINI_APP.endswith('/tg')
+    assert common.MENU_URLS['employer']['post_job'].endswith('/tg/post-job')
     print("  [PASS] test_buttons_open_the_mini_app")
 
 

@@ -3,8 +3,11 @@ import sys
 import os
 import sqlite3
 
+import profiles
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "data", "boost.db")
+# On the server the folder (boost or go) picks the database; elsewhere set BOT_NAME.
+DB_FILE = os.path.join(BASE_DIR, "data", profiles.current().db_file)
 
 def print_help():
     print("""
