@@ -5,7 +5,7 @@ import sqlite3
 import uuid
 import hmac
 import hashlib
-from urllib.parse import parse_qsl, unquote
+from urllib.parse import parse_qsl
 import json
 
 from werkzeug.utils import secure_filename
@@ -14,7 +14,7 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, Update
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 load_dotenv()
 
@@ -802,7 +802,6 @@ def sync_orders():
                         c.execute('UPDATE users SET balance = balance + ? WHERE user_id = ?', (cost, user_id))
                         refund_amount += cost
                     elif panel_status.lower() == 'partial':
-                        remains = float(res_data[panel_id].get('remains', 0))
                         charge = float(res_data[panel_id].get('charge', 0))
                         # Simplistic refund logic for partial
                         refund = max(0, cost - charge)
@@ -1001,7 +1000,7 @@ if bot:
                     parse_mode='Markdown'
                 )
                 try:
-                    bot.send_message(user_id, f"❌ Your manual deposit request has been REJECTED. Please contact admin if this is a mistake.")
+                    bot.send_message(user_id, "❌ Your manual deposit request has been REJECTED. Please contact admin if this is a mistake.")
                 except Exception:
                     pass
             else:

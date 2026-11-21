@@ -4,7 +4,6 @@ import hashlib
 import hmac
 import time
 import json
-import re
 from urllib.parse import parse_qsl, urlencode
 
 class TestAcademyBotQA(unittest.TestCase):
@@ -250,7 +249,7 @@ class TestAcademyBotQA(unittest.TestCase):
         stats = [(f"user_{i}", 1000 + i, 50, 10) for i in range(120)]
         messages = []
         current_chunk = "📊 **User Stats & Balances**\n\n"
-        for uname, uid, score, total_refs in stats:
+        for uname, _uid, score, total_refs in stats:
             escaped_uname = uname.replace('_', r'\_')
             entry = f"👤 @{escaped_uname}\n💰 **Balance:** {score} Birr/Points | 📈 **Total Refs:** {total_refs}\n\n"
             if len(current_chunk) + len(entry) > 3800:

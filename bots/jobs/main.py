@@ -1784,7 +1784,7 @@ async def broadcast_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         fail_count = 0
 
         try:
-            base_url = CONFIG['wp_api_url'].rstrip('/register') 
+            base_url = CONFIG['wp_api_url'].removesuffix('/register')
             fetch_url = f"{base_url}/get-all-telegram-ids"
 
             async with bot_context.session.get(fetch_url, timeout=30) as response:

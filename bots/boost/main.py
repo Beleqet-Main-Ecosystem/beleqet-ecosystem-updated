@@ -30,7 +30,6 @@ from telegram.ext import (
     filters,
 )
 from telegram_bot_calendar import DetailedTelegramCalendar
-from telegram import ChatMemberUpdated
 from telegram.ext import ChatMemberHandler
 
 # --- ⚙️ CONFIGURATION ---
@@ -680,7 +679,7 @@ async def manage_scheduled_posts(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text("There are no scheduled posts.")
         return
         
-    for job_id, post_text, scheduled_time, repeat in posts:
+    for job_id, post_text, scheduled_time, _repeat in posts:
         keyboard = [
             [
                 InlineKeyboardButton("Duplicate 📑", callback_data=f"duplicate_post:{job_id}"),

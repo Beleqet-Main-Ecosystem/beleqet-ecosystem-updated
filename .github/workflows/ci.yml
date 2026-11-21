@@ -280,6 +280,43 @@ jobs:
       - name: Production build
         run: npm run build
 
+  # ── The bots' Python code (bots/<bot>/), on the server's Python ───
+  bots:
+    name: Bot tests (${{ matrix.bot }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bot: [boost, jobs, promo]
+    defaults:
+      run:
+        working-directory: bots/${{ matrix.bot }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: bots/${{ matrix.bot }}/requirements.txt
+
+      - run: pip install -r requirements.txt pytest==9.2.0
+      - name: Tests
+        run: python -m pytest -q
+
+  bots-lint:
+    name: Bots code check (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.10"
+
+      - run: pip install ruff==0.17.6
+      # Rules in bots/ruff.toml: syntax errors, undefined or unused names, likely bugs.
+      - run: ruff check bots
+
   # ── Website (apps/web/) ───────────────────────────────────────────
   web:
     name: Website quality, tests & build
@@ -649,6 +686,8 @@ jobs:
       - api-integration
       - admin
       - bots-miniapps
+      - bots
+      - bots-lint
       - web
       - playwright-e2e
       - docker-build
