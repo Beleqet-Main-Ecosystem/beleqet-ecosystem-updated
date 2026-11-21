@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import { Screen, Card, H2, Muted, Toggle, Chips, Fact } from '../components/ui';
-import { calculateTax, EMPLOYEE_PENSION, EMPLOYER_PENSION } from '../features/tax-calculate';
+import { calculateTax, EMPLOYEE_PENSION, EMPLOYER_PENSION } from '@beleqet/common';
 import { useTranslation } from '../lib/i18n';
 import { useTheme } from '../lib/theme';
 

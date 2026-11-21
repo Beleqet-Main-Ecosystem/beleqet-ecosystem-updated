@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Check, Upload, X } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useTranslation } from '@/lib/i18n';
-import { resumeToCvImport } from './mapping';
+import { resumeToCvImport } from '@beleqet/common';
 import { autofillProfile, deleteResume, messageFromResumeBrainError, uploadResume } from './api';
 import type { PersonalInfo, UploadResumeResponse } from './types';
 import { CV_IMPORT_KEY } from '@/features/cv/CvMaker';

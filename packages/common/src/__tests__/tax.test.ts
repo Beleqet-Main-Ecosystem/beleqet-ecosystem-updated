@@ -1,4 +1,4 @@
-import { calculateTax } from '../calculate';
+import { calculateTax } from '../tax';
 
 describe('calculateTax', () => {
   it('charges nothing up to 2,000', () => {

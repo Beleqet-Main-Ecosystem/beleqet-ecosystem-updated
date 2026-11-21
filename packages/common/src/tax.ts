@@ -1,6 +1,7 @@
 /**
- * Monthly employment income tax bands (the 2025 schedule). A copy of the website's
- * features/tax/calculate.ts; keep the two the same.
+ * Monthly employment income tax bands (the 2025 schedule), matching the API's tax-calculator module.
+ * Used by the website's tax calculator and the app's.
+ * The published deductions (300, 500, 850, 1,350, 2,050) follow from these bands.
  */
 export const BANDS: readonly [from: number, to: number, rate: number][] = [
   [0, 2000, 0],

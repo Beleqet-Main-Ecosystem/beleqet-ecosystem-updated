@@ -1,7 +1,7 @@
 {
   "name": "@beleqet/common",
   "version": "1.0.0",
-  "description": "Shared TypeScript types and DTOs for the Beleqet ecosystem (backend, mobile, web)",
+  "description": "Shared TypeScript types, DTOs and framework-free logic for the Beleqet ecosystem (backend, mobile, web)",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {

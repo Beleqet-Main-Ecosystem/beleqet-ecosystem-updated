@@ -5,7 +5,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { ChevronDown, ChevronUp, Download, Sparkles } from 'lucide-react-native';
 import { Screen, Card, Muted, Field, Button, Notice } from '../components/ui';
-import { buildProfilePayload, emptyCv, mergeExtractedProfile, resumeToCvImport, type CvData, type Education, type Experience } from '../features/cv-mapping';
+import { buildProfilePayload, emptyCv, mergeExtractedProfile, resumeToCvImport, type CvData, type Education, type Experience } from '@beleqet/common';
 import { useCvImport } from '../lib/cv-import';
 import { get, send } from '../lib/api';
 import { useAuth } from '../store/auth.store';
