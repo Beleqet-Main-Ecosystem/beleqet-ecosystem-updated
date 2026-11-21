@@ -77,6 +77,21 @@ npm start
 # Scan QR → Expo Go on physical device
 ```
 
+### Checks
+
+CI runs these on every pull request (the `mobile` job); run them before pushing:
+
+```bash
+npm run lint
+npm run type-check
+npm run check:i18n    # every t('key') in English and Amharic
+npm test              # jest-expo; tests sit in __tests__/ next to their code
+npx expo export --platform android --output-dir /tmp/expo-export   # the bundle an Android build ships
+```
+
+The tax calculator and the CV mapping are shared with the website: they live in
+`packages/common` (`@beleqet/common`), which has its own tests.
+
 ---
 
 ## Environment variables

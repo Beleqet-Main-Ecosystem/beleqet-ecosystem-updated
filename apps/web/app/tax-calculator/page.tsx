@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { calculateTax, EMPLOYEE_PENSION, EMPLOYER_PENSION } from '@/features/tax/calculate';
+import { calculateTax, EMPLOYEE_PENSION, EMPLOYER_PENSION } from '@beleqet/common';
 
 const card = 'rounded-xl border border-ink-200 bg-surface p-5 md:p-6 dark:border-slate-800 dark:bg-slate-900';
 

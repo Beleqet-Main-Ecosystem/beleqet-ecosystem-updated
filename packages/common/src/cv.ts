@@ -1,12 +1,11 @@
-// A copy of apps/web/features/resume-brain/mapping.ts; keep the two the same.
-/* eslint-disable no-unused-expressions -- kept identical to the website's file */
 // Resume Brain — pure, framework-free mapping logic.
 //
 // This module holds the parts of the CV Builder that have nothing to do with
 // React: turning the AI's extracted profile into form state, mapping the form
 // onto the existing UpdateUserDto, and translating backend HTTP errors into
 // user-facing copy. Keeping it separate from `page.tsx` follows SRP and lets it
-// be unit-tested in isolation (see mapping.spec.ts).
+// be unit-tested in isolation (see __tests__/cv.test.ts). The website's CV Maker and Resume
+// Brain and the app's CV maker all use this one copy.
 
 export type Experience = {
   id: number;
@@ -94,6 +93,38 @@ export function buildProfilePayload(cv: CvData): Record<string, unknown> {
   if (cv.location.trim()) payload.location = cv.location.trim();
   if (skills.length) payload.skills = skills;
   return payload;
+}
+
+// The fields of GET /users/profile that a CV can start from.
+export type ProfileFields = {
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  city?: string | null;
+  portfolioUrl?: string | null;
+  skills?: string[] | null;
+};
+
+// A CV started from the profile, for someone with no saved draft: roughly what
+// "Save to my profile" wrote, read back. The profile has no jobs, schools or
+// languages, so those start empty. `hideEmail` drops a Telegram account's
+// internal address.
+export function cvFromProfile(profile: ProfileFields, hideEmail = false): CvData {
+  return {
+    ...emptyCv,
+    fullName: [profile.firstName, profile.lastName].filter(Boolean).join(' '),
+    title: profile.headline ?? '',
+    email: hideEmail ? '' : (profile.email ?? ''),
+    phone: profile.phone ?? '',
+    location: profile.location || profile.city || '',
+    website: profile.portfolioUrl ?? '',
+    summary: profile.bio ?? '',
+    skills: (profile.skills ?? []).join(', '),
+  };
 }
 
 // Merge the AI's structured profile into the form and report which fields it

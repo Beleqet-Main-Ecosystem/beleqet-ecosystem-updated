@@ -255,6 +255,58 @@ jobs:
       - name: Production build
         run: npm run build
 
+  # ── Mobile app (apps/mobile/, Expo, Android) ─────────────────────
+  mobile:
+    name: Mobile app quality & bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - name: TypeScript validation
+        run: npm run type-check
+      # Every t('key') exists in English and Amharic (the website's locales or the app's own).
+      - name: Translations
+        run: npm run check:i18n
+      - name: Unit tests
+        run: npm test -- --ci
+      # The JavaScript bundle an Android build would ship: catches what type checks can't (a
+      # missing file or package, a bad import). The app itself is built on EAS.
+      - name: Android bundle
+        run: npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-export"
+
+  # ── Shared code (packages/common/), used by the website and the app ──
+  common:
+    name: Shared package (packages/common)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/common
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: packages/common/package-lock.json
+
+      - run: npm ci
+      - name: TypeScript validation
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test -- --ci
+
   # ── The referral bots' Mini App (bots/referral/miniapp/), built for Boost and for Go ──
   bots-miniapps:
     name: Bot Mini App (${{ matrix.bot }})
@@ -685,6 +737,8 @@ jobs:
       - api-unit
       - api-integration
       - admin
+      - mobile
+      - common
       - bots-miniapps
       - bots
       - bots-lint
