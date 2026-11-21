@@ -17,7 +17,7 @@
 # automatically (migrations are not undone: they only ever add, so the previous code
 # keeps working; restore the backup by hand if ever needed).
 #
-# The bots (bots/<name> in git) run from $BOTS_ROOT/<name> under systemd with their
+# The bots (bots/<name> in git; Boost and Go both from bots/referral) run from $BOTS_ROOT/<name> under systemd with their
 # own .env, Python environment and data/ folder (everything they write), none of which
 # are in git. Only their code is copied from this checkout; a bot restarts only when
 # its code changed, and the files it replaced are kept in this deploy's backup folder.
@@ -48,12 +48,19 @@ HEALTH_URLS=(
 )
 
 BOTS_ROOT="${BOTS_ROOT:-/opt/beleqet}"
-# bots/<name> -> the systemd services that run it
+# $BOTS_ROOT/<name> -> the systemd services that run it
 declare -A BOT_SERVICES=(
   [jobs]="beleqet-jobs-bot"
   [boost]="beleqet-boost-bot beleqet-boost-api"
   [go]="beleqet-go-bot beleqet-go-api"
   [promo]="beleqet-promo-bot"
+)
+# Where a bot's code comes from when it isn't bots/<name>: Boost and Go are one bot, run twice. Each
+# copy picks its settings by its folder's name (bots/referral/profiles.py) and its Mini App is built
+# with --mode <name>.
+declare -A BOT_SOURCE=(
+  [boost]="referral"
+  [go]="referral"
 )
 # Never copied: settings, the Python environment, data/ (everything a bot writes), the Mini App's
 # packages and build, and tests. The database and pickle patterns are a safety net, should one
@@ -173,8 +180,8 @@ build_miniapp() {
   log "    $bot: building its Mini App"
   rm -rf "$app/dist.new"
   # shellcheck disable=SC2016 # expanded by the inner shell
-  if sudo -u "$user" -H NPM_CONFIG_UPDATE_NOTIFIER=false sh -c 'cd "$1" && npm ci --no-audit --no-fund --loglevel=error && npm run build -- --outDir dist.new' \
-    sh "$app" > /dev/null; then
+  if sudo -u "$user" -H NPM_CONFIG_UPDATE_NOTIFIER=false sh -c 'cd "$1" && npm ci --no-audit --no-fund --loglevel=error && npm run build -- --mode "$2" --outDir dist.new' \
+    sh "$app" "$bot" > /dev/null; then
     rm -rf "$app/dist" "$app/node_modules"
     mv "$app/dist.new" "$app/dist"
     return 0
@@ -188,16 +195,17 @@ build_miniapp() {
 # into data/ on the way if it's still in its old place. A bot that doesn't come back up gets its
 # previous files (and data in its old place) back. Returns non-zero if any bot needed that.
 deploy_bots() {
-  local bot dir owner changes failed=0
+  local bot src dir owner changes failed=0
   for bot in "${!BOT_SERVICES[@]}"; do
+    src="bots/${BOT_SOURCE[$bot]:-$bot}"
     dir="$BOTS_ROOT/$bot"
-    if [ ! -d "bots/$bot" ] || [ ! -d "$dir" ]; then
+    if [ ! -d "$src" ] || [ ! -d "$dir" ]; then
       log "    $bot: not set up on this server, skipped"
       continue
     fi
     owner="$(stat -c %U:%G "$dir")"
     changes="$(rsync -rlci --chown="$owner" --backup --backup-dir="$BACKUP_ROOT/$STAMP/bots/$bot" \
-      "${BOT_EXCLUDES[@]}" "bots/$bot/" "$dir/" | grep '^>f' || true)"
+      "${BOT_EXCLUDES[@]}" "$src/" "$dir/" | grep '^>f' || true)"
     if [ -f "$dir/miniapp/package.json" ] && { grep -q ' miniapp/' <<< "$changes" || [ ! -d "$dir/miniapp/dist" ]; }; then
       build_miniapp "$bot" "$dir" "$owner" || failed=1
     fi
@@ -210,7 +218,7 @@ deploy_bots() {
       continue  # only the Mini App changed: nginx serves the new build, the bot keeps running
     fi
     if grep -q ' requirements.txt$' <<< "$changes"; then
-      # Unpinned names: installs what's missing, never upgrades or downgrades what's there.
+      # requirements.txt pins exact versions: this installs, upgrades or downgrades to match it.
       sudo -u "${owner%%:*}" "$dir/venv/bin/pip" install -q -r "$dir/requirements.txt" ||
         log "    $bot: installing its Python packages failed"
     fi

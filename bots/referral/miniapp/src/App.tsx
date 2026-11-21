@@ -9,6 +9,7 @@ import {
   ChevronRight, X, Copy, Check, Home, User, ShieldCheck, Zap, Moon, Sun, Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { bot } from './bot';
 
 // The API is served from the same address as this page, under /api. Every request carries the
 // initData Telegram signed for this user; the API refuses requests without it.
@@ -104,7 +105,7 @@ export default function App() {
     }
   };
 
-  const inviteLink = `https://t.me/BeleqetBoost_Bot?start=${userData?.id || 'join'}`;
+  const inviteLink = `https://t.me/${bot.username}?start=${userData?.id || 'join'}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(inviteLink);
@@ -249,22 +250,24 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Airtime Withdraw Button */}
-              <button 
-                onClick={() => setIsAirtimeOpen(true)}
-                className={`${isDarkMode ? 'bg-[#1e1e1e] border-[#2a2a2a]' : 'bg-white border-gray-100'} w-full p-5 mt-4 rounded-3xl flex items-center justify-between border shadow-sm active:scale-95 transition-all text-left`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`${isDarkMode ? 'bg-orange-900/30 text-orange-400' : 'bg-orange-50 text-orange-600'} p-4 rounded-2xl`}>
-                    <Smartphone size={24} />
+              {/* Airtime Withdraw Button (Boost only, see bots.ts) */}
+              {bot.airtime && (
+                <button
+                  onClick={() => setIsAirtimeOpen(true)}
+                  className={`${isDarkMode ? 'bg-[#1e1e1e] border-[#2a2a2a]' : 'bg-white border-gray-100'} w-full p-5 mt-4 rounded-3xl flex items-center justify-between border shadow-sm active:scale-95 transition-all text-left`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`${isDarkMode ? 'bg-orange-900/30 text-orange-400' : 'bg-orange-50 text-orange-600'} p-4 rounded-2xl`}>
+                      <Smartphone size={24} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">Airtime</p>
+                      <p className="text-xs text-gray-400">EthioTelecom & Safaricom</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-sm">Airtime</p>
-                    <p className="text-xs text-gray-400">EthioTelecom & Safaricom</p>
-                  </div>
-                </div>
-                <ChevronRight size={20} className="text-gray-300" />
-              </button>
+                  <ChevronRight size={20} className="text-gray-300" />
+                </button>
+              )}
 
             </motion.div>
           )}
@@ -322,7 +325,7 @@ export default function App() {
                     <Wallet size={24} />
                   </div>
                   <div>
-                    <p className="font-bold text-sm">Cash Withdrawal</p>
+                    <p className="font-bold text-sm">{bot.airtime ? 'Cash Withdrawal' : 'Withdrawal'}</p>
                     <p className="text-xs text-gray-400">Min Payout: 25 Birr</p>
                   </div>
                 </div>

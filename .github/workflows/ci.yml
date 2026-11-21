@@ -255,7 +255,7 @@ jobs:
       - name: Production build
         run: npm run build
 
-  # ── The bots' Mini Apps (bots/<bot>/miniapp/) ──────────────────────
+  # ── The referral bots' Mini App (bots/referral/miniapp/), built for Boost and for Go ──
   bots-miniapps:
     name: Bot Mini App (${{ matrix.bot }})
     runs-on: ubuntu-latest
@@ -264,7 +264,7 @@ jobs:
         bot: [boost, go]
     defaults:
       run:
-        working-directory: bots/${{ matrix.bot }}/miniapp
+        working-directory: bots/referral/miniapp
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -272,21 +272,21 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: bots/${{ matrix.bot }}/miniapp/package-lock.json
+          cache-dependency-path: bots/referral/miniapp/package-lock.json
 
       - run: npm ci
       - name: TypeScript validation
         run: npm run lint
       - name: Production build
-        run: npm run build
+        run: npm run build -- --mode ${{ matrix.bot }}
 
-  # ── The bots' Python code (bots/<bot>/), on the server's Python ───
+  # ── The bots' Python code (bots/<bot>/; Boost and Go are bots/referral), on the server's Python ──
   bots:
     name: Bot tests (${{ matrix.bot }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        bot: [boost, jobs, promo]
+        bot: [referral, jobs, promo]
     defaults:
       run:
         working-directory: bots/${{ matrix.bot }}

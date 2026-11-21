@@ -12,9 +12,11 @@ import re
 import time
 import httpx
 from dotenv import load_dotenv
+import profiles
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
+BOT = profiles.current()  # Boost or Go: see profiles.py
 
 app = FastAPI()
 
@@ -33,11 +35,11 @@ log = logging.getLogger("referral-api")
 # Everything the bot writes lives in data/, which deploys never touch and the nightly backup copies.
 DATA_DIR = os.path.join(BASE_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
-DB_FILE = os.path.join(DATA_DIR, "go.db")
+DB_FILE = os.path.join(DATA_DIR, BOT.db_file)
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 PROMO_BOT_API_URL = os.getenv("PROMO_BOT_API_URL", "http://127.0.0.1:8002/api/internal/transfer_points")
 TRANSFER_SECRET_KEY = os.getenv("TRANSFER_SECRET_KEY", "")
-TRANSFER_SOURCE = "Share & Win Bot"
+TRANSFER_SOURCE = BOT.transfer_source
 MIN_TRANSFER_AMOUNT = 1
 MIN_WITHDRAWAL_AMOUNT = 50
 INIT_DATA_MAX_AGE_SECONDS = 24 * 3600

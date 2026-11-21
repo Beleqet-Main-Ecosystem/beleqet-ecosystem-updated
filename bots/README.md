@@ -84,27 +84,21 @@ Internet / Telegram API
 ## 3. Repository Structure
 
 ```
-bel/
+bots/
 +-- README.md
-+-- boost/
-|   +-- .env
-|   +-- main.py              (Telegram bot, polling, 781 lines)
-|   +-- api.py               (FastAPI REST, Port 8000)
++-- ruff.toml                (the Python checks CI runs on every bot)
++-- referral/                (Boost and Go: one bot, run twice; see 4.1)
+|   +-- main.py              (Telegram bot, polling)
+|   +-- api.py               (FastAPI for the Mini App: port 8000 as Boost, 8001 as Go)
+|   +-- profiles.py          (everything that differs between Boost and Go)
+|   +-- manage_test_accounts.py
 |   +-- requirements.txt
-|   +-- Promo.jpg
-|   +-- data/                (on the server only, never in git)
-|       +-- boost.db             (SQLite, created on first start)
-|       +-- persistence.pickle   (saved conversations)
+|   +-- welcome/             (each bot's welcome picture)
+|   +-- miniapp/             (the dashboard, built per bot: npm run build -- --mode boost|go)
+|   +-- test_*.py
 |
-+-- go/
-|   +-- .env
-|   +-- main.py              (Telegram bot, polling, 781 lines)
-|   +-- api.py               (FastAPI REST, Port 8001)
-|   +-- requirements.txt
-|   +-- Promo.jpg
-|   +-- data/
-|       +-- go.db
-|       +-- persistence.pickle
+|   On the server it runs from /opt/beleqet/boost and /opt/beleqet/go, each with its own
+|   .env, venv and data/ (boost.db or go.db, persistence.pickle), none of them in git.
 |
 +-- jobs/
     +-- .env
@@ -130,9 +124,11 @@ The nginx site configs are in `infra/nginx/` at the repository root.
 
 ## 4. Services At a Glance
 
-### 4.1 boost - Academy / Boost Bot
+### 4.1 boost and go - the referral bots (bots/referral)
 
-**Purpose:** A referral rewards bot for the Beleqet Academy channel. Users share a unique invite link; when a new user joins through that link and stays in the channel, the referrer earns 1 point (= 1 ETB). Points can be withdrawn to a phone number (mobile money) or transferred to the Beleqet SMM Promo Bot.
+Boost and Go are the same code, deployed twice. `profiles.py` holds everything that differs (database file, channel, admin, links, button labels, bot username); each copy picks its entry by its folder's name on the server, or by `BOT_NAME` when that is set. The Mini App's differences are in `miniapp/src/bots.ts`: Boost also offers airtime withdrawals.
+
+**Boost (@BeleqetBoost_Bot):** A referral rewards bot for the Beleqet Academy channel. Users share a unique invite link; when a new user joins through that link and stays in the channel, the referrer earns 1 point (= 1 ETB). Points can be withdrawn to a phone number (mobile money) or transferred to the Beleqet SMM Promo Bot.
 
 **Key Features:**
 - Referral tracking - Tracks who referred whom using the SQLite successful_referrals table
@@ -142,11 +138,9 @@ The nginx site configs are in `infra/nginx/` at the repository root.
 - Broadcast - Admin can broadcast messages to all users (with optional inline button)
 - Post to Channel - Schedule posts with photo, text, and button to Telegram channels
 - Scheduled Posts - Supports one-time or repeating scheduled posts (stored in DB, restored on restart)
-- Admin Management - Multi-admin system; admins can add/remove other admins
+- Admin Management - Multi-admin system; admins can add/remove other admins, and ADMIN_IDS (comma-separated) adds more at start
 - User Stats - Admin command to see total users and scores
 - Inline mode - Users can use @BeleqetBoost_Bot inline to share their referral link in any chat
-
-**Running mode:** python-telegram-bot POLLING mode + FastAPI server on port 8000
 
 **Target Channels monitored for join/leave:**
 - -1001669125004
@@ -154,25 +148,13 @@ The nginx site configs are in `infra/nginx/` at the repository root.
 - -1002877767689
 - -1001989588782
 
----
+**Go (@BeleqetJobsInviteAndWin_Bot):** the same bot for the Beleqet Jobs channel (-1001199095627). Its transfers to the Promotion bot are tagged "Share & Win Bot", its FastAPI runs on port 8001, and nginx serves go.beleqetjobs.com: the Mini App, and /api/ from port 8001.
 
-### 4.2 go - Jobs Invite-and-Win Bot
-
-**Purpose:** Nearly identical architecture to boost but serves the Beleqet Jobs channel (BeleqetJobsInviteAndWin_Bot). Users invite friends; each active referral earns 1 point.
-
-**Key Differences from boost:**
-- Points attributed to the Beleqet Jobs channel (-1001199095627)
-- Welcome video is a URL-based MP4 hosted on the website
-- Multiple admin IDs loaded from ADMIN_IDS (comma-separated)
-- Internal transfer source tag is "Share & Win Bot"
-- FastAPI runs on port 8001
-- Nginx serves go.beleqetjobs.com: the Mini App, and /api/ from port 8001
-
-**Running mode:** python-telegram-bot POLLING mode + FastAPI server on port 8001
+**Running mode (both):** python-telegram-bot POLLING mode + FastAPI server (8000 for Boost, 8001 for Go)
 
 ---
 
-### 4.3 job - Beleqet Jobs Bot + SGS Challenge
+### 4.2 jobs - Beleqet Jobs Bot + SGS Challenge
 
 **Purpose:** The flagship job registration and onboarding bot for beleqet.com/vacancy. Users register as Job Seekers or Employers (verified with trade license document), then access job listings via a Telegram Mini App. Also hosts the SGS Furniture Creative Challenge voting mini-app.
 
@@ -530,9 +512,9 @@ cd /opt/beleqet
 Option B - SCP over VPN (from your local machine while connected):
 
 ```bash
-scp -r ./boost  ubuntu@10.8.0.1:/opt/beleqet/
-scp -r ./go  ubuntu@10.8.0.1:/opt/beleqet/
-scp -r ./job          ubuntu@10.8.0.1:/opt/beleqet/
+scp -r ./referral ubuntu@10.8.0.1:/opt/beleqet/boost   # one code, two folders: the folder name picks the bot
+scp -r ./referral ubuntu@10.8.0.1:/opt/beleqet/go
+scp -r ./jobs     ubuntu@10.8.0.1:/opt/beleqet/
 ```
 
 Set ownership:
