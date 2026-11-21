@@ -278,6 +278,8 @@ jobs:
       # Every t('key') exists in English and Amharic (the website's locales or the app's own).
       - name: Translations
         run: npm run check:i18n
+      - name: Unit tests
+        run: npm test -- --ci
       # The JavaScript bundle an Android build would ship: catches what type checks can't (a
       # missing file or package, a bad import). The app itself is built on EAS.
       - name: Android bundle
