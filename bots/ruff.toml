@@ -1,0 +1,6 @@
+# Python checks for the bots (run in CI): rules that catch bugs, not style.
+target-version = "py310"
+extend-exclude = ["*/miniapp/*"]
+
+[lint]
+select = ["E9", "F", "B"]
