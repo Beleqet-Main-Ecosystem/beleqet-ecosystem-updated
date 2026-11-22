@@ -14,7 +14,15 @@ from `bots/referral`) move points into a user's Promotion wallet.
   50 birr or more.
 
 Files: `server.py` (Flask API, the bot's webhook and handlers, SQLite), `index.html` and `styles.css`
-(the Mini App; `styles.css` is built from `input.css` with Tailwind 4).
+(the Mini App; `styles.css` is built from `input.css` with Tailwind 4, and is committed: the server
+only serves files). The look's colors and fonts are in `input.css`. After changing them or the classes
+in `index.html`, rebuild it from a scratch folder holding copies of `input.css` and `index.html`, so no
+`node_modules` lands here:
+
+```bash
+npm install tailwindcss@4.3.3 @tailwindcss/cli@4.3.3
+npx tailwindcss -i input.css -o styles.css --minify   # then copy styles.css back
+```
 
 It used to run on an Oracle Cloud server, which stopped answering in November 2026. It wasn't in
 this repo then; the code came from `Beleqet-Main-Ecosystem/beleqet-app`. Everyone's balances were in
