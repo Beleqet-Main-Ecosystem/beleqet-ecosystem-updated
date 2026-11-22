@@ -1,2 +1,26 @@
 @import "tailwindcss";
 @source "./index.html";
+
+/* The Mini App's look: deep navy, Beleqet green and gold. Rebuild styles.css after changing this or
+   the classes in index.html (see README.md). */
+@theme {
+  --color-base: #060d1a;
+  --color-surface: #0d1b30;
+  --color-surface2: #132844;
+  --color-line: #1c3355;
+  --color-brand: #22a362;
+  --color-brand-light: #3ecf7e;
+  --color-brand-dim: #144a30;
+  --color-gold: #f2b632;
+  --color-ink: #eef3f8;
+  --color-mute: #8199bb;
+  --color-faint: #4c6489;
+  --color-danger: #f2555a;
+
+  --font-sans: "Inter", "Noto Sans Ethiopic", ui-sans-serif, system-ui;
+  --font-display: "Space Grotesk", "Noto Sans Ethiopic", ui-sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular;
+  --font-amharic: "Noto Sans Ethiopic", "Inter", ui-sans-serif;
+
+  --shadow-glow: 0 0 0 1px rgba(34, 163, 98, 0.25), 0 8px 30px -8px rgba(34, 163, 98, 0.45);
+}

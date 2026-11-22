@@ -3,639 +3,1231 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#060d1a">
     <title>Beleqet Promotion</title>
     <link href="styles.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        html,
+        body {
+            background: #060d1a;
+            overscroll-behavior-y: none;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
         .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+            width: 3px;
         }
 
         .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
+            background: #1c3355;
+            border-radius: 10px;
         }
 
-        .tab-active {
-            background-color: #6366f1;
-            color: white;
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
 
-        .tab-inactive {
-            background-color: transparent;
-            color: #64748b;
-            font-weight: 600;
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
-        /* Modal animation classes */
-        .modal-enter {
-            transform: translateY(100%);
+        /* Signature motif: signal / growth pulse rings */
+        .pulse-field {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            border: 1px solid rgba(62, 207, 126, 0.35);
+            border-radius: 9999px;
+            top: 50%;
+            left: 78%;
+            width: 40px;
+            height: 40px;
+            transform: translate(-50%, -50%) scale(0.6);
+            animation: pulseOut 3.6s cubic-bezier(.2, .6, .3, 1) infinite;
             opacity: 0;
         }
 
-        @media (min-width: 640px) {
-            .modal-enter {
-                transform: translateY(0) scale(0.95);
+        .pulse-ring:nth-child(2) {
+            animation-delay: 1.2s;
+        }
+
+        .pulse-ring:nth-child(3) {
+            animation-delay: 2.4s;
+        }
+
+        @keyframes pulseOut {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0.55;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(7);
+                opacity: 0;
             }
         }
 
-        .modal-enter-active {
-            transform: translateY(0) scale(1);
-            opacity: 1;
+        /* Signal-bar mark: ascending bars = growth / boost */
+        .signal-mark {
+            display: flex;
+            align-items: flex-end;
+            gap: 2.5px;
+            height: 16px;
+        }
+
+        .signal-mark span {
+            width: 3.5px;
+            border-radius: 2px;
+            background: linear-gradient(180deg, #3ecf7e, #22a362);
+            animation: barGrow 1.4s ease-in-out infinite;
+        }
+
+        .signal-mark span:nth-child(1) {
+            height: 40%;
+            animation-delay: 0s;
+        }
+
+        .signal-mark span:nth-child(2) {
+            height: 70%;
+            animation-delay: .18s;
+        }
+
+        .signal-mark span:nth-child(3) {
+            height: 100%;
+            animation-delay: .36s;
+        }
+
+        .signal-mark span:nth-child(4) {
+            height: 55%;
+            animation-delay: .54s;
+        }
+
+        @keyframes barGrow {
+
+            0%,
+            100% {
+                transform: scaleY(0.55);
+                opacity: .75;
+            }
+
+            50% {
+                transform: scaleY(1);
+                opacity: 1;
+            }
+        }
+
+        .glass {
+            background: linear-gradient(155deg, rgba(19, 40, 68, 0.9), rgba(13, 27, 48, 0.85));
+            backdrop-filter: blur(14px);
+        }
+
+        .ledger {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .sheet-enter {
+            animation: sheetUp .32s cubic-bezier(.2, .8, .3, 1) forwards;
+        }
+
+        @keyframes sheetUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .sheet-leave {
+            animation: sheetDown .22s ease-in forwards;
+        }
+
+        @keyframes sheetDown {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(100%);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn .35s ease both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .toast-in {
+            animation: toastIn .25s cubic-bezier(.2, .8, .3, 1) forwards;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(-14px) scale(.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        select {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .skel {
+            background: linear-gradient(90deg, #0f2038 25%, #17304f 37%, #0f2038 63%);
+            background-size: 400% 100%;
+            animation: shimmer 1.4s ease infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 100% 0;
+            }
+
+            100% {
+                background-position: 0 0;
+            }
+        }
+
+        .chip-active {
+            background: linear-gradient(135deg, #22a362, #1a7f4d);
+            color: #eef3f8;
+            box-shadow: 0 0 0 1px rgba(62, 207, 126, .5), 0 6px 16px -6px rgba(34, 163, 98, .7);
+        }
+
+        .safe-b {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        /* ---- Extra motion layer ---- */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+            }
+        }
+
+        .aurora {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(60px);
+            animation: drift 16s ease-in-out infinite alternate;
+        }
+
+        .aurora-2 {
+            animation: drift2 20s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(24px, 30px) scale(1.15);
+            }
+        }
+
+        @keyframes drift2 {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(-20px, -24px) scale(1.1);
+            }
+        }
+
+        .particle {
+            position: absolute;
+            bottom: -10px;
+            border-radius: 9999px;
+            background: radial-gradient(circle, rgba(62, 207, 126, 0.9), rgba(34, 163, 98, 0));
+            animation-name: floatUp;
+            animation-timing-function: ease-in;
+            animation-iteration-count: infinite;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+
+            12% {
+                opacity: .8;
+            }
+
+            90% {
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(-92vh) translateX(var(--drift, 20px));
+                opacity: 0;
+            }
+        }
+
+        .breathe {
+            animation: breathe 4.2s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 1px rgba(34, 163, 98, .25), 0 8px 30px -8px rgba(34, 163, 98, .45);
+            }
+
+            50% {
+                box-shadow: 0 0 0 1px rgba(62, 207, 126, .4), 0 10px 42px -6px rgba(62, 207, 126, .65);
+            }
+        }
+
+        .shimmer-btn {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shimmer-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -60%;
+            width: 45%;
+            height: 100%;
+            background: linear-gradient(115deg, transparent, rgba(255, 255, 255, .35), transparent);
+            transform: skewX(-18deg);
+            animation: sweep 3.4s ease-in-out infinite;
+        }
+
+        @keyframes sweep {
+            0% {
+                left: -60%;
+            }
+
+            35% {
+                left: 130%;
+            }
+
+            100% {
+                left: 130%;
+            }
+        }
+
+        .pop {
+            animation: popScale .38s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        @keyframes popScale {
+            0% {
+                transform: scale(1);
+            }
+
+            45% {
+                transform: scale(1.09);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .flash {
+            animation: flashText .5s ease;
+        }
+
+        @keyframes flashText {
+            0% {
+                opacity: .35;
+                transform: translateY(-2px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stagger>* {
+            animation: fadeIn .5s cubic-bezier(.2, .7, .3, 1) both;
+        }
+
+        .stagger>*:nth-child(1) {
+            animation-delay: .02s;
+        }
+
+        .stagger>*:nth-child(2) {
+            animation-delay: .07s;
+        }
+
+        .stagger>*:nth-child(3) {
+            animation-delay: .12s;
+        }
+
+        .stagger>*:nth-child(4) {
+            animation-delay: .17s;
+        }
+
+        .stagger>*:nth-child(5) {
+            animation-delay: .22s;
+        }
+
+        .stagger>*:nth-child(6) {
+            animation-delay: .27s;
+        }
+
+        .stagger>*:nth-child(7) {
+            animation-delay: .32s;
+        }
+
+        .stagger>*:nth-child(8) {
+            animation-delay: .37s;
+        }
+
+        .burst-dot {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            border-radius: 9999px;
+            background: #3ecf7e;
+            pointer-events: none;
+            z-index: 200;
+            animation: burstFly .85s cubic-bezier(.2, .7, .3, 1) forwards;
+        }
+
+        @keyframes burstFly {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(var(--bx), var(--by)) scale(.3);
+                opacity: 0;
+            }
+        }
+
+        #splash {
+            transition: opacity .5s ease, visibility .5s ease;
+        }
+
+        #splash.hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .splash-ring {
+            position: absolute;
+            border: 1px solid rgba(62, 207, 126, .35);
+            border-radius: 9999px;
+            animation: pulseOut 2.4s cubic-bezier(.2, .6, .3, 1) infinite;
+        }
+
+        .splash-ring:nth-child(2) {
+            animation-delay: .8s;
+        }
+
+        .splash-ring:nth-child(3) {
+            animation-delay: 1.6s;
+        }
+
+        #celebrate {
+            transition: opacity .3s ease;
+        }
+
+        .check-pop {
+            animation: checkPop .5s cubic-bezier(.34, 1.56, .64, 1) both;
+        }
+
+        @keyframes checkPop {
+            0% {
+                transform: scale(.4) rotate(-10deg);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(1.12) rotate(3deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        .tab-shift {
+            animation: tabShift .32s cubic-bezier(.2, .7, .3, 1) both;
+        }
+
+        @keyframes tabShift {
+            0% {
+                opacity: 0;
+                transform: translateX(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 font-sans antialiased">
-    <!-- Telegram Restriction Overlay -->
+<body class="bg-base text-ink font-sans antialiased">
+
+    <!-- Outside Telegram: the app needs Telegram's sign-in -->
     <div id="telegram-only-modal"
-        class="hidden fixed inset-0 bg-slate-950/95 z-[200] flex flex-col items-center justify-center p-6 text-center text-white backdrop-blur-md">
-        <div class="bg-gradient-to-tr from-indigo-600 via-purple-600 to-indigo-500 w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-indigo-500/30 mb-6 text-4xl animate-bounce">
-            🚀
+        class="hidden fixed inset-0 z-[210] bg-base flex flex-col items-center justify-center p-6 text-center">
+        <div class="relative w-24 h-24 flex items-center justify-center mb-6">
+            <div class="splash-ring w-24 h-24"></div>
+            <div class="splash-ring w-24 h-24"></div>
+            <div class="splash-ring w-24 h-24"></div>
+            <div class="signal-mark" style="height:30px;gap:4px"><span></span><span></span><span></span><span></span>
+            </div>
         </div>
-        <h2 class="text-3xl font-black mb-3 tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Telegram Exclusive App</h2>
-        <p class="text-slate-400 text-sm max-w-xs font-medium mb-8 leading-relaxed">
-            Beleqet Promotion can only be accessed directly from within Telegram. Please launch the mini-app using our Telegram Bot!
-        </p>
+        <h2 class="font-display font-bold text-2xl tracking-tight mb-2">Open it in Telegram</h2>
+        <p class="text-mute text-xs max-w-xs leading-relaxed mb-1">Beleqet Promotion works inside Telegram only. Open
+            it from our bot.</p>
+        <p class="text-faint text-[11px] max-w-xs mb-8 font-amharic">ይህ መተግበሪያ በቴሌግራም ውስጥ ብቻ ይሰራል።</p>
         <a id="bot-redirect-btn" href="https://t.me/Beleqet_PromotionBot"
-            class="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white font-black px-8 py-4 rounded-2xl shadow-xl shadow-indigo-500/20 hover:opacity-95 active:scale-95 transition-all uppercase tracking-wide text-sm flex items-center gap-2">
-            <span>Open in Telegram</span>
-            <span>➔</span>
+            class="shimmer-btn bg-gradient-to-r from-brand to-brand-dim text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-brand/25 active:scale-95 transition text-sm flex items-center gap-2">
+            Open in Telegram <span>➔</span>
         </a>
     </div>
 
-    <div
-        class="max-w-md mx-auto min-h-screen flex flex-col justify-between bg-slate-50 shadow-xl overflow-hidden relative">
-        <!-- Header for Home -->
-        <header id="main-header"
-            class="flex justify-between items-center bg-white px-4 py-3 border-b border-slate-200 shadow-sm z-10 relative sticky top-0">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-fuchsia-400 rounded-full flex items-center justify-center font-bold text-white shadow-inner text-lg"
-                    id="header-avatar-initial">B</div>
-                <div>
-                    <h1 id="username" class="font-bold text-sm text-slate-800">Guest</h1>
-                    <p class="text-[10px] text-slate-500 font-medium tracking-wide flex items-center gap-1">
-                        BALANCE: <span id="user-balance" class="font-bold text-slate-800">ETB 0.00</span>
-                    </p>
+    <!-- Splash -->
+    <div id="splash" class="fixed inset-0 z-[200] bg-base flex flex-col items-center justify-center">
+        <div class="relative w-24 h-24 flex items-center justify-center">
+            <div class="splash-ring w-24 h-24"></div>
+            <div class="splash-ring w-24 h-24"></div>
+            <div class="splash-ring w-24 h-24"></div>
+            <div class="signal-mark" style="height:30px;gap:4px"><span></span><span></span><span></span><span></span>
+            </div>
+        </div>
+        <p class="font-display font-bold text-sm tracking-wide mt-5">Beleqet</p>
+        <p class="text-[10px] text-faint mt-1 font-amharic">በማዘጋጀት ላይ · Getting things ready</p>
+    </div>
+
+    <!-- Celebration overlay -->
+    <div id="celebrate"
+        class="hidden fixed inset-0 z-[190] bg-base/90 backdrop-blur-md flex flex-col items-center justify-center opacity-0">
+        <div class="relative w-20 h-20 flex items-center justify-center check-pop">
+            <div class="absolute inset-0 rounded-full bg-brand/20 blur-xl"></div>
+            <div
+                class="relative w-20 h-20 rounded-full bg-gradient-to-br from-brand-light to-brand-dim flex items-center justify-center shadow-glow">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                    <path d="m5 12 5 5L20 7" />
+                </svg>
+            </div>
+        </div>
+        <p id="celebrate-text" class="font-display font-bold text-sm mt-4">Boost sent</p>
+        <p class="text-[10px] text-mute mt-1">ትዕዛዝዎ ተልኳል</p>
+    </div>
+
+    <div class="max-w-md mx-auto min-h-screen flex flex-col relative">
+
+        <!-- ambient backdrop -->
+        <div class="fixed inset-0 -z-10 overflow-hidden">
+            <div class="aurora -top-24 -left-16 w-72 h-72 bg-brand/10"></div>
+            <div class="aurora aurora-2 top-1/3 -right-20 w-72 h-72 bg-gold/5"></div>
+            <div id="particle-field" class="absolute inset-0 overflow-hidden"></div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar px-4 pt-4 pb-28">
+
+            <!-- Wordmark row -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="signal-mark"><span></span><span></span><span></span><span></span></div>
+                    <div class="leading-none">
+                        <p class="font-display font-bold text-[15px] tracking-tight">Beleqet</p>
+                        <p class="text-[9px] text-mute -mt-0.5">ማስተዋወቂያ · Promotion</p>
+                    </div>
+                </div>
+                <button onclick="showTab('profile')" id="header-avatar-initial" aria-label="Profile"
+                    class="w-8 h-8 rounded-full bg-surface2 border border-line flex items-center justify-center text-mute font-display font-bold text-xs active:scale-90 transition">B</button>
+            </div>
+
+            <!-- Balance hero -->
+            <div class="relative rounded-3xl border border-line glass p-4 overflow-hidden breathe">
+                <div class="pulse-field">
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring"></div>
+                </div>
+                <div class="relative z-10 flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <span id="username" class="text-xs font-semibold text-brand-light">Guest</span>
+                            <span
+                                class="text-[9px] bg-gold/15 text-gold border border-gold/30 px-1.5 py-0.5 rounded-full font-semibold">GROWTH
+                                MEMBER</span>
+                        </div>
+                        <p class="text-[9px] uppercase tracking-widest text-mute font-semibold">ቀሪ ሂሳብ · Balance</p>
+                        <p id="user-balance" class="font-display font-bold text-[26px] ledger mt-0.5">ETB 0.00</p>
+                    </div>
+                </div>
+                <div class="relative z-10 flex items-center gap-2 mt-4">
+                    <button onclick="openAddFund()"
+                        class="shimmer-btn flex-1 bg-gradient-to-r from-brand to-brand-dim hover:brightness-110 text-white text-xs font-semibold py-2.5 rounded-xl shadow-lg shadow-brand/20 flex items-center justify-center gap-1.5 active:scale-95 transition">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        Add Funds
+                    </button>
+                    <button onclick="showTab('orders')"
+                        class="bg-surface2 border border-line text-mute hover:text-ink text-xs font-semibold px-3.5 py-2.5 rounded-xl active:scale-95 transition">
+                        Orders
+                    </button>
                 </div>
             </div>
-            <button onclick="openAddFund()"
-                class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white text-[10px] px-3 py-2 rounded-xl font-bold shadow-md shadow-blue-500/20 flex items-center space-x-1 transition-all active:scale-95">
-                <span>+ Add Fund</span>
-            </button>
-        </header>
 
-        <!-- Home View -->
-        <main id="home-view" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-            <!-- Platform Filters -->
-            <div class="flex flex-col pb-4 relative">
-                <div id="platforms-container"
-                    class="flex flex-wrap justify-center gap-2 overflow-hidden max-h-[64px] transition-[max-height] duration-300 ease-in-out">
-                    <button onclick="filterPlatform('all')"
-                        class="bg-indigo-500 text-white text-xs px-4 py-1.5 rounded-xl font-semibold shadow-sm transition">All</button>
-                    <button onclick="filterPlatform('facebook')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #2563eb;" fill="currentColor" viewBox="0 0 24 24">
+            <!-- trust strip -->
+            <div class="flex items-center justify-between mt-3 px-1 text-[9px] text-faint font-medium">
+                <span class="flex items-center gap-1">🔒 Secure payments</span>
+                <span class="flex items-center gap-1">⚡ Instant start</span>
+                <span class="flex items-center gap-1">🇪🇹 Chapa · Telebirr</span>
+            </div>
+
+            <!-- HOME VIEW -->
+            <main id="home-view" class="mt-5 space-y-4 stagger">
+                <div class="flex items-center gap-1.5">
+                    <div class="signal-mark" style="height:11px"><span></span><span></span><span></span><span></span>
+                    </div>
+                    <h2 class="text-[13px] font-display font-semibold">New Order</h2>
+                    <span class="text-[10px] text-faint font-amharic">· አዲስ ትዕዛዝ</span>
+                </div>
+
+                <!-- Platform chips -->
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1" id="platform-rail">
+                    <button onclick="filterPlatform('all', this)"
+                        class="plat-chip chip-active shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition">All</button>
+                    <button onclick="filterPlatform('facebook', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
-                                d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
-                        </svg>
-                        Facebook</button>
-                    <button onclick="filterPlatform('instagram')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #db2777;" fill="currentColor" viewBox="0 0 24 24">
+                                d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z" />
+                        </svg>Facebook</button>
+                    <button onclick="filterPlatform('instagram', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="5" />
+                            <circle cx="12" cy="12" r="4" />
+                            <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+                        </svg>Instagram</button>
+                    <button onclick="filterPlatform('telegram', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
-                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
-                        </svg>
-                        Instagram</button>
-                    <button onclick="filterPlatform('telegram')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #3b82f6;" fill="currentColor" viewBox="0 0 24 24">
+                                d="M21.9 4.3 2.7 11.7c-1.3.5-1.3 1.2-.2 1.5l4.9 1.5 1.9 5.8c.2.6.4.8.8.8.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.2-.5-1.8-1.5-1.4Z" />
+                        </svg>Telegram</button>
+                    <button onclick="filterPlatform('tiktok', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
-                                d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.717-.962 4.084-1.362 5.411-.168.56-.505 1.247-1.11.85-1.12-.736-2.502-1.657-3.504-2.28-.445-.276-.788-.737-.024-1.425 1.096-1.025 2.455-2.228 3.328-3.036.198-.184.341-.546-.226-.168-1.463 1.01-3.655 2.507-4.482 3.078-.501.345-1.01.503-1.499.491-.568-.014-1.353-.244-1.921-.43-.76-.248-.962-.486-.882-.894.043-.225.295-.497.662-.777 4.195-2.023 6.942-3.155 8.166-3.65 1.264-.51 1.543-.604 1.721-.607.13-.002.324.03.447.116.103.072.164.195.181.332.015.118-.018.344-.045.548z" />
-                        </svg>
-                        Telegram</button>
-                    <button onclick="filterPlatform('tiktok')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #000000;" fill="currentColor" viewBox="0 0 24 24">
+                                d="M16.5 2h-3v13.6a2.9 2.9 0 1 1-2.1-2.8v-3.1a6 6 0 1 0 5.1 5.9V9.2a7.5 7.5 0 0 0 4.5 1.5V7.6a4.4 4.4 0 0 1-4.5-4.4V2Z" />
+                        </svg>TikTok</button>
+                    <button onclick="filterPlatform('youtube', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
-                                d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v7.2c0 1.63-.33 3.25-1.07 4.67-1.04 2.02-3.12 3.59-5.4 3.9-2.12.29-4.32-.16-5.99-1.49-1.64-1.28-2.6-3.23-2.73-5.27-.12-2.14.73-4.22 2.21-5.7 1.53-1.52 3.73-2.22 5.86-1.91v4.11c-1.5-.16-3.08.18-4.07 1.34-1.07 1.25-1.12 3.12-.13 4.41.97 1.25 2.72 1.54 4.15.93 1.27-.55 1.95-1.9 1.96-3.27V.02z" />
-                        </svg>
-                        TikTok</button>
-                    <button onclick="filterPlatform('youtube')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #dc2626;" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.5 12 3.5 12 3.5s-7.505 0-9.377.55a3.016 3.016 0 00-2.122 2.136C0 8.07 0 12 0 12s0 3.93.501 5.814a3.016 3.016 0 002.122 2.136c1.872.55 9.377.55 9.377.55s7.505 0 9.377-.55a3.016 3.016 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                        </svg>
-                        YouTube</button>
-                    <button onclick="filterPlatform('twitter')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #000000;" fill="currentColor" viewBox="0 0 24 24">
+                                d="M23 12s0-3.6-.5-5.3a3 3 0 0 0-2.1-2.1C18.7 4 12 4 12 4s-6.7 0-8.4.6a3 3 0 0 0-2.1 2.1C1 8.4 1 12 1 12s0 3.6.5 5.3a3 3 0 0 0 2.1 2.1C5.3 20 12 20 12 20s6.7 0 8.4-.6a3 3 0 0 0 2.1-2.1c.5-1.7.5-5.3.5-5.3Z" />
+                            <path d="M10 15.5v-7l6 3.5-6 3.5Z" fill="#060d1a" />
+                        </svg>YouTube</button>
+                    <button onclick="filterPlatform('twitter', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
-                        </svg>
-                        Twitter</button>
-                    <button onclick="filterPlatform('spotify')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #1ed760;" fill="currentColor" viewBox="0 0 24 24">
+                        </svg>Twitter</button>
+                    <button onclick="filterPlatform('spotify', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.54.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.781-.18-.6.18-1.2.78-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.56.3z" />
-                        </svg>
-                        Spotify</button>
-                    <button onclick="filterPlatform('twitch')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #9146FF;" fill="currentColor" viewBox="0 0 24 24">
+                        </svg>Spotify</button>
+                    <button onclick="filterPlatform('twitch', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" />
-                        </svg>
-                        Twitch</button>
-                    <button onclick="filterPlatform('linkedin')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px; color: #0a66c2;" fill="currentColor" viewBox="0 0 24 24">
+                        </svg>Twitch</button>
+                    <button onclick="filterPlatform('linkedin', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                        </svg>
-                        LinkedIn</button>
-                    <button onclick="filterPlatform('google')"
-                        class="flex items-center gap-1 bg-white border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-slate-100">
-                        <svg style="width: 14px; height: 14px;" fill="currentColor" viewBox="0 0 24 24">
+                        </svg>LinkedIn</button>
+                    <button onclick="filterPlatform('google', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                             <path
-                                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                fill="#4285F4" />
-                            <path
-                                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                fill="#34A853" />
-                            <path
-                                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                                fill="#FBBC05" />
-                            <path
-                                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                fill="#EA4335" />
-                        </svg>
-                        Google</button>
-                    <button onclick="filterPlatform('premium')"
-                        class="flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs px-3 py-1.5 rounded-xl font-medium shadow-sm transition active:bg-amber-100">
-                        <svg style="width: 14px; height: 14px; color: #d97706;" fill="currentColor" viewBox="0 0 24 24">
+                                d="M21.35 11.1H12v2.98h5.38c-.24 1.36-1.62 3.98-5.38 3.98-3.24 0-5.88-2.68-5.88-5.98S8.76 6.1 12 6.1c1.84 0 3.08.78 3.78 1.46l2.58-2.48C16.7 3.54 14.56 2.6 12 2.6 6.82 2.6 2.62 6.8 2.62 12s4.2 9.4 9.38 9.4c5.42 0 9-3.8 9-9.16 0-.62-.06-1.08-.15-1.54z" />
+                        </svg>Google</button>
+                    <button onclick="filterPlatform('premium', this)"
+                        class="plat-chip shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium flex items-center gap-1.5 transition">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="#f2b632">
                             <path
                                 d="M12 .587l3.668 7.568 8.332 1.151-6.064 5.828 1.48 8.279-7.416-3.967-7.417 3.967 1.481-8.279-6.064-5.828 8.332-1.151z" />
+                        </svg>Premium</button>
+                </div>
+
+                <!-- Search -->
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-faint">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="m21 21-4.3-4.3" />
                         </svg>
-                        Premium</button>
-                </div>
-                <!-- See More Button -->
-                <div class="flex justify-center mt-2 absolute bottom-[-10px] left-1/2 -translate-x-1/2 z-10">
-                    <button onclick="togglePlatforms()" id="see-more-platforms-btn"
-                        class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-3 py-0.5 rounded-full border border-indigo-200 flex items-center gap-1 active:scale-95 transition-transform shadow-sm hover:bg-indigo-100">
-                        <span id="see-more-text">See More</span>
-                        <svg id="see-more-icon" class="w-3 h-3 transition-transform duration-300" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
-                            </path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- New Order Form -->
-            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
-                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-1.5"><span
-                        class="text-indigo-500">✨</span> New Order</h2>
-
-                <div>
-                    <div class="relative">
-                        <span
-                            class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">🔍</span>
-                        <input type="text" id="search-service" placeholder="Search by name, platform..."
-                            oninput="searchServices()"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
-                    </div>
+                    </span>
+                    <input type="text" id="search-service" placeholder="Search by name, platform, ID…"
+                        oninput="searchServices()"
+                        class="w-full bg-surface2 border border-line rounded-xl pl-9 pr-3 py-3 text-xs focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/40 text-ink placeholder:text-faint transition">
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
+                <!-- Category / Service -->
+                <div class="grid grid-cols-2 gap-2.5">
                     <div>
                         <label
-                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Category</label>
-                        <select id="category-select" onchange="selectCategory()"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700">
-                            <option value="all">Loading...</option>
-                        </select>
+                            class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Category</label>
+                        <div class="relative">
+                            <select id="category-select" onchange="selectCategory()"
+                                class="w-full bg-surface2 border border-line rounded-xl pl-3 pr-7 py-2.5 text-xs focus:outline-none focus:border-brand/60 text-ink">
+                                <option value="all">Loading…</option>
+                            </select>
+                            <span
+                                class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-faint">▾</span>
+                        </div>
                     </div>
                     <div>
                         <label
-                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Service</label>
-                        <select id="service-select" onchange="selectService()"
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700">
-                            <option value="">Loading...</option>
-                        </select>
+                            class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Service</label>
+                        <div class="relative">
+                            <select id="service-select" onchange="selectService()"
+                                class="w-full bg-surface2 border border-line rounded-xl pl-3 pr-7 py-2.5 text-xs focus:outline-none focus:border-brand/60 text-ink">
+                                <option value="">Loading…</option>
+                            </select>
+                            <span
+                                class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-faint">▾</span>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Selected service card -->
                 <div id="service-card"
-                    class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-3 flex justify-between items-center transition-all">
-                    <div>
-                        <span id="serv-id"
-                            class="text-[10px] text-indigo-500 font-bold bg-indigo-100 px-1.5 py-0.5 rounded">#---</span>
-                        <h3 id="serv-name" class="text-xs font-bold text-slate-800 mt-1">Select a service</h3>
-                    </div>
-                    <div id="serv-rate"
-                        class="text-xs font-bold text-indigo-600 bg-white px-2 py-1 rounded-lg shadow-sm border border-indigo-50 whitespace-nowrap">
-                        ETB 0.00/1K</div>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Link
-                        or Username</label>
-                    <div class="relative">
+                    class="relative bg-gradient-to-br from-surface2 to-surface border border-line rounded-2xl p-4 overflow-hidden">
+                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-brand/10 rounded-full blur-2xl"></div>
+                    <div class="relative flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <span id="serv-id" class="text-[9px] text-brand-light font-bold tracking-wide">#---</span>
+                            <h3 id="serv-name" class="text-[13px] font-semibold text-ink leading-snug mt-0.5">Loading
+                                services…</h3>
+                        </div>
                         <span
-                            class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">🔗</span>
-                        <input type="text" id="order-link" placeholder="https://instagram.com/..."
-                            class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition">
+                            class="shrink-0 text-[9px] bg-brand/10 text-brand-light border border-brand/30 px-2 py-1 rounded-full font-bold flex items-center gap-1">⚡
+                            Instant</span>
+                    </div>
+                    <div class="relative flex items-end justify-between mt-3 pt-3 border-t border-line/70">
+                        <div>
+                            <p class="text-[9px] text-faint uppercase tracking-wider font-semibold">Rate</p>
+                            <div id="serv-rate" class="text-base font-bold text-ink ledger">ETB 0.00<span
+                                    class="text-faint font-normal text-[10px]">/1K</span></div>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Link -->
                 <div>
-                    <label
-                        class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Quantity</label>
-                    <input type="number" id="order-qty" value="100" min="100" max="10000000" oninput="calculateTotal()"
-                        class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 font-semibold transition">
-                    <div class="text-[10px] text-slate-400 mt-1 ml-1 font-medium"><span id="min-max-text">Min: 100 Max:
-                            10,000,000</span></div>
+                    <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Link or
+                        Username</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-faint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8" />
+                            </svg>
+                        </span>
+                        <input type="text" id="order-link" placeholder="https://instagram.com/… or @username"
+                            class="w-full bg-surface2 border border-line rounded-xl pl-9 pr-3 py-3 text-xs focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/40 text-ink placeholder:text-faint transition">
+                    </div>
+                    <p class="text-[9px] text-faint mt-1.5">You can enter a full URL or just a username</p>
                 </div>
 
-                <div
-                    class="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs">
-                    <span class="text-slate-500 font-medium">Order Total</span>
-                    <span id="order-total" class="font-bold text-slate-800 text-sm">ETB 0.00</span>
-                </div>
-                <div class="flex justify-between text-slate-400 border-t border-slate-100 pt-1 text-[10px] px-1 hidden">
-                    <span>Balance After Order</span>
-                    <span id="balance-after" class="font-semibold text-emerald-500">ETB 0.0000</span>
+                <!-- Quantity -->
+                <div>
+                    <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Quantity</label>
+                    <div class="flex items-stretch gap-2">
+                        <button onclick="stepQty(-1)" aria-label="Less"
+                            class="w-11 shrink-0 bg-surface2 border border-line rounded-xl text-ink font-bold active:scale-90 transition">−</button>
+                        <input type="number" id="order-qty" value="100" min="100" max="10000000"
+                            oninput="calculateTotal()"
+                            class="w-full text-center bg-surface2 border border-line rounded-xl px-3 py-2.5 text-sm font-semibold ledger focus:outline-none focus:border-brand/60 text-ink">
+                        <button onclick="stepQty(1)" aria-label="More"
+                            class="w-11 shrink-0 bg-surface2 border border-line rounded-xl text-ink font-bold active:scale-90 transition">+</button>
+                    </div>
+                    <div class="flex justify-between text-[9px] text-faint mt-1.5">
+                        <span id="min-max-text">Min: 100 · Max: 10,000,000</span>
+                    </div>
                 </div>
 
-                <button onclick="submitOrder()"
-                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95 text-sm">
-                    Submit Order
+                <!-- Summary -->
+                <div class="bg-surface/70 border border-line rounded-2xl p-3.5 space-y-2">
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-mute">Order Total</span>
+                        <span id="order-total" class="font-bold text-ink ledger">ETB 0.0000</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px] border-t border-line/70 pt-2">
+                        <span class="text-mute">Balance After</span>
+                        <span id="balance-after" class="font-bold text-brand-light ledger">ETB 0.0000</span>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button onclick="submitOrder()" id="submit-order-btn"
+                    class="shimmer-btn w-full bg-gradient-to-r from-brand to-brand-dim hover:brightness-110 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-brand/25 active:scale-[0.98] transition text-[13px] flex items-center justify-center gap-2">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="m5 12 5 5L20 7" />
+                    </svg>
+                    Boost Now
                 </button>
-            </div>
-        </main>
+            </main>
 
-        <!-- Orders View -->
-        <main id="orders-view" class="hidden flex-1 overflow-y-auto custom-scrollbar bg-slate-50">
-            <div class="sticky top-0 bg-slate-50 pt-4 pb-2 px-4 z-10 border-b border-slate-100">
-                <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-200 text-[11px] font-bold">
+            <!-- ORDERS VIEW -->
+            <main id="orders-view" class="hidden mt-5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-[13px] font-display font-semibold">Your Orders</h2>
+                    <button onclick="fetchOrders()"
+                        class="text-[10px] text-mute hover:text-brand-light font-semibold">Refresh</button>
+                </div>
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                     <button onclick="setOrderTab('all')" id="tab-all"
-                        class="flex-1 py-1.5 rounded-lg tab-active transition-all">All</button>
+                        class="order-tab chip-active shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition">All</button>
                     <button onclick="setOrderTab('active')" id="tab-active"
-                        class="flex-1 py-1.5 rounded-lg tab-inactive transition-all">Active</button>
+                        class="order-tab shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium transition">Active</button>
                     <button onclick="setOrderTab('completed')" id="tab-completed"
-                        class="flex-1 py-1.5 rounded-lg tab-inactive transition-all">Done</button>
+                        class="order-tab shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium transition">Done</button>
                     <button onclick="setOrderTab('canceled')" id="tab-canceled"
-                        class="flex-1 py-1.5 rounded-lg tab-inactive transition-all">Cancelled</button>
+                        class="order-tab shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium transition">Cancelled</button>
                 </div>
-            </div>
+                <div id="orders-container" class="space-y-2.5"></div>
+            </main>
 
-            <div id="orders-container" class="px-4 py-4 space-y-3">
-                <!-- Orders injected here -->
-            </div>
-        </main>
-
-        <!-- Add Funds View -->
-        <main id="add-funds-view" class="hidden flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
-            <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                <div>
-                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wide">Current Balance</div>
-                    <div class="text-xl font-bold text-slate-800" id="funds-balance-display">ETB 0.00</div>
-                </div>
-                <button onclick="openAddFund()"
-                    class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs px-4 py-2 rounded-xl font-bold transition-all active:scale-95 flex items-center gap-1">
-                    <span>+ Add</span>
-                </button>
-            </div>
-
-            <h3 class="text-sm font-bold text-slate-800 pt-2 flex items-center gap-1"><span>📜</span> History</h3>
-            <div id="transactions-container" class="space-y-3">
-                <!-- Transactions -->
-            </div>
-        </main>
-
-        <!-- Profile View -->
-        <main id="profile-view" class="hidden flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5 pb-8">
-
-            <!-- User Info Header -->
-            <div class="text-center pt-2">
-                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-fuchsia-400 to-indigo-400 rounded-full flex items-center justify-center font-bold text-white text-3xl shadow-lg ring-4 ring-white mb-3"
-                    id="profile-avatar">B</div>
-                <h2 class="text-lg font-bold text-slate-800" id="profile-name-display">Loading...</h2>
-                <p class="text-xs text-slate-500 font-medium" id="profile-username-display">@loading...</p>
-            </div>
-
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-3 gap-2">
-                <div
-                    class="bg-white rounded-2xl p-3 text-center border border-slate-200 shadow-sm flex flex-col justify-center h-20">
-                    <div class="font-bold text-slate-800 text-sm" id="profile-stat-balance">ETB 0.00</div>
-                    <div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-1">Balance</div>
-                </div>
-                <div
-                    class="bg-white rounded-2xl p-3 text-center border border-slate-200 shadow-sm flex flex-col justify-center h-20">
-                    <div class="font-bold text-slate-800 text-lg" id="profile-stat-orders">0</div>
-                    <div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-1">Orders</div>
-                </div>
-                <div
-                    class="bg-white rounded-2xl p-3 text-center border border-slate-200 shadow-sm flex flex-col justify-center h-20">
-                    <div class="font-bold text-slate-800 text-lg" id="profile-stat-active">0</div>
-                    <div class="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-1">Active Orders
-                    </div>
-                </div>
-            </div>
-
-            <!-- Invite Section -->
-            <div>
-                <h3 class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 ml-1">Invite Friends &
-                    Earn</h3>
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
-                    <div class="flex items-start gap-3">
-                        <div
-                            class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-xl shrink-0">
-                            🎁</div>
-                        <p class="text-xs text-slate-600 font-medium leading-relaxed">Earn <span
-                                class="font-bold text-slate-800">ETB 1</span> for every friend who joins with your link
-                            and deposits <span class="font-bold text-slate-800">ETB 50+</span>.</p>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="bg-slate-50 rounded-xl p-2 text-center">
-                            <div class="font-bold text-slate-800" id="referral-invited-display">0</div>
-                            <div class="text-[8px] text-slate-500 uppercase font-semibold mt-0.5">Invited</div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-2 text-center">
-                            <div class="font-bold text-slate-800" id="referral-joined-display">0</div>
-                            <div class="text-[8px] text-slate-500 uppercase font-semibold mt-0.5">Joined</div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-2 text-center border border-slate-200 shadow-sm bg-white">
-                            <div class="font-bold text-slate-800" id="referral-earned-display">ETB 0.00</div>
-                            <div class="text-[8px] text-slate-500 uppercase font-semibold mt-0.5">Earned</div>
-                        </div>
-                    </div>
-
+            <!-- WALLET VIEW -->
+            <main id="add-funds-view" class="hidden mt-5 space-y-3">
+                <div class="flex items-center justify-between bg-surface/70 border border-line rounded-2xl p-4">
                     <div>
-                        <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Your
-                            Invite Link</div>
-                        <div class="flex gap-2">
-                            <input type="text" id="invite-link-input"
-                                value="https://t.me/Beleqet_PromotionBot?start=ref123" readonly
-                                class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-600 focus:outline-none font-mono">
-                            <button onclick="copyInviteLink()"
-                                class="bg-slate-100 border border-slate-200 rounded-xl px-3 text-slate-600 hover:bg-slate-200 transition active:scale-95">📋</button>
-                        </div>
+                        <p class="text-[9px] uppercase tracking-widest text-mute font-semibold">Current Balance</p>
+                        <p id="funds-balance-display" class="font-display font-bold text-xl ledger mt-0.5">ETB 0.00</p>
                     </div>
-
-                    <button onclick="shareInviteLink()"
-                        class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-500/20 active:scale-95 transition text-sm flex items-center justify-center gap-2">
-                        <span>📤</span> Share My Link
-                    </button>
+                    <button onclick="openAddFund()"
+                        class="bg-brand/15 text-brand-light border border-brand/30 text-xs font-semibold px-4 py-2 rounded-xl active:scale-95 transition">+
+                        Add</button>
                 </div>
-            </div>
-
-            <!-- Settings -->
-            <div>
-                <h3 class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 ml-1">Settings</h3>
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
-                    <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div
-                                class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-500">
-                                🔔</div>
-                            <div>
-                                <div class="font-bold text-sm text-slate-800">Notifications</div>
-                                <div class="text-[10px] text-slate-500">Order updates & alerts</div>
-                            </div>
-                        </div>
-                        <div id="notif-toggle" onclick="toggleNotifications()"
-                            class="w-10 h-6 bg-indigo-500 rounded-full flex items-center p-1 cursor-pointer transition-colors duration-300">
-                            <div id="notif-toggle-knob"
-                                class="w-4 h-4 bg-white rounded-full ml-auto shadow-sm transform transition-transform duration-300">
-                            </div>
-                        </div>
+                <div class="flex items-center gap-1.5 pt-1">
+                    <div class="signal-mark" style="height:11px"><span></span><span></span><span></span><span></span>
                     </div>
+                    <h2 class="text-[13px] font-display font-semibold">History</h2>
+                    <span class="text-[10px] text-faint font-amharic">· ታሪክ</span>
+                </div>
+                <div id="transactions-container" class="space-y-2.5"></div>
+            </main>
 
-                    <div class="space-y-3 pt-2">
-                        <h4 class="text-xs font-bold text-slate-800 mb-3">Edit Profile</h4>
-                        <div>
-                            <label
-                                class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-1">First
-                                Name</label>
-                            <input type="text" id="prof-first"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 font-medium text-slate-700">
+            <!-- PROFILE VIEW -->
+            <main id="profile-view" class="hidden mt-5 space-y-4">
+                <div class="flex flex-col items-center py-2">
+                    <div id="profile-avatar"
+                        class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand to-brand-dim flex items-center justify-center font-display font-bold text-2xl text-white shadow-glow">
+                        B</div>
+                    <p id="profile-name-display" class="text-sm font-semibold text-ink mt-2">Loading…</p>
+                    <p id="profile-username-display" class="text-[11px] text-mute">@loading…</p>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-surface/70 border border-line rounded-2xl p-3 text-center">
+                        <p id="profile-stat-balance" class="font-bold text-ink text-xs ledger">ETB 0.00</p>
+                        <p class="text-[9px] text-faint font-semibold uppercase tracking-wide mt-1">Balance</p>
+                    </div>
+                    <div class="bg-surface/70 border border-line rounded-2xl p-3 text-center">
+                        <p id="profile-stat-orders" class="font-bold text-ink text-base ledger">0</p>
+                        <p class="text-[9px] text-faint font-semibold uppercase tracking-wide mt-1">Orders</p>
+                    </div>
+                    <div class="bg-surface/70 border border-line rounded-2xl p-3 text-center">
+                        <p id="profile-stat-active" class="font-bold text-ink text-base ledger">0</p>
+                        <p class="text-[9px] text-faint font-semibold uppercase tracking-wide mt-1">Active</p>
+                    </div>
+                </div>
+
+                <!-- Invite -->
+                <div>
+                    <p class="text-[9px] text-faint font-bold uppercase tracking-widest mb-2 ml-1">Invite Friends &amp;
+                        Earn</p>
+                    <div class="relative bg-surface/70 border border-line rounded-2xl p-4 space-y-3.5 overflow-hidden">
+                        <div class="absolute -top-16 -right-16 w-40 h-40 bg-gold/10 rounded-full blur-3xl"></div>
+                        <div class="relative flex items-start gap-3">
+                            <div
+                                class="w-9 h-9 bg-gold/15 border border-gold/30 rounded-xl flex items-center justify-center text-lg shrink-0">
+                                🎁</div>
+                            <p class="text-[11px] text-mute leading-relaxed">Earn <span
+                                    class="font-bold text-ink">ETB 1</span> for every friend who joins with your link
+                                and deposits <span class="font-bold text-ink">ETB 50+</span>.</p>
                         </div>
-                        <div>
-                            <label
-                                class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-1">Last
-                                Name</label>
-                            <input type="text" id="prof-last"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 font-medium text-slate-700">
+                        <div class="relative grid grid-cols-3 gap-2">
+                            <div class="bg-surface2 border border-line rounded-xl p-2 text-center">
+                                <p id="referral-invited-display" class="font-bold text-ink text-sm ledger">0</p>
+                                <p class="text-[8px] text-faint uppercase font-semibold mt-0.5">Invited</p>
+                            </div>
+                            <div class="bg-surface2 border border-line rounded-xl p-2 text-center">
+                                <p id="referral-joined-display" class="font-bold text-ink text-sm ledger">0</p>
+                                <p class="text-[8px] text-faint uppercase font-semibold mt-0.5">Joined</p>
+                            </div>
+                            <div class="bg-surface2 border border-brand/30 rounded-xl p-2 text-center">
+                                <p id="referral-earned-display" class="font-bold text-brand-light text-xs ledger">ETB
+                                    0.00</p>
+                                <p class="text-[8px] text-faint uppercase font-semibold mt-0.5">Earned</p>
+                            </div>
                         </div>
-                        <div>
-                            <label
-                                class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1 ml-1">Email</label>
-                            <input type="email" id="prof-email"
-                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-indigo-500 font-medium text-slate-700">
+                        <div class="relative">
+                            <p class="text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Your Invite Link
+                            </p>
+                            <div class="flex gap-2">
+                                <input type="text" id="invite-link-input"
+                                    value="https://t.me/Beleqet_PromotionBot?start=ref123" readonly
+                                    class="flex-1 min-w-0 bg-surface2 border border-line rounded-xl px-3 py-2.5 text-[11px] text-mute focus:outline-none ledger">
+                                <button onclick="copyInviteLink()" aria-label="Copy"
+                                    class="bg-surface2 border border-line rounded-xl px-3 text-mute hover:text-ink active:scale-95 transition">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <rect x="9" y="9" width="12" height="12" rx="2" />
+                                        <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                        <button onclick="saveProfile()"
-                            class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-3 rounded-xl transition active:scale-95 text-xs mt-2">
-                            Save Changes
+                        <button onclick="shareInviteLink()"
+                            class="relative shimmer-btn w-full bg-gradient-to-r from-brand to-brand-dim text-white font-semibold py-3 rounded-xl shadow-lg shadow-brand/20 active:scale-[0.98] transition text-xs flex items-center justify-center gap-2">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2">
+                                <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13" />
+                            </svg>
+                            Share My Link
                         </button>
                     </div>
                 </div>
-            </div>
-        </main>
 
-        <!-- Bottom Navigation Bar -->
-        <footer class="bg-white border-t border-slate-200 px-2 py-2 pb-safe z-20">
-            <div class="grid grid-cols-4 gap-1">
-                <button id="nav-home" onclick="showTab('home')"
-                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-indigo-600 transition">
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
-                        </path>
-                    </svg>
-                    <span class="text-[10px] font-semibold">Home</span>
-                </button>
-                <button id="nav-orders" onclick="showTab('orders')"
-                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition">
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
-                        </path>
-                    </svg>
-                    <span class="text-[10px] font-semibold">Orders</span>
-                </button>
-                <button id="nav-add-funds" onclick="showTab('add-funds')"
-                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition">
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
-                        </path>
-                    </svg>
-                    <span class="text-[10px] font-semibold">Add Funds</span>
-                </button>
-                <button id="nav-profile" onclick="showTab('profile')"
-                    class="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition">
-                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
-                    <span class="text-[10px] font-semibold">Profile</span>
-                </button>
+                <!-- Settings -->
+                <div>
+                    <p class="text-[9px] text-faint font-bold uppercase tracking-widest mb-2 ml-1">Settings</p>
+                    <div class="bg-surface/70 border border-line rounded-2xl p-4 space-y-3.5">
+                        <div class="flex items-center justify-between pb-3.5 border-b border-line/70">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-8 h-8 bg-gold/15 border border-gold/30 rounded-lg flex items-center justify-center">
+                                    🔔</div>
+                                <div>
+                                    <p class="font-semibold text-xs text-ink">Notifications</p>
+                                    <p class="text-[10px] text-mute">Order updates &amp; alerts</p>
+                                </div>
+                            </div>
+                            <div id="notif-toggle" onclick="toggleNotifications()" role="switch"
+                                class="w-10 h-6 bg-brand rounded-full flex items-center p-1 cursor-pointer transition-colors duration-300">
+                                <div id="notif-toggle-knob"
+                                    class="w-4 h-4 bg-white rounded-full ml-auto shadow-sm transition-all duration-300">
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs font-semibold text-ink">Edit Profile <span
+                                class="text-[10px] text-faint font-normal font-amharic">· የግል መገለጫ</span></p>
+                        <div>
+                            <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">First
+                                Name</label>
+                            <input type="text" id="prof-first"
+                                class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-brand/60 text-ink">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Last
+                                Name</label>
+                            <input type="text" id="prof-last"
+                                class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-brand/60 text-ink">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Email</label>
+                            <input type="email" id="prof-email"
+                                class="w-full bg-surface2 border border-line rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-brand/60 text-ink">
+                        </div>
+                        <button onclick="saveProfile()"
+                            class="w-full bg-gradient-to-r from-brand to-brand-dim text-white font-semibold py-3 rounded-xl shadow transition text-xs active:scale-[0.98]">
+                            Save Profile
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Bottom nav -->
+        <footer class="fixed bottom-0 inset-x-0 z-30">
+            <div class="max-w-md mx-auto px-4 pb-2 safe-b">
+                <div class="relative glass border border-line rounded-3xl px-2 pt-2 pb-2 shadow-2xl">
+                    <div class="grid grid-cols-4 items-end">
+                        <button id="nav-home" onclick="showTab('home')"
+                            class="flex flex-col items-center gap-1 py-1.5 rounded-2xl text-brand-light transition">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="m3 11 9-7 9 7" />
+                                <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+                            </svg>
+                            <span class="text-[9px] font-semibold">Home</span>
+                        </button>
+                        <button id="nav-orders" onclick="showTab('orders')"
+                            class="flex flex-col items-center gap-1 py-1.5 rounded-2xl text-mute transition">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 8 12 3 3 8l9 5 9-5Z" />
+                                <path d="M3 8v8l9 5 9-5V8M12 13v8" />
+                            </svg>
+                            <span class="text-[9px] font-semibold">Orders</span>
+                        </button>
+                        <div class="relative flex flex-col items-center">
+                            <button onclick="showTab('add-funds')" aria-label="Wallet"
+                                class="breathe absolute -top-7 w-[52px] h-[52px] rounded-full bg-gradient-to-br from-brand-light to-brand-dim flex items-center justify-center shadow-lg shadow-brand/40 border-4 border-base active:scale-90 transition">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white"
+                                    stroke-width="2.5">
+                                    <path d="M12 5v14M5 12h14" />
+                                </svg>
+                            </button>
+                            <span id="nav-add-funds" class="text-[9px] font-semibold text-faint mt-6 pt-1.5">Wallet</span>
+                        </div>
+                        <button id="nav-profile" onclick="showTab('profile')"
+                            class="flex flex-col items-center gap-1 py-1.5 rounded-2xl text-mute transition">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+                            </svg>
+                            <span class="text-[9px] font-semibold">Profile</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-center text-[8px] text-faint mt-1.5">@Beleqet_PromotionBot</div>
             </div>
-            <div class="text-center text-[9px] text-slate-400 mt-1 font-medium">@Beleqet_PromotionBot</div>
         </footer>
 
-        <!-- Add Fund Modal -->
+        <!-- Toasts -->
+        <div id="toast-container"
+            class="fixed top-3 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 items-center w-full max-w-md px-4 pointer-events-none">
+        </div>
+
+        <!-- Add Fund Sheet -->
         <div id="add-fund-modal"
-            class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
-            <div
-                class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl modal-enter transition-all duration-300">
-                <div class="flex justify-between items-center mb-5">
-                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
-                        <span>💳</span> <span>Add Funds</span>
-                    </h3>
-                    <button onclick="closeAddFundModal()"
-                        class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition font-bold">✕</button>
+            class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
+            <div id="add-fund-sheet"
+                class="bg-surface border border-line w-full max-w-md rounded-t-3xl p-6 pb-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-20 -right-20 w-52 h-52 bg-brand/15 rounded-full blur-3xl"></div>
+                <div class="mx-auto w-10 h-1 bg-line rounded-full mb-4"></div>
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="text-base font-display font-bold text-ink flex items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" class="text-brand-light">
+                                <rect x="2" y="5" width="20" height="14" rx="3" />
+                                <path d="M2 10h20" />
+                            </svg>
+                            Add Funds
+                        </h3>
+                        <button onclick="closeAddFundModal()" aria-label="Close"
+                            class="text-mute hover:text-ink bg-surface2 rounded-full w-8 h-8 flex items-center justify-center transition">✕</button>
+                    </div>
+                    <p class="text-[11px] text-mute mb-4 font-amharic">ገንዘብ ወደ ኤካውንትዎ ያስገቡ · Minimum 10 ETB</p>
+
+                    <div class="grid grid-cols-2 gap-2.5 mb-4">
+                        <button onclick="setFundAmount(50)"
+                            class="bg-surface2 hover:bg-brand/15 hover:border-brand/50 border border-line text-ink py-2.5 rounded-xl text-sm font-bold transition">50
+                            ETB</button>
+                        <button onclick="setFundAmount(100)"
+                            class="bg-surface2 hover:bg-brand/15 hover:border-brand/50 border border-line text-ink py-2.5 rounded-xl text-sm font-bold transition">100
+                            ETB</button>
+                        <button onclick="setFundAmount(500)"
+                            class="bg-surface2 hover:bg-brand/15 hover:border-brand/50 border border-line text-ink py-2.5 rounded-xl text-sm font-bold transition">500
+                            ETB</button>
+                        <button onclick="setFundAmount(1000)"
+                            class="bg-surface2 hover:bg-brand/15 hover:border-brand/50 border border-line text-ink py-2.5 rounded-xl text-sm font-bold transition">1000
+                            ETB</button>
+                    </div>
+
+                    <div class="relative mb-5">
+                        <span
+                            class="absolute inset-y-0 left-0 flex items-center pl-4 text-mute text-sm font-semibold">ETB</span>
+                        <input type="number" id="custom-fund-amount" placeholder="Enter amount" min="10"
+                            class="w-full bg-surface2 border border-line focus:border-brand/60 rounded-xl pl-14 pr-4 py-3.5 text-sm text-ink ledger focus:outline-none focus:ring-1 focus:ring-brand/40 transition">
+                    </div>
+
+                    <button onclick="processAddFund()" id="process-fund-btn"
+                        class="w-full bg-gradient-to-r from-brand to-brand-dim text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand/25 transition active:scale-[0.98]">
+                        Proceed to Pay (Chapa)
+                    </button>
+                    <div class="flex items-center gap-3 my-3 text-[10px] text-faint font-semibold">
+                        <span class="flex-1 h-px bg-line"></span>OR<span class="flex-1 h-px bg-line"></span>
+                    </div>
+                    <button onclick="openManualFundModal()"
+                        class="w-full bg-surface2 border border-line text-mute hover:text-ink font-semibold py-3 rounded-xl transition active:scale-[0.98] text-xs">
+                        🏦 Manual CBE Transfer
+                    </button>
                 </div>
-
-                <p class="text-xs text-slate-500 mb-4">Select an amount or enter a custom value (Min: 10 ETB).</p>
-
-                <div class="grid grid-cols-2 gap-3 mb-5">
-                    <button onclick="setFundAmount(50)"
-                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">50
-                        ETB</button>
-                    <button onclick="setFundAmount(100)"
-                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">100
-                        ETB</button>
-                    <button onclick="setFundAmount(500)"
-                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">500
-                        ETB</button>
-                    <button onclick="setFundAmount(1000)"
-                        class="bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">1000
-                        ETB</button>
-                </div>
-
-                <div class="relative mb-6">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-bold">ETB</span>
-                    <input type="number" id="custom-fund-amount" placeholder="Enter amount" min="10"
-                        class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl pl-12 pr-4 py-3 text-sm text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-inner">
-                </div>
-
-                <button onclick="processAddFund()" id="process-fund-btn"
-                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95">
-                    Proceed to Pay (Chapa)
-                </button>
-                <div class="text-center mt-3 text-xs text-slate-400 font-bold">OR</div>
-                <button onclick="openManualFundModal()"
-                    class="w-full mt-3 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold py-3 rounded-xl shadow-sm transition-all transform active:scale-95">
-                    🏦 Manual CBE Transfer
-                </button>
             </div>
         </div>
 
-        <!-- Manual Fund Modal -->
+        <!-- Manual Fund Sheet -->
         <div id="manual-fund-modal"
-            class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
-            <div
-                class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl modal-enter transition-all duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                <div class="flex justify-between items-center mb-5">
-                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
-                        <span>🏦</span> <span>CBE Transfer</span>
-                    </h3>
-                    <button onclick="closeManualFundModal()"
-                        class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition font-bold">×</button>
-                </div>
-
-                <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-4">
-                    <p class="text-xs text-indigo-800 font-medium mb-1">Transfer funds to:</p>
-                    <p class="font-bold text-slate-800 text-sm">CBE Account: <span
-                            class="text-indigo-600">1000123456789</span></p>
-                    <p class="font-bold text-slate-800 text-sm">Name: <span class="text-indigo-600">Beleqet
-                            Promotion</span></p>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="relative">
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Amount Sent (ETB)</label>
-                        <input type="number" id="manual-fund-amount" placeholder="e.g. 500"
-                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-inner">
+            class="hidden fixed inset-0 z-[60] flex items-end justify-center bg-black/70 backdrop-blur-sm">
+            <div id="manual-fund-sheet"
+                class="bg-surface border border-line w-full max-w-md rounded-t-3xl p-6 pb-8 shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
+                <div class="absolute -top-20 -right-20 w-52 h-52 bg-brand/15 rounded-full blur-3xl"></div>
+                <div class="mx-auto w-10 h-1 bg-line rounded-full mb-4"></div>
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-base font-display font-bold text-ink flex items-center gap-2">🏦 CBE Transfer
+                        </h3>
+                        <button onclick="closeManualFundModal()" aria-label="Close"
+                            class="text-mute hover:text-ink bg-surface2 rounded-full w-8 h-8 flex items-center justify-center transition">✕</button>
                     </div>
 
-                    <div class="relative">
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Transaction Number</label>
-                        <input type="text" id="manual-fund-txn" placeholder="e.g. FT212345678"
-                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-3 text-sm text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition shadow-inner">
+                    <div class="bg-brand/10 border border-brand/30 rounded-xl p-3 mb-4">
+                        <p class="text-[11px] text-mute mb-1">Transfer funds to:</p>
+                        <p class="font-semibold text-ink text-sm">CBE Account: <span
+                                class="text-brand-light ledger">1000123456789</span></p>
+                        <p class="font-semibold text-ink text-sm">Name: <span class="text-brand-light">Beleqet
+                                Promotion</span></p>
                     </div>
 
-                    <div class="relative">
-                        <label class="block text-xs font-bold text-slate-600 mb-1">Upload Screenshot</label>
-                        <input type="file" id="manual-fund-screenshot" accept="image/*"
-                            class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                    <div class="space-y-3.5">
+                        <div>
+                            <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Amount
+                                Sent (ETB)</label>
+                            <input type="number" id="manual-fund-amount" placeholder="e.g. 500"
+                                class="w-full bg-surface2 border border-line focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-ink ledger focus:outline-none focus:ring-1 focus:ring-brand/40 transition">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Transaction
+                                Number</label>
+                            <input type="text" id="manual-fund-txn" placeholder="e.g. FT212345678"
+                                class="w-full bg-surface2 border border-line focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-ink ledger focus:outline-none focus:ring-1 focus:ring-brand/40 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Upload
+                                Screenshot</label>
+                            <input type="file" id="manual-fund-screenshot" accept="image/*"
+                                class="w-full text-xs text-mute file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand/15 file:text-brand-light">
+                        </div>
                     </div>
+
+                    <button onclick="submitManualFund()" id="submit-manual-btn"
+                        class="w-full mt-6 bg-gradient-to-r from-brand to-brand-dim text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand/25 transition active:scale-[0.98]">
+                        Submit for Approval
+                    </button>
                 </div>
-
-                <button onclick="submitManualFund()" id="submit-manual-btn"
-                    class="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95">
-                    Submit for Approval
-                </button>
             </div>
         </div>
 
-        <!-- Profile Completion Modal -->
+        <!-- Profile Completion Sheet -->
         <div id="profile-modal"
-            class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm transition-opacity">
-            <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl modal-enter transition-all duration-300">
-                <div class="flex justify-between items-center mb-5">
-                    <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
-                        <span>👤</span> <span>Complete Profile</span>
-                    </h3>
-                    <button onclick="closeProfileModal()"
-                        class="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full w-8 h-8 flex items-center justify-center transition font-bold">✕</button>
+            class="hidden fixed inset-0 z-[60] flex items-end justify-center bg-black/70 backdrop-blur-sm">
+            <div id="profile-sheet"
+                class="bg-surface border border-line w-full max-w-md rounded-t-3xl p-6 pb-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-20 -right-20 w-52 h-52 bg-brand/15 rounded-full blur-3xl"></div>
+                <div class="mx-auto w-10 h-1 bg-line rounded-full mb-4"></div>
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-1">
+                        <h3 class="text-base font-display font-bold text-ink flex items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" class="text-brand-light">
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+                            </svg>
+                            Complete Profile
+                        </h3>
+                        <button onclick="closeProfileModal()" aria-label="Close"
+                            class="text-mute hover:text-ink bg-surface2 rounded-full w-8 h-8 flex items-center justify-center transition">✕</button>
+                    </div>
+                    <p class="text-[11px] text-mute mb-4">We need a bit more information before you can add funds.</p>
+
+                    <div class="space-y-3 mb-5">
+                        <div>
+                            <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">First
+                                Name</label>
+                            <input type="text" id="modal-prof-first"
+                                class="w-full bg-surface2 border border-line focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand/40 transition">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Last
+                                Name</label>
+                            <input type="text" id="modal-prof-last"
+                                class="w-full bg-surface2 border border-line focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand/40 transition">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Email</label>
+                            <input type="email" id="modal-prof-email"
+                                class="w-full bg-surface2 border border-line focus:border-brand/60 rounded-xl px-4 py-3 text-sm text-ink focus:outline-none focus:ring-1 focus:ring-brand/40 transition">
+                        </div>
+                    </div>
+
+                    <button onclick="saveProfileFromModal()" id="modal-save-prof-btn"
+                        class="w-full bg-gradient-to-r from-brand to-brand-dim text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand/25 transition active:scale-[0.98]">
+                        Save &amp; Continue
+                    </button>
                 </div>
-
-                <p class="text-xs text-slate-500 mb-5">We need a bit more information before you can add funds.</p>
-
-                <div class="space-y-4 mb-6">
-                    <div>
-                        <label
-                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">First
-                            Name</label>
-                        <input type="text" id="modal-prof-first"
-                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label
-                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Last
-                            Name</label>
-                        <input type="text" id="modal-prof-last"
-                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none transition">
-                    </div>
-                    <div>
-                        <label
-                            class="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5 ml-1">Email</label>
-                        <input type="email" id="modal-prof-email"
-                            class="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <button onclick="saveProfileFromModal()" id="modal-save-prof-btn"
-                    class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform active:scale-95">
-                    Save & Continue
-                </button>
             </div>
         </div>
-    </div>
-
-    <!-- Toast Notification Container -->
-    <div id="toast-container"
-        class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center space-y-2 pointer-events-none w-max">
     </div>
 
     <script>
@@ -643,13 +1235,14 @@
         tg.ready();
         tg.expand();
 
-        // Enforce Telegram-only access
+        // Telegram only: the API trusts nothing but Telegram's signed initData.
         if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
             const urlParams = new URLSearchParams(window.location.search);
             const targetBot = urlParams.get('bot') || "Beleqet_PromotionBot";
             const botBtn = document.getElementById('bot-redirect-btn');
-            if (botBtn) botBtn.href = `https://t.me/${targetBot}`;
-            
+            if (botBtn) botBtn.href = `https://t.me/${encodeURIComponent(targetBot)}`;
+
+            document.getElementById('splash').classList.add('hide');
             document.getElementById('telegram-only-modal').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             throw new Error("Access restricted: Please open inside Telegram Mini App context.");
@@ -657,6 +1250,7 @@
 
         const telegramUserId = tg.initDataUnsafe?.user?.id;
 
+        // Every API call carries Telegram's signed initData; the server refuses calls without it.
         async function apiFetch(url, options = {}) {
             const headers = options.headers || {};
             if (tg.initData) {
@@ -669,52 +1263,120 @@
             return fetch(url, options);
         }
 
-        function showAppAlert(msg) {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
+        const API_BASE_URL = ''; // the page and the API share the bot's own address
 
-            const toast = document.createElement('div');
-            toast.className = `px-4 py-2.5 rounded-2xl shadow-lg text-sm font-bold text-white flex items-center gap-2 transform transition-all duration-300 -translate-y-10 opacity-0 pointer-events-auto max-w-[90vw] text-center leading-tight`;
-
-            const isError = msg.toLowerCase().includes('error') || msg.toLowerCase().includes('ስህተት') || msg.toLowerCase().includes('fill out') || msg.toLowerCase().includes('minimum');
-            const isSuccess = msg.toLowerCase().includes('success') || msg.toLowerCase().includes('ተልኳል') || msg.toLowerCase().includes('copied') || msg.toLowerCase().includes('updated');
-
-            if (isError) {
-                toast.classList.add('bg-rose-500', 'shadow-rose-500/20');
-                toast.innerHTML = `<span>⚠️</span> <span>${escapeHtml(msg)}</span>`;
-            } else if (isSuccess) {
-                toast.classList.add('bg-emerald-500', 'shadow-emerald-500/20');
-                toast.innerHTML = `<span>✅</span> <span>${escapeHtml(msg)}</span>`;
-            } else {
-                toast.classList.add('bg-slate-800', 'shadow-slate-500/20');
-                toast.innerHTML = `<span>ℹ️</span> <span>${escapeHtml(msg)}</span>`;
-            }
-
-            container.appendChild(toast);
-
-            // Animate in
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    toast.classList.remove('-translate-y-10', 'opacity-0');
-                    toast.classList.add('translate-y-0', 'opacity-100');
-                });
-            });
-
-            // Animate out and remove
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('-translate-y-10', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        const API_BASE_URL = ''; // Relative path inherently uses the deployed domain
-
-        // Sanitize strings to prevent XSS when using innerHTML
+        // Text from the API or from users goes through this before it reaches innerHTML.
         function escapeHtml(str) {
             const div = document.createElement('div');
-            div.appendChild(document.createTextNode(str));
+            div.appendChild(document.createTextNode(String(str ?? '')));
             return div.innerHTML;
+        }
+
+        function haptic(style) {
+            try { tg.HapticFeedback.impactOccurred(style || 'light'); } catch (e) { }
+        }
+
+        // ---- Ambient rising particles (growth motif) ----
+        function spawnAmbientParticles() {
+            const field = document.getElementById('particle-field');
+            const count = 14;
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div');
+                const size = 2 + Math.random() * 3;
+                p.className = 'particle';
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.setProperty('--drift', (Math.random() * 40 - 20) + 'px');
+                p.style.animationDuration = (7 + Math.random() * 7) + 's';
+                p.style.animationDelay = (Math.random() * 10) + 's';
+                field.appendChild(p);
+            }
+        }
+
+        // ---- Number count-up ----
+        function animateNumber(el, to, prefix = 'ETB ', decimals = 2, duration = 900) {
+            const t0 = performance.now();
+            function tick(now) {
+                const p = Math.min(1, (now - t0) / duration);
+                const eased = 1 - Math.pow(1 - p, 3);
+                el.innerText = `${prefix}${(to * eased).toFixed(decimals)}`;
+                if (p < 1) requestAnimationFrame(tick);
+                else el.innerText = `${prefix}${to.toFixed(decimals)}`;
+            }
+            requestAnimationFrame(tick);
+        }
+
+        // ---- Micro burst of particles from a button (boost / fund sent) ----
+        function burstFrom(el) {
+            const rect = el.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const n = 12;
+            for (let i = 0; i < n; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'burst-dot';
+                const angle = (Math.PI * 2 * i) / n + Math.random() * 0.4;
+                const dist = 40 + Math.random() * 50;
+                dot.style.left = cx + 'px';
+                dot.style.top = cy + 'px';
+                dot.style.setProperty('--bx', Math.cos(angle) * dist + 'px');
+                dot.style.setProperty('--by', (Math.sin(angle) * dist - 30) + 'px');
+                document.body.appendChild(dot);
+                setTimeout(() => dot.remove(), 900);
+            }
+        }
+
+        function showCelebration(text) {
+            const el = document.getElementById('celebrate');
+            document.getElementById('celebrate-text').innerText = text || 'Boost sent';
+            el.classList.remove('hidden');
+            requestAnimationFrame(() => { el.style.opacity = '1'; });
+            haptic('rigid');
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.classList.add('hidden'), 300);
+            }, 1500);
+        }
+
+        function pulseFlash(el) {
+            el.classList.remove('flash');
+            void el.offsetWidth;
+            el.classList.add('flash');
+        }
+
+        spawnAmbientParticles();
+
+        // ---- Toasts ----
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                info: 'border-line text-ink',
+                error: 'border-danger/50 text-ink',
+                success: 'border-brand/50 text-ink'
+            };
+            const dot = { info: 'bg-mute', error: 'bg-danger', success: 'bg-brand' }[type] || 'bg-mute';
+            const el = document.createElement('div');
+            el.className = `toast-in pointer-events-auto glass border ${colors[type] || colors.info} rounded-2xl px-4 py-3 text-xs font-medium shadow-2xl flex items-center gap-2 max-w-full`;
+            el.innerHTML = `<span class="w-2 h-2 rounded-full ${dot} shrink-0"></span><span>${escapeHtml(msg)}</span>`;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.transition = 'opacity .25s ease, transform .25s ease';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-10px)';
+                setTimeout(() => el.remove(), 250);
+            }, 3200);
+        }
+
+        // Without a type, the words decide: errors in red, done in green.
+        function showAppAlert(msg, type) {
+            if (!type) {
+                const text = String(msg).toLowerCase();
+                if (/error|ስህተት|fill out|minimum|please|failed|could not/.test(text)) type = 'error';
+                else if (/success|ተልኳል|copied|updated|saved|sent/.test(text)) type = 'success';
+            }
+            showToast(msg, type || 'info');
+            if (type === 'error') haptic('heavy');
         }
 
         let currentRate = 0.00; // per 1000 items
@@ -726,28 +1388,17 @@
         let allOrdersData = [];
         let currentOrderTab = 'all';
 
-        let telegramUsername = 'Guest';
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            telegramUsername = tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name;
-            document.getElementById('username').innerText = telegramUsername;
-            document.getElementById('profile-name-display').innerText = tg.initDataUnsafe.user.first_name || telegramUsername;
-
-            const urlParamsBot = new URLSearchParams(window.location.search);
-            const botName = urlParamsBot.get('bot') || 'Beleqet_PromotionBot';
-            const refLinkInput = document.getElementById('referral-link-input');
-            if (refLinkInput) {
-                refLinkInput.value = `https://t.me/${botName}?start=${telegramUserId}`;
-            }
-            document.getElementById('profile-username-display').innerText = '@' + telegramUsername;
-            document.getElementById('header-avatar-initial').innerText = (tg.initDataUnsafe.user.first_name || telegramUsername).charAt(0).toUpperCase();
-            document.getElementById('profile-avatar').innerText = (tg.initDataUnsafe.user.first_name || telegramUsername).charAt(0).toUpperCase();
-        } else {
-            document.getElementById('username').innerText = 'Guest';
-            document.getElementById('profile-name-display').innerText = 'Guest';
-            document.getElementById('profile-username-display').innerText = '@guest';
-            document.getElementById('profile-avatar').innerText = 'G';
-            document.getElementById('header-avatar-initial').innerText = 'G';
+        function setInitials(name) {
+            const initial = (name || 'B').charAt(0).toUpperCase();
+            document.getElementById('header-avatar-initial').innerText = initial;
+            document.getElementById('profile-avatar').innerText = initial;
         }
+
+        let telegramUsername = tg.initDataUnsafe.user.username || tg.initDataUnsafe.user.first_name;
+        document.getElementById('username').innerText = '@' + telegramUsername;
+        document.getElementById('profile-name-display').innerText = tg.initDataUnsafe.user.first_name || telegramUsername;
+        document.getElementById('profile-username-display').innerText = '@' + telegramUsername;
+        setInitials(tg.initDataUnsafe.user.first_name || telegramUsername);
 
         const urlParams = new URLSearchParams(window.location.search);
         const botUsername = urlParams.get('bot') || "Beleqet_PromotionBot";
@@ -758,11 +1409,8 @@
                 let startParam = null;
                 if (tg.initDataUnsafe && tg.initDataUnsafe.start_param) {
                     startParam = tg.initDataUnsafe.start_param;
-                } else {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.has('start_param')) {
-                        startParam = urlParams.get('start_param');
-                    }
+                } else if (urlParams.has('start_param')) {
+                    startParam = urlParams.get('start_param');
                 }
                 await apiFetch(`${API_BASE_URL}/api/user/register`, {
                     method: 'POST',
@@ -777,6 +1425,7 @@
             }
         }
 
+        let balanceShown = false;
 
         async function fetchUser() {
             try {
@@ -789,9 +1438,15 @@
                 if (data.status === 'success') {
                     userBalance = parseFloat(data.user.balance);
                     const balanceText = `ETB ${userBalance.toFixed(2)}`;
-                    ['user-balance', 'header-balance', 'funds-balance-display', 'profile-stat-balance'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.innerText = balanceText;
+                    // The balance counts up the first time; later updates just change.
+                    if (!balanceShown) {
+                        animateNumber(document.getElementById('user-balance'), userBalance, 'ETB ', 2, 1000);
+                        balanceShown = true;
+                    } else {
+                        document.getElementById('user-balance').innerText = balanceText;
+                    }
+                    ['funds-balance-display', 'profile-stat-balance'].forEach(id => {
+                        document.getElementById(id).innerText = balanceText;
                     });
 
                     userProfile.first_name = data.user.first_name || '';
@@ -804,17 +1459,8 @@
                     }
 
                     if (userProfile.first_name) {
-                        const unEl = document.getElementById('username');
-                        if (unEl) unEl.innerText = userProfile.first_name;
-
-                        const pName = document.getElementById('profile-name-display');
-                        if (pName) pName.innerText = userProfile.first_name + ' ' + userProfile.last_name;
-
-                        const hAv = document.getElementById('header-avatar-initial');
-                        if (hAv) hAv.innerText = userProfile.first_name.charAt(0).toUpperCase();
-
-                        const pAv = document.getElementById('profile-avatar');
-                        if (pAv) pAv.innerText = userProfile.first_name.charAt(0).toUpperCase();
+                        document.getElementById('profile-name-display').innerText = `${userProfile.first_name} ${userProfile.last_name}`.trim();
+                        setInitials(userProfile.first_name);
                     }
 
                     document.getElementById('prof-first').value = userProfile.first_name;
@@ -828,6 +1474,7 @@
                     if (data.user.referral_earnings !== undefined) {
                         document.getElementById('referral-earned-display').innerText = `ETB ${parseFloat(data.user.referral_earnings).toFixed(2)}`;
                     }
+                    calculateTotal();
                 }
             } catch (e) { console.error("Error fetching user", e); }
         }
@@ -838,7 +1485,7 @@
             const em = document.getElementById('prof-email').value;
 
             if (!fName || !lName || !em) {
-                showAppAlert("Please fill out all fields!");
+                showAppAlert("Please fill out all fields!", 'error');
                 return;
             }
 
@@ -855,56 +1502,62 @@
                 });
                 const data = await response.json();
                 if (data.status === 'success') {
-                    showAppAlert(data.message);
+                    showAppAlert(data.message, 'success');
                     fetchUser();
                 } else {
-                    showAppAlert("Error: " + data.message);
+                    showAppAlert("Error: " + data.message, 'error');
                 }
             } catch (e) {
-                showAppAlert("Network error.");
+                showAppAlert("Network error.", 'error');
             } finally {
                 tg.MainButton.hideProgress();
             }
         }
 
         function showTab(tab) {
-            document.getElementById('home-view').classList.add('hidden');
-            document.getElementById('profile-view').classList.add('hidden');
-            document.getElementById('orders-view').classList.add('hidden');
-            document.getElementById('add-funds-view').classList.add('hidden');
+            haptic('light');
+            const views = { home: 'home-view', orders: 'orders-view', 'add-funds': 'add-funds-view', profile: 'profile-view' };
+            const navs = { home: 'nav-home', orders: 'nav-orders', profile: 'nav-profile' };
+            Object.keys(views).forEach(key => {
+                const view = document.getElementById(views[key]);
+                view.classList.toggle('hidden', key !== tab);
+                if (key === tab) {
+                    view.classList.remove('tab-shift');
+                    void view.offsetWidth;
+                    view.classList.add('tab-shift');
+                }
+            });
+            Object.keys(navs).forEach(key => {
+                document.getElementById(navs[key]).className = key === tab
+                    ? "flex flex-col items-center gap-1 py-1.5 rounded-2xl text-brand-light transition"
+                    : "flex flex-col items-center gap-1 py-1.5 rounded-2xl text-mute transition";
+            });
+            document.getElementById('nav-add-funds').className = tab === 'add-funds'
+                ? "text-[9px] font-semibold text-brand-light mt-6 pt-1.5"
+                : "text-[9px] font-semibold text-faint mt-6 pt-1.5";
+            if (tab === 'orders') fetchOrders();
+            if (tab === 'add-funds') fetchTransactions();
+        }
 
-            const inactiveClass = "flex flex-col items-center justify-center py-2 px-1 rounded-xl text-slate-400 hover:text-slate-600 transition";
-            const activeClass = "flex flex-col items-center justify-center py-2 px-1 rounded-xl text-indigo-600 transition";
+        function emptyState(title, text, button) {
+            return `
+                <div class="flex flex-col items-center justify-center text-center py-12 px-4 fade-in">
+                    <div class="signal-mark" style="height:28px;gap:4px"><span></span><span></span><span></span><span></span></div>
+                    <p class="text-sm font-semibold text-ink mt-4">${title}</p>
+                    <p class="text-[11px] text-mute mt-1 max-w-[220px]">${text}</p>
+                    ${button || ''}
+                </div>`;
+        }
 
-            document.getElementById('nav-home').className = inactiveClass;
-            document.getElementById('nav-profile').className = inactiveClass;
-            document.getElementById('nav-orders').className = inactiveClass;
-            document.getElementById('nav-add-funds').className = inactiveClass;
-
-            // Only show header on home tab
-            if (tab === 'home') document.getElementById('main-header').classList.remove('hidden');
-            else document.getElementById('main-header').classList.add('hidden');
-
-            if (tab === 'home') {
-                document.getElementById('home-view').classList.remove('hidden');
-                document.getElementById('nav-home').className = activeClass;
-            } else if (tab === 'profile') {
-                document.getElementById('profile-view').classList.remove('hidden');
-                document.getElementById('nav-profile').className = activeClass;
-            } else if (tab === 'orders') {
-                document.getElementById('orders-view').classList.remove('hidden');
-                document.getElementById('nav-orders').className = activeClass;
-                fetchOrders();
-            } else if (tab === 'add-funds') {
-                document.getElementById('add-funds-view').classList.remove('hidden');
-                document.getElementById('nav-add-funds').className = activeClass;
-                fetchTransactions();
-            }
+        function errorState(message) {
+            return `<div class="text-center text-danger text-xs py-6 font-semibold">${escapeHtml(message)}</div>`;
         }
 
         async function fetchTransactions() {
             const txContainer = document.getElementById('transactions-container');
-            txContainer.innerHTML = '<div class="text-center text-slate-400 text-xs py-4 font-medium">Loading transactions...</div>';
+            txContainer.innerHTML = `
+                <div class="skel h-16 rounded-2xl"></div>
+                <div class="skel h-16 rounded-2xl"></div>`;
 
             try {
                 const response = await apiFetch(`${API_BASE_URL}/api/transactions/${telegramUserId}`);
@@ -912,41 +1565,46 @@
 
                 if (data.status === 'success') {
                     if (data.transactions.length === 0) {
-                        txContainer.innerHTML = '<div class="text-center text-slate-400 text-xs py-6 font-medium">No transactions found.</div>';
+                        txContainer.innerHTML = emptyState('No deposits yet', 'Funds you add show up here.');
                         return;
                     }
 
-                    txContainer.innerHTML = '';
-                    data.transactions.forEach(tx => {
-                        let statusColor = "bg-yellow-100 text-yellow-700";
-                        if (tx.status.toLowerCase() === 'success') statusColor = "bg-emerald-100 text-emerald-700";
-                        else if (tx.status.toLowerCase() === 'failed' || tx.status.toLowerCase() === 'error') statusColor = "bg-red-100 text-red-700";
-
-                        const txCard = `
-                            <div class="bg-white border border-slate-200 rounded-2xl p-4 flex justify-between items-center shadow-sm">
-                                <div>
-                                    <h4 class="text-sm font-bold text-slate-800">Deposit</h4>
-                                    <div class="text-[10px] text-slate-500 mt-0.5 truncate w-40 font-mono">Ref: ${escapeHtml(tx.tx_ref)}</div>
+                    txContainer.innerHTML = data.transactions.map(tx => {
+                        const status = String(tx.status || '').toLowerCase();
+                        const badge = status === 'success'
+                            ? 'bg-brand/15 text-brand-light border-brand/30'
+                            : (status === 'failed' || status === 'error')
+                                ? 'bg-danger/15 text-danger border-danger/30'
+                                : 'bg-gold/15 text-gold border-gold/30';
+                        return `
+                            <div class="bg-surface/70 border border-line rounded-2xl p-3.5 flex justify-between items-center gap-3 fade-in">
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold text-ink">Deposit</p>
+                                    <p class="text-[10px] text-mute truncate mt-0.5 ledger">Ref: ${escapeHtml(tx.tx_ref)}</p>
                                 </div>
-                                <div class="text-right">
-                                    <div class="text-sm font-bold text-emerald-600">+ETB ${parseFloat(tx.amount).toFixed(2)}</div>
-                                    <div class="text-[9px] font-bold ${statusColor} uppercase mt-1 px-2 py-0.5 rounded inline-block tracking-wider">${escapeHtml(tx.status)}</div>
+                                <div class="text-right shrink-0">
+                                    <p class="text-xs font-bold text-brand-light ledger">+ETB ${parseFloat(tx.amount).toFixed(2)}</p>
+                                    <span class="inline-block text-[9px] font-bold px-2 py-0.5 mt-1 rounded-full border uppercase ${badge}">${escapeHtml(tx.status)}</span>
                                 </div>
-                            </div>
-                        `;
-                        txContainer.innerHTML += txCard;
-                    });
+                            </div>`;
+                    }).join('');
                 } else {
-                    txContainer.innerHTML = `<div class="text-center text-red-500 text-xs py-4 font-bold">Error: ${data.message}</div>`;
+                    txContainer.innerHTML = errorState(`Error: ${data.message}`);
                 }
             } catch (e) {
-                txContainer.innerHTML = '<div class="text-center text-red-500 text-xs py-4 font-bold">Failed to load transactions.</div>';
+                txContainer.innerHTML = errorState('Failed to load transactions.');
             }
         }
 
+        // ---- Orders tab ----
         async function fetchOrders() {
             const ordersContainer = document.getElementById('orders-container');
-            if (allOrdersData.length === 0) ordersContainer.innerHTML = '<div class="text-center text-slate-400 text-xs py-6 font-medium">Loading orders...</div>';
+            if (allOrdersData.length === 0) {
+                ordersContainer.innerHTML = `
+                    <div class="skel h-20 rounded-2xl"></div>
+                    <div class="skel h-20 rounded-2xl"></div>
+                    <div class="skel h-20 rounded-2xl"></div>`;
+            }
 
             try {
                 const response = await apiFetch(`${API_BASE_URL}/api/orders/${telegramUserId}`);
@@ -955,92 +1613,96 @@
                 if (data.status === 'success') {
                     allOrdersData = data.orders;
 
-                    // Update Profile Stats
                     document.getElementById('profile-stat-orders').innerText = allOrdersData.length;
-                    const activeCount = allOrdersData.filter(o => o.status.toLowerCase() === 'processing' || o.status.toLowerCase() === 'pending').length;
+                    const activeCount = allOrdersData.filter(o => isActive(o.status)).length;
                     document.getElementById('profile-stat-active').innerText = activeCount;
 
                     renderOrders();
                 } else {
-                    ordersContainer.innerHTML = `<div class="text-center text-red-500 text-xs py-4 font-bold">Error: ${data.message}</div>`;
+                    ordersContainer.innerHTML = errorState(`Error: ${data.message}`);
                 }
             } catch (e) {
-                ordersContainer.innerHTML = '<div class="text-center text-red-500 text-xs py-4 font-bold">Failed to load orders.</div>';
+                ordersContainer.innerHTML = errorState('Failed to load orders.');
             }
         }
 
+        function isActive(status) {
+            const s = String(status || '').toLowerCase();
+            return s === 'processing' || s === 'pending';
+        }
+
         function setOrderTab(tab) {
+            haptic('light');
             currentOrderTab = tab;
             ['all', 'active', 'completed', 'canceled'].forEach(t => {
-                document.getElementById('tab-' + t).className = (t === tab)
-                    ? 'flex-1 py-1.5 rounded-lg tab-active transition-all'
-                    : 'flex-1 py-1.5 rounded-lg tab-inactive transition-all';
+                const btn = document.getElementById('tab-' + t);
+                if (t === tab) {
+                    btn.className = 'order-tab chip-active shrink-0 text-xs px-3.5 py-2 rounded-full font-semibold transition pop';
+                } else {
+                    btn.className = 'order-tab shrink-0 bg-surface2 border border-line text-mute text-xs px-3.5 py-2 rounded-full font-medium transition';
+                }
             });
             renderOrders();
+        }
+
+        function statusBadge(status) {
+            const s = String(status || 'pending').toLowerCase().replace(/\s/g, '');
+            const map = {
+                completed: 'bg-brand/15 text-brand-light border-brand/30',
+                processing: 'bg-blue-400/15 text-blue-300 border-blue-400/30',
+                inprogress: 'bg-blue-400/15 text-blue-300 border-blue-400/30',
+                pending: 'bg-gold/15 text-gold border-gold/30',
+                partial: 'bg-orange-400/15 text-orange-300 border-orange-400/30',
+                canceled: 'bg-danger/15 text-danger border-danger/30',
+                cancelled: 'bg-danger/15 text-danger border-danger/30',
+            };
+            const cls = map[s] || map.pending;
+            return `<span class="shrink-0 text-[9px] font-bold px-2 py-1 rounded-full border capitalize ${cls}">${escapeHtml(status || 'Pending')}</span>`;
         }
 
         function renderOrders() {
             const ordersContainer = document.getElementById('orders-container');
             if (allOrdersData.length === 0) {
-                ordersContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-10 mt-8">
-                        <div class="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center text-4xl mb-4 shadow-inner">📦</div>
-                        <h3 class="font-bold text-slate-800 text-lg mb-1">No orders here</h3>
-                        <p class="text-xs text-slate-500 text-center max-w-[200px] mb-6 font-medium">Place your first order to get started.</p>
-                        <button onclick="showTab('home')" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition active:scale-95 text-sm">Go to Home</button>
-                    </div>
-                `;
+                ordersContainer.innerHTML = emptyState('No orders yet',
+                    'Your first boost is one tap away. Start an order from the Home tab.',
+                    `<button onclick="showTab('home')" class="mt-4 bg-brand/15 text-brand-light border border-brand/30 text-xs font-semibold px-4 py-2 rounded-xl">Browse services</button>`);
                 return;
             }
 
             let filtered = allOrdersData;
+            const status = o => String(o.status || '').toLowerCase();
             if (currentOrderTab === 'active') {
-                filtered = allOrdersData.filter(o => o.status.toLowerCase() === 'processing' || o.status.toLowerCase() === 'pending');
+                filtered = allOrdersData.filter(o => isActive(o.status));
             } else if (currentOrderTab === 'completed') {
-                filtered = allOrdersData.filter(o => o.status.toLowerCase() === 'completed');
+                filtered = allOrdersData.filter(o => status(o) === 'completed');
             } else if (currentOrderTab === 'canceled') {
-                filtered = allOrdersData.filter(o => o.status.toLowerCase() === 'canceled' || o.status.toLowerCase() === 'cancelled');
+                filtered = allOrdersData.filter(o => status(o) === 'canceled' || status(o) === 'cancelled');
             }
 
             if (filtered.length === 0) {
-                ordersContainer.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-12 mt-8">
-                        <p class="text-xs text-slate-500 font-medium bg-slate-100 px-4 py-2 rounded-xl">No orders found in this category.</p>
-                    </div>
-                `;
+                ordersContainer.innerHTML = emptyState('Nothing here', 'No orders in this list.');
                 return;
             }
 
-            ordersContainer.innerHTML = '';
-            filtered.forEach(order => {
+            ordersContainer.innerHTML = filtered.map(order => {
                 const service = allServices.find(s => String(s.service) === String(order.service_id));
-                const serviceName = service ? escapeHtml(service.name) : `Service #${escapeHtml(String(order.service_id))}`;
-
-                let statusColor = "bg-yellow-100 text-yellow-700";
-                if (order.status.toLowerCase() === 'completed') statusColor = "bg-emerald-100 text-emerald-700";
-                else if (order.status.toLowerCase() === 'canceled' || order.status.toLowerCase() === 'cancelled') statusColor = "bg-red-100 text-red-700";
-                else if (order.status.toLowerCase() === 'processing' || order.status.toLowerCase() === 'pending') statusColor = "bg-blue-100 text-blue-700";
-
-                const orderCard = `
-                    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-                        <div class="flex justify-between items-start gap-2">
-                            <div>
-                                <div class="text-[10px] text-indigo-500 font-bold mb-0.5">Order #${escapeHtml(String(order.id))}</div>
-                                <h4 class="text-xs font-bold text-slate-800 leading-tight w-48 line-clamp-2">${serviceName}</h4>
+                const serviceName = service ? escapeHtml(service.name) : `Service #${escapeHtml(order.service_id)}`;
+                return `
+                    <div class="bg-surface/70 border border-line rounded-2xl p-3.5 fade-in">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="text-[9px] text-faint font-semibold">#${escapeHtml(order.id)}</p>
+                                <p class="text-xs font-semibold text-ink leading-snug mt-0.5">${serviceName}</p>
                             </div>
-                            <span class="text-[9px] font-bold ${statusColor} uppercase px-2 py-1 rounded-md tracking-wider shrink-0">${escapeHtml(order.status)}</span>
+                            ${statusBadge(order.status)}
                         </div>
-                        <div class="bg-slate-50 rounded-xl p-2.5 text-[10px] text-slate-600 font-mono break-all border border-slate-100">
-                            ${escapeHtml(order.link)}
+                        <p class="text-[10px] text-mute break-all mt-2 bg-surface2/70 border border-line/70 rounded-lg px-2.5 py-1.5 ledger">${escapeHtml(order.link)}</p>
+                        <div class="flex items-center justify-between mt-2.5 pt-2.5 border-t border-line/70 text-[10px]">
+                            <span class="text-mute">Qty: <span class="text-ink font-semibold ledger">${escapeHtml(order.quantity)}</span></span>
+                            <span class="text-mute">Cost: <span class="text-brand-light font-semibold ledger">ETB ${parseFloat(order.cost).toFixed(4)}</span></span>
                         </div>
-                        <div class="flex justify-between items-center text-[11px] border-t border-slate-100 pt-3">
-                            <span class="text-slate-500">Qty: <b class="text-slate-800 font-bold">${order.quantity}</b></span>
-                            <span class="text-slate-500">Cost: <b class="text-emerald-600 font-bold">ETB ${parseFloat(order.cost).toFixed(4)}</b></span>
-                        </div>
-                    </div>
-                `;
-                ordersContainer.innerHTML += orderCard;
-            });
+                    </div>`;
+            }).join('');
         }
 
         async function fetchServices() {
@@ -1053,6 +1715,7 @@
                 }
             } catch (e) {
                 console.error("Error fetching services", e);
+                showAppAlert("Error fetching services", 'error');
             }
         }
 
@@ -1087,6 +1750,10 @@
                 const opt = document.createElement('option');
                 opt.innerText = "No services available";
                 servSelect.appendChild(opt);
+                currentServiceId = null;
+                document.getElementById('serv-name').innerText = "No services found";
+                document.getElementById('serv-id').innerText = "#---";
+                setRate(0);
                 return;
             }
             services.forEach(s => {
@@ -1098,6 +1765,30 @@
             selectService();
         }
 
+        function setRate(rate) {
+            const el = document.getElementById('serv-rate');
+            el.innerText = `ETB ${parseFloat(rate).toFixed(2)}`;
+            const unit = document.createElement('span');
+            unit.className = 'text-faint font-normal text-[10px]';
+            unit.innerText = '/1K';
+            el.appendChild(unit);
+        }
+
+        // An example link for the chosen platform.
+        const LINK_PLACEHOLDERS = [
+            ['telegram', 'https://t.me/your_channel_or_group'],
+            ['instagram', 'https://instagram.com/your_profile'],
+            ['facebook', 'https://facebook.com/your_page'],
+            ['tiktok', 'https://tiktok.com/@your_username'],
+            ['youtube', 'https://youtube.com/c/your_channel'],
+            ['twitter', 'https://twitter.com/your_username'],
+            ['spotify', 'https://open.spotify.com/artist/your_id'],
+            ['twitch', 'https://twitch.tv/your_channel'],
+            ['linkedin', 'https://linkedin.com/in/your_profile'],
+            ['google', 'https://your_website.com/'],
+            ['snapchat', 'https://snapchat.com/add/your_username'],
+        ];
+
         function selectService() {
             const serviceId = document.getElementById('service-select').value;
             const s = allServices.find(s => String(s.service) === String(serviceId));
@@ -1107,40 +1798,17 @@
 
                 document.getElementById('serv-id').innerText = `#${s.service}`;
                 document.getElementById('serv-name').innerText = s.name;
-                document.getElementById('serv-rate').innerText = `ETB ${parseFloat(s.rate).toFixed(2)}/1K`;
+                setRate(s.rate);
 
-                document.getElementById('order-qty').min = s.min || 100;
-                document.getElementById('order-qty').max = s.max || 10000000;
-                document.getElementById('order-qty').value = s.min || 100;
-                document.getElementById('min-max-text').innerText = `Min: ${s.min} Max: ${s.max}`;
+                const qty = document.getElementById('order-qty');
+                qty.min = s.min || 100;
+                qty.max = s.max || 10000000;
+                qty.value = s.min || 100;
+                document.getElementById('min-max-text').innerText = `Min: ${Number(s.min || 100).toLocaleString()} · Max: ${Number(s.max || 10000000).toLocaleString()}`;
 
                 const categoryLower = (s.category || '').toLowerCase();
-                const linkInput = document.getElementById('order-link');
-                if (categoryLower.includes('telegram')) {
-                    linkInput.placeholder = 'https://t.me/your_channel_or_group';
-                } else if (categoryLower.includes('instagram')) {
-                    linkInput.placeholder = 'https://instagram.com/your_profile';
-                } else if (categoryLower.includes('facebook')) {
-                    linkInput.placeholder = 'https://facebook.com/your_page';
-                } else if (categoryLower.includes('tiktok')) {
-                    linkInput.placeholder = 'https://tiktok.com/@your_username';
-                } else if (categoryLower.includes('youtube')) {
-                    linkInput.placeholder = 'https://youtube.com/c/your_channel';
-                } else if (categoryLower.includes('twitter')) {
-                    linkInput.placeholder = 'https://twitter.com/your_username';
-                } else if (categoryLower.includes('spotify')) {
-                    linkInput.placeholder = 'https://open.spotify.com/artist/your_id';
-                } else if (categoryLower.includes('twitch')) {
-                    linkInput.placeholder = 'https://twitch.tv/your_channel';
-                } else if (categoryLower.includes('linkedin')) {
-                    linkInput.placeholder = 'https://linkedin.com/in/your_profile';
-                } else if (categoryLower.includes('google')) {
-                    linkInput.placeholder = 'https://your_website.com/';
-                } else if (categoryLower.includes('snapchat')) {
-                    linkInput.placeholder = 'https://snapchat.com/add/your_username';
-                } else {
-                    linkInput.placeholder = 'Enter target link...';
-                }
+                const match = LINK_PLACEHOLDERS.find(([name]) => categoryLower.includes(name));
+                document.getElementById('order-link').placeholder = match ? match[1] : 'Enter target link...';
 
                 calculateTotal();
             }
@@ -1149,30 +1817,43 @@
         function calculateTotal() {
             const qty = document.getElementById('order-qty').value || 0;
             const total = (qty * currentRate) / 1000;
-            document.getElementById('order-total').innerText = `ETB ${total.toFixed(4)}`;
+            const totalEl = document.getElementById('order-total');
+            totalEl.innerText = `ETB ${total.toFixed(4)}`;
+            pulseFlash(totalEl);
 
             const remaining = userBalance - total;
-            document.getElementById('balance-after').innerText = `ETB ${remaining.toFixed(4)}`;
+            const balEl = document.getElementById('balance-after');
+            balEl.innerText = `ETB ${remaining.toFixed(4)}`;
+            balEl.className = remaining < 0 ? "font-bold text-danger ledger" : "font-bold text-brand-light ledger";
+            pulseFlash(balEl);
         }
 
-        function togglePlatforms() {
-            const container = document.getElementById('platforms-container');
-            const icon = document.getElementById('see-more-icon');
-            const text = document.getElementById('see-more-text');
-            if (container.classList.contains('max-h-[64px]')) {
-                container.classList.remove('max-h-[64px]');
-                container.classList.add('max-h-[500px]'); // arbitrary large height
-                icon.classList.add('rotate-180');
-                text.innerText = 'See Less';
-            } else {
-                container.classList.add('max-h-[64px]');
-                container.classList.remove('max-h-[500px]');
-                icon.classList.remove('rotate-180');
-                text.innerText = 'See More';
+        function stepQty(dir) {
+            const input = document.getElementById('order-qty');
+            const min = parseInt(input.min) || 100;
+            const max = parseInt(input.max) || 10000000;
+            const step = Math.max(1, min);
+            let val = (parseInt(input.value) || 0) + dir * step;
+            if (val < min) val = min;
+            if (val > max) val = max;
+            input.value = val;
+            calculateTotal();
+            haptic('light');
+        }
+
+        function filterPlatform(platform, btn) {
+            haptic('light');
+            document.querySelectorAll('#platform-rail .plat-chip').forEach(b => {
+                b.classList.remove('chip-active', 'pop');
+                b.classList.add('bg-surface2', 'border', 'border-line', 'text-mute');
+            });
+            if (btn) {
+                btn.classList.add('chip-active');
+                btn.classList.remove('bg-surface2', 'border', 'border-line', 'text-mute');
+                void btn.offsetWidth;
+                btn.classList.add('pop');
             }
-        }
 
-        function filterPlatform(platform) {
             const categoryMapping = {
                 'facebook': 'Facebook',
                 'instagram': 'Instagram',
@@ -1224,45 +1905,48 @@
             populateServices(filtered);
         }
 
-        function openAddFund() {
-            const modal = document.getElementById('add-fund-modal');
+        // ---- Bottom sheets ----
+        function openSheet(modalId, sheetId) {
+            const modal = document.getElementById(modalId);
+            const sheet = document.getElementById(sheetId);
             modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.firstElementChild.classList.add('modal-enter-active');
-            }, 10);
+            sheet.classList.remove('sheet-leave');
+            sheet.classList.add('sheet-enter');
+        }
+
+        function closeSheet(modalId, sheetId) {
+            const modal = document.getElementById(modalId);
+            const sheet = document.getElementById(sheetId);
+            sheet.classList.remove('sheet-enter');
+            sheet.classList.add('sheet-leave');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+        }
+
+        function openAddFund() {
+            haptic('medium');
+            openSheet('add-fund-modal', 'add-fund-sheet');
             document.getElementById('custom-fund-amount').value = '';
         }
 
         function closeAddFundModal() {
-            const modal = document.getElementById('add-fund-modal');
-            modal.firstElementChild.classList.remove('modal-enter-active');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
+            closeSheet('add-fund-modal', 'add-fund-sheet');
         }
 
         function setFundAmount(amount) {
+            haptic('light');
             document.getElementById('custom-fund-amount').value = amount;
         }
 
         function openManualFundModal() {
             closeAddFundModal();
-            const modal = document.getElementById('manual-fund-modal');
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modal.firstElementChild.classList.add('modal-enter-active');
-            }, 10);
+            openSheet('manual-fund-modal', 'manual-fund-sheet');
             document.getElementById('manual-fund-amount').value = '';
             document.getElementById('manual-fund-txn').value = '';
             document.getElementById('manual-fund-screenshot').value = '';
         }
 
         function closeManualFundModal() {
-            const modal = document.getElementById('manual-fund-modal');
-            modal.firstElementChild.classList.remove('modal-enter-active');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
+            closeSheet('manual-fund-modal', 'manual-fund-sheet');
         }
 
         async function submitManualFund() {
@@ -1271,21 +1955,21 @@
             const screenshotInput = document.getElementById('manual-fund-screenshot');
 
             if (!amount || amount < 10) {
-                showAppAlert("Please enter a valid amount (Min: 10 ETB)");
+                showAppAlert("Please enter a valid amount (Min: 10 ETB)", 'error');
                 return;
             }
             if (!txn) {
-                showAppAlert("Please enter the transaction number");
+                showAppAlert("Please enter the transaction number", 'error');
                 return;
             }
             if (!screenshotInput.files || screenshotInput.files.length === 0) {
-                showAppAlert("Please upload a screenshot");
+                showAppAlert("Please upload a screenshot", 'error');
                 return;
             }
 
             const btn = document.getElementById('submit-manual-btn');
             const originalText = btn.innerText;
-            btn.innerText = 'Submitting...';
+            btn.innerText = 'Submitting…';
             btn.disabled = true;
 
             const formData = new FormData();
@@ -1294,6 +1978,7 @@
             formData.append('screenshot', screenshotInput.files[0]);
 
             try {
+                // A form upload sets its own Content-Type, so only the sign-in goes in the headers.
                 const headers = {};
                 if (tg.initData) {
                     headers['Authorization'] = 'tma ' + tg.initData;
@@ -1307,14 +1992,15 @@
 
                 const result = await response.json();
                 if (result.status === 'success') {
-                    showAppAlert(result.message);
+                    burstFrom(btn);
+                    showAppAlert(result.message, 'success');
                     closeManualFundModal();
                 } else {
-                    showAppAlert(result.message || 'Error submitting request');
+                    showAppAlert(result.message || 'Error submitting request', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                showAppAlert("Network error submitting request");
+                showAppAlert("Network error submitting request", 'error');
             } finally {
                 btn.innerText = originalText;
                 btn.disabled = false;
@@ -1322,24 +2008,14 @@
         }
 
         function openProfileModal() {
-            const modal = document.getElementById('profile-modal');
-            modal.classList.remove('hidden');
-
+            openSheet('profile-modal', 'profile-sheet');
             document.getElementById('modal-prof-first').value = userProfile.first_name || '';
             document.getElementById('modal-prof-last').value = userProfile.last_name || '';
             document.getElementById('modal-prof-email').value = userProfile.email || '';
-
-            setTimeout(() => {
-                modal.firstElementChild.classList.add('modal-enter-active');
-            }, 10);
         }
 
         function closeProfileModal() {
-            const modal = document.getElementById('profile-modal');
-            modal.firstElementChild.classList.remove('modal-enter-active');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
+            closeSheet('profile-modal', 'profile-sheet');
         }
 
         async function saveProfileFromModal() {
@@ -1348,13 +2024,13 @@
             const em = document.getElementById('modal-prof-email').value;
 
             if (!fName || !lName || !em) {
-                showAppAlert("Please fill out all fields!");
+                showAppAlert("Please fill out all fields!", 'error');
                 return;
             }
 
             const btn = document.getElementById('modal-save-prof-btn');
             const originalText = btn.innerText;
-            btn.innerText = "Saving...";
+            btn.innerText = "Saving…";
             btn.disabled = true;
 
             tg.MainButton.showProgress();
@@ -1370,7 +2046,7 @@
                 });
                 const data = await response.json();
                 if (data.status === 'success') {
-                    showAppAlert("Profile updated! You can now proceed to pay.");
+                    showAppAlert("Profile updated! You can now proceed to pay.", 'success');
                     userProfile.first_name = fName;
                     userProfile.last_name = lName;
                     userProfile.email = em;
@@ -1380,12 +2056,12 @@
                     document.getElementById('prof-email').value = em;
 
                     closeProfileModal();
-                    fetchUser(); // Refresh UI names
+                    fetchUser();
                 } else {
-                    showAppAlert("Error: " + data.message);
+                    showAppAlert("Error: " + data.message, 'error');
                 }
             } catch (e) {
-                showAppAlert("Network error.");
+                showAppAlert("Network error.", 'error');
             } finally {
                 tg.MainButton.hideProgress();
                 btn.innerText = originalText;
@@ -1402,13 +2078,13 @@
             const amountStr = document.getElementById('custom-fund-amount').value;
             const amount = parseFloat(amountStr);
             if (isNaN(amount) || amount < 10) {
-                showAppAlert("Minimum amount is 10 ETB.");
+                showAppAlert("Minimum amount is 10 ETB.", 'error');
                 return;
             }
 
             const btn = document.getElementById('process-fund-btn');
             const originalText = btn.innerText;
-            btn.innerText = "Processing...";
+            btn.innerText = "Processing…";
             btn.disabled = true;
             btn.classList.add('opacity-70');
 
@@ -1424,13 +2100,14 @@
                 const result = await response.json();
 
                 if (result.status === 'success' && result.checkout_url) {
+                    burstFrom(btn);
                     closeAddFundModal();
                     tg.openLink(result.checkout_url);
                 } else {
-                    showAppAlert(`Payment error: ${result.message}`);
+                    showAppAlert(`Payment error: ${result.message}`, 'error');
                 }
             } catch (e) {
-                showAppAlert("Network error. Could not reach server.");
+                showAppAlert("Network error. Could not reach server.", 'error');
             } finally {
                 tg.MainButton.hideProgress();
                 btn.innerText = originalText;
@@ -1444,18 +2121,19 @@
             const qty = document.getElementById('order-qty').value;
 
             if (!link) {
-                showAppAlert("Please enter a link or username.");
+                showAppAlert("Please enter a link or username. · እባክዎ ሊንክ ወይም ዩዘርኔም ያስገቡ።", 'error');
                 return;
             }
             if (!currentServiceId) {
-                showAppAlert("Please select a service.");
+                showAppAlert("Please select a service. · እባክዎ አገልግሎት ይምረጡ።", 'error');
                 return;
             }
 
-            const orderBtn = document.querySelector('button[onclick="submitOrder()"]');
-            const originalText = orderBtn.innerText;
-            orderBtn.innerText = "Processing...";
+            const orderBtn = document.getElementById('submit-order-btn');
+            const originalHTML = orderBtn.innerHTML;
+            orderBtn.innerText = "Processing…";
             orderBtn.disabled = true;
+            haptic('medium');
 
             try {
                 const response = await apiFetch(`${API_BASE_URL}/api/order`, {
@@ -1472,52 +2150,58 @@
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    showAppAlert(`Order sent successfully! Order ID: ${result.order_id}`);
-                    fetchUser(); // update balance
+                    burstFrom(orderBtn);
+                    showCelebration('Boost sent');
+                    showAppAlert(`Order sent successfully! Order ID: ${result.order_id}`, 'success');
+                    allOrdersData = [];
+                    fetchUser();
+                    fetchOrders();
                 } else {
-                    showAppAlert(`Error: ${result.message}`);
+                    showAppAlert(`Error: ${result.message}`, 'error');
                 }
             } catch (error) {
-                showAppAlert("A server error occurred!");
+                showAppAlert("A server error occurred! · በአገልጋይ ላይ ስህተት ተፈጥሯል!", 'error');
             } finally {
-                orderBtn.innerText = originalText;
+                orderBtn.innerHTML = originalHTML;
                 orderBtn.disabled = false;
             }
         }
 
         function copyInviteLink() {
+            haptic('light');
             const linkInput = document.getElementById('invite-link-input');
+            const copied = () => showAppAlert("Invite link copied!", 'success');
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(linkInput.value).then(() => {
-                    showAppAlert("Invite link copied!");
-                }).catch(() => {
+                navigator.clipboard.writeText(linkInput.value).then(copied).catch(() => {
                     linkInput.select();
                     document.execCommand('copy');
-                    showAppAlert("Invite link copied!");
+                    copied();
                 });
             } else {
                 linkInput.select();
                 document.execCommand('copy');
-                showAppAlert("Invite link copied!");
+                copied();
             }
         }
 
         function shareInviteLink() {
+            haptic('medium');
             const link = document.getElementById('invite-link-input').value;
             const text = "Join Beleqet Promotion and earn together!";
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
             tg.openTelegramLink(shareUrl);
         }
 
-        // Auto-refresh when returning to the Mini App (e.g., from Chapa payment)
+        // Back from Chapa's payment page: show the new balance and deposit.
         document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === 'visible' && typeof telegramUserId !== 'undefined' && telegramUserId !== 'default_user') {
+            if (document.visibilityState === 'visible' && telegramUserId) {
                 fetchUser();
                 fetchTransactions();
             }
         });
 
         async function toggleNotifications() {
+            haptic('light');
             if (!userProfile) return;
             const current = userProfile.notifications;
             const newState = !current;
@@ -1539,30 +2223,24 @@
         function updateNotifUI(enabled) {
             const toggle = document.getElementById('notif-toggle');
             const knob = document.getElementById('notif-toggle-knob');
-            if (!toggle || !knob) return;
-
-            if (enabled) {
-                toggle.classList.remove('bg-slate-400');
-                toggle.classList.add('bg-indigo-500');
-                knob.classList.add('ml-auto');
-            } else {
-                toggle.classList.remove('bg-indigo-500');
-                toggle.classList.add('bg-slate-400');
-                knob.classList.remove('ml-auto');
-            }
+            toggle.classList.toggle('bg-brand', !!enabled);
+            toggle.classList.toggle('bg-line', !enabled);
+            knob.classList.toggle('ml-auto', !!enabled);
+            toggle.setAttribute('aria-checked', enabled ? 'true' : 'false');
         }
 
-        // Setup theme based on Telegram
-        if (tg.colorScheme === 'dark') {
-            // Optional: Handle dark mode gracefully if Telegram enforces it, but the UI is forced light currently
-        }
-        tg.setHeaderColor('#ffffff'); // match header
-        tg.setBackgroundColor('#f8fafc'); // match bg-slate-50
+        // Telegram's own bars in the app's colors.
+        try {
+            tg.setHeaderColor('#060d1a');
+            tg.setBackgroundColor('#060d1a');
+        } catch (e) { }
 
         // Initialize
-        registerUser().then(fetchUser);
-        fetchServices();
-        fetchOrders(); // preload orders for stats
+        Promise.allSettled([registerUser().then(fetchUser), fetchServices(), fetchOrders()]).finally(() => {
+            document.getElementById('splash').classList.add('hide');
+        });
+        // Safety net so the splash never gets stuck if the server is unreachable
+        setTimeout(() => document.getElementById('splash').classList.add('hide'), 2500);
     </script>
 </body>
 
