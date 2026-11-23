@@ -1,4 +1,6 @@
 import * as fs from 'fs';
+import * as http from 'http';
+import { AddressInfo } from 'net';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -634,5 +636,75 @@ describe('ManualPaymentService bank details and alerts', () => {
     expect(service.getBankDetails()).toEqual({
       details: 'Commercial Bank of Ethiopia\nAccount: 1000123\nName: Beleqet',
     });
+  });
+
+  it('sends the Jobs bot the alert over plain http on the same server, and emails PAYMENT_ALERT_EMAIL', async () => {
+    const received: { secret?: string; body: Record<string, unknown> }[] = [];
+    const bot = http.createServer((req, res) => {
+      let data = '';
+      req.on('data', (chunk) => (data += chunk));
+      req.on('end', () => {
+        received.push({
+          secret: req.headers['x-telegram-bot-api-secret-token'] as string,
+          body: JSON.parse(data),
+        });
+        res.end('OK');
+      });
+    });
+    await new Promise<void>((resolve) => bot.listen(0, '127.0.0.1', resolve));
+    const { port } = bot.address() as AddressInfo;
+    settings.BELEQET_BOT_WEBHOOK_URL = `http://127.0.0.1:${port}/webhook`;
+    settings.WEBHOOK_SECRET_TOKEN = 'shared-secret';
+    settings.PAYMENT_ALERT_EMAIL = 'payments@beleqetjobs.com';
+
+    const waiting = { id: 'p1', userId: 'u1', amount: 150000, currency: 'ETB', status: 'PENDING' };
+    prisma.payment.findUnique.mockResolvedValue(waiting);
+    uploads.uploadFile.mockResolvedValue({ publicUrl: 'https://api.example/receipt.pdf' });
+    prisma.payment.update.mockResolvedValue({
+      ...waiting,
+      status: 'PROCESSING',
+      metadata: { planId: 'pro' },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    prisma.user.findUnique.mockResolvedValue({
+      firstName: 'Sara',
+      lastName: 'Tesfaye',
+      email: 'sara@example.com',
+    });
+    prisma.plan.findUnique.mockResolvedValue({ name: 'Pro' });
+
+    try {
+      await service.submitReceipt(
+        { paymentId: 'p1', transactionReference: 'FT123' },
+        { mimetype: 'application/pdf', size: 1000 } as MulterFile,
+        'u1',
+      );
+      for (let i = 0; i < 100 && received.length === 0; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    } finally {
+      bot.close();
+      bot.closeAllConnections();
+    }
+
+    expect(received).toEqual([
+      {
+        secret: 'shared-secret',
+        body: {
+          action: 'manual_payment_uploaded',
+          order_id: 'p1',
+          amount: '1,500',
+          currency: 'ETB',
+          reference: 'FT123',
+          receipt_url: 'https://api.example/receipt.pdf',
+          payer: 'Sara Tesfaye · sara@example.com',
+          plan: 'Pro',
+        },
+      },
+    ]);
+    expect(email.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ recipient: 'payments@beleqetjobs.com' }),
+    );
   });
 });

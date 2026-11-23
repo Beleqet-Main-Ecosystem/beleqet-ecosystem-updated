@@ -213,6 +213,14 @@ class RateLimiter:
             **kwargs
         )
 
+    async def send_document(self, chat_id: int, document, **kwargs):
+        await self._send_request(
+            chat_id,
+            bot_context.application.bot.send_document,
+            document=document,
+            **kwargs
+        )
+
     async def copy_message(self, chat_id: int, from_chat_id: int, message_id: int, **kwargs):
         await self._send_request(
             chat_id,

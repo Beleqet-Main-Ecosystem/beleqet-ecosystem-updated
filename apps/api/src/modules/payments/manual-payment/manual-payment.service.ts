@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
+import * as http from 'http';
 import * as https from 'https';
 import { EmailService } from '../../messaging/email-automation/email.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -425,13 +426,15 @@ export class ManualPaymentService {
       amount: number;
       currency: string;
       userId: string;
+      metadata?: unknown;
     },
     reference: string,
     receiptUrl: string,
   ): Promise<void> {
     try {
-      // 1. Admin email
-      const adminEmail = this.config.get<string>('ADMIN_EMAIL', 'admin@beleqetjobs.com');
+      // 1. Admin email (PAYMENT_ALERT_EMAIL; not ADMIN_EMAIL, which creates the first admin account)
+      const adminEmail =
+        this.config.get<string>('PAYMENT_ALERT_EMAIL')?.trim() || 'admin@beleqetjobs.com';
       await this.emailService.dispatch({
         recipient: adminEmail,
         type: 'PAYMENT_RECEIPT',
@@ -449,11 +452,23 @@ export class ManualPaymentService {
     }
 
     try {
-      // 2. Telegram bot webhook (matches PHP logic)
+      // 2. The Jobs bot, which sends it to the bot's admins with Approve / Reject buttons
       const webhookUrl = this.config.get<string>('BELEQET_BOT_WEBHOOK_URL');
       const webhookSecret = this.config.get<string>('WEBHOOK_SECRET_TOKEN', '');
 
       if (webhookUrl) {
+        const metadata = (payment.metadata as Record<string, unknown> | null) ?? {};
+        const planId = typeof metadata.planId === 'string' ? metadata.planId : null;
+        const [payer, plan] = await Promise.all([
+          this.prisma.user.findUnique({
+            where: { id: payment.userId },
+            select: { firstName: true, lastName: true, email: true },
+          }),
+          planId
+            ? this.prisma.plan.findUnique({ where: { id: planId }, select: { name: true } })
+            : null,
+        ]);
+        const payerName = `${payer?.firstName ?? ''} ${payer?.lastName ?? ''}`.trim();
         await this.postJson(webhookUrl, webhookSecret, {
           action: 'manual_payment_uploaded',
           order_id: payment.id,
@@ -461,6 +476,8 @@ export class ManualPaymentService {
           currency: payment.currency,
           reference,
           receipt_url: receiptUrl,
+          payer: [payerName, payer?.email].filter(Boolean).join(' · '),
+          plan: plan?.name ?? '',
         });
       }
     } catch (err) {
@@ -468,16 +485,20 @@ export class ManualPaymentService {
     }
   }
 
-  /** Lightweight HTTPS POST — avoids pulling in axios just for a webhook call */
+  /**
+   * Lightweight POST, so axios isn't needed for one webhook call. http too: the Jobs bot runs on
+   * the same server and is reached directly, not through a public address.
+   */
   private postJson(url: string, secret: string, body: object): Promise<void> {
     return new Promise((resolve) => {
       const payload = JSON.stringify(body);
       const parsedUrl = new URL(url);
+      const client = parsedUrl.protocol === 'http:' ? http : https;
 
-      const req = https.request(
+      const req = client.request(
         {
           hostname: parsedUrl.hostname,
-          port: parsedUrl.port || 443,
+          port: parsedUrl.port || (client === http ? 80 : 443),
           path: parsedUrl.pathname + parsedUrl.search,
           method: 'POST',
           headers: {
@@ -487,7 +508,13 @@ export class ManualPaymentService {
           },
           timeout: 15_000,
         },
-        () => resolve(),
+        (res) => {
+          if ((res.statusCode ?? 0) >= 300) {
+            this.logger.warn(`Webhook ${parsedUrl.host} answered HTTP ${res.statusCode}`);
+          }
+          res.resume();
+          resolve();
+        },
       );
 
       req.on('error', (err) => {

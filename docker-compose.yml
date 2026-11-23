@@ -44,6 +44,9 @@ services:
       - beleqet-pay-net
     ports:
       - '127.0.0.1:4000:4000'
+    # The Jobs bot runs on the server itself (port 8082); the API sends it bank-transfer alerts.
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     environment:
       - NODE_ENV=development
       - PORT=4000
@@ -105,8 +108,12 @@ services:
       - CHAPA_SECRET_KEY=${CHAPA_SECRET_KEY}
       - CHAPA_PUBLIC_KEY=${CHAPA_PUBLIC_KEY}
       - CHAPA_WEBHOOK_SECRET=${CHAPA_WEBHOOK_SECRET}
-      - BELEQET_BOT_WEBHOOK_URL=https://webhook.beleqet.com/webhook
+      - BELEQET_BOT_WEBHOOK_URL=http://host.docker.internal:8082/webhook
       - WEBHOOK_SECRET_TOKEN=${WEBHOOK_SECRET_TOKEN}
+      # Bank-transfer payments: the account to pay into, shown on the website and in the app
+      # (write \n between lines), and who gets an email when a receipt arrives.
+      - BANK_TRANSFER_DETAILS=${BANK_TRANSFER_DETAILS:-}
+      - PAYMENT_ALERT_EMAIL=${PAYMENT_ALERT_EMAIL:-}
       - CHAPA_CALLBACK_URL=https://api.beleqetjobs.com/api/v1/escrow/callback
       - CHAPA_RETURN_URL=https://beleqetjobs.com/payment/success
       - SMTP_HOST=${SMTP_HOST}

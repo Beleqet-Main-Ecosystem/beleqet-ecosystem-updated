@@ -1,7 +1,9 @@
 """The web server's handlers: health check, errors, and the website's webhook."""
+import aiohttp
 import hmac
 import os
 import telegram
+from html import escape
 from aiohttp import web
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
@@ -26,6 +28,73 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception as e:
         logger.error(f"Failed to send error notification: {e}")
 
+RECEIPT_MAX_BYTES = 10 * 1024 * 1024
+
+
+def payment_alert_text(data: dict) -> str:
+    """The admins' alert for a bank-transfer receipt. Everything in it came from the payer, so it's escaped."""
+    def field(key):
+        return escape(str(data.get(key) or '').strip())
+
+    lines = ["🚨 <b>Bank transfer to check</b>", ""]
+    if field('payer'):
+        lines.append(f"<b>Payer:</b> {field('payer')}")
+    if field('plan'):
+        lines.append(f"<b>Plan:</b> {field('plan')}")
+    lines += [
+        f"<b>Amount:</b> {field('amount')} {field('currency')}",
+        f"<b>Bank reference:</b> <code>{field('reference')}</code>",
+        f"<b>Payment:</b> <code>{field('order_id')}</code>",
+        "",
+        "Check that this amount reached our account with this reference before you approve. "
+        "Approving starts the plan.",
+    ]
+    return "\n".join(lines)
+
+
+async def download_receipt(url):
+    """The receipt's bytes and file name, or None. Uploaded to Telegram rather than linked: Telegram
+    doesn't take PDFs or WebP images from a link as a photo."""
+    if not isinstance(url, str) or not url.startswith(('http://', 'https://')):
+        return None
+    try:
+        # A session of its own: the shared one sends the API token with every request.
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=20)) as response:
+                if response.status != 200:
+                    logger.warning(f"Receipt download failed: HTTP {response.status}")
+                    return None
+                content = await response.content.read(RECEIPT_MAX_BYTES + 1)
+    except Exception as e:
+        logger.warning(f"Receipt download failed: {e}")
+        return None
+    if not content or len(content) > RECEIPT_MAX_BYTES:
+        return None
+    return content, url.split('?')[0].rsplit('/', 1)[-1] or 'receipt'
+
+
+async def send_payment_alert(chat_id, text, keyboard, receipt):
+    """Sends the alert with the receipt as a photo or a file, or as text alone when it can't be attached."""
+    if receipt:
+        content, name = receipt
+        senders = [] if name.lower().endswith('.pdf') else [('photo', bot_context.rate_limiter.send_photo)]
+        senders.append(('document', bot_context.rate_limiter.send_document))
+        for kind, send in senders:
+            try:
+                await send(chat_id, content, filename=name, caption=text, reply_markup=keyboard, parse_mode='HTML')
+                return
+            except telegram.error.Forbidden:
+                raise
+            except Exception as e:
+                logger.warning(f"Couldn't send the receipt to admin {chat_id} as a {kind}: {e}")
+    await bot_context.rate_limiter.send_message(
+        chat_id,
+        f"{text}\n\n<i>The receipt couldn't be attached. See it in the admin site, under Payments.</i>",
+        reply_markup=keyboard,
+        parse_mode='HTML',
+    )
+
+
 async def webhook_handler(request: web.Request) -> web.Response:
     # 1. Security Check: Validate Secret Token
     expected_token = os.getenv("WEBHOOK_SECRET_TOKEN")
@@ -41,33 +110,20 @@ async def webhook_handler(request: web.Request) -> web.Response:
         action = data.get('action')
 
         if action == 'manual_payment_uploaded':
-            order_id = data.get('order_id')
-            amount = data.get('amount')
-            currency = data.get('currency')
-            reference = data.get('reference')
-            receipt_url = data.get('receipt_url')
-
-            caption = (
-                f"🚨 <b>New Manual Payment Uploaded!</b>\n\n"
-                f"<b>Order ID:</b> #{order_id}\n"
-                f"<b>Total Amount:</b> {amount} {currency}\n"
-                f"<b>Reference:</b> <code>{reference}</code>"
-            )
+            order_id = str(data.get('order_id') or '')
+            if not order_id:
+                return web.Response(text="Missing order_id", status=400)
+            text = payment_alert_text(data)
             keyboard = InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("✅ Approve", callback_data=f"approve_payment_{order_id}"),
                     InlineKeyboardButton("❌ Reject", callback_data=f"reject_payment_{order_id}")
                 ]
             ])
+            receipt = await download_receipt(data.get('receipt_url'))
             for admin_id in CONFIG['admin_ids']:
                 try:
-                    await bot_context.rate_limiter.send_photo(
-                        chat_id=admin_id,
-                        photo=receipt_url,
-                        caption=caption,
-                        reply_markup=keyboard,
-                        parse_mode='HTML'
-                    )
+                    await send_payment_alert(admin_id, text, keyboard, receipt)
                 except Exception as e:
                     logger.error(f"Failed to send manual payment notification to admin {admin_id}: {e}")
             return web.Response(text="OK", status=200)
