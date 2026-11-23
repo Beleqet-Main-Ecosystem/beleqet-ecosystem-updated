@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -293,8 +294,10 @@ export class ManualPaymentService {
     }
 
     const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
-    const updated = await this.prisma.payment.update({
-      where: { id: paymentId },
+    // An approved payment has started its plan, so it can't be rejected, even by an admin who
+    // clicks Reject a moment after another admin approved it.
+    const { count } = await this.prisma.payment.updateMany({
+      where: { id: paymentId, status: { not: PaymentStatus.SUCCEEDED } },
       data: {
         status: PaymentStatus.FAILED,
         metadata: {
@@ -305,6 +308,10 @@ export class ManualPaymentService {
         },
       },
     });
+    if (count === 0) {
+      throw new ConflictException('This payment is already approved and its plan has started.');
+    }
+    const updated = await this.prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
 
     this.logger.log(`Manual payment ${paymentId} rejected by admin ${adminId}. Reason: ${reason}`);
 
@@ -327,6 +334,32 @@ export class ManualPaymentService {
       );
 
     return this.toRecord(updated);
+  }
+
+  /**
+   * Approve or Reject pressed in the Jobs bot. Like the admin site, it acts only on a receipt that
+   * is still waiting: every admin gets the alert, and the first one to decide wins.
+   */
+  async decideFromTelegram(
+    paymentId: string,
+    approve: boolean,
+    adminId: string,
+  ): Promise<ManualPaymentRecord> {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment || payment.provider !== PaymentProvider.MANUAL) {
+      throw new NotFoundException('This payment no longer exists.');
+    }
+    if (payment.status !== PaymentStatus.PROCESSING) {
+      const already: Partial<Record<PaymentStatus, string>> = {
+        SUCCEEDED: 'This payment is already approved.',
+        FAILED: 'This payment is already rejected.',
+        PENDING: 'No receipt has been sent for this payment yet.',
+      };
+      throw new ConflictException(already[payment.status] ?? `This payment is ${payment.status}.`);
+    }
+    return approve
+      ? this.approvePayment(paymentId, adminId)
+      : this.rejectPayment(paymentId, adminId);
   }
 
   /**

@@ -32,6 +32,7 @@ if SERVER_DIR not in sys.path:
     sys.path.insert(0, SERVER_DIR)
 
 import accounts
+import admin
 import common
 import config
 import registration
@@ -550,6 +551,109 @@ def test_webhook_secret_token_verification():
     print("  [PASS] test_webhook_secret_token_verification")
 
 
+
+class FakeApiAnswer:
+    def __init__(self, status, body):
+        self.status = status
+        self.body = body
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def json(self):
+        return self.body
+
+    async def text(self):
+        return json.dumps(self.body)
+
+
+class FakeApiSession:
+    def __init__(self, status=200, body=None):
+        self.answer = FakeApiAnswer(status, body or {})
+        self.posts = []
+
+    def post(self, url, json=None, **kwargs):
+        self.posts.append((url, json))
+        return self.answer
+
+
+class FakeAlertMessage:
+    caption = 'Bank transfer to check'
+    caption_html = '<b>Bank transfer to check</b>'
+    reply_markup = 'approve/reject buttons'
+
+
+class FakeAlertQuery:
+    def __init__(self, data, user):
+        self.data = data
+        self.from_user = user
+        self.message = FakeAlertMessage()
+        self.answers = []
+        self.captions = []
+
+    async def answer(self, text=None, show_alert=False):
+        self.answers.append((text, show_alert))
+
+    async def edit_message_caption(self, caption, parse_mode=None, reply_markup=None):
+        self.captions.append((caption, reply_markup))
+
+
+class FakeAlertUpdate:
+    def __init__(self, data, user_id):
+        user = FakeTelegramUser(user_id)
+        user.first_name = 'Ahmed'
+        self.effective_user = user
+        self.callback_query = FakeAlertQuery(data, user)
+
+
+def test_payment_decision_in_telegram():
+    """Approve and Reject reach the API with the admin's Telegram id; only admins can press them, and
+    the message says what happened."""
+    async def press(data, user_id, session):
+        update = FakeAlertUpdate(data, user_id)
+        original = (common.bot_context.session, config.CONFIG['admin_ids'], config.CONFIG['wp_api_url'])
+        common.bot_context.session = session
+        config.CONFIG['admin_ids'] = [712718884]
+        config.CONFIG['wp_api_url'] = 'http://127.0.0.1:4000/api/v1/telegram/register'
+        try:
+            await admin.handle_payment_decision(update, FakeContext())
+        finally:
+            common.bot_context.session, config.CONFIG['admin_ids'], config.CONFIG['wp_api_url'] = original
+        return update.callback_query
+
+    async def check():
+        session = FakeApiSession()
+        query = await press('approve_payment_pay-1', 5551234, session)
+        assert session.posts == [] and query.captions == []
+        assert query.answers == [("Only the bot's admins can approve or reject payments.", True)]
+
+        query = await press('approve_payment_pay-1', 712718884, session)
+        assert session.posts == [('http://127.0.0.1:4000/api/v1/telegram/register/../update-payment-status',
+                                  {'order_id': 'pay-1', 'status': 'completed', 'admin_telegram_id': '712718884'})]
+        caption, buttons = query.captions[-1]
+        assert caption.startswith('<b>Bank transfer to check</b>')
+        assert 'Approved by Ahmed. The plan has started.' in caption and buttons is None
+
+        session = FakeApiSession()
+        query = await press('reject_payment_pay-1', 712718884, session)
+        assert session.posts[-1][1]['status'] == 'cancelled'
+        assert 'Rejected by Ahmed.' in query.captions[-1][0]
+
+        query = await press('reject_payment_pay-1', 712718884,
+                            FakeApiSession(409, {'message': 'This payment is already approved.'}))
+        caption, buttons = query.captions[-1]
+        assert 'This payment is already approved.' in caption and buttons is None
+
+        query = await press('approve_payment_pay-1', 712718884, FakeApiSession(500, {'message': 'boom'}))
+        caption, buttons = query.captions[-1]
+        assert 'Not saved (HTTP 500)' in caption and buttons == 'approve/reject buttons'
+    asyncio.run(check())
+    print("  [PASS] test_payment_decision_in_telegram")
+
+
 def main():
     print("==================================================")
     print(" RUNNING BELEQET JOBS BOT (`bots/jobs`) TEST SUITE")
@@ -570,8 +674,9 @@ def main():
     test_sgs_challenge_init_data()
     asyncio.run(async_test_sgs_challenge_strict_single_vote())
     test_webhook_secret_token_verification()
+    test_payment_decision_in_telegram()
     print("==================================================")
-    print(" ALL 16 / 16 TESTS PASSED SUCCESSFULLY! (100% OK)")
+    print(" ALL 17 / 17 TESTS PASSED SUCCESSFULLY! (100% OK)")
     print("==================================================")
 
 

@@ -1,7 +1,7 @@
 """Admin tools: broadcasts and payment decisions."""
 import aiohttp
-import os
 import telegram
+from html import escape
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
@@ -198,37 +198,66 @@ async def broadcast_cancel_cmd(update: Update, context: ContextTypes.DEFAULT_TYP
     return ConversationHandler.END
 
 async def handle_payment_decision(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Approve or Reject on a bank-transfer alert: the API approves it and starts the plan, or rejects
+    it, as the admin site does. Only the bot's admins (ADMIN_IDS) can."""
     query = update.callback_query
+    admin = update.effective_user
+    if admin.id not in CONFIG['admin_ids']:
+        await query.answer("Only the bot's admins can approve or reject payments.", show_alert=True)
+        return
     await query.answer()
 
-    if update.effective_user.id not in CONFIG['admin_ids']:
-        await query.edit_message_caption(caption="Unauthorized access.")
-        return
-
-    data = query.data
-    action, order_id = data.rsplit('_', 1)
-    status = 'completed' if action == 'approve_payment' else 'cancelled'
-
+    action, order_id = query.data.rsplit('_', 1)
+    approve = action == 'approve_payment'
     payload = {
         'order_id': order_id,
-        'status': status
+        'status': 'completed' if approve else 'cancelled',
+        'admin_telegram_id': str(admin.id),
     }
-    
+
+    keep_buttons = False
     try:
         async with bot_context.session.post(
             f"{CONFIG['wp_api_url']}/../update-payment-status",
             json=payload,
-            headers={'X-Telegram-Bot-Api-Secret-Token': os.getenv("WEBHOOK_SECRET_TOKEN")},
             timeout=aiohttp.ClientTimeout(total=15)
         ) as response:
             if response.status == 200:
-                result_text = "✅ Approved" if status == 'completed' else "❌ Rejected"
-                new_caption = f"{query.message.caption}\n\n<b>Decision:</b> {result_text} by {update.effective_user.first_name}"
-                await query.edit_message_caption(caption=new_caption, parse_mode='HTML')
+                outcome = (f"✅ Approved by {admin.first_name}. The plan has started." if approve
+                           else f"❌ Rejected by {admin.first_name}.")
+            elif response.status in (404, 409):
+                # Already decided (by another admin, or on the admin site), or gone.
+                outcome = f"ℹ️ {await api_message(response) or 'Nothing to decide here any more.'}"
             else:
-                resp_text = await response.text()
-                logger.error(f"Failed to update WP payment status: HTTP {response.status} - {resp_text}")
-                await query.edit_message_caption(caption=f"{query.message.caption}\n\n<b>Error:</b> Failed to update WordPress status (HTTP {response.status}).", parse_mode='HTML')
+                logger.error(f"Payment decision failed: HTTP {response.status} - {await response.text()}")
+                outcome = f"⚠️ Not saved (HTTP {response.status}). Try again, or use the admin site."
+                keep_buttons = True
     except Exception as e:
         logger.error(f"Error updating payment status: {e}", exc_info=True)
-        await query.edit_message_caption(caption=f"{query.message.caption}\n\n<b>Error:</b> Exception occurred while updating status.", parse_mode='HTML')
+        outcome = "⚠️ Couldn't reach the website. Try again, or use the admin site."
+        keep_buttons = True
+    await show_payment_outcome(query, outcome, keep_buttons)
+
+
+async def api_message(response) -> str:
+    """The message in an API error answer, or ''."""
+    try:
+        message = (await response.json()).get('message')
+    except Exception:
+        return ''
+    return message if isinstance(message, str) else ''
+
+
+async def show_payment_outcome(query, outcome: str, keep_buttons: bool) -> None:
+    """Adds the outcome under the alert; the buttons go once it's decided."""
+    message = query.message
+    markup = message.reply_markup if keep_buttons else None
+    try:
+        if message.caption is not None:
+            await query.edit_message_caption(
+                caption=f"{message.caption_html}\n\n<b>{escape(outcome)}</b>", parse_mode='HTML', reply_markup=markup)
+        else:
+            await query.edit_message_text(
+                text=f"{message.text_html}\n\n<b>{escape(outcome)}</b>", parse_mode='HTML', reply_markup=markup)
+    except telegram.error.BadRequest as e:
+        logger.warning(f"Couldn't show the payment decision: {e}")

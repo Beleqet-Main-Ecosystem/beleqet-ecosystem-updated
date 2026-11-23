@@ -606,15 +606,6 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Updates payment / registration status from Telegram admin actions.
-   * Drop-in replacement for the legacy WordPress `/update-payment-status` endpoint.
-   */
-  async updatePaymentStatus(orderId: string, status: string) {
-    this.logger.log(`Telegram admin updated payment/order #${orderId} to status: ${status}`);
-    return { success: true, orderId, status };
-  }
-
-  /**
    * Links a user's Telegram ID to their Beleqet account using an auth token.
    */
   async linkTelegramByToken(token: string, telegramId: string) {

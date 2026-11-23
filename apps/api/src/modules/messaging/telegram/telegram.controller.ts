@@ -13,6 +13,8 @@ import { Throttle, SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
 import { TelegramTmaService } from './telegram-tma.service';
 import { TelegramService } from './telegram.service';
 import { TelegramAppLoginDto, TelegramLoginDto, TmaAuthDto } from './dto/telegram-tma.dto';
+import { PaymentDecisionDto } from './dto/payment-decision.dto';
+import { ManualPaymentService } from '../../payments/manual-payment/manual-payment.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 import { BotApiGuard } from './guards/bot-api.guard';
@@ -23,6 +25,7 @@ export class TelegramController {
   constructor(
     private readonly tmaService: TelegramTmaService,
     private readonly telegramService: TelegramService,
+    private readonly manualPayments: ManualPaymentService,
   ) {}
 
   @Post('tma-login')
@@ -113,9 +116,15 @@ export class TelegramController {
   @UseGuards(BotApiGuard)
   @SkipThrottle()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update manual payment approval status from Telegram admin actions' })
-  async updatePaymentStatus(@Body() body: { order_id: string; status: string }) {
-    return this.telegramService.updatePaymentStatus(body.order_id, body.status);
+  @ApiOperation({ summary: 'Approve or reject a bank transfer from the Jobs bot' })
+  @ApiResponse({ status: 409, description: 'Already approved or rejected' })
+  async updatePaymentStatus(@Body() body: PaymentDecisionDto) {
+    const payment = await this.manualPayments.decideFromTelegram(
+      body.order_id,
+      body.status === 'completed',
+      `telegram:${body.admin_telegram_id ?? 'unknown'}`,
+    );
+    return { success: true, orderId: payment.id, status: payment.status };
   }
 
   @Post('link-telegram')
