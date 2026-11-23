@@ -120,6 +120,13 @@ export class ManualPaymentController {
     return this.manualPaymentService.findMine(req.user.userId);
   }
 
+  /** The account to pay into, shown on the website and in the app. Before `:id`, which would match it. */
+  @Get('bank-details')
+  @ApiOperation({ summary: 'Bank account details for paying by transfer' })
+  bankDetails(): { details: string | null } {
+    return this.manualPaymentService.getBankDetails();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get one of your manual payments by id (admins: any)' })
   async findOne(

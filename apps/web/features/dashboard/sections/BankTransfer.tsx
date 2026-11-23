@@ -10,8 +10,6 @@ import { card, Field, input, muted, outline, shortDate, solid } from '../ui';
 import { errorText, apiError } from '@/lib/api-error';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.beleqetjobs.com/api/v1';
-/** Account name, bank and number to pay into; set per deployment, never guessed. */
-const BANK_DETAILS = process.env.NEXT_PUBLIC_BANK_TRANSFER_DETAILS ?? '';
 
 type Payment = {
   id: string;
@@ -32,6 +30,8 @@ export default function BankTransfer() {
   const { t, locale } = useTranslation();
   const [plans, setPlans] = useState<PaidPlan[]>([]);
   const [payments, setPayments] = useState<Payment[] | null>(null);
+  // The account to pay into, from the server's settings (null: not set, so ask us for it).
+  const [bankDetails, setBankDetails] = useState<string | null | undefined>(undefined);
   const [planId, setPlanId] = useState('');
   const [pending, setPending] = useState<Payment | null>(null);
   const [reference, setReference] = useState('');
@@ -52,6 +52,11 @@ export default function BankTransfer() {
       .catch(() => setPayments([]));
   }, []);
   useEffect(load, [load]);
+  useEffect(() => {
+    apiGet<{ details: string | null }>('/manual-payment/bank-details')
+      .then((answer) => setBankDetails(answer.details))
+      .catch(() => setBankDetails(null));
+  }, []);
 
   const planName = (payment: Payment) => plans.find((plan) => plan.id === payment.metadata?.planId)?.name;
   // Plan prices and plan payments are kept in santim.
@@ -113,8 +118,8 @@ export default function BankTransfer() {
           <form noValidate onSubmit={sendReceipt} className="flex flex-col gap-3">
             <div className="rounded-lg bg-[#F6F7F4] p-3.5 text-sm dark:bg-slate-800">
               <b className="block text-ink-900 dark:text-white">{t('emp.bank.pay').replace('{amount}', money(pending.amount, pending.currency))}</b>
-              {BANK_DETAILS ? (
-                <span className="whitespace-pre-line text-ink-700 dark:text-slate-300">{BANK_DETAILS}</span>
+              {bankDetails === undefined ? null : bankDetails ? (
+                <span className="whitespace-pre-line text-ink-700 dark:text-slate-300">{bankDetails}</span>
               ) : (
                 <span className="text-ink-700 dark:text-slate-300">
                   {t('emp.bank.askDetails')} <Link href="/contact" className="font-bold text-forest hover:underline dark:text-limeAccent">{t('pricing.contact')}</Link>

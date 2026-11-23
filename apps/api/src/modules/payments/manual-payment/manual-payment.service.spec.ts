@@ -474,3 +474,45 @@ describe('ManualPaymentService plans and privacy', () => {
     await expect(service.findOne('p1', 'admin', true)).resolves.toMatchObject({ id: 'p1' });
   });
 });
+
+describe('ManualPaymentService bank details and alerts', () => {
+  const settings: Record<string, string | undefined> = {};
+  const prisma: Record<string, any> = {
+    payment: { findUnique: jest.fn(), update: jest.fn() },
+    user: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    plan: { findUnique: jest.fn() },
+    notification: { create: jest.fn().mockResolvedValue({}) },
+  };
+  const email = { dispatch: jest.fn().mockResolvedValue(undefined) };
+  const uploads = { uploadFile: jest.fn() };
+  let service: ManualPaymentService;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    for (const key of Object.keys(settings)) delete settings[key];
+    const module = await Test.createTestingModule({
+      providers: [
+        ManualPaymentService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: UploadsService, useValue: uploads },
+        { provide: EmailService, useValue: email },
+        {
+          provide: ConfigService,
+          useValue: { get: (key: string, fallback?: string) => settings[key] ?? fallback },
+        },
+      ],
+    }).compile();
+    service = module.get(ManualPaymentService);
+  });
+
+  it('gives the account to pay into from the server settings, one line per \\n', () => {
+    expect(service.getBankDetails()).toEqual({ details: null });
+    settings.BANK_TRANSFER_DETAILS = '  ';
+    expect(service.getBankDetails()).toEqual({ details: null });
+    settings.BANK_TRANSFER_DETAILS =
+      'Commercial Bank of Ethiopia\\nAccount: 1000123\\nName: Beleqet';
+    expect(service.getBankDetails()).toEqual({
+      details: 'Commercial Bank of Ethiopia\nAccount: 1000123\nName: Beleqet',
+    });
+  });
+});

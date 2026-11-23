@@ -46,6 +46,18 @@ export class ManualPaymentService {
   ) {}
 
   /**
+   * The account to pay into (bank, account number, name), from BANK_TRANSFER_DETAILS on the
+   * server, so changing it needs no new build of the website or the app. A written "\n" starts a
+   * new line. null while it isn't set: the payer is then asked to contact us.
+   */
+  getBankDetails(): { details: string | null } {
+    const details = (this.config.get<string>('BANK_TRANSFER_DETAILS') ?? '')
+      .replace(/\\n/g, '\n')
+      .trim();
+    return { details: details || null };
+  }
+
+  /**
    * Creates a new PENDING manual payment record that the customer will
    * complete by uploading a receipt.
    */
