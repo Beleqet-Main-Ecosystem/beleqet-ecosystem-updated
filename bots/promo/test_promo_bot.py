@@ -1,10 +1,14 @@
 """Checks the Promotion bot refuses what it must: forged Mini App sign-ins, its own files, fake
 webhook calls, transfers without the shared secret, and deposit approvals from anyone but the admin.
+And that it tells the right people when something is wrong: the customer when they can fix it, the
+admin when only Beleqet can (an empty SMMLand balance, a missing key), with manual deposits offered
+only once their account is set.
 
 Run from this folder: python -m unittest test_promo_bot
 """
 import hashlib
 import hmac
+import io
 import json
 import os
 import sqlite3
@@ -195,6 +199,138 @@ class DepositApprovalTest(PromoBotTest):
         self.click("approve", by=ADMIN)
         self.assertEqual(self.status(), "rejected")
         self.assertEqual(self.balance(4001), before)
+
+    def test_approval_pays_the_inviter_on_a_first_deposit_of_50_or_more(self):
+        with sqlite3.connect(server.DB_PATH) as conn:
+            conn.execute("INSERT OR REPLACE INTO users (user_id, balance, free_points, referral_earnings) VALUES ('4100', 0, 50, 0)")
+            conn.execute(
+                "INSERT OR REPLACE INTO users (user_id, balance, free_points, referred_by, has_deposited_for_referral) "
+                "VALUES ('4101', 0, 50, '4100', 0)"
+            )
+            self.deposit = conn.execute(
+                "INSERT INTO manual_deposits (user_id, amount, transaction_number, screenshot_path) VALUES ('4101', 60, 'FT2', 'x')"
+            ).lastrowid
+        self.click("approve", by=ADMIN)
+        self.assertEqual(self.balance(4101), 60)
+        self.assertEqual(self.balance(4100), 1)
+
+
+class ConfigTest(PromoBotTest):
+    def test_tells_the_page_the_bots_name_and_the_deposit_account_once_set(self):
+        with mock.patch.object(server, "_bot_username", "BeleqetPromoTestBot"), \
+                mock.patch.object(server, "MANUAL_DEPOSIT_ACCOUNT", ""), mock.patch.object(server, "MANUAL_DEPOSIT_NAME", ""):
+            body = self.client.get("/api/config").get_json()
+        self.assertEqual(body["bot_username"], "BeleqetPromoTestBot")
+        self.assertIsNone(body["manual_deposit"])
+        with mock.patch.object(server, "_bot_username", "BeleqetPromoTestBot"), \
+                mock.patch.object(server, "MANUAL_DEPOSIT_ACCOUNT", "1000999"), mock.patch.object(server, "MANUAL_DEPOSIT_NAME", "Beleqet"):
+            body = self.client.get("/api/config").get_json()
+        self.assertEqual(body["manual_deposit"], {"bank": "CBE", "account": "1000999", "name": "Beleqet"})
+
+    def test_no_placeholder_account(self):
+        with sqlite3.connect(server.DB_PATH) as conn:
+            conn.execute("INSERT OR IGNORE INTO users (user_id, balance, free_points) VALUES ('default_user', 0, 50)")
+        server.init_db()
+        with sqlite3.connect(server.DB_PATH) as conn:
+            self.assertIsNone(conn.execute("SELECT 1 FROM users WHERE user_id = 'default_user'").fetchone())
+
+    def test_chapa_sends_customers_back_to_this_bot(self):
+        with sqlite3.connect(server.DB_PATH) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO users (user_id, balance, free_points, first_name, last_name, email) "
+                "VALUES ('7001', 0, 50, 'Abebe', 'Kebede', 'abebe@example.com')"
+            )
+        chapa = mock.Mock(json=lambda: {"status": "success", "data": {"checkout_url": "https://checkout.chapa.co/x"}})
+        with mock.patch.object(server, "_bot_username", "BeleqetPromoTestBot"), \
+                mock.patch.object(server.requests, "post", return_value=chapa) as post:
+            res = self.client.post("/api/pay/initialize", json={"amount": 100}, headers=tma(init_data(7001)))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(post.call_args.kwargs["json"]["return_url"], "https://t.me/BeleqetPromoTestBot")
+
+
+class ManualDepositTest(PromoBotTest):
+    def submit(self):
+        data = {"amount": "250", "transaction_number": "FT_99*X", "screenshot": (io.BytesIO(b"png"), "proof.png")}
+        return self.client.post("/api/deposit/manual", data=data, headers=tma(init_data(5001)), content_type="multipart/form-data")
+
+    def test_refused_until_an_account_is_set(self):
+        with mock.patch.object(server, "MANUAL_DEPOSIT_ACCOUNT", ""), mock.patch.object(server.bot, "send_photo") as sent:
+            self.assertEqual(self.submit().status_code, 503)
+        sent.assert_not_called()
+
+    def test_admin_is_told_who_sent_it_and_to_check_the_bank_first(self):
+        with mock.patch.object(server, "MANUAL_DEPOSIT_ACCOUNT", "1000999"), mock.patch.object(server, "MANUAL_DEPOSIT_NAME", "Beleqet"), \
+                mock.patch.object(server.bot, "send_photo") as sent:
+            self.assertEqual(self.submit().status_code, 200)
+        args, kwargs = sent.call_args
+        self.assertEqual(args[0], str(ADMIN))
+        self.assertIn("From: Test", kwargs["caption"])
+        self.assertIn("Check that 250 ETB really arrived in the CBE account 1000999", kwargs["caption"])
+        self.assertIn("FT_99*X", kwargs["caption"])
+        self.assertNotIn("parse_mode", kwargs)  # plain text, so what users type can't break it
+
+
+class SmmTest(PromoBotTest):
+    SERVICES = [{"service": 1, "name": "Followers", "category": "Instagram Followers", "rate": "1.00", "min": 10, "max": 1000}]
+
+    def setUp(self):
+        super().setUp()
+        server.services_cache, server.services_cache_time = [], 0
+        server._last_alert.clear()
+        with sqlite3.connect(server.DB_PATH) as conn:
+            conn.execute("INSERT OR REPLACE INTO users (user_id, balance, free_points, notifications) VALUES ('6001', 1000, 50, 0)")
+
+    def fake_smmland(self, replies):
+        def post(url, data=None, **kwargs):
+            reply = replies[data["action"]]
+            if isinstance(reply, Exception):
+                raise reply
+            return mock.Mock(json=lambda: reply)
+        return post
+
+    def order(self, add, balance="50"):
+        replies = {"services": self.SERVICES, "add": add, "balance": {"balance": balance, "currency": "USD"}}
+        with mock.patch.object(server.requests, "post", side_effect=self.fake_smmland(replies)), \
+                mock.patch.object(server, "get_usd_to_etb_rate", return_value=100.0), \
+                mock.patch.object(server.bot, "send_message") as alerts, \
+                mock.patch.object(server.threading, "Thread", side_effect=lambda target, daemon: mock.Mock(start=target)):
+            res = self.client.post(
+                "/api/order", json={"service": 1, "link": "https://instagram.com/x", "quantity": 100}, headers=tma(init_data(6001))
+            )
+        return res, alerts
+
+    def test_an_empty_smmland_account_is_for_the_admin_not_the_customer(self):
+        res, alerts = self.order({"error": "Not enough funds on balance"})
+        self.assertEqual(res.status_code, 503)
+        self.assertEqual(res.get_json()["message"], server.SERVICE_UNAVAILABLE)
+        self.assertEqual(self.balance(6001), 1000)
+        self.assertEqual(alerts.call_args.args[0], str(ADMIN))
+        self.assertIn("Not enough funds", alerts.call_args.args[1])
+
+    def test_a_wrong_link_is_the_customers_to_fix(self):
+        res, alerts = self.order({"error": "Incorrect link"})
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.get_json()["message"], "Incorrect link")
+        self.assertEqual(self.balance(6001), 1000)
+        alerts.assert_not_called()
+
+    def test_a_low_balance_after_an_order_warns_the_admin_once(self):
+        res, alerts = self.order({"order": 777}, balance="3.50")
+        self.assertEqual(res.status_code, 200)
+        self.assertAlmostEqual(self.balance(6001), 1000 - 12)  # $1 per 1000 at 100 birr, plus 20%
+        self.assertIn("low: 3.50 USD", alerts.call_args.args[1])
+        _, alerts = self.order({"order": 778}, balance="3.40")
+        alerts.assert_not_called()
+
+    def test_without_services_the_page_is_told_and_so_is_the_admin(self):
+        replies = {"services": {"error": "Invalid API key"}}
+        with mock.patch.object(server.requests, "post", side_effect=self.fake_smmland(replies)), \
+                mock.patch.object(server.bot, "send_message") as alerts:
+            res = self.client.get("/api/services")
+        self.assertEqual(res.status_code, 503)
+        self.assertIn("unavailable", res.get_json()["message"])
+        self.assertIn("Invalid API key", alerts.call_args.args[1])
+        self.assertEqual(server.services_cache, [])  # an error isn't kept: the next visit asks again
 
 
 if __name__ == "__main__":

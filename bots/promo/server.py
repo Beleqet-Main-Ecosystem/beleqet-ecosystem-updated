@@ -1,5 +1,6 @@
 import time
 import logging
+import threading
 import requests
 import sqlite3
 import uuid
@@ -59,13 +60,69 @@ else:
 
 SMM_API_URL = "https://smmland.com/api/v2"
 SMM_API_KEY = os.getenv("SMM_API_KEY")
+# Orders are paid from Beleqet's SMMLand balance; below this many dollars the admin is told.
+SMM_LOW_BALANCE_USD = float(os.getenv("SMM_LOW_BALANCE_USD") or 10)
 
 CHAPA_SECRET_KEY = os.getenv("CHAPA_SECRET_KEY")
+
+# Where manual deposits go. The Mini App offers manual deposits only once both are set.
+MANUAL_DEPOSIT_BANK = os.getenv("MANUAL_DEPOSIT_BANK", "").strip() or "CBE"
+MANUAL_DEPOSIT_ACCOUNT = os.getenv("MANUAL_DEPOSIT_ACCOUNT", "").strip()
+MANUAL_DEPOSIT_NAME = os.getenv("MANUAL_DEPOSIT_NAME", "").strip()
 
 PROFIT_MARGIN_PERCENT = 20
 services_cache = []
 services_cache_time = 0
 SERVICES_CACHE_TTL = 1800  # 30 minutes
+# Customers see this when SMMLand can't serve them for a reason only the admin can fix.
+SERVICE_UNAVAILABLE = "This service is temporarily unavailable. Please try again later."
+
+_bot_username = None
+
+def bot_username():
+    """This bot's @username (without the @), asked from Telegram once."""
+    global _bot_username
+    if _bot_username is None and bot:
+        try:
+            _bot_username = bot.get_me().username
+        except Exception as e:
+            logger.warning("Could not read the bot's username: %s", e)
+    return _bot_username
+
+_last_alert = {}
+
+def alert_admin(kind, text, every=6 * 3600):
+    """Tells the admin in Telegram, at most once every `every` seconds for each kind of problem."""
+    if not bot or not ADMIN_ID:
+        return
+    now = time.time()
+    if now - _last_alert.get(kind, 0) < every:
+        return
+    _last_alert[kind] = now
+    try:
+        bot.send_message(ADMIN_ID, text)
+    except Exception as e:
+        logger.error("Could not alert the admin: %s", e)
+
+def is_smm_account_error(message):
+    """SMMLand's errors about Beleqet's own account (its balance, the key), not about the order."""
+    text = str(message).lower()
+    return any(word in text for word in ("fund", "balance", "key"))
+
+def check_smm_balance():
+    """Warns the admin when Beleqet's SMMLand balance runs low: orders fail once it's empty."""
+    try:
+        res = requests.post(SMM_API_URL, data={'key': SMM_API_KEY, 'action': 'balance'}, timeout=10).json()
+        balance = float(res['balance'])
+    except Exception as e:
+        logger.warning("Could not read the SMMLand balance: %s", e)
+        return
+    if balance < SMM_LOW_BALANCE_USD:
+        alert_admin(
+            "smm_low_balance",
+            f"⚠️ The SMMLand balance is low: {balance:.2f} {res.get('currency', 'USD')}. "
+            "Orders fail once it's empty; top it up on smmland.com.",
+        )
 
 cached_exchange_rate = 160.0
 last_exchange_rate_fetch = 0
@@ -89,18 +146,23 @@ def get_services():
         try:
             payload = {'key': SMM_API_KEY, 'action': 'services'}
             response = requests.post(SMM_API_URL, data=payload, timeout=15)
-            services_cache = response.json()
-            services_cache_time = time.time()
+            fetched = response.json()
         except Exception as e:
             logger.warning("Error fetching services: %s", e)
+            fetched = {"error": str(e)}
+        if not isinstance(fetched, list):
+            # SMMLand answered with an error (no key, a refused key): keep nothing, ask again next time.
+            alert_admin("smm_services", f"⚠️ The Promotion bot can't load SMMLand's services: {fetched.get('error', fetched) if isinstance(fetched, dict) else fetched}")
             return []
+        services_cache = fetched
+        services_cache_time = time.time()
     return services_cache
 
 @app.route('/api/services', methods=['GET'])
 def api_services():
     services = get_services()
-    if not isinstance(services, list):
-        return jsonify({"status": "error", "message": "Failed to fetch services."}), 500
+    if not services:
+        return jsonify({"status": "error", "message": "Services are unavailable right now. Please try again later."}), 503
     
     modified_services = []
     for srv in services:
@@ -232,7 +294,8 @@ def init_db():
             status TEXT DEFAULT 'pending'
         )
     ''')
-    c.execute('INSERT OR IGNORE INTO users (user_id, balance, free_points) VALUES (?, ?, ?)', ('default_user', 0.0, 50))
+    # An early version kept a placeholder account; nothing uses it.
+    c.execute("DELETE FROM users WHERE user_id = 'default_user' AND COALESCE(balance, 0) = 0")
     conn.commit()
     conn.close()
 
@@ -310,10 +373,13 @@ def transfer_points():
 
 @app.route('/api/deposit/manual', methods=['POST'])
 def manual_deposit():
-    user_id = require_auth()
-    if not user_id:
+    tg_user = validate_telegram_data(request.headers.get("Authorization"))
+    if not tg_user:
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-        
+    user_id = str(tg_user.get("id"))
+    if not (MANUAL_DEPOSIT_ACCOUNT and MANUAL_DEPOSIT_NAME):
+        return jsonify({"status": "error", "message": "Manual deposits are not available right now."}), 503
+
     amount = request.form.get('amount')
     transaction_number = request.form.get('transaction_number')
     screenshot = request.files.get('screenshot')
@@ -349,19 +415,31 @@ def manual_deposit():
         (user_id, amount, transaction_number, filepath)
     )
     deposit_id = c.lastrowid
+    c.execute('SELECT first_name, last_name FROM users WHERE user_id = ?', (user_id,))
+    profile = c.fetchone() or (None, None)
     conn.commit()
     conn.close()
-    
+
     if bot:
         markup = InlineKeyboardMarkup()
         markup.add(
             InlineKeyboardButton("✅ Approve", callback_data=f"approve_deposit_{deposit_id}"),
             InlineKeyboardButton("❌ Reject", callback_data=f"reject_deposit_{deposit_id}")
         )
-        caption = f"🧾 *New Manual Deposit Request*\n\nUser ID: `{user_id}`\nAmount: `{amount} ETB`\nTxn Number: `{transaction_number}`"
+        # Plain text: names and transaction numbers come from users and could break Markdown.
+        name = " ".join(part for part in profile if part) or tg_user.get("first_name") or "No name given"
+        username = f" @{tg_user['username']}" if tg_user.get("username") else ""
+        caption = (
+            f"🧾 New manual deposit request\n\n"
+            f"From: {name}{username} (Telegram ID {user_id})\n"
+            f"Amount: {amount:g} ETB\n"
+            f"Transaction number: {transaction_number}\n\n"
+            f"⚠️ Check that {amount:g} ETB really arrived in the {MANUAL_DEPOSIT_BANK} account "
+            f"{MANUAL_DEPOSIT_ACCOUNT} before you approve: Approve adds it to this user's balance."
+        )
         try:
             with open(filepath, 'rb') as photo:
-                bot.send_photo(ADMIN_ID, photo, caption=caption, parse_mode='Markdown', reply_markup=markup)
+                bot.send_photo(ADMIN_ID, photo, caption=caption, reply_markup=markup)
         except Exception as e:
             logger.error("Failed to send manual deposit to admin: %s", e)
             
@@ -385,8 +463,8 @@ def create_order():
         return jsonify({"status": "error", "message": "Invalid quantity."}), 400
 
     services = get_services()
-    if not isinstance(services, list):
-        return jsonify({"status": "error", "message": "Could not fetch service list."}), 500
+    if not services:
+        return jsonify({"status": "error", "message": SERVICE_UNAVAILABLE}), 503
 
     selected_service = next((s for s in services if str(s.get('service')) == service_id), None)
     
@@ -461,15 +539,26 @@ def create_order():
                         
             conn.commit()
             conn.close()
+            # Each order spends the SMMLand balance; look at it without making the customer wait.
+            threading.Thread(target=check_smm_balance, daemon=True).start()
             return jsonify({"status": "success", "order_id": panel_order_id})
         else:
             conn.rollback()
             conn.close()
-            return jsonify({"status": "error", "message": res_json.get('error', 'Order error occurred')}), 400
+            error = res_json.get('error', 'Order error occurred')
+            if is_smm_account_error(error):
+                # Beleqet's SMMLand account can't pay (empty balance, refused key): the customer can't
+                # fix that, so they get a general message and the admin gets SMMLand's.
+                alert_admin("smm_account", f"⚠️ SMMLand refused an order: {error}. Customers are told the service is temporarily unavailable.")
+                return jsonify({"status": "error", "message": SERVICE_UNAVAILABLE}), 503
+            # Anything else is about the order itself (the link, the quantity): the customer can fix it.
+            return jsonify({"status": "error", "message": error}), 400
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        logger.error("SMMLand order failed: %s", e)
+        alert_admin("smm_unreachable", f"⚠️ The Promotion bot couldn't reach SMMLand to place an order: {e}")
+        return jsonify({"status": "error", "message": SERVICE_UNAVAILABLE}), 503
 
 @app.route('/api/user/register', methods=['POST'])
 def register_user():
@@ -607,8 +696,10 @@ def initialize_payment():
         "last_name": last_name,
         "tx_ref": tx_ref,
         "custom_title": "Add Funds",
-        "return_url": "https://t.me/Beleqet_PromotionBot"
     }
+    if bot_username():
+        # After paying, Chapa's page sends the customer back to this bot.
+        payload["return_url"] = f"https://t.me/{bot_username()}"
     
     try:
         res = requests.post("https://api.chapa.co/v1/transaction/initialize", json=payload, headers=headers, timeout=15)
@@ -822,6 +913,15 @@ def sync_orders():
     return jsonify({"status": "success", "updated": updated_count, "refunded": refund_amount})
 
 
+@app.route('/api/config', methods=['GET'])
+def api_config():
+    """What the Mini App shows from the server's settings: this bot's name (invite links, the footer)
+    and where manual deposits go (none until both the account and the name are set)."""
+    manual = None
+    if MANUAL_DEPOSIT_ACCOUNT and MANUAL_DEPOSIT_NAME:
+        manual = {"bank": MANUAL_DEPOSIT_BANK, "account": MANUAL_DEPOSIT_ACCOUNT, "name": MANUAL_DEPOSIT_NAME}
+    return jsonify({"status": "success", "bot_username": bot_username(), "manual_deposit": manual})
+
 # The Mini App is these two files. Nothing else in this folder (.env, the code, data/ with the
 # database and the payment screenshots) is ever served.
 PUBLIC_FILES = {'index.html', 'styles.css'}
@@ -967,12 +1067,13 @@ if bot:
             ).rowcount == 1:
                 user_id, amount = row[0], row[1]
                 c.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
+                # A first deposit of 50+ pays whoever invited them, as Chapa deposits do.
+                process_referral_reward(user_id, amount, c)
                 conn.commit()
                 bot.edit_message_caption(
-                    caption=f"{call.message.caption}\n\n✅ *Status: APPROVED*", 
-                    chat_id=call.message.chat.id, 
-                    message_id=call.message.message_id, 
-                    parse_mode='Markdown'
+                    caption=f"{call.message.caption}\n\n✅ APPROVED",
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
                 )
                 try:
                     bot.send_message(user_id, f"✅ Your manual deposit of {amount} ETB has been APPROVED and added to your balance!")
@@ -994,10 +1095,9 @@ if bot:
                 user_id = row[0]
                 conn.commit()
                 bot.edit_message_caption(
-                    caption=f"{call.message.caption}\n\n❌ *Status: REJECTED*", 
-                    chat_id=call.message.chat.id, 
-                    message_id=call.message.message_id, 
-                    parse_mode='Markdown'
+                    caption=f"{call.message.caption}\n\n❌ REJECTED",
+                    chat_id=call.message.chat.id,
+                    message_id=call.message.message_id,
                 )
                 try:
                     bot.send_message(user_id, "❌ Your manual deposit request has been REJECTED. Please contact admin if this is a mistake.")
