@@ -5,13 +5,21 @@
 birr. It's also where the referral bots send their rewards: the Boost and Go bots (both run
 from `bots/referral`) move points into a user's Promotion wallet.
 
-- **Orders** go to the SMM panel (smmland.com). Its USD prices are shown in birr at the live rate
-  plus 20%. Cancelled and partial orders are refunded when the user's orders sync.
+- **Orders** go to the SMM panel (smmland.com) and are paid from Beleqet's balance there, so it must
+  always hold money. Its USD prices are shown in birr at the live rate plus 20%. Cancelled and
+  partial orders are refunded when the user's orders sync.
 - **Add Funds** works by Chapa (Telebirr, CBE Birr, cards) or by bank transfer: the user uploads a
-  screenshot, and `ADMIN_ID` gets it in Telegram with Approve / Reject buttons.
+  screenshot, and `ADMIN_ID` gets it in Telegram with Approve / Reject buttons and a reminder to check
+  the bank first (Approve credits the amount the user typed). Bank transfers are offered only once
+  `MANUAL_DEPOSIT_ACCOUNT` and `MANUAL_DEPOSIT_NAME` are set.
+- **Alerts:** `ADMIN_ID` is told in Telegram, at most every 6 hours for each problem, when SMMLand's
+  services can't be loaded, when it refuses orders for a reason only Beleqet can fix (no funds, a
+  refused key) or can't be reached, and when its balance drops below `SMM_LOW_BALANCE_USD`.
+  Customers then see "temporarily unavailable"; errors about the order itself (a wrong link) are
+  shown to them as SMMLand gives them.
 - **Free points:** every new user gets 50, spent at 2 per unit ordered.
 - **Referrals:** `/invite` gives a link. The inviter earns 1 birr when their friend first adds
-  50 birr or more.
+  50 birr or more, by Chapa or by an approved bank transfer.
 
 Files: `server.py` (Flask API, the bot's webhook and handlers, SQLite), `index.html` and `styles.css`
 (the Mini App; `styles.css` is built from `input.css` with Tailwind 4, and is committed: the server

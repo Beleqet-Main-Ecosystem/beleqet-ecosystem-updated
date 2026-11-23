@@ -533,7 +533,7 @@
         <p class="text-mute text-xs max-w-xs leading-relaxed mb-1">Beleqet Promotion works inside Telegram only. Open
             it from our bot.</p>
         <p class="text-faint text-[11px] max-w-xs mb-8 font-amharic">ይህ መተግበሪያ በቴሌግራም ውስጥ ብቻ ይሰራል።</p>
-        <a id="bot-redirect-btn" href="https://t.me/Beleqet_PromotionBot"
+        <a id="bot-redirect-btn" href="https://t.me/"
             class="shimmer-btn bg-gradient-to-r from-brand to-brand-dim text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-brand/25 active:scale-95 transition text-sm flex items-center gap-2">
             Open in Telegram <span>➔</span>
         </a>
@@ -939,8 +939,7 @@
                             <p class="text-[9px] text-faint font-bold uppercase tracking-wider mb-1.5">Your Invite Link
                             </p>
                             <div class="flex gap-2">
-                                <input type="text" id="invite-link-input"
-                                    value="https://t.me/Beleqet_PromotionBot?start=ref123" readonly
+                                <input type="text" id="invite-link-input" value="" placeholder="Loading…" readonly
                                     class="flex-1 min-w-0 bg-surface2 border border-line rounded-xl px-3 py-2.5 text-[11px] text-mute focus:outline-none ledger">
                                 <button onclick="copyInviteLink()" aria-label="Copy"
                                     class="bg-surface2 border border-line rounded-xl px-3 text-mute hover:text-ink active:scale-95 transition">
@@ -1057,7 +1056,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="text-center text-[8px] text-faint mt-1.5">@Beleqet_PromotionBot</div>
+                <div id="bot-handle" class="text-center text-[8px] text-faint mt-1.5"></div>
             </div>
         </footer>
 
@@ -1114,13 +1113,16 @@
                         class="w-full bg-gradient-to-r from-brand to-brand-dim text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand/25 transition active:scale-[0.98]">
                         Proceed to Pay (Chapa)
                     </button>
-                    <div class="flex items-center gap-3 my-3 text-[10px] text-faint font-semibold">
-                        <span class="flex-1 h-px bg-line"></span>OR<span class="flex-1 h-px bg-line"></span>
+                    <!-- Shown once the server's settings name the account manual deposits go to. -->
+                    <div id="manual-option" class="hidden">
+                        <div class="flex items-center gap-3 my-3 text-[10px] text-faint font-semibold">
+                            <span class="flex-1 h-px bg-line"></span>OR<span class="flex-1 h-px bg-line"></span>
+                        </div>
+                        <button onclick="openManualFundModal()"
+                            class="w-full bg-surface2 border border-line text-mute hover:text-ink font-semibold py-3 rounded-xl transition active:scale-[0.98] text-xs">
+                            🏦 Manual <span class="manual-bank">CBE</span> Transfer
+                        </button>
                     </div>
-                    <button onclick="openManualFundModal()"
-                        class="w-full bg-surface2 border border-line text-mute hover:text-ink font-semibold py-3 rounded-xl transition active:scale-[0.98] text-xs">
-                        🏦 Manual CBE Transfer
-                    </button>
                 </div>
             </div>
         </div>
@@ -1134,18 +1136,18 @@
                 <div class="mx-auto w-10 h-1 bg-line rounded-full mb-4"></div>
                 <div class="relative z-10">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-base font-display font-bold text-ink flex items-center gap-2">🏦 CBE Transfer
-                        </h3>
+                        <h3 class="text-base font-display font-bold text-ink flex items-center gap-2">🏦 <span
+                                class="manual-bank">CBE</span> Transfer</h3>
                         <button onclick="closeManualFundModal()" aria-label="Close"
                             class="text-mute hover:text-ink bg-surface2 rounded-full w-8 h-8 flex items-center justify-center transition">✕</button>
                     </div>
 
                     <div class="bg-brand/10 border border-brand/30 rounded-xl p-3 mb-4">
                         <p class="text-[11px] text-mute mb-1">Transfer funds to:</p>
-                        <p class="font-semibold text-ink text-sm">CBE Account: <span
-                                class="text-brand-light ledger">1000123456789</span></p>
-                        <p class="font-semibold text-ink text-sm">Name: <span class="text-brand-light">Beleqet
-                                Promotion</span></p>
+                        <p class="font-semibold text-ink text-sm"><span class="manual-bank">CBE</span> Account: <span
+                                id="manual-account" class="text-brand-light ledger">—</span></p>
+                        <p class="font-semibold text-ink text-sm">Name: <span id="manual-name"
+                                class="text-brand-light">—</span></p>
                     </div>
 
                     <div class="space-y-3.5">
@@ -1237,10 +1239,10 @@
 
         // Telegram only: the API trusts nothing but Telegram's signed initData.
         if (!tg.initDataUnsafe || !tg.initDataUnsafe.user) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetBot = urlParams.get('bot') || "Beleqet_PromotionBot";
             const botBtn = document.getElementById('bot-redirect-btn');
-            if (botBtn) botBtn.href = `https://t.me/${encodeURIComponent(targetBot)}`;
+            const linkToBot = (name) => { if (name) botBtn.href = `https://t.me/${encodeURIComponent(name)}`; };
+            linkToBot(new URLSearchParams(window.location.search).get('bot'));
+            fetch('/api/config').then(r => r.json()).then(config => linkToBot(config.bot_username)).catch(() => { });
 
             document.getElementById('splash').classList.add('hide');
             document.getElementById('telegram-only-modal').classList.remove('hidden');
@@ -1401,8 +1403,32 @@
         setInitials(tg.initDataUnsafe.user.first_name || telegramUsername);
 
         const urlParams = new URLSearchParams(window.location.search);
-        const botUsername = urlParams.get('bot') || "Beleqet_PromotionBot";
-        document.getElementById('invite-link-input').value = `https://t.me/${botUsername}?start=${telegramUserId}`;
+
+        // The bot's own name and the manual deposit account come from the server's settings.
+        function showBotName(name) {
+            if (!name) return;
+            document.getElementById('bot-handle').innerText = '@' + name;
+            document.getElementById('invite-link-input').value = `https://t.me/${name}?start=${telegramUserId}`;
+        }
+        showBotName(urlParams.get('bot'));
+
+        function showManualDeposit(manual) {
+            document.getElementById('manual-option').classList.toggle('hidden', !manual);
+            if (!manual) return;
+            document.querySelectorAll('.manual-bank').forEach(el => { el.innerText = manual.bank; });
+            document.getElementById('manual-account').innerText = manual.account;
+            document.getElementById('manual-name').innerText = manual.name;
+        }
+
+        async function fetchConfig() {
+            try {
+                const config = await (await fetch(`${API_BASE_URL}/api/config`)).json();
+                showBotName(config.bot_username);
+                showManualDeposit(config.manual_deposit);
+            } catch (e) {
+                showManualDeposit(null);
+            }
+        }
 
         async function registerUser() {
             try {
@@ -1709,14 +1735,38 @@
             try {
                 const response = await apiFetch(`${API_BASE_URL}/api/services`);
                 const data = await response.json();
-                if (data.status === 'success') {
+                if (data.status === 'success' && data.services.length > 0) {
                     allServices = data.services;
                     populateCategories();
+                    setOrdering(true);
+                } else {
+                    showServicesUnavailable(data.message);
                 }
             } catch (e) {
                 console.error("Error fetching services", e);
-                showAppAlert("Error fetching services", 'error');
+                showServicesUnavailable();
             }
+        }
+
+        // Nothing to sell (SMMLand can't be reached): say so instead of "Loading…", and stop orders.
+        function showServicesUnavailable(message) {
+            ['category-select', 'service-select'].forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">Unavailable</option>';
+                select.disabled = true;
+            });
+            currentServiceId = null;
+            document.getElementById('serv-id').innerText = '#---';
+            document.getElementById('serv-name').innerText = message || 'Services are unavailable right now. Please try again later.';
+            setRate(0);
+            setOrdering(false);
+        }
+
+        function setOrdering(enabled) {
+            const btn = document.getElementById('submit-order-btn');
+            btn.disabled = !enabled;
+            btn.classList.toggle('opacity-50', !enabled);
+            btn.classList.toggle('cursor-not-allowed', !enabled);
         }
 
         function populateCategories() {
@@ -2236,7 +2286,7 @@
         } catch (e) { }
 
         // Initialize
-        Promise.allSettled([registerUser().then(fetchUser), fetchServices(), fetchOrders()]).finally(() => {
+        Promise.allSettled([registerUser().then(fetchUser), fetchServices(), fetchOrders(), fetchConfig()]).finally(() => {
             document.getElementById('splash').classList.add('hide');
         });
         // Safety net so the splash never gets stuck if the server is unreachable
