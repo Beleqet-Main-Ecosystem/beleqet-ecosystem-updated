@@ -2,6 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  images: {
+    // The image optimizer of Next.js 14 has critical flaws (remote code execution from crafted
+    // SVG/AVIF files) with no 14.x fix. The admin only shows its own logo through next/image, so
+    // images are served as they are and the optimizer fetches nothing from other websites.
+    // Remove both settings after upgrading to a fixed Next.js (15.5.24+), as on the website.
+    unoptimized: true,
+    remotePatterns: [],
+  },
   async headers() {
     return [
       {
