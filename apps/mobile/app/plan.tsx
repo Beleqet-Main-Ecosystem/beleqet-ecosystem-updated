@@ -6,6 +6,7 @@ import { Screen, Card, H2, Muted, Field, Select, Button, Notice, Failed, Loading
 import {
   cancelSubscription,
   checkoutPlan,
+  fetchBankDetails,
   fetchManualPayments,
   fetchPlanPayment,
   fetchPlans,
@@ -23,7 +24,6 @@ import { useLoad } from '../lib/use-load';
 import { errorText } from '../lib/api-error';
 import { shortDate } from '../lib/format';
 import { openCheckout, pollUntil } from '../lib/checkout';
-import { BANK_DETAILS } from '../lib/config';
 
 /** Plan & billing: the current plan and usage, paying with Chapa, and paying by bank transfer. */
 export default function PlanScreen() {
@@ -132,6 +132,7 @@ function BankTransfer({ plans }: { plans: { id: string; name: string; priceAmoun
   const { t, locale } = useTranslation();
   const { colors } = useTheme();
   const payments = useLoad(fetchManualPayments, []);
+  const bank = useLoad(fetchBankDetails, []);
   const [planId, setPlanId] = useState('');
   const [pendingOverride, setPendingOverride] = useState<ManualPayment | null | undefined>(undefined);
   const [reference, setReference] = useState('');
@@ -190,14 +191,14 @@ function BankTransfer({ plans }: { plans: { id: string; name: string; priceAmoun
         {notice ? <Notice tone="good" text={notice} /> : null}
         {pending ? (
           <>
-            {BANK_DETAILS ? (
-              <View className="gap-1 rounded-lg bg-canvas p-3 dark:bg-slate-800">
-                <Text className="text-sm font-bold text-ink-900 dark:text-white">{t('emp.bank.pay', { amount: planMoney(pending.amount, pending.currency) })}</Text>
-                <Text selectable className="text-sm text-ink-800 dark:text-slate-200">{BANK_DETAILS}</Text>
-              </View>
-            ) : (
-              <Notice tone="info" text={`${t('emp.bank.askDetails')} ${t('pricing.contact')}`} />
-            )}
+            <View className="gap-1 rounded-lg bg-canvas p-3 dark:bg-slate-800">
+              <Text className="text-sm font-bold text-ink-900 dark:text-white">{t('emp.bank.pay', { amount: planMoney(pending.amount, pending.currency) })}</Text>
+              {bank.loading ? null : bank.data ? (
+                <Text selectable className="text-sm text-ink-800 dark:text-slate-200">{bank.data}</Text>
+              ) : (
+                <Text className="text-sm text-ink-800 dark:text-slate-200">{`${t('emp.bank.askDetails')} ${t('pricing.contact')}`}</Text>
+              )}
+            </View>
             <Field label={t('emp.bank.reference')} value={reference} onChangeText={setReference} autoCapitalize="characters" />
             <Button variant="outline" label={receipt ? receipt.name : t('emp.bank.receipt')} icon={<FileText color={colors.text} size={18} />} onPress={pickReceipt} />
             <Button label={t('emp.bank.send')} busy={busy} onPress={send} />

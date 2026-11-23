@@ -43,6 +43,8 @@ export type ManualPayment = {
 };
 
 export const fetchManualPayments = () => get<ManualPayment[]>('/manual-payment/mine');
+/** The account to pay into, from the server's settings; null while it isn't set. */
+export const fetchBankDetails = async () => (await get<{ details: string | null }>('/manual-payment/bank-details')).details;
 export const startManualPayment = (planId: string) => send<ManualPayment>('POST', '/manual-payment', { planId });
 export const sendReceipt = (paymentId: string, transactionReference: string, receipt: PickedFile) =>
   upload('/manual-payment/submit-receipt', receipt, { paymentId, transactionReference }, 'receipt');

@@ -439,6 +439,10 @@ sudo ufw allow 443/tcp
 # CRITICAL: Only allow SSH from VPN subnet, NOT from the public internet
 sudo ufw allow from 10.8.0.0/24 to any port 22
 
+# The API container sends bank-transfer alerts to the Jobs bot (port 8082) on the server itself.
+# Docker's own networks only; the port stays closed to the internet.
+sudo ufw allow from 172.16.0.0/12 to any port 8082 proto tcp comment 'Docker to the Jobs bot'
+
 sudo ufw enable
 sudo ufw status verbose
 ```

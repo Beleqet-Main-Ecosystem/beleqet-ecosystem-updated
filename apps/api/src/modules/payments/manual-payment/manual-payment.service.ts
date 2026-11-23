@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -10,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
+import * as http from 'http';
 import * as https from 'https';
 import { EmailService } from '../../messaging/email-automation/email.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -44,6 +46,18 @@ export class ManualPaymentService {
     private readonly config: ConfigService,
     @Optional() private readonly push?: PushService,
   ) {}
+
+  /**
+   * The account to pay into (bank, account number, name), from BANK_TRANSFER_DETAILS on the
+   * server, so changing it needs no new build of the website or the app. A written "\n" starts a
+   * new line. null while it isn't set: the payer is then asked to contact us.
+   */
+  getBankDetails(): { details: string | null } {
+    const details = (this.config.get<string>('BANK_TRANSFER_DETAILS') ?? '')
+      .replace(/\\n/g, '\n')
+      .trim();
+    return { details: details || null };
+  }
 
   /**
    * Creates a new PENDING manual payment record that the customer will
@@ -281,8 +295,10 @@ export class ManualPaymentService {
     }
 
     const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
-    const updated = await this.prisma.payment.update({
-      where: { id: paymentId },
+    // An approved payment has started its plan, so it can't be rejected, even by an admin who
+    // clicks Reject a moment after another admin approved it.
+    const { count } = await this.prisma.payment.updateMany({
+      where: { id: paymentId, status: { not: PaymentStatus.SUCCEEDED } },
       data: {
         status: PaymentStatus.FAILED,
         metadata: {
@@ -293,6 +309,10 @@ export class ManualPaymentService {
         },
       },
     });
+    if (count === 0) {
+      throw new ConflictException('This payment is already approved and its plan has started.');
+    }
+    const updated = await this.prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
 
     this.logger.log(`Manual payment ${paymentId} rejected by admin ${adminId}. Reason: ${reason}`);
 
@@ -315,6 +335,32 @@ export class ManualPaymentService {
       );
 
     return this.toRecord(updated);
+  }
+
+  /**
+   * Approve or Reject pressed in the Jobs bot. Like the admin site, it acts only on a receipt that
+   * is still waiting: every admin gets the alert, and the first one to decide wins.
+   */
+  async decideFromTelegram(
+    paymentId: string,
+    approve: boolean,
+    adminId: string,
+  ): Promise<ManualPaymentRecord> {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment || payment.provider !== PaymentProvider.MANUAL) {
+      throw new NotFoundException('This payment no longer exists.');
+    }
+    if (payment.status !== PaymentStatus.PROCESSING) {
+      const already: Partial<Record<PaymentStatus, string>> = {
+        SUCCEEDED: 'This payment is already approved.',
+        FAILED: 'This payment is already rejected.',
+        PENDING: 'No receipt has been sent for this payment yet.',
+      };
+      throw new ConflictException(already[payment.status] ?? `This payment is ${payment.status}.`);
+    }
+    return approve
+      ? this.approvePayment(paymentId, adminId)
+      : this.rejectPayment(paymentId, adminId);
   }
 
   /**
@@ -380,13 +426,15 @@ export class ManualPaymentService {
       amount: number;
       currency: string;
       userId: string;
+      metadata?: unknown;
     },
     reference: string,
     receiptUrl: string,
   ): Promise<void> {
     try {
-      // 1. Admin email
-      const adminEmail = this.config.get<string>('ADMIN_EMAIL', 'admin@beleqetjobs.com');
+      // 1. Admin email (PAYMENT_ALERT_EMAIL; not ADMIN_EMAIL, which creates the first admin account)
+      const adminEmail =
+        this.config.get<string>('PAYMENT_ALERT_EMAIL')?.trim() || 'admin@beleqetjobs.com';
       await this.emailService.dispatch({
         recipient: adminEmail,
         type: 'PAYMENT_RECEIPT',
@@ -404,11 +452,23 @@ export class ManualPaymentService {
     }
 
     try {
-      // 2. Telegram bot webhook (matches PHP logic)
+      // 2. The Jobs bot, which sends it to the bot's admins with Approve / Reject buttons
       const webhookUrl = this.config.get<string>('BELEQET_BOT_WEBHOOK_URL');
       const webhookSecret = this.config.get<string>('WEBHOOK_SECRET_TOKEN', '');
 
       if (webhookUrl) {
+        const metadata = (payment.metadata as Record<string, unknown> | null) ?? {};
+        const planId = typeof metadata.planId === 'string' ? metadata.planId : null;
+        const [payer, plan] = await Promise.all([
+          this.prisma.user.findUnique({
+            where: { id: payment.userId },
+            select: { firstName: true, lastName: true, email: true },
+          }),
+          planId
+            ? this.prisma.plan.findUnique({ where: { id: planId }, select: { name: true } })
+            : null,
+        ]);
+        const payerName = `${payer?.firstName ?? ''} ${payer?.lastName ?? ''}`.trim();
         await this.postJson(webhookUrl, webhookSecret, {
           action: 'manual_payment_uploaded',
           order_id: payment.id,
@@ -416,6 +476,8 @@ export class ManualPaymentService {
           currency: payment.currency,
           reference,
           receipt_url: receiptUrl,
+          payer: [payerName, payer?.email].filter(Boolean).join(' · '),
+          plan: plan?.name ?? '',
         });
       }
     } catch (err) {
@@ -423,16 +485,20 @@ export class ManualPaymentService {
     }
   }
 
-  /** Lightweight HTTPS POST — avoids pulling in axios just for a webhook call */
+  /**
+   * Lightweight POST, so axios isn't needed for one webhook call. http too: the Jobs bot runs on
+   * the same server and is reached directly, not through a public address.
+   */
   private postJson(url: string, secret: string, body: object): Promise<void> {
     return new Promise((resolve) => {
       const payload = JSON.stringify(body);
       const parsedUrl = new URL(url);
+      const client = parsedUrl.protocol === 'http:' ? http : https;
 
-      const req = https.request(
+      const req = client.request(
         {
           hostname: parsedUrl.hostname,
-          port: parsedUrl.port || 443,
+          port: parsedUrl.port || (client === http ? 80 : 443),
           path: parsedUrl.pathname + parsedUrl.search,
           method: 'POST',
           headers: {
@@ -442,7 +508,13 @@ export class ManualPaymentService {
           },
           timeout: 15_000,
         },
-        () => resolve(),
+        (res) => {
+          if ((res.statusCode ?? 0) >= 300) {
+            this.logger.warn(`Webhook ${parsedUrl.host} answered HTTP ${res.statusCode}`);
+          }
+          res.resume();
+          resolve();
+        },
       );
 
       req.on('error', (err) => {

@@ -1,5 +1,7 @@
 import * as fs from 'fs';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import * as http from 'http';
+import { AddressInfo } from 'net';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentProvider, PaymentStatus } from '@prisma/client';
@@ -273,7 +275,7 @@ describe('ManualPaymentService', () => {
     it('rejects a payment and records rejection reason in metadata', async () => {
       const dummy = createDummyPayment({ status: PaymentStatus.PROCESSING });
       mockPrismaService.payment.findUnique.mockResolvedValue(dummy);
-      mockPrismaService.payment.update.mockResolvedValue({
+      mockPrismaService.payment.findUniqueOrThrow.mockResolvedValue({
         ...dummy,
         status: PaymentStatus.FAILED,
         metadata: {
@@ -472,5 +474,237 @@ describe('ManualPaymentService plans and privacy', () => {
     prisma.payment.findUnique.mockResolvedValue(record({ userId: 'owner' }));
     await expect(service.findOne('p1', 'intruder')).rejects.toThrow('not found');
     await expect(service.findOne('p1', 'admin', true)).resolves.toMatchObject({ id: 'p1' });
+  });
+
+  it('never rejects a payment that is approved, even a moment after the approval', async () => {
+    prisma.payment.findUnique.mockResolvedValue(record());
+    prisma.payment.updateMany.mockResolvedValue({ count: 0 });
+    await expect(service.rejectPayment('p1', 'admin')).rejects.toThrow(ConflictException);
+    expect(prisma.payment.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'p1', status: { not: 'SUCCEEDED' } },
+        data: expect.objectContaining({ status: 'FAILED' }),
+      }),
+    );
+    expect(prisma.notification.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('ManualPaymentService from Telegram', () => {
+  const prisma: Record<string, any> = {
+    payment: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
+    },
+    plan: { findUniqueOrThrow: jest.fn() },
+    subscription: { findFirst: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
+    notification: { create: jest.fn().mockResolvedValue({}) },
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma)),
+  };
+  const now = new Date();
+  const record = (extra: Record<string, unknown> = {}) => ({
+    id: 'p1',
+    userId: 'u1',
+    provider: 'MANUAL',
+    amount: 150000,
+    currency: 'ETB',
+    status: 'PROCESSING',
+    metadata: { planId: 'pro' },
+    createdAt: now,
+    updatedAt: now,
+    user: { email: '' },
+    ...extra,
+  });
+  let service: ManualPaymentService;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const module = await Test.createTestingModule({
+      providers: [
+        ManualPaymentService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: UploadsService, useValue: {} },
+        { provide: EmailService, useValue: { dispatch: jest.fn().mockResolvedValue(undefined) } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get(ManualPaymentService);
+    prisma.payment.updateMany.mockResolvedValue({ count: 1 });
+    prisma.plan.findUniqueOrThrow.mockResolvedValue({ id: 'pro', interval: 'MONTHLY' });
+    prisma.subscription.findFirst.mockResolvedValue(null);
+    prisma.subscription.create.mockResolvedValue({ id: 'sub1' });
+  });
+
+  it('Approve starts the plan, as it does on the admin site', async () => {
+    prisma.payment.findUnique.mockResolvedValue(record());
+    prisma.payment.update.mockResolvedValue(record({ status: 'SUCCEEDED' }));
+    const result = await service.decideFromTelegram('p1', true, 'telegram:712718884');
+    expect(result.status).toBe('SUCCEEDED');
+    expect(prisma.subscription.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: 'u1', planId: 'pro' }) }),
+    );
+    expect(prisma.payment.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { metadata: expect.objectContaining({ approvedBy: 'telegram:712718884' }) },
+      }),
+    );
+  });
+
+  it('Reject marks it failed and starts nothing', async () => {
+    prisma.payment.findUnique.mockResolvedValue(record());
+    prisma.payment.findUniqueOrThrow.mockResolvedValue(record({ status: 'FAILED' }));
+    const result = await service.decideFromTelegram('p1', false, 'telegram:712718884');
+    expect(result.status).toBe('FAILED');
+    expect(prisma.payment.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'FAILED',
+          metadata: expect.objectContaining({ rejectedBy: 'telegram:712718884' }),
+        }),
+      }),
+    );
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+  });
+
+  it('acts only on a receipt that is still waiting: the first admin to decide wins', async () => {
+    for (const [status, says] of [
+      ['SUCCEEDED', 'already approved'],
+      ['FAILED', 'already rejected'],
+      ['PENDING', 'No receipt'],
+    ]) {
+      prisma.payment.findUnique.mockResolvedValue(record({ status }));
+      await expect(service.decideFromTelegram('p1', true, 'telegram:1')).rejects.toThrow(says);
+      await expect(service.decideFromTelegram('p1', false, 'telegram:1')).rejects.toThrow(
+        ConflictException,
+      );
+    }
+    expect(prisma.payment.updateMany).not.toHaveBeenCalled();
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a payment that is missing or not a bank transfer', async () => {
+    prisma.payment.findUnique.mockResolvedValue(null);
+    await expect(service.decideFromTelegram('nope', true, 'telegram:1')).rejects.toThrow(
+      NotFoundException,
+    );
+    prisma.payment.findUnique.mockResolvedValue(record({ provider: 'CHAPA' }));
+    await expect(service.decideFromTelegram('p1', true, 'telegram:1')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(prisma.payment.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('ManualPaymentService bank details and alerts', () => {
+  const settings: Record<string, string | undefined> = {};
+  const prisma: Record<string, any> = {
+    payment: { findUnique: jest.fn(), update: jest.fn() },
+    user: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    plan: { findUnique: jest.fn() },
+    notification: { create: jest.fn().mockResolvedValue({}) },
+  };
+  const email = { dispatch: jest.fn().mockResolvedValue(undefined) };
+  const uploads = { uploadFile: jest.fn() };
+  let service: ManualPaymentService;
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    for (const key of Object.keys(settings)) delete settings[key];
+    const module = await Test.createTestingModule({
+      providers: [
+        ManualPaymentService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: UploadsService, useValue: uploads },
+        { provide: EmailService, useValue: email },
+        {
+          provide: ConfigService,
+          useValue: { get: (key: string, fallback?: string) => settings[key] ?? fallback },
+        },
+      ],
+    }).compile();
+    service = module.get(ManualPaymentService);
+  });
+
+  it('gives the account to pay into from the server settings, one line per \\n', () => {
+    expect(service.getBankDetails()).toEqual({ details: null });
+    settings.BANK_TRANSFER_DETAILS = '  ';
+    expect(service.getBankDetails()).toEqual({ details: null });
+    settings.BANK_TRANSFER_DETAILS =
+      'Commercial Bank of Ethiopia\\nAccount: 1000123\\nName: Beleqet';
+    expect(service.getBankDetails()).toEqual({
+      details: 'Commercial Bank of Ethiopia\nAccount: 1000123\nName: Beleqet',
+    });
+  });
+
+  it('sends the Jobs bot the alert over plain http on the same server, and emails PAYMENT_ALERT_EMAIL', async () => {
+    const received: { secret?: string; body: Record<string, unknown> }[] = [];
+    const bot = http.createServer((req, res) => {
+      let data = '';
+      req.on('data', (chunk) => (data += chunk));
+      req.on('end', () => {
+        received.push({
+          secret: req.headers['x-telegram-bot-api-secret-token'] as string,
+          body: JSON.parse(data),
+        });
+        res.end('OK');
+      });
+    });
+    await new Promise<void>((resolve) => bot.listen(0, '127.0.0.1', resolve));
+    const { port } = bot.address() as AddressInfo;
+    settings.BELEQET_BOT_WEBHOOK_URL = `http://127.0.0.1:${port}/webhook`;
+    settings.WEBHOOK_SECRET_TOKEN = 'shared-secret';
+    settings.PAYMENT_ALERT_EMAIL = 'payments@beleqetjobs.com';
+
+    const waiting = { id: 'p1', userId: 'u1', amount: 150000, currency: 'ETB', status: 'PENDING' };
+    prisma.payment.findUnique.mockResolvedValue(waiting);
+    uploads.uploadFile.mockResolvedValue({ publicUrl: 'https://api.example/receipt.pdf' });
+    prisma.payment.update.mockResolvedValue({
+      ...waiting,
+      status: 'PROCESSING',
+      metadata: { planId: 'pro' },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    prisma.user.findUnique.mockResolvedValue({
+      firstName: 'Sara',
+      lastName: 'Tesfaye',
+      email: 'sara@example.com',
+    });
+    prisma.plan.findUnique.mockResolvedValue({ name: 'Pro' });
+
+    try {
+      await service.submitReceipt(
+        { paymentId: 'p1', transactionReference: 'FT123' },
+        { mimetype: 'application/pdf', size: 1000 } as MulterFile,
+        'u1',
+      );
+      for (let i = 0; i < 100 && received.length === 0; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    } finally {
+      bot.close();
+      bot.closeAllConnections();
+    }
+
+    expect(received).toEqual([
+      {
+        secret: 'shared-secret',
+        body: {
+          action: 'manual_payment_uploaded',
+          order_id: 'p1',
+          amount: '1,500',
+          currency: 'ETB',
+          reference: 'FT123',
+          receipt_url: 'https://api.example/receipt.pdf',
+          payer: 'Sara Tesfaye · sara@example.com',
+          plan: 'Pro',
+        },
+      },
+    ]);
+    expect(email.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ recipient: 'payments@beleqetjobs.com' }),
+    );
   });
 });
