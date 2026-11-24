@@ -7,7 +7,8 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from config import CHANGE_LANGUAGE, CITY, COMPANY_NAME, CONFIG, CONTACT_NAME, COUNTRY, COUNTRY_TYPED, EMAIL, EMAIL_CODE, GENDER, JOB_TITLE, LANGUAGE, LINK_EMAIL, NAME, PASSWORD, PHONE, REGISTRATION_KEYS, ROLE, TG_USERNAME, TRADE_LICENSE, logger
 from texts import COUNTRY_BUTTONS, ETHIOPIAN_CITIES, TRANSLATIONS
-from common import MINI_APP, bot_context, challenge_command, country_from_text, full_telegram_name, get_keyboard, get_user_role, normalize_role, own_phone, password_ok, registration_payload, role_keyboard
+import challenge
+from common import MINI_APP, bot_context, country_from_text, full_telegram_name, get_keyboard, get_user_role, normalize_role, own_phone, password_ok, registration_payload, role_keyboard
 from accounts import send_email_code
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -51,9 +52,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         )
         return ConversationHandler.END
 
-    # --- PRIORITY 3: Deep linking for SGS CHALLENGE ---
-    if context.args and context.args[0] == "challenge":
-        await challenge_command(update, context)
+    # --- PRIORITY 3: Deep linking for SGS CHALLENGE (challenge, or challenge-<creator id>) ---
+    if context.args and (context.args[0] == "challenge" or context.args[0].startswith("challenge-")):
+        creator = context.args[0].removeprefix("challenge").removeprefix("-")
+        await challenge.challenge_command(update, context, creator_id=int(creator) if creator.isdigit() else None)
         return ConversationHandler.END
 
     # --- PRIORITY 4: Deep linking for ACCOUNT LINKING ---
@@ -120,8 +122,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                         return ConversationHandler.END
 
     # --- RE-REGISTRATION / NEW USER ---
+    # The challenge is one tap away from the first screen: voting doesn't wait for registration.
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("English", callback_data='en'), InlineKeyboardButton("አማርኛ", callback_data='am')]
+        [InlineKeyboardButton("English", callback_data='en'), InlineKeyboardButton("አማርኛ", callback_data='am')],
+        *challenge.challenge_row(),
     ])
     await bot_context.rate_limiter.send_message(
         chat_id,
@@ -596,6 +600,7 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     chat_id = update.effective_chat.id if update.effective_chat else (update.effective_message.chat_id if update.effective_message else None)
     payload = registration_payload(user_data, update.effective_user)
     next_state = ConversationHandler.END
+    registered = False
 
     try:
         req_kwargs = {'json': payload}
@@ -603,6 +608,7 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
         async with bot_context.session.post(CONFIG['wp_api_url'], **req_kwargs, timeout=60) as response:
             if response.status == 201 or response.status == 200:
                 data = await response.json()
+                registered = True
                 context.user_data['role'] = normalize_role(data.get('role'))
                 context.user_data['language'] = data.get('language') or lang
                 status = data.get('status', 'approved')
@@ -675,6 +681,8 @@ async def submit_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     if next_state == EMAIL_CODE:
         await bot_context.rate_limiter.send_message(chat_id, TRANSLATIONS[lang]['confirm_now'])
         return await send_email_code(chat_id, context, str(update.effective_user.id))
+    if chat_id and registered:
+        await challenge.after_registration(chat_id, update.effective_user.id, context)
     return ConversationHandler.END
 
 async def restart_from_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

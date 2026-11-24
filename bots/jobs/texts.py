@@ -115,7 +115,8 @@ Our team will review these promptly so you can start hiring your next great tale
             'applicants': "Applicants",
             'my_jobs': "My Jobs",
             'job_list': "Jobs",
-            'challenge': "SGS Challenge"
+            'challenge': "🎁 SGS Challenge – vote & get a discount",
+            'voucher': "🎁 My voucher"
         }
     },
     'am': {
@@ -209,7 +210,14 @@ Our team will review these promptly so you can start hiring your next great tale
             'applicants': "አመልካቾች",
             'my_jobs': "የእኔ ሥራዎች",
             'job_list': "ስራዎች",
-            'challenge': "SGS Challenge"
+            'challenge': "🎁 SGS Challenge – ድምጽ ይስጡ ቅናሽ ያግኙ",
+            'voucher': "🎁 የእኔ ቫውቸር"
         }
     }
+}
+
+
+# Labels people may still have on an older keyboard: they keep working.
+MENU_ALIASES = {
+    "SGS Challenge": "challenge",
 }

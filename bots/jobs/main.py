@@ -11,7 +11,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'server
 from voting_routes import UPLOADS_DIR as CHALLENGE_UPLOADS_DIR, init_challenge_db, register_challenge_routes  # noqa: E402
 
 from config import BROADCAST_BUTTON_TEXT, BROADCAST_BUTTON_URL, BROADCAST_CONFIRM, BROADCAST_MESSAGE, CHANGE_LANGUAGE, CITY, COMPANY_NAME, CONFIG, CONTACT_NAME, COUNTRY, COUNTRY_TYPED, EMAIL, EMAIL_CODE, GENDER, JOB_TITLE, LANGUAGE, LINK_CODE, LINK_EMAIL, NAME, NEW_EMAIL, PASSWORD, PHONE, ROLE, TG_USERNAME, TRADE_LICENSE, logger
-from common import MINI_APP, RateLimiter, bot_context, cancel, challenge_command
+from common import MINI_APP, RateLimiter, bot_context, cancel
+import challenge
 from registration import change_language_command, get_city, get_company_name, get_contact_name, get_country, get_email, get_gender, get_job_title, get_name, get_password, get_phone, get_tg_username, get_trade_license, get_typed_country, handle_language_selection, handle_language_update, handle_role_selection, restart_from_button, start, use_telegram_name
 from accounts import code_button, get_link_code, get_link_email, handle_email_code, handle_new_email, link_button
 from menu import handle_menu_selection
@@ -135,7 +136,10 @@ async def main() -> None:
         bot_context.application.add_handler(email_conv)
         bot_context.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_menu_selection))
         bot_context.application.add_handler(CallbackQueryHandler(handle_payment_decision, pattern='^(approve_payment_|reject_payment_)'))
-        bot_context.application.add_handler(CommandHandler("challenge", challenge_command))
+        bot_context.application.add_handler(CommandHandler("challenge", challenge.challenge_command))
+        bot_context.application.add_handler(CommandHandler("voucher", challenge.voucher_command))
+        bot_context.application.add_handler(MessageHandler(filters.Regex(f"^{challenge.REMIND_BUTTON}$"), challenge.remind_start))
+        bot_context.application.add_handler(CallbackQueryHandler(challenge.remind_decision, pattern='^sgs_(remind|unpin|cancel)$'))
 
         # Room for 5 MB avatar uploads (aiohttp refuses bodies over 1 MB by default).
         app = web.Application(client_max_size=6 * 1024 * 1024)
@@ -145,7 +149,9 @@ async def main() -> None:
         
         # --- SGS Challenge Routes ---
         challenge_db = await init_challenge_db()
-        register_challenge_routes(app, challenge_db, bot_token=CONFIG['telegram_token'], wp_api_url=CONFIG['wp_api_url'], admin_ids=CONFIG['admin_ids'])
+        bot_context.challenge_db = challenge_db
+        register_challenge_routes(app, challenge_db, bot_token=CONFIG['telegram_token'], wp_api_url=CONFIG['wp_api_url'],
+                                  admin_ids=CONFIG['admin_ids'], on_vote=challenge.send_voucher_after_vote)
         
         async def challenge_index(request):
             return web.FileResponse(os.path.join(os.path.dirname(__file__), 'sgs-challenge', 'app', 'index.html'))
@@ -180,6 +186,8 @@ async def main() -> None:
             logger.info(f">>> Telegram Chat Menu Button set to {MINI_APP} <<<")
         except Exception as e:
             logger.warning(f"Could not set chat menu button: {e}")
+
+        await challenge.setup_profile(bot_context.application.bot)
 
         await bot_context.application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
         logger.info(">>> Telegram bot started polling <<<")
