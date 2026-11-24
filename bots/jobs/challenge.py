@@ -9,7 +9,7 @@ from html import escape
 from urllib.parse import quote
 
 import telegram
-from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
+from telegram import BotCommand, BotCommandScopeChat, InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import ContextTypes
 
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sgs-challenge', 'server'))
@@ -323,16 +323,31 @@ def described(description: str) -> str:
     return f"{line}\n\n{rest}"[:512] if rest else line[:512]
 
 
+# The Menu list everyone sees, and the extra commands only the bot's admins see in theirs.
+COMMANDS = [
+    BotCommand("start", "Start the bot"),
+    BotCommand("challenge", "🎁 SGS Challenge: vote & get a voucher"),
+    BotCommand("voucher", "🎁 My SGS Challenge voucher"),
+    BotCommand("language", "Allows user to change their preferred language"),
+    BotCommand("cancel", "Stops the current operation"),
+]
+ADMIN_COMMANDS = [
+    BotCommand("broadcast", "📣 Send a message to all users"),
+    BotCommand("remind", "🎁 Remind people who haven't voted"),
+]
+
+
 async def setup_profile(bot) -> None:
-    """/challenge and /voucher in the Menu list for everyone, and the challenge in the description."""
+    """/challenge and /voucher in the Menu list for everyone, /broadcast and /remind also in the admins',
+    and the challenge in the description."""
     try:
-        await bot.set_my_commands([
-            BotCommand("start", "Start the bot"),
-            BotCommand("challenge", "🎁 SGS Challenge: vote & get a voucher"),
-            BotCommand("voucher", "🎁 My SGS Challenge voucher"),
-            BotCommand("language", "Allows user to change their preferred language"),
-            BotCommand("cancel", "Stops the current operation"),
-        ])
+        await bot.set_my_commands(COMMANDS)
+        for admin_id in CONFIG['admin_ids']:
+            try:
+                await bot.set_my_commands(COMMANDS + ADMIN_COMMANDS, scope=BotCommandScopeChat(chat_id=admin_id))
+            except telegram.error.TelegramError as e:
+                # An admin who has never opened the bot has no chat with it yet.
+                logger.info(f"Could not set the admin commands for {admin_id}: {e}")
         current = (await bot.get_my_description()).description or ""
         wanted = described(current)
         if wanted != current:

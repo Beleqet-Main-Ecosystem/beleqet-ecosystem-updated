@@ -203,3 +203,31 @@ def test_a_creator_link_opens_the_challenge_at_their_card():
         assert replies[0].endswith("?startapp=vote&creator=7")
         assert replies[1].endswith("?startapp=vote")
     asyncio.run(check())
+
+
+def test_admins_get_broadcast_and_remind_in_their_menu_and_others_dont():
+    async def check():
+        calls = []
+
+        class Bot:
+            async def set_my_commands(self, commands, scope=None):
+                if scope and scope.chat_id == 999:
+                    raise challenge.telegram.error.BadRequest("Chat not found")
+                calls.append((getattr(scope, "chat_id", None), [c.command for c in commands]))
+
+            async def get_my_description(self):
+                return SimpleNamespace(description="Beleqet Jobs.")
+
+            async def set_my_description(self, description):
+                pass
+
+        saved = challenge.CONFIG['admin_ids']
+        challenge.CONFIG['admin_ids'] = [712718884, 999]
+        try:
+            await challenge.setup_profile(Bot())
+        finally:
+            challenge.CONFIG['admin_ids'] = saved
+        everyone = ["start", "challenge", "voucher", "language", "cancel"]
+        # An admin who never opened the bot is skipped; the others still get theirs.
+        assert calls == [(None, everyone), (712718884, everyone + ["broadcast", "remind"])]
+    asyncio.run(check())
