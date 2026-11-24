@@ -12,7 +12,7 @@
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+Ethiopic:wght@400;500;600;700&display=swap"
     rel="stylesheet">
   <!-- Bump ?v= on every change: Cloudflare and Telegram keep these files for hours. -->
-  <link rel="stylesheet" href="style.css?v=20261106-2">
+  <link rel="stylesheet" href="style.css?v=20261124-2">
 </head>
 
 <body>
@@ -54,6 +54,15 @@
       <p>Choose your favourite TikTok creator and vote from the list below</p>
     </div>
   </section>
+
+  <!-- For people who haven't voted yet: what they get. -->
+  <div class="promo-card offer-card" id="offer-card" style="display:none;">
+    <div class="promo-icon">🎁</div>
+    <div class="promo-text">
+      <b id="offer-title">Vote and get a discount · ድምጽ ይስጡ፣ ቅናሽ ያግኙ</b>
+      <span id="offer-text"></span>
+    </div>
+  </div>
 
   <a class="promo-card" id="promo-card" href="#">
     <div class="promo-icon">💼</div>
@@ -106,8 +115,9 @@
           full formula.</p>
       </div>
       <div class="faq-item"><b>What do I get for voting?</b>
-        <p>After you vote you get a Super SGS Furniture voucher code. Show it at Super SGS Furniture to get your
-          discount. Each code works once; tap "My voucher" to see it again.</p>
+        <p>After you vote you get a Super SGS Furniture voucher code: <b id="faq-offer">a discount at Super SGS
+          Furniture</b>. Show it at the shop. Each code works once; tap "My voucher" here, or "🎁 My voucher" in the
+          bot, to see it again.</p>
       </div>
       <div class="faq-item"><b>ሽልማቴን እንዴት አገኛለሁ?</b>
         <p>Winners are contacted directly on Telegram by Super SGS Furniture within 5 business days of the results
@@ -233,7 +243,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20261106-2"></script>
+  <script src="app.js?v=20261124-2"></script>
 </body>
 
 </html>

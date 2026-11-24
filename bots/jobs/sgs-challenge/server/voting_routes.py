@@ -20,8 +20,29 @@ CHALLENGE_DB_PATH = os.getenv("SGS_CHALLENGE_DB_PATH") or os.path.join(DATA_DIR,
 UPLOADS_DIR = os.path.join(DATA_DIR, "sgs-challenge-uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 ALLOWED_AVATAR_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
-# What a voucher is worth, as shown to voters (set SGS_VOUCHER_OFFER, e.g. "10% off any Super SGS Furniture order").
-VOUCHER_OFFER = os.getenv("SGS_VOUCHER_OFFER") or "a discount at Super SGS Furniture"
+# What a voucher is worth, as shown to voters.
+VOUCHER_OFFER = "20% off any order at Super SGS Furniture"
+VOUCHER_OFFER_AM = "በSuper SGS Furniture በማንኛውም ግዢ 20% ቅናሽ"
+# Shop staff (Telegram user ids, comma-separated): they check and mark vouchers, nothing else.
+VOUCHER_STAFF_IDS = [int(x) for x in os.getenv("SGS_VOUCHER_STAFF_IDS", "").replace(" ", "").split(",") if x.isdigit()]
+
+
+async def has_voted(db: aiosqlite.Connection, telegram_id) -> bool:
+    async with db.execute("SELECT 1 FROM challenge_votes WHERE telegram_id = ?", (str(telegram_id),)) as cur:
+        return await cur.fetchone() is not None
+
+
+async def voter_ids(db: aiosqlite.Connection) -> set:
+    async with db.execute("SELECT DISTINCT telegram_id FROM challenge_votes") as cur:
+        return {row[0] for row in await cur.fetchall()}
+
+
+async def voucher_of(db: aiosqlite.Connection, telegram_id):
+    """(code, redeemed_at) of this person's voucher, or None."""
+    async with db.execute(
+        "SELECT coupon_code, redeemed_at FROM challenge_coupons WHERE telegram_id = ?", (str(telegram_id),)
+    ) as cur:
+        return await cur.fetchone()
 # No 0/O, 1/I/L: codes are read out loud and typed in at the shop.
 VOUCHER_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -117,27 +138,45 @@ async def init_challenge_db(path: str = CHALLENGE_DB_PATH):
         columns = [row[1] for row in await cur.fetchall()]
     if "redeemed_at" not in columns:
         await db.execute("ALTER TABLE challenge_coupons ADD COLUMN redeemed_at INTEGER")
+    # Reminders the bot sent people who hadn't voted: how many (two at most) and the pinned one.
+    await db.execute("""
+        CREATE TABLE IF NOT EXISTS challenge_reminders (
+            telegram_id TEXT PRIMARY KEY,
+            sent INTEGER NOT NULL DEFAULT 0,
+            last_at INTEGER,
+            pinned_message_id INTEGER
+        )
+    """)
     await db.commit()
 
     return db
 
-def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bot_token: str, wp_api_url: str = None, admin_ids: list = None):
+def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bot_token: str, wp_api_url: str = None,
+                              admin_ids: list = None, staff_ids: list = None, on_vote=None):
+    """on_vote(telegram_id, creator_name, voucher_code) runs after a vote counts (the bot sends the voucher);
+    if it fails, the vote still stands."""
     if admin_ids is None:
         admin_ids = []
+    if staff_ids is None:
+        staff_ids = VOUCHER_STAFF_IDS
+
+    def _role(request: web.Request):
+        """'admin', 'staff' (shop staff: vouchers only) or None, for whoever signed the request."""
+        try:
+            telegram_id = int(_verified_telegram_id(request, bot_token) or 0)
+        except ValueError:
+            return None
+        if telegram_id in admin_ids:
+            return "admin"
+        if telegram_id in staff_ids:
+            return "staff"
+        return None
 
     def _verify_admin_header(request: web.Request):
-        init_data = request.headers.get("X-Init-Data", "")
-        verified = verify_init_data(init_data, bot_token)
-        if not verified:
-            return False
-        user = verified.get("user") or {}
-        try:
-            telegram_id = int(user.get("id", 0))
-        except ValueError:
-            return False
-        if telegram_id not in admin_ids:
-            return False
-        return True
+        return _role(request) == "admin"
+
+    def _may_check_vouchers(request: web.Request):
+        return _role(request) in ("admin", "staff")
 
     async def _voucher_for(telegram_id: str, create: bool):
         """(code, redeemed_at) for this voter; with create, a new unique code if they have none yet."""
@@ -214,6 +253,8 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             "creators": creators,
             "total_votes": total_votes,
             "total_views": total_views,
+            "offer": VOUCHER_OFFER,
+            "offer_am": VOUCHER_OFFER_AM,
         })
 
     async def cast_vote(request: web.Request) -> web.Response:
@@ -260,9 +301,10 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
                     return web.json_response({"error": "Error connecting to the verification server."}, status=500)
 
         async with db.execute(
-            "SELECT id FROM challenge_creators WHERE id = ? AND is_active = 1", (creator_id,)
+            "SELECT name FROM challenge_creators WHERE id = ? AND is_active = 1", (creator_id,)
         ) as cur:
-            if not await cur.fetchone():
+            creator_row = await cur.fetchone()
+            if not creator_row:
                 return web.json_response({"error": "This creator is not part of the challenge."}, status=404)
 
         async with db.execute(
@@ -292,6 +334,11 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         except Exception as e:
             logger.error(f"Could not issue a voucher for {telegram_id}: {e}")
             voucher = None
+        if on_vote:
+            try:
+                await on_vote(telegram_id, creator_row[0], voucher[0] if voucher else None)
+            except Exception as e:
+                logger.error(f"After-vote message for {telegram_id} failed: {e}")
         return web.json_response({
             "ok": True,
             "votes": votes,
@@ -394,7 +441,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         return re.sub(r"[^A-Z0-9-]", "", str(value or "").upper())
 
     async def admin_voucher_check(request: web.Request) -> web.Response:
-        if not _verify_admin_header(request):
+        if not _may_check_vouchers(request):
             return web.json_response({"error": "Unauthorized"}, status=401)
         try:
             body = await request.json()
@@ -410,7 +457,7 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         return web.json_response({"found": True, "code": code, "issued_at": row[0], "redeemed_at": row[1]})
 
     async def admin_voucher_redeem(request: web.Request) -> web.Response:
-        if not _verify_admin_header(request):
+        if not _may_check_vouchers(request):
             return web.json_response({"error": "Unauthorized"}, status=401)
         try:
             body = await request.json()
@@ -432,9 +479,10 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         return web.json_response({"error": "This voucher was already used.", "redeemed_at": row[0]}, status=409)
 
     async def admin_check(request: web.Request) -> web.Response:
-        if not _verify_admin_header(request):
+        role = _role(request)
+        if not role:
             return web.json_response({"error": "Unauthorized"}, status=401)
-        return web.json_response({"is_admin": True})
+        return web.json_response({"is_admin": role == "admin", "is_staff": role == "staff"})
 
     async def admin_get_creators(request: web.Request) -> web.Response:
         if not _verify_admin_header(request):

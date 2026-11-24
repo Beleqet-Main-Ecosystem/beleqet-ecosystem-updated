@@ -4,8 +4,9 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppI
 from telegram.ext import ContextTypes
 
 from config import CONFIG, logger
-from texts import TRANSLATIONS
-from common import MENU_URLS, bot_context, challenge_command, fetch_account, normalize_role
+from texts import MENU_ALIASES, TRANSLATIONS
+from common import MENU_URLS, bot_context, fetch_account, normalize_role
+import challenge
 
 async def ask_to_confirm_email(chat_id: int, lang: str, account: dict) -> None:
     """An employer tapped Post Job without a confirmed email: offer to send a code or add an email."""
@@ -53,9 +54,9 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
         lang = 'en'
     # --- !! END OF REPLACEMENT !! ---
 
-    # 1. First look up the menu key in the user's current language
-    menu_key = None
-    if lang in TRANSLATIONS and 'menu' in TRANSLATIONS[lang]:
+    # 1. First look up the menu key in the user's current language (or an older label of a button)
+    menu_key = MENU_ALIASES.get(text)
+    if not menu_key and lang in TRANSLATIONS and 'menu' in TRANSLATIONS[lang]:
         menu_key = next((key for key, value in TRANSLATIONS[lang]['menu'].items() if value == text), None)
 
     # 2. If not matched, search across ALL available languages (handles language switch or keyboard mismatch)
@@ -75,7 +76,10 @@ async def handle_menu_selection(update: Update, context: ContextTypes.DEFAULT_TY
         return
 
     if menu_key == 'challenge':
-        await challenge_command(update, context)
+        await challenge.challenge_command(update, context)
+        return
+    if menu_key == 'voucher':
+        await challenge.voucher_command(update, context)
         return
 
     # Posting needs a confirmed email; asked fresh each time, since it may have just been confirmed.
@@ -148,3 +152,5 @@ https://beleqetjobs.com ላይማስታወቂያዎችን በመመልከት <b>
             text=message_text,
             reply_markup=reply_markup
         )
+    # Once per person, while voting is open, if they haven't voted.
+    await challenge.nudge_once(update, context)

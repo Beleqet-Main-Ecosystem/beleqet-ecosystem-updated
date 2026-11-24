@@ -5,11 +5,11 @@ import re
 import telegram
 from collections import defaultdict
 from functools import lru_cache
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update, WebAppInfo
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, Update
 from telegram.ext import Application, ContextTypes, ConversationHandler
 
 from config import CONFIG, MIN_PASSWORD_LENGTH, logger
-from texts import COUNTRY_NAMES, TRANSLATIONS
+from texts import COUNTRY_NAMES, MENU_ALIASES, TRANSLATIONS
 
 ROLE_BACKEND = {
     'employer': 'wp_job_board_pro_employer',
@@ -40,6 +40,8 @@ def six_digit_code(text: str):
 
 def menu_key_for(text: str):
     """(menu key, language) when the text is one of the menu buttons, in either language."""
+    if text in MENU_ALIASES:
+        return MENU_ALIASES[text], 'en'
     for l_code, l_data in TRANSLATIONS.items():
         for key, value in l_data.get('menu', {}).items():
             if value == text:
@@ -129,6 +131,7 @@ class BotContext:
         self.session: aiohttp.ClientSession = None
         self.application: Application = None
         self.rate_limiter = None
+        self.challenge_db = None
 
 bot_context = BotContext()
 
@@ -142,18 +145,20 @@ def get_keyboard(role: str, lang: str, is_admin: bool = False) -> ReplyKeyboardM
         options = [
             [menu['job_list'], menu['my_profile']],
             [menu['my_applications'], menu['dashboard']],
-            [menu['challenge']]
+            [menu['challenge']],
+            [menu['voucher']]
         ]
     else:
         options = [
             [menu['post_job'], menu['dashboard']],
             [menu['applicants'], menu['my_jobs']],
             [menu['my_profile']],
-            [menu['challenge']]
+            [menu['challenge']],
+            [menu['voucher']]
         ]
     
     if is_admin:
-        options.append(["📣 Broadcast Message"])
+        options.append(["📣 Broadcast Message", "🎁 Remind non-voters"])
         
     return ReplyKeyboardMarkup(options, resize_keyboard=True, one_time_keyboard=False)
 
@@ -262,14 +267,3 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         )
     context.user_data.clear()
     return ConversationHandler.END
-
-
-async def challenge_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    url = f"{CONFIG['challenge_mini_app_url']}?startapp=vote"
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton(
-        "🗳️ Vote Now / ድምጽ ይስጡ", web_app=WebAppInfo(url=url)
-    )]])
-    await update.message.reply_text(
-        "Super SGS Furniture Creative Challenge is live! Vote for your favourite creator 👇",
-        reply_markup=kb
-    )

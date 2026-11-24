@@ -73,6 +73,9 @@ function init() {
   loadMyVoucher();
 }
 
+// A creator's own link (t.me/<bot>?start=challenge-<id>) opens the challenge at their card.
+const LINKED_CREATOR = new URLSearchParams(window.location.search).get('creator');
+
 async function loadCreators() {
   const loadingEl = document.getElementById('loading');
   try {
@@ -84,13 +87,37 @@ async function loadCreators() {
     const data = await res.json();
     STATE.creators = data.creators || [];
     STATE.filtered = STATE.creators;
+    STATE.offer = data.offer;
+    STATE.offerAm = data.offer_am;
     document.getElementById('stat-votes').textContent = formatNum(data.total_votes || 0);
     document.getElementById('stat-views').textContent = formatNum(data.total_views || 0);
     renderCreators();
     renderWinners();
+    renderCampaign();
+    showLinkedCreator();
   } catch (err) {
     loadingEl.textContent = 'Could not load creators. Pull to refresh.';
   }
+}
+
+// The 20% offer, for people who haven't voted yet.
+function renderCampaign() {
+  const voted = STATE.creators.some((c) => c.voted_by_me);
+  if (STATE.offer) {
+    document.getElementById('offer-text').textContent = STATE.offerAm ? `${STATE.offer} · ${STATE.offerAm}` : STATE.offer;
+    document.getElementById('faq-offer').textContent = STATE.offer;
+  }
+  document.getElementById('offer-card').style.display = !voted && STATE.offer ? 'flex' : 'none';
+}
+
+function showLinkedCreator() {
+  if (!LINKED_CREATOR || STATE.linkedShown) return;
+  const row = document.querySelector(`.vote-btn[data-id="${CSS.escape(LINKED_CREATOR)}"]`);
+  if (!row) return;
+  STATE.linkedShown = true;
+  const card = row.closest('.creator-row');
+  card.classList.add('linked');
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function formatNum(n) {
@@ -166,6 +193,7 @@ async function castVote(creatorId, btn) {
     if (creator) { creator.votes = data.votes; creator.voted_by_me = true; }
     renderCreators();
     renderWinners();
+    renderCampaign();
     if (data.coupon_code) {
       showVoucher(data.coupon_code, data.voucher_offer, false);
     } else {
@@ -250,6 +278,15 @@ async function checkAdmin() {
       STATE.isAdmin = true;
       document.getElementById('tab-admin').style.display = 'block';
       loadAdminCreators();
+    } else if (data.is_staff) {
+      // Shop staff: the voucher check only.
+      const tab = document.getElementById('tab-admin');
+      tab.textContent = 'Vouchers';
+      tab.style.display = 'block';
+      document.querySelector('#panel-admin .admin-header').style.display = 'none';
+      STATE.adminCreators = [];
+      STATE.adminStats = null;
+      renderAdminCreators();
     }
   } catch (e) { }
 }
@@ -270,7 +307,7 @@ function renderAdminCreators() {
   const listEl = document.getElementById('admin-list');
   const s = STATE.adminStats || {};
 
-  let html = `
+  let html = STATE.adminStats === null ? '' : `
     <div style="background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:15px; margin-bottom:15px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
       <div>
         <span style="font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:bold;">Total Voters</span>
@@ -288,7 +325,8 @@ function renderAdminCreators() {
         <span style="font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:bold;">Vouchers Used</span>
         <div style="font-size:18px; font-weight:bold; color:var(--accent-deep);">${s.vouchers_redeemed || 0} / ${s.vouchers_issued || 0}</div>
       </div>
-    </div>
+    </div>`;
+  html += `
     <div style="background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:15px; margin-bottom:15px;">
       <span style="font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:bold;">Check a voucher at the shop</span>
       <div style="display:flex; gap:6px; margin-top:8px;">
@@ -307,6 +345,7 @@ function renderAdminCreators() {
         <span>@${escapeHtml(c.handle)} - <strong style="color:var(--accent-deep);">${c.votes} votes</strong></span>
       </div>
       <div style="display:flex; gap: 5px;">
+        <button class="vote-btn" onclick="copyCreatorLink(${c.id})" style="background:#ecfdf5; color:#065f46; border-color:#a7f3d0; font-size:12px; padding: 5px 10px;">🔗 Link</button>
         <button class="vote-btn" onclick="openAdminModal(${c.id})" style="background:#f1f5f9; color:#0f172a; border-color:#cbd5e1; font-size:12px; padding: 5px 10px;">Edit</button>
         <button class="vote-btn" onclick="deleteCreator(${c.id})" style="background:#fee2e2; color:#ef4444; border-color:#fca5a5; font-size:12px; padding: 5px 10px;">Del</button>
       </div>
@@ -314,6 +353,17 @@ function renderAdminCreators() {
   `).join('');
   listEl.innerHTML = html;
 }
+
+// The creator's own link, for their TikTok bio and videos: it opens the challenge at their card.
+window.copyCreatorLink = async function (id) {
+  const link = `https://t.me/${BELEQET_BOT_USERNAME}?start=challenge-${id}`;
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast('Link copied: ' + link);
+  } catch (e) {
+    prompt('Copy this link:', link);
+  }
+};
 
 async function voucherRequest(action, code) {
   const res = await fetch(`${API_BASE}/api/challenge/admin/voucher/${action}`, {
