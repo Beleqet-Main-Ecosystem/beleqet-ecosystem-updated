@@ -16,6 +16,7 @@ import { ApplicationsModule } from './modules/jobs/applications/applications.mod
 import { ScreeningModule } from './modules/jobs/screening/screening.module';
 import { NotificationsModule } from './modules/messaging/notifications/notifications.module';
 import { PushModule } from './modules/messaging/push/push.module';
+import { UserNotifierModule } from './modules/messaging/notifications/user-notifier.module';
 import { AnalyticsModule } from './modules/platform/analytics/analytics.module';
 import { QueuesModule } from './modules/platform/queues/queues.module';
 import { AuditModule } from './modules/platform/audit/audit.module';
@@ -123,6 +124,7 @@ import { RbacModule } from './modules/accounts/rbac/rbac.module';
     ScreeningModule,
     NotificationsModule,
     PushModule,
+    UserNotifierModule,
     AnalyticsModule,
     FreelanceModule,
     EscrowModule,
