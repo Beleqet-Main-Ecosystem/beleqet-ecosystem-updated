@@ -1,0 +1,311 @@
+{
+  "about": [
+    "Known vulnerabilities accepted for now by scripts/ci/audit-gate.js, each with the reason.",
+    "All of these need a major upgrade (NestJS, Prisma, Next.js, Expo SDK) and go when it is done;",
+    "CI says when one is fixed so it can be removed. Anything not listed fails CI."
+  ],
+  "advisories": [
+    {
+      "id": "GHSA-7mx3-vvmw-hjmv",
+      "package": "@graphql-tools/utils",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Only fixed with @nestjs/graphql 14 (part of the NestJS 10 -> 11+ upgrade)."
+    },
+    {
+      "id": "GHSA-96hv-2xvq-fx4p",
+      "package": "ws",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Only fixed with @nestjs/graphql 14 (part of the NestJS 10 -> 11+ upgrade)."
+    },
+    {
+      "id": "GHSA-27r3-jxmh-p828",
+      "package": "body-parser",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-xf7r-hgr6-v32p",
+      "package": "multer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-v52c-386h-88mc",
+      "package": "multer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-5528-5vmv-3xc2",
+      "package": "multer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-72gw-mp4g-v24j",
+      "package": "multer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-wc9g-mqfw-jrwm",
+      "package": "multer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-535w-7cp7-47q4",
+      "package": "multer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-q7qp-rjg7-q26m",
+      "package": "multer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/platform-express 10; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-52cp-r559-cp3m",
+      "package": "js-yaml",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/swagger 7 / @nestjs/config 3; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-5p4m-2wfm-xmqj",
+      "package": "js-yaml",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/swagger 7 / @nestjs/config 3; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-2883-xcg3-v3hh",
+      "package": "js-yaml",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/swagger 7 / @nestjs/config 3; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-r5fr-rjxr-66jc",
+      "package": "lodash",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @nestjs/swagger 7 / @nestjs/config 3; only fixed with the NestJS 10 -> 11+ upgrade."
+    },
+    {
+      "id": "GHSA-ggr8-5vv4-36mx",
+      "package": "deepmerge-ts",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @prisma/config in Prisma 6; only fixed with the Prisma 6 -> 7 upgrade."
+    },
+    {
+      "id": "GHSA-7589-6fvf-x4pw",
+      "package": "effect",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Pinned by @prisma/config in Prisma 6; only fixed with the Prisma 6 -> 7 upgrade."
+    },
+    {
+      "id": "GHSA-v53p-9fqp-m79j",
+      "package": "nodemailer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Only fixed in nodemailer 10 (major); @nestjs-modules/mailer has to support it first."
+    },
+    {
+      "id": "GHSA-prgh-xp8r-p3m5",
+      "package": "nodemailer",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "Only fixed in nodemailer 10 (major); @nestjs-modules/mailer has to support it first."
+    },
+    {
+      "id": "GHSA-f88m-g3jw-g9cj",
+      "package": "sharp",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "@xenova/transformers 2 (plagiarism similarity) pins sharp 0.32; fixed by moving to its successor @huggingface/transformers."
+    },
+    {
+      "id": "GHSA-rgj7-g3m4-5g8c",
+      "package": "sharp",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "@xenova/transformers 2 (plagiarism similarity) pins sharp 0.32; fixed by moving to its successor @huggingface/transformers."
+    },
+    {
+      "id": "GHSA-wq5f-xc86-pv6w",
+      "package": "sharp",
+      "projects": [
+        "apps/api"
+      ],
+      "reason": "@xenova/transformers 2 (plagiarism similarity) pins sharp 0.32; fixed by moving to its successor @huggingface/transformers."
+    },
+    {
+      "id": "GHSA-h25m-26qc-wcjf",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-q4gf-8mx6-v5v3",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-8h8q-6873-q5fj",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-c4j6-fc7j-m34r",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-36qx-fr4f-26g5",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-m99w-x7hq-7vfj",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-89xv-2m56-2m9x",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-p9j2-gv94-2wf4",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-p293-qw3h-jr36",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-2xp9-vwfh-vxw4",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-2464-fhr4-w9xw",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-p3m5-59mp-jv5r",
+      "package": "next",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "Only fixed in Next.js 15.5+ / 16 (major upgrade). The image optimizer, behind the critical ones, is switched off (next.config.js)."
+    },
+    {
+      "id": "GHSA-6g55-p6wh-862q",
+      "package": "postcss",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "The copy bundled inside Next.js 14 (build time only); fixed with the Next.js upgrade."
+    },
+    {
+      "id": "GHSA-r28c-9q8g-f849",
+      "package": "postcss",
+      "projects": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "reason": "The copy bundled inside Next.js 14 (build time only); fixed with the Next.js upgrade."
+    },
+    {
+      "id": "GHSA-qr28-fpjm-wq7f",
+      "package": "decode-uri-component",
+      "projects": [
+        "apps/mobile"
+      ],
+      "reason": "Pinned through query-string by expo-router 57; only fixed with Expo SDK 58."
+    }
+  ]
+}

@@ -44,6 +44,18 @@ jobs:
           docker run --rm -v "$PWD:/repo" --workdir /repo
           rhysd/actionlint:1.7.7 -color
 
+      # "CI success" (the check branch protection requires) fails only when a job it waits for
+      # fails, so a job left off its list could fail without blocking the merge.
+      - name: Every job counts toward "CI success"
+        run: |
+          missing="$(comm -23 \
+            <(yq '.jobs | keys | .[]' .github/workflows/ci.yml | grep -vx ci-success | sort) \
+            <(yq '.jobs["ci-success"].needs[]' .github/workflows/ci.yml | sort))"
+          if [ -n "$missing" ]; then
+            echo "::error::add these jobs to ci-success's needs: ${missing//$'\n'/, }"
+            exit 1
+          fi
+
       - name: Lint shell scripts (shellcheck)
         run: shellcheck scripts/ci/*.sh scripts/deploy/*.sh
 
@@ -153,6 +165,9 @@ jobs:
         run: npm run prisma:migrate:deploy
       - name: Jest unit tests
         run: npm test
+      # Fails when coverage drops below the floor in package.json (jest.coverageThreshold), set
+      # just under the 24 Nov 2026 level: 73.5% statements, 54.4% branches, 63.7% functions,
+      # 73.9% lines. Raise it as tests are added.
       - name: Jest coverage
         run: npm run test:cov
 
@@ -677,55 +692,41 @@ jobs:
           done
 
   # ── Dependency security audit ──────────────────────────────────────────────
+  # Fails on a critical or high vulnerability in a project's production packages (npm), or on any
+  # known one (the bots' Python packages), unless scripts/ci/audit-allowlist.json lists it with its
+  # reason. npm reads only the lockfile, so nothing is installed.
   security:
-    name: Dependency security audit
+    name: Dependency audit (${{ matrix.project }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { project: apps/api, kind: npm }
+          - { project: apps/web, kind: npm }
+          - { project: apps/admin, kind: npm }
+          - { project: apps/mobile, kind: npm }
+          - { project: packages/common, kind: npm }
+          - { project: bots/referral/miniapp, kind: npm }
+          - { project: bots/jobs, kind: python }
+          - { project: bots/promo, kind: python }
+          - { project: bots/referral, kind: python }
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/api/package-lock.json
 
-      # Gate: unresolved CRITICAL findings in production dependencies fail CI.
-      # HIGH/moderate findings are reported in the logs for tracking, without
-      # blocking unrelated changes.
-      - name: API production dependency audit
-        working-directory: apps/api
-        run: |
-          npm ci
-          npm audit --omit=dev || true
-          node ../../scripts/ci/audit-gate.js
-
-      - name: Setup Node.js for the admin
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        if: matrix.kind == 'python'
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/admin/package-lock.json
+          python-version: "3.10"
+      - if: matrix.kind == 'python'
+        run: pip install pip-audit==2.10.1
 
-      - name: Admin production dependency audit
-        working-directory: apps/admin
-        run: |
-          npm ci
-          npm audit --omit=dev || true
-          node ../../scripts/ci/audit-gate.js
-
-      - name: Setup Node.js for the website
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-
-      - name: Website production dependency audit
-        working-directory: apps/web
-        run: |
-          npm ci
-          npm audit --omit=dev || true
-          node ../../scripts/ci/audit-gate.js
+      - name: Audit
+        run: node scripts/ci/audit-gate.js ${{ matrix.project }}
 
   # ── Single aggregate gate for branch protection ────────────────────────────
   ci-success:

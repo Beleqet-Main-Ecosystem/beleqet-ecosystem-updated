@@ -1,0 +1,50 @@
+# Dependabot: pull requests that fix known vulnerabilities in every project's packages, and a
+# monthly update of the GitHub Actions the workflows use.
+#
+# Security pull requests also need "Dependabot security updates" switched on in the repository's
+# settings. Routine version updates stay off for packages (open-pull-requests-limit: 0): they're
+# planned by hand, with their tests.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
+
+  - package-ecosystem: npm
+    directories:
+      - /apps/api
+      - /apps/web
+      - /apps/admin
+      - /apps/mobile
+      - /packages/common
+      - /bots/referral/miniapp
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ['*']
+    commit-message:
+      prefix: deps
+
+  - package-ecosystem: pip
+    directories:
+      - /bots/jobs
+      - /bots/promo
+      - /bots/referral
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ['*']
+    commit-message:
+      prefix: deps
