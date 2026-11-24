@@ -4,9 +4,22 @@ import {
   ConflictException,
   ForbiddenException,
   BadRequestException,
+  Optional,
+  Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  bidAcceptedNotice,
+  bidNotChosenNotice,
+  disputeOpenedNotice,
+  milestoneDecisionNotice,
+  milestoneProposedNotice,
+  newBidNotice,
+  revisionRequestedNotice,
+  workDeliveredNotice,
+} from '../../messaging/notifications/notices';
+import { Notice, UserNotifier } from '../../messaging/notifications/user-notifier';
 
 import {
   IsString,
@@ -194,9 +207,53 @@ export class RaiseDisputeDto {
   evidenceUrls?: string[];
 }
 
+/** What the notices about a contract need from it. */
+type ContractParties = {
+  clientId: string;
+  freelancerId: string;
+  currency: string;
+  freelanceJob: { title: string };
+  freelancer: { firstName: string; lastName: string };
+};
+
+const nameOf = (person: { firstName: string; lastName: string }) =>
+  `${person.firstName} ${person.lastName}`.trim();
+
 @Injectable()
 export class FreelanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(FreelanceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly notifier?: UserNotifier,
+  ) {}
+
+  /**
+   * Tells one person on a contract what happened to it, on the bell, their phone and Telegram.
+   * A notice that fails is logged and never undoes the action.
+   */
+  private async tellParty(
+    contractId: string,
+    write: (contract: ContractParties) => { to: string; notice: Notice },
+  ) {
+    if (!this.notifier) return;
+    try {
+      const contract = await this.prisma.contract.findUniqueOrThrow({
+        where: { id: contractId },
+        select: {
+          clientId: true,
+          freelancerId: true,
+          currency: true,
+          freelanceJob: { select: { title: true } },
+          freelancer: { select: { firstName: true, lastName: true } },
+        },
+      });
+      const { to, notice } = write(contract);
+      await this.notifier.notify(to, notice);
+    } catch (err) {
+      this.logger.warn(`Notice for contract ${contractId} failed: ${(err as Error).message}`);
+    }
+  }
 
   async createJob(clientId: string, dto: CreateFreelanceJobDto) {
     return this.prisma.freelanceJob.create({
@@ -351,7 +408,7 @@ export class FreelanceService {
 
     const bidder = await this.prisma.user.findUnique({
       where: { id: freelancerId },
-      select: { role: true },
+      select: { role: true, firstName: true, lastName: true },
     });
     if (!bidder || bidder.role === 'EMPLOYER' || bidder.role === 'ADMIN') {
       throw new ForbiddenException('Only freelancer and job seeker accounts can bid');
@@ -363,9 +420,11 @@ export class FreelanceService {
     if (existing) throw new ConflictException('You have already submitted a bid');
 
     try {
-      return await this.prisma.bid.create({
+      const bid = await this.prisma.bid.create({
         data: { ...dto, freelanceJobId: gigId, freelancerId },
       });
+      await this.notifier?.notify(gig.clientId, newBidNotice(gig, nameOf(bidder), bid.amount));
+      return bid;
     } catch (error) {
       // Two submits at once: the unique index stops the second one.
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -378,12 +437,16 @@ export class FreelanceService {
   async acceptBid(bidId: string, clientId: string) {
     const bid = await this.prisma.bid.findFirst({
       where: { id: bidId, freelanceJob: { clientId } },
-      include: { freelanceJob: { select: { status: true } } },
+      include: { freelanceJob: { select: { id: true, title: true, status: true } } },
     });
     if (!bid) throw new NotFoundException('Bid not found');
     if (bid.status !== 'PENDING' || !['OPEN', 'FUNDED'].includes(bid.freelanceJob.status)) {
       throw new ConflictException('This bid can no longer be accepted.');
     }
+    const turnedDown = await this.prisma.bid.findMany({
+      where: { freelanceJobId: bid.freelanceJobId, id: { not: bidId }, status: 'PENDING' },
+      select: { freelancerId: true },
+    });
 
     const contract = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Accept chosen bid, reject others. The status guard makes a concurrent
@@ -464,19 +527,28 @@ export class FreelanceService {
       return c;
     });
 
+    await this.notifier?.notify(bid.freelancerId, bidAcceptedNotice(bid.freelanceJob, contract.id));
+    for (const other of turnedDown) {
+      await this.notifier?.notify(other.freelancerId, bidNotChosenNotice(bid.freelanceJob));
+    }
     return contract;
   }
 
   async rejectBid(bidId: string, clientId: string) {
     const bid = await this.prisma.bid.findFirst({
       where: { id: bidId, freelanceJob: { clientId } },
+      include: { freelanceJob: { select: { id: true, title: true } } },
     });
     if (!bid) throw new NotFoundException('Bid not found');
 
-    return this.prisma.bid.update({
+    const updated = await this.prisma.bid.update({
       where: { id: bidId },
       data: { status: 'REJECTED' },
     });
+    if (bid.status === 'PENDING') {
+      await this.notifier?.notify(bid.freelancerId, bidNotChosenNotice(bid.freelanceJob));
+    }
+    return updated;
   }
 
   async getMyBids(freelancerId: string) {
@@ -617,7 +689,7 @@ export class FreelanceService {
       throw new ConflictException('Only active contracts can be disputed.');
     }
 
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const dispute = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const dispute = await tx.dispute.create({
         data: {
           contractId,
@@ -636,6 +708,11 @@ export class FreelanceService {
       });
       return dispute;
     });
+    await this.tellParty(contractId, (c) => ({
+      to: userId === c.clientId ? c.freelancerId : c.clientId,
+      notice: disputeOpenedNotice(contractId, c.freelanceJob.title),
+    }));
+    return dispute;
   }
 
   async createMilestone(freelancerId: string, contractId: string, dto: CreateMilestoneDto) {
@@ -678,6 +755,15 @@ export class FreelanceService {
         title: milestone.title,
       }),
     );
+    await this.tellParty(contractId, (c) => ({
+      to: c.clientId,
+      notice: milestoneProposedNotice(
+        { contractId, project: c.freelanceJob.title, milestone: milestone.title },
+        nameOf(c.freelancer),
+        milestone.amount,
+        c.currency,
+      ),
+    }));
     return milestone;
   }
 
@@ -689,15 +775,45 @@ export class FreelanceService {
     });
     if (count === 0) throw new NotFoundException('No proposed milestone to accept');
     await this.prisma.eventLog.create(activity('milestone.accepted', 'Milestone', milestoneId, {}));
+    // Which milestone, for the freelancer's notice; accepting it doesn't depend on this.
+    const milestone = this.notifier
+      ? await this.prisma.milestone
+          .findUnique({ where: { id: milestoneId }, select: { title: true, contractId: true } })
+          .catch(() => null)
+      : null;
+    if (milestone) await this.tellFreelancerAboutMilestone(milestone, true);
     return { status: 'PENDING' };
+  }
+
+  private async tellFreelancerAboutMilestone(
+    milestone: { title: string; contractId: string },
+    accepted: boolean,
+  ) {
+    await this.tellParty(milestone.contractId, (c) => ({
+      to: c.freelancerId,
+      notice: milestoneDecisionNotice(
+        {
+          contractId: milestone.contractId,
+          project: c.freelanceJob.title,
+          milestone: milestone.title,
+        },
+        accepted,
+      ),
+    }));
   }
 
   /** The client turns a proposed milestone down; it is removed so the freelancer can propose another. */
   async declineMilestone(clientId: string, milestoneId: string) {
+    // Read before it's removed: the freelancer is told which one.
+    const milestone = await this.prisma.milestone.findFirst({
+      where: { id: milestoneId, status: 'PROPOSED', contract: { clientId } },
+      select: { title: true, contractId: true },
+    });
     const { count } = await this.prisma.milestone.deleteMany({
       where: { id: milestoneId, status: 'PROPOSED', contract: { clientId } },
     });
-    if (count === 0) throw new NotFoundException('No proposed milestone to decline');
+    if (count === 0 || !milestone) throw new NotFoundException('No proposed milestone to decline');
+    await this.tellFreelancerAboutMilestone(milestone, false);
     return { declined: true };
   }
 
@@ -718,7 +834,7 @@ export class FreelanceService {
     if (milestone.status === 'APPROVED')
       throw new ConflictException('This milestone is already approved.');
 
-    return this.prisma.$transaction(async (tx) => {
+    const deliverable = await this.prisma.$transaction(async (tx) => {
       const deliverable = await tx.deliverable.create({
         data: {
           milestoneId,
@@ -742,6 +858,18 @@ export class FreelanceService {
 
       return deliverable;
     });
+    await this.tellParty(milestone.contractId, (c) => ({
+      to: c.clientId,
+      notice: workDeliveredNotice(
+        {
+          contractId: milestone.contractId,
+          project: c.freelanceJob.title,
+          milestone: milestone.title,
+        },
+        nameOf(c.freelancer),
+      ),
+    }));
+    return deliverable;
   }
 
   async requestRevision(clientId: string, milestoneId: string, reason?: string) {
@@ -762,7 +890,7 @@ export class FreelanceService {
     }
 
     // The note is kept in the event log, which the contract page reads back.
-    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const updated = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const updated = await tx.milestone.update({
         where: { id: milestoneId },
         data: { status: 'REVISION_REQUESTED' },
@@ -779,6 +907,18 @@ export class FreelanceService {
       });
       return updated;
     });
+    await this.tellParty(milestone.contractId, (c) => ({
+      to: c.freelancerId,
+      notice: revisionRequestedNotice(
+        {
+          contractId: milestone.contractId,
+          project: c.freelanceJob.title,
+          milestone: milestone.title,
+        },
+        note,
+      ),
+    }));
+    return updated;
   }
 
   /** Projects the person saved to come back to, newest save first. */
