@@ -4,18 +4,27 @@ import {
   ForbiddenException,
   BadRequestException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { chatMessageNotice } from '../notifications/notices';
+import { UserNotifier } from '../notifications/user-notifier';
 
 /** Structured metadata attached to non-plain-text chat messages */
 export type MessageMetadata =
   { type: 'file'; url: string; name: string } | { type: 'video_call'; link: string };
 
+/** Someone who read the conversation this recently is reading it now: no notice for them. */
+const CHAT_READING_MS = 5 * 60 * 1000;
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly notifier?: UserNotifier,
+  ) {}
 
   /**
    * Create or fetch a chat room between two users. Only people who already work together
@@ -92,7 +101,7 @@ export class ChatService {
     });
     if (!participant) throw new NotFoundException('User is not a participant of this chat room');
 
-    return this.prisma.message.create({
+    const message = await this.prisma.message.create({
       data: {
         roomId,
         senderId,
@@ -105,6 +114,55 @@ export class ChatService {
         },
       },
     });
+    await this.tellOthers(message);
+    return message;
+  }
+
+  /**
+   * Tells the others in the room about a message they haven't seen: once per batch of unread
+   * messages, and not while they're reading the conversation, so a busy chat doesn't flood them.
+   */
+  private async tellOthers(message: {
+    id: string;
+    roomId: string;
+    senderId: string;
+    content: string;
+    metadata: unknown;
+    sender: { firstName: string; lastName: string };
+  }) {
+    if (!this.notifier) return;
+    try {
+      const others = await this.prisma.chatParticipant.findMany({
+        where: { roomId: message.roomId, userId: { not: message.senderId } },
+        select: { userId: true, lastReadAt: true },
+      });
+      const sender = `${message.sender.firstName} ${message.sender.lastName}`.trim();
+      const kind = (message.metadata as { type?: string } | null)?.type;
+      const preview =
+        kind === 'file'
+          ? '📎 Sent a file'
+          : kind === 'video_call'
+            ? '📹 Started a video call'
+            : message.content;
+      for (const other of others) {
+        if (other.lastReadAt && Date.now() - other.lastReadAt.getTime() < CHAT_READING_MS) continue;
+        const earlierUnread = await this.prisma.message.count({
+          where: {
+            roomId: message.roomId,
+            id: { not: message.id },
+            senderId: { not: other.userId },
+            ...(other.lastReadAt ? { createdAt: { gt: other.lastReadAt } } : {}),
+          },
+        });
+        if (earlierUnread > 0) continue;
+        await this.notifier.notify(
+          other.userId,
+          chatMessageNotice(sender, preview, message.roomId),
+        );
+      }
+    } catch (err) {
+      this.logger.warn(`Chat notice for room ${message.roomId} failed: ${(err as Error).message}`);
+    }
   }
 
   /** Fetch message history */

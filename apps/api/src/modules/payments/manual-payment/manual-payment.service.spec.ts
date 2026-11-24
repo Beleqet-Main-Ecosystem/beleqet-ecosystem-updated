@@ -10,6 +10,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { UploadsService } from '../../platform/uploads/uploads.service';
 import { MulterFile } from '../../platform/uploads/interfaces/multer-file.interface';
 import { ManualPaymentService } from './manual-payment.service';
+import { UserNotifier } from '../../messaging/notifications/user-notifier';
 
 describe('ManualPaymentService', () => {
   let service: ManualPaymentService;
@@ -498,11 +499,12 @@ describe('ManualPaymentService from Telegram', () => {
       updateMany: jest.fn(),
       findUniqueOrThrow: jest.fn(),
     },
-    plan: { findUniqueOrThrow: jest.fn() },
+    plan: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
     subscription: { findFirst: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
     notification: { create: jest.fn().mockResolvedValue({}) },
     $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma)),
   };
+  const notifier = { notify: jest.fn().mockResolvedValue(undefined) };
   const now = new Date();
   const record = (extra: Record<string, unknown> = {}) => ({
     id: 'p1',
@@ -528,11 +530,13 @@ describe('ManualPaymentService from Telegram', () => {
         { provide: UploadsService, useValue: {} },
         { provide: EmailService, useValue: { dispatch: jest.fn().mockResolvedValue(undefined) } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: UserNotifier, useValue: notifier },
       ],
     }).compile();
     service = module.get(ManualPaymentService);
     prisma.payment.updateMany.mockResolvedValue({ count: 1 });
     prisma.plan.findUniqueOrThrow.mockResolvedValue({ id: 'pro', interval: 'MONTHLY' });
+    prisma.plan.findUnique.mockResolvedValue({ name: 'Pro' });
     prisma.subscription.findFirst.mockResolvedValue(null);
     prisma.subscription.create.mockResolvedValue({ id: 'sub1' });
   });
@@ -550,6 +554,21 @@ describe('ManualPaymentService from Telegram', () => {
         data: { metadata: expect.objectContaining({ approvedBy: 'telegram:712718884' }) },
       }),
     );
+    // The payer hears it on the bell, their phone and Telegram, with the plan that started.
+    expect(notifier.notify).toHaveBeenCalledTimes(1);
+    const [userId, notice] = notifier.notify.mock.calls[0];
+    expect(userId).toBe('u1');
+    expect(notice.telegram.en).toBe(
+      '✅ Your bank transfer of ETB 1,500 was approved. Your *Pro* plan has started.',
+    );
+  });
+
+  it("doesn't tell the payer twice when two admins approve together", async () => {
+    prisma.payment.findUnique.mockResolvedValue(record());
+    prisma.payment.updateMany.mockResolvedValue({ count: 0 });
+    prisma.payment.findUniqueOrThrow.mockResolvedValue(record({ status: 'SUCCEEDED' }));
+    await service.approvePayment('p1', 'admin');
+    expect(notifier.notify).not.toHaveBeenCalled();
   });
 
   it('Reject marks it failed and starts nothing', async () => {
@@ -566,6 +585,10 @@ describe('ManualPaymentService from Telegram', () => {
       }),
     );
     expect(prisma.subscription.create).not.toHaveBeenCalled();
+    expect(notifier.notify).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ title: 'Payment Rejected', metadata: { paymentId: 'p1' } }),
+    );
   });
 
   it('acts only on a receipt that is still waiting: the first admin to decide wins', async () => {

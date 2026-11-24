@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Payment, PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -6,6 +12,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { ChapaClient } from '../chapa/chapa.client';
 import { activatePaidPlan, assertNoPaypalAutoRenew } from './activate-plan';
 import { primaryFrontendUrl } from '../../../common/utils/frontend-url';
+import { planPaidNotice } from '../../messaging/notifications/notices';
+import { UserNotifier } from '../../messaging/notifications/user-notifier';
 
 /**
  * Paying for a plan with Chapa: Telebirr, CBE Birr, banks or cards. Chapa has no automatic
@@ -20,6 +28,7 @@ export class PlanPaymentsService {
     private readonly prisma: PrismaService,
     private readonly chapa: ChapaClient,
     private readonly config: ConfigService,
+    @Optional() private readonly notifier?: UserNotifier,
   ) {}
 
   /** Opens a Chapa checkout for one period of the plan; returns where to send the browser. */
@@ -173,12 +182,12 @@ export class PlanPaymentsService {
   private async startPlan(payment: Payment) {
     const planId = (payment.metadata as { planId?: string } | null)?.planId;
     if (!planId) throw new Error(`Plan payment ${payment.id} has no plan`);
-    await this.prisma.$transaction(async (tx) => {
+    const subscriptionId = await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.payment.updateMany({
         where: { id: payment.id, status: { not: PaymentStatus.SUCCEEDED } },
         data: { status: PaymentStatus.SUCCEEDED },
       });
-      if (count === 0) return;
+      if (count === 0) return null;
       const subscriptionId = await activatePaidPlan(
         tx,
         payment.userId,
@@ -198,6 +207,22 @@ export class PlanPaymentsService {
       this.logger.log(
         `Plan payment ${payment.id} confirmed; plan ${planId} active for ${payment.userId}`,
       );
+      return subscriptionId;
     });
+    // Only the check that started the plan says so; later checks of the same payment don't.
+    if (subscriptionId && this.notifier) {
+      const subscription = await this.prisma.subscription
+        .findUnique({
+          where: { id: subscriptionId },
+          select: { currentPeriodEnd: true, plan: { select: { name: true } } },
+        })
+        .catch(() => null);
+      if (subscription) {
+        await this.notifier.notify(
+          payment.userId,
+          planPaidNotice(payment.id, subscription.plan.name, subscription.currentPeriodEnd),
+        );
+      }
+    }
   }
 }

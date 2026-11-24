@@ -42,6 +42,7 @@ function setup() {
     notifyReviewers: jest.fn().mockResolvedValue(true),
   };
   const push = { sendToUser: jest.fn() };
+  const notifier = { telegram: jest.fn().mockResolvedValue(undefined) };
   const config = { get: jest.fn().mockReturnValue('https://beleqetjobs.com') };
   const service = new JobsService(
     prisma as never,
@@ -49,8 +50,9 @@ function setup() {
     queue as never,
     telegram as never,
     push as never,
+    notifier as never,
   );
-  return { service, prisma, queue, telegram, push };
+  return { service, prisma, queue, telegram, push, notifier };
 }
 
 const input = {
@@ -122,7 +124,7 @@ describe('JobsService: admin approval of new jobs', () => {
   });
 
   it('approving publishes the job, tells the employer and announces it', async () => {
-    const { service, prisma, telegram, push } = setup();
+    const { service, prisma, telegram, push, notifier } = setup();
     prisma.job.findUniqueOrThrow.mockResolvedValue({
       id: 'j1',
       title: 'Accountant',
@@ -146,6 +148,14 @@ describe('JobsService: admin approval of new jobs', () => {
       'emp1',
       expect.objectContaining({ title: 'Your job is live' }),
     );
+    // Employers who post from the Jobs bot hear it there too, with the job in the Mini App.
+    expect(notifier.telegram).toHaveBeenCalledWith(
+      'emp1',
+      expect.objectContaining({
+        type: 'JOB_APPROVED',
+        button: expect.objectContaining({ miniApp: '/tg/employer/jobs/j1' }),
+      }),
+    );
   });
 
   it('approves only a job that is waiting for review', async () => {
@@ -156,7 +166,7 @@ describe('JobsService: admin approval of new jobs', () => {
   });
 
   it('rejecting keeps the reason and tells the employer, without announcing anything', async () => {
-    const { service, prisma, telegram, queue } = setup();
+    const { service, prisma, telegram, queue, notifier } = setup();
     prisma.job.findUniqueOrThrow.mockResolvedValue({
       id: 'j1',
       title: 'Accountant',
@@ -171,6 +181,9 @@ describe('JobsService: admin approval of new jobs', () => {
       reviewNote: 'Add the salary range',
     });
     expect(prisma.notification.create.mock.calls[0][0].data.body).toContain('Add the salary range');
+    const [, notice] = notifier.telegram.mock.calls[0];
+    expect(notice.telegram.en).toContain('Add the salary range');
+    expect(notice.button.miniApp).toBe('/tg/post-job?edit=j1');
     expect((await queued(queue)).subject).toContain('needs changes');
     expect(telegram.broadcastJob).not.toHaveBeenCalled();
   });

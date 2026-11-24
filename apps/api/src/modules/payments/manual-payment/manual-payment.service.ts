@@ -19,6 +19,11 @@ import { MulterFile } from '../../platform/uploads/interfaces/multer-file.interf
 import { UploadsService } from '../../platform/uploads/uploads.service';
 import { CreateManualPaymentDto, SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
 import { activatePaidPlan, assertNoPaypalAutoRenew } from '../subscriptions/activate-plan';
+import {
+  transferApprovedNotice,
+  transferRejectedNotice,
+} from '../../messaging/notifications/notices';
+import { UserNotifier } from '../../messaging/notifications/user-notifier';
 
 export interface ManualPaymentRecord {
   id: string;
@@ -45,6 +50,7 @@ export class ManualPaymentService {
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
     @Optional() private readonly push?: PushService,
+    @Optional() private readonly notifier?: UserNotifier,
   ) {}
 
   /**
@@ -208,6 +214,7 @@ export class ManualPaymentService {
 
     const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
     const planId = typeof currentMetadata.planId === 'string' ? currentMetadata.planId : null;
+    let approvedNow = false;
     const updated = await this.prisma.$transaction(async (tx) => {
       // A second, simultaneous approval matches nothing here, so a plan is never started twice.
       const { count } = await tx.payment.updateMany({
@@ -215,6 +222,7 @@ export class ManualPaymentService {
         data: { status: PaymentStatus.SUCCEEDED },
       });
       if (count === 0) return tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
+      approvedNow = true;
       const subscriptionId = planId
         ? await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.MANUAL)
         : undefined;
@@ -233,23 +241,19 @@ export class ManualPaymentService {
 
     this.logger.log(`Manual payment ${paymentId} approved by admin ${adminId}`);
 
-    // In-app notification for the paying user
-    void this.prisma.notification
-      .create({
-        data: {
-          userId: payment.userId,
-          type: 'PAYMENT_RECEIVED',
-          title: 'Payment Approved',
-          body: `Your payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} has been approved.`,
-          channel: 'IN_APP',
-          metadata: { paymentId: payment.id, approvedBy: adminId },
-        },
-      })
-      .catch((err) =>
-        this.logger.warn(
-          `Failed to create in-app notification for approved payment: ${err.message}`,
-        ),
+    // The bell, their phone and the Jobs bot: payers who signed up in Telegram may have no email.
+    if (approvedNow && this.notifier) {
+      // Only for the wording; without it the notice still goes, without the plan's name.
+      const plan = planId
+        ? await this.prisma.plan
+            .findUnique({ where: { id: planId }, select: { name: true } })
+            .catch(() => null)
+        : null;
+      await this.notifier.notify(
+        payment.userId,
+        transferApprovedNotice(payment, plan?.name ?? null),
       );
+    }
 
     // Fire-and-forget user confirmation email
     if (payment.user?.email) {
@@ -316,23 +320,7 @@ export class ManualPaymentService {
 
     this.logger.log(`Manual payment ${paymentId} rejected by admin ${adminId}. Reason: ${reason}`);
 
-    // In-app notification for the user
-    void this.prisma.notification
-      .create({
-        data: {
-          userId: payment.userId,
-          type: 'PAYMENT_RECEIVED',
-          title: 'Payment Rejected',
-          body: `Your payment of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
-          channel: 'IN_APP',
-          metadata: { paymentId: payment.id, rejectedBy: adminId, reason },
-        },
-      })
-      .catch((err) =>
-        this.logger.warn(
-          `Failed to create in-app notification for rejected payment: ${err.message}`,
-        ),
-      );
+    await this.notifier?.notify(payment.userId, transferRejectedNotice(payment, reason));
 
     return this.toRecord(updated);
   }

@@ -26,6 +26,8 @@ import {
 } from '../../messaging/notifications/email-templates';
 import { TelegramService } from '../../messaging/telegram/telegram.service';
 import { PushService } from '../../messaging/push/push.service';
+import { jobLiveNotice, jobNeedsChangesNotice } from '../../messaging/notifications/notices';
+import { Notice, UserNotifier } from '../../messaging/notifications/user-notifier';
 import { primaryFrontendUrl } from '../../../common/utils/frontend-url';
 
 /** The employer fields approval and rejection need (never the whole account). */
@@ -60,6 +62,7 @@ export class JobsService {
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS) private readonly notificationsQueue: Queue,
     private readonly telegramService: TelegramService,
     @Optional() private readonly push?: PushService,
+    @Optional() private readonly notifier?: UserNotifier,
   ) {}
 
   /**
@@ -178,12 +181,7 @@ export class JobsService {
     });
     const owner = job.company.user;
     this.goLive(job, owner);
-    await this.tellEmployer(owner.id, {
-      type: 'JOB_APPROVED',
-      title: 'Your job is live',
-      body: `"${job.title}" was approved and is now open for applications.`,
-      metadata: { jobId: job.id, path: `/job/${job.id}` },
-    });
+    await this.tellEmployer(owner.id, jobLiveNotice(job));
     return job;
   }
 
@@ -201,12 +199,7 @@ export class JobsService {
       include: { company: { include: { user: { select: OWNER } } }, category: true },
     });
     const owner = job.company.user;
-    await this.tellEmployer(owner.id, {
-      type: 'JOB_REJECTED',
-      title: 'Your job needs changes',
-      body: `"${job.title}" was not approved: ${note}`,
-      metadata: { jobId: job.id, path: '/hiring' },
-    });
+    await this.tellEmployer(owner.id, jobNeedsChangesNotice(job, note));
     const frontendUrl = primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'));
     this.queueEmail(
       owner.email,
@@ -280,14 +273,14 @@ export class JobsService {
       .catch((err) => this.logger.error(`Failed to queue "${subject}": ${err.message}`));
   }
 
-  private async tellEmployer(
-    userId: string,
-    note: { type: string; title: string; body: string; metadata: Record<string, string> },
-  ) {
+  private async tellEmployer(userId: string, notice: Notice) {
+    const { type, title, body, metadata } = notice;
     await this.prisma.notification.create({
-      data: { userId, channel: 'IN_APP', ...note },
+      data: { userId, channel: 'IN_APP', type, title, body, metadata },
     });
-    await this.push?.sendToUser(userId, note);
+    await this.push?.sendToUser(userId, { title, body, metadata });
+    // Employers who post from the Jobs bot hear back there too.
+    await this.notifier?.telegram(userId, notice);
   }
 
   /**

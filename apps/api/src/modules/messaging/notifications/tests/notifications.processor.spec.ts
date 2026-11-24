@@ -205,6 +205,22 @@ describe('NotificationsProcessor', () => {
         expect(without.reply_markup).toBeUndefined();
       });
 
+      it('opens a website page in the browser for what the Mini App has no screen for', async () => {
+        settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
+        await processor.sendTelegram({
+          ...job,
+          data: {
+            telegramId: '123',
+            message: 'hello',
+            button: { text: 'Open', url: 'https://beleqetjobs.com/messages', browser: true },
+          },
+        } as Job<TelegramPayload, void, 'send-telegram'>);
+        const body = JSON.parse((fetchMock.mock.calls[0][1] as { body: string }).body);
+        expect(body.reply_markup).toEqual({
+          inline_keyboard: [[{ text: 'Open', url: 'https://beleqetjobs.com/messages' }]],
+        });
+      });
+
       it("doesn't retry when the person blocked or never opened the bot", async () => {
         settings({ TELEGRAM_ENABLED: 'true', TELEGRAM_MINI_APP_BOT_TOKENS: 'jobs-bot' });
         fetchMock.mockResolvedValueOnce({

@@ -20,8 +20,11 @@ export interface InAppPayload {
 export interface TelegramPayload {
   telegramId: string;
   message: string;
-  /** A button under the message that opens a Mini App screen (private chats only). */
-  button?: { text: string; url: string };
+  /**
+   * A button under the message that opens a Mini App screen (private chats only), or, with
+   * browser, a website page for what the Mini App doesn't have (chat, freelance, payments).
+   */
+  button?: { text: string; url: string; browser?: boolean };
 }
 
 export interface EmailPayload {
@@ -161,7 +164,11 @@ export class NotificationsProcessor extends WorkerHost {
           ...(job.data.button && {
             reply_markup: {
               inline_keyboard: [
-                [{ text: job.data.button.text, web_app: { url: job.data.button.url } }],
+                [
+                  job.data.button.browser
+                    ? { text: job.data.button.text, url: job.data.button.url }
+                    : { text: job.data.button.text, web_app: { url: job.data.button.url } },
+                ],
               ],
             },
           }),

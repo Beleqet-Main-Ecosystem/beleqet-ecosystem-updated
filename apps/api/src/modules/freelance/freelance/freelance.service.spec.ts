@@ -202,3 +202,119 @@ describe('FreelanceService', () => {
     expect(prisma.eventLog.findMany.mock.calls[1][0].where.entityId).toEqual({ in: ['m1', 'e1'] });
   });
 });
+
+describe('FreelanceService notices', () => {
+  const contract = {
+    clientId: 'client',
+    freelancerId: 'free',
+    currency: 'ETB',
+    freelanceJob: { title: 'Logo design' },
+    freelancer: { firstName: 'Sara', lastName: 'Tesfaye' },
+  };
+  const tx = {
+    bid: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    contract: { create: jest.fn().mockResolvedValue({ id: 'c1' }) },
+    freelanceJob: { update: jest.fn() },
+    escrowTransaction: { findFirst: jest.fn().mockResolvedValue(null) },
+    chatRoom: { create: jest.fn() },
+    milestone: { update: jest.fn().mockResolvedValue({ id: 'm1' }) },
+    eventLog: { create: jest.fn() },
+  };
+  const prisma = {
+    freelanceJob: { findFirst: jest.fn() },
+    user: { findUnique: jest.fn() },
+    bid: { findUnique: jest.fn(), create: jest.fn(), findFirst: jest.fn(), findMany: jest.fn() },
+    contract: { findFirst: jest.fn(), findUniqueOrThrow: jest.fn() },
+    milestone: { aggregate: jest.fn(), create: jest.fn(), findUnique: jest.fn() },
+    eventLog: { create: jest.fn() },
+    $transaction: jest.fn((fn: (client: unknown) => Promise<unknown>) => fn(tx)),
+  };
+  const notifier = { notify: jest.fn().mockResolvedValue(undefined) };
+  const service = new FreelanceService(prisma as never, notifier as never);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.contract.findUniqueOrThrow.mockResolvedValue(contract);
+  });
+
+  it('tells the client about a new bid, with who bid and how much', async () => {
+    prisma.freelanceJob.findFirst.mockResolvedValue({
+      id: 'g1',
+      clientId: 'client',
+      title: 'Logo design',
+      currency: 'ETB',
+    });
+    prisma.user.findUnique.mockResolvedValue({
+      role: 'FREELANCER',
+      firstName: 'Sara',
+      lastName: 'Tesfaye',
+    });
+    prisma.bid.findUnique.mockResolvedValue(null);
+    prisma.bid.create.mockResolvedValue({ id: 'b1', amount: 5000 });
+    await service.submitBid('free', 'g1', {
+      amount: 5000,
+      proposal: 'I can',
+      deliveryDays: 7,
+    } as never);
+    expect(notifier.notify).toHaveBeenCalledWith(
+      'client',
+      expect.objectContaining({
+        body: 'Sara Tesfaye bid ETB 5,000 on "Logo design".',
+        metadata: { freelanceJobId: 'g1' },
+      }),
+    );
+  });
+
+  it('tells the chosen freelancer and everyone whose bid it turned down', async () => {
+    prisma.bid.findFirst.mockResolvedValue({
+      id: 'b1',
+      status: 'PENDING',
+      amount: 5000,
+      freelancerId: 'free',
+      freelanceJobId: 'g1',
+      freelanceJob: { id: 'g1', title: 'Logo design', status: 'OPEN' },
+    });
+    prisma.bid.findMany.mockResolvedValue([{ freelancerId: 'other1' }, { freelancerId: 'other2' }]);
+    await service.acceptBid('b1', 'client');
+    expect(notifier.notify.mock.calls.map(([to, notice]) => [to, notice.type])).toEqual([
+      ['free', 'FREELANCE_BID_ACCEPTED'],
+      ['other1', 'FREELANCE_BID_REJECTED'],
+      ['other2', 'FREELANCE_BID_REJECTED'],
+    ]);
+    expect(notifier.notify.mock.calls[0][1].metadata).toEqual({ contractId: 'c1' });
+  });
+
+  it('tells the freelancer what the client wants changed', async () => {
+    prisma.milestone.findUnique.mockResolvedValue({
+      id: 'm1',
+      title: 'Drafts',
+      status: 'SUBMITTED',
+      contractId: 'c1',
+      contract: { clientId: 'client', freelancerId: 'free' },
+    });
+    await service.requestRevision('client', 'm1', 'Make the logo bigger');
+    const [to, notice] = notifier.notify.mock.calls[0];
+    expect(to).toBe('free');
+    expect(notice.telegram.en).toContain('Make the logo bigger');
+    expect(notice.button.web).toBe('/freelance/contracts/c1');
+  });
+
+  it('still adds the milestone when its notice fails', async () => {
+    prisma.contract.findFirst.mockResolvedValue({
+      id: 'c1',
+      status: 'ACTIVE',
+      agreedAmount: 10000,
+    });
+    prisma.milestone.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
+    prisma.milestone.create.mockResolvedValue({ id: 'm1', title: 'Drafts', amount: 4000 });
+    prisma.contract.findUniqueOrThrow.mockRejectedValue(new Error('database busy'));
+    await expect(
+      service.createMilestone('free', 'c1', {
+        title: 'Drafts',
+        amount: 4000,
+        deadline: '2026-12-01',
+      } as never),
+    ).resolves.toMatchObject({ id: 'm1' });
+    expect(notifier.notify).not.toHaveBeenCalled();
+  });
+});
