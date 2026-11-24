@@ -6,6 +6,7 @@ import {
   Delete,
   Get,
   NotFoundException,
+  Optional,
   Param,
   Patch,
   Post,
@@ -38,6 +39,11 @@ import { DisputeManagerService } from '../../freelance/dispute-manager/dispute-m
 import { ResolveDisputeDto } from '../../freelance/dispute-manager/dto/resolve-dispute.dto';
 import { JobsService } from '../../jobs/jobs/jobs.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  licenceRejectedNotice,
+  licenceVerifiedNotice,
+} from '../../messaging/notifications/notices';
+import { UserNotifier } from '../../messaging/notifications/user-notifier';
 import { NotificationsService } from '../../messaging/notifications/notifications.service';
 import { ChatService } from '../../messaging/chat/chat.service';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
@@ -124,6 +130,7 @@ export class AdminController {
     private readonly auditService: AuditService,
     private readonly disputes: DisputeManagerService,
     private readonly jobs: JobsService,
+    @Optional() private readonly notifier?: UserNotifier,
   ) {}
 
   @RequirePermissions('manage:users')
@@ -370,6 +377,20 @@ export class AdminController {
       },
     });
     if (count === 0) throw new NotFoundException('No licence waiting for review for this company');
+    // The decision is saved; telling the employer can't fail it.
+    const company = this.notifier
+      ? await this.prisma.company
+          .findUnique({ where: { id }, select: { name: true, userId: true } })
+          .catch(() => null)
+      : null;
+    if (company) {
+      await this.notifier?.notify(
+        company.userId,
+        dto.decision === 'VERIFIED'
+          ? licenceVerifiedNotice(company.name)
+          : licenceRejectedNotice(company.name, dto.note?.trim() ?? ''),
+      );
+    }
     return { verificationStatus: dto.decision };
   }
 
