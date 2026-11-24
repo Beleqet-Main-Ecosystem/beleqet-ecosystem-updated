@@ -78,6 +78,15 @@ button{ font-family:inherit; }
   transform: translateX(-150%) skewX(-15deg);
   animation: shimmer 3.5s infinite ease-in-out;
 }
+/* The offer, for people who haven't voted yet: warmer than the jobs card under it. */
+.offer-card{
+  background:linear-gradient(120deg, rgba(232,163,61,0.18), rgba(232,163,61,0.05));
+  border-color:rgba(232,163,61,0.45);
+}
+.offer-card .promo-text span{ color:var(--text); font-weight:600; }
+.voting-ends{ margin:-6px 16px 14px; font-size:12px; font-weight:600; color:#b45309; text-align:center; }
+/* The creator a shared link points at. */
+.creator-row.linked{ outline:2px solid var(--accent); box-shadow:0 0 0 4px rgba(62,207,126,0.2); }
 .promo-icon{ font-size:22px; }
 .promo-text b{ display:block; font-size:13px; margin-bottom:2px; }
 .promo-text span{ font-size:11.5px; color:var(--muted); line-height:1.4; }
