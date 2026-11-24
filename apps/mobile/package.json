@@ -12,7 +12,7 @@
     "build:all": "eas build --platform all --profile production",
     "submit:android": "eas submit --platform android --profile production",
     "submit:ios": "eas submit --platform ios --profile production",
-    "lint": "eslint app components lib api store --ext .ts,.tsx",
+    "lint": "eslint app components lib api store --ext .ts,.tsx --max-warnings=0",
     "type-check": "tsc --noEmit",
     "test": "jest",
     "postinstall": "patch-package",

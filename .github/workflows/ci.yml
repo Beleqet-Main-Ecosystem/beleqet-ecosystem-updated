@@ -44,6 +44,18 @@ jobs:
           docker run --rm -v "$PWD:/repo" --workdir /repo
           rhysd/actionlint:1.7.7 -color
 
+      # "CI success" (the check branch protection requires) fails only when a job it waits for
+      # fails, so a job left off its list could fail without blocking the merge.
+      - name: Every job counts toward "CI success"
+        run: |
+          missing="$(comm -23 \
+            <(yq '.jobs | keys | .[]' .github/workflows/ci.yml | grep -vx ci-success | sort) \
+            <(yq '.jobs["ci-success"].needs[]' .github/workflows/ci.yml | sort))"
+          if [ -n "$missing" ]; then
+            echo "::error::add these jobs to ci-success's needs: ${missing//$'\n'/, }"
+            exit 1
+          fi
+
       - name: Lint shell scripts (shellcheck)
         run: shellcheck scripts/ci/*.sh scripts/deploy/*.sh
 
@@ -153,6 +165,9 @@ jobs:
         run: npm run prisma:migrate:deploy
       - name: Jest unit tests
         run: npm test
+      # Fails when coverage drops below the floor in package.json (jest.coverageThreshold), set
+      # just under the 24 Nov 2026 level: 73.5% statements, 54.4% branches, 63.7% functions,
+      # 73.9% lines. Raise it as tests are added.
       - name: Jest coverage
         run: npm run test:cov
 
