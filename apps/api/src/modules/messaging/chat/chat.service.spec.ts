@@ -142,3 +142,79 @@ describe('ChatService.createOrGetRoom', () => {
     );
   });
 });
+
+describe('ChatService telling the others about a message', () => {
+  const minute = 60 * 1000;
+  const prisma = {
+    chatParticipant: { findUnique: jest.fn(), findMany: jest.fn() },
+    message: { create: jest.fn(), count: jest.fn() },
+  };
+  const notifier = { notify: jest.fn().mockResolvedValue(undefined) };
+  const service = new ChatService(prisma as never, notifier as never);
+
+  function send(
+    content = 'Are you free tomorrow?',
+    metadata?: { type: 'file'; url: string; name: string },
+  ) {
+    prisma.chatParticipant.findUnique.mockResolvedValue({ id: 'p1' });
+    prisma.message.create.mockResolvedValue({
+      id: 'm2',
+      roomId: 'r1',
+      senderId: 'employer',
+      content,
+      metadata: metadata ?? null,
+      sender: { firstName: 'Sara', lastName: 'Tesfaye' },
+    });
+    return service.saveMessage('r1', 'employer', content, metadata);
+  }
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('tells someone about the first message they have not read', async () => {
+    prisma.chatParticipant.findMany.mockResolvedValue([
+      { userId: 'seeker', lastReadAt: new Date(Date.now() - 60 * minute) },
+    ]);
+    prisma.message.count.mockResolvedValue(0);
+    await send();
+    expect(prisma.chatParticipant.findMany).toHaveBeenCalledWith({
+      where: { roomId: 'r1', userId: { not: 'employer' } },
+      select: { userId: true, lastReadAt: true },
+    });
+    expect(notifier.notify).toHaveBeenCalledWith(
+      'seeker',
+      expect.objectContaining({
+        type: 'CHAT_MESSAGE',
+        title: 'New message from Sara Tesfaye',
+        metadata: { roomId: 'r1' },
+      }),
+    );
+  });
+
+  it('stays quiet while earlier messages are still unread', async () => {
+    prisma.chatParticipant.findMany.mockResolvedValue([{ userId: 'seeker', lastReadAt: null }]);
+    prisma.message.count.mockResolvedValue(2);
+    await send();
+    expect(notifier.notify).not.toHaveBeenCalled();
+  });
+
+  it('stays quiet for someone reading the conversation right now', async () => {
+    prisma.chatParticipant.findMany.mockResolvedValue([
+      { userId: 'seeker', lastReadAt: new Date(Date.now() - minute) },
+    ]);
+    await send();
+    expect(prisma.message.count).not.toHaveBeenCalled();
+    expect(notifier.notify).not.toHaveBeenCalled();
+  });
+
+  it('says a file was sent instead of showing its name', async () => {
+    prisma.chatParticipant.findMany.mockResolvedValue([{ userId: 'seeker', lastReadAt: null }]);
+    prisma.message.count.mockResolvedValue(0);
+    await send('cv.pdf', { type: 'file', url: 'https://x/cv.pdf', name: 'cv.pdf' });
+    expect(notifier.notify.mock.calls[0][1].body).toBe('📎 Sent a file');
+  });
+
+  it('still saves the message when the notice fails', async () => {
+    prisma.chatParticipant.findMany.mockRejectedValue(new Error('database busy'));
+    await expect(send()).resolves.toMatchObject({ id: 'm2' });
+  });
+});
