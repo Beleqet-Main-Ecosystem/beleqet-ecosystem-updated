@@ -117,7 +117,8 @@ async def main() -> None:
         )
 
         broadcast_conv = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^📣 Broadcast Message$"), broadcast_start)],
+        entry_points=[MessageHandler(filters.Regex("^📣 Broadcast Message$"), broadcast_start),
+                      CommandHandler("broadcast", broadcast_start)],
         states={
             BROADCAST_MESSAGE: [MessageHandler(filters.ALL & ~filters.COMMAND, broadcast_get_message)],
             BROADCAST_BUTTON_TEXT: [
@@ -139,6 +140,7 @@ async def main() -> None:
         bot_context.application.add_handler(CommandHandler("challenge", challenge.challenge_command))
         bot_context.application.add_handler(CommandHandler("voucher", challenge.voucher_command))
         bot_context.application.add_handler(MessageHandler(filters.Regex(f"^{challenge.REMIND_BUTTON}$"), challenge.remind_start))
+        bot_context.application.add_handler(CommandHandler("remind", challenge.remind_start))
         bot_context.application.add_handler(CallbackQueryHandler(challenge.remind_decision, pattern='^sgs_(remind|cancel)$'))
 
         # Room for 5 MB avatar uploads (aiohttp refuses bodies over 1 MB by default).
