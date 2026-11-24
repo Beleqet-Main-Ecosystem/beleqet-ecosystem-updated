@@ -13,6 +13,7 @@ describe('PlanPaymentsService', () => {
   let prisma: Record<string, any>;
   let chapa: { checkoutUrl: jest.Mock; paymentResult: jest.Mock };
   let service: PlanPaymentsService;
+  let notifier: { notify: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -38,6 +39,10 @@ describe('PlanPaymentsService', () => {
         updateMany: jest.fn(),
         create: jest.fn().mockResolvedValue({ id: 'sub-1' }),
         update: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({
+          currentPeriodEnd: new Date('2026-12-24T00:00:00Z'),
+          plan: { name: 'Pro' },
+        }),
       },
     };
     prisma.$transaction = jest.fn((fn: (tx: unknown) => Promise<unknown>) => fn(prisma));
@@ -47,10 +52,12 @@ describe('PlanPaymentsService', () => {
         .fn()
         .mockResolvedValue({ state: 'success', amount: 999, currency: 'ETB', raw: {} }),
     };
+    notifier = { notify: jest.fn().mockResolvedValue(undefined) };
     service = new PlanPaymentsService(
       prisma as never,
       chapa as never,
       { get: () => 'https://web.test' } as never,
+      notifier as never,
     );
   });
 
@@ -122,6 +129,15 @@ describe('PlanPaymentsService', () => {
         }),
       }),
     );
+    // The payer is told on the bell, their phone and Telegram, with the date it runs to.
+    expect(notifier.notify).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({
+        title: 'Payment received',
+        body: 'Your Pro plan is active until 24 Dec 2026.',
+        metadata: { paymentId: 'pay-1' },
+      }),
+    );
   });
 
   it('refuses a payment whose confirmed amount is wrong', async () => {
@@ -143,6 +159,7 @@ describe('PlanPaymentsService', () => {
     prisma.payment.updateMany.mockResolvedValue({ count: 0 });
     await service.handlePaymentEvent({ txRef: 'CHAPA-9', successful: true });
     expect(prisma.subscription.create).not.toHaveBeenCalled();
+    expect(notifier.notify).not.toHaveBeenCalled();
   });
 
   it('marks a failed payment and tells the caller it was a plan payment', async () => {
