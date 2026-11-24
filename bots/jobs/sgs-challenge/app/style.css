@@ -84,7 +84,6 @@ button{ font-family:inherit; }
   border-color:rgba(232,163,61,0.45);
 }
 .offer-card .promo-text span{ color:var(--text); font-weight:600; }
-.voting-ends{ margin:-6px 16px 14px; font-size:12px; font-weight:600; color:#b45309; text-align:center; }
 /* The creator a shared link points at. */
 .creator-row.linked{ outline:2px solid var(--accent); box-shadow:0 0 0 4px rgba(62,207,126,0.2); }
 .promo-icon{ font-size:22px; }

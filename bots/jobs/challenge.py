@@ -1,10 +1,10 @@
 """The SGS Challenge in the bot: the challenge button, the voter's voucher, and bringing in people who
-haven't voted yet (a pinned reminder at most twice, one nudge, a card after registering)."""
+haven't voted yet (a pinned reminder at most twice, one nudge, a card after registering). The voucher is
+20% off at Super SGS Furniture (voting_routes.VOUCHER_OFFER)."""
 import asyncio
 import os
 import sys
 import time
-from datetime import timedelta
 from html import escape
 from urllib.parse import quote
 
@@ -21,7 +21,7 @@ from common import bot_context  # noqa: E402
 # People who haven't voted get two reminders at most; the first is pinned in their chat.
 MAX_REMINDERS = 2
 REMIND_BUTTON = "🎁 Remind non-voters"
-# The bot's description starts with this line while voting is open.
+# The bot's description starts with this line.
 DESCRIPTION_MARK = "🎁 SGS Challenge:"
 
 
@@ -53,24 +53,13 @@ def share_button() -> InlineKeyboardButton:
     )
 
 
-def closing_line() -> str:
-    """'Voting closes on …' in both languages, or '' when no end is set."""
-    ends = voting_routes.VOTING_ENDS
-    if not ends:
-        return ""
-    last_day = (ends - timedelta(days=1)).strftime('%d %b %Y').lstrip('0')
-    return f"⏰ Voting closes on {last_day} · ድምጽ መስጫው {last_day} ይዘጋል"
-
-
 def offer_lines() -> str:
     return f"{escape(voting_routes.VOUCHER_OFFER)}\n{escape(voting_routes.VOUCHER_OFFER_AM)}"
 
 
 def challenge_row() -> list:
-    """The challenge button for a keyboard, or nothing once voting has closed."""
-    if voting_routes.voting_closed():
-        return []
-    return [[vote_button("🎁 SGS Challenge – vote & get a discount · ድምጽ ይስጡ ቅናሽ ያግኙ")]]
+    """The challenge button, as a keyboard row."""
+    return [[vote_button("🎁 SGS Challenge – vote & get 20% off · ድምጽ ይስጡ 20% ቅናሽ ያግኙ")]]
 
 
 async def has_voted(telegram_id) -> bool:
@@ -79,21 +68,12 @@ async def has_voted(telegram_id) -> bool:
 
 
 async def challenge_command(update: Update, context: ContextTypes.DEFAULT_TYPE, creator_id=None):
-    """/challenge, the menu button and the challenge links: open the challenge, or its results once closed."""
-    if voting_routes.voting_closed():
-        await update.effective_message.reply_text(
-            "The Super SGS Furniture Creative Challenge has closed. Thank you for taking part! See the results 👇\n"
-            "ውድድሩ ተጠናቋል። ስለተሳተፉ እናመሰግናለን! ውጤቱን ይመልከቱ 👇",
-            reply_markup=InlineKeyboardMarkup([[vote_button("🏆 Results / ውጤት")]]),
-        )
-        return
+    """/challenge, the menu button and the challenge links."""
     lines = [
         "🎁 <b>Super SGS Furniture Creative Challenge</b>",
         "Vote for your favourite creator and get a voucher:",
         offer_lines(),
     ]
-    if closing_line():
-        lines += ["", closing_line()]
     await update.effective_message.reply_text(
         "\n".join(lines), parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup([[vote_button(creator_id=creator_id)]]),
@@ -140,11 +120,6 @@ async def voucher_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reply_markup=InlineKeyboardMarkup([[share_button()]]),
         )
         return
-    if voting_routes.voting_closed():
-        await update.effective_message.reply_text(
-            "Voting has closed, and this account didn't vote, so there's no voucher.\n"
-            "ድምጽ መስጫው ተዘግቷል፤ ስላልመረጡ ቫውቸር የለዎትም።")
-        return
     await update.effective_message.reply_text(
         "You get your voucher when you vote in the SGS Challenge:\n"
         "ቫውቸርዎን በSGS Challenge ድምጽ ሲሰጡ ያገኛሉ፦\n\n" + offer_lines(),
@@ -153,9 +128,9 @@ async def voucher_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def after_registration(chat_id: int, telegram_id, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """One card after someone finishes registering in the bot, while voting is open. It counts as their
-    nudge, so the first menu tap doesn't ask again."""
-    if voting_routes.voting_closed() or await has_voted(telegram_id):
+    """One card after someone finishes registering in the bot. It counts as their nudge, so the first menu
+    tap doesn't ask again."""
+    if await has_voted(telegram_id):
         return
     context.user_data['sgs_nudged'] = True
     await bot_context.rate_limiter.send_message(
@@ -168,7 +143,7 @@ async def after_registration(chat_id: int, telegram_id, context: ContextTypes.DE
 
 async def nudge_once(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """A single line, once per person, when someone who hasn't voted uses the bot for something else."""
-    if context.user_data.get('sgs_nudged') or voting_routes.voting_closed():
+    if context.user_data.get('sgs_nudged'):
         return
     if await has_voted(update.effective_user.id):
         context.user_data['sgs_nudged'] = True
@@ -185,7 +160,7 @@ async def nudge_once(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 # ── Reminders for people who haven't voted (an admin sends them) ─────────────
 
 def reminder_message(number: int) -> str:
-    """The first reminder invites; the second says voting is about to close."""
+    """The first reminder invites; the second is the last one."""
     if number == 1:
         lines = [
             "🎁 You haven't voted in the <b>Super SGS Furniture Creative Challenge</b> yet!",
@@ -203,8 +178,6 @@ def reminder_message(number: int) -> str:
             "",
             offer_lines(),
         ]
-    if closing_line():
-        lines += ["", closing_line()]
     return "\n".join(lines)
 
 
@@ -237,14 +210,6 @@ async def remind_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not _is_admin(update):
         return
     db = bot_context.challenge_db
-    if voting_routes.voting_closed():
-        async with db.execute("SELECT COUNT(*) FROM challenge_reminders WHERE pinned_message_id IS NOT NULL") as cur:
-            (pinned,) = await cur.fetchone()
-        buttons = InlineKeyboardMarkup([[InlineKeyboardButton("📌 Unpin them", callback_data='sgs_unpin'),
-                                         InlineKeyboardButton("Cancel", callback_data='sgs_cancel')]]) if pinned else None
-        await update.effective_message.reply_text(
-            f"Voting has closed. {pinned} chat(s) still have the pinned challenge reminder.", reply_markup=buttons)
-        return
     audience = await reminder_audience(db, await bot_user_ids())
     first = sum(1 for _, sent in audience if sent == 0)
     await update.effective_message.reply_text("Preview of what they receive:")
@@ -273,9 +238,6 @@ async def remind_decision(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif query.data == 'sgs_remind':
         await query.edit_message_text("Sending… I'll tell you when it's done.")
         asyncio.create_task(send_reminders(update.effective_chat.id))
-    elif query.data == 'sgs_unpin':
-        await query.edit_message_text("Removing the pinned reminders…")
-        asyncio.create_task(unpin_all(update.effective_chat.id))
 
 
 async def _send_with_retry(chat_id: int, text: str):
@@ -333,7 +295,7 @@ async def send_reminders(admin_chat_id: int) -> None:
 
 
 async def unpin_reminder(telegram_id) -> None:
-    """Voted, or voting closed: the pinned reminder has done its job."""
+    """Voted: the pinned reminder has done its job."""
     db = getattr(bot_context, 'challenge_db', None)
     if not db:
         return
@@ -352,23 +314,11 @@ async def unpin_reminder(telegram_id) -> None:
     await db.commit()
 
 
-async def unpin_all(admin_chat_id: int) -> None:
-    db = bot_context.challenge_db
-    async with db.execute("SELECT telegram_id FROM challenge_reminders WHERE pinned_message_id IS NOT NULL") as cur:
-        ids = [row[0] for row in await cur.fetchall()]
-    for telegram_id in ids:
-        await unpin_reminder(telegram_id)
-        await asyncio.sleep(0.05)
-    await bot_context.rate_limiter.send_message(admin_chat_id, f"✅ Unpinned the challenge reminder in {len(ids)} chat(s).")
-
-
 # ── The bot's profile: its command menu and description ──────────────────
 
-def described(description: str, active: bool) -> str:
-    """The bot's description with the challenge line at the top while voting is open, and without it after."""
+def described(description: str) -> str:
+    """The bot's description with the challenge line at the top (once, however often it's set)."""
     rest = "\n\n".join(part for part in description.split("\n\n") if not part.startswith(DESCRIPTION_MARK))
-    if not active:
-        return rest
     line = f"{DESCRIPTION_MARK} vote for your favourite creator and get {voting_routes.VOUCHER_OFFER}!"
     return f"{line}\n\n{rest}"[:512] if rest else line[:512]
 
@@ -384,7 +334,7 @@ async def setup_profile(bot) -> None:
             BotCommand("cancel", "Stops the current operation"),
         ])
         current = (await bot.get_my_description()).description or ""
-        wanted = described(current, active=not voting_routes.voting_closed())
+        wanted = described(current)
         if wanted != current:
             await bot.set_my_description(wanted)
     except telegram.error.TelegramError as e:

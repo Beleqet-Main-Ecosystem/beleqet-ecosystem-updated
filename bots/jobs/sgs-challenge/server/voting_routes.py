@@ -6,7 +6,6 @@ import logging
 import re
 import secrets
 import time
-from datetime import date, datetime, timedelta, timezone
 from urllib.parse import parse_qsl
 
 import aiosqlite
@@ -21,30 +20,11 @@ CHALLENGE_DB_PATH = os.getenv("SGS_CHALLENGE_DB_PATH") or os.path.join(DATA_DIR,
 UPLOADS_DIR = os.path.join(DATA_DIR, "sgs-challenge-uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 ALLOWED_AVATAR_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif")
-# What a voucher is worth, as shown to voters (set SGS_VOUCHER_OFFER, e.g. "20% off any order at Super SGS
-# Furniture", and SGS_VOUCHER_OFFER_AM for the Amharic).
-VOUCHER_OFFER = os.getenv("SGS_VOUCHER_OFFER") or "a discount at Super SGS Furniture"
-VOUCHER_OFFER_AM = os.getenv("SGS_VOUCHER_OFFER_AM") or "በSuper SGS Furniture ቅናሽ"
-ADDIS_ABABA = timezone(timedelta(hours=3))
-
-
-def _voting_end(value: str):
-    """When voting closes: the end of SGS_VOTING_ENDS (the last day, YYYY-MM-DD) in Addis Ababa, or None."""
-    try:
-        last_day = date.fromisoformat((value or "").strip())
-    except ValueError:
-        return None
-    return datetime(last_day.year, last_day.month, last_day.day, tzinfo=ADDIS_ABABA) + timedelta(days=1)
-
-
-# Unset: the challenge has no announced end and stays open.
-VOTING_ENDS = _voting_end(os.getenv("SGS_VOTING_ENDS", ""))
+# What a voucher is worth, as shown to voters.
+VOUCHER_OFFER = "20% off any order at Super SGS Furniture"
+VOUCHER_OFFER_AM = "በSuper SGS Furniture በማንኛውም ግዢ 20% ቅናሽ"
 # Shop staff (Telegram user ids, comma-separated): they check and mark vouchers, nothing else.
 VOUCHER_STAFF_IDS = [int(x) for x in os.getenv("SGS_VOUCHER_STAFF_IDS", "").replace(" ", "").split(",") if x.isdigit()]
-
-
-def voting_closed(now: datetime = None) -> bool:
-    return VOTING_ENDS is not None and (now or datetime.now(timezone.utc)) >= VOTING_ENDS
 
 
 async def has_voted(db: aiosqlite.Connection, telegram_id) -> bool:
@@ -275,8 +255,6 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
             "total_views": total_views,
             "offer": VOUCHER_OFFER,
             "offer_am": VOUCHER_OFFER_AM,
-            "ends_at": VOTING_ENDS.isoformat() if VOTING_ENDS else None,
-            "closed": voting_closed(),
         })
 
     async def cast_vote(request: web.Request) -> web.Response:
@@ -301,8 +279,6 @@ def register_challenge_routes(app: web.Application, db: aiosqlite.Connection, bo
         telegram_id = str(user.get("id", ""))
         if not telegram_id:
             return web.json_response({"error": "Missing Telegram user id."}, status=401)
-        if voting_closed():
-            return web.json_response({"error": "Voting has closed. Thank you for taking part!", "closed": True}, status=403)
 
         if wp_api_url:
             import aiohttp

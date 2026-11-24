@@ -10,8 +10,8 @@ let STATE = {
 };
 
 const STRINGS = {
-  am: { lang_label: 'English', title: 'ተወዳጅ ቲክቶከርዎን ይምረጡ', vote: 'ድምጽ ስጥ', voted: 'ተመርጧል', closed: 'ተዘግቷል', not_registered: 'ድምጽ ከመስጠትዎ በፊት መመዝገብ አለቦት።' },
-  en: { lang_label: 'አማርኛ', title: 'Choose your favourite creator', vote: 'Vote', voted: 'Voted', closed: 'Closed', not_registered: 'You must be registered before voting.' },
+  am: { lang_label: 'English', title: 'ተወዳጅ ቲክቶከርዎን ይምረጡ', vote: 'ድምጽ ስጥ', voted: 'ተመርጧል', not_registered: 'ድምጽ ከመስጠትዎ በፊት መመዝገብ አለቦት።' },
+  en: { lang_label: 'አማርኛ', title: 'Choose your favourite creator', vote: 'Vote', voted: 'Voted', not_registered: 'You must be registered before voting.' },
 };
 
 function init() {
@@ -89,8 +89,6 @@ async function loadCreators() {
     STATE.filtered = STATE.creators;
     STATE.offer = data.offer;
     STATE.offerAm = data.offer_am;
-    STATE.endsAt = data.ends_at ? new Date(data.ends_at) : null;
-    STATE.closed = Boolean(data.closed);
     document.getElementById('stat-votes').textContent = formatNum(data.total_votes || 0);
     document.getElementById('stat-views').textContent = formatNum(data.total_views || 0);
     renderCreators();
@@ -102,25 +100,14 @@ async function loadCreators() {
   }
 }
 
-// The offer for people who haven't voted, and when voting closes.
+// The 20% offer, for people who haven't voted yet.
 function renderCampaign() {
   const voted = STATE.creators.some((c) => c.voted_by_me);
   if (STATE.offer) {
     document.getElementById('offer-text').textContent = STATE.offerAm ? `${STATE.offer} · ${STATE.offerAm}` : STATE.offer;
     document.getElementById('faq-offer').textContent = STATE.offer;
   }
-  document.getElementById('offer-card').style.display = !voted && !STATE.closed && STATE.offer ? 'flex' : 'none';
-  const ends = document.getElementById('voting-ends');
-  if (STATE.closed) {
-    ends.textContent = 'Voting has closed · ድምጽ መስጫው ተዘግቷል';
-  } else if (STATE.endsAt) {
-    const lastDay = new Date(STATE.endsAt.getTime() - 1);
-    const date = lastDay.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Addis_Ababa' });
-    const days = Math.ceil((STATE.endsAt - Date.now()) / 86400000);
-    const left = days > 1 ? `${days} days left · ${days} ቀን ቀርቷል` : 'Last day! · የመጨረሻ ቀን!';
-    ends.textContent = `⏰ Voting closes on ${date} · ${left}`;
-  }
-  ends.style.display = STATE.closed || STATE.endsAt ? 'block' : 'none';
+  document.getElementById('offer-card').style.display = !voted && STATE.offer ? 'flex' : 'none';
 }
 
 function showLinkedCreator() {
@@ -164,8 +151,8 @@ function renderCreatorRow(c, index = 0) {
       <span>@${escapeHtml(c.handle)}</span>
       <span class="vote-count">${formatNum(c.votes)} votes</span>
     </div>
-    <button class="vote-btn ${voted ? 'voted' : ''}" data-id="${c.id}" ${anyVoted || STATE.closed ? 'disabled' : ''}>
-      ${voted ? '✓ ' + s.voted : STATE.closed ? s.closed : '🗳️ ' + s.vote}
+    <button class="vote-btn ${voted ? 'voted' : ''}" data-id="${c.id}" ${anyVoted ? 'disabled' : ''}>
+      ${voted ? '✓ ' + s.voted : '🗳️ ' + s.vote}
     </button>
   </div>`;
 }
@@ -195,12 +182,6 @@ async function castVote(creatorId, btn) {
     if (!res.ok) {
       if (data.not_registered) {
         document.getElementById('register-modal').style.display = 'flex';
-      } else if (data.closed) {
-        STATE.closed = true;
-        renderCreators();
-        renderCampaign();
-        showToast(data.error);
-        return;
       } else {
         showToast(data.error || 'Could not register your vote.');
       }

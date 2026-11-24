@@ -74,7 +74,7 @@ def test_keyboard_generation():
     button_texts = [btn.text for row in kb_cand.keyboard for btn in row]
     assert "Jobs" in button_texts
     assert "My Profile" in button_texts
-    assert "🎁 SGS Challenge – vote & get a discount" in button_texts
+    assert "🎁 SGS Challenge – vote & get 20% off" in button_texts
     assert "🎁 My voucher" in button_texts
     assert "📣 Broadcast Message" not in button_texts
 

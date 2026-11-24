@@ -1,5 +1,5 @@
-"""SGS Challenge: the voucher in the bot, closing on the last day, shop staff, creator links, and how
-people who haven't voted are reminded. Run: python -m pytest -q"""
+"""SGS Challenge: the 20% voucher in the bot, shop staff, creator links, and how people who haven't voted
+are reminded. Run: python -m pytest -q"""
 import asyncio
 import hashlib
 import hmac
@@ -8,7 +8,6 @@ import os
 import sys
 import tempfile
 import time
-from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from urllib.parse import quote
 
@@ -79,21 +78,14 @@ def test_a_vote_sends_the_voucher_to_the_bot_and_a_failure_there_keeps_the_vote(
     asyncio.run(check())
 
 
-def test_voting_closes_after_the_last_day():
+def test_the_creators_list_carries_the_20_percent_offer():
     async def check():
         client, db = await challenge_app()
-        original = voting_routes.VOTING_ENDS
         try:
-            assert voting_routes._voting_end("2026-12-15") == datetime(2026, 12, 16, tzinfo=timezone(timedelta(hours=3)))
-            assert voting_routes._voting_end("") is None and voting_routes._voting_end("soon") is None
-            voting_routes.VOTING_ENDS = datetime.now(timezone.utc) - timedelta(minutes=1)
-            answer = await vote(client, 5)
-            assert answer.status == 403 and (await answer.json())["closed"] is True
             creators = await (await client.get("/api/challenge/creators")).json()
-            assert creators["closed"] is True and creators["offer"] and creators["ends_at"]
-            assert not await voting_routes.has_voted(db, 5)
+            assert creators["offer"] == "20% off any order at Super SGS Furniture"
+            assert "20%" in creators["offer_am"]
         finally:
-            voting_routes.VOTING_ENDS = original
             await client.close()
             await db.close()
     asyncio.run(check())
@@ -123,20 +115,20 @@ def test_shop_staff_check_and_mark_vouchers_and_nothing_else():
 
 def test_old_and_new_challenge_buttons_and_the_voucher_button():
     assert common.menu_key_for("SGS Challenge") == ("challenge", "en")
-    assert common.menu_key_for("🎁 SGS Challenge – vote & get a discount") == ("challenge", "en")
+    assert common.menu_key_for("🎁 SGS Challenge – vote & get 20% off") == ("challenge", "en")
     assert common.menu_key_for("🎁 የእኔ ቫውቸር") == ("voucher", "am")
     labels = [button.text for row in common.get_keyboard("Candidate", "en").keyboard for button in row]
-    assert "🎁 My voucher" in labels and "🎁 SGS Challenge – vote & get a discount" in labels
+    assert "🎁 My voucher" in labels and "🎁 SGS Challenge – vote & get 20% off" in labels
     admin = [button.text for row in common.get_keyboard("Employer", "en", is_admin=True).keyboard for button in row]
     assert challenge.REMIND_BUTTON in admin
 
 
-def test_the_description_shows_the_challenge_only_while_voting_is_open():
+def test_the_description_starts_with_the_challenge_once():
     original = "Beleqet Jobs helps people find work."
-    open_ = challenge.described(original, active=True)
-    assert open_.startswith(challenge.DESCRIPTION_MARK) and open_.endswith(original)
-    assert challenge.described(open_, active=True) == open_
-    assert challenge.described(open_, active=False) == original
+    with_challenge = challenge.described(original)
+    assert with_challenge.startswith(challenge.DESCRIPTION_MARK) and with_challenge.endswith(original)
+    assert "20%" in with_challenge
+    assert challenge.described(with_challenge) == with_challenge
 
 
 def test_reminders_go_only_to_people_who_have_not_voted_and_at_most_twice():
