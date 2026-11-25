@@ -1356,6 +1356,19 @@ model Payment {
   @@map("payments")
 }
 
+/// A CBE transfer (its "FT…" reference) that has paid for something. Jobs and the Promotion bot
+/// take payments into the same account, so a transfer is recorded here once it pays for either,
+/// and can't pay a second time.
+model BankReference {
+  /// As CBE writes it, e.g. FT26326ABC12.
+  reference String   @id
+  /// "jobs:<payment id>" or "promotion:<deposit id>".
+  usedBy    String
+  createdAt DateTime @default(now())
+
+  @@map("bank_references")
+}
+
 enum PaymentProvider {
   STRIPE
   PAYPAL

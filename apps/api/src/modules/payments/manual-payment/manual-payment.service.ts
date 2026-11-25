@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { PushService } from '../../messaging/push/push.service';
 import { ConfigService } from '@nestjs/config';
-import { PaymentProvider, PaymentStatus } from '@prisma/client';
+import { PaymentProvider, PaymentStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -19,6 +19,49 @@ import { MulterFile } from '../../platform/uploads/interfaces/multer-file.interf
 import { UploadsService } from '../../platform/uploads/uploads.service';
 import { CreateManualPaymentDto, SubmitManualPaymentDto } from './dto/submit-manual-payment.dto';
 import { activatePaidPlan, assertNoPaypalAutoRenew } from '../subscriptions/activate-plan';
+import {
+  CbeLookup,
+  CbeReceipt,
+  CbeReceiptService,
+  normalizeCbeReference,
+  sameCbeAccount,
+} from './cbe-receipt.service';
+
+/** A transfer checked with CBE. receipt: it matches, approve it. note: why not, for the admins. */
+type CbeCheck = { receipt?: CbeReceipt; note?: string };
+
+/** Who approved a payment that matched its CBE receipt (approvedBy in the payment's metadata). */
+export const CBE_RECEIPT_APPROVER = 'cbe-receipt';
+/** A receipt older than this isn't accepted automatically: an admin looks at it. */
+const CBE_RECEIPT_MAX_AGE_MS = 7 * 24 * 3600 * 1000;
+/** Allowance for CBE's clock against ours. */
+const CBE_CLOCK_SLACK_MS = 3600 * 1000;
+const CBE_NOT_FOUND: Record<Extract<CbeLookup, { found: false }>['reason'], string> = {
+  'not-found': 'CBE has no transfer with this reference into our account.',
+  unreadable: "CBE's receipt for this reference couldn't be read.",
+  unavailable: "CBE's receipt site didn't answer, so it wasn't checked.",
+};
+
+/** What the admins are told when a transfer has already paid for something. */
+function alreadyUsed(reference: string, usedBy: string): string {
+  const [system, id] = usedBy.split(':');
+  return system === 'promotion'
+    ? `${reference} already paid for Promotion bot deposit #${id}.`
+    : `${reference} already paid for another Jobs payment (${id}).`;
+}
+
+/** "25 Nov 2026, 13:09", in Ethiopian time. */
+function ethiopianTime(date: Date): string {
+  return date.toLocaleString('en-GB', {
+    timeZone: 'Africa/Addis_Ababa',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return (err as { code?: string } | null)?.code === 'P2002';
+}
 
 export interface ManualPaymentRecord {
   id: string;
@@ -44,6 +87,7 @@ export class ManualPaymentService {
     private readonly uploadsService: UploadsService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly cbe: CbeReceiptService,
     @Optional() private readonly push?: PushService,
   ) {}
 
@@ -156,13 +200,64 @@ export class ManualPaymentService {
       },
     });
 
+    // A transfer from a CBE account is checked on CBE's own receipt page; if everything matches,
+    // the plan starts now, without waiting for an admin.
+    let check: CbeCheck | null = await this.checkWithCbe(updated).catch((err: Error) => {
+      this.logger.warn(`CBE check of payment ${updated.id} failed: ${err.message}`);
+      return { note: "The automatic check with CBE failed, so it wasn't checked." };
+    });
+    if (check?.receipt) {
+      try {
+        const approved = await this.approvePayment(updated.id, CBE_RECEIPT_APPROVER, check.receipt);
+        void this.notifyAutoApproved(updated, check.receipt);
+        return approved;
+      } catch (err) {
+        // The same transfer paid for something else a moment ago.
+        check = { note: (err as Error).message };
+      }
+    }
+
+    // Otherwise an admin decides, told what the check found.
+    const waiting = check?.note
+      ? await this.prisma.payment.update({
+          where: { id: updated.id },
+          data: {
+            metadata: {
+              ...((updated.metadata as Record<string, unknown> | null) ?? {}),
+              cbeCheck: check.note,
+            },
+          },
+        })
+      : updated;
+
     // Fire-and-forget: admin email + Telegram bot webhook (non-blocking)
-    void this.notifyAdmin(updated, dto.transactionReference, uploaded.publicUrl);
+    void this.notifyAdmin(waiting, dto.transactionReference, uploaded.publicUrl, check?.note);
 
     // In-app notifications for both user and admins
-    void this.createInAppNotificationsOnSubmit(updated, dto.transactionReference);
+    void this.createInAppNotificationsOnSubmit(waiting, dto.transactionReference);
 
-    return this.toRecord(updated);
+    return this.toRecord(waiting);
+  }
+
+  /**
+   * Records a Promotion bot deposit's transfer, so it can't also pay for a Jobs plan (both take
+   * payments into the same account). Refused when the transfer has already paid for something.
+   */
+  async claimBankReference(reference: string, usedBy: string): Promise<{ claimed: true }> {
+    const ft = normalizeCbeReference(reference);
+    if (!ft) throw new BadRequestException('Not a CBE transfer reference (FT…)');
+    const used = await this.prisma.bankReference.findUnique({ where: { reference: ft } });
+    if (used) {
+      if (used.usedBy === usedBy) return { claimed: true };
+      throw new ConflictException(alreadyUsed(ft, used.usedBy));
+    }
+    try {
+      await this.prisma.bankReference.create({ data: { reference: ft, usedBy } });
+    } catch (err) {
+      if (isUniqueViolation(err)) throw new ConflictException(`${ft} was used a moment ago.`);
+      throw err;
+    }
+    return { claimed: true };
   }
 
   /** One payment; people see only their own (it carries their receipt and bank reference). */
@@ -190,9 +285,15 @@ export class ManualPaymentService {
   }
 
   /**
-   * [Admin] Approves a manual payment, transitioning status to SUCCEEDED.
+   * [Admin] Approves a manual payment, transitioning status to SUCCEEDED. A CBE transfer reference is
+   * recorded as used, and one that has already paid for something is refused. `cbeReceipt`: what
+   * CBE's receipt said, when the payment was approved by matching it.
    */
-  async approvePayment(paymentId: string, adminId: string): Promise<ManualPaymentRecord> {
+  async approvePayment(
+    paymentId: string,
+    adminId: string,
+    cbeReceipt?: CbeReceipt,
+  ): Promise<ManualPaymentRecord> {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
       include: { user: true },
@@ -208,28 +309,47 @@ export class ManualPaymentService {
 
     const currentMetadata = (payment.metadata as Record<string, unknown>) ?? {};
     const planId = typeof currentMetadata.planId === 'string' ? currentMetadata.planId : null;
-    const updated = await this.prisma.$transaction(async (tx) => {
-      // A second, simultaneous approval matches nothing here, so a plan is never started twice.
-      const { count } = await tx.payment.updateMany({
-        where: { id: paymentId, status: { not: PaymentStatus.SUCCEEDED } },
-        data: { status: PaymentStatus.SUCCEEDED },
-      });
-      if (count === 0) return tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
-      const subscriptionId = planId
-        ? await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.MANUAL)
-        : undefined;
-      return tx.payment.update({
-        where: { id: paymentId },
-        data: {
-          metadata: {
-            ...currentMetadata,
-            ...(subscriptionId ? { subscriptionId } : {}),
-            approvedBy: adminId,
-            approvedAt: new Date().toISOString(),
+    const updated = await this.prisma
+      .$transaction(async (tx) => {
+        // A second, simultaneous approval matches nothing here, so a plan is never started twice.
+        const { count } = await tx.payment.updateMany({
+          where: { id: paymentId, status: { not: PaymentStatus.SUCCEEDED } },
+          data: { status: PaymentStatus.SUCCEEDED },
+        });
+        if (count === 0) return tx.payment.findUniqueOrThrow({ where: { id: paymentId } });
+        await this.claimTransfer(tx, payment.transactionReference, paymentId);
+        const subscriptionId = planId
+          ? await activatePaidPlan(tx, payment.userId, planId, PaymentProvider.MANUAL)
+          : undefined;
+        return tx.payment.update({
+          where: { id: paymentId },
+          data: {
+            metadata: {
+              ...currentMetadata,
+              ...(subscriptionId ? { subscriptionId } : {}),
+              ...(cbeReceipt
+                ? {
+                    cbeReceipt: {
+                      payer: cbeReceipt.payer,
+                      payerAccount: cbeReceipt.payerAccount,
+                      amount: cbeReceipt.amount,
+                      paidAt: cbeReceipt.paidAt.toISOString(),
+                    },
+                  }
+                : {}),
+              approvedBy: adminId,
+              approvedAt: new Date().toISOString(),
+            },
           },
-        },
+        });
+      })
+      .catch((err: unknown) => {
+        // Another payment recorded the same transfer between our check and our write.
+        if (isUniqueViolation(err)) {
+          throw new ConflictException('This bank transfer paid for something else a moment ago.');
+        }
+        throw err;
       });
-    });
 
     this.logger.log(`Manual payment ${paymentId} approved by admin ${adminId}`);
 
@@ -420,6 +540,133 @@ export class ManualPaymentService {
 
   // ─── private helpers ──────────────────────────────────────────────────────
 
+  /**
+   * Looks the payment's transfer up on CBE's receipt page (for the account in CBE_RECEIPT_ACCOUNT).
+   * `receipt`: it matches, approve it. `note`: why it can't be approved automatically, for the
+   * admins. null: automatic checks are off.
+   */
+  private async checkWithCbe(payment: {
+    amount: number;
+    currency: string;
+    transactionReference: string | null;
+  }): Promise<CbeCheck | null> {
+    const account = (this.config.get<string>('CBE_RECEIPT_ACCOUNT') ?? '').replace(/\D/g, '');
+    if (account.length < 8) return null;
+    const reference = normalizeCbeReference(payment.transactionReference ?? '');
+    if (!reference)
+      return { note: 'Not checked: the reference is not a CBE transfer number (FT…).' };
+    if (payment.currency !== 'ETB') return { note: 'Not checked: CBE transfers are in ETB.' };
+
+    const used = await this.prisma.bankReference.findUnique({ where: { reference } });
+    if (used) return { note: alreadyUsed(reference, used.usedBy) };
+
+    const lookup = await this.cbe.lookup(reference, account);
+    if (!lookup.found) return { note: CBE_NOT_FOUND[lookup.reason] };
+    const { receipt } = lookup;
+    const etb = (santim: number) => (santim / 100).toLocaleString('en-US');
+    if (receipt.reference !== reference || !sameCbeAccount(receipt.receiverAccount, account)) {
+      return {
+        note: `CBE's receipt shows the money went to account ${receipt.receiverAccount}, not ours.`,
+      };
+    }
+    if (receipt.amount !== payment.amount) {
+      return {
+        note: `CBE's receipt shows ${etb(receipt.amount)} ETB; this payment is ${etb(payment.amount)} ETB.`,
+      };
+    }
+    const age = Date.now() - receipt.paidAt.getTime();
+    if (age > CBE_RECEIPT_MAX_AGE_MS || age < -CBE_CLOCK_SLACK_MS) {
+      return {
+        note: `CBE's receipt is dated ${ethiopianTime(receipt.paidAt)}, not within the last 7 days.`,
+      };
+    }
+    return { receipt };
+  }
+
+  /** Records the payment's CBE transfer as used, inside its approval; refuses one already used. */
+  private async claimTransfer(
+    tx: Prisma.TransactionClient,
+    transactionReference: string | null,
+    paymentId: string,
+  ): Promise<void> {
+    const reference = normalizeCbeReference(transactionReference ?? '');
+    if (!reference) return;
+    const usedBy = `jobs:${paymentId}`;
+    const used = await tx.bankReference.findUnique({ where: { reference } });
+    if (used && used.usedBy !== usedBy) {
+      throw new ConflictException(`${alreadyUsed(reference, used.usedBy)} Reject this payment.`);
+    }
+    if (!used) await tx.bankReference.create({ data: { reference, usedBy } });
+  }
+
+  /** Who paid and for which plan, for the admins' Telegram messages. */
+  private async alertDetails(payment: {
+    id: string;
+    amount: number;
+    currency: string;
+    userId: string;
+    metadata?: unknown;
+  }): Promise<Record<string, string>> {
+    const metadata = (payment.metadata as Record<string, unknown> | null) ?? {};
+    const planId = typeof metadata.planId === 'string' ? metadata.planId : null;
+    const [payer, plan] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: payment.userId },
+        select: { firstName: true, lastName: true, email: true },
+      }),
+      planId
+        ? this.prisma.plan.findUnique({ where: { id: planId }, select: { name: true } })
+        : null,
+    ]);
+    const payerName = `${payer?.firstName ?? ''} ${payer?.lastName ?? ''}`.trim();
+    return {
+      order_id: payment.id,
+      amount: (payment.amount / 100).toLocaleString('en-US'),
+      currency: payment.currency,
+      payer: [payerName, payer?.email].filter(Boolean).join(' · '),
+      plan: plan?.name ?? '',
+    };
+  }
+
+  /** Tells the admins that a transfer matched its CBE receipt and its plan has started. */
+  private async notifyAutoApproved(
+    payment: { id: string; amount: number; currency: string; userId: string; metadata?: unknown },
+    receipt: CbeReceipt,
+  ): Promise<void> {
+    try {
+      const webhookUrl = this.config.get<string>('BELEQET_BOT_WEBHOOK_URL');
+      if (webhookUrl) {
+        await this.postJson(webhookUrl, this.config.get<string>('WEBHOOK_SECRET_TOKEN', ''), {
+          action: 'manual_payment_auto_approved',
+          ...(await this.alertDetails(payment)),
+          reference: receipt.reference,
+          bank_payer: receipt.payer,
+          paid_at: ethiopianTime(receipt.paidAt),
+        });
+      }
+      const admins = await this.prisma.user.findMany({
+        where: { role: 'ADMIN', isActive: true },
+        select: { id: true },
+      });
+      for (const admin of admins) {
+        await this.prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: 'PAYMENT_RECEIVED',
+            title: 'Bank transfer approved automatically',
+            body: `A transfer of ${payment.currency} ${(payment.amount / 100).toLocaleString('en-US')} (Ref: ${receipt.reference}) matched its CBE receipt, so its plan has started.`,
+            channel: 'IN_APP',
+            metadata: { paymentId: payment.id, reference: receipt.reference },
+          },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Could not tell the admins about payment ${payment.id}: ${(err as Error).message}`,
+      );
+    }
+  }
+
   private async notifyAdmin(
     payment: {
       id: string;
@@ -430,6 +677,7 @@ export class ManualPaymentService {
     },
     reference: string,
     receiptUrl: string,
+    cbeCheck?: string,
   ): Promise<void> {
     try {
       // 1. Admin email (PAYMENT_ALERT_EMAIL; not ADMIN_EMAIL, which creates the first admin account)
@@ -457,27 +705,12 @@ export class ManualPaymentService {
       const webhookSecret = this.config.get<string>('WEBHOOK_SECRET_TOKEN', '');
 
       if (webhookUrl) {
-        const metadata = (payment.metadata as Record<string, unknown> | null) ?? {};
-        const planId = typeof metadata.planId === 'string' ? metadata.planId : null;
-        const [payer, plan] = await Promise.all([
-          this.prisma.user.findUnique({
-            where: { id: payment.userId },
-            select: { firstName: true, lastName: true, email: true },
-          }),
-          planId
-            ? this.prisma.plan.findUnique({ where: { id: planId }, select: { name: true } })
-            : null,
-        ]);
-        const payerName = `${payer?.firstName ?? ''} ${payer?.lastName ?? ''}`.trim();
         await this.postJson(webhookUrl, webhookSecret, {
           action: 'manual_payment_uploaded',
-          order_id: payment.id,
-          amount: (payment.amount / 100).toLocaleString('en-US'),
-          currency: payment.currency,
+          ...(await this.alertDetails(payment)),
           reference,
           receipt_url: receiptUrl,
-          payer: [payerName, payer?.email].filter(Boolean).join(' · '),
-          plan: plan?.name ?? '',
+          ...(cbeCheck ? { cbe_check: cbeCheck } : {}),
         });
       }
     } catch (err) {

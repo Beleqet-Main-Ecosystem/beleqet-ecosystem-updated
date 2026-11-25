@@ -9,6 +9,7 @@ import { EmailService } from '../../messaging/email-automation/email.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UploadsService } from '../../platform/uploads/uploads.service';
 import { MulterFile } from '../../platform/uploads/interfaces/multer-file.interface';
+import { CbeReceiptService } from './cbe-receipt.service';
 import { ManualPaymentService } from './manual-payment.service';
 
 describe('ManualPaymentService', () => {
@@ -97,6 +98,7 @@ describe('ManualPaymentService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: UploadsService, useValue: mockUploadsService },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: CbeReceiptService, useValue: { lookup: jest.fn() } },
         { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
@@ -389,6 +391,7 @@ describe('ManualPaymentService plans and privacy', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: UploadsService, useValue: {} },
         { provide: EmailService, useValue: { dispatch: jest.fn().mockResolvedValue(undefined) } },
+        { provide: CbeReceiptService, useValue: { lookup: jest.fn() } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
       ],
     }).compile();
@@ -527,6 +530,7 @@ describe('ManualPaymentService from Telegram', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: UploadsService, useValue: {} },
         { provide: EmailService, useValue: { dispatch: jest.fn().mockResolvedValue(undefined) } },
+        { provide: CbeReceiptService, useValue: { lookup: jest.fn() } },
         { provide: ConfigService, useValue: { get: jest.fn() } },
       ],
     }).compile();
@@ -618,6 +622,7 @@ describe('ManualPaymentService bank details and alerts', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: UploadsService, useValue: uploads },
         { provide: EmailService, useValue: email },
+        { provide: CbeReceiptService, useValue: { lookup: jest.fn() } },
         {
           provide: ConfigService,
           useValue: { get: (key: string, fallback?: string) => settings[key] ?? fallback },
@@ -706,5 +711,204 @@ describe('ManualPaymentService bank details and alerts', () => {
     expect(email.dispatch).toHaveBeenCalledWith(
       expect.objectContaining({ recipient: 'payments@beleqetjobs.com' }),
     );
+  });
+});
+
+describe('ManualPaymentService checking transfers with CBE', () => {
+  const settings: Record<string, string | undefined> = {};
+  let row: Record<string, any>;
+  const prisma: Record<string, any> = {
+    payment: {
+      findUnique: jest.fn(async () => ({ ...row, user: { email: '' } })),
+      findUniqueOrThrow: jest.fn(async () => row),
+      update: jest.fn(async ({ data }: { data: object }) => (row = { ...row, ...data })),
+      updateMany: jest.fn(async ({ data }: { data: object }) => {
+        row = { ...row, ...data };
+        return { count: 1 };
+      }),
+    },
+    bankReference: { findUnique: jest.fn(), create: jest.fn() },
+    plan: { findUnique: jest.fn(), findUniqueOrThrow: jest.fn() },
+    subscription: { findFirst: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
+    user: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+    notification: { create: jest.fn().mockResolvedValue({}) },
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>): Promise<unknown> => fn(prisma)),
+  };
+  const cbe = { lookup: jest.fn() };
+  const receipt = (extra: Record<string, unknown> = {}) => ({
+    found: true,
+    receipt: {
+      reference: 'FT26329AB12C',
+      payer: 'ABEBE KEBEDE TOLA',
+      payerAccount: '1****5678',
+      receiver: 'BELEQET',
+      receiverAccount: '1****1234',
+      amount: 99900,
+      paidAt: new Date(Date.now() - 3600 * 1000),
+      ...extra,
+    },
+  });
+  let service: ManualPaymentService;
+
+  const submit = (reference = 'ft26329 ab12c') =>
+    service.submitReceipt(
+      { paymentId: 'p1', transactionReference: reference },
+      { mimetype: 'application/pdf', size: 1000 } as MulterFile,
+      'u1',
+    );
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    for (const key of Object.keys(settings)) delete settings[key];
+    settings.CBE_RECEIPT_ACCOUNT = '1000777661234';
+    row = {
+      id: 'p1',
+      userId: 'u1',
+      provider: 'MANUAL',
+      amount: 99900,
+      currency: 'ETB',
+      status: 'PENDING',
+      transactionReference: null,
+      metadata: { planId: 'pro' },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    prisma.bankReference.findUnique.mockResolvedValue(null);
+    prisma.plan.findUniqueOrThrow.mockResolvedValue({ id: 'pro', interval: 'MONTHLY' });
+    prisma.subscription.findFirst.mockResolvedValue(null);
+    prisma.subscription.create.mockResolvedValue({ id: 'sub1' });
+    const module = await Test.createTestingModule({
+      providers: [
+        ManualPaymentService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: UploadsService, useValue: { uploadFile: async () => ({ publicUrl: 'u' }) } },
+        { provide: EmailService, useValue: { dispatch: jest.fn().mockResolvedValue(undefined) } },
+        { provide: CbeReceiptService, useValue: cbe },
+        {
+          provide: ConfigService,
+          useValue: { get: (key: string, fallback?: string) => settings[key] ?? fallback },
+        },
+      ],
+    }).compile();
+    service = module.get(ManualPaymentService);
+  });
+
+  it('approves a transfer that matches its CBE receipt, and starts the plan', async () => {
+    cbe.lookup.mockResolvedValue(receipt());
+
+    const result = await submit();
+
+    expect(cbe.lookup).toHaveBeenCalledWith('FT26329AB12C', '1000777661234');
+    expect(result.status).toBe('SUCCEEDED');
+    expect(result.metadata).toMatchObject({
+      approvedBy: 'cbe-receipt',
+      cbeReceipt: { payer: 'ABEBE KEBEDE TOLA', amount: 99900 },
+    });
+    expect(prisma.bankReference.create).toHaveBeenCalledWith({
+      data: { reference: 'FT26329AB12C', usedBy: 'jobs:p1' },
+    });
+    expect(prisma.subscription.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: 'u1', planId: 'pro' }) }),
+    );
+  });
+
+  it.each([
+    ['a different amount', receipt({ amount: 50000 }), 'shows 500 ETB; this payment is 999 ETB'],
+    [
+      'someone else’s account',
+      receipt({ receiverAccount: '1****9999' }),
+      'went to account 1****9999',
+    ],
+    [
+      'an old transfer',
+      receipt({ paidAt: new Date(Date.now() - 10 * 24 * 3600 * 1000) }),
+      'not within the last 7 days',
+    ],
+    ['no such transfer', { found: false, reason: 'not-found' }, 'CBE has no transfer'],
+    ['CBE not answering', { found: false, reason: 'unavailable' }, "didn't answer"],
+  ])('leaves %s to an admin, saying why', async (_case, lookup, says) => {
+    cbe.lookup.mockResolvedValue(lookup);
+
+    const result = await submit();
+
+    expect(result.status).toBe('PROCESSING');
+    expect(result.metadata).toMatchObject({ cbeCheck: expect.stringContaining(says) });
+    expect(prisma.bankReference.create).not.toHaveBeenCalled();
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+  });
+
+  it('never lets one transfer pay twice, nor for a Promotion deposit too', async () => {
+    prisma.bankReference.findUnique.mockResolvedValue({
+      reference: 'FT26329AB12C',
+      usedBy: 'promotion:12',
+    });
+
+    const result = await submit();
+
+    expect(cbe.lookup).not.toHaveBeenCalled();
+    expect(result.status).toBe('PROCESSING');
+    expect(result.metadata).toMatchObject({
+      cbeCheck: 'FT26329AB12C already paid for Promotion bot deposit #12.',
+    });
+    // An admin who approves it anyway is stopped too.
+    await expect(service.approvePayment('p1', 'admin')).rejects.toThrow(ConflictException);
+    expect(prisma.subscription.create).not.toHaveBeenCalled();
+  });
+
+  it('says a reference that is not a CBE one was not checked', async () => {
+    const result = await submit('TELEBIRR-123');
+    expect(cbe.lookup).not.toHaveBeenCalled();
+    expect(result.metadata).toMatchObject({ cbeCheck: expect.stringContaining('Not checked') });
+  });
+
+  it('checks nothing while CBE_RECEIPT_ACCOUNT is not set', async () => {
+    delete settings.CBE_RECEIPT_ACCOUNT;
+    const result = await submit();
+    expect(cbe.lookup).not.toHaveBeenCalled();
+    expect(result.status).toBe('PROCESSING');
+    expect(result.metadata).toEqual({ planId: 'pro' });
+  });
+
+  it("records an admin's approval of a CBE transfer, so it can't pay again", async () => {
+    row = { ...row, status: 'PROCESSING', transactionReference: 'FT26329AB12C' };
+    await service.approvePayment('p1', 'admin');
+    expect(prisma.bankReference.create).toHaveBeenCalledWith({
+      data: { reference: 'FT26329AB12C', usedBy: 'jobs:p1' },
+    });
+  });
+
+  describe('for the Promotion bot', () => {
+    it('records a deposit’s transfer, once', async () => {
+      await expect(service.claimBankReference('ft26329ab12c', 'promotion:7')).resolves.toEqual({
+        claimed: true,
+      });
+      expect(prisma.bankReference.create).toHaveBeenCalledWith({
+        data: { reference: 'FT26329AB12C', usedBy: 'promotion:7' },
+      });
+
+      prisma.bankReference.findUnique.mockResolvedValue({
+        reference: 'FT26329AB12C',
+        usedBy: 'promotion:7',
+      });
+      await expect(service.claimBankReference('FT26329AB12C', 'promotion:7')).resolves.toEqual({
+        claimed: true,
+      });
+      await expect(service.claimBankReference('FT26329AB12C', 'promotion:8')).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('refuses a transfer that paid for a Jobs plan, and anything not a CBE reference', async () => {
+      prisma.bankReference.findUnique.mockResolvedValue({
+        reference: 'FT26329AB12C',
+        usedBy: 'jobs:p1',
+      });
+      await expect(service.claimBankReference('FT26329AB12C', 'promotion:7')).rejects.toThrow(
+        'already paid for another Jobs payment',
+      );
+      await expect(service.claimBankReference('12345', 'promotion:7')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 });

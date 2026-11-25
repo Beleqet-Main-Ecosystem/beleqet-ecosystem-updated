@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, IsUUID, Length, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Length, Matches, Min } from 'class-validator';
 
 export class SubmitManualPaymentDto {
   /** The payment record id to attach the receipt to */
@@ -31,4 +31,15 @@ export class CreateManualPaymentDto {
   @IsString()
   @Length(0, 255)
   description?: string;
+}
+
+/** The Promotion bot recording the CBE transfer behind a deposit its admin is approving. */
+export class ClaimBankReferenceDto {
+  @IsString()
+  @Length(1, 64)
+  reference: string;
+
+  /** "promotion:<deposit id>" */
+  @Matches(/^promotion:\d+$/, { message: 'usedBy must be promotion:<deposit id>' })
+  usedBy: string;
 }
