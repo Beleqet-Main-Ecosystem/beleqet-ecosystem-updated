@@ -169,8 +169,9 @@ function BankTransfer({ plans }: { plans: { id: string; name: string; priceAmoun
     setBusy(true);
     setError('');
     try {
-      await sendReceipt(pending.id, reference.trim(), receipt);
-      setNotice(t('emp.bank.sent'));
+      const saved = await sendReceipt(pending.id, reference.trim(), receipt);
+      // A CBE transfer that matched its receipt on CBE's site is approved straight away.
+      setNotice(t(saved?.status === 'SUCCEEDED' ? 'emp.bank.confirmed' : 'emp.bank.sent'));
       setPendingOverride(null);
       setReference('');
       setReceipt(null);

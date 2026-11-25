@@ -114,6 +114,11 @@ services:
       # (write \n between lines), and who gets an email when a receipt arrives.
       - BANK_TRANSFER_DETAILS=${BANK_TRANSFER_DETAILS:-}
       - PAYMENT_ALERT_EMAIL=${PAYMENT_ALERT_EMAIL:-}
+      # The CBE account those transfers go into, in full: a transfer that matches its receipt on
+      # CBE's site starts the plan straight away. Empty: every transfer waits for an admin.
+      - CBE_RECEIPT_ACCOUNT=${CBE_RECEIPT_ACCOUNT:-}
+      # Shared with the Promotion bot (same account), which records its deposits' transfers here.
+      - BANK_REFERENCES_SECRET=${BANK_REFERENCES_SECRET:-}
       - CHAPA_CALLBACK_URL=https://api.beleqetjobs.com/api/v1/escrow/callback
       - CHAPA_RETURN_URL=https://beleqetjobs.com/payment/success
       - SMTP_HOST=${SMTP_HOST}

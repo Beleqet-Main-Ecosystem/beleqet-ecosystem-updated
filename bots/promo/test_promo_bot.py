@@ -214,6 +214,45 @@ class DepositApprovalTest(PromoBotTest):
         self.assertEqual(self.balance(4101), 60)
         self.assertEqual(self.balance(4100), 1)
 
+    def approve_cbe_transfer(self, **jobs):
+        """Approves a deposit paid with CBE transfer ft26329 ab12c while Beleqet Jobs answers `jobs`."""
+        with sqlite3.connect(server.DB_PATH) as conn:
+            conn.execute("UPDATE manual_deposits SET transaction_number = 'ft26329 ab12c' WHERE id = ?", (self.deposit,))
+        with mock.patch.object(server, "JOBS_API_URL", "http://jobs.example/api/v1"), \
+                mock.patch.object(server, "BANK_REFERENCES_SECRET", "shared-secret"), \
+                mock.patch.object(server.requests, "post", **jobs) as post:
+            answered = self.click("approve", by=ADMIN)
+        return post, answered
+
+    def test_approval_records_the_transfer_with_jobs_first(self):
+        before = self.balance(4001)
+        post, _ = self.approve_cbe_transfer(return_value=mock.Mock(status_code=200))
+        post.assert_called_once_with(
+            "http://jobs.example/api/v1/bank-references/claim",
+            json={"reference": "FT26329AB12C", "usedBy": f"promotion:{self.deposit}"},
+            headers={"X-Bank-References-Secret": "shared-secret"},
+            timeout=15,
+        )
+        self.assertEqual(self.status(), "approved")
+        self.assertEqual(self.balance(4001), before + 100)
+
+    def test_a_transfer_that_paid_for_a_jobs_plan_is_not_approved(self):
+        before = self.balance(4001)
+        jobs = mock.Mock(status_code=409, json=lambda: {"message": "FT26329AB12C already paid for another Jobs payment (p1)."})
+        _, answered = self.approve_cbe_transfer(return_value=jobs)
+        answered.assert_called_once_with(
+            "cb", "FT26329AB12C already paid for another Jobs payment (p1). Reject this deposit.", show_alert=True
+        )
+        self.assertEqual(self.status(), "pending")
+        self.assertEqual(self.balance(4001), before)
+
+    def test_nothing_is_approved_while_jobs_cannot_be_asked(self):
+        before = self.balance(4001)
+        _, answered = self.approve_cbe_transfer(side_effect=server.requests.ConnectionError("down"))
+        self.assertIn("nothing was approved", answered.call_args.args[1])
+        self.assertEqual(self.status(), "pending")
+        self.assertEqual(self.balance(4001), before)
+
 
 class ConfigTest(PromoBotTest):
     def test_tells_the_page_the_bots_name_and_the_deposit_account_once_set(self):
