@@ -47,7 +47,7 @@ export const fetchManualPayments = () => get<ManualPayment[]>('/manual-payment/m
 export const fetchBankDetails = async () => (await get<{ details: string | null }>('/manual-payment/bank-details')).details;
 export const startManualPayment = (planId: string) => send<ManualPayment>('POST', '/manual-payment', { planId });
 export const sendReceipt = (paymentId: string, transactionReference: string, receipt: PickedFile) =>
-  upload('/manual-payment/submit-receipt', receipt, { paymentId, transactionReference }, 'receipt');
+  upload<ManualPayment>('/manual-payment/submit-receipt', receipt, { paymentId, transactionReference }, 'receipt');
 
 /** "ETB 1,500" from santim. */
 export const planMoney = (amount: number, currency = 'ETB') => `${currency} ${(amount / 100).toLocaleString('en-US')}`;

@@ -24,7 +24,8 @@ type PaidPlan = { id: string; name: string; priceAmount: number; currency: strin
 
 /**
  * Pay for a plan by bank transfer: pick the plan, transfer the amount, then send the receipt and
- * the bank's reference. An admin checks it and the plan starts. Below it, every payment so far.
+ * the bank's reference. A CBE transfer is checked with CBE and starts the plan at once; others wait
+ * for an admin. Below it, every payment so far.
  */
 export default function BankTransfer() {
   const { t, locale } = useTranslation();
@@ -94,7 +95,9 @@ export default function BankTransfer() {
       form.append('receipt', receipt);
       const response = await authenticatedFetch(`${API_URL}/manual-payment/submit-receipt`, { method: 'POST', body: form });
       if (!response.ok) throw await apiError(response);
-      setNotice(t('emp.bank.sent'));
+      // A CBE transfer that matched its receipt on CBE's site is approved straight away.
+      const saved = (await response.json().catch(() => null)) as Payment | null;
+      setNotice(t(saved?.status === 'SUCCEEDED' ? 'emp.bank.confirmed' : 'emp.bank.sent'));
       setPending(null);
       setReference('');
       setReceipt(null);

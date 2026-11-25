@@ -13,7 +13,15 @@ type Transfer = {
   currency: string;
   status: Status;
   transactionReference: string | null;
-  metadata?: { planId?: string; rejectionReason?: string } | null;
+  metadata?: {
+    planId?: string;
+    rejectionReason?: string;
+    /** 'cbe-receipt' when it matched its receipt on CBE's site and was approved automatically. */
+    approvedBy?: string;
+    /** Why the automatic check with CBE didn't approve it. */
+    cbeCheck?: string;
+    cbeReceipt?: { payer?: string };
+  } | null;
   payer?: { firstName: string; lastName: string; email: string } | null;
   createdAt: string;
 };
@@ -75,9 +83,12 @@ export default function PaymentsPage() {
                   <b className="text-ink-900 dark:text-white">{formatMinor(transfer.amount, transfer.currency, locale)}</b>
                   <Badge tone={TONE[transfer.status] ?? 'gray'}>{t(`payments.status.${transfer.status}`)}</Badge>
                   {plan && <Badge>{t('payments.forPlan', { plan })}</Badge>}
+                  {transfer.metadata?.approvedBy === 'cbe-receipt' && <Badge tone="green">{t('payments.byCbe')}</Badge>}
                 </span>
                 <span className="text-ink-700 dark:text-slate-300">{transfer.payer ? `${fullName(transfer.payer)} · ${transfer.payer.email}` : '—'}</span>
                 <span className={muted}>{t('payments.reference', { ref: transfer.transactionReference ?? '—' })} · {formatDateTime(transfer.createdAt, locale)}</span>
+                {transfer.metadata?.cbeReceipt?.payer && <span className={muted}>{t('payments.cbePayer', { name: transfer.metadata.cbeReceipt.payer })}</span>}
+                {transfer.status === 'PROCESSING' && transfer.metadata?.cbeCheck && <span className={muted}>{t('payments.cbeCheck', { note: transfer.metadata.cbeCheck })}</span>}
                 {transfer.metadata?.rejectionReason && <span className={muted}>{t('payments.rejectedBecause', { reason: transfer.metadata.rejectionReason })}</span>}
               </div>
               <div className="flex flex-wrap gap-2">
