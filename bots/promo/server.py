@@ -1,3 +1,4 @@
+import re
 import time
 import logging
 import threading
@@ -69,6 +70,11 @@ CHAPA_SECRET_KEY = os.getenv("CHAPA_SECRET_KEY")
 MANUAL_DEPOSIT_BANK = os.getenv("MANUAL_DEPOSIT_BANK", "").strip() or "CBE"
 MANUAL_DEPOSIT_ACCOUNT = os.getenv("MANUAL_DEPOSIT_ACCOUNT", "").strip()
 MANUAL_DEPOSIT_NAME = os.getenv("MANUAL_DEPOSIT_NAME", "").strip()
+# Beleqet Jobs takes payments into the same account. Before the admin's Approve counts, the deposit's
+# CBE transfer (FT…) is recorded there, so one transfer can't pay in both. Unset: not checked.
+JOBS_API_URL = os.getenv("JOBS_API_URL", "").strip().rstrip("/")
+BANK_REFERENCES_SECRET = os.getenv("BANK_REFERENCES_SECRET", "").strip()
+CBE_REFERENCE = re.compile(r"^FT[0-9A-Z]{10}$")
 
 PROFIT_MARGIN_PERCENT = 20
 services_cache = []
@@ -444,6 +450,34 @@ def manual_deposit():
             logger.error("Failed to send manual deposit to admin: %s", e)
             
     return jsonify({"status": "success", "message": "Deposit request submitted successfully! Pending admin approval."})
+
+
+def claim_bank_reference(transaction_number, deposit_id):
+    """Records a deposit's CBE transfer with Beleqet Jobs, which takes payments into the same account,
+    so one transfer can't pay in both. Returns why the deposit can't be approved, or None."""
+    reference = re.sub(r"[^0-9A-Z]", "", str(transaction_number or "").upper())
+    if not (JOBS_API_URL and BANK_REFERENCES_SECRET) or not CBE_REFERENCE.match(reference):
+        return None
+    try:
+        res = requests.post(
+            f"{JOBS_API_URL}/bank-references/claim",
+            json={"reference": reference, "usedBy": f"promotion:{deposit_id}"},
+            headers={"X-Bank-References-Secret": BANK_REFERENCES_SECRET},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        logger.error("Couldn't check %s with Beleqet Jobs: %s", reference, e)
+        return "Couldn't check this transfer with Beleqet Jobs, so nothing was approved. Try again in a minute."
+    if res.status_code == 409:
+        try:
+            said = res.json().get("message") or ""
+        except ValueError:
+            said = ""
+        return f"{said or reference + ' has already paid for something.'} Reject this deposit."
+    if res.status_code != 200:
+        logger.error("Beleqet Jobs answered HTTP %s for %s: %s", res.status_code, reference, res.text[:200])
+        return f"Couldn't check this transfer with Beleqet Jobs (HTTP {res.status_code}), so nothing was approved."
+    return None
 
 @app.route('/api/order', methods=['POST'])
 def create_order():
@@ -1059,10 +1093,14 @@ if bot:
             deposit_id = call.data.split("_")[-1]
             conn = get_db()
             c = conn.cursor()
-            c.execute("SELECT user_id, amount, status FROM manual_deposits WHERE id = ?", (deposit_id,))
+            c.execute("SELECT user_id, amount, status, transaction_number FROM manual_deposits WHERE id = ?", (deposit_id,))
             row = c.fetchone()
+            # A transfer that paid for a Beleqet Jobs plan (same account) can't pay here too.
+            problem = claim_bank_reference(row[3], deposit_id) if row and row[2] == 'pending' else None
+            if problem:
+                bot.answer_callback_query(call.id, problem, show_alert=True)
             # Only the click that moves it out of 'pending' credits the balance, so a double click pays once.
-            if row and row[2] == 'pending' and c.execute(
+            elif row and row[2] == 'pending' and c.execute(
                 "UPDATE manual_deposits SET status = 'approved' WHERE id = ? AND status = 'pending'", (deposit_id,)
             ).rowcount == 1:
                 user_id, amount = row[0], row[1]
