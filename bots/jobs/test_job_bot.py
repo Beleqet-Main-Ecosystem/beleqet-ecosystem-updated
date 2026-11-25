@@ -586,9 +586,31 @@ def test_payment_alert_text():
     assert '<b>Amount:</b> 1,500 ETB' in text
     assert '<code>FT&lt;b&gt;12&amp;3</code>' in text
     assert 'before you approve' in text
+    assert 'CBE check' not in text
     # Older alerts without the payer and plan still read well.
     assert 'Payer' not in webhook.payment_alert_text({'order_id': 'pay-1', 'amount': '1', 'currency': 'ETB'})
+    # What the automatic check with CBE found, when it ran.
+    checked = webhook.payment_alert_text({
+        'order_id': 'pay-1', 'amount': '999', 'currency': 'ETB', 'reference': 'FT26329AB12C',
+        'cbe_check': "CBE's receipt shows 500 ETB; this payment is 999 ETB.",
+    })
+    assert "🔎 <b>CBE check:</b> CBE&#x27;s receipt shows 500 ETB; this payment is 999 ETB." in checked
     print("  [PASS] test_payment_alert_text")
+
+
+def test_auto_approved_text():
+    """A transfer approved by its CBE receipt: who paid, the name CBE has, and that nothing is left to do."""
+    text = webhook.auto_approved_text({
+        'order_id': 'pay-1', 'amount': '999', 'currency': 'ETB', 'reference': 'FT26329AB12C',
+        'payer': 'Sara Tesfaye · sara@example.com', 'plan': 'Pro',
+        'bank_payer': 'SARA <TESFAYE>', 'paid_at': '25 Nov 2026, 13:09',
+    })
+    assert text.startswith('✅ <b>Bank transfer approved automatically</b>')
+    assert '<b>Plan:</b> Pro' in text and '<b>Amount:</b> 999 ETB' in text
+    assert '<b>Sent by (CBE):</b> SARA &lt;TESFAYE&gt;' in text
+    assert '<b>Sent at:</b> 25 Nov 2026, 13:09' in text
+    assert 'Nothing to do' in text
+    print("  [PASS] test_auto_approved_text")
 
 
 def test_payment_alert_attaches_the_receipt():
@@ -776,11 +798,12 @@ def main():
     asyncio.run(async_test_sgs_challenge_strict_single_vote())
     test_webhook_secret_token_verification()
     test_payment_alert_text()
+    test_auto_approved_text()
     test_payment_alert_attaches_the_receipt()
     test_receipt_download()
     test_payment_decision_in_telegram()
     print("==================================================")
-    print(" ALL 20 / 20 TESTS PASSED SUCCESSFULLY! (100% OK)")
+    print(" ALL 21 / 21 TESTS PASSED SUCCESSFULLY! (100% OK)")
     print("==================================================")
 
 

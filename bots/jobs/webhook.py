@@ -31,12 +31,13 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 RECEIPT_MAX_BYTES = 10 * 1024 * 1024
 
 
-def payment_alert_text(data: dict) -> str:
-    """The admins' alert for a bank-transfer receipt. Everything in it came from the payer, so it's escaped."""
+def _payment_lines(data: dict) -> list:
+    """Who paid, for what, how much and the bank reference. Everything came from the payer or their
+    bank, so it's escaped."""
     def field(key):
         return escape(str(data.get(key) or '').strip())
 
-    lines = ["🚨 <b>Bank transfer to check</b>", ""]
+    lines = []
     if field('payer'):
         lines.append(f"<b>Payer:</b> {field('payer')}")
     if field('plan'):
@@ -44,10 +45,35 @@ def payment_alert_text(data: dict) -> str:
     lines += [
         f"<b>Amount:</b> {field('amount')} {field('currency')}",
         f"<b>Bank reference:</b> <code>{field('reference')}</code>",
-        f"<b>Payment:</b> <code>{field('order_id')}</code>",
+    ]
+    return lines
+
+
+def payment_alert_text(data: dict) -> str:
+    """The admins' alert for a bank-transfer receipt, with what the automatic CBE check found, if it ran."""
+    lines = ["🚨 <b>Bank transfer to check</b>", "", *_payment_lines(data)]
+    lines.append(f"<b>Payment:</b> <code>{escape(str(data.get('order_id') or ''))}</code>")
+    if data.get('cbe_check'):
+        lines.append(f"🔎 <b>CBE check:</b> {escape(str(data['cbe_check']))}")
+    lines += [
         "",
         "Check that this amount reached our account with this reference before you approve. "
         "Approving starts the plan.",
+    ]
+    return "\n".join(lines)
+
+
+def auto_approved_text(data: dict) -> str:
+    """The admins' notice for a transfer that matched its receipt on CBE's site: its plan has started."""
+    lines = ["✅ <b>Bank transfer approved automatically</b>", "", *_payment_lines(data)]
+    if data.get('bank_payer'):
+        lines.append(f"<b>Sent by (CBE):</b> {escape(str(data['bank_payer']))}")
+    if data.get('paid_at'):
+        lines.append(f"<b>Sent at:</b> {escape(str(data['paid_at']))}")
+    lines += [
+        "",
+        "CBE's receipt shows this amount reached our account, and the reference hadn't paid for "
+        "anything before, so the plan has started. Nothing to do.",
     ]
     return "\n".join(lines)
 
@@ -126,6 +152,15 @@ async def webhook_handler(request: web.Request) -> web.Response:
                     await send_payment_alert(admin_id, text, keyboard, receipt)
                 except Exception as e:
                     logger.error(f"Failed to send manual payment notification to admin {admin_id}: {e}")
+            return web.Response(text="OK", status=200)
+
+        if action == 'manual_payment_auto_approved':
+            text = auto_approved_text(data)
+            for admin_id in CONFIG['admin_ids']:
+                try:
+                    await bot_context.rate_limiter.send_message(admin_id, text, parse_mode='HTML')
+                except Exception as e:
+                    logger.error(f"Failed to tell admin {admin_id} about an automatic approval: {e}")
             return web.Response(text="OK", status=200)
 
         # Existing logic for user approval/denial
