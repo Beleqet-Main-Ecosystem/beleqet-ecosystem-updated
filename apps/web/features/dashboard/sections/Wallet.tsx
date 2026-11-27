@@ -27,13 +27,19 @@ async function post(path: string, body: unknown, headers: Record<string, string>
 const messageOf = (data: { message?: unknown }) =>
   Array.isArray(data.message) ? data.message.join(', ') : typeof data.message === 'string' ? data.message : '';
 
+/** When a withdrawal waiting at Beleqet Pay goes out, or comes back, at the latest. */
+function waitingUntil(note: string | null): string | null {
+  return note?.match(/WITHDRAWAL_WAITING.* until (\S+Z)/)?.[1] ?? null;
+}
+
 /**
  * A withdrawal's state lives in its note: paid (Beleqet Pay confirmed it arrived), sent, failed
- * (money returned) or still processing.
+ * (money returned), waiting at Beleqet Pay until a date, or still processing.
  */
-function withdrawalState(note: string | null): 'paid' | 'sent' | 'failed' | 'processing' {
+function withdrawalState(note: string | null): 'paid' | 'sent' | 'failed' | 'waiting' | 'processing' {
   if (!note) return 'processing';
   if (/WITHDRAWAL_PAID/.test(note)) return 'paid';
+  if (/WITHDRAWAL_WAITING/.test(note)) return waitingUntil(note) ? 'waiting' : 'processing';
   if (/WITHDRAWAL_SUBMITTED|transfer submitted/i.test(note)) return 'sent';
   if (/WITHDRAWAL_FAILED|Withdrawal FAILED/i.test(note)) return 'failed';
   return 'processing';
@@ -194,13 +200,16 @@ export default function Wallet() {
           wallet.transactions.map((tx) => {
             const out = tx.type.startsWith('DEBIT');
             const state = tx.type === 'DEBIT_WITHDRAWAL' ? withdrawalState(tx.note) : null;
+            const until = waitingUntil(tx.note);
             return (
               <div key={tx.id} className={`${card} flex flex-wrap items-center justify-between gap-2 py-3`}>
                 <span className="flex min-w-0 flex-col gap-0.5">
                   <b className="text-ink-900 dark:text-white">{t(`dash.wallet.type.${tx.type}`)}</b>
                   <span className={muted}>
                     {shortDate(tx.createdAt, locale)}
-                    {state ? ` · ${t(`dash.wallet.state.${state}`)}` : ''}
+                    {state
+                      ? ` · ${t(`dash.wallet.state.${state}`).replace('{date}', until ? shortDate(until, locale) : '')}`
+                      : ''}
                   </span>
                 </span>
                 <b className={out ? 'text-ink-900 dark:text-white' : 'text-forest dark:text-limeAccent'}>
