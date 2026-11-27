@@ -253,8 +253,15 @@ export const withdraw = (input: { amount: number; bankCode: string; accountName:
   send('POST', '/wallet/withdraw', { ...input, currency: 'ETB' }, stepUpToken ? { 'x-step-up-token': stepUpToken } : undefined);
 
 /** A withdrawal's state lives in its note: sent, failed (money returned) or still processing. */
-export function withdrawalState(note: string | null): 'sent' | 'failed' | 'processing' {
+/** When a withdrawal waiting at Beleqet Pay goes out, or comes back, at the latest. */
+export function waitingUntil(note: string | null): string | null {
+  return note?.match(/WITHDRAWAL_WAITING.* until (\S+Z)/)?.[1] ?? null;
+}
+
+export function withdrawalState(note: string | null): 'paid' | 'sent' | 'failed' | 'waiting' | 'processing' {
   if (!note) return 'processing';
+  if (/WITHDRAWAL_PAID/.test(note)) return 'paid';
+  if (/WITHDRAWAL_WAITING/.test(note)) return waitingUntil(note) ? 'waiting' : 'processing';
   if (/WITHDRAWAL_SUBMITTED|transfer submitted/i.test(note)) return 'sent';
   if (/WITHDRAWAL_FAILED|Withdrawal FAILED/i.test(note)) return 'failed';
   return 'processing';

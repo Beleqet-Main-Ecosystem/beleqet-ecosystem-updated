@@ -61,7 +61,10 @@ export interface BeleqetPayTransfer {
   livemode: boolean;
   /** PENDING: on its way (or waiting for Chapa's hours or balance). FAILED: the money is back with us. */
   status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  /** Set once Pay has handed it to Chapa; until then it is waiting for Pay's Chapa balance. */
   submittedAt?: string | null;
+  /** For a live transfer still waiting: when it fails with its money back if it hasn't gone. */
+  sendBy?: string | null;
   failureReason?: string | null;
   destination?: {
     bankCode?: string;

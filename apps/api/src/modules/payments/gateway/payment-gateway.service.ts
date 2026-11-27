@@ -53,7 +53,14 @@ export type PayoutRequest = {
  * paid: delivered. failed: not delivered, and no money left: give it back to the freelancer.
  */
 export type PayoutOutcome =
-  | { state: 'pending'; providerRef: string; bankName?: string }
+  | {
+      state: 'pending';
+      providerRef: string;
+      bankName?: string;
+      /** Pay has handed it to Chapa. If not, it waits for Pay's Chapa balance until `sendBy`. */
+      sent: boolean;
+      sendBy?: string | null;
+    }
   | { state: 'paid'; providerRef: string; bankName?: string }
   | { state: 'failed'; providerRef?: string; reason: string };
 
@@ -195,6 +202,8 @@ export class PaymentGateway implements OnModuleInit {
       state: 'pending',
       providerRef: transfer.transferRef,
       bankName: transfer.destination?.bankName,
+      sent: Boolean(transfer.submittedAt),
+      sendBy: transfer.sendBy ?? null,
     };
   }
 }

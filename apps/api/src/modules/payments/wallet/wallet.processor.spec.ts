@@ -367,6 +367,7 @@ describe('WalletProcessor withdrawals through Beleqet Pay', () => {
       state: 'pending',
       providerRef: 'TR-BLQ-1',
       bankName: 'Hibret Bank',
+      sent: true,
     });
 
     await processor.process(payJob);
@@ -424,13 +425,83 @@ describe('WalletProcessor withdrawals through Beleqet Pay', () => {
     const { processor, gateway } = build(
       'WITHDRAWAL_PROCESSING - Withdrawal of 1205 ETB — pending',
     );
-    gateway.sendPayout.mockResolvedValue({ state: 'pending', providerRef: 'TR-BLQ-1' });
+    gateway.sendPayout.mockResolvedValue({ state: 'pending', providerRef: 'TR-BLQ-1', sent: true });
 
     await processor.process(payJob);
 
     expect(gateway.sendPayout).toHaveBeenCalledWith(
       expect.objectContaining({ reference: 'wd_tx-001' }),
     );
+  });
+
+  describe('waiting for Pay to send it', () => {
+    const waiting =
+      'WITHDRAWAL_WAITING - Withdrawal via Hibret Bank - waiting at Beleqet Pay until 2026-11-30T09:00:00.000Z (TR-BLQ-1)';
+
+    it('says "waiting", with the date it goes out or comes back, instead of "sent"', async () => {
+      const { processor, gateway, prisma, notes } = build();
+      gateway.sendPayout.mockResolvedValue({
+        state: 'pending',
+        providerRef: 'TR-BLQ-1',
+        bankName: 'Hibret Bank',
+        sent: false,
+        sendBy: '2026-11-30T09:00:00.000Z',
+      });
+
+      await processor.process(payJob);
+
+      expect(notes().pop()).toBe(waiting);
+      expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
+    });
+
+    it('becomes "sent" once Pay hands it to Chapa, and never goes back to waiting', async () => {
+      const { processor, gateway, notes } = build(waiting);
+      gateway.payoutStatus.mockResolvedValue({
+        state: 'pending',
+        providerRef: 'TR-BLQ-1',
+        sent: true,
+      });
+
+      await processor.process(resultJob('wd_tx-001'));
+      expect(notes().pop()).toBe(
+        'WITHDRAWAL_SUBMITTED - Withdrawal via your bank - sent through Beleqet Pay (TR-BLQ-1)',
+      );
+
+      const sent = build(
+        'WITHDRAWAL_SUBMITTED - Withdrawal via Hibret Bank - sent through Beleqet Pay (TR-BLQ-1)',
+      );
+      sent.gateway.payoutStatus.mockResolvedValue({
+        state: 'pending',
+        providerRef: 'TR-BLQ-1',
+        sent: false,
+      });
+      await sent.processor.process(resultJob('wd_tx-001'));
+      expect(sent.notes()).toEqual([]);
+    });
+
+    it('gives the money back once when it never goes out', async () => {
+      const { processor, gateway, prisma, notes } = build(waiting);
+      gateway.payoutStatus.mockResolvedValue({
+        state: 'failed',
+        providerRef: 'TR-BLQ-1',
+        reason: "Beleqet Pay's Chapa balance didn't cover it in time",
+      });
+
+      await processor.process(resultJob('wd_tx-001'));
+
+      expect(prisma.freelancerWallet.update).toHaveBeenCalledTimes(1);
+      expect(prisma.freelancerWallet.update).toHaveBeenCalledWith(refund);
+      expect(notes().pop()).toContain('WITHDRAWAL_FAILED');
+    });
+
+    it('is paid when it arrives', async () => {
+      const { processor, gateway, notes } = build(waiting);
+      gateway.payoutStatus.mockResolvedValue({ state: 'paid', providerRef: 'TR-BLQ-1' });
+
+      await processor.process(resultJob('wd_tx-001'));
+
+      expect(notes().pop()).toContain('WITHDRAWAL_PAID');
+    });
   });
 
   it('gives the money back once when a sent payout fails later', async () => {

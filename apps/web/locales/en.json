@@ -1674,6 +1674,7 @@
         "paid": "Paid",
         "sent": "Sent",
         "failed": "Failed, money returned",
+        "waiting": "Processing (by {date})",
         "processing": "Processing"
       }
     },

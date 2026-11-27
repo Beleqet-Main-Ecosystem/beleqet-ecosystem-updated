@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Screen, Card, H2, Muted, Field, Select, Button, Notice, Failed, Loading, Badge } from '../components/ui';
-import { fetchBanks, fetchWallet, stepUp, withdraw, withdrawalState } from '../api/freelance';
+import { fetchBanks, fetchWallet, stepUp, waitingUntil, withdraw, withdrawalState } from '../api/freelance';
 import { useAuth } from '../store/auth.store';
 import { useTranslation } from '../lib/i18n';
 import { useLoad } from '../lib/use-load';
 import { errorText, toApiError } from '../lib/api-error';
-import { dateTime } from '../lib/format';
+import { dateTime, shortDate } from '../lib/format';
 
 /** Earnings: available, on hold, history, and withdrawing to a Chapa bank. Same rules as the website. */
 export default function Wallet() {
@@ -119,6 +119,7 @@ export default function Wallet() {
       {data.transactions.map((tx) => {
         const out = tx.type.includes('WITHDRAW') || tx.amount < 0;
         const state = out ? withdrawalState(tx.note) : null;
+        const until = waitingUntil(tx.note);
         return (
           <Card key={tx.id}>
             <View className="flex-row items-center justify-between gap-3">
@@ -130,7 +131,7 @@ export default function Wallet() {
                 {out ? '−' : '+'} {money(Math.abs(tx.amount))}
               </Text>
             </View>
-            {state ? <Badge label={t(`dash.wallet.state.${state}`)} tone={state === 'sent' ? 'good' : state === 'failed' ? 'bad' : 'warn'} /> : null}
+            {state ? <Badge label={t(`dash.wallet.state.${state}`, { date: until ? shortDate(until, locale) : '' })} tone={state === 'paid' || state === 'sent' ? 'good' : state === 'failed' ? 'bad' : 'warn'} /> : null}
           </Card>
         );
       })}
