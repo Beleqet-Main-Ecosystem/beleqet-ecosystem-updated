@@ -1,8 +1,9 @@
 import { Job } from 'bullmq';
 import { ESCROW_JOBS, NOTIFICATION_JOBS } from '../../platform/queues/queues.constants';
+import { PaymentGateway } from '../gateway/payment-gateway.service';
 import { EscrowProcessor } from './escrow.processor';
 
-function buildProcessor() {
+function buildProcessor(pay: Record<string, jest.Mock> = {}) {
   const escrow = {
     id: 'escrow-1',
     freelanceJobId: 'gig-1',
@@ -101,7 +102,7 @@ function buildProcessor() {
   const processor = new EscrowProcessor(
     prisma as never,
     { get: jest.fn(() => 'http://localhost:3000') } as never,
-    chapa as never,
+    new PaymentGateway({ get: () => undefined } as never, chapa as never, pay as never),
     planPayments as never,
     notificationsQueue as never,
     escrowQueue as never,
@@ -168,7 +169,7 @@ describe('EscrowProcessor', () => {
       processor.handleWebhook({
         data: { event: 'charge.success', tx_ref: 'tx-1', status: 'success' },
       } as Job),
-    ).rejects.toThrow('Chapa verification mismatch');
+    ).rejects.toThrow('Payment verification mismatch');
     expect(tx.escrowTransaction.updateMany).not.toHaveBeenCalled();
   });
 
@@ -184,7 +185,7 @@ describe('EscrowProcessor', () => {
       processor.handleWebhook({
         data: { event: 'charge.success', tx_ref: 'tx-1', status: 'success' },
       } as Job),
-    ).rejects.toThrow('Chapa verification mismatch');
+    ).rejects.toThrow('Payment verification mismatch');
     expect(tx.escrowTransaction.updateMany).not.toHaveBeenCalled();
   });
 
@@ -353,5 +354,68 @@ describe('EscrowProcessor', () => {
 
     expect(tx.employerWallet.update).not.toHaveBeenCalled();
     expect(tx.employerWalletTransaction.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('EscrowProcessor with Beleqet Pay', () => {
+  const payEvent = (event: string, status: string) =>
+    ({
+      data: {
+        tx_ref: 'TX-BLQ-1',
+        reference: 'TX-BLQ-1',
+        externalRef: 'escrow-1',
+        event,
+        status,
+        source: 'beleqet_pay',
+      },
+    }) as Job;
+  const payTransaction = (escrowId: string) => ({
+    txRef: 'TX-BLQ-1',
+    status: 'SUCCESS',
+    amount: '900',
+    currency: 'ETB',
+    provider: 'CHAPA',
+    livemode: false,
+    metadata: { app: 'beleqet-jobs', kind: 'escrow', escrowId },
+  });
+
+  it('funds the escrow only after asking Pay about the payment', async () => {
+    const pay = { getTransaction: jest.fn().mockResolvedValue(payTransaction('escrow-1')) };
+    const { processor, tx, chapa } = buildProcessor(pay);
+
+    await processor.handleWebhook(payEvent('payment.success', 'success'));
+
+    expect(pay.getTransaction).toHaveBeenCalledWith('TX-BLQ-1');
+    expect(chapa.paymentResult).not.toHaveBeenCalled();
+    expect(tx.escrowTransaction.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'FUNDED', gatewayRef: 'TX-BLQ-1' }),
+      }),
+    );
+  });
+
+  it('does not fund with a Pay payment that was made for another escrow', async () => {
+    const pay = { getTransaction: jest.fn().mockResolvedValue(payTransaction('escrow-2')) };
+    const { processor, tx } = buildProcessor(pay);
+
+    await expect(processor.handleWebhook(payEvent('payment.success', 'success'))).rejects.toThrow(
+      'Payment verification mismatch',
+    );
+    expect(tx.escrowTransaction.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps wallet money held when a Pay checkout merely expired, since it may still be paid', async () => {
+    const pay = { getTransaction: jest.fn() };
+    const { processor, prisma, tx } = buildProcessor(pay);
+
+    await processor.handleWebhook(payEvent('payment.expired', 'expired'));
+
+    expect(pay.getTransaction).not.toHaveBeenCalled();
+    expect(tx.employerWallet.update).not.toHaveBeenCalled();
+    expect(prisma.eventLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ eventType: 'chapa.webhook.processed' }),
+      }),
+    );
   });
 });

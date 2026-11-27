@@ -6,6 +6,7 @@ import { BadRequestException } from '@nestjs/common';
 import { WalletService, WithdrawDto } from '../../payments/wallet/wallet.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ChapaClient } from '../../payments/chapa/chapa.client';
+import { PaymentGateway } from '../../payments/gateway/payment-gateway.service';
 import { StepUpGuard } from './guards/step-up.guard';
 import { SENSITIVE_ACTION_KEY } from './decorators/sensitive-action.decorator';
 import { QUEUE_NAMES, WALLET_JOBS } from '../../platform/queues/queues.constants';
@@ -95,6 +96,12 @@ async function buildCtx(walletBalance = 10_000) {
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
       { provide: ChapaClient, useValue: mockChapaClient },
+      {
+        provide: PaymentGateway,
+        inject: [ChapaClient],
+        useFactory: (chapa: ChapaClient) =>
+          new PaymentGateway({ get: () => undefined } as never, chapa, {} as never),
+      },
       { provide: getQueueToken(QUEUE_NAMES.WALLET), useValue: mockWalletQueue },
     ],
   }).compile();

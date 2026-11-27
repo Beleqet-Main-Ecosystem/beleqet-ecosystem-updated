@@ -27,9 +27,13 @@ async function post(path: string, body: unknown, headers: Record<string, string>
 const messageOf = (data: { message?: unknown }) =>
   Array.isArray(data.message) ? data.message.join(', ') : typeof data.message === 'string' ? data.message : '';
 
-/** A withdrawal's state lives in its note: sent, failed (money returned) or still processing. */
-function withdrawalState(note: string | null): 'sent' | 'failed' | 'processing' {
+/**
+ * A withdrawal's state lives in its note: paid (Beleqet Pay confirmed it arrived), sent, failed
+ * (money returned) or still processing.
+ */
+function withdrawalState(note: string | null): 'paid' | 'sent' | 'failed' | 'processing' {
   if (!note) return 'processing';
+  if (/WITHDRAWAL_PAID/.test(note)) return 'paid';
   if (/WITHDRAWAL_SUBMITTED|transfer submitted/i.test(note)) return 'sent';
   if (/WITHDRAWAL_FAILED|Withdrawal FAILED/i.test(note)) return 'failed';
   return 'processing';

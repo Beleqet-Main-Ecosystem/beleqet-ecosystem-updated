@@ -93,6 +93,10 @@ services:
       - E2EE_KEY_VERSION=v1
       - BELEQET_PAY_API_URL=http://beleqet-pay-api:4001
       - BELEQET_PAY_SERVICE_KEY=${BELEQET_PAY_SERVICE_KEY}
+      # Online payments and payouts: chapa (directly, the default) or beleqet_pay. The webhook secret is
+      # the one Beleqet Pay gives Jobs' endpoint (/api/v1/beleqet-pay/webhook).
+      - PAYMENTS_VIA=${PAYMENTS_VIA:-chapa}
+      - BELEQET_PAY_WEBHOOK_SECRET=${BELEQET_PAY_WEBHOOK_SECRET:-}
       - TOTP_TEMP_SECRET=${TOTP_TEMP_SECRET}
       - TOTP_ISSUER=Beleqet
       - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}

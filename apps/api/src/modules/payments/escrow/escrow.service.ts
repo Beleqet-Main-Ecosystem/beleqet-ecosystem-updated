@@ -8,7 +8,7 @@ import { QUEUE_NAMES, ESCROW_JOBS } from '../../platform/queues/queues.constants
 import { WalletService } from '../wallet/wallet.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfirmMilestoneDto } from './dto/confirm-milestone.dto';
-import { ChapaClient } from '../chapa/chapa.client';
+import { PaymentGateway } from '../gateway/payment-gateway.service';
 import { primaryFrontendUrl } from '../../../common/utils/frontend-url';
 import { escrowTxRef } from './escrow-tx-ref';
 
@@ -22,7 +22,7 @@ export class EscrowService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly walletSvc: WalletService,
-    private readonly chapa: ChapaClient,
+    private readonly gateway: PaymentGateway,
     @InjectQueue(QUEUE_NAMES.ESCROW) private readonly escrowQueue: Queue,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -224,7 +224,8 @@ export class EscrowService {
   }
 
   /**
-   * Opens a Chapa checkout for what is left to pay. The contract page shows live escrow status,
+   * Opens a checkout (Chapa, or Beleqet Pay with PAYMENTS_VIA=beleqet_pay) for what is left to pay.
+   * The contract page shows live escrow status,
    * so payers return there (or to the gig page when funding happens before a bid is accepted).
    * If the checkout can't be created, that page is returned instead.
    */
@@ -241,30 +242,30 @@ export class EscrowService {
     const returnUrl = job.contract
       ? `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/freelance/contracts/${job.contract.id}`
       : `${primaryFrontendUrl(this.config.get<string>('FRONTEND_URL'))}/freelance/${job.id}`;
-    const txRef = escrowTxRef(escrowId);
     try {
-      const checkoutUrl = await this.chapa.checkoutUrl({
+      const { checkoutUrl, providerRef } = await this.gateway.openCheckout({
         amount: amountToPay.toFixed(2),
         currency: job.currency ?? 'ETB',
         email: job.client.email,
         firstName: job.client.firstName,
         lastName: job.client.lastName,
-        txRef,
+        reference: escrowTxRef(escrowId),
         returnUrl,
         title: 'Beleqet Jobs',
         description: 'Freelance contract payment',
+        metadata: { kind: 'escrow', escrowId },
       });
-      // The processor matches Chapa's callback to this escrow by the latest tx_ref.
+      // The processor matches the provider's event to this escrow by the latest reference.
       await this.prisma.escrowTransaction.update({
         where: { id: escrowId },
-        data: { gatewayRef: txRef },
+        data: { gatewayRef: providerRef },
       });
-      this.logger.log(`[chapa] Checkout opened: txRef=${txRef}`);
+      this.logger.log(`[escrow] Checkout opened: ref=${providerRef}`);
       return checkoutUrl;
     } catch (err) {
       // Non-fatal: user can still pay via manual-payment module
       this.logger.error(
-        `[chapa] Failed to open a checkout — falling back to the contract page: ${(err as Error).message}`,
+        `[escrow] Failed to open a checkout — falling back to the contract page: ${(err as Error).message}`,
       );
       return returnUrl;
     }

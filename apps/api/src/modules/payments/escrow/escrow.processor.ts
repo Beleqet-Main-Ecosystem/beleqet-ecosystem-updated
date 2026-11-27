@@ -10,7 +10,8 @@ import {
   ESCROW_JOBS,
   NOTIFICATION_JOBS,
 } from '../../platform/queues/queues.constants';
-import { ChapaClient } from '../chapa/chapa.client';
+import { isBeleqetPayRef } from '../beleqet-pay/beleqet-pay.service';
+import { PaymentCheck, PaymentGateway } from '../gateway/payment-gateway.service';
 import { ChapaWebhookPayload } from '../chapa/chapa.types';
 import { PlanPaymentsService } from '../subscriptions/plan-payments.service';
 import { primaryFrontendUrl } from '../../../common/utils/frontend-url';
@@ -18,7 +19,8 @@ import { escrowIdFromTxRef } from './escrow-tx-ref';
 
 const EscrowJobs: any = ESCROW_JOBS;
 
-/** Chapa's webhook body or callback query (plus the older `txRef`/`externalRef` names). */
+/** Chapa's webhook body or callback query (plus the older `txRef`/`externalRef` names), or a
+ * Beleqet Pay payment event (`externalRef` is the escrow or plan payment it was made for). */
 type WebhookPayload = ChapaWebhookPayload & {
   txRef?: string;
   externalRef?: string;
@@ -52,7 +54,7 @@ export class EscrowProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    private readonly chapa: ChapaClient,
+    private readonly gateway: PaymentGateway,
     private readonly planPayments: PlanPaymentsService,
     @InjectQueue(QUEUE_NAMES.NOTIFICATIONS)
     private readonly notificationsQueue: Queue,
@@ -79,8 +81,8 @@ export class EscrowProcessor extends WorkerHost {
   }
 
   /**
-   * Processes Chapa webhooks and callbacks. Successful events are re-verified with Chapa's
-   * transaction API before the escrow is transitioned to FUNDED.
+   * Processes payment events: Chapa's webhooks and callbacks, and Beleqet Pay's webhooks. Successful
+   * events are re-verified with the provider before the escrow is transitioned to FUNDED.
    */
   async handleWebhook(job: BullJob<WebhookPayload>) {
     // Chapa uses `tx_ref` (webhook) or `trx_ref` (callback)
@@ -144,32 +146,42 @@ export class EscrowProcessor extends WorkerHost {
       return;
     }
 
+    // An expired Pay checkout can still be paid as it closes, so nothing is given back here: the
+    // 24-hour unlock returns wallet money if the escrow is never funded.
+    if (eventName === 'payment.expired') {
+      await this.markWebhookProcessed(eventKey, escrow.id, job.data);
+      return;
+    }
+
     const isSuccessful =
       eventName === 'payment.success' ||
       eventName === 'charge.success' ||
       status.toLowerCase() === 'success';
 
     if (isSuccessful) {
-      // Server-to-server re-verification with Chapa, for the checkout this event is about
+      // Server-to-server re-verification with the provider, for the checkout this event is about
       const paidRef = txRef || escrow.gatewayRef || '';
-      let verified: Awaited<ReturnType<ChapaClient['paymentResult']>>;
+      let verified: PaymentCheck;
       try {
-        verified = await this.chapa.paymentResult(paidRef);
+        verified = await this.gateway.paymentResult(paidRef);
       } catch (err) {
         throw new Error(
-          `Chapa verification failed for escrow ${escrow.id}: ${(err as Error).message}`,
+          `Payment verification failed for escrow ${escrow.id}: ${(err as Error).message}`,
         );
       }
 
       const expectedAmount = escrow.grossAmount - (escrow.walletAppliedAmount ?? 0);
 
+      // Through Pay, the payment must also have been made for this escrow.
+      const forThisEscrow = !isBeleqetPayRef(paidRef) || verified.metadata?.escrowId === escrow.id;
       if (
         verified.state !== 'success' ||
+        !forThisEscrow ||
         !this.amountMatches(verified.amount, expectedAmount) ||
         (verified.currency !== '' && verified.currency !== escrow.currency)
       ) {
         throw new Error(
-          `Chapa verification mismatch for escrow ${escrow.id}: ` +
+          `Payment verification mismatch for escrow ${escrow.id}: ` +
             `status=${verified.state} amount=${verified.amount} ${verified.currency} expected=${expectedAmount} ${escrow.currency}`,
         );
       }
@@ -251,7 +263,7 @@ export class EscrowProcessor extends WorkerHost {
         metadata: { escrowId: escrow.id, freelanceJobId: escrow.freelanceJobId },
       });
 
-      this.logger.log(`[escrow-webhook] Escrow ${escrow.id} funded after Chapa verification`);
+      this.logger.log(`[escrow-webhook] Escrow ${escrow.id} funded after provider verification`);
       return;
     }
 

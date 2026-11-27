@@ -1,63 +1,88 @@
 /**
- * Shared type contracts between the main Beleqet Jobs backend and the
- * Beleqet Pay microservice.  Only the shapes that cross the HTTP boundary
- * are declared here; internal state managed by Beleqet Pay stays opaque.
+ * Beleqet Pay's merchant API, as Jobs uses it (see the contract in the Beleqet Pay repo). Amounts
+ * are birr as decimal strings ("999.00"); GET answers drop trailing zeros ("999"), so compare them
+ * as numbers.
  */
 
 export interface BeleqetPayCheckoutRequest {
-  /** Gross amount in the smallest unit representable as a number (e.g. ETB cents) */
   amount: string;
   currency: string;
   customerEmail: string;
-  /** Provider hint — Beleqet Pay picks the best available gateway when omitted */
-  preferredProvider?: 'CHAPA' | 'STRIPE' | 'TELEBIRR' | 'ETHSWITCH';
   successRedirectUrl: string;
-  /** Opaque reference echoed back in every webhook for the calling service */
-  externalRef?: string;
+  /** Returned in the payment's webhooks and GET /transactions/:txRef. */
+  metadata: Record<string, string>;
 }
 
-export interface BeleqetPayCheckoutResponse {
+export interface BeleqetPayCheckoutSession {
+  /** Chosen by Pay; always starts with TX-BLQ-. */
   txRef: string;
   checkoutUrl: string;
   provider: string;
-  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
+  livemode: boolean;
+  expiresAt?: string;
 }
+
+export type BeleqetPayTransactionStatus =
+  'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED' | 'REFUNDED' | 'DISPUTED';
 
 export interface BeleqetPayTransaction {
   txRef: string;
-  status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
+  status: BeleqetPayTransactionStatus;
   amount: string;
   currency: string;
   provider: string;
-  externalRef?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  livemode: boolean;
+  metadata?: Record<string, unknown> | null;
 }
 
-export interface BeleqetPayEscrowRequest {
-  /** ID from the calling service used to correlate the contract */
-  counterpartyRef: string;
+/** A bank or wallet Pay can pay out to (Chapa's list); `code` is what transfers take as bankCode. */
+export interface BeleqetPayBank {
+  code: string;
+  name: string;
+  mobileMoney: boolean;
+  accountLength: number | null;
+}
+
+export interface BeleqetPayTransferRequest {
+  /** Ours: the same reference always means the same transfer. */
+  reference: string;
   amount: string;
-  asset: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  narration?: string;
 }
 
-export interface BeleqetPayEscrowResponse {
+export interface BeleqetPayTransfer {
+  transferRef: string;
+  reference: string;
+  amount: string;
+  currency: string;
+  livemode: boolean;
+  /** PENDING: on its way (or waiting for Chapa's hours or balance). FAILED: the money is back with us. */
+  status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  submittedAt?: string | null;
+  failureReason?: string | null;
+  destination?: {
+    bankCode?: string;
+    bankName?: string;
+    accountNumber?: string;
+    accountName?: string;
+  };
+}
+
+/** What Pay posts to /api/v1/beleqet-pay/webhook. `id` is the same on every retry. */
+export interface BeleqetPayWebhookEvent {
   id: string;
-  status: 'AWAITING_DEPOSIT' | 'FUNDED' | 'RELEASED' | 'DISPUTED' | 'REFUNDED';
-  counterpartyRef: string;
-  amount: string;
-  asset: string;
-  createdAt: string;
-}
-
-/** Normalised webhook payload forwarded from Beleqet Pay to this service */
-export interface BeleqetPayWebhookPayload {
-  event: 'payment.success' | 'payment.failed' | 'escrow.funded' | 'escrow.released';
-  txRef: string;
-  externalRef?: string | null;
-  status: string;
-  amount?: number;
-  currency?: string;
-  provider?: string;
-  [key: string]: unknown;
+  event: string;
+  /** Unix seconds when this attempt was signed (inside the signed body). */
+  timestamp: number;
+  createdAt?: string;
+  data: {
+    txRef?: string;
+    reference?: string;
+    status?: string;
+    metadata?: Record<string, unknown> | null;
+    [key: string]: unknown;
+  };
 }

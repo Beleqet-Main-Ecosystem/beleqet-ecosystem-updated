@@ -15,7 +15,7 @@ import { Transform } from 'class-transformer';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { QUEUE_NAMES, WALLET_JOBS } from '../../platform/queues/queues.constants';
-import { ChapaClient } from '../chapa/chapa.client';
+import { PaymentGateway } from '../gateway/payment-gateway.service';
 
 export class WithdrawDto {
   @IsInt()
@@ -63,15 +63,15 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     @InjectQueue(QUEUE_NAMES.WALLET) private readonly walletQueue: Queue,
-    private readonly chapa: ChapaClient,
+    private readonly gateway: PaymentGateway,
   ) {}
 
-  /** Where a freelancer can withdraw to: Chapa's banks and mobile wallets. */
+  /** Where a freelancer can withdraw to: Chapa's banks and mobile wallets (directly or via Pay). */
   async payoutBanks() {
     try {
-      return await this.chapa.banks();
+      return await this.gateway.banks();
     } catch (err) {
-      this.logger.error(`Could not load Chapa banks: ${(err as Error).message}`);
+      this.logger.error(`Could not load the payout banks: ${(err as Error).message}`);
       throw new ServiceUnavailableException('The bank list is unavailable. Try again shortly.');
     }
   }
@@ -199,8 +199,8 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
       return { tx };
     });
 
-    // Enqueue the payout job — the WalletProcessor handles the actual Chapa
-    // transfer with retry logic so this request path returns immediately.
+    // Enqueue the payout job — the WalletProcessor sends it (through Chapa or Beleqet Pay, as
+    // PAYMENTS_VIA says now) with retry logic so this request path returns immediately.
     try {
       await this.walletQueue.add(
         WALLET_JOBS.PROCESS_WITHDRAWAL,
@@ -217,6 +217,7 @@ export class WalletService implements OnModuleInit, OnModuleDestroy {
           bankCode: bank.code,
           accountName: dto.accountName,
           accountNumber: dto.accountNumber,
+          gateway: this.gateway.current(),
         },
         {
           jobId: `wallet-withdrawal-${tx.id}`,

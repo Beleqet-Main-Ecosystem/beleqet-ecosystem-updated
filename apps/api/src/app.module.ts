@@ -31,7 +31,7 @@ import { SalaryModule } from './modules/jobs/salary/salary.module';
 import { InterviewPlannerModule } from '@modules/jobs/interview-planner/interview-planner.module';
 import { ChatToTextModule } from './modules/messaging/chat-to-text/chat-to-text.module';
 import { ManualPaymentModule } from './modules/payments/manual-payment/manual-payment.module';
-import { BeleqetPayModule } from './modules/payments/beleqet-pay/beleqet-pay.module';
+import { BeleqetPayWebhookModule } from './modules/payments/beleqet-pay/beleqet-pay-webhook.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AdminStatsModule } from './modules/admin/admin-stats/admin-stats.module';
 import { DisputeManagerModule } from './modules/freelance/dispute-manager/dispute-manager.module';
@@ -151,7 +151,7 @@ import { RbacModule } from './modules/accounts/rbac/rbac.module';
     SchedulerModule,
     ChatToTextModule,
     ManualPaymentModule,
-    BeleqetPayModule,
+    BeleqetPayWebhookModule,
     CommunityForumModule,
     ReportsModule,
     JobAlertsModule,
