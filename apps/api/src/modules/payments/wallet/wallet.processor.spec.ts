@@ -44,7 +44,13 @@ function buildProcessor(
     verifyTransfer: jest.fn().mockRejectedValue(new Error('transfer not found')),
   };
 
-  const processor = new WalletProcessor(prisma as never, config as never, chapaClient as never);
+  const processor = new WalletProcessor(
+    prisma as never,
+    config as never,
+    chapaClient as never,
+    {} as never,
+    { add: jest.fn().mockResolvedValue({}) } as never,
+  );
   return { processor, prisma, config, chapaClient };
 }
 
@@ -315,5 +321,144 @@ describe('WalletProcessor pending releases', () => {
     expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
     expect(prisma.walletTransaction.create).not.toHaveBeenCalled();
     expect(prisma.eventLog.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('WalletProcessor withdrawals through Beleqet Pay', () => {
+  function build(note = 'WITHDRAWAL_PENDING - Withdrawal of 1205 ETB to Hibret Bank — pending') {
+    const built = buildProcessor(note);
+    built.prisma.walletTransaction.findUnique.mockResolvedValue({
+      id: 'tx-001',
+      walletId: 'wallet-user-001',
+      amount: 1205,
+      type: 'DEBIT_WITHDRAWAL',
+      note,
+      wallet: { userId: 'user-001' },
+    });
+    const gateway = { sendPayout: jest.fn(), payoutStatus: jest.fn() };
+    const notifications = { add: jest.fn().mockResolvedValue({}) };
+    const processor = new WalletProcessor(
+      built.prisma as never,
+      built.config as never,
+      built.chapaClient as never,
+      gateway as never,
+      notifications as never,
+    );
+    const notes = () =>
+      built.prisma.walletTransaction.update.mock.calls.map(
+        ([call]: [{ data: { note: string } }]) => call.data.note,
+      );
+    return { ...built, processor, gateway, notifications, notes };
+  }
+  const payJob = {
+    ...withdrawalJob,
+    data: { ...withdrawalJob.data, gateway: 'beleqet_pay' },
+  } as Job;
+  const resultJob = (reference: string) =>
+    ({ name: WALLET_JOBS.PAYOUT_RESULT, data: { reference } }) as Job;
+  const refund = {
+    where: { id: 'wallet-user-001' },
+    data: { availableBalance: { increment: 1205 } },
+  };
+
+  it('sends it through Pay with one reference per withdrawal, not through Chapa', async () => {
+    const { processor, gateway, chapaClient, prisma, notes } = build();
+    gateway.sendPayout.mockResolvedValue({
+      state: 'pending',
+      providerRef: 'TR-BLQ-1',
+      bankName: 'Hibret Bank',
+    });
+
+    await processor.process(payJob);
+
+    expect(gateway.sendPayout).toHaveBeenCalledWith({
+      reference: 'wd_tx-001',
+      amount: 1205,
+      bankCode: '534',
+      accountNumber: '1000123456789012',
+      accountName: 'Selam Tesfaye',
+    });
+    expect(chapaClient.createTransfer).not.toHaveBeenCalled();
+    expect(notes().pop()).toBe(
+      'WITHDRAWAL_SUBMITTED - Withdrawal via Hibret Bank - sent through Beleqet Pay (TR-BLQ-1)',
+    );
+    expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
+  });
+
+  it('records a payout Pay delivered at once as paid, and tells the freelancer', async () => {
+    const { processor, gateway, notifications, notes } = build();
+    gateway.sendPayout.mockResolvedValue({ state: 'paid', providerRef: 'TR-BLQ-1' });
+
+    await processor.process(payJob);
+
+    expect(notes().pop()).toContain('WITHDRAWAL_PAID');
+    expect(notifications.add).toHaveBeenCalledWith(
+      'send-in-app',
+      expect.objectContaining({ userId: 'user-001', type: 'wallet.withdrawal_paid' }),
+    );
+  });
+
+  it('gives the money back when Pay refuses the payout', async () => {
+    const { processor, gateway, prisma, notifications, notes } = build();
+    gateway.sendPayout.mockResolvedValue({ state: 'failed', reason: 'Transfers are switched off' });
+
+    await processor.process(payJob);
+
+    expect(prisma.freelancerWallet.update).toHaveBeenCalledWith(refund);
+    expect(notes().pop()).toBe('WITHDRAWAL_FAILED - Withdrawal FAILED: Transfers are switched off');
+    expect(notifications.add).toHaveBeenCalledWith(
+      'send-in-app',
+      expect.objectContaining({ type: 'wallet.withdrawal_failed' }),
+    );
+  });
+
+  it('lets a Pay outage retry without giving the money back', async () => {
+    const { processor, gateway, prisma } = build();
+    gateway.sendPayout.mockRejectedValue(new Error('Beleqet Pay is unreachable'));
+
+    await expect(processor.process(payJob)).rejects.toThrow('unreachable');
+    expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
+  });
+
+  it('sends a claimed withdrawal again after a crash: Pay returns the first transfer', async () => {
+    const { processor, gateway } = build(
+      'WITHDRAWAL_PROCESSING - Withdrawal of 1205 ETB — pending',
+    );
+    gateway.sendPayout.mockResolvedValue({ state: 'pending', providerRef: 'TR-BLQ-1' });
+
+    await processor.process(payJob);
+
+    expect(gateway.sendPayout).toHaveBeenCalledWith(
+      expect.objectContaining({ reference: 'wd_tx-001' }),
+    );
+  });
+
+  it('gives the money back once when a sent payout fails later', async () => {
+    const sent =
+      'WITHDRAWAL_SUBMITTED - Withdrawal via Hibret Bank - sent through Beleqet Pay (TR-BLQ-1)';
+    const { processor, gateway, prisma } = build(sent);
+    gateway.payoutStatus.mockResolvedValue({ state: 'failed', reason: 'Account closed' });
+
+    await processor.process(resultJob('wd_tx-001'));
+    expect(gateway.payoutStatus).toHaveBeenCalledWith('wd_tx-001');
+    expect(prisma.freelancerWallet.update).toHaveBeenCalledWith(refund);
+
+    // The same result again finds it already failed: no second refund.
+    prisma.freelancerWallet.update.mockClear();
+    prisma.walletTransaction.findUnique.mockResolvedValue({
+      id: 'tx-001',
+      walletId: 'wallet-user-001',
+      amount: 1205,
+      note: 'WITHDRAWAL_FAILED - Withdrawal FAILED: Account closed',
+      wallet: { userId: 'user-001' },
+    });
+    await processor.process(resultJob('wd_tx-001'));
+    expect(prisma.freelancerWallet.update).not.toHaveBeenCalled();
+  });
+
+  it("ignores payout results that aren't withdrawals", async () => {
+    const { processor, gateway } = build();
+    await processor.process(resultJob('something-else'));
+    expect(gateway.payoutStatus).not.toHaveBeenCalled();
   });
 });

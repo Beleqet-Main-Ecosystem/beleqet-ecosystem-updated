@@ -44,6 +44,7 @@ import { PaypalService } from './paypal.service';
 import { WalletService, WithdrawDto } from '../wallet/wallet.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ChapaClient } from '../chapa/chapa.client';
+import { PaymentGateway } from '../gateway/payment-gateway.service';
 import { QUEUE_NAMES, WALLET_JOBS } from '../../platform/queues/queues.constants';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -238,6 +239,12 @@ async function buildCtx(walletBalance = 10_000, configExtra: Record<string, stri
       { provide: PrismaService, useValue: prisma },
       { provide: ConfigService, useValue: config },
       { provide: ChapaClient, useValue: mockChapaClient },
+      {
+        provide: PaymentGateway,
+        inject: [ChapaClient],
+        useFactory: (chapa: ChapaClient) =>
+          new PaymentGateway({ get: () => undefined } as never, chapa, {} as never),
+      },
       { provide: getQueueToken(QUEUE_NAMES.WALLET), useValue: mockWalletQueue },
       {
         provide: EventEmitter2,
