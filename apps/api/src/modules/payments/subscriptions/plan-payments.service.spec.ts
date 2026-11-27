@@ -1,4 +1,5 @@
 import { ConflictException } from '@nestjs/common';
+import { PaymentGateway } from '../gateway/payment-gateway.service';
 import { PlanPaymentsService } from './plan-payments.service';
 
 describe('PlanPaymentsService', () => {
@@ -49,7 +50,7 @@ describe('PlanPaymentsService', () => {
     };
     service = new PlanPaymentsService(
       prisma as never,
-      chapa as never,
+      new PaymentGateway({ get: () => undefined } as never, chapa as never, {} as never),
       { get: () => 'https://web.test' } as never,
     );
   });
@@ -256,6 +257,108 @@ describe('PlanPaymentsService', () => {
     it('does nothing without open payments', async () => {
       await service.confirmRecent('u1');
       expect(chapa.paymentResult).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('through Beleqet Pay (PAYMENTS_VIA=beleqet_pay)', () => {
+    let pay: { createCheckoutSession: jest.Mock; getTransaction: jest.Mock };
+    const paid = (metadata: Record<string, unknown> = { planPaymentId: 'pay-1' }) => ({
+      txRef: 'TX-BLQ-1',
+      status: 'SUCCESS',
+      amount: '999',
+      currency: 'ETB',
+      provider: 'CHAPA',
+      livemode: false,
+      metadata: { app: 'beleqet-jobs', kind: 'plan', ...metadata },
+    });
+
+    beforeEach(() => {
+      pay = {
+        createCheckoutSession: jest.fn().mockResolvedValue({
+          txRef: 'TX-BLQ-1',
+          checkoutUrl: 'https://beleqetpay.com/v1/checkout/test/TX-BLQ-1',
+          provider: 'CHAPA',
+          livemode: false,
+        }),
+        getTransaction: jest.fn().mockResolvedValue(paid()),
+      };
+      const settings: Record<string, string> = { PAYMENTS_VIA: 'beleqet_pay' };
+      service = new PlanPaymentsService(
+        prisma as never,
+        new PaymentGateway(
+          { get: (key: string) => settings[key] } as never,
+          chapa as never,
+          pay as never,
+        ),
+        { get: () => 'https://web.test' } as never,
+      );
+    });
+
+    it("opens Pay's checkout in birr, once per payment, and keeps Pay's reference", async () => {
+      await expect(service.checkout('u1', 'pro')).resolves.toEqual({
+        paymentId: 'pay-1',
+        checkoutUrl: 'https://beleqetpay.com/v1/checkout/test/TX-BLQ-1',
+      });
+      expect(pay.createCheckoutSession).toHaveBeenCalledWith(
+        {
+          amount: '999.00',
+          currency: 'ETB',
+          customerEmail: 'emp@example.com',
+          successRedirectUrl: 'https://web.test/payment/chapa/pay-1',
+          metadata: { app: 'beleqet-jobs', kind: 'plan', planPaymentId: 'pay-1' },
+        },
+        'CHAPA-9',
+      );
+      expect(chapa.checkoutUrl).not.toHaveBeenCalled();
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'pay-1' },
+        data: { providerPaymentId: 'TX-BLQ-1' },
+      });
+    });
+
+    it("starts the plan once Pay confirms it, from Pay's event even if its reference was never saved", async () => {
+      prisma.payment.findFirst.mockResolvedValue(pending);
+      await expect(
+        service.handlePaymentEvent({ txRef: 'TX-BLQ-1', externalRef: 'pay-1', successful: true }),
+      ).resolves.toBe(true);
+      expect(pay.getTransaction).toHaveBeenCalledWith('TX-BLQ-1');
+      expect(prisma.subscription.create).toHaveBeenCalled();
+    });
+
+    it('refuses a Pay payment made for another plan payment', async () => {
+      prisma.payment.findFirst.mockResolvedValue(pending);
+      pay.getTransaction.mockResolvedValue(paid({ planPaymentId: 'someone-else' }));
+      await expect(
+        service.handlePaymentEvent({ txRef: 'TX-BLQ-1', externalRef: 'pay-1', successful: true }),
+      ).rejects.toThrow('not confirmed');
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
+    });
+
+    it('asks Pay about a Pay payment and Chapa about a Chapa one, whatever the switch says', async () => {
+      prisma.payment.findMany.mockResolvedValue([
+        { ...pending, id: 'pay-1', providerPaymentId: 'TX-BLQ-1' },
+        { ...pending, id: 'pay-2', providerPaymentId: 'CHAPA-9' },
+      ]);
+      chapa.paymentResult.mockResolvedValue({
+        state: 'pending',
+        amount: 999,
+        currency: 'ETB',
+        raw: {},
+      });
+      await service.confirmRecent('u1');
+      expect(pay.getTransaction).toHaveBeenCalledWith('TX-BLQ-1');
+      expect(chapa.paymentResult).toHaveBeenCalledWith('CHAPA-9');
+    });
+
+    it('marks a payment failed when Pay says nobody paid in time', async () => {
+      prisma.payment.findMany.mockResolvedValue([{ ...pending, providerPaymentId: 'TX-BLQ-1' }]);
+      pay.getTransaction.mockResolvedValue({ ...paid(), status: 'EXPIRED' });
+      await service.confirmRecent('u1');
+      expect(prisma.payment.updateMany).toHaveBeenCalledWith({
+        where: { id: 'pay-1', status: 'PENDING' },
+        data: { status: 'FAILED' },
+      });
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
     });
   });
 });
