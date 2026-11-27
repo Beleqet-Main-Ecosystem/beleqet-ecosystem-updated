@@ -1,130 +1,137 @@
-import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  BeleqetPayBank,
   BeleqetPayCheckoutRequest,
-  BeleqetPayCheckoutResponse,
-  BeleqetPayEscrowRequest,
-  BeleqetPayEscrowResponse,
+  BeleqetPayCheckoutSession,
   BeleqetPayTransaction,
+  BeleqetPayTransfer,
+  BeleqetPayTransferRequest,
 } from './beleqet-pay.types';
 
+/** Pay's transaction references; Chapa's are ours (CHAPA-…, E-…), so the two never mix. */
+export const isBeleqetPayRef = (reference: string | null | undefined): boolean =>
+  typeof reference === 'string' && reference.startsWith('TX-BLQ-');
+
 /**
- * HTTP client that proxies payment operations from the main Beleqet Jobs
- * backend to the standalone Beleqet Pay microservice.
- *
- * All methods throw {@link BadGatewayException} on network or protocol errors
- * so callers can rely on standard NestJS exception handling.
+ * Pay answered with an error. `payStatus` is Pay's HTTP status, or 502 when Pay couldn't be reached
+ * or answered something that wasn't JSON. Callers see a 502.
+ */
+export class BeleqetPayError extends HttpException {
+  constructor(
+    message: string,
+    readonly payStatus: number,
+  ) {
+    super(message, HttpStatus.BAD_GATEWAY);
+  }
+
+  /** Pay refused the request and nothing happened (not a conflict, rate limit or outage). */
+  get refused(): boolean {
+    return (
+      this.payStatus >= 400 &&
+      this.payStatus < 500 &&
+      this.payStatus !== 409 &&
+      this.payStatus !== 429
+    );
+  }
+}
+
+const TIMEOUT_MS = 20_000;
+
+/**
+ * Beleqet Pay, Beleqet's own payment service, which holds the Chapa account: hosted checkout,
+ * payment status, the payout bank list and payouts. On the server Jobs reaches it inside Docker
+ * (BELEQET_PAY_API_URL, http://beleqet-pay-api:4001); the key (BELEQET_PAY_SERVICE_KEY, blq_test_… or
+ * blq_live_…) decides test or live mode.
  */
 @Injectable()
 export class BeleqetPayService {
   private readonly logger = new Logger(BeleqetPayService.name);
-  private readonly baseUrl: string;
-  private readonly serviceKey: string;
 
-  constructor(private readonly config: ConfigService) {
-    this.baseUrl = (
-      this.config.get<string>('BELEQET_PAY_API_URL', 'http://localhost:4001') + '/v1'
-    ).replace(/\/v1\/v1/, '/v1'); // guard against double-prefix
+  constructor(private readonly config: ConfigService) {}
 
-    this.serviceKey = this.config.get<string>(
-      'BELEQET_PAY_SERVICE_KEY',
-      'synthetic_beleqet_pay_service_key',
-    );
+  /** True once a key is set; payments go through Pay only then (and with PAYMENTS_VIA=beleqet_pay). */
+  isConfigured(): boolean {
+    return Boolean(this.key());
   }
 
-  /**
-   * Creates a hosted checkout session in Beleqet Pay and returns the URL
-   * the user should be redirected to in order to complete payment.
-   *
-   * @param req - Checkout parameters including amount, currency and redirect URLs.
-   */
-  async createCheckoutSession(req: BeleqetPayCheckoutRequest): Promise<BeleqetPayCheckoutResponse> {
-    this.logger.debug(
-      `[checkout] amount=${req.amount} ${req.currency} provider=${req.preferredProvider ?? 'auto'}`,
-    );
-    return this.post<BeleqetPayCheckoutResponse>('/checkout/sessions', req);
+  /** A hosted checkout. The same `idempotencyKey` within 24 hours returns the same session. */
+  createCheckoutSession(
+    request: BeleqetPayCheckoutRequest,
+    idempotencyKey: string,
+  ): Promise<BeleqetPayCheckoutSession> {
+    return this.request('POST', '/checkout/sessions', request, idempotencyKey);
   }
 
-  /**
-   * Fetches the current state of a transaction from Beleqet Pay.
-   * Used by the escrow webhook processor to re-verify payment status before
-   * transitioning an escrow to FUNDED.
-   */
-  async getTransaction(txRef: string): Promise<BeleqetPayTransaction> {
-    return this.get<BeleqetPayTransaction>(`/transactions/${encodeURIComponent(txRef)}`);
+  getTransaction(txRef: string): Promise<BeleqetPayTransaction> {
+    return this.request('GET', `/transactions/${encodeURIComponent(txRef)}`);
   }
 
-  /**
-   * Creates an escrow smart-contract record in Beleqet Pay.
-   * Returns the contract ID that the main app stores alongside its own
-   * EscrowTransaction row for cross-service reconciliation.
-   */
-  async createEscrowContract(req: BeleqetPayEscrowRequest): Promise<BeleqetPayEscrowResponse> {
-    return this.post<BeleqetPayEscrowResponse>('/web3/escrow', req);
+  banks(): Promise<BeleqetPayBank[]> {
+    return this.request('GET', '/transfers/banks');
   }
 
-  // ─── private helpers ────────────────────────────────────────────────────────
-
-  private headers(): Record<string, string> {
-    return {
-      Authorization: `Bearer ${this.serviceKey}`,
-      'Content-Type': 'application/json',
-      'X-Service-Name': 'beleqet-jobs',
-    };
+  /** A payout. Sending the same reference again returns the first transfer, never a second one. */
+  createTransfer(request: BeleqetPayTransferRequest): Promise<BeleqetPayTransfer> {
+    return this.request('POST', '/transfers', request, request.reference);
   }
 
-  private async get<T>(path: string): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
+  getTransfer(reference: string): Promise<BeleqetPayTransfer> {
+    return this.request('GET', `/transfers/${encodeURIComponent(reference)}`);
+  }
+
+  private key(): string {
+    return this.config.get<string>('BELEQET_PAY_SERVICE_KEY')?.trim() ?? '';
+  }
+
+  private baseUrl(): string {
+    const url = (this.config.get<string>('BELEQET_PAY_API_URL') || 'http://beleqet-pay-api:4001')
+      .trim()
+      .replace(/\/+$/, '');
+    return url.endsWith('/v1') ? url : `${url}/v1`;
+  }
+
+  private async request<T>(
+    method: 'GET' | 'POST',
+    path: string,
+    body?: unknown,
+    idempotencyKey?: string,
+  ): Promise<T> {
+    const key = this.key();
+    if (!key) throw new BeleqetPayError('Beleqet Pay is not set up (BELEQET_PAY_SERVICE_KEY)', 502);
     let response: Response;
     try {
-      response = await fetch(url, { method: 'GET', headers: this.headers() });
-    } catch (err) {
-      this.logger.error(`[GET ${path}] Network error: ${(err as Error).message}`);
-      throw new BadGatewayException('Beleqet Pay microservice is unreachable');
-    }
-    return this.parse<T>(response, `GET ${path}`);
-  }
-
-  private async post<T>(path: string, body: unknown): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: this.headers(),
-        body: JSON.stringify(body),
+      response = await fetch(`${this.baseUrl()}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (err) {
-      this.logger.error(`[POST ${path}] Network error: ${(err as Error).message}`);
-      throw new BadGatewayException('Beleqet Pay microservice is unreachable');
+      this.logger.warn(`${method} ${path}: Beleqet Pay unreachable: ${(err as Error).message}`);
+      throw new BeleqetPayError('Beleqet Pay is unreachable', 502);
     }
-    return this.parse<T>(response, `POST ${path}`);
-  }
 
-  private async parse<T>(response: Response, label: string): Promise<T> {
     const text = await response.text();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let payload: any;
-
+    let payload: unknown;
     try {
       payload = text ? JSON.parse(text) : {};
     } catch {
-      throw new BadGatewayException({
-        message: 'Beleqet Pay returned a non-JSON response',
-        statusCode: response.status,
-        body: text.slice(0, 500),
-      });
+      throw new BeleqetPayError(`Beleqet Pay answered HTTP ${response.status} without JSON`, 502);
     }
-
     if (!response.ok) {
-      this.logger.error(`[${label}] HTTP ${response.status}: ${text.slice(0, 300)}`);
-      throw new BadGatewayException({
-        message: payload?.message ?? `Beleqet Pay request failed (HTTP ${response.status})`,
-        statusCode: response.status,
-        provider: payload,
-      });
+      const message = (payload as { message?: unknown }).message;
+      const said = Array.isArray(message) ? message.join(', ') : String(message ?? '');
+      this.logger.warn(`${method} ${path}: HTTP ${response.status} ${said}`);
+      throw new BeleqetPayError(
+        said || `Beleqet Pay answered HTTP ${response.status}`,
+        response.status,
+      );
     }
-
     return payload as T;
   }
 }
