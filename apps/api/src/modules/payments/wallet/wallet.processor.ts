@@ -66,6 +66,8 @@ type WithdrawalClaim =
 const WITHDRAWAL_PENDING = 'WITHDRAWAL_PENDING';
 const WITHDRAWAL_PROCESSING = 'WITHDRAWAL_PROCESSING';
 const WITHDRAWAL_SUBMITTED = 'WITHDRAWAL_SUBMITTED';
+/** Beleqet Pay holds it until its Chapa balance covers it, or gives it back after the date in the note. */
+const WITHDRAWAL_WAITING = 'WITHDRAWAL_WAITING';
 const WITHDRAWAL_FAILED = 'WITHDRAWAL_FAILED';
 /** Beleqet Pay confirmed the money reached the bank or wallet (Chapa payouts stop at SUBMITTED). */
 const WITHDRAWAL_PAID = 'WITHDRAWAL_PAID';
@@ -312,11 +314,25 @@ export class WalletProcessor extends WorkerHost {
       if (note.includes(WITHDRAWAL_PAID) || note.includes(WITHDRAWAL_FAILED)) return null;
 
       if (outcome.state === 'pending') {
-        if (!note.includes(WITHDRAWAL_SUBMITTED)) {
+        // Only "sent" once Pay has really handed it to Chapa; a waiting one never goes back.
+        const via = method ?? outcome.bankName ?? 'your bank';
+        if (outcome.sent && !note.includes(WITHDRAWAL_SUBMITTED)) {
           await tx.walletTransaction.update({
             where: { id: withdrawalTxId },
             data: {
-              note: `${WITHDRAWAL_SUBMITTED} - Withdrawal via ${method ?? outcome.bankName ?? 'your bank'} - sent through Beleqet Pay (${outcome.providerRef})`,
+              note: `${WITHDRAWAL_SUBMITTED} - Withdrawal via ${via} - sent through Beleqet Pay (${outcome.providerRef})`,
+            },
+          });
+        } else if (
+          !outcome.sent &&
+          !note.includes(WITHDRAWAL_SUBMITTED) &&
+          !note.includes(WITHDRAWAL_WAITING)
+        ) {
+          const until = outcome.sendBy ? ` until ${new Date(outcome.sendBy).toISOString()}` : '';
+          await tx.walletTransaction.update({
+            where: { id: withdrawalTxId },
+            data: {
+              note: `${WITHDRAWAL_WAITING} - Withdrawal via ${via} - waiting at Beleqet Pay${until} (${outcome.providerRef})`,
             },
           });
         }

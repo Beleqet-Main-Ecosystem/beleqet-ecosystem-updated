@@ -139,6 +139,8 @@ describe('PaymentGateway', () => {
     pay.createTransfer.mockResolvedValue({
       transferRef: 'TR-BLQ-1',
       status: 'PENDING',
+      submittedAt: '2026-11-27T10:00:00.000Z',
+      sendBy: null,
       destination: { bankName: 'telebirr' },
     });
     await expect(
@@ -149,7 +151,13 @@ describe('PaymentGateway', () => {
         accountNumber: '0911223344',
         accountName: 'Abebe Kebede',
       }),
-    ).resolves.toEqual({ state: 'pending', providerRef: 'TR-BLQ-1', bankName: 'telebirr' });
+    ).resolves.toEqual({
+      state: 'pending',
+      providerRef: 'TR-BLQ-1',
+      bankName: 'telebirr',
+      sent: true,
+      sendBy: null,
+    });
     expect(pay.createTransfer).toHaveBeenCalledWith({
       reference: 'wd_1',
       amount: '1500.00',
@@ -159,6 +167,18 @@ describe('PaymentGateway', () => {
       narration: 'Beleqet Jobs withdrawal',
     });
 
+    // Not handed to Chapa yet: waiting for Pay's Chapa balance until sendBy.
+    pay.getTransfer.mockResolvedValue({
+      transferRef: 'TR-BLQ-1',
+      status: 'PENDING',
+      submittedAt: null,
+      sendBy: '2026-11-30T10:00:00.000Z',
+    });
+    await expect(gateway.payoutStatus('wd_1')).resolves.toMatchObject({
+      state: 'pending',
+      sent: false,
+      sendBy: '2026-11-30T10:00:00.000Z',
+    });
     pay.getTransfer.mockResolvedValue({ transferRef: 'TR-BLQ-1', status: 'SUCCEEDED' });
     await expect(gateway.payoutStatus('wd_1')).resolves.toMatchObject({ state: 'paid' });
     pay.getTransfer.mockResolvedValue({
